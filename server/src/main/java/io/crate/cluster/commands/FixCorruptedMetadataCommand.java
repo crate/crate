@@ -29,8 +29,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
@@ -43,10 +41,11 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.execution.ddl.Templates;
@@ -279,7 +278,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
             if (fixedRelationName != null) {
                 fixedMetadata.removeTemplate(e.key);
                 // in case of duplicate keys, name-fixed templates overwrite
-                fixedMetadata.put(Templates.copyWithNewName(e.value, fixedRelationName).build());
+                fixedMetadata.put(Templates.withName(e.value, fixedRelationName).build());
             } else {
                 // in case of duplicate keys, do not overwrite
                 if (fixedMetadata.getTemplate(e.key) == null) {

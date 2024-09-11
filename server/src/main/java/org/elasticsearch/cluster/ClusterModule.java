@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
-import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.routing.DelayedAllocationService;
@@ -279,7 +278,6 @@ public class ClusterModule extends AbstractModule {
         bind(NodeConnectionsService.class).asEagerSingleton();
         bind(MetadataDeleteIndexService.class).asEagerSingleton();
         bind(MetadataUpdateSettingsService.class).asEagerSingleton();
-        bind(MetadataIndexTemplateService.class).asEagerSingleton();
         bind(DelayedAllocationService.class).asEagerSingleton();
         bind(ShardStateAction.class).asEagerSingleton();
         bind(AllocationDeciders.class).toInstance(allocationDeciders);

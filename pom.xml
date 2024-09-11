@@ -318,7 +318,7 @@
     <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.112.Final</versions.netty>
+    <versions.netty>4.1.113.Final</versions.netty>
     <versions.lucene>9.11.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
@@ -395,6 +395,7 @@
     <module>libs/guice</module>
     <module>libs/sql-parser</module>
     <module>libs/pgwire</module>
+    <module>libs/azure-testing</module>
     <module>server</module>
     <module>plugins/es-analysis-common</module>
     <module>plugins/es-analysis-phonetic</module>

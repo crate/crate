@@ -107,6 +107,7 @@ public class MetadataCreateIndexService {
 
     public static final int MAX_INDEX_NAME_BYTES = 255;
 
+    private final NodeContext nodeContext;
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
@@ -117,16 +118,17 @@ public class MetadataCreateIndexService {
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
 
-    public MetadataCreateIndexService(
-            final Settings settings,
-            final ClusterService clusterService,
-            final IndicesService indicesService,
-            final AllocationService allocationService,
-            final ShardLimitValidator shardLimitValidator,
-            final Environment env,
-            final IndexScopedSettings indexScopedSettings,
-            final ThreadPool threadPool,
-            final boolean forbidPrivateIndexSettings) {
+    public MetadataCreateIndexService(NodeContext nodeContext,
+                                      Settings settings,
+                                      ClusterService clusterService,
+                                      IndicesService indicesService,
+                                      AllocationService allocationService,
+                                      ShardLimitValidator shardLimitValidator,
+                                      Environment env,
+                                      IndexScopedSettings indexScopedSettings,
+                                      ThreadPool threadPool,
+                                      boolean forbidPrivateIndexSettings) {
+        this.nodeContext = nodeContext;
         this.settings = settings;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
@@ -202,11 +204,10 @@ public class MetadataCreateIndexService {
      * @param createTableRequest carries CrateDB specific objects to create mapping if request param above has NULL mapping. Null if used in resize.
      * @param listener the listener on which to send the index creation cluster state update response
      */
-    public void createIndex(final NodeContext nodeContext,
-                            @Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
+    public void createIndex(@Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
                             @Nullable final CreateTableRequest createTableRequest,
                             final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
-        onlyCreateIndex(nodeContext, request, createTableRequest, ActionListener.wrap(response -> {
+        onlyCreateIndex(request, createTableRequest, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
                 activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
                     shardsAcknowledged -> {
@@ -225,8 +226,7 @@ public class MetadataCreateIndexService {
         }, listener::onFailure));
     }
 
-    private void onlyCreateIndex(final NodeContext nodeContext,
-                                 @Deprecated final CreateIndexClusterStateUpdateRequest request,
+    private void onlyCreateIndex(@Deprecated final CreateIndexClusterStateUpdateRequest request,
                                  @Nullable final CreateTableRequest createTableRequest,
                                  final ActionListener<ClusterStateUpdateResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
