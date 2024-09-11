@@ -21,22 +21,19 @@
 
 package io.crate.execution.ddl.tables;
 
-import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
-import java.util.HashSet;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -130,86 +127,59 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     }
 
     @Override
-    protected void masterOperation(final CreateTableRequest createTableRequest,
-                                   final ClusterState state,
-                                   final ActionListener<CreateTableResponse> listener) {
-        final RelationName relationName = createTableRequest.getTableName();
+    protected void masterOperation(CreateTableRequest request,
+                                   ClusterState state,
+                                   ActionListener<CreateTableResponse> listener) {
+        final RelationName relationName = request.getTableName();
         if (state.metadata().contains(relationName)) {
             listener.onFailure(new RelationAlreadyExists(relationName));
             return;
         }
 
-        validateSettings(createTableRequest.settings(), state);
+        Settings.Builder settingsBuilder = Settings.builder()
+            .put(request.settings())
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
 
-        if (createTableRequest.partitionedBy().isEmpty()) {
-            createIndex(createTableRequest, listener);
-            return;
-        }
+        setIndexVersionCreatedSetting(settingsBuilder, state);
+        Settings normalizedSettings = settingsBuilder.build();
 
-        Settings normalizedSettings = Settings.builder()
-            .put(createTableRequest.settings())
-            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
-            .build();
-
+        validateSoftDeletesSetting(normalizedSettings);
         indexScopedSettings.validate(normalizedSettings, true);
 
-        var createTableTask = new AckedClusterStateUpdateTask<>(Priority.URGENT, createTableRequest, listener) {
+        boolean isPartitioned = !request.partitionedBy().isEmpty();
+        ActionListener<ClusterStateUpdateResponse> stateUpdateListener;
+        if (isPartitioned) {
+            stateUpdateListener = listener.map(resp -> new CreateTableResponse(resp.isAcknowledged()));
+        } else {
+            stateUpdateListener = createIndexService.withWaitForShards(
+                listener,
+                relationName.indexNameOrAlias(),
+                ActiveShardCount.DEFAULT,
+                request.ackTimeout(),
+                (stateAck, shardsAck) -> new CreateTableResponse(stateAck && shardsAck)
+            );
+        }
+        var createTableTask = new AckedClusterStateUpdateTask<>(Priority.URGENT, request, stateUpdateListener) {
 
             @Override
-            protected CreateTableResponse newResponse(boolean acknowledged) {
-                return new CreateTableResponse(acknowledged);
+            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                return new ClusterStateUpdateResponse(acknowledged);
             }
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                return Templates.add(
-                    indicesService,
-                    createIndexService,
-                    currentState,
-                    createTableRequest,
-                    normalizedSettings
-                );
+                if (isPartitioned) {
+                    return Templates.add(
+                        indicesService,
+                        createIndexService,
+                        currentState,
+                        request,
+                        normalizedSettings
+                    );
+                }
+                return createIndexService.add(currentState, request, normalizedSettings);
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);
-    }
-
-    /**
-     * Similar to {@link TransportCreateIndexAction#masterOperation}
-     * but also can pass on CrateDB specific objects to build mapping only at the latest stage.
-     *
-     * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
-     * or NULL if we have to build it and assign OID out of references.
-     */
-    private void createIndex(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener) {
-        ActionListener<CreateIndexResponse> wrappedListener = ActionListener.wrap(
-            response -> listener.onResponse(new CreateTableResponse(response.isShardsAcknowledged())),
-            listener::onFailure
-        );
-        String cause = "api"; // Before we used CreateIndexRequest with an empty cause which turned into "api".
-
-        final String indexName = createTableRequest.getTableName().indexNameOrAlias(); // getTableName call is BWC.
-        final CreateIndexClusterStateUpdateRequest updateRequest = new CreateIndexClusterStateUpdateRequest(
-            cause, indexName, indexName)
-            .ackTimeout(DEFAULT_ACK_TIMEOUT) // Before we used CreateIndexRequest with default ack timeout.
-            .masterNodeTimeout(createTableRequest.masterNodeTimeout())
-            .settings(createTableRequest.settings())
-            .aliases(new HashSet<>()) // Before we used CreateIndexRequest with an empty set, it's changed only on resizing indices.
-            .waitForActiveShards(ActiveShardCount.DEFAULT); // Before we used CreateIndexRequest with default active shards count, it's changed only on resizing indices.
-
-        createIndexService.createIndex(
-            updateRequest,
-            createTableRequest,
-            wrappedListener.map(response ->
-                new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName))
-        );
-
-    }
-
-    private static void validateSettings(Settings settings, ClusterState state) {
-        var indexSettingsBuilder = Settings.builder();
-        indexSettingsBuilder.put(settings);
-        setIndexVersionCreatedSetting(indexSettingsBuilder, state);
-        validateSoftDeletesSetting(indexSettingsBuilder.build());
     }
 }

@@ -83,7 +83,7 @@ public final class Templates {
         String templatePrefix = PartitionName.templatePrefix(relationName.schema(), relationName.name());
         Alias alias = new Alias(relationName.indexNameOrAlias());
 
-        validate(metadataIndexService, templateName, templatePrefix, settings, alias);
+        validate(metadataIndexService, templateName, templatePrefix, request.settings(), alias);
 
         final String temporaryIndexName = UUIDs.randomBase64UUID();
 
