@@ -213,7 +213,7 @@ public class SwapRelationsOperation {
             routingBuilder.addAsFromCloseToOpen(targetMd);
         }
         if (sourceTemplate != null) {
-            IndexTemplateMetadata.Builder templateBuilder = Templates.copyWithNewName(sourceTemplate, target);
+            IndexTemplateMetadata.Builder templateBuilder = Templates.withName(sourceTemplate, target);
             updatedMetadata.put(templateBuilder);
         }
     }

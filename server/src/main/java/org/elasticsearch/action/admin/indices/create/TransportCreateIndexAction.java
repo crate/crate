@@ -33,25 +33,20 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.metadata.NodeContext;
-
 /**
  * Create index action.
  */
 public class TransportCreateIndexAction extends TransportMasterNodeAction<CreateIndexRequest, CreateIndexResponse> {
 
     private final MetadataCreateIndexService createIndexService;
-    private final NodeContext nodeContext;
 
     @Inject
     public TransportCreateIndexAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      MetadataCreateIndexService createIndexService,
-                                      NodeContext nodeContext) {
+                                      MetadataCreateIndexService createIndexService) {
         super(CreateIndexAction.NAME, transportService, clusterService, threadPool, CreateIndexRequest::new);
         this.createIndexService = createIndexService;
-        this.nodeContext = nodeContext;
     }
 
     @Override
@@ -89,7 +84,6 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
                 .waitForActiveShards(request.waitForActiveShards());
 
         createIndexService.createIndex(
-            nodeContext,
             updateRequest,
             null,
             listener.map(response ->

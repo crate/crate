@@ -153,7 +153,7 @@ public class RenameTableClusterStateExecutor {
     private static void renameTemplate(Metadata.Builder newMetadata,
                                        IndexTemplateMetadata sourceTemplateMetadata,
                                        RelationName target) {
-        IndexTemplateMetadata.Builder updatedTemplate = Templates.copyWithNewName(sourceTemplateMetadata, target);
+        IndexTemplateMetadata.Builder updatedTemplate = Templates.withName(sourceTemplateMetadata, target);
         newMetadata
             .removeTemplate(sourceTemplateMetadata.name())
             .put(updatedTemplate);

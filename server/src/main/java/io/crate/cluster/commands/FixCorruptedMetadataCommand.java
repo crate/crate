@@ -279,7 +279,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
             if (fixedRelationName != null) {
                 fixedMetadata.removeTemplate(e.key);
                 // in case of duplicate keys, name-fixed templates overwrite
-                fixedMetadata.put(Templates.copyWithNewName(e.value, fixedRelationName).build());
+                fixedMetadata.put(Templates.withName(e.value, fixedRelationName).build());
             } else {
                 // in case of duplicate keys, do not overwrite
                 if (fixedMetadata.getTemplate(e.key) == null) {
