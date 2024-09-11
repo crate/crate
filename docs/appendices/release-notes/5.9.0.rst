@@ -124,6 +124,9 @@ SQL Standard and PostgreSQL Compatibility
 - `Martin Stein <https://github.com/marstein>`_ added support for the
   IS DISTINCT FROM operator. The operator is not yet optimized for Lucene queries.
 
+- Added Azure Blob Storage support to the :ref:`COPY FROM <sql-copy-from>` and
+  :ref:`COPY TO <sql-copy-to>` statements.
+
 Data Types
 ----------
 
