@@ -87,12 +87,11 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     public static RelationName fromIndexName(String indexName) {
-        IndexParts indexParts = new IndexParts(indexName);
-        return indexParts.toRelationName();
+        return IndexName.decode(indexName).toRelationName();
     }
 
     public static String fqnFromIndexName(String indexName) {
-        return new IndexParts(indexName).toFullyQualifiedName();
+        return IndexName.decode(indexName).toFullyQualifiedName();
     }
 
     public RelationName(StreamInput in) throws IOException {

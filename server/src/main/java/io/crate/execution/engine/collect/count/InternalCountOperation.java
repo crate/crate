@@ -56,7 +56,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -98,7 +98,7 @@ public class InternalCountOperation implements CountOperation {
             String indexName = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);
@@ -124,7 +124,7 @@ public class InternalCountOperation implements CountOperation {
         try {
             indexService = indicesService.indexServiceSafe(index);
         } catch (IndexNotFoundException e) {
-            if (IndexParts.isPartitioned(index.getName())) {
+            if (IndexName.isPartitioned(index.getName())) {
                 return CompletableFuture.completedFuture(() -> 0L);
             } else {
                 return CompletableFuture.failedFuture(e);
@@ -166,7 +166,7 @@ public class InternalCountOperation implements CountOperation {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (IllegalIndexShardStateException e) {
-            if (IndexParts.isPartitioned(e.getIndex().getName())) {
+            if (IndexName.isPartitioned(e.getIndex().getName())) {
                 return 0L;
             }
             throw e;

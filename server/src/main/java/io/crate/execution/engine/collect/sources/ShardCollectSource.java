@@ -94,7 +94,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
@@ -315,7 +315,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             String indexName = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 } else {
                     throw new IndexNotFoundException(indexName);
@@ -338,7 +338,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                         )).exceptionally(err -> {
                             err = SQLExceptions.unwrap(err);
                             if (err instanceof IndexNotFoundException notFound
-                                    && IndexParts.isPartitioned(notFound.getIndex().getName())) {
+                                    && IndexName.isPartitioned(notFound.getIndex().getName())) {
                                 return OrderedDocCollector.empty(notFound.getShardId());
                             }
                             throw Exceptions.toRuntimeException(err);
@@ -347,7 +347,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (IndexParts.isPartitioned(indexName)) {
+                    if (IndexName.isPartitioned(indexName)) {
                         break;
                     }
                     throw e;
@@ -388,7 +388,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                                                                               boolean requiresScroll) {
         err = SQLExceptions.unwrap(err);
         if (err instanceof IndexNotFoundException) {
-            if (IndexParts.isPartitioned(shardId.getIndexName())) {
+            if (IndexName.isPartitioned(shardId.getIndexName())) {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);
@@ -422,7 +422,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             String indexName = entry.getKey();
             IndexMetadata indexMD = metadata.index(indexName);
             if (indexMD == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);

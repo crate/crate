@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static io.crate.metadata.IndexParts.toIndexName;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Collections;
@@ -46,6 +45,8 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
+
+import io.crate.metadata.IndexName;
 
 
 /**
@@ -171,7 +172,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         isolateAllNodes.stopDisrupting();
 
         final ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        if (state.metadata().hasIndex(toIndexName(sqlExecutor.getCurrentSchema(), "t", null)) == false) {
+        if (state.metadata().hasIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null)) == false) {
             fail("index 'test' was lost. current cluster state: " + state);
         }
 

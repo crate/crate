@@ -21,9 +21,11 @@
 
 package io.crate.metadata.shard.unassigned;
 
-import io.crate.metadata.IndexParts;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
+
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 
 /**
  * This class represents an unassigned shard
@@ -85,10 +87,10 @@ public final class UnassignedShard {
                            ClusterService clusterService,
                            Boolean primary,
                            ShardRoutingState state) {
-        IndexParts indexParts = new IndexParts(indexName);
-        this.schemaName = indexParts.getSchema();
-        this.tableName = indexParts.getTable();
-        this.partitionIdent = indexParts.getPartitionIdent();
+        IndexParts indexParts = IndexName.decode(indexName);
+        this.schemaName = indexParts.schema();
+        this.tableName = indexParts.table();
+        this.partitionIdent = indexParts.partitionIdent();
         this.orphanedPartition = indexParts.isPartitioned()
                                  && !clusterService.state().metadata().hasConcreteIndex(tableName);
         this.primary = primary;

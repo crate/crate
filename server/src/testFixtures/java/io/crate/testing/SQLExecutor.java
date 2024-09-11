@@ -142,6 +142,7 @@ import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
@@ -649,8 +650,8 @@ public class SQLExecutor {
     }
 
     public <T extends RelationInfo> T resolveTableInfo(String tableName) {
-        IndexParts indexParts = new IndexParts(tableName);
-        QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
+        IndexParts indexParts = IndexName.decode(tableName);
+        QualifiedName qualifiedName = QualifiedName.of(indexParts.schema(), indexParts.table());
         return schemas.findRelation(
             qualifiedName,
             Operation.READ,
@@ -819,7 +820,7 @@ public class SQLExecutor {
     public SQLExecutor startShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = new IndexParts(index).toRelationName().indexNameOrAlias();
+            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
             final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
             clusterState = allocationService.applyStartedShards(clusterState, startedShards);
         }

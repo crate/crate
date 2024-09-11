@@ -85,7 +85,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
@@ -1057,7 +1057,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
             }
             var indexNumberOfShards = numberOfShards;
-            if (isPartitioned && IndexParts.isPartitioned(indexName)) {
+            if (isPartitioned && IndexName.isPartitioned(indexName)) {
                 // if the index is a part of a partitioned table,
                 // the actual value of the index must be used as the value for the whole partitioned table may have changed
                 indexNumberOfShards = indexMetadata.getNumberOfShards();

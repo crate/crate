@@ -29,8 +29,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
@@ -43,13 +41,15 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.execution.ddl.Templates;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -199,7 +199,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         String indexName = indexMetadata.getIndex().getName();
         String[] indexParts = indexName.split("\\.");
         MappingMetadata mappingMetadata = indexMetadata.mapping();
-        if (mappingMetadata != null && !IndexParts.isPartitioned(indexName) && indexParts.length == 2) {
+        if (mappingMetadata != null && !IndexName.isPartitioned(indexName) && indexParts.length == 2) {
             Map<String, Object> metaMap = Maps.get(mappingMetadata.sourceAsMap(), "_meta");
             if (metaMap != null && metaMap.containsKey("partitioned_by")) {
                 List<List<String>> partitionedByColumns = Maps.get(metaMap, "partitioned_by");
@@ -317,12 +317,12 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     static String fixIndexName(@NotNull String indexName) {
         if (indexName.startsWith(".partitioned")) {
             try {
-                new IndexParts(indexName);
+                IndexName.decode(indexName);
             } catch (IllegalArgumentException e) {
                 String[] indexParts = indexName.split("\\.");
                 // handles exceptions thrown by 'case 5' of IndexParts ctor only: ex) .partitioned.m5.s5.042n8sjlck -> m5..partitioned.s5.042n8sjlck
                 if (indexParts.length == 5) {
-                    return IndexParts.toIndexName(indexParts[2], indexParts[3], indexParts[4]);
+                    return IndexName.encode(indexParts[2], indexParts[3], indexParts[4]);
                 }
             }
         }

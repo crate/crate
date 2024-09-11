@@ -25,6 +25,8 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.indices.InvalidAliasNameException;
 
+import io.crate.metadata.IndexName;
+
 
 /**
  * Validator for an alias, to be used before adding an alias to the index metadata
@@ -63,6 +65,6 @@ public final class AliasValidator {
         if (!Strings.hasText(alias)) {
             throw new IllegalArgumentException("alias name is required");
         }
-        MetadataCreateIndexService.validateIndexOrAliasName(alias, InvalidAliasNameException::new);
+        IndexName.validate(alias, InvalidAliasNameException::new);
     }
 }
