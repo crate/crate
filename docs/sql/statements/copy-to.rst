@@ -306,8 +306,8 @@ For example:
     TO DIRECTORY 'azblob://dir1/dir2'
     WITH (
         container = 'container',
-        account_name = 'account_name',
-        account_key = 'account_key',
+        account = 'account_name',
+        key = 'account_key',
         endpoint = 'endpoint'
     )
 
