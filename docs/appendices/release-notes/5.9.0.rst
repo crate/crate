@@ -159,6 +159,11 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added support to override ``routing.allocation.*`` cluster settings
+  with a ``routing.allocation.*`` table setting. This can be used to define the
+  default routing behavior for all tables with a cluster setting and reroute
+  individual tables by assigning the table setting using ``ALTER TABLE SET``.
+
 - Added support to set :ref:`session settings <conf-session>` to a user via
   :ref:`ALTER ROLE <ref-alter-role>` statement. For details and examples see:
   :ref:`here <administration_user_management_alter_user>`.
