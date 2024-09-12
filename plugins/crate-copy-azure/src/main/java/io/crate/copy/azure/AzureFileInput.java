@@ -58,6 +58,7 @@ public class AzureFileInput implements FileInput {
     private final Map<String, String> config;
     private final URI uri;
     private final GlobPredicate uriPredicate;
+    @Nullable
     private final String preGlobPath;
     private final Operator operator;
     private final SharedAsyncExecutor sharedAsyncExecutor;
