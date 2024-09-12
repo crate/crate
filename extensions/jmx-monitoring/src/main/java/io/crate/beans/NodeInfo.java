@@ -34,7 +34,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.common.collections.Tuple;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 public class NodeInfo implements NodeInfoMXBean {
 
@@ -97,12 +97,12 @@ public class NodeInfo implements NodeInfoMXBean {
             if (localNodeId.equals(shardRouting.currentNodeId())) {
                 var shardStateAndSize = shardStateAndSizeProvider.apply(shardId);
                 if (shardStateAndSize != null) {
-                    var indexParts = new IndexParts(shardId.getIndexName());
+                    var indexParts = IndexName.decode(shardId.getIndexName());
                     result.add(new ShardInfo(
                         shardId.id(),
-                        indexParts.getSchema(),
-                        indexParts.getTable(),
-                        indexParts.getPartitionIdent(),
+                        indexParts.schema(),
+                        indexParts.table(),
+                        indexParts.partitionIdent(),
                         shardRouting.state().name(),
                         shardStateAndSize.v1().name(),
                         shardStateAndSize.v2())
@@ -115,7 +115,7 @@ public class NodeInfo implements NodeInfoMXBean {
 
     private static Iterable<ShardRouting> shardsForOpenIndices(ClusterState clusterState) {
         var concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
-            .filter(index -> !IndexParts.isDangling(index))
+            .filter(index -> !IndexName.isDangling(index))
             .toArray(String[]::new);
         return clusterState.routingTable().allShards(concreteIndices);
     }

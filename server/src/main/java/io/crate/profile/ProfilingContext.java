@@ -33,7 +33,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.profile.ProfileResult;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -70,11 +70,11 @@ public class ProfilingContext {
 
     private static Map<String, Object> resultAsMap(ShardId shardId, ProfileResult profileResult) {
         TreeMap<String, Object> queryTimingsBuilder = new TreeMap<>();
-        var indexParts = new IndexParts(shardId.getIndexName());
-        queryTimingsBuilder.put("SchemaName", indexParts.getSchema());
-        queryTimingsBuilder.put("TableName", indexParts.getTable());
+        var indexParts = IndexName.decode(shardId.getIndexName());
+        queryTimingsBuilder.put("SchemaName", indexParts.schema());
+        queryTimingsBuilder.put("TableName", indexParts.table());
         if (indexParts.isPartitioned()) {
-            queryTimingsBuilder.put("PartitionIdent", indexParts.getPartitionIdent());
+            queryTimingsBuilder.put("PartitionIdent", indexParts.partitionIdent());
         }
         queryTimingsBuilder.put("ShardId", shardId.id());
         queryTimingsBuilder.put("QueryName", profileResult.getQueryName());

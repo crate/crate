@@ -105,7 +105,6 @@ import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
-import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -128,6 +127,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -379,13 +379,13 @@ public class ProjectionToProjectorVisitor
             SymbolEvaluator.evaluate(context.txnCtx, nodeCtx, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
         assert shardId != null : "ShardId must be set to use WriterProjection";
-        IndexParts indexParts = new IndexParts(shardId.getIndexName());
+        IndexParts indexParts = IndexName.decode(shardId.getIndexName());
         String fileName = String.format(
             Locale.ENGLISH,
             "%s_%s_%s.json",
-            indexParts.getTable(),
+            indexParts.table(),
             shardId.id(),
-            indexParts.getPartitionIdent()
+            indexParts.partitionIdent()
         );
 
         StringBuilder sb = new StringBuilder(uri);
@@ -420,7 +420,7 @@ public class ProjectionToProjectorVisitor
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
-            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
         DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
@@ -513,7 +513,7 @@ public class ProjectionToProjectorVisitor
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
-            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),

@@ -29,7 +29,7 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 public class RolePrivileges implements Iterable<Privilege> {
 
@@ -91,7 +91,7 @@ public class RolePrivileges implements Iterable<Privilege> {
             case TABLE:
                 resolution = hasAnyTablePrivilege(ident);
                 if (resolution == Policy.REVOKE) {
-                    String schemaIdent = new IndexParts(ident).getSchema();
+                    String schemaIdent = IndexName.decode(ident).schema();
                     resolution = hasAnySchemaPrivilege(schemaIdent);
                     if (resolution == Policy.REVOKE) {
                         resolution = hasAnyClusterPrivilege();
@@ -101,7 +101,7 @@ public class RolePrivileges implements Iterable<Privilege> {
             case VIEW:
                 resolution = hasAnyViewPrivilege(ident);
                 if (resolution == Policy.REVOKE) {
-                    String schemaIdent = new IndexParts(ident).getSchema();
+                    String schemaIdent = IndexName.decode(ident).schema();
                     resolution = hasAnySchemaPrivilege(schemaIdent);
                     if (resolution == Policy.REVOKE) {
                         resolution = hasAnyClusterPrivilege();
@@ -128,7 +128,7 @@ public class RolePrivileges implements Iterable<Privilege> {
                     break;
                 case TABLE, VIEW:
                     if (ident != null) {
-                        String schemaIdent = new IndexParts(ident).getSchema();
+                        String schemaIdent = IndexName.decode(ident).schema();
                         foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.SCHEMA, schemaIdent));
                         if (foundPrivilege == null) {
                             foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));

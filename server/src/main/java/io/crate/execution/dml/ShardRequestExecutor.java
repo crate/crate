@@ -50,7 +50,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
@@ -157,7 +157,7 @@ public class ShardRequestExecutor<Req> {
             if (partitionValues == null) {
                 indexName = table.ident().indexNameOrAlias();
             } else {
-                indexName = IndexParts.toIndexName(table.ident(), PartitionName.encodeIdent(partitionValues));
+                indexName = IndexName.encode(table.ident(), PartitionName.encodeIdent(partitionValues));
             }
             final ShardId shardId;
             try {

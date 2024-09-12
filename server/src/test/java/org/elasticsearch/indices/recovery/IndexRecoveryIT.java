@@ -24,6 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -121,7 +122,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
 public class IndexRecoveryIT extends IntegTestCase {
@@ -272,7 +273,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> request recoveries");
-        var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
+        var indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
         assertThat(response.shardRecoveryStates()).hasSize(SHARD_COUNT);
         assertThat(response.shardRecoveryStates().get(indexName)).hasSize(1);
@@ -315,7 +316,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final int numOfDocs = scaledRandomIntBetween(1, 200);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
             sqlExecutor.getCurrentSchema(),
-            IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null),
+            IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null),
             "data",
             sqlExecutor.jdbcUrl(),
             numOfDocs,
@@ -339,7 +340,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("SELECT * FROM sys.shards WHERE table_name = '" + INDEX_NAME + "'");
         assertThat(response).hasRowCount(2L);
 
-        var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
+        var indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         final RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         // we should now have two total shards, one primary and one replica
@@ -416,7 +417,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     phase1ReadyBlocked.await();
                     // nodeB stopped, peer recovery from nodeA to nodeC, it will be cancelled after nodeB get started.
-                    var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
+                    var indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
                     RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
                     List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
                     List<RecoveryState> nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
@@ -470,7 +471,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("ALTER TABLE " + INDEX_NAME + " REROUTE MOVE SHARD 0 FROM '" + nodeA + "' TO '" + nodeB + "'");
 
         logger.info("--> waiting for recovery to start both on source and target");
-        final Index index = resolveIndex(IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
         assertBusy(() -> {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeA);
             assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource())
@@ -658,7 +659,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         SnapshotId snapshotId = new SnapshotId(SNAP_NAME, uuid);
 
         logger.info("--> request recoveries");
-        var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
+        var indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         Repository repository = cluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
@@ -954,7 +955,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testDisconnectsDuringRecovery() throws Exception {
         boolean primaryRelocation = randomBoolean();
-        final String indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), "test", null);
+        final String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "test", null);
         final Settings nodeSettings = Settings.builder()
             .put(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING.getKey(),
                  TimeValue.timeValueMillis(randomIntBetween(0, 100)))
@@ -1083,7 +1084,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     public void testHistoryRetention() throws Exception {
         cluster().startNodes(3);
 
-        final String indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), "test", null);
+        final String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "test", null);
         execute("CREATE TABLE test (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
                 " number_of_replicas=2," +

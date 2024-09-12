@@ -23,6 +23,7 @@ package io.crate.integrationtests.disruption.routing;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -57,7 +58,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Sets;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @IntegTestCase.Slow
@@ -76,7 +77,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
     @Before
     public void setupIndexNameAndSchemaForTableT() {
         schema = sqlExecutor.getCurrentSchema();
-        indexName = IndexParts.toIndexName(schema, "t", null);
+        indexName = IndexName.encode(schema, "t", null);
     }
 
     private Settings createStaleReplicaScenario(String master, String schema, String indexName) throws Exception {

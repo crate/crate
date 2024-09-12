@@ -44,9 +44,9 @@ public class SysSegmentsTableInfo {
     @SuppressWarnings("unchecked")
     public static SystemTable<ShardSegment> create(Supplier<DiscoveryNode> localNode) {
         return SystemTable.<ShardSegment>builder(IDENT)
-            .add("table_schema", STRING, r -> r.getIndexParts().getSchema())
-            .add("table_name", STRING, r -> r.getIndexParts().getTable())
-            .add("partition_ident", STRING, r -> r.getIndexParts().getPartitionIdent())
+            .add("table_schema", STRING, r -> r.getIndexParts().schema())
+            .add("table_name", STRING, r -> r.getIndexParts().table())
+            .add("partition_ident", STRING, r -> r.getIndexParts().partitionIdent())
             .add("shard_id", INTEGER, ShardSegment::getShardId)
             .startObject("node")
                 .add("id", STRING, ignored -> localNode.get().getId())

@@ -173,7 +173,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_explain_analyze_query_execution_contains_shard_and_partition_information() {
-        execute("CREATE TABLE my_schema.parted (id int, p int) PARTITIONED BY (p)");
+        execute("CREATE TABLE my_schema.parted (id int, p int) PARTITIONED BY (p) with (number_of_replicas = 0)");
         execute("INSERT INTO my_schema.parted (id, p) VALUES (1, 0)");
         execute("EXPLAIN ANALYZE SELECT * FROM my_schema.parted");
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];

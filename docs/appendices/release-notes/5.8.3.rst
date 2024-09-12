@@ -47,6 +47,12 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``WHERE`` clause to wrongly filter out whole
+  partitions when :ref:`IS NULL<sql_dql_is_null>` is involved. e.g.::
+
+    CREATE TABLE tbl(a STRING, b STRING) PARTITIONED BY (a);
+    SELECT * FROM tbl WHERE ((a='foo') OR (b!='bar')) IS NULL;
+
 - Fixed a race condition that could allow ``INSERT INTO`` statements to write
   values with conflicting types into a table within an ``OBJECT (DYNAMIC)``
   column if the insert needed to create a new sub-column dynamically.

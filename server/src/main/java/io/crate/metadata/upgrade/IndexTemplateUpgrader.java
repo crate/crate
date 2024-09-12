@@ -48,7 +48,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Maps;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
@@ -80,7 +80,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
             String templateName = entry.getKey();
 
             // only process partition table templates
-            if (IndexParts.isPartitioned(templateName) == false) {
+            if (IndexName.isPartitioned(templateName) == false) {
                 upgradedTemplates.put(templateName, templateMetadata);
                 continue;
             }

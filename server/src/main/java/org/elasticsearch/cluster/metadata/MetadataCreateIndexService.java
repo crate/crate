@@ -24,7 +24,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUI
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,14 +32,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -68,7 +65,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -88,7 +84,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -102,11 +98,8 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 public class MetadataCreateIndexService {
 
     private static final Logger LOGGER = LogManager.getLogger(MetadataCreateIndexService.class);
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(
-        MetadataCreateIndexService.class));
 
-    public static final int MAX_INDEX_NAME_BYTES = 255;
-
+    private final NodeContext nodeContext;
     private final ClusterService clusterService;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
@@ -117,16 +110,17 @@ public class MetadataCreateIndexService {
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
 
-    public MetadataCreateIndexService(
-            final Settings settings,
-            final ClusterService clusterService,
-            final IndicesService indicesService,
-            final AllocationService allocationService,
-            final ShardLimitValidator shardLimitValidator,
-            final Environment env,
-            final IndexScopedSettings indexScopedSettings,
-            final ThreadPool threadPool,
-            final boolean forbidPrivateIndexSettings) {
+    public MetadataCreateIndexService(NodeContext nodeContext,
+                                      Settings settings,
+                                      ClusterService clusterService,
+                                      IndicesService indicesService,
+                                      AllocationService allocationService,
+                                      ShardLimitValidator shardLimitValidator,
+                                      Environment env,
+                                      IndexScopedSettings indexScopedSettings,
+                                      ThreadPool threadPool,
+                                      boolean forbidPrivateIndexSettings) {
+        this.nodeContext = nodeContext;
         this.settings = settings;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
@@ -142,7 +136,7 @@ public class MetadataCreateIndexService {
      * Validate the name for an index against some static rules and a cluster state.
      */
     public static void validateIndexName(String index, ClusterState state) {
-        validateIndexOrAliasName(index, InvalidIndexNameException::new);
+        IndexName.validate(index);
         if (state.routingTable().hasIndex(index)) {
             throw new ResourceAlreadyExistsException(state.routingTable().index(index).getIndex());
         }
@@ -151,39 +145,6 @@ public class MetadataCreateIndexService {
         }
         if (state.metadata().hasAlias(index)) {
             throw new InvalidIndexNameException(index, "already exists as alias");
-        }
-    }
-
-    /**
-     * Validate the name for an index or alias against some static rules.
-     */
-    public static void validateIndexOrAliasName(String index, BiFunction<String, String, ? extends RuntimeException> exceptionCtor) {
-        if (!Strings.validFileName(index)) {
-            throw exceptionCtor.apply(index, "must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
-        }
-        if (index.contains("#")) {
-            throw exceptionCtor.apply(index, "must not contain '#'");
-        }
-        if (index.contains(":")) {
-            DEPRECATION_LOGGER.deprecatedAndMaybeLog("index_name_contains_colon",
-                "index or alias name [" + index + "] containing ':' is deprecated. CrateDB 4.x will read, " +
-                    "but not allow creation of new indices containing ':'");
-        }
-        if (index.charAt(0) == '-' || index.charAt(0) == '+') {
-            throw exceptionCtor.apply(index, "must not start with '-', or '+'");
-        }
-        int byteCount = 0;
-        try {
-            byteCount = index.getBytes("UTF-8").length;
-        } catch (UnsupportedEncodingException e) {
-            // UTF-8 should always be supported, but rethrow this if it is not for some reason
-            throw new ElasticsearchException("Unable to determine length of index name", e);
-        }
-        if (byteCount > MAX_INDEX_NAME_BYTES) {
-            throw exceptionCtor.apply(index, "index name is too long, (" + byteCount + " > " + MAX_INDEX_NAME_BYTES + ")");
-        }
-        if (index.equals(".") || index.equals("..")) {
-            throw exceptionCtor.apply(index, "must not be '.' or '..'");
         }
     }
 
@@ -202,11 +163,10 @@ public class MetadataCreateIndexService {
      * @param createTableRequest carries CrateDB specific objects to create mapping if request param above has NULL mapping. Null if used in resize.
      * @param listener the listener on which to send the index creation cluster state update response
      */
-    public void createIndex(final NodeContext nodeContext,
-                            @Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
+    public void createIndex(@Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
                             @Nullable final CreateTableRequest createTableRequest,
                             final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
-        onlyCreateIndex(nodeContext, request, createTableRequest, ActionListener.wrap(response -> {
+        onlyCreateIndex(request, createTableRequest, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
                 activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
                     shardsAcknowledged -> {
@@ -225,8 +185,7 @@ public class MetadataCreateIndexService {
         }, listener::onFailure));
     }
 
-    private void onlyCreateIndex(final NodeContext nodeContext,
-                                 @Deprecated final CreateIndexClusterStateUpdateRequest request,
+    private void onlyCreateIndex(@Deprecated final CreateIndexClusterStateUpdateRequest request,
                                  @Nullable final CreateTableRequest createTableRequest,
                                  final ActionListener<ClusterStateUpdateResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
@@ -504,7 +463,7 @@ public class MetadataCreateIndexService {
         }
 
         private void ensureTableInfoCanBeCreated(String index, ClusterState updatedState) {
-            if (IndexParts.isDangling(index)) {
+            if (IndexName.isDangling(index)) {
                 // temporary index for resize or shrink operation is always allowed
                 return;
             }
@@ -524,7 +483,17 @@ public class MetadataCreateIndexService {
     }
 
     private void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state) {
-        validateIndexName(request.index(), state);
+        String index = request.index();
+        IndexName.validate(index);
+        if (state.routingTable().hasIndex(index)) {
+            throw new ResourceAlreadyExistsException(state.routingTable().index(index).getIndex());
+        }
+        if (state.metadata().hasIndex(index)) {
+            throw new ResourceAlreadyExistsException(state.metadata().index(index).getIndex());
+        }
+        if (state.metadata().hasAlias(index)) {
+            throw new InvalidIndexNameException(index, "already exists as alias");
+        }
         validateIndexSettings(request.index(), request.settings(), forbidPrivateIndexSettings);
         shardLimitValidator.validateShardLimit(request.settings(), state);
     }

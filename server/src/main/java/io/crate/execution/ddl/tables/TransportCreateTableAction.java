@@ -35,21 +35,25 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.NodeContext;
+import io.crate.execution.ddl.Templates;
 import io.crate.metadata.RelationName;
 
 /**
@@ -78,16 +82,16 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     }
 
     private final MetadataCreateIndexService createIndexService;
-    private final MetadataIndexTemplateService indexTemplateService;
-    private final NodeContext nodeContext;
+    private final IndicesService indicesService;
+    private final IndexScopedSettings indexScopedSettings;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      MetadataCreateIndexService createIndexService,
-                                      MetadataIndexTemplateService indexTemplateService,
-                                      NodeContext nodeContext) {
+                                      IndicesService indicesService,
+                                      IndexScopedSettings indexScopedSettings,
+                                      MetadataCreateIndexService createIndexService) {
         super(
             ACTION.name(),
             transportService,
@@ -95,8 +99,8 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             CreateTableRequest::new
         );
         this.createIndexService = createIndexService;
-        this.indexTemplateService = indexTemplateService;
-        this.nodeContext = nodeContext;
+        this.indicesService = indicesService;
+        this.indexScopedSettings = indexScopedSettings;
     }
 
     @Override
@@ -139,9 +143,35 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
         if (createTableRequest.partitionedBy().isEmpty()) {
             createIndex(createTableRequest, listener);
-        } else {
-            indexTemplateService.putTemplate(createTableRequest, listener);
+            return;
         }
+
+        Settings normalizedSettings = Settings.builder()
+            .put(createTableRequest.settings())
+            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
+            .build();
+
+        indexScopedSettings.validate(normalizedSettings, true);
+
+        var createTableTask = new AckedClusterStateUpdateTask<>(Priority.URGENT, createTableRequest, listener) {
+
+            @Override
+            protected CreateTableResponse newResponse(boolean acknowledged) {
+                return new CreateTableResponse(acknowledged);
+            }
+
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                return Templates.add(
+                    indicesService,
+                    createIndexService,
+                    currentState,
+                    createTableRequest,
+                    normalizedSettings
+                );
+            }
+        };
+        clusterService.submitStateUpdateTask("create-table", createTableTask);
     }
 
     /**
@@ -168,7 +198,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             .waitForActiveShards(ActiveShardCount.DEFAULT); // Before we used CreateIndexRequest with default active shards count, it's changed only on resizing indices.
 
         createIndexService.createIndex(
-            nodeContext,
             updateRequest,
             createTableRequest,
             wrappedListener.map(response ->
