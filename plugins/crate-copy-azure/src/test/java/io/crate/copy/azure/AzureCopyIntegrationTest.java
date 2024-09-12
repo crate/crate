@@ -56,6 +56,17 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     private static final String AZURITE_KEY =
             "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
+    /**
+     * Generated via
+     * az storage container generate-sas
+     * --account-key Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+     * --account-name devstoreaccount1
+     * --expiry 2025-01-01 --name test --permissions dlrw
+     */
+    private static final String SAS_TOKEN =
+        "se=2025-01-01&sp=rwdl&sv=2022-11-02&sr=c&sig=E3VL9JiO78xUQsqzBoqDStPliSoGnguHcGvs%2BE9o8h8%3D";
+
+
     private String endpoint;
 
     private HttpServer httpServer;
@@ -107,7 +118,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_copy_to_and_copy_from_azure_blob_storage() throws IOException, InterruptedException {
+    public void test_copy_to_and_copy_from_azure_blob_storage_auth_via_key() throws IOException, InterruptedException {
         execute("CREATE TABLE source (x int)");
         execute("INSERT INTO source(x) values (1), (2), (3)");
         execute("REFRESH TABLE source");
@@ -135,6 +146,40 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
             )
             """,
             new Object[]{CONTAINER_NAME, AZURITE_ACCOUNT, AZURITE_KEY, endpoint}
+        );
+
+        execute("REFRESH TABLE target");
+        execute("select x from target order by x");
+        assertThat(response).hasRows("1", "2", "3");
+    }
+
+    @Test
+    public void test_copy_to_and_copy_from_azure_blob_storage_auth_via_token() throws IOException, InterruptedException {
+        execute("CREATE TABLE source (x int)");
+        execute("INSERT INTO source(x) values (1), (2), (3)");
+        execute("REFRESH TABLE source");
+
+        execute("""
+            COPY source TO DIRECTORY 'azblob://dir1/dir2'
+            WITH (
+                container = ?,
+                sas_token = ?,
+                endpoint = ?
+            )
+            """,
+            new Object[]{CONTAINER_NAME, SAS_TOKEN, endpoint}
+        );
+
+        execute("CREATE TABLE target (x int)");
+        execute("""
+            COPY target FROM 'azblob://dir1/dir2/*'
+            WITH (
+                container = ?,
+                sas_token = ?,
+                endpoint = ?
+            )
+            """,
+            new Object[]{CONTAINER_NAME, SAS_TOKEN, endpoint}
         );
 
         execute("REFRESH TABLE target");

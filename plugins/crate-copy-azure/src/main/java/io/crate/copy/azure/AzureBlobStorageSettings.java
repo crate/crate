@@ -42,6 +42,7 @@ public class AzureBlobStorageSettings {
 
     static final Setting<String> ACCOUNT_NAME_SETTING = Setting.simpleString("account_name", Property.NodeScope);
     static final Setting<String> ACCOUNT_KEY_SETTING = Setting.simpleString("account_key", Property.NodeScope);
+    static final Setting<String> SAS_TOKEN_SETTING = Setting.simpleString("sas_token", Property.NodeScope);
 
     static final Setting<String> CONTAINER_SETTING = Setting.simpleString("container", Property.NodeScope);
     static final Setting<String> ENDPOINT_SETTING = Setting.simpleString("endpoint", Property.NodeScope);
@@ -53,9 +54,10 @@ public class AzureBlobStorageSettings {
         return Map.of(
             CONTAINER_SETTING, true,
             ENDPOINT_SETTING, true,
-            ACCOUNT_NAME_SETTING, true,
-            ACCOUNT_KEY_SETTING, true,
-            ROOT_SETTING, false
+            ACCOUNT_NAME_SETTING, false,
+            ACCOUNT_KEY_SETTING, false,
+            ROOT_SETTING, false,
+            SAS_TOKEN_SETTING, false
         );
     }
 
