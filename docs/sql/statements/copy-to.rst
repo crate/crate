@@ -414,7 +414,7 @@ The Azure Storage `Account Key`_. Required.
 ''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-`Endpoint`_. Required.
+The Azure storage `Endpoint`_ name. Required.
 
 .. _sql-copy-to-root:
 
