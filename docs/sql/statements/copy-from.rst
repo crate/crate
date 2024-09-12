@@ -292,7 +292,7 @@ Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 ``azblob``
 ''''''''''
 
-You can use the ``azblob://`` scheme to access buckets on the `Azure Blob Storage`_.
+You can use the ``azblob://`` scheme to access files on the `Azure Blob Storage`_.
 
 URI must consist of scheme and absolute path to the resource.
 
