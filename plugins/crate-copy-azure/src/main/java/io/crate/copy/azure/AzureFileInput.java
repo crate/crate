@@ -73,8 +73,7 @@ public class AzureFileInput implements FileInput {
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.
         this.preGlobPath = toPreGlobPath(uri);
 
-        String resourcePath = resourcePath(uri);
-        this.uri = URI.create(resourcePath);
+        this.uri = uri;
         // Glob predicate operates with normalized resource URI to reflect OpenDAL List API response format.
         // List API returns entries without leading backslash.
         this.uriPredicate = new GlobPredicate(resourcePath.substring(1));
