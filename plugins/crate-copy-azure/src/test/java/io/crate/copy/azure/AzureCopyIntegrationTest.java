@@ -54,7 +54,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     private static final String CONTAINER_NAME = "test";
     private static final String AZURITE_ACCOUNT = "devstoreaccount1";
     private static final String AZURITE_KEY =
-            "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
+            "dummy-key;
 
     private String endpoint;
 
