@@ -406,7 +406,7 @@ The Azure Storage `Account`_ name. Required.
 '''''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-`Account Key`_. Required.
+The Azure Storage `Account Key`_. Required.
 
 .. _sql-copy-to-endpoint:
 
