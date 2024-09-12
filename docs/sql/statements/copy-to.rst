@@ -398,7 +398,7 @@ The Azure Storage `Container`_ name. Required.
 ''''''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-`Account`_ name. Required.
+The Azure Storage `Account`_ name. Required.
 
 .. _sql-copy-to-account-key:
 
