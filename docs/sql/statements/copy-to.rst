@@ -418,7 +418,7 @@ Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 
 .. _sql-copy-to-root:
 
-``root``
+``base_path``
 ''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
