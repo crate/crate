@@ -35,7 +35,7 @@ public class AzureBlobStorageSettingsTest {
     public void test_copy_from_reject_unknown_setting() throws Exception {
         Settings settings = Settings.builder().put("dummy", "dummy").build();
 
-        assertThatThrownBy(() -> new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), settings))
+        assertThatThrownBy(() -> new AzureFileInput(null, mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'dummy' is not supported");
     }

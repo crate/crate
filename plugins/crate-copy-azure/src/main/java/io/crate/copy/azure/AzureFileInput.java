@@ -37,13 +37,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Entry;
 import org.apache.opendal.Operator;
+import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
@@ -65,12 +64,14 @@ public class AzureFileInput implements FileInput {
     @Nullable
     private final String preGlobPath;
     private final Operator operator;
-    private final SharedAsyncExecutor sharedAsyncExecutor;
 
     /**
-     * @param uri is in user provided format (azblob://path/to/dir)
+     * @param uri is in user provided format (azblob:///path/to/dir)
      */
-    public AzureFileInput(SharedAsyncExecutor sharedAsyncExecutor, URI uri, Settings settings) {
+    public AzureFileInput(TriFunction<String, Map<String, String>, SharedAsyncExecutor, Operator> createOperator,
+                          SharedAsyncExecutor sharedAsyncExecutor,
+                          URI uri,
+                          Settings settings) {
         validate(settings, true);
 
         config = new HashMap<>();
@@ -86,8 +87,7 @@ public class AzureFileInput implements FileInput {
             }
         }
 
-        this.sharedAsyncExecutor = sharedAsyncExecutor;
-        this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
+        this.operator = createOperator.apply(NAME, config, sharedAsyncExecutor);
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.
         this.preGlobPath = toPreGlobPath(uri);
 
@@ -102,7 +102,6 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public List<URI> expandUri() throws IOException {
-        var operator = operator(); // Only for tests, otherwise could use this.operator
         if (isGlobbed() == false) {
             return List.of(uri);
         }
@@ -116,11 +115,6 @@ public class AzureFileInput implements FileInput {
             }
         }
         return uris;
-    }
-
-    @VisibleForTesting
-    Operator operator() {
-        return AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }
 
     /**

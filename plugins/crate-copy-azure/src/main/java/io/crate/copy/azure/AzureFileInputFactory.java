@@ -24,11 +24,18 @@ package io.crate.copy.azure;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.settings.Settings;
 
 import java.net.URI;
+import java.util.Map;
 
 public class AzureFileInputFactory implements FileInputFactory {
+
+    private static final TriFunction<String, Map<String, String>, SharedAsyncExecutor, Operator> CREATE_OPERATOR =
+        (name, config, sharedAsyncExecutor) -> AsyncOperator.of(name, config, sharedAsyncExecutor.asyncExecutor()).blocking();
 
     private final SharedAsyncExecutor sharedAsyncExecutor;
 
@@ -38,6 +45,6 @@ public class AzureFileInputFactory implements FileInputFactory {
 
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) {
-        return new AzureFileInput(sharedAsyncExecutor, uri, withClauseOptions);
+        return new AzureFileInput(CREATE_OPERATOR, sharedAsyncExecutor, uri, withClauseOptions);
     }
 }
