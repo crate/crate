@@ -63,11 +63,4 @@ public class AzureFileOutput implements FileOutput {
         operator.close();
     }
 
-    /**
-     * Extracts resource path from a user provided URI (azblob:://path/to/dir).
-     */
-    public static String resourcePath(URI uri) {
-        // We cannot use uri.getPath() since it treats first directory as a host.
-        return uri.toString().replace("azblob:/", "");
-    }
 }
