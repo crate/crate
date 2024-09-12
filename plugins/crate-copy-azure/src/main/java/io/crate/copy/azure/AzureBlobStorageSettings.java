@@ -84,9 +84,9 @@ public class AzureBlobStorageSettings {
     }
 
     private static void rejectUnknownSettings(Settings settings, List<String> commonCopySettings) {
-        Set<String> azureCopySettings = supportedSettings().keySet().stream().map(Setting::getKey).collect(Collectors.toSet());
+        List<String> validSettings = Lists.concat(supportedSettings, commonCopySettings);
         for (String key : settings.keySet()) {
-            if (commonCopySettings.contains(key) == false && azureCopySettings.contains(key) == false) {
+            if (validSettings.contains(key) == false) {
                 throw new IllegalArgumentException("Setting '" + key + "' is not supported");
             }
         }
