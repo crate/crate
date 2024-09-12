@@ -58,6 +58,16 @@ public class AllOperatorTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_automatically_levels_array_dimensions_to_left_arg() {
+        assertEvaluate("1 = ALL([ [1] ])", true);
+    }
+
+    @Test
+    public void test_nested_array() {
+        assertEvaluate("[1] = ALL([ [1] ])", true);
+    }
+
+    @Test
     public void test_value_eq_array_with_null_element_and_match_is_null() {
         assertEvaluateNull("1 = ALL(ARRAY[1, null])");
     }

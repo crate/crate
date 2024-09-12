@@ -86,7 +86,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
 
     public static void register(Functions.Builder builder) {
         reg(builder, AnyEqOperator.NAME, AnyEqOperator::new);
-        reg(builder, AnyNeqOperator.NAME, AnyNeqOperator::new);
+        builder.add(AnyNeqOperator.SIGNATURE, AnyNeqOperator::new);
         regRange(builder, AnyRangeOperator.Comparison.GT);
         regRange(builder, AnyRangeOperator.Comparison.GTE);
         regRange(builder, AnyRangeOperator.Comparison.LT);
@@ -159,6 +159,8 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         while (candidates instanceof Function fn && fn.signature().equals(ArrayUnnestFunction.SIGNATURE)) {
             candidates = fn.arguments().get(0);
         }
+        // CrateDB automatically unnests the array argument to the number of dimensions required
+        // i.e. SELECT 1 = ANY([[1, 2], [3, 4]]) -> true
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
             return literalMatchesAnyArrayRef(function, literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {

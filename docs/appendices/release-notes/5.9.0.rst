@@ -156,6 +156,8 @@ Performance and Resilience Improvements
 - Added an optimization rule to drop unnecessary ``ORDER BY`` operations from
   queries in ``INSERT INTO``.
 
+- Improved the performance of the queries involving ``= ALL`` array operator.
+
 Administration and Operations
 -----------------------------
 
