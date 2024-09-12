@@ -110,7 +110,7 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public InputStream getStream(URI uri) throws IOException {
-        return operator.createInputStream(uri.toString());
+        return operator.createInputStream(uri.getPath());
     }
 
     @Override
