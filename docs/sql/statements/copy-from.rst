@@ -617,7 +617,7 @@ Setting this option to ``n`` skips the first ``n`` rows while copying.
 .. _sql-copy-from-container:
 
 ``container``
-'''''''''''''''
+'''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Container`_ name. Required.
@@ -625,7 +625,7 @@ Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 .. _sql-copy-from-account-name:
 
 ``account_name``
-'''''''''''''''
+''''''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Account`_ name. Required.
@@ -641,7 +641,7 @@ Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 .. _sql-copy-from-endpoint:
 
 ``endpoint``
-'''''''''''''''
+''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Endpoint`_. Required.
@@ -649,7 +649,7 @@ Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 .. _sql-copy-from-root:
 
 ``root``
-'''''''''''''''
+''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 Starting directory to write blobs. User provided path will be prepended by the root.
