@@ -390,7 +390,7 @@ Defaults to ``true``.
 '''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-`Container`_ name. Required.
+The Azure Storage `Container`_ name. Required.
 
 .. _sql-copy-to-account-name:
 
