@@ -21,21 +21,32 @@
 
 package io.crate.copy.azure;
 
-
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+
+import java.net.URI;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-public class AzureFileOutputTest {
+public class AzureBlobStorageSettingsTest {
 
     @Test
-    public void test_reject_unknown_setting() throws Exception {
+    public void test_copy_from_reject_unknown_setting() throws Exception {
+        Settings settings = Settings.builder().put("dummy", "dummy").build();
+
+        assertThatThrownBy(() -> new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'dummy' is not supported");
+    }
+
+    @Test
+    public void test_copy_to_reject_unknown_setting() throws Exception {
         Settings settings = Settings.builder().put("dummy", "dummy").build();
 
         assertThatThrownBy(() -> new AzureFileOutput(mock(SharedAsyncExecutor.class), settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'dummy' is not supported");
     }
+
 }

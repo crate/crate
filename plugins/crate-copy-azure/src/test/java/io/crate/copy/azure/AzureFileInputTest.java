@@ -23,7 +23,6 @@ package io.crate.copy.azure;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -89,12 +88,5 @@ public class AzureFileInputTest {
             .containsExactly(URI.create("dir1/dir2/match1.json"));
     }
 
-    @Test
-    public void test_reject_unknown_setting() throws Exception {
-        Settings settings = Settings.builder().put("dummy", "dummy").build();
 
-        assertThatThrownBy(() -> new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob://dir1/dir2/*"), settings))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Setting 'dummy' is not supported");
-    }
 }
