@@ -294,7 +294,7 @@ For example:
 
 .. code-block:: text
 
-    azblob://dir1/dir2/file1.json
+    azblob:///dir1/dir2/file1.json
 
 All other parameters must be provided in the ``WITH`` clause.
 
