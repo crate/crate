@@ -52,7 +52,7 @@ import io.crate.lucene.CrateLuceneTestCase;
 public class AzureCopyIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "test";
-    private static final String AZURITE_ACCOUNT = "devstoreaccount1";
+    private static final String AZURE_ACCOUNT = "devstoreaccount1";
     private static final String AZURITE_KEY =
             "dummy-key;
 
