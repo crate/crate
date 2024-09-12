@@ -140,7 +140,7 @@ public class AzureFileInput implements FileInput {
     public static String toPreGlobPath(URI uri) {
         Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
         if (hasGlobMatcher.matches()) {
-            return resourcePath(URI.create(hasGlobMatcher.group(1)));
+            return URI.create(hasGlobMatcher.group(1)).toString();
         }
         return null;
     }
