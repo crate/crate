@@ -402,7 +402,7 @@ The Azure Storage `Account`_ name. Required.
 
 .. _sql-copy-to-account-key:
 
-``account_key``
+``key``
 '''''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
