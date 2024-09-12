@@ -614,44 +614,44 @@ Setting this option to ``n`` skips the first ``n`` rows while copying.
     option to skip the header, you have to set ``header = false`` as well. See
     :ref:`header <sql-copy-from-header>`.
 
-.. _sql-copy-to-container:
+.. _sql-copy-from-container:
 
 ``container``
 '''''''''''''''
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Container`_ name. Required.
 
-.. _sql-copy-to-account-name:
+.. _sql-copy-from-account-name:
 
 ``account_name``
 '''''''''''''''
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Account`_ name. Required.
 
-.. _sql-copy-to-account-key:
+.. _sql-copy-from-account-key:
 
 ``account_key``
 '''''''''''''''
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Account Key`_. Required.
 
-.. _sql-copy-to-endpoint:
+.. _sql-copy-from-endpoint:
 
 ``endpoint``
 '''''''''''''''
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 `Endpoint`_. Required.
 
-.. _sql-copy-to-root:
+.. _sql-copy-from-root:
 
 ``root``
 '''''''''''''''
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 Starting directory to write blobs. User provided path will be prepended by the root.
 Optional.
 
