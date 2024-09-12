@@ -703,7 +703,6 @@ public class Session implements AutoCloseable {
         mostRecentJobID = UUIDs.dirtyUUID();
         final UUID jobId = mostRecentJobID;
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
         var params = new RowN(portal.params().toArray());
         var plannerContext = planner.createContext(
