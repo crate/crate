@@ -13,8 +13,9 @@ queue_rules:
 pull_request_rules:
   - name: automatic merge
     conditions:
-      - label=ready-to-merge,cla-signed
+      - label=ready-to-merge
       - '#approved-reviews-by>=1'
+      - status-success=verification/cla-signed
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success=docs/readthedocs.org:crate
