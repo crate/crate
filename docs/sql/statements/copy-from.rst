@@ -287,6 +287,37 @@ Using the ``s3://`` scheme automatically sets the `shared`_ to true.
    0.51.x these connections are using the HTTPS protocol. Please make sure you
    update your firewall rules to allow outgoing connections on port ``443``.
 
+.. _sql-copy-from-azblob:
+
+``azblob``
+''''''''''
+
+You can use the ``azblob://`` scheme to access buckets on the `Azure Blob Storage`_.
+
+URI must consist of scheme and absolute path to the resource.
+
+For example:
+
+.. code-block:: text
+
+    azblob://dir1/dir2/file1.json
+
+All other parameters must be provided in the ``WITH`` clause.
+
+For example:
+
+.. code-block:: text
+
+    COPY source
+    TO DIRECTORY 'azblob://dir1/dir2'
+    WITH (
+        container = 'container',
+        account_name = 'account_name',
+        account_key = 'account_key',
+        endpoint = 'endpoint'
+    )
+
+Using the ``azblob://`` scheme automatically sets the `shared`_ to ``true``.
 
 .. _sql-copy-from-other-schemes:
 
@@ -583,6 +614,46 @@ Setting this option to ``n`` skips the first ``n`` rows while copying.
     option to skip the header, you have to set ``header = false`` as well. See
     :ref:`header <sql-copy-from-header>`.
 
+.. _sql-copy-to-container:
+
+``container``
+'''''''''''''''
+
+Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+`Container`_ name. Required.
+
+.. _sql-copy-to-account-name:
+
+``account_name``
+'''''''''''''''
+
+Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+`Account`_ name. Required.
+
+.. _sql-copy-to-account-key:
+
+``account_key``
+'''''''''''''''
+
+Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+`Account Key`_. Required.
+
+.. _sql-copy-to-endpoint:
+
+``endpoint``
+'''''''''''''''
+
+Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+`Endpoint`_. Required.
+
+.. _sql-copy-to-root:
+
+``root``
+'''''''''''''''
+
+Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+Starting directory to write blobs. User provided path will be prepended by the root.
+Optional.
 
 .. _sql-copy-from-return-summary:
 
@@ -636,6 +707,11 @@ inserted records.
 .. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
 .. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
+.. _Azure Blob Storage: https://learn.microsoft.com/en-us/azure/storage/blobs/
+.. _Account: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction#storage-accounts
+.. _Container: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction#containers
+.. _Endpoint: https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#storage-account-endpoints
+.. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _GeoJSON: https://geojson.org/
 .. _globbing: https://en.wikipedia.org/wiki/Glob_(programming)

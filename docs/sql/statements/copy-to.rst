@@ -284,7 +284,7 @@ See `AWS Java Documentation`_.
 .. _sql-copy-to-azblob:
 
 ``azblob``
-''''''
+''''''''''
 
 You can use the ``azblob://`` scheme to access buckets on the `Azure Blob Storage`_.
 
