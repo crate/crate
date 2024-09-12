@@ -53,13 +53,9 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "test";
     private static final String AZURE_ACCOUNT = "devstoreaccount1";
-    private static final String AZURE_KEY =
-            "dummy-key;
-
-    private String endpoint;
+    private static final String AZURE_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";//"dummy-key";
 
     private HttpServer httpServer;
-    private AzureHttpHandler handler;
 
     /**
      * OpenDAL uses shared singleton async tokio executor with configured number of threads.
@@ -85,35 +81,37 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        handler = new AzureHttpHandler(AZURITE_ACCOUNT + "/" + CONTAINER_NAME);
-        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
-        httpServer.createContext("/" + AZURITE_ACCOUNT + "/" + CONTAINER_NAME, handler);
-        httpServer.start();
-
-        InetSocketAddress address = httpServer.getAddress();
-        endpoint = String.format(Locale.ENGLISH,
-            "http://%s:%d/%s",
-            address.getAddress().getCanonicalHostName(),
-            address.getPort(),
-            AZURITE_ACCOUNT)
-        ;
+      //  var handler = new AzureHttpHandler(AZURE_ACCOUNT + "/" + CONTAINER_NAME);
+      //  httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+      //  httpServer.createContext("/" + AZURE_ACCOUNT + "/" + CONTAINER_NAME, handler);
+      //  httpServer.start();
     }
 
     @Override
     @After
     public void tearDown() throws Exception {
         super.tearDown();
-        httpServer.stop(1);
+      //  httpServer.stop(1);
     }
 
     @Test
     public void test_copy_to_and_copy_from_azure_blob_storage() throws IOException, InterruptedException {
+//        InetSocketAddress address = httpServer.getAddress();
+//        var endpoint = String.format(
+//            Locale.ENGLISH,
+//            "http://%s:%d/%s",
+//            address.getAddress().getCanonicalHostName(),
+//            address.getPort(),
+//            AZURE_ACCOUNT
+//        );
+        var endpoint = "http://localhost:10000/devstoreaccount1";
+
         execute("CREATE TABLE source (x int)");
         execute("INSERT INTO source(x) values (1), (2), (3)");
         execute("REFRESH TABLE source");
 
         execute("""
-            COPY source TO DIRECTORY 'azblob://dir1/dir2'
+            COPY source TO DIRECTORY 'azblob:///dir1/dir2'
             WITH (
                 container = ?,
                 account_name = ?,
@@ -121,12 +119,12 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
                 endpoint = ?
             )
             """,
-            new Object[]{CONTAINER_NAME, AZURITE_ACCOUNT, AZURITE_KEY, endpoint}
+            new Object[]{CONTAINER_NAME, AZURE_ACCOUNT, AZURE_KEY, endpoint}
         );
 
         execute("CREATE TABLE target (x int)");
         execute("""
-            COPY target FROM 'azblob://dir1/dir2/*'
+            COPY target FROM 'azblob:///dir1/dir2/*'
             WITH (
                 container = ?,
                 account_name = ?,
@@ -134,7 +132,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
                 endpoint = ?
             )
             """,
-            new Object[]{CONTAINER_NAME, AZURITE_ACCOUNT, AZURITE_KEY, endpoint}
+            new Object[]{CONTAINER_NAME, AZURE_ACCOUNT, AZURE_KEY, endpoint}
         );
 
         execute("REFRESH TABLE target");

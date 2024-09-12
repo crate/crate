@@ -21,16 +21,16 @@
 
 package io.crate.copy.azure;
 
-import java.util.HashMap;
+import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_FROM_SETTINGS;
+import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_TO_SETTINGS;
+
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.collections.Lists;
 
 /**
  * Reflects settings from https://docs.rs/opendal/latest/opendal/services/struct.Azblob.html
@@ -46,45 +46,30 @@ public class AzureBlobStorageSettings {
     static final Setting<String> CONTAINER_SETTING = Setting.simpleString("container", Property.NodeScope);
     static final Setting<String> ENDPOINT_SETTING = Setting.simpleString("endpoint", Property.NodeScope);
 
+    static final List<Setting<String>> SUPPORTED_SETTINGS = List.of(
+            CONTAINER_SETTING,
+            ENDPOINT_SETTING,
+            ACCOUNT_NAME_SETTING,
+            ACCOUNT_KEY_SETTING,
+            ROOT_SETTING
+    );
+
+    static final List<String> REQUIRED_SETTINGS = List.of(
+            CONTAINER_SETTING.getKey(),
+            ENDPOINT_SETTING.getKey(),
+            ACCOUNT_NAME_SETTING.getKey(),
+            ACCOUNT_KEY_SETTING.getKey()
+    );
+
     /**
-     * Registry of all settings also containing information whether setting is required or not.
+     * @param settings represents WITH clause parameters in COPY... operation.
+     * @param read is 'true' for COPY FROM and 'false' for COPY TO.
      */
-    private static Map<Setting<String>, Boolean> supportedSettings() {
-        return Map.of(
-            CONTAINER_SETTING, true,
-            ENDPOINT_SETTING, true,
-            ACCOUNT_NAME_SETTING, true,
-            ACCOUNT_KEY_SETTING, true,
-            ROOT_SETTING, false
+    public static void validate(Settings settings, boolean read) {
+        List<String> validSettings = Lists.concat(
+                SUPPORTED_SETTINGS.stream().map(Setting::getKey).toList(),
+                read ? COMMON_COPY_FROM_SETTINGS : COMMON_COPY_TO_SETTINGS
         );
-    }
-
-    /**
-     * Creates OpenDAL config from user provided settings.
-     * Rejects unknown settings.
-     * @param commonCopySettings is either common COPY TO or common COPY FROM settings.
-     */
-    public static Map<String, String> openDALConfig(Settings settings, List<String> commonCopySettings) {
-        rejectUnknownSettings(settings, commonCopySettings);
-
-        Map<String, String> config = new HashMap<>();
-        for (Map.Entry<Setting<String>, Boolean> entry: AzureBlobStorageSettings.supportedSettings().entrySet()) {
-            var setting = entry.getKey();
-            var required = entry.getValue();
-            var value = setting.get(settings);
-            if (value != null) {
-                config.put(setting.getKey(), value);
-            } else if (required) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Setting %s must be provided", setting.getKey())
-                );
-            }
-        }
-        return config;
-    }
-
-    private static void rejectUnknownSettings(Settings settings, List<String> commonCopySettings) {
-        List<String> validSettings = Lists.concat(supportedSettings, commonCopySettings);
         for (String key : settings.keySet()) {
             if (validSettings.contains(key) == false) {
                 throw new IllegalArgumentException("Setting '" + key + "' is not supported");

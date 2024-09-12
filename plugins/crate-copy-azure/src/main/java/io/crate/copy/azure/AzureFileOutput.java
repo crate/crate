@@ -21,20 +21,25 @@
 
 package io.crate.copy.azure;
 
+import static io.crate.copy.azure.AzureBlobStorageSettings.REQUIRED_SETTINGS;
+import static io.crate.copy.azure.AzureBlobStorageSettings.SUPPORTED_SETTINGS;
+import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
 import static io.crate.copy.azure.AzureCopyPlugin.NAME;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.analyze.CopyStatementSettings;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
 
@@ -44,13 +49,27 @@ public class AzureFileOutput implements FileOutput {
     private final Operator operator;
 
     public AzureFileOutput(SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        config = AzureBlobStorageSettings.openDALConfig(settings, CopyStatementSettings.commonCopyToSettings);
+        validate(settings, false);
+
+        config = new HashMap<>();
+        for (Setting<String> setting : SUPPORTED_SETTINGS) {
+            var value = setting.get(settings);
+            var key = setting.getKey();
+            if (value != null) {
+                config.put(key, value);
+            } else if (REQUIRED_SETTINGS.contains(key)) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Setting %s must be provided", key)
+                );
+            }
+        }
+
         this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }
 
     @Override
     public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
-        OutputStream outputStream = operator.createOutputStream(resourcePath(uri));
+        OutputStream outputStream = operator.createOutputStream(uri.getPath());
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }

@@ -436,7 +436,7 @@ public final class CopyFromPlan implements Plan {
         if (uri instanceof String) {
             String uriAsString = DataTypes.STRING.sanitizeValue(uri);
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
             }
             return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
@@ -445,7 +445,7 @@ public final class CopyFromPlan implements Plan {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }

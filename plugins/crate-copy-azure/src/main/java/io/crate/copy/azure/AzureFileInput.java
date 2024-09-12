@@ -21,14 +21,18 @@
 
 package io.crate.copy.azure;
 
+import static io.crate.copy.azure.AzureBlobStorageSettings.REQUIRED_SETTINGS;
+import static io.crate.copy.azure.AzureBlobStorageSettings.SUPPORTED_SETTINGS;
+import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
 import static io.crate.copy.azure.AzureCopyPlugin.NAME;
-import static io.crate.copy.azure.AzureFileOutput.resourcePath;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,11 +40,11 @@ import java.util.regex.Pattern;
 import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Entry;
 import org.apache.opendal.Operator;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.analyze.CopyStatementSettings;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
 
@@ -67,7 +71,21 @@ public class AzureFileInput implements FileInput {
      * @param uri is in user provided format (azblob://path/to/dir)
      */
     public AzureFileInput(SharedAsyncExecutor sharedAsyncExecutor, URI uri, Settings settings) {
-        this.config = AzureBlobStorageSettings.openDALConfig(settings, CopyStatementSettings.commonCopyFromSettings);
+        validate(settings, true);
+
+        config = new HashMap<>();
+        for (Setting<String> setting : SUPPORTED_SETTINGS) {
+            var value = setting.get(settings);
+            var key = setting.getKey();
+            if (value != null) {
+                config.put(key, value);
+            } else if (REQUIRED_SETTINGS.contains(key)) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Setting %s must be provided", key)
+                );
+            }
+        }
+
         this.sharedAsyncExecutor = sharedAsyncExecutor;
         this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.
@@ -76,7 +94,7 @@ public class AzureFileInput implements FileInput {
         this.uri = uri;
         // Glob predicate operates with normalized resource URI to reflect OpenDAL List API response format.
         // List API returns entries without leading backslash.
-        this.uriPredicate = new GlobPredicate(resourcePath.substring(1));
+        this.uriPredicate = new GlobPredicate(uri.getPath().substring(1));
     }
 
     /**
@@ -89,6 +107,7 @@ public class AzureFileInput implements FileInput {
             return List.of(uri);
         }
         List<URI> uris = new ArrayList<>();
+        assert preGlobPath != null : "List API must be used only for a globbed URI.";
         List<Entry> entries = operator.list(preGlobPath);
         for (Entry entry : entries) {
             var path = entry.getPath();
@@ -140,7 +159,7 @@ public class AzureFileInput implements FileInput {
     public static String toPreGlobPath(URI uri) {
         Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
         if (hasGlobMatcher.matches()) {
-            return URI.create(hasGlobMatcher.group(1)).toString();
+            return URI.create(hasGlobMatcher.group(1)).getPath();
         }
         return null;
     }

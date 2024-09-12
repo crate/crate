@@ -42,10 +42,10 @@ public class AzureFileInputTest {
     public void test_to_pre_glob_path() {
         var uris =
             List.of(
-                "azblob://dir1/prefix*/*.json",
-                "azblob://dir1/*/prefix2/prefix3/a.json",
-                "azblob://dir1/prefix/p*x/*/*.json",
-                "azblob://dir1.1/prefix/key*"
+                "azblob:///dir1/prefix*/*.json",
+                "azblob:///dir1/*/prefix2/prefix3/a.json",
+                "azblob:///dir1/prefix/p*x/*/*.json",
+                "azblob:///dir1.1/prefix/key*"
             );
         var preGlobURIs = uris.stream()
             .map(URI::create)
@@ -70,7 +70,7 @@ public class AzureFileInputTest {
             .build();
 
         AzureFileInput azureFileInput = spy(
-            new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob://dir1/dir2/*"), settings)
+            new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), settings)
         );
         Operator operator = mock(Operator.class);
         when(operator.list("/dir1/dir2/")).thenReturn(
