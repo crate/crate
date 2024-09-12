@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.expression.operator.Operators;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -36,8 +37,9 @@ import io.crate.types.DataTypes;
 
 /**
  * <p>
- * Visitor to replace all symbols beside of logical operators to true or null literals.
- * As a result only logical operators will remain with all arguments converted to literals.
+ * Visitor to replace all symbols beside of logical operators and {@code IS NULL} predicate to true or null literals.
+ * As a result only logical operators and {@code IS NULL} predicate will remain with all
+ * arguments converted to literals.
  * <p>
  * <br><br>
  * <b>WARNING</b>: The function tree that is processed by this visitor should already
@@ -51,69 +53,74 @@ import io.crate.types.DataTypes;
  * </pre>
  * <p>
  * <pre>
- *     true and id is null  -&gt; true and true
+ *     true and id is null  -&gt; true and null IS NULL
  * </pre>
  */
-public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
+public final class ScalarsAndRefsToTrue extends SymbolVisitor<Boolean, Symbol> {
 
     private static final ScalarsAndRefsToTrue INSTANCE = new ScalarsAndRefsToTrue();
 
-    private ScalarsAndRefsToTrue() {
-    }
+    private ScalarsAndRefsToTrue() {}
 
     public static Symbol rewrite(Symbol symbol) {
-        return symbol.accept(INSTANCE, null);
+        return symbol.accept(INSTANCE, Boolean.FALSE);
     }
 
     @Override
-    public Symbol visitFunction(Function symbol, Void context) {
+    public Symbol visitFunction(Function symbol, Boolean isNullPredicate) {
         String functionName = symbol.name();
 
+        if (functionName.equals(IsNullPredicate.NAME)) {
+            isNullPredicate = Boolean.TRUE;
+        }
         if (functionName.equals(NotPredicate.NAME)) {
-            Symbol argument = symbol.arguments().get(0);
+            Symbol argument = symbol.arguments().getFirst();
             if (argument instanceof Reference) {
-                return argument.accept(this, context);
-            } else if (argument instanceof Function) {
-                if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).name())) {
-                    return argument.accept(this, context);
+                return argument.accept(this, isNullPredicate);
+            } else if (argument instanceof Function fn) {
+                if (!Operators.LOGICAL_OPERATORS.contains(fn.name())) {
+                    return argument.accept(this, isNullPredicate);
                 }
             }
         }
 
         List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
         boolean allLiterals = true;
-        boolean isNull = false;
+        boolean hasNullArg = false;
         for (Symbol arg : symbol.arguments()) {
-            Symbol processedArg = arg.accept(this, context);
+            Symbol processedArg = arg.accept(this, isNullPredicate);
             newArgs.add(processedArg);
             if (!processedArg.symbolType().isValueSymbol()) {
                 allLiterals = false;
             }
             if (processedArg.valueType().id() == DataTypes.UNDEFINED.id()) {
-                isNull = true;
+                hasNullArg = true;
             }
         }
-        if (allLiterals && !Operators.LOGICAL_OPERATORS.contains(functionName)) {
-            return isNull ? Literal.NULL : Literal.BOOLEAN_TRUE;
+
+        if (allLiterals
+            && !Operators.LOGICAL_OPERATORS.contains(functionName)
+            && !IsNullPredicate.NAME.equals(functionName)) {
+            return hasNullArg ? Literal.NULL : Literal.BOOLEAN_TRUE;
         }
         return new Function(symbol.signature(), newArgs, symbol.valueType());
     }
 
     @Override
-    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Boolean isNullPredicate) {
         return Literal.BOOLEAN_TRUE;
     }
 
     @Override
-    protected Symbol visitSymbol(Symbol symbol, Void context) {
-        if (symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
+    protected Symbol visitSymbol(Symbol symbol, Boolean isNullPredicate) {
+        if (isNullPredicate || symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
             return Literal.NULL;
         }
         return Literal.BOOLEAN_TRUE;
     }
 
     @Override
-    public Symbol visitLiteral(Literal<?> symbol, Void context) {
+    public Symbol visitLiteral(Literal<?> symbol, Boolean isNullPredicate) {
         return symbol;
     }
 }
