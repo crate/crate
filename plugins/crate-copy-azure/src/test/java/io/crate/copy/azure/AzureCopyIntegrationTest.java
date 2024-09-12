@@ -53,7 +53,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "test";
     private static final String AZURE_ACCOUNT = "devstoreaccount1";
-    private static final String AZURE_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";//"dummy-key";
+    private static final String AZURE_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
     private HttpServer httpServer;
 
@@ -81,30 +81,29 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-      //  var handler = new AzureHttpHandler(AZURE_ACCOUNT + "/" + CONTAINER_NAME);
-      //  httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
-      //  httpServer.createContext("/" + AZURE_ACCOUNT + "/" + CONTAINER_NAME, handler);
-      //  httpServer.start();
+        var handler = new AzureHttpHandler(AZURE_ACCOUNT + "/" + CONTAINER_NAME);
+        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        httpServer.createContext("/" + AZURE_ACCOUNT + "/" + CONTAINER_NAME, handler);
+        httpServer.start();
     }
 
     @Override
     @After
     public void tearDown() throws Exception {
         super.tearDown();
-      //  httpServer.stop(1);
+        httpServer.stop(1);
     }
 
     @Test
     public void test_copy_to_and_copy_from_azure_blob_storage() throws IOException, InterruptedException {
-//        InetSocketAddress address = httpServer.getAddress();
-//        var endpoint = String.format(
-//            Locale.ENGLISH,
-//            "http://%s:%d/%s",
-//            address.getAddress().getCanonicalHostName(),
-//            address.getPort(),
-//            AZURE_ACCOUNT
-//        );
-        var endpoint = "http://localhost:10000/devstoreaccount1";
+        InetSocketAddress address = httpServer.getAddress();
+        var endpoint = String.format(
+            Locale.ENGLISH,
+            "http://%s:%d/%s",
+            address.getAddress().getCanonicalHostName(),
+            address.getPort(),
+            AZURE_ACCOUNT
+        );
 
         execute("CREATE TABLE source (x int)");
         execute("INSERT INTO source(x) values (1), (2), (3)");
