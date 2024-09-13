@@ -417,243 +417,266 @@ The ``WITH`` clause supports the following options:
 
 .. _sql-copy-from-bulk_size:
 
-``bulk_size``
-'''''''''''''
+**bulk_size**
+  | *Type:*    ``integer``
+  | *Default:* ``10000``
+  | *Optional*
 
-CrateDB will process the lines it reads from the ``path`` in bulks. This option
-specifies the size of one batch. The provided value must be greater than 0, the
-default value is 10000.
+  CrateDB will process the lines it reads from the ``path`` in bulks. This option
+  specifies the size of one batch. The provided value must be greater than 0.
 
 
 .. _sql-copy-from-fail_fast:
 
-``fail_fast``
-'''''''''''''
+**fail_fast**
+  | *Type:*    ``boolean``
+  | *Default:* ``false``
+  | *Optional*
 
-A boolean value indicating if the ``COPY FROM`` operation should abort early
-after an error. This is best effort and due to the distributed execution, it
-may continue processing some records before it aborts.
-Defaults to ``false``.
+  A boolean value indicating if the ``COPY FROM`` operation should abort early
+  after an error. This is best effort and due to the distributed execution, it
+  may continue processing some records before it aborts.
 
 .. _sql-copy-from-wait_for_completion:
 
-``wait_for_completion``
-'''''''''''''''''''''''
+**wait_for_completion**
+  | *Type:*    ``boolean``
+  | *Default:* ``true``
+  | *Optional*
 
-A boolean value indicating if the ``COPY FROM`` should wait for
-the copy operation to complete. If set to ``false`` the request
-returns at once and the copy operation runs in the background.
-Defaults to ``true``.
+  A boolean value indicating if the ``COPY FROM`` should wait for
+  the copy operation to complete. If set to ``false`` the request
+  returns at once and the copy operation runs in the background.
 
 .. _sql-copy-from-shared:
 
-``shared``
-''''''''''
+**shared**
+  | *Type:*    ``boolean``
+  | *Default:* Depends on the scheme of each URI.
+  | *Optional*
 
-This option should be set to true if the URIs location is accessible by more
-than one CrateDB node to prevent them from importing the same file.
+  This option should be set to true if the URIs location is accessible by more
+  than one CrateDB node to prevent them from importing the same file.
 
-The default value depends on the scheme of each URI.
-
-If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
-default for *all* URIs.
+  If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
+  default for *all* URIs.
 
 
 .. _sql-copy-from-node_filters:
 
-``node_filters``
-''''''''''''''''
+**node_filters**
+  | *Type:* ``text``
+  | *Optional*
 
-A filter :ref:`expression <gloss-expression>` to select the nodes to run the
-*read* operation.
+  A filter :ref:`expression <gloss-expression>` to select the nodes to run the
+  *read* operation.
 
-It's an object in the form of::
+  It's an object in the form of::
 
-    {
-        name = '<node_name_regex>',
-        id = '<node_id_regex>'
-    }
+      {
+          name = '<node_name_regex>',
+          id = '<node_id_regex>'
+      }
 
-Only one of the keys is required.
+  Only one of the keys is required.
 
-The ``name`` :ref:`regular expression <gloss-regular-expression>` is applied on
-the ``name`` of all execution nodes, whereas the ``id`` regex is applied on the
-``node id``.
+  The ``name`` :ref:`regular expression <gloss-regular-expression>` is applied on
+  the ``name`` of all execution nodes, whereas the ``id`` regex is applied on the
+  ``node id``.
 
-If both keys are set, *both* regular expressions have to match for a node to be
-included.
+  If both keys are set, *both* regular expressions have to match for a node to be
+  included.
 
-If the `shared`_ option is false, a strict node filter might exclude nodes with
-access to the data leading to a partial import.
+  If the `shared`_ option is false, a strict node filter might exclude nodes with
+  access to the data leading to a partial import.
 
-To verify which nodes match the filter, run the statement with
-:ref:`EXPLAIN <ref-explain>`.
+  To verify which nodes match the filter, run the statement with
+  :ref:`EXPLAIN <ref-explain>`.
 
 
 .. _sql-copy-from-num_readers:
 
-``num_readers``
-'''''''''''''''
+**num_readers**
+  | *Type:*    ``integer``
+  | *Default:* Number of nodes available in the cluster.
+  | *Optional*
 
-The number of nodes that will read the resources specified in the URI. Defaults
-to the number of nodes available in the cluster. If the option is set to a
-number greater than the number of available nodes it will still use each node
-only once to do the import. However, the value must be an integer greater than
-0.
+  The number of nodes that will read the resources specified in the URI.
+  If the option is set to a
+  number greater than the number of available nodes it will still use each node
+  only once to do the import. However, the value must be an integer greater than
+  0.
 
-If `shared`_ is set to false this option has to be used with caution. It might
-exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
-the files.
+  If `shared`_ is set to false this option has to be used with caution. It might
+  exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
+  the files.
 
 
 .. _sql-copy-from-compression:
 
-``compression``
-'''''''''''''''
+**compression**
+  | *Type:* ``text``
+  | *Values:*  ``gzip``
+  | *Default:* By default the output is not compressed.
+  | *Optional*
 
-The default value is ``null``, set to ``gzip`` to read gzipped files.
+  Define if and how the exported data should be compressed.
 
 
 .. _sql-copy-from-protocol:
 
-``protocol``
-'''''''''''''''
+**protocol**
+  | *Type:*    ``text``
+  | *Values:*  ``http``, ``https``
+  | *Default:* ``https``
+  | *Optional*
 
-Used for :ref:`s3 <sql-copy-from-s3>` scheme only. It is set to HTTPS by
-default.
+  Protocol to use. Used for :ref:`s3 <sql-copy-from-s3>` scheme only.
 
 
 .. _sql-copy-from-overwrite_duplicates:
 
-``overwrite_duplicates``
-''''''''''''''''''''''''
+**overwrite_duplicates**
+  | *Type:*    ``boolean``
+  | *Default:* ``false``
+  | *Optional*
 
-Default: false
-
-``COPY FROM`` by default won't overwrite rows if a document with the same
-primary key already exists. Set to true to overwrite duplicate rows.
+  ``COPY FROM`` by default won't overwrite rows if a document with the same
+  primary key already exists. Set to true to overwrite duplicate rows.
 
 
 .. _sql-copy-from-empty_string_as_null:
 
-``empty_string_as_null``
-''''''''''''''''''''''''
+**empty_string_as_null**
+  | *Type:*    ``boolean``
+  | *Default:* ``false``
+  | *Optional*
 
-If set to ``true`` the ``empty_string_as_null`` option enables conversion of
-empty strings into ``NULL``. The default value is ``false`` meaning that no
-action will be taken on empty strings during the COPY FROM execution.
+  If set to ``true`` the ``empty_string_as_null`` option enables conversion of
+  empty strings into ``NULL``.
 
-The option is only supported when using the ``CSV`` format, otherwise, it will
-be ignored.
+  The option is only supported when using the ``CSV`` format, otherwise, it will
+  be ignored.
 
 
 .. _sql-copy-from-delimiter:
 
-``delimiter``
-'''''''''''''
+**delimiter**
+  | *Type:*    ``text``
+  | *Default:* ``,``
+  | *Optional*
 
-Specifies a single one-byte character that separates columns within each line
-of the file. The default delimiter is ``,``.
+  Specifies a single one-byte character that separates columns within each line
+  of the file.
 
-The option is only supported when using the ``CSV`` format, otherwise, it will
-be ignored.
+  The option is only supported when using the ``CSV`` format, otherwise, it will
+  be ignored.
 
 
 .. _sql-copy-from-format:
 
-``format``
-''''''''''
+**format**
+  | *Type:*    ``text``
+  | *Values:*  ``csv``, ``json``
+  | *Default:* ``json``
+  | *Optional*
 
-This option specifies the format of the input file. Available formats are
-``csv`` or ``json``. If a format is not specified and the format cannot be
-guessed from the file extension, the file will be processed as JSON.
+  This option specifies the format of the input file. Available formats are
+  ``csv`` or ``json``. If a format is not specified and the format cannot be
+  guessed from the file extension, the file will be processed as JSON.
 
 
 .. _sql-copy-from-header:
 
-``header``
-''''''''''
+**header**
+  | *Type:*    ``boolean``
+  | *Default:* ``true``
+  | *Optional*
 
-Used to indicate if the first line of a CSV file contains a header with the
-column names. Defaults to ``true``.
+  Used to indicate if the first line of a CSV file contains a header with the
+  column names.
 
-If set to ``false``, the CSV must not contain column names in the first line
-and instead the columns declared in the statement are used. If no columns are
-declared in the statement, it will default to all columns present in the table
-in their ``CREATE TABLE`` declaration order.
+  If set to ``false``, the CSV must not contain column names in the first line
+  and instead the columns declared in the statement are used. If no columns are
+  declared in the statement, it will default to all columns present in the table
+  in their ``CREATE TABLE`` declaration order.
 
-If set to ``true`` the first line in the CSV file must contain the column
-names. You can use the optional column declaration in addition to import only a
-subset of the data.
+  If set to ``true`` the first line in the CSV file must contain the column
+  names. You can use the optional column declaration in addition to import only a
+  subset of the data.
 
-If the statement contains no column declarations, all fields in the CSV are
-read and if it contains fields where there is no matching column in the table,
-the behavior depends on the ``column_policy`` table setting. If ``dynamic`` it
-implicitly adds new columns, if ``strict`` the operation will fail.
+  If the statement contains no column declarations, all fields in the CSV are
+  read and if it contains fields where there is no matching column in the table,
+  the behavior depends on the ``column_policy`` table setting. If ``dynamic`` it
+  implicitly adds new columns, if ``strict`` the operation will fail.
 
-An example of using input file with no header
+  An example of using input file with no header
 
-::
+  ::
 
-    cr> COPY quotes FROM 'file:///tmp/import_data/quotes.csv' with (format='csv', header=false);
-    COPY OK, 3 rows affected (... sec)
+      cr> COPY quotes FROM 'file:///tmp/import_data/quotes.csv' with (format='csv', header=false);
+      COPY OK, 3 rows affected (... sec)
 
 
 .. _sql-copy-from-skip:
 
-``skip``
-''''''''
+**skip**
+  | *Type:*    ``integer``
+  | *Default:* ``0``
+  | *Optional*
 
-Default: ``0``
+  Setting this option to ``n`` skips the first ``n`` rows while copying.
 
-Setting this option to ``n`` skips the first ``n`` rows while copying.
+  .. NOTE::
 
-.. NOTE::
-
-    CrateDB by default expects a header in CSV files. If you're using the SKIP
-    option to skip the header, you have to set ``header = false`` as well. See
-    :ref:`header <sql-copy-from-header>`.
+      CrateDB by default expects a header in CSV files. If you're using the SKIP
+      option to skip the header, you have to set ``header = false`` as well. See
+      :ref:`header <sql-copy-from-header>`.
 
 .. _sql-copy-from-container:
 
-``container``
-'''''''''''''
+**container**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-The Azure Storage `Container`_ name. Required.
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  The Azure Storage `Container`_ name.
 
 .. _sql-copy-from-account:
 
-``account``
-'''''''''''
+**account**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-The Azure Storage `Account`_ name. Required.
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  The Azure Storage `Account`_ name.
 
 .. _sql-copy-from-key:
 
-``key``
-'''''''
+**key**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-The Azure Storage `Account Key`_. Required.
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  The Azure Storage `Account Key`_.
 
 .. _sql-copy-from-endpoint:
 
-``endpoint``
-''''''''''''
+**endpoint**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-The Azure storage `Endpoint`_ name. Required.
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  The Azure storage `Endpoint`_ name.
 
 .. _sql-copy-from-base-path:
 
-``base_path``
-'''''''''''''
+**base_path**
+  | *Type:*    ``text``
+  | *Optional*
 
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-Starting directory to write blobs. User provided path will be prepended by the root.
-Optional.
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  Starting directory to write blobs. User provided path will be prepended by the root.
 
 .. _sql-copy-from-return-summary:
 

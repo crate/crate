@@ -332,98 +332,100 @@ The ``WITH`` clause supports the following copy parameters:
 
 .. _sql-copy-to-compression:
 
-``compression``
-'''''''''''''''
+**compression**
+  | *Type:*    ``text``
+  | *Values:*  ``gzip``
+  | *Default:* By default the output is not compressed.
+  | *Optional*
 
-Define if and how the exported data should be compressed.
-
-By default the output is not compressed.
-
-Possible values for the ``compression`` setting are:
-
-``gzip``
-  Use gzip_ to compress the data output.
-
+  Define if and how the exported data should be compressed.
 
 .. _sql-copy-to-protocol:
 
-``protocol``
-'''''''''''''''
+**protocol**
+  | *Type:*    ``text``
+  | *Values:*  ``http``, ``https``
+  | *Default:* ``https``
+  | *Optional*
 
-Used for :ref:`s3 <sql-copy-to-s3>` scheme only. It is set to HTTPS by
-default.
-
+  Protocol to use. Used for :ref:`s3 <sql-copy-to-s3>` scheme only.
 
 .. _sql-copy-to-format:
 
-``format``
-''''''''''
+**format**
+  | *Type:*    ``text``
+  | *Values:*  ``json_object``, ``json_array``
+  | *Default:* Depends on defined columns. See description below.
+  | *Optional*
 
-Optional parameter to override default output behavior.
+  Possible values for the ``format`` settings are:
 
-Possible values for the ``format`` settings are:
+  ``json_object``
+    Each row in the result set is serialized as JSON object and written to an
+    output file where one line contains one object. This is the default behavior
+    if no columns are defined. Use this format to import with
+    :ref:`COPY FROM <sql-copy-from>`.
 
-``json_object``
-  Each row in the result set is serialized as JSON object and written to an
-  output file where one line contains one object. This is the default behavior
-  if no columns are defined. Use this format to import with
-  :ref:`COPY FROM <sql-copy-from>`.
-
-``json_array``
-  Each row in the result set is serialized as JSON array, storing one array per
-  line in an output file. This is the default behavior if columns are defined.
+  ``json_array``
+    Each row in the result set is serialized as JSON array, storing one array per
+    line in an output file. This is the default behavior if columns are defined.
 
 
 .. _sql-copy-to-wait_for_completion:
 
-``wait_for_completion``
-'''''''''''''''''''''''
+**wait_for_completion**
+  | *Type:*    ``boolean``
+  | *Default:* ``true``
+  | *Optional*
 
-A boolean value indicating if the ``COPY TO`` should wait for
-the copy operation to complete. If set to ``false`` the request
-returns at once and the copy operation runs in the background.
-Defaults to ``true``.
+  A boolean value indicating if the ``COPY TO`` should wait for
+  the copy operation to complete. If set to ``false`` the request
+  returns at once and the copy operation runs in the background.
 
 .. _sql-copy-to-container:
 
-``container``
-'''''''''''''
+**container**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-The Azure Storage `Container`_ name. Required.
+  Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+  The Azure Storage `Container`_ name.
 
 .. _sql-copy-to-account:
 
-``account``
-'''''''''''
+**account**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-The Azure Storage `Account`_ name. Required.
+  Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+  The Azure Storage `Account`_ name.
 
 .. _sql-copy-to-key:
 
-``key``
-'''''''
+**key**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-The Azure Storage `Account Key`_. Required.
+  Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+  The Azure Storage `Account Key`_.
 
 .. _sql-copy-to-endpoint:
 
-``endpoint``
-''''''''''''
+**endpoint**
+  | *Type:*    ``text``
+  | *Required*
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-The Azure storage `Endpoint`_ name. Required.
+  Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+  The Azure storage `Endpoint`_ name.
 
 .. _sql-copy-to-base-path:
 
-``base_path``
-'''''''''''''
+**base_path**
+  | *Type:*    ``text``
+  | *Optional*
 
-Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
-Starting directory to write blobs. User provided path will be prepended by the root.
-Optional.
+  Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
+  Starting directory to write blobs. User provided path will be prepended by the root.
 
 
 .. _Amazon S3: https://aws.amazon.com/s3/
