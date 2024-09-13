@@ -21,6 +21,7 @@
 
 package io.crate.copy.azure;
 
+import static io.crate.copy.azure.AzureBlobStorageSettings.AZURE_TO_OPEN_DAL;
 import static io.crate.copy.azure.AzureBlobStorageSettings.REQUIRED_SETTINGS;
 import static io.crate.copy.azure.AzureBlobStorageSettings.SUPPORTED_SETTINGS;
 import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
@@ -78,8 +79,10 @@ public class AzureFileInput implements FileInput {
         for (Setting<String> setting : SUPPORTED_SETTINGS) {
             var value = setting.get(settings);
             var key = setting.getKey();
+            var mappedKey = AZURE_TO_OPEN_DAL.get(key);
+            assert mappedKey != null : "All known settings must have their OpenDAL counterpart specified.";
             if (value != null) {
-                config.put(key, value);
+                config.put(mappedKey, value);
             } else if (REQUIRED_SETTINGS.contains(key)) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Setting %s must be provided", key)

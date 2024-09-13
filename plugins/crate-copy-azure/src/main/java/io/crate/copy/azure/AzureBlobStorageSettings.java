@@ -25,6 +25,7 @@ import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_FROM_SETTINGS;
 import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_TO_SETTINGS;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -76,4 +77,13 @@ public class AzureBlobStorageSettings {
             }
         }
     }
+
+    public static Map<String, String> AZURE_TO_OPEN_DAL = Map.of(
+        ACCOUNT_SETTING.getKey(), "account_name",
+        KEY_SETTING.getKey(), "account_key",
+        BASE_PATH_SETTING.getKey(), "root",
+        // Settings below have same names, listed for documentation purpose.
+        CONTAINER_SETTING.getKey(), "container",
+        ENDPOINT_SETTING.getKey(), "endpoint"
+    );
 }
