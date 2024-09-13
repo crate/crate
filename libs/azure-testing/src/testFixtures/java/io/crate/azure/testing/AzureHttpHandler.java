@@ -53,10 +53,16 @@ public class AzureHttpHandler implements HttpHandler {
 
     private final Map<String, BytesReference> blobs;
     private final String container;
+    private final boolean addDateHeader;
 
-    public AzureHttpHandler(final String container) {
+    /**
+     * @param addDateHeader indicates whether to add Last-Modified header to the list API response.
+     * COPY/OpenDAL requires 'Last-Modified' in the list API response.
+     */
+    public AzureHttpHandler(final String container, boolean addDateHeader) {
         this.container = Objects.requireNonNull(container);
         this.blobs = new ConcurrentHashMap<>();
+        this.addDateHeader = addDateHeader;
     }
 
     @Override
@@ -188,12 +194,7 @@ public class AzureHttpHandler implements HttpHandler {
                     list.append("<Properties><Content-Length>").append(blob.getValue().length()).append(
                         "</Content-Length>");
                     List<String> dateHeader = exchange.getRequestHeaders().get("X-ms-date");
-                    if (dateHeader != null || exchange.getRequestURI().getQuery().contains("sig=")) {
-                        // COPY/OpenDAL requires 'Last-Modified' in the list API response.
-
-                        // We recognize that request is done by OpenDAL based on request headers/query string:
-                        // - In case of key authentication, it adds 'X-ms-date' header.
-                        // - in case of SAS authentication, it adds 'sig' query parameter.
+                    if (addDateHeader) {
                         // We use a dummy date in rfc2822 format.
                         list.append("<Last-Modified>").append("Mon, 12 Aug 2024 11:16:46 UT").append("</Last-Modified>");
                     }
