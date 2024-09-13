@@ -121,6 +121,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| repositories| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| roles| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| segments| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| sessions| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| snapshot_restore| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| snapshots| sys| BASE TABLE| NULL",
@@ -207,13 +208,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(67L);
+        assertThat(response.rowCount()).isEqualTo(68L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(68L);
+        assertThat(response.rowCount()).isEqualTo(69L);
     }
 
     @Test
@@ -426,6 +427,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "privileges_pk| PRIMARY KEY| privileges| sys",
             "repositories_pk| PRIMARY KEY| repositories| sys",
             "roles_pk| PRIMARY KEY| roles| sys",
+            "sessions_pk| PRIMARY KEY| sessions| sys",
             "shards_pk| PRIMARY KEY| shards| sys",
             "snapshot_restore_pk| PRIMARY KEY| snapshot_restore| sys",
             "snapshots_pk| PRIMARY KEY| snapshots| sys",
@@ -569,7 +571,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1013);
+        assertThat(response.rowCount()).isEqualTo(1023);
     }
 
     @Test
@@ -890,7 +892,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(70L);
+        assertThat(response.rows()[0][0]).isEqualTo(71L);
     }
 
     @Test
