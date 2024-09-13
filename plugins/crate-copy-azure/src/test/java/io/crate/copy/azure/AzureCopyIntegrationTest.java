@@ -113,8 +113,8 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
             COPY source TO DIRECTORY 'azblob:///dir1/dir2'
             WITH (
                 container = ?,
-                account_name = ?,
-                account_key = ?,
+                account = ?,
+                key = ?,
                 endpoint = ?
             )
             """,
@@ -126,8 +126,8 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
             COPY target FROM 'azblob:///dir1/dir2/*'
             WITH (
                 container = ?,
-                account_name = ?,
-                account_key = ?,
+                account = ?,
+                key = ?,
                 endpoint = ?
             )
             """,

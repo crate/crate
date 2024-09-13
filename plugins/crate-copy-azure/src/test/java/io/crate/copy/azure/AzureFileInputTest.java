@@ -64,8 +64,8 @@ public class AzureFileInputTest {
         // Dummy settings to pass validation, client response is mocked.
         Settings settings = Settings.builder()
             .put(AzureBlobStorageSettings.CONTAINER_SETTING.getKey(), "dummy")
-            .put(AzureBlobStorageSettings.ACCOUNT_KEY_SETTING.getKey(), "dummy")
-            .put(AzureBlobStorageSettings.ACCOUNT_NAME_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.KEY_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ACCOUNT_SETTING.getKey(), "dummy")
             .put(AzureBlobStorageSettings.ENDPOINT_SETTING.getKey(), "dummy")
             .build();
 

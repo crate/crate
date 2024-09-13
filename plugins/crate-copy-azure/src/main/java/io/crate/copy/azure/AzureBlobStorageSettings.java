@@ -38,10 +38,10 @@ import io.crate.common.collections.Lists;
 public class AzureBlobStorageSettings {
 
     // All operations will happen under this directory (user provided path will be prepended by root).
-    static final Setting<String> ROOT_SETTING = Setting.simpleString("root", Property.NodeScope);
+    static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path", Property.NodeScope);
 
-    static final Setting<String> ACCOUNT_NAME_SETTING = Setting.simpleString("account_name", Property.NodeScope);
-    static final Setting<String> ACCOUNT_KEY_SETTING = Setting.simpleString("account_key", Property.NodeScope);
+    static final Setting<String> ACCOUNT_SETTING = Setting.simpleString("account", Property.NodeScope);
+    static final Setting<String> KEY_SETTING = Setting.simpleString("key", Property.NodeScope);
 
     static final Setting<String> CONTAINER_SETTING = Setting.simpleString("container", Property.NodeScope);
     static final Setting<String> ENDPOINT_SETTING = Setting.simpleString("endpoint", Property.NodeScope);
@@ -49,16 +49,16 @@ public class AzureBlobStorageSettings {
     static final List<Setting<String>> SUPPORTED_SETTINGS = List.of(
             CONTAINER_SETTING,
             ENDPOINT_SETTING,
-            ACCOUNT_NAME_SETTING,
-            ACCOUNT_KEY_SETTING,
-            ROOT_SETTING
+            ACCOUNT_SETTING,
+            KEY_SETTING,
+            BASE_PATH_SETTING
     );
 
     static final List<String> REQUIRED_SETTINGS = List.of(
             CONTAINER_SETTING.getKey(),
             ENDPOINT_SETTING.getKey(),
-            ACCOUNT_NAME_SETTING.getKey(),
-            ACCOUNT_KEY_SETTING.getKey()
+            ACCOUNT_SETTING.getKey(),
+            KEY_SETTING.getKey()
     );
 
     /**

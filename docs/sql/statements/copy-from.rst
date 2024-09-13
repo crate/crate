@@ -292,7 +292,7 @@ Using the ``s3://`` scheme automatically sets the `shared`_ to true.
 ``azblob``
 ''''''''''
 
-You can use the ``azblob://`` scheme to access files on the `Azure Blob Storage`_.
+You can use the ``azblob:///`` scheme to access files on the `Azure Blob Storage`_.
 
 URI must consist of scheme and absolute path to the resource.
 
@@ -309,15 +309,15 @@ For example:
 .. code-block:: text
 
     COPY source
-    TO DIRECTORY 'azblob://dir1/dir2'
+    TO DIRECTORY 'azblob:///dir1/dir2'
     WITH (
         container = 'container',
-        account_name = 'account_name',
-        account_key = 'account_key',
+        account = 'account',
+        key = 'key',
         endpoint = 'endpoint'
     )
 
-Using the ``azblob://`` scheme automatically sets the `shared`_ to ``true``.
+Using the ``azblob:///`` scheme automatically sets the `shared`_ to ``true``.
 
 .. _sql-copy-from-other-schemes:
 
@@ -620,23 +620,23 @@ Setting this option to ``n`` skips the first ``n`` rows while copying.
 '''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-`Container`_ name. Required.
+The Azure Storage `Container`_ name. Required.
 
-.. _sql-copy-from-account-name:
+.. _sql-copy-from-account:
 
-``account_name``
-''''''''''''''''
-
-Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-`Account`_ name. Required.
-
-.. _sql-copy-from-account-key:
-
-``account_key``
-'''''''''''''''
+``account``
+'''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-`Account Key`_. Required.
+The Azure Storage `Account`_ name. Required.
+
+.. _sql-copy-from-key:
+
+``key``
+'''''''
+
+Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+The Azure Storage `Account Key`_. Required.
 
 .. _sql-copy-from-endpoint:
 
@@ -644,12 +644,12 @@ Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 ''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
-`Endpoint`_. Required.
+The Azure storage `Endpoint`_ name. Required.
 
-.. _sql-copy-from-root:
+.. _sql-copy-from-base-path:
 
-``root``
-''''''''
+``base_path``
+'''''''''''''
 
 Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
 Starting directory to write blobs. User provided path will be prepended by the root.

@@ -286,7 +286,7 @@ See `AWS Java Documentation`_.
 ``azblob``
 ''''''''''
 
-You can use the ``azblob://`` scheme to access files on the `Azure Blob Storage`_.
+You can use the ``azblob:///`` scheme to access files on the `Azure Blob Storage`_.
 
 URI must consist of scheme and absolute path to the resource.
 
@@ -303,11 +303,11 @@ For example:
 .. code-block:: text
 
     COPY source
-    TO DIRECTORY 'azblob://dir1/dir2'
+    TO DIRECTORY 'azblob:///dir1/dir2'
     WITH (
         container = 'container',
-        account = 'account_name',
-        key = 'account_key',
+        account = 'account',
+        key = 'key',
         endpoint = 'endpoint'
     )
 
@@ -392,18 +392,18 @@ Defaults to ``true``.
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 The Azure Storage `Container`_ name. Required.
 
-.. _sql-copy-to-account-name:
+.. _sql-copy-to-account:
 
 ``account``
-''''''''''''''''
+'''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 The Azure Storage `Account`_ name. Required.
 
-.. _sql-copy-to-account-key:
+.. _sql-copy-to-key:
 
 ``key``
-'''''''''''''''
+'''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 The Azure Storage `Account Key`_. Required.
@@ -416,10 +416,10 @@ The Azure Storage `Account Key`_. Required.
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 The Azure storage `Endpoint`_ name. Required.
 
-.. _sql-copy-to-root:
+.. _sql-copy-to-base-path:
 
 ``base_path``
-''''''''
+'''''''''''''
 
 Used for :ref:`azblob <sql-copy-to-azblob>` scheme only.
 Starting directory to write blobs. User provided path will be prepended by the root.
