@@ -78,6 +78,11 @@ public class AzureBlobStorageSettings {
         }
     }
 
+    /**
+     * Mapping of the user provided setting names,
+     * which are aligned with 'CREATE REPOSITORY ... TYPE AZURE',
+     * to OpenDAL supported names, listed in https://docs.rs/opendal/latest/opendal/services/struct.Azblob.html.
+     */
     public static Map<String, String> AZURE_TO_OPEN_DAL = Map.of(
         ACCOUNT_SETTING.getKey(), "account_name",
         KEY_SETTING.getKey(), "account_key",
