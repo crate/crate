@@ -41,6 +41,7 @@ import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
@@ -194,6 +195,31 @@ public final class EqOperator extends Operator<Object> {
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
+        return termsAndGenericFilter(
+            function,
+            column,
+            arrayType,
+            values,
+            context,
+            hasDocValues,
+            indexType,
+            Occur.MUST
+        );
+    }
+
+    /**
+     *
+     * @param termQueryOccur Defines how the inner type termQuery is build to satisfy a possible negation of the
+     *                       whole query. This is used for cases like IS DISTINCT FROM.
+     */
+    public static Query termsAndGenericFilter(Function function,
+                                              String column,
+                                              DataType<?> arrayType,
+                                              Collection<?> values,
+                                              Context context,
+                                              boolean hasDocValues,
+                                              IndexType indexType,
+                                              Occur termQueryOccur) {
         var flatUniqueValues = flattenUnique(values);
         var canUseArrayLengthIndex = context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
@@ -206,11 +232,11 @@ public final class EqOperator extends Operator<Object> {
                     context.tableInfo()::getReference);
                 if (ArrayType.dimensions(arrayType) > 1) { // need generic function filter to differentiate [[]] and []
                     return new BooleanQuery.Builder()
-                        .add(arrayLengthTermQuery, Occur.MUST)
+                        .add(arrayLengthTermQuery, termQueryOccur)
                         .add(genericFunctionFilter, Occur.MUST)
                         .build();
                 } else {
-                    return arrayLengthTermQuery;
+                    return termQueryOccur == Occur.MUST_NOT ? Queries.not(arrayLengthTermQuery) : arrayLengthTermQuery;
                 }
             } else {
                 // `arrayRef = []` - termsQuery would be null
@@ -222,7 +248,7 @@ public final class EqOperator extends Operator<Object> {
 
                 filterClauses.add(
                     NumTermsPerDocQuery.forColumn(column, arrayType, numDocs -> numDocs == 0),
-                    Occur.MUST
+                    termQueryOccur
                 );
                 // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
                 // NULL values are not in the index.
@@ -239,7 +265,7 @@ public final class EqOperator extends Operator<Object> {
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
-            filterClauses.add(termsQuery, Occur.MUST);
+            filterClauses.add(termsQuery, termQueryOccur);
             filterClauses.add(genericFunctionFilter, Occur.MUST);
         }
         return filterClauses.build();
@@ -273,12 +299,16 @@ public final class EqOperator extends Operator<Object> {
      *      o = {x=10, y=20}    -> generic(o == {x=10, y=20})
      * }
      * </pre>
+     *
+     * @param termQueryOccur Defines how each object children termQuery is build to satisfy a possible negation of the
+     *                       whole query. This is used for cases like IS DISTINCT FROM.
      **/
-    private static Query refEqObject(Function eq,
-                                     ColumnIdent columnIdent,
-                                     ObjectType type,
-                                     Map<String, Object> value,
-                                     Context context) {
+    public static Query refEqObject(Function eq,
+                                    ColumnIdent columnIdent,
+                                    ObjectType type,
+                                    Map<String, Object> value,
+                                    Context context,
+                                    Occur termQueryOccur) {
         BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
         int preFilters = 0;
         for (Map.Entry<String, Object> entry : value.entrySet()) {
@@ -294,9 +324,13 @@ public final class EqOperator extends Operator<Object> {
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
                 innerQuery = termsAndGenericFilter(
-                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
+                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType(), termQueryOccur);
             } else {
                 innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
+                // instead of adding a MUST_NOT clause for the negation, we negate the innerQuery to also match null values
+                if (termQueryOccur == Occur.MUST_NOT) {
+                    innerQuery = Queries.not(innerQuery);
+                }
             }
             if (innerQuery == null) {
                 continue;
@@ -316,5 +350,13 @@ public final class EqOperator extends Operator<Object> {
                 return boolBuilder.build();
             }
         }
+    }
+
+    private static Query refEqObject(Function eq,
+                                    ColumnIdent columnIdent,
+                                    ObjectType type,
+                                    Map<String, Object> value,
+                                    Context context) {
+        return refEqObject(eq, columnIdent, type, value, context, Occur.MUST);
     }
 }
