@@ -122,7 +122,11 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             sslContextProvider
         ); // clientTransport is closed via clientTransportService
         var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.newSession(any(String.class), any(Role.class))).thenReturn(mock(Session.class));
+        when(sqlOperations.newSession(
+            any(ConnectionProperties.class),
+            any(String.class),
+            any(Role.class))
+        ).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),

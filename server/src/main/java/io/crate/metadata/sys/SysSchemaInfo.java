@@ -70,7 +70,8 @@ public class SysSchemaInfo implements SchemaInfo {
                 SysUsersTableInfo.IDENT.name(),
                 SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID())),
             Map.entry(SysRolesTableInfo.IDENT.name(), SysRolesTableInfo.INSTANCE),
-            Map.entry(SysPrivilegesTableInfo.IDENT.name(), SysPrivilegesTableInfo.INSTANCE)
+            Map.entry(SysPrivilegesTableInfo.IDENT.name(), SysPrivilegesTableInfo.INSTANCE),
+            Map.entry(SysSessionsTableInfo.IDENT.name(), SysSessionsTableInfo.create(localNode))
         );
     }
 

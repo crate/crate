@@ -49,7 +49,9 @@ import org.junit.Test;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.data.Row;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 
 public class IndicesServiceCloseTests extends ESTestCase {
@@ -98,7 +100,8 @@ public class IndicesServiceCloseTests extends ESTestCase {
         assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
 
         Sessions sessions = node.injector().getInstance(Sessions.class);
-        try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
+        try (Session session = sessions.newSession(
+                new ConnectionProperties(null, null, Protocol.HTTP, null), "doc", Role.CRATE_USER)) {
             String stmt = "create table test (x int) clustered into 1 shards with (number_of_replicas = 0)";
             var resultReceiver = new CollectingResultReceiver<>(Collectors.toList());
             session.quickExec(stmt, resultReceiver, Row.EMPTY);
@@ -120,7 +123,8 @@ public class IndicesServiceCloseTests extends ESTestCase {
         assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
 
         Sessions sessions = node.injector().getInstance(Sessions.class);
-        try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
+        try (Session session = sessions.newSession(
+                new ConnectionProperties(null, null, Protocol.HTTP, null), "doc", Role.CRATE_USER)) {
             String stmt = "create table test (x int) clustered into 1 shards with (number_of_replicas = 0)";
             var resultReceiver = new CollectingResultReceiver<>(Collectors.toList());
             session.quickExec(stmt, resultReceiver, Row.EMPTY);

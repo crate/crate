@@ -152,6 +152,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.auth.Protocol;
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -191,6 +192,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.role.Role;
@@ -1653,7 +1655,8 @@ public abstract class IntegTestCase extends ESTestCase {
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         Roles roles = cluster().getInstance(Roles.class, node);
-        try (Session session = sqlOperations.newSession(schema, roles.getUser("crate"))) {
+        try (Session session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), schema, roles.getUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;
@@ -1842,7 +1845,8 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
+        try (Session session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
             return response;
@@ -1910,7 +1914,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSessionOnNode(String nodeName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, nodeName);
-        return sqlOperations.newSession(
+        return sqlOperations.newSession(new ConnectionProperties(null, null, Protocol.HTTP, null),
             sqlExecutor.getCurrentSchema(), Role.CRATE_USER);
     }
 
@@ -1924,7 +1928,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSession(@Nullable String defaultSchema) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(defaultSchema, Role.CRATE_USER);
+        return sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), defaultSchema, Role.CRATE_USER);
     }
 
     private TestExecutionConfig testExecutionConfig() {

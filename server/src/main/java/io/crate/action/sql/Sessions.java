@@ -51,6 +51,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -126,13 +127,15 @@ public class Sessions {
         this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
-    private Session newSession(CoordinatorSessionSettings sessionSettings) {
+    private Session newSession(@Nullable ConnectionProperties connectionProperties,
+                               CoordinatorSessionSettings sessionSettings) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
         int sessionId = nextSessionId.incrementAndGet();
         Session session = new Session(
             sessionId,
+            connectionProperties,
             analyzer,
             planner,
             jobsLogs,
@@ -145,7 +148,9 @@ public class Sessions {
         return session;
     }
 
-    public Session newSession(@Nullable String defaultSchema, Role authenticatedUser) {
+    public Session newSession(ConnectionProperties connectionProperties,
+                              @Nullable String defaultSchema,
+                              Role authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
             sessionSettings = new CoordinatorSessionSettings(
@@ -170,11 +175,11 @@ public class Sessions {
             setting.apply(sessionSettings, entry.getValue());
         }
 
-        return newSession(sessionSettings);
+        return newSession(connectionProperties, sessionSettings);
     }
 
     public Session newSystemSession() {
-        return newSession(CoordinatorSessionSettings.systemDefaults());
+        return newSession(null, CoordinatorSessionSettings.systemDefaults());
     }
 
     /**

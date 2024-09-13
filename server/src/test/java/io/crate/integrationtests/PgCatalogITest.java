@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,12 +33,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.action.sql.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewInfo;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Roles;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
@@ -123,7 +124,8 @@ public class PgCatalogITest extends IntegTestCase {
 
         Roles roles = cluster().getInstance(Roles.class);
         Sessions sessions = cluster().getInstance(Sessions.class);
-        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
+        try (var session = sessions.newSession(
+            new ConnectionProperties(null, null, Protocol.POSTGRES, null), "doc", roles.getUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             // shows doc due to table permission, but not vip
             assertThat(response).hasRows(
@@ -135,7 +137,8 @@ public class PgCatalogITest extends IntegTestCase {
 
         execute("create view vip.v1 as select 1");
         execute("grant dql on view vip.v1 to hoschi");
-        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
+        try (var session = sessions.newSession(
+            new ConnectionProperties(null, null, Protocol.POSTGRES, null), "doc", roles.getUser("hoschi"))) {
             execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
             assertThat(response).hasRows(
                 "doc",
@@ -162,7 +165,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(response).hasRows("24");
+        assertThat(response).hasRows("25");
     }
 
     @Test

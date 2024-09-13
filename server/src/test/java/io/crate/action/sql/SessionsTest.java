@@ -40,6 +40,7 @@ import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import io.crate.analyze.Analyzer;
+import io.crate.auth.Protocol;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -49,6 +50,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -92,10 +94,10 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
         NodeContext nodeCtx = createNodeContext();
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.newSession("doc", RolesHelper.userOf("Arthur"));
+        Session session1 = sessions.newSession(connectionProperties(), "doc", RolesHelper.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.newSession("doc", RolesHelper.userOf("Trillian"));
+        Session session2 = sessions.newSession(connectionProperties(), "doc", RolesHelper.userOf("Trillian"));
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
@@ -117,11 +119,11 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         Sessions sessions = newSessions(nodeCtx);
 
         Role arthur = RolesHelper.userOf("Arthur");
-        Session session1 = sessions.newSession("doc", arthur);
+        Session session1 = sessions.newSession(connectionProperties(), "doc", arthur);
         session1.cursors.add("c1", newCursor());
 
         Role trillian = RolesHelper.userOf("Trillian");
-        Session session2 = sessions.newSession("doc", trillian);
+        Session session2 = sessions.newSession(connectionProperties(), "doc", trillian);
         session2.cursors.add("c2", newCursor());
 
         assertThat(sessions.getCursors(arthur)).hasSize(1);
@@ -143,7 +145,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             sessionSettingRegistry
         );
-        Session session = sessions.newSession("doc", Role.CRATE_USER);
+        Session session = sessions.newSession(connectionProperties(), "doc", Role.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
             .isEqualTo(TimeValue.timeValueSeconds(30));
     }
@@ -153,9 +155,11 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
         Sessions sessions = newSessions(createNodeContext());
 
         Role john = RolesHelper.userOf("john");
-        assertThat(sessions.newSession("", john).sessionSettings().hashJoinsEnabled()).isTrue();
+        assertThat(sessions.newSession(connectionProperties(), "", john)
+            .sessionSettings().hashJoinsEnabled()).isTrue();
         john = RolesHelper.userOf("john", null).with(null, null, Map.of("enable_hashjoin", false));
-        assertThat(sessions.newSession("", john).sessionSettings().hashJoinsEnabled()).isFalse();
+        assertThat(sessions.newSession(connectionProperties(), "", john)
+            .sessionSettings().hashJoinsEnabled()).isFalse();
     }
 
     private Sessions newSessions(NodeContext nodeCtx) {
@@ -183,5 +187,9 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             new CompletableFuture<>(),
             List.of()
         );
+    }
+
+    private static ConnectionProperties connectionProperties() {
+        return new ConnectionProperties(null, null, Protocol.HTTP, null);
     }
 }

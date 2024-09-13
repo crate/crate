@@ -26,7 +26,6 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
@@ -36,6 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
+import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -69,7 +69,8 @@ public class SysTableDefinitions {
                                RepositoriesService repositoriesService,
                                SysSnapshots sysSnapshots,
                                SysAllocations sysAllocations,
-                               ShardSegments shardSegmentInfos) {
+                               ShardSegments shardSegmentInfos,
+                               Sessions sessions) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
         assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
@@ -82,7 +83,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysUsersTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> CompletableFuture.completedFuture(roles.roles().stream().filter(Role::isUser).toList()),
+                    () -> completedFuture(roles.roles().stream().filter(Role::isUser).toList()),
                     userTable.expressions(),
                     false
                 )
@@ -90,7 +91,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysRolesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> CompletableFuture.completedFuture(roles.roles().stream().filter(r -> r.isUser() == false).toList()),
+                    () -> completedFuture(roles.roles().stream().filter(r -> r.isUser() == false).toList()),
                     SysRolesTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -98,7 +99,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysPrivilegesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
+                    () -> completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
                     SysPrivilegesTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -221,6 +222,18 @@ public class SysTableDefinitions {
                     SysSegmentsTableInfo.create(clusterService::localNode).expressions(),
                     true
                 )
+            ),
+            Map.entry(
+                SysSessionsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, user) -> completedFuture(
+                        StreamSupport.stream(sessions.getActive().spliterator(), false)
+                            .filter(session -> session.isSystemSession() == false
+                                && (roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)
+                                    || session.sessionSettings().sessionUser().equals(user)))
+                        .toList()),
+                    SysSessionsTableInfo.create(clusterService::localNode).expressions(),
+                    false)
             )
         );
     }
