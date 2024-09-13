@@ -188,11 +188,14 @@ public class AzureHttpHandler implements HttpHandler {
                     list.append("<Properties><Content-Length>").append(blob.getValue().length()).append(
                         "</Content-Length>");
                     List<String> dateHeader = exchange.getRequestHeaders().get("X-ms-date");
-                    if (dateHeader != null) {
-                        // COPY/OpenDAL requires this header.
-                        // CREATE REPOSITORY/dedicated client fails on encountering header in such format.
-                        // TODO: Migrate CREATE REPOSITORY on Azure to use OpenDAL.
-                        list.append("<Last-Modified>").append(dateHeader.get(0)).append("</Last-Modified>");
+                    if (dateHeader != null || exchange.getRequestURI().getQuery().contains("sig=")) {
+                        // COPY/OpenDAL requires 'Last-Modified' in the list API response.
+
+                        // We recognize that request is done by OpenDAL based on request headers/query string:
+                        // - In case of key authentication, it adds 'X-ms-date' header.
+                        // - in case of SAS authentication, it adds 'sig' query parameter.
+                        // We use a dummy date in rfc2822 format.
+                        list.append("<Last-Modified>").append("Mon, 12 Aug 2024 11:16:46 UT").append("</Last-Modified>");
                     }
 
                     list.append("<BlobType>BlockBlob</BlobType></Properties></Blob>");

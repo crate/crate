@@ -49,4 +49,18 @@ public class AzureBlobStorageSettingsTest {
             .hasMessage("Setting 'dummy' is not supported");
     }
 
+    @Test
+    public void test_copy_from_requires_auth() throws Exception {
+        assertThatThrownBy(() -> new AzureFileInput(null, mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Authentication setting must be provided: either sas_token or account and key");
+    }
+
+    @Test
+    public void test_copy_to_requires_auth() throws Exception {
+        assertThatThrownBy(() -> new AzureFileOutput(mock(SharedAsyncExecutor.class), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Authentication setting must be provided: either sas_token or account and key");
+    }
+
 }

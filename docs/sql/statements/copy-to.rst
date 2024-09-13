@@ -436,6 +436,7 @@ The ``WITH`` clause supports the following copy parameters:
 .. _Account: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction#storage-accounts
 .. _Container: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction#containers
 .. _Endpoint: https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#storage-account-endpoints
+.. _SAS: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
 .. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _gzip: https://www.gzip.org/

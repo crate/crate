@@ -43,6 +43,7 @@ public class AzureBlobStorageSettings {
 
     static final Setting<String> ACCOUNT_SETTING = Setting.simpleString("account", Property.NodeScope);
     static final Setting<String> KEY_SETTING = Setting.simpleString("key", Property.NodeScope);
+    static final Setting<String> SAS_TOKEN_SETTING = Setting.simpleString("sas_token");
 
     static final Setting<String> CONTAINER_SETTING = Setting.simpleString("container", Property.NodeScope);
     static final Setting<String> ENDPOINT_SETTING = Setting.simpleString("endpoint", Property.NodeScope);
@@ -52,14 +53,13 @@ public class AzureBlobStorageSettings {
             ENDPOINT_SETTING,
             ACCOUNT_SETTING,
             KEY_SETTING,
+            SAS_TOKEN_SETTING,
             BASE_PATH_SETTING
     );
 
     static final List<String> REQUIRED_SETTINGS = List.of(
             CONTAINER_SETTING.getKey(),
-            ENDPOINT_SETTING.getKey(),
-            ACCOUNT_SETTING.getKey(),
-            KEY_SETTING.getKey()
+            ENDPOINT_SETTING.getKey()
     );
 
     /**
@@ -76,6 +76,12 @@ public class AzureBlobStorageSettings {
                 throw new IllegalArgumentException("Setting '" + key + "' is not supported");
             }
         }
+
+        if (settings.get(SAS_TOKEN_SETTING.getKey()) == null) {
+            if (settings.get(ACCOUNT_SETTING.getKey()) == null && settings.get(KEY_SETTING.getKey()) == null) {
+                throw new IllegalArgumentException("Authentication setting must be provided: either sas_token or account and key");
+            }
+        }
     }
 
     /**
@@ -89,6 +95,7 @@ public class AzureBlobStorageSettings {
         BASE_PATH_SETTING.getKey(), "root",
         // Settings below have same names, listed for documentation purpose.
         CONTAINER_SETTING.getKey(), "container",
-        ENDPOINT_SETTING.getKey(), "endpoint"
+        ENDPOINT_SETTING.getKey(), "endpoint",
+        SAS_TOKEN_SETTING.getKey(), "sas_token"
     );
 }

@@ -649,19 +649,47 @@ The ``WITH`` clause supports the following options:
 
 **account**
   | *Type:*    ``text``
-  | *Required*
+  | *Optional*
 
   Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
   The Azure Storage `Account`_ name.
+
+  .. NOTE::
+
+      It must be provided in conjunction with ``key`` if ``sas_token`` is not provided.
 
 .. _sql-copy-from-key:
 
 **key**
   | *Type:*    ``text``
-  | *Required*
+  | *Optional*
 
   Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
   The Azure Storage `Account Key`_.
+
+  .. NOTE::
+
+      It must be provided in conjunction with ``account`` if ``sas_token`` is not provided.
+
+.. _sql-copy-from-sas:
+
+**sas_token**
+  | *Type:*    ``text``
+  | *Optional*
+
+  Used for :ref:`azblob <sql-copy-from-azblob>` scheme only.
+  The Shared Access Signatures (`SAS`_) token used for authentication for the
+  Azure Storage account. This can be used as an alternative to the The Azure
+  Storage `Account Key`_.
+
+  The SAS token must have read, write, and list permissions for the
+  container base path and all its contents. These permissions need to be
+  granted for the blob service and apply to resource types service, container,
+  and object.
+
+  .. NOTE::
+
+      It must be provided if ``account`` and ``key`` are not provided.
 
 .. _sql-copy-from-endpoint:
 
@@ -738,6 +766,7 @@ inserted records.
 .. _Container: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction#containers
 .. _Endpoint: https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#storage-account-endpoints
 .. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
+.. _SAS: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
 .. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _GeoJSON: https://geojson.org/
 .. _globbing: https://en.wikipedia.org/wiki/Glob_(programming)
