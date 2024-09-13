@@ -122,7 +122,7 @@ SQL Standard and PostgreSQL Compatibility
   be used as the unit name as well.
 
 - `Martin Stein <https://github.com/marstein>`_ added support for the
-  IS DISTINCT FROM operator. The operator is not yet optimized for Lucene queries.
+  IS DISTINCT FROM operator.
 
 Data Types
 ----------

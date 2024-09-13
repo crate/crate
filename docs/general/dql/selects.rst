@@ -547,12 +547,6 @@ does always return ``NULL`` when comparing ``NULL``.
     SELECT 3 rows in set (... sec)
 
 
-.. NOTE::
-
-   Using ``IS DISTINCT FROM`` can be slow because the expression is not using
-   index structures and is not suitable for use on larger tables.
-   
-   
 .. _sql_dql_array_comparisons:
 
 Array comparisons
