@@ -51,16 +51,41 @@ public class AzureBlobStorageSettingsTest {
 
     @Test
     public void test_copy_from_requires_auth() throws Exception {
-        assertThatThrownBy(() -> new AzureFileInput(null, mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), Settings.EMPTY))
+        // Dummy settings to pass required validation
+        Settings settings = Settings.builder()
+            .put(AzureBlobStorageSettings.CONTAINER_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ENDPOINT_SETTING.getKey(), "dummy")
+            .build();
+        assertThatThrownBy(() -> new AzureFileInput(null, mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Authentication setting must be provided: either sas_token or account and key");
     }
 
     @Test
     public void test_copy_to_requires_auth() throws Exception {
-        assertThatThrownBy(() -> new AzureFileOutput(mock(SharedAsyncExecutor.class), Settings.EMPTY))
+        // Dummy settings to pass required validation
+        Settings settings = Settings.builder()
+            .put(AzureBlobStorageSettings.CONTAINER_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ENDPOINT_SETTING.getKey(), "dummy")
+            .build();
+        assertThatThrownBy(() -> new AzureFileOutput(mock(SharedAsyncExecutor.class), settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Authentication setting must be provided: either sas_token or account and key");
+    }
+
+    @Test
+    public void test_copy_from_checks_required() throws Exception {
+        assertThatThrownBy(() -> new AzureFileInput(null, mock(SharedAsyncExecutor.class), URI.create("azblob:///dir1/dir2/*"), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'container' must be provided");
+    }
+
+    @Test
+    public void test_copy_to_checks_required() throws Exception {
+        Settings.builder().put(AzureBlobStorageSettings.CONTAINER_SETTING.getKey(), "dummy").build();
+        assertThatThrownBy(() -> new AzureFileOutput(mock(SharedAsyncExecutor.class), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'container' must be provided");
     }
 
 }

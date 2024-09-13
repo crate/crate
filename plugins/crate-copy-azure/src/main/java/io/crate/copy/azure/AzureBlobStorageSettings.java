@@ -25,6 +25,7 @@ import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_FROM_SETTINGS;
 import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_TO_SETTINGS;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Setting;
@@ -74,6 +75,14 @@ public class AzureBlobStorageSettings {
         for (String key : settings.keySet()) {
             if (validSettings.contains(key) == false) {
                 throw new IllegalArgumentException("Setting '" + key + "' is not supported");
+            }
+        }
+
+        for (String required: REQUIRED_SETTINGS) {
+            if (settings.get(required) == null) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Setting '%s' must be provided", required)
+                );
             }
         }
 
