@@ -215,8 +215,9 @@ Additionally, only the ``crate`` superuser is allowed to use the ``file://``
 scheme.
 
 By default, every node will attempt to import every file. If the file is
-accessible on multiple nodes, you can set the `shared`_ option to true in order
-to avoid importing duplicates.
+accessible on multiple nodes, you can set the
+:ref:`shared <sql-copy-from-shared>` option to true in order to avoid importing
+duplicates.
 
 Use :ref:`sql-copy-from-return-summary` to get information about what actions
 were performed on each node.
@@ -267,7 +268,8 @@ Here is a more concrete example:
 If no credentials are set the s3 client will operate in anonymous mode.
 See `AWS Java Documentation`_.
 
-Using the ``s3://`` scheme automatically sets the `shared`_ to true.
+Using the ``s3://`` scheme automatically sets the
+:ref:`shared <sql-copy-from-shared>` to true.
 
 .. TIP::
 
@@ -317,7 +319,8 @@ For example:
         endpoint = 'endpoint'
     )
 
-Using the ``azblob:///`` scheme automatically sets the `shared`_ to ``true``.
+Using the ``azblob:///`` scheme automatically sets the
+:ref:`shared <sql-copy-from-shared>` to ``true``.
 
 .. _sql-copy-from-other-schemes:
 
@@ -487,8 +490,8 @@ The ``WITH`` clause supports the following options:
   If both keys are set, *both* regular expressions have to match for a node to be
   included.
 
-  If the `shared`_ option is false, a strict node filter might exclude nodes with
-  access to the data leading to a partial import.
+  If the :ref:`shared <sql-copy-from-shared>` option is false, a strict node
+  filter might exclude nodes with access to the data leading to a partial import.
 
   To verify which nodes match the filter, run the statement with
   :ref:`EXPLAIN <ref-explain>`.
@@ -507,9 +510,9 @@ The ``WITH`` clause supports the following options:
   only once to do the import. However, the value must be an integer greater than
   0.
 
-  If `shared`_ is set to false this option has to be used with caution. It might
-  exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
-  the files.
+  If :ref:`shared <sql-copy-from-shared>` is set to false this option has to be
+  used with caution. It might exclude the wrong nodes, causing COPY FROM to read
+  no files or only a subset of the files.
 
 
 .. _sql-copy-from-compression:
