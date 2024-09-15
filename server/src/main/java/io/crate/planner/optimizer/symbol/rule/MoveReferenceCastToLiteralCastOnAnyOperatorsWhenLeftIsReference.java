@@ -26,6 +26,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import java.util.List;
 
 import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -50,7 +51,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> f.isCast())
+                .with(f -> f.isCast() && CastMode.IMPLICIT.equals(f.castMode()))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );
     }
