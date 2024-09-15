@@ -165,7 +165,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
             }
             return bigDecimalValue.doubleValue();
         } else if (value instanceof Number n) {
-            return n.doubleValue();
+            return Double.valueOf(String.valueOf(n)); // prevent precision errors
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
