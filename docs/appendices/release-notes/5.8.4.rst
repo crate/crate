@@ -53,3 +53,6 @@ Fixes
 
       CREATE TABLE tbl (obj OBJECT AS (a BOOLEAN, a INTEGER));
 
+- Fixed an issue that caused filtering by :ref:`ANY <sql_any_array_comparison>`
+  operator on an array typed column under an explicit cast to return invalid
+  results.

@@ -75,6 +75,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             "create table t1 (" +
             "  id integer," +
             "  name text," +
+            "  f float," +
             "  d_array array(double)," +
             "  y_array array(bigint)," +
             "  text_array array(text)," +
@@ -170,7 +171,16 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void test_any_operator_cast_on_nested_array_referewence_is_moved_to_cast_on_literal() {
+    public void test_any_operator_does_not_move_explicit_reference_cast_to_literal_cast() {
+        var query = toQuery("1 = ANY(d_array::int[])");
+        assertThat(query.toString()).isEqualTo("(1 = ANY(cast(d_array AS integer_array)))");
+
+        query = toQuery("f::int = ANY([1.1])");
+        assertThat(query.toString()).isEqualTo("(cast(f AS integer) = ANY([1.1]))");
+    }
+
+    @Test
+    public void test_any_operator_cast_on_nested_array_reference_is_moved_to_cast_on_literal() {
         assertThat(toQuery("[1.0, 2.0, 3.0] = any(o_array['xs'])")).isFunction(
             "any_=",
             arg1 -> assertThat(arg1).isFunction("_cast"),
