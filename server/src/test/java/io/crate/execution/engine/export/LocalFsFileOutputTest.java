@@ -37,8 +37,8 @@ public class LocalFsFileOutputTest extends ESTestCase {
     @Test
     public void testIsBufferedOutputStream() throws Exception {
         Path file = createTempFile("out", "json");
-        LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput();
-        try (OutputStream os = localFsFileOutput.acquireOutputStream(mock(Executor.class), file.toUri(), null)) {
+        LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput(file.toUri());
+        try (OutputStream os = localFsFileOutput.acquireOutputStream(mock(Executor.class), null)) {
             assertThat(os).isExactlyInstanceOf(BufferedOutputStream.class);
         }
     }
