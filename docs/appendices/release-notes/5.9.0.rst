@@ -153,6 +153,10 @@ Scalar and Aggregation Functions
 - Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
   scalar function.
 
+- Functions like :ref:`array_sum <scalar-array_sum>` or :ref:`array_avg
+  <scalar-array_avg>` can now be used with an empty array literal without
+  requiring an explicit type cast.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
