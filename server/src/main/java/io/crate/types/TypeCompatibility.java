@@ -87,6 +87,13 @@ public final class TypeCompatibility {
 
     @Nullable
     private static DataType<?> typeCompatibilityForParametrizedType(DataType<?> fromType, DataType<?> toType) {
+        if (true) {
+            try {
+                return DataTypes.merge(fromType, toType);
+            } catch (IllegalArgumentException ex) {
+                return null;
+            }
+        }
         ArrayList<TypeSignature> commonParameterTypes = new ArrayList<>();
         List<DataType<?>> fromTypeParameters = fromType.getTypeParameters();
         List<DataType<?>> toTypeParameters = toType.getTypeParameters();
@@ -108,7 +115,7 @@ public final class TypeCompatibility {
 
         if (fromTypeParameters.size() != toTypeParameters.size()) {
             if (fromType.id() == ObjectType.ID && toType.id() == ObjectType.ID) {
-                return fromTypeParameters.size() > toTypeParameters.size() ? fromType : toType;
+                return ObjectType.merge((ObjectType) fromType, (ObjectType) toType);
             } else if (fromType.id() == StringType.ID && toType.id() == StringType.ID) {
                 if (((StringType) fromType).unbound() || ((StringType) toType).unbound()) {
                     return StringType.INSTANCE;
