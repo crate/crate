@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -35,6 +37,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
 
 /**
@@ -43,16 +46,14 @@ import io.crate.types.TypeSignature;
  * args must be a multiple of 2
  *
  * k: must be a string
- *
- * Note that keys will be returned as String while values of type String will be BytesRef
  */
 public class MapFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_map";
 
     public static final Signature SIGNATURE =
-            Signature.builder(new FunctionName(null, NAME), FunctionType.SCALAR)
-                    .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
+        Signature.builder(new FunctionName(null, NAME), FunctionType.SCALAR)
+            .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
             .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
             // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
             // of e.g. `object(text, int, text, geo_point, ...)`.
@@ -62,12 +63,17 @@ public class MapFunction extends Scalar<Object, Object> {
             .features(Feature.DETERMINISTIC)
             .build();
 
-
     public static void register(Functions.Builder module) {
-        module.add(
-            SIGNATURE,
-            MapFunction::new
-        );
+        module.add(SIGNATURE, MapFunction::new);
+    }
+
+    public static Function of(List<Symbol> arguments, ObjectType returnType) {
+        int size = arguments.size();
+        if (size % 2 != 0) {
+            throw new IllegalArgumentException(
+                "Must have an even number of arguments for a map. Got " + size);
+        }
+        return new Function(SIGNATURE, arguments, returnType);
     }
 
     private MapFunction(Signature signature, BoundSignature boundSignature) {
@@ -77,7 +83,7 @@ public class MapFunction extends Scalar<Object, Object> {
     @SafeVarargs
     @Override
     public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
-        LinkedHashMap<String, Object> m = new LinkedHashMap<>(args.length / 2, 1.0f);
+        LinkedHashMap<String, Object> m = LinkedHashMap.newLinkedHashMap(args.length / 2);
         for (int i = 0; i < args.length - 1; i += 2) {
             m.put((String) args[i].value(), args[i + 1].value());
         }

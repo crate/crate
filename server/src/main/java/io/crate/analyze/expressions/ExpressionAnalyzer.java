@@ -61,7 +61,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.ExistsOperator;
@@ -70,6 +69,7 @@ import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ArraySliceFunction;
@@ -167,6 +167,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -1038,14 +1039,17 @@ public class ExpressionAnalyzer {
                 return Literal.EMPTY_OBJECT;
             }
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
+            ObjectType.Builder objBuilder = ObjectType.builder();
             for (Map.Entry<String, Expression> entry : values.entrySet()) {
-                arguments.add(Literal.of(entry.getKey()));
-                arguments.add(entry.getValue().accept(this, context));
+                String key = entry.getKey();
+                Literal<String> keyLiteral = Literal.of(key);
+                Symbol value = entry.getValue().accept(this, context);
+                arguments.add(keyLiteral);
+                arguments.add(value);
+                objBuilder.setInnerType(key, value.valueType());
             }
-            return allocateFunction(
-                MapFunction.NAME,
-                arguments,
-                context);
+            Function mapFunction = allocateFunction(MapFunction.NAME, arguments, context);
+            return new Function(mapFunction.signature(), arguments, objBuilder.build());
         }
 
         private final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
@@ -1175,20 +1179,20 @@ public class ExpressionAnalyzer {
         }
     }
 
-    private Symbol allocateBuiltinOrUdfFunction(String schema,
-                                                String functionName,
-                                                List<Symbol> arguments,
-                                                Symbol filter,
-                                                @Nullable Boolean ignoreNulls,
-                                                WindowDefinition windowDefinition,
-                                                ExpressionAnalysisContext context) {
+    private Function allocateBuiltinOrUdfFunction(String schema,
+                                                  String functionName,
+                                                  List<Symbol> arguments,
+                                                  Symbol filter,
+                                                  @Nullable Boolean ignoreNulls,
+                                                  WindowDefinition windowDefinition,
+                                                  ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
             schema, functionName, arguments, filter, ignoreNulls, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
     }
 
-    public Symbol allocateFunction(String functionName,
-                                    List<Symbol> arguments,
-                                    ExpressionAnalysisContext context) {
+    public Function allocateFunction(String functionName,
+                                     List<Symbol> arguments,
+                                     ExpressionAnalysisContext context) {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 

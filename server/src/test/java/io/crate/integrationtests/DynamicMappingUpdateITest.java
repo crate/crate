@@ -330,7 +330,27 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     }
 
     private void execute_insert_deep_nested_object_results_in_dynamic_mapping_updates() {
-        execute("insert into t (tb) values ([{t1 = [{t3 = {t4 = {t5 = 1}}},{t6 = [1,2]}]},{t2 = {}}])");
+        execute("""
+            insert into t (tb) values ([
+                {
+                    t1 = [
+                        {
+                            t3 = {
+                                t4 = {
+                                    t5 = 1
+                                }
+                            }
+                        },
+                        {
+                            t6 = [1,2]
+                        }
+                    ]
+                },
+                {
+                    t2 = {}
+                }
+            ])
+            """);
         execute("insert into t (o) values ({a={b=1}, b=1})");
         execute("refresh table t");
         execute("select column_name, ordinal_position, data_type from information_schema.columns where table_name = 't' order by 2");
