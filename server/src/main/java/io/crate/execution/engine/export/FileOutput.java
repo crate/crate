@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.Executor;
 
-public interface FileOutput {
+public interface FileOutput extends AutoCloseable {
 
     /**
      * calling this method creates & acquires an OutputStream which must be closed by the caller if it is no longer needed
@@ -35,4 +35,9 @@ public interface FileOutput {
      * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
      */
     OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException;
+
+    @Override
+    default void close() {
+        // No-op, implement if FileOutput implementation has resources to free.
+    }
 }
