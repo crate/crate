@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -68,8 +67,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private boolean includeGlobalState = false;
     private boolean partial = false;
     private boolean includeAliases = true;
-    private Settings settings = EMPTY_SETTINGS;
-    private Settings indexSettings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
+    private Settings indexSettings = Settings.EMPTY;
     private String[] ignoreIndexSettings = Strings.EMPTY_ARRAY;
 
     private boolean includeIndices = true;

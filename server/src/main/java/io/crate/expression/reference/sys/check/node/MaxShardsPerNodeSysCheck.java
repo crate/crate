@@ -21,16 +21,17 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import io.crate.metadata.IndexParts;
+import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
+
+import java.util.Arrays;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Arrays;
-
-import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
+import io.crate.metadata.IndexName;
 
 @Singleton
 public class MaxShardsPerNodeSysCheck extends AbstractSysNodeCheck {
@@ -65,7 +66,7 @@ public class MaxShardsPerNodeSysCheck extends AbstractSysNodeCheck {
 
     private static Iterable<ShardRouting> shardsForOpenIndices(ClusterState clusterState) {
         var concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
-            .filter(index -> !IndexParts.isDangling(index))
+            .filter(index -> !IndexName.isDangling(index))
             .toArray(String[]::new);
         return clusterState.routingTable().allShards(concreteIndices);
     }

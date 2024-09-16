@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -36,7 +35,6 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ParseField;
 
 /**
  * A request to create an index.
@@ -48,26 +46,15 @@ import org.elasticsearch.common.xcontent.ParseField;
  */
 public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> implements IndicesRequest {
 
-    public static final ParseField MAPPINGS = new ParseField("mappings");
-    public static final ParseField SETTINGS = new ParseField("settings");
-    public static final ParseField ALIASES = new ParseField("aliases");
-
     private String cause = "";
 
     private String index;
 
-    private Settings settings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
 
     private final Set<Alias> aliases = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
-
-    /**
-     * Constructs a new request to create an index with the specified name.
-     */
-    public CreateIndexRequest(String index) {
-        this(index, EMPTY_SETTINGS);
-    }
 
     /**
      * Constructs a new request to create an index with the specified name and settings.
@@ -106,14 +93,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      */
     public String cause() {
         return cause;
-    }
-
-    /**
-     * The settings to create the index with.
-     */
-    public CreateIndexRequest settings(Settings.Builder settings) {
-        this.settings = settings.build();
-        return this;
     }
 
     /**

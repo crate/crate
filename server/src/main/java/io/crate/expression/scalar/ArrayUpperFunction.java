@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -37,6 +36,7 @@ import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
@@ -54,13 +54,11 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.IntEqQuery;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
 
@@ -68,6 +66,9 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
+    // 'array_length([], 1)' = NULL, hence the lower bound must be 1
+    public static final int LOWER_BOUND = 1;
+    public static final int UPPER_BOUND = Integer.MAX_VALUE;
 
     public static void register(Functions.Builder module) {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
@@ -175,9 +176,8 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         int cmpVal = cmpNumber.intValue();
         // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
         // see ArrayIndexer for details
-        if (context.nodeContext().schemas().getTableInfo((arrayRef).ident().tableIdent()) instanceof DocTableInfo tableInfo &&
-            tableInfo.versionCreated().onOrAfter(Version.V_5_9_0)) {
-            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, tableInfo::getReference);
+        if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, context.tableInfo()::getReference);
         }
 
         DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
@@ -307,29 +307,29 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 if (cmpVal == 0) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
                 }
-                return new IntEqQuery().termQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, true, true);
+                return ArrayIndexer.arrayLengthTermQuery(arrayRef, cmpVal, getRef);
 
             case GtOperator.NAME:
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, null, false, false, true, true);
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, cmpVal + 1, UPPER_BOUND, getRef);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, null, false, false, true, true);
-                } else {
-                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, null, true, false, true, true);
+                    // 'array_length >= 0' is equivalent to 'array_length >= 1' since 'array_length([], 1)' is NULL
+                    return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, UPPER_BOUND, getRef);
                 }
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, cmpVal, UPPER_BOUND, getRef);
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match");
                 }
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, cmpVal, false, false, true, true);
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, cmpVal - 1, getRef);
 
             case LteOperator.NAME:
                 if (cmpVal == 0) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match");
                 }
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, cmpVal, false, true, true, true);
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, cmpVal, getRef);
 
             default:
                 throw new IllegalArgumentException("Illegal operator: " + operator);

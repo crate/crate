@@ -425,4 +425,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(symbol).isFunction("subscript");
         assertPrint(symbol, "\"OBJ\"[1]['intarray']");
     }
+
+    @Test
+    public void test_all_operator() {
+        assertPrintingRoundTrip("foo = ALL (['a', 'b', 'c'])", "(doc.formatter.foo = ALL(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo NOT LIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ALL(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo ILIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo ILIKE ALL(['a', 'b', 'c']))");
+    }
 }

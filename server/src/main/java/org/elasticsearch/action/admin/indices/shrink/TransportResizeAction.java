@@ -48,45 +48,22 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.metadata.NodeContext;
-
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
 public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
-    private final NodeContext nodeContext;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
                                  ClusterService clusterService,
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
-                                 NodeContext nodeContext,
                                  Client client) {
-        this(
-            ResizeAction.NAME,
-            transportService,
-            clusterService,
-            threadPool,
-            createIndexService,
-            nodeContext,
-            client
-        );
-    }
-
-    protected TransportResizeAction(String actionName,
-                                    TransportService transportService,
-                                    ClusterService clusterService,
-                                    ThreadPool threadPool,
-                                    MetadataCreateIndexService createIndexService,
-                                    NodeContext nodeContext,
-                                    Client client) {
-        super(actionName, transportService, clusterService, threadPool, ResizeRequest::new);
+        super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.client = client;
-        this.nodeContext = nodeContext;
     }
 
 
@@ -131,7 +108,6 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                         targetIndex
                     );
                     createIndexService.createIndex(
-                        nodeContext,
                         updateRequest,
                         null,
                         delegate.map(
@@ -208,9 +184,11 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
         }
         String cause = resizeRequest.getResizeType().name().toLowerCase(Locale.ROOT) + "_index";
         targetIndex.cause(cause);
-        Settings.Builder settingsBuilder = Settings.builder().put(targetIndexSettings);
-        settingsBuilder.put("index.number_of_shards", numShards);
-        targetIndex.settings(settingsBuilder);
+        Settings settings = Settings.builder()
+            .put(targetIndexSettings)
+            .put("index.number_of_shards", numShards)
+            .build();
+        targetIndex.settings(settings);
 
         return new CreateIndexClusterStateUpdateRequest(cause, targetIndex.index(), targetIndexName)
                 // mappings are updated on the node when creating in the shards, this prevents race-conditions since all mapping must be

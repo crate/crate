@@ -23,6 +23,14 @@ package io.crate.execution;
 
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
@@ -34,14 +42,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
-
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 public final class MultiPhaseExecutor {
 
@@ -63,6 +63,7 @@ public final class MultiPhaseExecutor {
 
         for (Map.Entry<LogicalPlan, SelectSymbol> entry : dependencies.entrySet()) {
             LogicalPlan depPlan = entry.getKey();
+            // Some optimizers may have created new sub plans which aren't optimized by itself yet.
             depPlan = plannerContext.optimize().apply(depPlan, plannerContext);
             SelectSymbol selectSymbol = entry.getValue();
 
@@ -84,7 +85,7 @@ public final class MultiPhaseExecutor {
             });
     }
 
-    private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol selectSymbol, RamAccounting ramAccounting) {
+    public static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol selectSymbol, RamAccounting ramAccounting) {
         return new CollectingRowConsumer<>(
             FirstColumnConsumers.getCollector(
                 selectSymbol.getResultType(),

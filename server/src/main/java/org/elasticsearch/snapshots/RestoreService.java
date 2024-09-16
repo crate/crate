@@ -116,6 +116,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.Templates;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -340,11 +341,7 @@ public class RestoreService implements ClusterStateApplier {
 
                 if (tableOrPartition.partitionIdent() != null) {
                     resolvedIndices.add(
-                        IndexParts.toIndexName(
-                            tableOrPartition.table().schema(),
-                            tableOrPartition.table().name(),
-                            tableOrPartition.partitionIdent()
-                        )
+                        IndexName.encode(tableOrPartition.table().schema(), tableOrPartition.table().name(), tableOrPartition.partitionIdent())
                     );
                     resolvedTemplates.add(partitionTemplate);
                 } else if (request.indicesOptions().ignoreUnavailable()) {
@@ -393,7 +390,7 @@ public class RestoreService implements ClusterStateApplier {
     }
 
     public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
-        return IndexParts.isPartitioned(index) &&
+        return IndexName.isPartitioned(index) &&
             PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
     }
 
@@ -501,7 +498,7 @@ public class RestoreService implements ClusterStateApplier {
                         String indexName = snapshotIndexMetadata.getIndex().getName();
                         snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                             snapshotIndexMetadata,
-                            IndexParts.isPartitioned(indexName) ?
+                            IndexName.isPartitioned(indexName) ?
                                 currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                 null,
                             minIndexCompatibilityVersion);
@@ -517,7 +514,7 @@ public class RestoreService implements ClusterStateApplier {
                     if (currentIndexMetadata == null) {
                         // Index doesn't exist - create it and start recovery
                         // Make sure that the index we are about to create has a validate name
-                        MetadataCreateIndexService.validateIndexName(renamedIndexName, currentState);
+                        IndexName.validate(renamedIndexName);
                         createIndexService.validateIndexSettings(renamedIndexName, snapshotIndexMetadata.getSettings(), false);
                         IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
                             .state(IndexMetadata.State.OPEN)
@@ -707,10 +704,10 @@ public class RestoreService implements ClusterStateApplier {
             // Index exist - checking that it's closed
             if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 // TODO: Enable restore for open indices
-                IndexParts indexParts = new IndexParts(renamedIndex);
-                RelationName relationName = new RelationName(indexParts.getSchema(), indexParts.getTable());
+                IndexParts indexParts = IndexName.decode(renamedIndex);
+                RelationName relationName = new RelationName(indexParts.schema(), indexParts.table());
                 if (indexParts.isPartitioned()) {
-                    throw new PartitionAlreadyExistsException(new PartitionName(relationName, indexParts.getPartitionIdent()));
+                    throw new PartitionAlreadyExistsException(new PartitionName(relationName, indexParts.partitionIdent()));
                 } else {
                     throw new RelationAlreadyExists(relationName);
                 }
@@ -799,14 +796,14 @@ public class RestoreService implements ClusterStateApplier {
                 if (allTemplates || templates.contains(templateName)) {
                     IndexTemplateMetadata previous;
                     if (applyRenamePattern) {
-                        IndexParts indexParts = new IndexParts(templateName);
-                        String schema = indexParts.getSchema();
-                        String table = indexParts.getTable();
+                        IndexParts indexParts = IndexName.decode(templateName);
+                        String schema = indexParts.schema();
+                        String table = indexParts.table();
                         RelationName newName = new RelationName(
                             schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement()),
                             table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement())
                         );
-                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.copyWithNewName(indexTemplateMetadata, newName).build();
+                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.withName(indexTemplateMetadata, newName).build();
                         previous = includedTemplates.put(newName.indexNameOrAlias(), renamedIndexTemplateMetadata);
                     } else {
                         previous = includedTemplates.put(templateName, indexTemplateMetadata);
@@ -818,7 +815,7 @@ public class RestoreService implements ClusterStateApplier {
                             String.format(
                                 Locale.ENGLISH,
                                 "Rename conflict for partitioned table `%s`. `%s` already exists. Cannot rename `%s` to the same name",
-                                new IndexParts(templateName).toRelationName().fqn(),
+                                IndexName.decode(templateName).toRelationName().fqn(),
                                 templateName,
                                 previous.name()
                             )
@@ -1104,9 +1101,9 @@ public class RestoreService implements ClusterStateApplier {
             String renamed = index;
             // At least one non-default value is provided.
             if (applyRenamePattern) {
-                IndexParts indexParts = new IndexParts(renamed);
-                String schema = indexParts.getSchema();
-                String table = indexParts.getTable();
+                IndexParts indexParts = IndexName.decode(renamed);
+                String schema = indexParts.schema();
+                String table = indexParts.table();
                 table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
                 schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
 
@@ -1114,11 +1111,7 @@ public class RestoreService implements ClusterStateApplier {
                 // and also handle blob/doc schemas for non-partitioned tables
                 RelationName renamedIdent = new RelationName(schema, table);
                 if (indexParts.isPartitioned()) {
-                    renamed = IndexParts.toIndexName(
-                        renamedIdent.schema(),
-                        renamedIdent.name(),
-                        indexParts.getPartitionIdent()
-                    );
+                    renamed = IndexName.encode(renamedIdent.schema(), renamedIdent.name(), indexParts.partitionIdent());
                 } else {
                     renamed = renamedIdent.indexNameOrAlias();
                 }

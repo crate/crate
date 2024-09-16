@@ -36,7 +36,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.junit.Test;
 
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 @IntegTestCase.Slow
@@ -66,7 +66,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
                     )
                 """);
         execute("insert into registers values (1, 'initial value')");
-        refresh();
+        execute("refresh table registers");
 
         // not setting this when creating the table because we want the replica to be initialized before we start disrupting
         // otherwise the replica might not be ready to be promoted to primary due to "primary failed while replica initializing"
@@ -102,7 +102,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         String nonIsolatedDataNodeId = firstDataNodeHasPrimary ? secondDataNodeId : firstDataNodeId;
         logger.info("wait for replica on the partition with the master to be promoted to primary");
         assertBusy(() -> {
-            String index = IndexParts.toIndexName(schema, "registers", null);
+            String index = IndexName.encode(schema, "registers", null);
             ShardRouting primaryShard = client(masterNodeName).admin().cluster().state(new ClusterStateRequest()).get().getState().routingTable()
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard

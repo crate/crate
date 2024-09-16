@@ -19,12 +19,6 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
-import org.elasticsearch.action.support.DefaultShardOperationFailedException;
-import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.Index;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,11 +27,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.action.support.DefaultShardOperationFailedException;
+import org.elasticsearch.action.support.broadcast.BroadcastResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.Index;
+
 public class IndicesStatsResponse extends BroadcastResponse {
 
     private final ShardStats[] shards;
 
-    IndicesStatsResponse(ShardStats[] shards, int totalShards, int successfulShards, int failedShards,
+    IndicesStatsResponse(ShardStats[] shards,
+                         int totalShards,
+                         int successfulShards,
+                         int failedShards,
                          List<DefaultShardOperationFailedException> shardFailures) {
         super(totalShards, successfulShards, failedShards, shardFailures);
         this.shards = shards;
@@ -72,9 +75,7 @@ public class IndicesStatsResponse extends BroadcastResponse {
                     shards.add(shard);
                 }
             }
-            indicesStats.put(
-                indexName, new IndexStats(indexName, index.getUUID(), shards.toArray(new ShardStats[0]))
-            );
+            indicesStats.put(indexName, new IndexStats(shards));
         }
         this.indicesStats = indicesStats;
         return indicesStats;

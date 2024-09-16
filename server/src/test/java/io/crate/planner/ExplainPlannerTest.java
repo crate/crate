@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +56,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         "select count(*) from users",
         "select name, count(distinct id) from users group by name",
         "select avg(id) from users",
-        "select * from users where name = (select 'name')"
+        "select * from users where name = (select 'name')",
+        "SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)"
     );
 
     private SQLExecutor e;
@@ -176,34 +176,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             assertThat(plan.showCosts()).isTrue();
             assertThat(plan.verbose()).isFalse();
         }
-    }
-
-    @Test
-    public void testExplainAnalyzeMultiPhasePlanNotSupported() {
-        ExplainPlan plan = e.plan("EXPLAIN ANALYZE SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)");
-        PlannerContext plannerContext = e.getPlannerContext();
-        CountDownLatch counter = new CountDownLatch(1);
-
-        AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
-        AtomicReference<Throwable> failureRef = new AtomicReference<>();
-
-        plan.execute(null, plannerContext, new RowConsumer() {
-            @Override
-            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-                itRef.set(iterator);
-                failureRef.set(failure);
-                counter.countDown();
-            }
-
-            @Override
-            public CompletableFuture<?> completionFuture() {
-                return null;
-            }
-        }, Row.EMPTY, SubQueryResults.EMPTY);
-
-        assertThat(itRef.get()).isNull();
-        assertThat(failureRef.get()).isNotNull();
-        assertThat(failureRef.get().getMessage()).isEqualTo("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects.");
     }
 
     @Test

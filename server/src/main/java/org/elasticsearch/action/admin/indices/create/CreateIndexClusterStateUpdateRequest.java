@@ -42,7 +42,7 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
     private ResizeType resizeType;
     private boolean copySettings;
 
-    private Settings settings = Settings.Builder.EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
 
     private final Set<Alias> aliases = new HashSet<>();
 

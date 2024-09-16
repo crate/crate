@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 
@@ -43,9 +43,10 @@ public class SysHealthITest extends IntegTestCase {
         execute("create table doc.t3 (id int) with(number_of_replicas=0)");
 
         execute("select * from sys.health order by severity desc");
-        assertThat(printedTable(response.rows())).isEqualTo("RED| 2| NULL| 3| t1| doc| 0\n" +
-                                                     "YELLOW| 0| NULL| 2| t2| doc| 4\n" +
-                                                     "GREEN| 0| NULL| 1| t3| doc| 0\n");
+        assertThat(response).hasRows(
+            "RED| 2| NULL| 3| t1| doc| 0",
+            "YELLOW| 0| NULL| 2| t2| doc| 4",
+            "GREEN| 0| NULL| 1| t3| doc| 0");
     }
 
     @Test
@@ -58,11 +59,11 @@ public class SysHealthITest extends IntegTestCase {
         execute("insert into doc.p1 (id, p) values (1, 1)");
         execute("alter table doc.p1 set (number_of_shards = 4)");
         execute("insert into doc.p1 (id, p) values (2, 2)");
-        refresh();
+        execute("refresh table doc.p1");
 
         execute("select * from sys.health order by severity, partition_ident desc");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            "GREEN| 0| 04134| 1| p1| doc| 0\n" +
-            "GREEN| 0| 04132| 1| p1| doc| 0\n");
+        assertThat(response).hasRows(
+            "GREEN| 0| 04134| 1| p1| doc| 0",
+            "GREEN| 0| 04132| 1| p1| doc| 0");
     }
 }

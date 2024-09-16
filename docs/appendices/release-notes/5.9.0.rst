@@ -69,6 +69,18 @@ Breaking Changes
   regressions on tables created before 5.9.0. For tables created on and after
   5.9.0, the fix has positive impact on the performance.
 
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against an empty array to incorrectly filter array of nulls. It
+  is a breaking change because the fix causes performance regressions on tables
+  created before 5.9.0. For tables created on and after 5.9.0, the fix has
+  positive impact on the performance.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type without doc-values against a non-empty array to incorrectly
+  un-filter null rows. It is a breaking change because the fix causes
+  performance regressions on tables created before 5.9.0. For tables created on
+  and after 5.9.0, the fix has positive impact on the performance.
+
 - Changed the return value of the concat operator to return a ``NULL`` literal
   instead of an empty string when any of the operand is ``NULL``.
 
@@ -150,6 +162,11 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added support to override ``routing.allocation.*`` cluster settings
+  with a ``routing.allocation.*`` table setting. This can be used to define the
+  default routing behavior for all tables with a cluster setting and reroute
+  individual tables by assigning the table setting using ``ALTER TABLE SET``.
+
 - Added support to set :ref:`session settings <conf-session>` to a user via
   :ref:`ALTER ROLE <ref-alter-role>` statement. For details and examples see:
   :ref:`here <administration_user_management_alter_user>`.
@@ -159,3 +176,11 @@ Administration and Operations
 
 - Added ``id``, ``reason``, ``total_shards`` and ``include_global_state``
   columns to the :ref:`sys.snapshots <sys-snapshots>` table.
+
+- Added support to use the ``EXPLAIN ANALYZE`` statement on queries which
+  contain sub-queries, e.g.::
+
+    EXPLAIN ANALYZE SELECT * FROM t1 WHERE c = (SELECT count(*) FROM t2);
+
+- Added schema, table, partition and shard information to ``QueryBreakdown``
+  entries of the ``EXPLAIN ANALYZE`` statement.

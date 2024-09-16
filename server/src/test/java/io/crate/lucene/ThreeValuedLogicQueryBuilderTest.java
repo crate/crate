@@ -135,4 +135,10 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convert("NOT pg_catalog.format_type(x, null)")).hasToString(
             "+(+*:* -pg_catalog.format_type(x, NULL)) #(NOT pg_catalog.format_type(x, NULL))");
     }
+
+    @Test
+    public void test_negated_cast_on_object() {
+        assertThat(convert("NOT (cast(obj as string))")).hasToString(
+            "+(+*:* -cast(obj AS text)) #(NOT cast(obj AS text))");
+    }
 }

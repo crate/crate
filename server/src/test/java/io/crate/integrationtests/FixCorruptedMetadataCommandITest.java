@@ -83,7 +83,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
             )
         );
         execute("insert into m1.t1 values (null), ('x'), ('y')"); // just in case...
-        refresh();
+        execute("refresh table m1.t1");
         execute("select * from m1.t1");
         assertThat(printedTable(response.rows())).isEqualTo("NULL\nNULL\nNULL\nx\ny\n");
 
@@ -297,7 +297,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
             )
         );
         execute("insert into m7.s7 values (true), (null), (false)");
-        refresh();
+        execute("refresh table m7.s7");
         execute("select * from m7.s7 order by t desc");
         assertThat(printedTable(response.rows())).isEqualTo("NULL\nNULL\nNULL\ntrue\nfalse\n");
 
@@ -340,7 +340,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
             )
         );
         execute("insert into m10.s10 values (true, true), (false, true)");
-        refresh();
+        execute("refresh table m10.s10");
         execute("select * from m10.s10 order by t");
         assertThat(printedTable(response.rows())).isEqualTo("false| true\ntrue| true\nNULL| NULL\n");
 
@@ -360,7 +360,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
             )
         );
         execute("insert into m10.t10 values ('t', 't'), ('q', 'q')");
-        refresh();
+        execute("refresh table m10.t10");
         execute("select * from m10.t10 order by s");
         assertThat(printedTable(response.rows())).isEqualTo("q| q\nt| t\nNULL| NULL\n");
 

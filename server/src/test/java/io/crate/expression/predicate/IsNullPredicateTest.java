@@ -76,7 +76,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 1,
                 null
             );
-            Query refExistsQuery = IsNullPredicate.refExistsQuery(ref, context, true);
+            Query refExistsQuery = IsNullPredicate.refExistsQuery(ref, context);
             assertThat(refExistsQuery).isNull();
         }
     }

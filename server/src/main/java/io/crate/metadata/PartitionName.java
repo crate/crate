@@ -140,12 +140,12 @@ public class PartitionName {
     }
 
     public static String templateName(String indexName) {
-        IndexParts indexParts = new IndexParts(indexName);
+        IndexParts indexParts = IndexName.decode(indexName);
         if (!indexParts.isPartitioned()) {
             throw new IllegalArgumentException(
                 "Cannot convert non-partitioned index name to templateName: " + indexName);
         }
-        return templateName(indexParts.getSchema(), indexParts.getTable());
+        return templateName(indexParts.schema(), indexParts.table());
     }
 
     /**
@@ -245,7 +245,7 @@ public class PartitionName {
 
     public String asIndexName() {
         if (indexName == null) {
-            indexName = IndexParts.toIndexName(relationName.schema(), relationName.name(), ident());
+            indexName = IndexName.encode(relationName.schema(), relationName.name(), ident());
         }
         return indexName;
     }
@@ -305,20 +305,20 @@ public class PartitionName {
     public static PartitionName fromIndexOrTemplate(String indexOrTemplate) {
         assert indexOrTemplate != null : "indexOrTemplate must not be null";
 
-        IndexParts indexParts = new IndexParts(indexOrTemplate);
+        IndexParts indexParts = IndexName.decode(indexOrTemplate);
         if (!indexParts.isPartitioned()) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Trying to create partition name from the name of a non-partitioned table %s", indexOrTemplate)
             );
         }
-        return new PartitionName(new RelationName(indexParts.getSchema(), indexParts.getTable()), indexParts.getPartitionIdent());
+        return new PartitionName(new RelationName(indexParts.schema(), indexParts.table()), indexParts.partitionIdent());
     }
 
     /**
      * compute the template name (used with partitioned tables) from a given schema and table name
      */
     public static String templateName(String schemaName, String tableName) {
-        return IndexParts.toIndexName(schemaName, tableName, "");
+        return IndexName.encode(schemaName, tableName, "");
     }
 
     /**

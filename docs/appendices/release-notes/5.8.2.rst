@@ -1,17 +1,10 @@
 .. _version_5.8.2:
 
-==========================
-Version 5.8.2 - Unreleased
-==========================
+=============
+Version 5.8.2
+=============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-
-.. NOTE::
-    In development. 5.8.2 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2024-08-28.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -76,3 +69,7 @@ Fixes
 
 - Fixed an issue that caused queries with nested arrays, compared with `=` and
   `= ANY` operators in the ``WHERE`` clause to throw ``ClassCastException``.
+
+- Fixed a regression introduced with :ref:`version_5.6.0` that caused an
+  exception when altering a partitioned table where the current number of shards
+  differs from the number of shards of existing partitions.

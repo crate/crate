@@ -315,10 +315,10 @@
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
     <versions.jackson>2.17.2</versions.jackson>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
-    <versions.antlr>4.13.1</versions.antlr>
+    <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.112.Final</versions.netty>
+    <versions.netty>4.1.113.Final</versions.netty>
     <versions.lucene>9.11.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
@@ -351,7 +351,7 @@
     <versions.grpc>1.55.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.12.0</versions.mockito>
+    <versions.mockito>5.13.0</versions.mockito>
     <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
@@ -361,17 +361,17 @@
 
     <versions.min_maven>3.6.3</versions.min_maven>
     <!-- Maven Plugins -->
-    <versions.plugin.dependency>3.7.1</versions.plugin.dependency>
+    <versions.plugin.dependency>3.8.0</versions.plugin.dependency>
     <versions.plugin.versions>2.17.1</versions.plugin.versions>
     <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
     <versions.plugin.clean>3.4.0</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
-    <versions.plugin.install>3.1.2</versions.plugin.install>
+    <versions.plugin.install>3.1.3</versions.plugin.install>
     <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
-    <versions.plugin.surefire>3.3.1</versions.plugin.surefire>
-    <versions.plugin.checkstyle>3.4.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.17.0</versions.plugin.puppycrawl>
+    <versions.plugin.surefire>3.5.0</versions.plugin.surefire>
+    <versions.plugin.checkstyle>3.5.0</versions.plugin.checkstyle>
+    <versions.plugin.puppycrawl>10.18.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
@@ -382,7 +382,7 @@
     <versions.plugin.shade>3.6.0</versions.plugin.shade>
     <versions.plugin.jar>3.4.2</versions.plugin.jar>
     <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
-    <versions.plugin.antlr>4.13.1</versions.plugin.antlr>
+    <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
   </properties>
 
   <modules>
@@ -393,6 +393,7 @@
     <module>libs/guice</module>
     <module>libs/sql-parser</module>
     <module>libs/pgwire</module>
+    <module>libs/azure-testing</module>
     <module>server</module>
     <module>plugins/es-analysis-common</module>
     <module>plugins/es-analysis-phonetic</module>

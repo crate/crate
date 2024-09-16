@@ -35,10 +35,12 @@ import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -109,7 +111,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (!ref.isNullable()) {
                 return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
-            Query refExistsQuery = refExistsQuery(ref, context, true);
+            Query refExistsQuery = refExistsQuery(ref, context);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
         return null;
@@ -117,12 +119,16 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
 
     @Nullable
-    public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
+    public static Query refExistsQuery(Reference ref, Context context) {
         String field = ref.storageIdent();
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (countEmptyArrays) {
+            if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+                // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
+                // such that FieldExistsQuery can be used.
+                return ArrayIndexer.arrayLengthExistsQuery(ref, context.tableInfo()::getReference);
+            } else {
                 if (canUseFieldsExist) {
                     return new BooleanQuery.Builder()
                         .setMinimumNumberShouldMatch(1)
@@ -133,8 +139,6 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     return null;
                 }
             }
-            // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
-            valueType = ArrayType.unnest(valueType);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
         if (ref instanceof DynamicReference) {
@@ -161,7 +165,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     if (childRef == null) {
                         return null;
                     }
-                    Query refExistsQuery = refExistsQuery(childRef, context, true);
+                    Query refExistsQuery = refExistsQuery(childRef, context);
                     if (refExistsQuery == null) {
                         return null;
                     }

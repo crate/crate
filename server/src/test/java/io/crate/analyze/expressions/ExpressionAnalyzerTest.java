@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,8 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.NumericType;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -406,6 +409,46 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_handle_large_integers() throws Exception {
+        String expression = "34533365386010436550";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
+    }
+
+    @Test
+    public void test_can_handle_large_float_numbers() throws Exception {
+        String expression = "34533365386010436550.1234";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        NumericType numericType = (NumericType) symbol.valueType();
+        assertThat(numericType.scale()).isEqualTo(4);
+        assertThat(numericType.numericPrecision()).isEqualTo(24);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
+    }
+
+    @Test
+    public void test_negative_scale_numeric_uses_double_type() throws Exception {
+        String expression = "1.79769313486231572014e+308";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(DoubleType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(Double.parseDouble(expression));
+    }
+
+    @Test
     public void test_partial_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
         assertThat(symbol).isReference().hasName("o['a']['b']['c']");
@@ -504,5 +547,20 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 y -> assertThat(y).isReference().hasName("o_arr['o_arr_nested']['y']")
             )
         );
+    }
+
+    @Test
+    public void test_analyze_all_like_operator_variants() {
+        Symbol symbol = executor.asSymbol("t1.a like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a ILIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT ILIKE ALL(['a', 'b', 'c']))");
     }
 }
