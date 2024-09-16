@@ -23,16 +23,31 @@ package io.crate.expression.operator;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.elasticsearch.common.lucene.search.Queries;
+
 import io.crate.data.Input;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
 
 public class DistinctFrom extends Operator<Object> {
@@ -87,4 +102,48 @@ public class DistinctFrom extends Operator<Object> {
         }
         return argType.compare(arg1, arg2) != 0;
     }
+
+    @Override
+    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
+        List<Symbol> args = function.arguments();
+        if (!(args.get(0) instanceof Reference ref && args.get(1) instanceof Literal<?> literal)) {
+            return null;
+        }
+        String storageIdentifier = ref.storageIdent();
+        Object value = literal.value();
+        if (value == null) {
+            if (!ref.isNullable()) {
+                // If the column is NOT NULL, `x IS DISTINCT FROM NULL` is true for all documents
+                return new MatchAllDocsQuery();
+            }
+            return IsNullPredicate.refExistsQuery(ref, context);
+        }
+
+        DataType<?> dataType = ref.valueType();
+        return switch (dataType.id()) {
+            case ObjectType.ID -> EqOperator.refEqObject(
+                    function,
+                    ref.column(),
+                    (ObjectType) dataType,
+                    (Map<String, Object>) value,
+                    context,
+                    BooleanClause.Occur.MUST_NOT
+                );
+            case ArrayType.ID -> EqOperator.termsAndGenericFilter(
+                function,
+                storageIdentifier,
+                dataType,
+                (Collection<?>) value,
+                context,
+                ref.hasDocValues(),
+                ref.indexType(),
+                BooleanClause.Occur.MUST_NOT
+            );
+            default -> {
+                var query = EqOperator.fromPrimitive(dataType, storageIdentifier, value, ref.hasDocValues(), ref.indexType());
+                yield query == null ? null : Queries.not(query);
+            }
+        };
+    }
+
 }

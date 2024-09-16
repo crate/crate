@@ -21,10 +21,17 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import io.crate.data.Input;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -62,6 +69,56 @@ public final class RoundFunction {
                     }
                 }
             );
+
+            module.add(
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(typeSignature,
+                        DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .build(),
+                RoundFunction::roundWithPrecision
+            );
         }
+
+        module.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            RoundFunction::roundWithPrecision
+        );
+    }
+
+    private static Scalar<Number, Number> roundWithPrecision(Signature signature, BoundSignature boundSignature) {
+        return new Scalar<>(signature, boundSignature) {
+
+            @Override
+            public BigDecimal evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Number>... args) {
+                Number n = args[0].value();
+                Number nd = args[1].value();
+                if (n == null || nd == null) {
+                    return null;
+                }
+
+                int numDecimals = nd.intValue();
+                BigDecimal val;
+
+                if (n instanceof BigDecimal) {
+                    val = (BigDecimal) n;
+                } else if (n instanceof Long) {
+                    val = BigDecimal.valueOf(n.longValue());
+                } else {
+                    val = BigDecimal.valueOf(n.doubleValue());
+                }
+
+                if (numDecimals < 0) {
+                    return val.movePointRight(numDecimals).setScale(0, RoundingMode.HALF_UP).movePointLeft(numDecimals);
+                }
+                return val.setScale(numDecimals, RoundingMode.HALF_UP);
+            }
+        };
     }
 }

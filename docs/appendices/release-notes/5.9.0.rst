@@ -122,7 +122,7 @@ SQL Standard and PostgreSQL Compatibility
   be used as the unit name as well.
 
 - `Martin Stein <https://github.com/marstein>`_ added support for the
-  IS DISTINCT FROM operator. The operator is not yet optimized for Lucene queries.
+  IS DISTINCT FROM operator.
 
 Data Types
 ----------
@@ -149,6 +149,9 @@ Scalar and Aggregation Functions
 
 - Added :ref:`position scalar function <scalar-position>` as alias for the
   :ref:`strpos scalar function <scalar-strpos>`.
+
+- Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
+  scalar function.
 
 Performance and Resilience Improvements
 ---------------------------------------
