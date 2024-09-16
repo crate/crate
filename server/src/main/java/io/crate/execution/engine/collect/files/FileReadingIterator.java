@@ -352,6 +352,9 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     private void reset() {
         fileInputsIterator = null;
         currentInputUriIterator = null;
+        if (currentInput != null) {
+            currentInput.close();
+        }
         currentInput = null;
         cursor.failure = null;
     }

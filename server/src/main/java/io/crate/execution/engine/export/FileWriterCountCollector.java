@@ -108,11 +108,11 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private RowWriter initWriter() {
         try {
             if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
-                return new ColumnRowWriter(fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs);
+                return new ColumnRowWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
-                return new ColumnRowObjectWriter(fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs, outputNames);
+                return new ColumnRowObjectWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(fileOutput.acquireOutputStream(executor, compressionType));
+                return new RawRowWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);
@@ -183,9 +183,11 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     static class RawRowWriter implements RowWriter {
 
+        private final FileOutput fileOutput;
         private final OutputStream outputStream;
 
-        RawRowWriter(OutputStream outputStream) {
+        RawRowWriter(FileOutput fileOutput, OutputStream outputStream) {
+            this.fileOutput = fileOutput;
             this.outputStream = outputStream;
         }
 
@@ -204,19 +206,23 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         @Override
         public void close() throws IOException {
             outputStream.close();
+            fileOutput.close();
         }
     }
 
     static class ColumnRowWriter implements RowWriter {
 
         private final Iterable<CollectExpression<Row, ?>> collectExpressions;
+        private final FileOutput fileOutput;
         private final OutputStream outputStream;
         protected final List<Input<?>> inputs;
         protected final XContentBuilder builder;
 
-        ColumnRowWriter(OutputStream outputStream,
+        ColumnRowWriter(FileOutput fileOutput,
+                        OutputStream outputStream,
                         Iterable<CollectExpression<Row, ?>> collectExpressions,
                         List<Input<?>> inputs) throws IOException {
+            this.fileOutput = fileOutput;
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.inputs = inputs;
@@ -240,6 +246,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         public void close() throws IOException {
             builder.close();
             outputStream.close();
+            fileOutput.close();
         }
 
         protected void processInputs() throws IOException {
@@ -255,11 +262,12 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
         private final List<String> outputNames;
 
-        public ColumnRowObjectWriter(OutputStream outputStream,
+        public ColumnRowObjectWriter(FileOutput fileOutput,
+                                     OutputStream outputStream,
                                      Iterable<CollectExpression<Row, ?>> collectExpressions,
                                      List<Input<?>> inputs,
                                      List<String> outputNames) throws IOException {
-            super(outputStream, collectExpressions, inputs);
+            super(fileOutput, outputStream, collectExpressions, inputs);
             this.outputNames = outputNames;
         }
 
