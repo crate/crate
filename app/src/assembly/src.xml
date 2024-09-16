@@ -84,6 +84,10 @@
       <outputDirectory>plugins/copy-s3</outputDirectory>
     </file>
     <file>
+      <source>../plugins/crate-copy-azure/src/main/resources/plugin-descriptor.properties</source>
+      <outputDirectory>plugins/copy-azure</outputDirectory>
+    </file>
+    <file>
       <source>../plugins/es-analysis-common/src/main/resources/plugin-descriptor.properties</source>
       <outputDirectory>plugins/es-analysis-common</outputDirectory>
     </file>
@@ -113,6 +117,7 @@
       -->
       <excludes>
         <exclude>io.crate:crate-copy-s3</exclude>
+        <exclude>io.crate:crate-copy-azure</exclude>
         <exclude>io.crate:crate-functions</exclude>
         <exclude>io.crate:crate-lang-js</exclude>
         <exclude>io.crate:crate-jmx-monitoring</exclude>
@@ -137,6 +142,17 @@
         <includeDependencies>false</includeDependencies>
         <unpack>false</unpack>
         <outputDirectory>plugins/copy-s3</outputDirectory>
+      </binaries>
+    </moduleSet>
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+      <includes>
+        <include>io.crate:crate-copy-azure</include>
+      </includes>
+      <binaries>
+        <includeDependencies>false</includeDependencies>
+        <unpack>false</unpack>
+        <outputDirectory>plugins/copy-azure</outputDirectory>
       </binaries>
     </moduleSet>
     <moduleSet>
