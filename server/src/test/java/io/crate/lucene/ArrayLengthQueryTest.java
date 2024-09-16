@@ -331,7 +331,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
                 if (type.id() != ObjectType.ID) {
-                    assertThat(arrayType.compare((List<?>) result.get(0), arr)).isEqualTo(0);
+                    assertThat(arrayType.compare((List<?>) result.get(0), arr))
+                        .as("unexpected lists for type " + type + ":" + result.get(0) + " vs " + arr)
+                        .isEqualTo(0);
                 }
             }
         }

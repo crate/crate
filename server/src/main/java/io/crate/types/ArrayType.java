@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -99,7 +101,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public ValueIndexer<T> valueIndexer(RelationName table,
                                                     Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
-                    return new ArrayIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                    return new ArrayIndexer<>(innerStorage.valueIndexer(table, ref, getRef), streamer(), getRef, ref);
                 }
             };
         }
@@ -170,7 +172,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public List<T> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings), sessionSettings);
+        return convert(value, innerType, val -> val == null ? null : innerType.explicitCast(val, sessionSettings), sessionSettings);
     }
 
     @Override
@@ -230,7 +232,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> List<T> convert(@Nullable Object value,
+    private List<T> convert(@Nullable Object value,
                                        DataType<T> innerType,
                                        Function<Object, T> convertInner,
                                        SessionSettings sessionSettings) {
@@ -239,6 +241,12 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
+        } else if (value instanceof byte[] b) {
+            try {
+                return streamer().readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(b)));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -275,7 +283,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> value == null ? null : innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

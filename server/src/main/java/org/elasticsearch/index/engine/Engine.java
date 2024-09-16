@@ -1405,6 +1405,10 @@ public abstract class Engine implements Closeable {
             return docIdAndVersion;
         }
 
+        public boolean fromTranslog() {
+            return docIdAndVersion != null && docIdAndVersion.reader instanceof TranslogLeafReader;
+        }
+
         @Override
         public void close() {
             release();

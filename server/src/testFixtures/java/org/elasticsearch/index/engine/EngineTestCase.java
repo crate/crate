@@ -1100,12 +1100,12 @@ public abstract class EngineTestCase extends ESTestCase {
     /**
      * Gets a collection of tuples of docId, sequence number, and primary term of all live documents in the provided engine.
      */
-    public static List<DocIdSeqNoAndSource> getDocIds(Engine engine, boolean refresh) throws IOException {
+    public static List<DocIdAndSeqNo> getDocIds(Engine engine, boolean refresh) throws IOException {
         if (refresh) {
             engine.refresh("test_get_doc_ids");
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test_get_doc_ids", Engine.SearcherScope.INTERNAL)) {
-            List<DocIdSeqNoAndSource> docs = new ArrayList<>();
+            List<DocIdAndSeqNo> docs = new ArrayList<>();
             for (LeafReaderContext leafContext : searcher.getIndexReader().leaves()) {
                 LeafReader reader = leafContext.reader();
                 NumericDocValues seqNoDocValues = reader.getNumericDocValues(DocSysColumns.Names.SEQ_NO);
@@ -1122,7 +1122,6 @@ public abstract class EngineTestCase extends ESTestCase {
                         Document doc = reader.document(i, Set.of(DocSysColumns.Names.ID, DocSysColumns.Source.NAME));
                         BytesRef binaryID = doc.getBinaryValue(DocSysColumns.Names.ID);
                         String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
-                        final BytesRef source = doc.getBinaryValue(DocSysColumns.Source.NAME);
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
@@ -1131,13 +1130,13 @@ public abstract class EngineTestCase extends ESTestCase {
                             throw new AssertionError("versionDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
                         final long version = versionDocValues.longValue();
-                        docs.add(new DocIdSeqNoAndSource(id, source, seqNo, primaryTerm, version));
+                        docs.add(new DocIdAndSeqNo(id, seqNo, primaryTerm, version));
                     }
                 }
             }
-            docs.sort(Comparator.comparingLong(DocIdSeqNoAndSource::getSeqNo)
-                .thenComparingLong(DocIdSeqNoAndSource::getPrimaryTerm)
-                .thenComparing((DocIdSeqNoAndSource::getId)));
+            docs.sort(Comparator.comparingLong(DocIdAndSeqNo::seqNo)
+                .thenComparingLong(DocIdAndSeqNo::primaryTerm)
+                .thenComparing((DocIdAndSeqNo::id)));
             return docs;
         }
     }

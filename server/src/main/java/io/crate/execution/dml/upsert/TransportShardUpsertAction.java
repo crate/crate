@@ -71,7 +71,6 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -438,7 +437,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.version(),
                         item.seqNo(),
                         item.primaryTerm(),
-                        StoredRowLookup.create(actualTable, indexShard.shardId().getIndexName()));
+                        actualTable);
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
@@ -578,10 +577,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                    long version,
                                    long seqNo,
                                    long primaryTerm,
-                                   StoredRowLookup storedRowLookup) {
+                                   DocTableInfo table) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(
-                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, storedRowLookup);
+                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, table, null);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

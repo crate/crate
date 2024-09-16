@@ -149,7 +149,6 @@ import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
@@ -4106,10 +4105,10 @@ public class InternalEngineTests extends EngineTestCase {
                     Map<String, Long> liveOps = latestOps.entrySet().stream()
                         .filter(e -> e.getValue().operationType() == Engine.Operation.TYPE.INDEX)
                         .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().seqNo()));
-                    assertThat(getDocIds(engine, true).stream().collect(Collectors.toMap(e -> e.getId(), e -> e.getSeqNo()))).isEqualTo(liveOps);
+                    assertThat(getDocIds(engine, true).stream().collect(Collectors.toMap(e -> e.id(), e -> e.seqNo()))).isEqualTo(liveOps);
                     for (String id : latestOps.keySet()) {
                         String msg = "latestOps=" + latestOps + " op=" + id;
-                        DocIdAndSeqNo docIdAndSeqNo = VersionsAndSeqNoResolver.loadDocIdAndSeqNo(searcher.getIndexReader(), newUid(id));
+                        VersionsAndSeqNoResolver.DocIdAndSeqNo docIdAndSeqNo = VersionsAndSeqNoResolver.loadDocIdAndSeqNo(searcher.getIndexReader(), newUid(id));
                         if (liveOps.containsKey(id) == false) {
                             assertThat(docIdAndSeqNo).as(msg).isNull();
                         } else {
@@ -4567,7 +4566,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Searcher searcher = engine.acquireSearcher("get", Engine.SearcherScope.INTERNAL)) {
             final long primaryTerm;
             final long seqNo;
-            DocIdAndSeqNo docIdAndSeqNo = VersionsAndSeqNoResolver.loadDocIdAndSeqNo(searcher.getIndexReader(), get.uid());
+            VersionsAndSeqNoResolver.DocIdAndSeqNo docIdAndSeqNo = VersionsAndSeqNoResolver.loadDocIdAndSeqNo(searcher.getIndexReader(), get.uid());
             if (docIdAndSeqNo == null) {
                 primaryTerm = 0;
                 seqNo = UNASSIGNED_SEQ_NO;
@@ -4600,7 +4599,7 @@ public class InternalEngineTests extends EngineTestCase {
             Randomness.shuffle(seqNos);
             final EngineConfig engineConfig;
             final SeqNoStats prevSeqNoStats;
-            final List<DocIdSeqNoAndSource> prevDocs;
+            final List<DocIdAndSeqNo> prevDocs;
             try (InternalEngine engine = createEngine(store, createTempDir(), globalCheckpoint::get)) {
                 engineConfig = engine.config();
                 for (final long seqNo : seqNos) {
@@ -5752,7 +5751,7 @@ public class InternalEngineTests extends EngineTestCase {
         commits.add(new ArrayList<>());
         try (Store store = createStore()) {
             EngineConfig config = config(indexSettings, store, translogPath, NoMergePolicy.INSTANCE, null, null, globalCheckpoint::get);
-            final List<DocIdSeqNoAndSource> docs;
+            final List<DocIdAndSeqNo> docs;
             try (InternalEngine engine = createEngine(config)) {
                 List<Engine.Operation> flushedOperations = new ArrayList<>();
                 for (Engine.Operation op : operations) {
@@ -5967,7 +5966,7 @@ public class InternalEngineTests extends EngineTestCase {
         List<Engine.Operation> operations = generateHistoryOnReplica(between(1, 500), randomBoolean(), randomBoolean());
         try (Store store = createStore()) {
             EngineConfig config = config(defaultSettings, store, translogPath, newMergePolicy(), null, null, globalCheckpoint::get);
-            final List<DocIdSeqNoAndSource> docs;
+            final List<DocIdAndSeqNo> docs;
             try (InternalEngine engine = createEngine(config)) {
                 for (Engine.Operation op : operations) {
                     applyOperation(engine, op);

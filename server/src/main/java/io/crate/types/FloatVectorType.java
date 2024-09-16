@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -145,6 +146,10 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                 }
             }
             return result;
+        } else if (obj instanceof byte[] bytes) {
+            float[] floats = new float[bytes.length / Float.BYTES];
+            ByteBuffer.wrap(bytes).asFloatBuffer().get(floats);
+            return floats;
         }
         return (float[]) obj;
     }

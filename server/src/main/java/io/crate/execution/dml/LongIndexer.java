@@ -27,6 +27,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
@@ -55,6 +56,9 @@ public class LongIndexer implements ValueIndexer<Long> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, longValue));
+                }
                 docBuilder.addField(new Field(
                         DocSysColumns.FieldNames.NAME,
                         name,

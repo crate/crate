@@ -23,13 +23,13 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
@@ -73,6 +73,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             fieldType,
             ref.indexType() != IndexType.NONE,
             ref.hasDocValues(),
+            ref.hasDocValues() == false && docBuilder.maybeAddStoredField(),
             values,
             docBuilder::addField
         );
@@ -86,22 +87,27 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                                     FieldType fieldType,
                                     boolean indexed,
                                     boolean hasDocValues,
+                                    boolean hasStoredField,
                                     float @NotNull [] values,
                                     Consumer<? super IndexableField> addField) {
         if (indexed) {
             addField.accept(new KnnFloatVectorField(fqn, values, fieldType));
         }
+
+        BytesRef byteRepresentation = null;
+        if (hasDocValues || hasStoredField) {
+            byte[] bytes = new byte[Float.BYTES * values.length];
+            ByteBuffer.wrap(bytes).asFloatBuffer().put(values);
+            byteRepresentation = new BytesRef(bytes);
+        }
+
         if (hasDocValues) {
-            int capacity = values.length * Float.BYTES;
-            ByteBuffer buffer = ByteBuffer.allocate(capacity).order(ByteOrder.BIG_ENDIAN);
-            for (float value : values) {
-                buffer.putFloat(value);
-            }
-            byte[] bytes = new byte[buffer.flip().limit()];
-            buffer.get(bytes);
-            var field = new BinaryDocValuesField(fqn, new BytesRef(bytes));
+            var field = new BinaryDocValuesField(fqn, byteRepresentation);
             addField.accept(field);
         } else {
+            if (hasStoredField) {
+                addField.accept(new StoredField(fqn, byteRepresentation));
+            }
             addField.accept(new Field(
                 DocSysColumns.FieldNames.NAME,
                 fqn,

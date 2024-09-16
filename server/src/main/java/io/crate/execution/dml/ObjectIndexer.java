@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -31,9 +32,14 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.Streamer;
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
@@ -58,6 +64,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final RelationName table;
     private final Reference ref;
     private final String unknownColumnPrefix;
+    private final Streamer<Map<String, Object>> streamer;
 
     private record Child(Reference reference, ValueIndexer<Object> indexer) {
         ColumnIdent ident() {
@@ -68,10 +75,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
-                         Function<ColumnIdent, Reference> getRef) {
+                         Function<ColumnIdent, Reference> getRef,
+                         Streamer<Map<String, Object>> streamer) {
         this.table = table;
         this.ref = ref;
         this.getRef = getRef;
+        this.streamer = streamer;
         this.unknownColumnPrefix = ref.oid() != COLUMN_OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
         this.column = ref.column();
         ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
@@ -98,12 +107,15 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
-            Object innerValue = null;
             if (value.containsKey(innerName) == false) {
-                innerValue = docBuilder.getSyntheticValue(child.ident());
-            } else {
-                innerValue = value.get(innerName);
+                var synth = docBuilder.getSyntheticValue(child.ident());
+                if (synth != null) {
+                    // directly modify the map so that containing types will see the value
+                    // if they need to write stored fields
+                    value.put(innerName, synth);
+                }
             }
+            var innerValue = value.get(innerName);
             docBuilder.checkColumnConstraint(child.ident(), innerValue);
             if (innerValue == null) {
                 continue;
@@ -118,13 +130,31 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 );
             }
         }
+        Map<String, Object> ignoredColumns = new HashMap<>();
         value.forEach((k, v) -> {
             if (children.containsKey(k) == false) {
                 translogWriter.writeFieldName(this.unknownColumnPrefix + k);
                 translogWriter.writeValue(v);
+                ignoredColumns.put(k, v);
             }
         });
+        if (docBuilder.maybeAddStoredField()) {
+            if (ignoredColumns.isEmpty() == false) {
+                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(ignoredColumns).toBytesRef()));
+            } else if (value.isEmpty()) {
+                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), new BytesRef("{}")));
+            }
+        }
         translogWriter.endObject();
+    }
+
+    private BytesReference toBytes(Map<String, Object> map) {
+        try (BytesStreamOutput output = new BytesStreamOutput()) {
+            streamer.writeValueTo(output, map);
+            return output.bytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

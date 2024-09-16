@@ -116,7 +116,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref) {
+    public static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref) {
         final String fqn = ref.storageIdent();
         // non-ignored dynamic references should have been resolved to void references by this point
         if (ref instanceof VoidReference) {

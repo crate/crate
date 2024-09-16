@@ -22,10 +22,12 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
+import org.apache.lucene.document.StoredField;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Point;
 
@@ -57,10 +59,19 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+        if (docBuilder.maybeAddStoredField()) {
+            docBuilder.addField(new StoredField(name, toByteArray(point)));
+        }
         docBuilder.translogWriter().startArray();
         docBuilder.translogWriter().writeValue(point.getX());
         docBuilder.translogWriter().writeValue(point.getY());
         docBuilder.translogWriter().endArray();
+    }
+
+    private static byte[] toByteArray(Point point) {
+        byte[] bytes = new byte[Double.BYTES * 2];
+        ByteBuffer.wrap(bytes).asDoubleBuffer().put(point.getX()).put(point.getY());
+        return bytes;
     }
 
     @Override

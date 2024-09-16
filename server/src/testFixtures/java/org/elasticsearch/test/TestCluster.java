@@ -113,7 +113,7 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.CommitStats;
-import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
+import org.elasticsearch.index.engine.DocIdAndSeqNo;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.engine.InternalEngine;
@@ -1408,7 +1408,7 @@ public final class TestCluster implements Closeable {
                     if (primaryShard == null) {
                         continue;
                     }
-                    final List<DocIdSeqNoAndSource> docsOnPrimary;
+                    final List<DocIdAndSeqNo> docsOnPrimary;
                     try {
                         docsOnPrimary = IndexShardTestCase.getDocIdAndSeqNos(primaryShard);
                     } catch (AlreadyClosedException ex) {
@@ -1419,7 +1419,7 @@ public final class TestCluster implements Closeable {
                         if (replicaShard == null) {
                             continue;
                         }
-                        final List<DocIdSeqNoAndSource> docsOnReplica;
+                        final List<DocIdAndSeqNo> docsOnReplica;
                         try {
                             docsOnReplica = IndexShardTestCase.getDocIdAndSeqNos(replicaShard);
                         } catch (AlreadyClosedException ex) {

@@ -27,6 +27,7 @@ import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,6 +59,9 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                     new SortedNumericDocValuesField(name, NumericUtils.doubleToSortableLong(doubleValue))
                 );
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, doubleValue));
+                }
                 docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
                     name,

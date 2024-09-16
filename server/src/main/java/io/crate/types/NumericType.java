@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.PointValues;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -155,6 +156,10 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         // See NumericStorage+LuceneSort+OrderByCollectorExpression
         if (value instanceof Long longValue) {
             BigInteger bigInt = BigInteger.valueOf(longValue);
+            return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
+        }
+        if (value instanceof byte[] bytes) {
+            var bigInt = NumericUtils.sortableBytesToBigInt(bytes, 0, bytes.length);
             return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
         }
         return (BigDecimal) value;

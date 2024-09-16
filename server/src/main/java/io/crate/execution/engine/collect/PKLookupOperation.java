@@ -61,9 +61,11 @@ import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
+import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupOperation {
@@ -83,7 +85,8 @@ public final class PKLookupOperation {
                                 VersionType versionType,
                                 long seqNo,
                                 long primaryTerm,
-                                StoredRowLookup storedRowLookup) {
+                                DocTableInfo table,
+                                List<Symbol> columns) {
         Term uidTerm = new Term(DocSysColumns.Names.ID, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
@@ -96,6 +99,7 @@ public final class PKLookupOperation {
             if (docIdAndVersion == null) {
                 return null;
             }
+            StoredRowLookup storedRowLookup = StoredRowLookup.create(table, shard.shardId().getIndexName(), columns, getResult.fromTranslog());
             try {
                 StoredRow storedRow
                     = storedRowLookup.getStoredRow(new ReaderContext(docIdAndVersion.reader.getContext()), docIdAndVersion.docId);
@@ -123,7 +127,8 @@ public final class PKLookupOperation {
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
-                                     StoredRowLookup storedRowLookup) {
+                                     DocTableInfo table,
+                                     List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
@@ -141,7 +146,7 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
-            assert storedRowLookup != null;
+            assert table != null;
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> lookupDoc(
                     shard,
@@ -150,7 +155,8 @@ public final class PKLookupOperation {
                     VersionType.EXTERNAL,
                     pkAndVersion.seqNo(),
                     pkAndVersion.primaryTerm(),
-                    storedRowLookup
+                    table,
+                    columns
                 ))
                 .filter(Objects::nonNull)
                 .map(resultToRow);

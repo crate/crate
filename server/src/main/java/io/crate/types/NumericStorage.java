@@ -32,6 +32,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
@@ -123,6 +124,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
             } else {
+                docBuilder.addField(new StoredField(name, longValue));
                 docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
                     name,
@@ -157,6 +159,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(bytes)));
             } else {
+                docBuilder.addField(new StoredField(name, new BytesRef(bytes)));
                 docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
                     name,

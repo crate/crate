@@ -28,66 +28,59 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 
-public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
+public abstract class DocCollectorExpression<T> extends LuceneCollectorExpression<T> {
+
+    protected final Reference ref;
 
     private StoredRowLookup storedRowLookup;
-    private StoredRow source;
     private ReaderContext context;
 
-    @Override
-    public void startCollect(CollectorContext context) {
-        storedRowLookup = context.storedRowLookup();
+    protected StoredRow source;
+
+    protected DocCollectorExpression(Reference ref) {
+        this.ref = ref;
     }
 
+    @Override
+    public final void startCollect(CollectorContext context) {
+        storedRowLookup = context.storedRowLookup(ref);
+    }
 
     @Override
-    public void setNextDocId(int doc) {
+    public final void setNextDocId(int doc) {
         this.source = storedRowLookup.getStoredRow(context, doc);
     }
 
     @Override
-    public void setNextReader(ReaderContext context) throws IOException {
+    public final void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
-    }
-
-    @Override
-    public Map<String, Object> value() {
-        return source.asMap();
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {
         assert reference.column().name().equals(DocSysColumns.DOC.name()) :
             "column name must be " + DocSysColumns.DOC.name();
         if (reference.column().isRoot()) {
-            return new DocCollectorExpression();
+            return new RootDocCollectorExpression(reference);
         }
         return new ChildDocCollectorExpression(reference);
     }
 
-    static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
+    static final class RootDocCollectorExpression extends DocCollectorExpression<Map<String, Object>> {
 
-        private final Reference ref;
-        private StoredRowLookup storedRowLookup;
-        private StoredRow source;
-        private ReaderContext context;
-
-        ChildDocCollectorExpression(Reference ref) {
-            this.ref = ref;
+        private RootDocCollectorExpression(Reference ref) {
+            super(ref);
         }
 
         @Override
-        public void setNextDocId(int doc) {
-            this.source = storedRowLookup.getStoredRow(context, doc);
+        public Map<String, Object> value() {
+            return source.asMap();
         }
+    }
 
-        @Override
-        public void setNextReader(ReaderContext context) throws IOException {
-            this.context = context;
-        }
+    static final class ChildDocCollectorExpression extends DocCollectorExpression<Object> {
 
-        @Override
-        public void startCollect(CollectorContext context) {
-            storedRowLookup = context.storedRowLookup(ref);
+        private ChildDocCollectorExpression(Reference ref) {
+            super(ref);
         }
 
         @Override

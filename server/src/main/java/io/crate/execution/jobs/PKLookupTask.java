@@ -44,13 +44,13 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
-import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupTask extends AbstractTask {
@@ -65,6 +65,7 @@ public final class PKLookupTask extends AbstractTask {
     private final RowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<Doc, ?>> expressions;
+    private final List<Symbol> toCollect;
     private final String name;
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final int ramAccountingBlockSizeInBytes;
@@ -72,7 +73,7 @@ public final class PKLookupTask extends AbstractTask {
     private long totalBytes = -1;
 
     @Nullable
-    private final StoredRowLookup storedRowLookup;
+    private final DocTableInfo table;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
@@ -100,6 +101,7 @@ public final class PKLookupTask extends AbstractTask {
         this.consumer = consumer;
         this.memoryManagerFactory = memoryManagerFactory;
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
+        this.toCollect = toCollect;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -111,10 +113,9 @@ public final class PKLookupTask extends AbstractTask {
         if (shardIt.hasNext()) {
             String indexName = shardIt.next().getIndexName();
             var relationName = RelationName.fromIndexName(indexName);
-            this.storedRowLookup = StoredRowLookup.create(schemas.getTableInfo(relationName), indexName);
-            this.storedRowLookup.register(toCollect);
+            this.table = schemas.getTableInfo(relationName);
         } else {
-            this.storedRowLookup = null;
+            this.table = null;
         }
 
         expressions = ctx.expressions();
@@ -133,7 +134,8 @@ public final class PKLookupTask extends AbstractTask {
             shardProjections,
             consumer.requiresScroll(),
             this::resultToRow,
-            storedRowLookup
+            table,
+            toCollect
         );
         consumer.accept(rowBatchIterator, null);
         close();
