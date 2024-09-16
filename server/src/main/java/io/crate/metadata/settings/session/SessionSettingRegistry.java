@@ -58,8 +58,10 @@ public class SessionSettingRegistry {
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     static final String DATE_STYLE_KEY = "datestyle";
+    static final String APPLICATION_NAME_KEY = "application_name";
+
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
-        "application_name",
+        APPLICATION_NAME_KEY,
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
         CoordinatorSessionSettings::setApplicationName,
         SessionSettings::applicationName,
@@ -81,7 +83,7 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
-        "statement_timeout",
+        Sessions.STATEMENT_TIMEOUT_KEY,
         inputs -> {
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
@@ -109,7 +111,7 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
-        Sessions.MEMORY_LIMIT.getKey(),
+        Sessions.MEMORY_LIMIT_KEY,
         inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
