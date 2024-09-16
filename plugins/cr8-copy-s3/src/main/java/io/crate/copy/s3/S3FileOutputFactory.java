@@ -21,6 +21,8 @@
 
 package io.crate.copy.s3;
 
+import java.net.URI;
+
 import io.crate.copy.s3.common.S3Protocol;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
@@ -31,7 +33,7 @@ public class S3FileOutputFactory implements FileOutputFactory {
     public static final String NAME = "s3";
 
     @Override
-    public FileOutput create(Settings withClauseOptions) {
-        return new S3FileOutput(S3Protocol.get(withClauseOptions));
+    public FileOutput create(URI uri, Settings withClauseOptions) {
+        return new S3FileOutput(uri, S3Protocol.get(withClauseOptions));
     }
 }

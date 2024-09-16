@@ -25,7 +25,6 @@ import io.crate.execution.dsl.projection.WriterProjection;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.util.concurrent.Executor;
 
 public interface FileOutput {
@@ -35,5 +34,5 @@ public interface FileOutput {
      *
      * @throws IOException in case the Output can't be created (e.g. due to file permission errors or something like that)
      */
-    OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException;
+    OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException;
 }
