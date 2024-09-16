@@ -60,13 +60,17 @@ import io.crate.role.Securable;
 @Singleton
 public class Sessions {
 
+    public static final String MEMORY_LIMIT_KEY = "memory.operation_limit";
+    public static final String NODE_READ_ONLY_SETTING_KEY = "node.sql.read_only";
+    public static final String STATEMENT_TIMEOUT_KEY = "statement_timeout";
+
     public static final Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
-        "node.sql.read_only",
+        NODE_READ_ONLY_SETTING_KEY,
         false,
         Setting.Property.NodeScope);
 
     public static final Setting<TimeValue> STATEMENT_TIMEOUT = Setting.timeSetting(
-        "statement_timeout",
+        STATEMENT_TIMEOUT_KEY,
         TimeValue.timeValueMillis(0),
         Setting.Property.Dynamic,
         Setting.Property.NodeScope,
@@ -74,7 +78,7 @@ public class Sessions {
     );
 
     public static final Setting<Integer> MEMORY_LIMIT = Setting.intSetting(
-        "memory.operation_limit", 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
+        MEMORY_LIMIT_KEY, 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
 
 
     private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
