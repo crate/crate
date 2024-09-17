@@ -54,7 +54,7 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -173,7 +173,7 @@ public class CollectSourceResolver {
             if (indexName == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }
-            if (phase.maxRowGranularity() == RowGranularity.DOC && IndexParts.isPartitioned(indexName)) {
+            if (phase.maxRowGranularity() == RowGranularity.DOC && IndexName.isPartitioned(indexName)) {
                 // partitioned table without any shards; nothing to collect
                 return emptyCollectSource;
             }

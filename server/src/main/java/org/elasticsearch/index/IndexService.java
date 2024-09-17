@@ -85,7 +85,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.TranslogIndexer;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -494,7 +494,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     @Override
     public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
         var indexName = newIndexMetadata.getIndex().getName();
-        if (IndexParts.isDangling(indexName)) {
+        if (IndexName.isDangling(indexName)) {
             return;
         }
         var tableInfo = tableFactory.create(RelationName.fromIndexName(indexName), metadata);

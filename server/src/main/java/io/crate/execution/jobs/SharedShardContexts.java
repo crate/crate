@@ -39,7 +39,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 public class SharedShardContexts {
 
@@ -68,7 +68,7 @@ public class SharedShardContexts {
             }
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 }
                 refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
@@ -76,7 +76,7 @@ public class SharedShardContexts {
             }
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
-                if (!IndexParts.isPartitioned(indexName)) {
+                if (!IndexName.isPartitioned(indexName)) {
                     refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
                 }
                 continue;

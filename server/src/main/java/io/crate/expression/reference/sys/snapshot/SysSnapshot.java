@@ -24,6 +24,7 @@ package io.crate.expression.reference.sys.snapshot;
 import java.util.List;
 import java.util.stream.Stream;
 
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -139,11 +140,11 @@ public class SysSnapshot {
 
     public List<PartitionName> tablePartitions() {
         return concreteIndices.stream()
-            .map(IndexParts::new)
+            .map(IndexName::decode)
             .filter(IndexParts::isPartitioned)
             .map(indexParts -> new PartitionName(
-                new RelationName(indexParts.getSchema(), indexParts.getTable()),
-                indexParts.getPartitionIdent()))
+                new RelationName(indexParts.schema(), indexParts.table()),
+                indexParts.partitionIdent()))
             .toList();
     }
 

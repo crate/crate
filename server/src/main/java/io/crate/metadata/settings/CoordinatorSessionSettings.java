@@ -23,11 +23,18 @@ package io.crate.metadata.settings;
 
 import static io.crate.Constants.DEFAULT_DATE_STYLE;
 
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
 import io.crate.role.Role;
@@ -169,5 +176,24 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     public void memoryLimit(int memoryLimit) {
         this.memoryLimit = memoryLimit;
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new TreeMap<>();
+        map.put(SessionSettingRegistry.HASH_JOIN_KEY, hashJoinsEnabled);
+        map.put(SessionSettingRegistry.SEARCH_PATH_KEY,
+            StreamSupport.stream(searchPath.spliterator(), false).collect(Collectors.joining(",")));
+        map.put(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY, errorOnUnknownObjectKey);
+        map.put(SessionSettingRegistry.DATE_STYLE_KEY, dateStyle);
+        map.put(SessionSettingRegistry.APPLICATION_NAME_KEY, applicationName);
+        map.put(Sessions.MEMORY_LIMIT_KEY, memoryLimit);
+        map.put(Sessions.STATEMENT_TIMEOUT_KEY, statementTimeout.toString());
+        map.put("disabled_optimizer_rules",
+            excludedOptimizerRules
+                .stream()
+                .sorted(Comparator.comparing(Class::getSimpleName))
+                .map(Rule::sessionSettingName)
+                .collect(Collectors.joining(",")));
+        return map;
     }
 }

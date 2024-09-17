@@ -24,8 +24,6 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -41,14 +39,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
-import io.crate.types.UndefinedType;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
@@ -79,10 +72,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             DynamicIndexer.throwOnNestedArray(type);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (handleEmptyArray(type, value)) {
-                    type = null; // guess type again with next value
-                    return;
-                }
                 throw new IllegalArgumentException(
                     "Cannot create columns of type " + type.getName() + " dynamically. " +
                         "Storage is not supported for this type");
@@ -126,12 +115,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
-            if (handleEmptyArray(type, value)) {
-                type = null; // guess type again with next value
-                Collection<?> values = (Collection<?>) value;
-                docBuilder.translogWriter().writeNullArray(values.size());
-                return;
-            }
             throw new IllegalArgumentException(
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
@@ -169,16 +152,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             : refIdent.columnIdent().leafName();
     }
 
-    static boolean handleEmptyArray(DataType<?> type,
-                                    Object value) {
-        if (type instanceof ArrayType<?> && ArrayType.unnest(type) instanceof UndefinedType) {
-            Collection<?> values = (Collection<?>) value;
-            return values.isEmpty() || values.stream().allMatch(Objects::isNull);
-        }
-        return false;
-    }
-
-
     /**
      * <p>
      * Like {@link DataTypes#guessType(Object)} but prefers types with a higher precision.
@@ -198,9 +171,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 innerType = arrayType.innerType();
                 dimensions++;
             }
-            return ArrayType.makeArray(upcast(innerType), dimensions);
+            return ArrayType.makeArray(DataTypes.upcast(innerType), dimensions);
         }
-        return upcast(type);
+        return DataTypes.upcast(type);
     }
 
     /**
@@ -214,13 +187,5 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 throw new IllegalArgumentException("Dynamic nested arrays are not supported");
             }
         }
-    }
-
-    private static DataType<?> upcast(DataType<?> type) {
-        return switch (type.id()) {
-            case ByteType.ID, ShortType.ID, IntegerType.ID -> DataTypes.LONG;
-            case FloatType.ID -> DataTypes.DOUBLE;
-            default -> type;
-        };
     }
 }

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.InetAddress;
 import java.util.List;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -39,7 +40,9 @@ import org.junit.Test;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -52,7 +55,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(Sessions.class),
-            (s) -> new NoopCircuitBreaker("dummy"),
+            _ -> new NoopCircuitBreaker("dummy"),
             () -> List.of(Role.CRATE_USER),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -69,7 +72,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             settings,
             mock(Sessions.class),
-            (s) -> new NoopCircuitBreaker("dummy"),
+            _ -> new NoopCircuitBreaker("dummy"),
             () -> List.of(RolesHelper.userOf("trillian")),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -83,7 +86,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(Sessions.class),
-            (s) -> new NoopCircuitBreaker("dummy"),
+            _ -> new NoopCircuitBreaker("dummy"),
             () -> List.of(RolesHelper.userOf("Aladdin")),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -100,8 +103,10 @@ public class SqlHttpHandlerTest {
         var mockedSession = mock(Session.class);
         when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
 
+        var mockedClientAddress = mock(InetAddress.class);
         var mockedSqlOperations = mock(Sessions.class);
-        when(mockedSqlOperations.newSession(null, dummyUser)).thenReturn(mockedSession);
+        var connectionProperties = new ConnectionProperties(null, mockedClientAddress, Protocol.HTTP, null);
+        when(mockedSqlOperations.newSession(connectionProperties, null, dummyUser)).thenReturn(mockedSession);
 
         var mockedRequest = mock(FullHttpRequest.class);
         when(mockedRequest.headers()).thenReturn(new DefaultHttpHeaders());
@@ -109,13 +114,13 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mockedSqlOperations,
-            (s) -> new NoopCircuitBreaker("dummy"),
+            _ -> new NoopCircuitBreaker("dummy"),
             () -> List.of(dummyUser),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
-        var session = handler.ensureSession(mockedRequest);
+        var session = handler.ensureSession(connectionProperties, mockedRequest);
         verify(mockedRequest, atLeast(1)).headers();
         assertThat(session.sessionSettings().authenticatedUser()).isEqualTo(dummyUser);
         assertThat(session.sessionSettings().searchPath().currentSchema()).contains("doc");
@@ -126,7 +131,7 @@ public class SqlHttpHandlerTest {
         session.sessionSettings().setHashJoinEnabled(false);
 
         // test that the 2nd call to ensureSession will retrieve the session settings modified previously
-        session = handler.ensureSession(mockedRequest);
+        session = handler.ensureSession(connectionProperties, mockedRequest);
         assertThat(session.sessionSettings().hashJoinsEnabled()).isFalse();
         assertThat(session.sessionSettings().searchPath().currentSchema()).contains("dummy_path");
     }
@@ -136,7 +141,7 @@ public class SqlHttpHandlerTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(Sessions.class),
-            (s) -> new NoopCircuitBreaker("dummy"),
+            _ -> new NoopCircuitBreaker("dummy"),
             () -> List.of(JWT_USER),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );

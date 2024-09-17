@@ -34,8 +34,14 @@ import java.util.zip.GZIPOutputStream;
 
 public class LocalFsFileOutput implements FileOutput {
 
+    private final URI uri;
+
+    public LocalFsFileOutput(URI uri) {
+        this.uri = uri;
+    }
+
     @Override
-    public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
+    public OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException {
         if (uri.getHost() != null) {
             throw new IllegalArgumentException("the URI host must be defined");
         }

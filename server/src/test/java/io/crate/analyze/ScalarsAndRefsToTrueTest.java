@@ -131,4 +131,26 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
         assertThat(symbol).isLiteral(null, DataTypes.BOOLEAN);
     }
 
+    @Test
+    public void test_IsNull_on_top_of_logical_operators() {
+        Symbol symbol = convertFromSQL("((table_name = 'foo') OR null) IS NULL");
+        assertThat(symbol).isLiteral(true);
+        symbol = convertFromSQL("((table_name = 'foo') AND null) IS NULL");
+        assertThat(symbol).isLiteral(true);
+    }
+
+    @Test
+    public void test_IsNotNull_on_top_of_logical_operators() {
+        Symbol symbol = convertFromSQL("((table_name = 'foo') OR null) IS NOT NULL");
+        assertThat(symbol).isLiteral(true);
+        symbol = convertFromSQL("((table_name = 'foo') AND null) IS NOT NULL");
+        assertThat(symbol).isLiteral(true);
+    }
+
+    @Test
+    public void test_IsNull_and_IsNotNull_nested_with_complex_expression() {
+        Symbol symbol = convertFromSQL(
+            "(NOT(((table_name = 'foo') AND null) IS NULL)) OR (NOT(((table_name = 'foo') AND null) IS NOT NULL))");
+        assertThat(symbol).isLiteral(true);
+    }
 }

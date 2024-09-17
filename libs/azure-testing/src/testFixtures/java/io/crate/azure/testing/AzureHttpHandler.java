@@ -18,7 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package org.elasticsearch.repositories.azure;
+package io.crate.azure.testing;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

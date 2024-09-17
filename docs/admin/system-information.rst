@@ -2226,6 +2226,55 @@ the database.
 |              | for the specific database object                |             |
 +--------------+-------------------------------------------------+-------------+
 
+.. _sys-sessions:
+
+Sessions
+========
+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+    :align: left
+
+    * - Column Name
+      - Description
+      - Return Type
+    * - ``id``
+      - The unique identifier of the session within a single node. Use together
+        with ``handler_node`` to uniquely identify sessions across a cluster
+      - ``INTEGER``
+    * - ``auth_user``
+      - The user which was authenticated for the session
+      - ``TEXT``
+    * - ``session_user``
+      - The user, possibly different than the ``auth_user`` which is currently
+        active in the session, see: :ref:`ref-set-session-authorization`
+      - ``TEXT``
+    * - ``handler_node``
+      - The name of the node on which the session is created
+      - ``TEXT``
+    * - ``client_address``
+      - The IPv4 or IPv6 network address of the client which opened the session
+      - ``TEXT``
+    * - ``time_created``
+      - The time on which the session was created
+      - ``TIMESTAMPTZ``
+    * - ``protocol``
+      - ``http`` or ``pg`` to denote weather the session is created through
+        :ref:`interface-http` or :ref:`interface-postgresql`
+      - ``TEXT``
+    * - ``ssl``
+      - A flag which denotes if ``SSL`` encryption is used between the client
+        which opened the session and the ``handler_node``
+      - ``BOOLEAN``
+    * - ``settings``
+      - The :ref:`session settings <conf-session>`
+      - ``OBJECT``
+    * - ``last_statement``
+      - The last SQL statement which was executed in the session
+      - ``TEXT``
+
+
 .. _sys-allocations:
 
 Allocations

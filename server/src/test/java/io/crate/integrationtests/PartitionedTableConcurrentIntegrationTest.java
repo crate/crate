@@ -56,7 +56,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
@@ -151,7 +151,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
                     }
                     String toNode = nodeSwap.get(shardRouting.currentNodeId());
 
-                    assert new IndexParts(shardRouting.getIndexName()).getTable().equals("t") : "Must use index of `t` table";
+                    assert IndexName.decode(shardRouting.getIndexName()).table().equals("t") : "Must use index of `t` table";
                     execute(
                         "alter table t PARTITION (p = 'a') REROUTE MOVE SHARD ? FROM ? TO ?",
                         new Object[] { shardRouting.shardId().id(), shardRouting.currentNodeId(), toNode }

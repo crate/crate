@@ -61,7 +61,7 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -241,7 +241,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testTableNameOfPartition() throws Exception {
         // expression should return the real table name
-        indexName = IndexParts.toIndexName("doc", "wikipedia_de", "foo");
+        indexName = IndexName.encode("doc", "wikipedia_de", "foo");
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
@@ -254,7 +254,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionIdent() throws Exception {
-        indexName = IndexParts.toIndexName("doc", "wikipedia_d1", "foo");
+        indexName = IndexName.encode("doc", "wikipedia_d1", "foo");
         prepare();
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
@@ -276,7 +276,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrphanPartition() throws Exception {
-        indexName = IndexParts.toIndexName("doc", "wikipedia_d1", "foo");
+        indexName = IndexName.encode("doc", "wikipedia_d1", "foo");
         prepare();
         Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);

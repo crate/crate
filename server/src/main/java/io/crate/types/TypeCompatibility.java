@@ -21,117 +21,53 @@
 
 package io.crate.types;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.jetbrains.annotations.Nullable;
 
 public final class TypeCompatibility {
 
     @Nullable
-    public static DataType<?> getCommonType(DataType<?> firstType, DataType<?> secondType) {
-        return compatibility(firstType, secondType);
-    }
-
-    @Nullable
-    private static DataType<?> compatibility(DataType<?> fromType, DataType<?> toType) {
-        if (fromType.equals(toType)) {
-            return toType;
+    public static DataType<?> getCommonType(DataType<?> type1, DataType<?> type2) {
+        if (type1.equals(type2)) {
+            return type2;
         }
-
-        if (fromType.equals(UndefinedType.INSTANCE)) {
-            return toType;
+        if (type1.equals(UndefinedType.INSTANCE)) {
+            return type2;
         }
-
-        if (toType.equals(UndefinedType.INSTANCE)) {
-            return fromType;
+        if (type2.equals(UndefinedType.INSTANCE)) {
+            return type1;
         }
-
-        String fromTypeBaseName = fromType.getTypeSignature().getBaseTypeName();
-        String toTypeBaseName = toType.getTypeSignature().getBaseTypeName();
-        if (fromTypeBaseName.equals(toTypeBaseName)) {
+        String type1Base = type1.getTypeSignature().getBaseTypeName();
+        String type2Base = type2.getTypeSignature().getBaseTypeName();
+        if (type1Base.equals(type2Base)) {
             // If given types share the same base, e.g. arrays, parameter types must be compatible.
-            if (fromType.getTypeParameters().isEmpty() == false || toType.getTypeParameters().isEmpty() == false) {
-                return typeCompatibilityForParametrizedType(fromType, toType);
-            }
-            return fromType;
-        }
-
-        return convertTypeByPrecedence(fromType, toType);
-    }
-
-    @Nullable
-    private static DataType<?> convertTypeByPrecedence(DataType<?> arg1, DataType<?> arg2) {
-        final DataType<?> higherPrecedenceArg;
-        final DataType<?> lowerPrecedenceArg;
-        if (arg1.precedes(arg2)) {
-            higherPrecedenceArg = arg1;
-            lowerPrecedenceArg = arg2;
-        } else {
-            higherPrecedenceArg = arg2;
-            lowerPrecedenceArg = arg1;
-        }
-
-        final boolean lowerPrecedenceCastable = lowerPrecedenceArg.isConvertableTo(higherPrecedenceArg, false);
-        final boolean higherPrecedenceCastable = higherPrecedenceArg.isConvertableTo(lowerPrecedenceArg, false);
-
-        if (lowerPrecedenceCastable) {
-            return higherPrecedenceArg;
-        } else if (higherPrecedenceCastable) {
-            return lowerPrecedenceArg;
-        }
-
-        return null;
-    }
-
-    @Nullable
-    private static DataType<?> typeCompatibilityForParametrizedType(DataType<?> fromType, DataType<?> toType) {
-        ArrayList<TypeSignature> commonParameterTypes = new ArrayList<>();
-        List<DataType<?>> fromTypeParameters = fromType.getTypeParameters();
-        List<DataType<?>> toTypeParameters = toType.getTypeParameters();
-
-        // TODO this block is a bunch of special casing, can we push this into the
-        // DataType implementations themselves?
-
-        if (fromType.id() == NumericType.ID && toType.id() == NumericType.ID) {
-            var fromPrecision = fromType.numericPrecision();
-            if (fromPrecision == null) {
-                return toType;
-            }
-            var toPrecision = toType.numericPrecision();
-            if (toPrecision == null) {
-                return fromType;
-            }
-            return fromPrecision > toPrecision ? fromType : toType;
-        }
-
-        if (fromTypeParameters.size() != toTypeParameters.size()) {
-            if (fromType.id() == ObjectType.ID && toType.id() == ObjectType.ID) {
-                return fromTypeParameters.size() > toTypeParameters.size() ? fromType : toType;
-            } else if (fromType.id() == StringType.ID && toType.id() == StringType.ID) {
-                if (((StringType) fromType).unbound() || ((StringType) toType).unbound()) {
-                    return StringType.INSTANCE;
+            if (type1.getTypeParameters().isEmpty() == false || type2.getTypeParameters().isEmpty() == false) {
+                try {
+                    return DataTypes.merge(type1, type2);
+                } catch (IllegalArgumentException ex) {
+                    return null;
                 }
             }
-            return null;
-        } else if (fromType.id() == toType.id()
-                   && fromType.characterMaximumLength() != null
-                   && toType.characterMaximumLength() != null) {
-            if (fromType.characterMaximumLength() > toType.characterMaximumLength()) {
-                return fromType;
-            }
-            return toType;
+            return type1;
         }
+        return convertTypeByPrecedence(type1, type2);
+    }
 
-        for (int i = 0; i < fromTypeParameters.size(); i++) {
-            DataType<?> compatibility = compatibility(fromTypeParameters.get(i), toTypeParameters.get(i));
-            if (compatibility == null) {
-                return null;
-            }
-            commonParameterTypes.add(compatibility.getTypeSignature());
+    @Nullable
+    private static DataType<?> convertTypeByPrecedence(DataType<?> type1, DataType<?> type2) {
+        final DataType<?> higherPrecedenceArg;
+        final DataType<?> lowerPrecedenceArg;
+        if (type1.precedes(type2)) {
+            higherPrecedenceArg = type1;
+            lowerPrecedenceArg = type2;
+        } else {
+            higherPrecedenceArg = type2;
+            lowerPrecedenceArg = type1;
         }
-        String typeBase = fromType.getTypeSignature().getBaseTypeName();
-        return new TypeSignature(typeBase, Collections.unmodifiableList(commonParameterTypes)).createType();
+        if (lowerPrecedenceArg.isConvertableTo(higherPrecedenceArg, false)) {
+            return higherPrecedenceArg;
+        } else if (higherPrecedenceArg.isConvertableTo(lowerPrecedenceArg, false)) {
+            return lowerPrecedenceArg;
+        }
+        return null;
     }
 }

@@ -29,7 +29,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
@@ -38,6 +37,7 @@ import org.joda.time.PeriodType;
 import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -49,17 +49,18 @@ import io.crate.types.DataTypes;
 @Singleton
 public class SessionSettingRegistry {
 
-    private static final String SEARCH_PATH_KEY = "search_path";
+    public static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
+    public static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
+    public static final String APPLICATION_NAME_KEY = "application_name";
+    public static final String DATE_STYLE_KEY = "datestyle";
     static final String MAX_INDEX_KEYS = "max_index_keys";
     static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
     static final String SERVER_VERSION_NUM = "server_version_num";
     static final String SERVER_VERSION = "server_version";
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
-    static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
-    static final String DATE_STYLE_KEY = "datestyle";
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
-        "application_name",
+        APPLICATION_NAME_KEY,
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
         CoordinatorSessionSettings::setApplicationName,
         SessionSettings::applicationName,
@@ -81,7 +82,7 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
-        "statement_timeout",
+        Sessions.STATEMENT_TIMEOUT_KEY,
         inputs -> {
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
@@ -109,7 +110,7 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
-        Sessions.MEMORY_LIMIT.getKey(),
+        Sessions.MEMORY_LIMIT_KEY,
         inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
@@ -165,8 +166,8 @@ public class SessionSettingRegistry {
                          throw new UnsupportedOperationException("\"" + MAX_IDENTIFIER_LENGTH + "\" cannot be changed.");
                      },
                      (s, v) -> {},
-                     s -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
-                     () -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     s -> String.valueOf(IndexName.MAX_INDEX_NAME_BYTES),
+                     () -> String.valueOf(IndexName.MAX_INDEX_NAME_BYTES),
                      "Shows the maximum length of identifiers in bytes.",
                      DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,

@@ -50,7 +50,7 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -247,7 +247,7 @@ public class Get implements LogicalPlan {
         RelationName relation = tableInfo.ident();
         if (tableInfo.isPartitioned()) {
             assert partitionValues != null : "values must not be null";
-            return IndexParts.toIndexName(relation, PartitionName.encodeIdent(partitionValues));
+            return IndexName.encode(relation, PartitionName.encodeIdent(partitionValues));
         } else {
             return relation.indexNameOrAlias();
         }

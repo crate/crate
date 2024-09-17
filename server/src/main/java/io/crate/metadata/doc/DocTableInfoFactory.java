@@ -60,7 +60,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -114,7 +114,7 @@ public class DocTableInfoFactory {
 
     public void validateSchema(IndexMetadata indexMetadata) {
         String indexName = indexMetadata.getIndex().getName();
-        if (IndexParts.isDangling(indexName)) {
+        if (IndexName.isDangling(indexName)) {
             return;
         }
         RelationName relationName = RelationName.fromIndexName(indexName);

@@ -412,34 +412,18 @@ public class SQLTypeMappingTest extends IntegTestCase {
     } */
 
     @Test
-    public void test_dynamic_empty_array_does_not_result_in_new_column() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) " +
-                "with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
-        refresh();
-        waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
-        assertThat(response).hasRows(
-            "id| smallint",
-            "tags| text_array"
-        );
-        assertThat(execute("select _doc from arr")).hasRows(
-            "{id=1, new=[], tags=[wow, much, wow]}"
-        );
-    }
-
-    @Test
-    public void testDynamicNullArray_does_not_result_in_new_column() throws Exception {
+    public void testDynamicNullArray_adds_array_of_null() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new, \"2\") values (2, ['wow', 'much', 'wow'], [null], [])");
-        refresh();
+        execute("refresh table arr");
         waitNoPendingTasksOnAll();
         execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
         assertThat(response).hasRows(
+            "2| array_of_null",
             "id| smallint",
+            "new| array_of_null",
             "tags| text_array"
         );
         assertThat(execute("select _doc from arr")).hasRows(
@@ -462,18 +446,20 @@ public class SQLTypeMappingTest extends IntegTestCase {
 
     // https://github.com/crate/crate/issues/13990
     @Test
-    public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
+    public void test_dynamic_null_array_overridden_to_integer_becomes_null() throws Exception {
         execute("create table t (a int) with (column_policy ='dynamic')");
         execute("insert into t (x) values ([])");
-        execute("insert into t (x) values (1)");
-        refresh();
-        execute("select * from t");
-        assertThat(printedTable(response.rows())).contains("NULL| NULL", "NULL| 1");
+        execute("insert into t (x) values ([1])");
+        execute("refresh table t");
+        assertBusy(() -> {
+            execute("select * from t");
+            assertThat(printedTable(response.rows())).contains("NULL| []", "NULL| [1]");
+        });
         // takes different paths than without order by like above
-        execute("select * from t order by x nulls first");
+        execute("select * from t order by array_length(x, 1) nulls first");
         assertThat(response).hasRows(
-            "NULL| NULL",
-            "NULL| 1"
+            "NULL| []",
+            "NULL| [1]"
         );
     }
 
@@ -485,9 +471,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into t (a, o) values (2, {x={y={}}})");
         execute("refresh table t");
         execute("select * from t where a = 1");
-        assertThat(response).hasRows("1| {x={y=NULL}}");
+        assertThat(response).hasRows("1| {x={y=[]}}");
         execute("select * from t where a = 2");
-        assertThat(response).hasRows("2| {x={y={}}}");
+        assertThat(response).hasRows("2| {x={y=[]}}");
     }
 
     @Test

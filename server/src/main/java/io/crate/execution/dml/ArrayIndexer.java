@@ -41,7 +41,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -88,9 +87,12 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         return ARRAY_LENGTH_FIELD_PREFIX + arrayRef.storageIdentLeafName();
     }
 
-    @VisibleForTesting
-    static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
+
+    /**
+     * Field prefix used for the array length field here and in {@link io.crate.types.NullArrayType}
+     */
+    public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
     private final ValueIndexer<T> innerIndexer;
     private final String arrayLengthFieldName;

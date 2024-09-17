@@ -68,7 +68,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
         true, true, true, true);
 
-    private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
     private final NodeContext nodeContext;
@@ -79,7 +78,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                                           MetadataCreateIndexService metadataCreateIndexService,
                                           MetadataUpdateSettingsService updateSettingsService,
                                           NodeContext nodeContext) {
-        this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
         this.metadataCreateIndexService = metadataCreateIndexService;
         this.nodeContext = nodeContext;

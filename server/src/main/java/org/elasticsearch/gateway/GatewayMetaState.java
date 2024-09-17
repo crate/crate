@@ -69,7 +69,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
 /**
@@ -233,7 +233,7 @@ public class GatewayMetaState implements Closeable {
             String indexName = indexMetadata.getIndex().getName();
             IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                 indexMetadata,
-                IndexParts.isPartitioned(indexName) ?
+                IndexName.isPartitioned(indexName) ?
                     upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
                     null,
                 Version.CURRENT.minimumIndexCompatibilityVersion());

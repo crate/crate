@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static io.crate.metadata.IndexParts.toIndexName;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,6 +67,7 @@ import org.junit.Test;
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.metadata.IndexName;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
@@ -276,7 +277,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         NetworkDisruption scheme = addRandomDisruptionType(partitions);
         scheme.startDisrupting();
         ensureStableCluster(2, notIsolatedNode);
-        String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
         assertThat(FutureUtils.get(
             client(notIsolatedNode).admin().cluster().health(
                 new ClusterHealthRequest(indexName).waitForYellowStatus()
@@ -364,7 +365,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
         // the failed shard should be gone
         List<ShardRouting> shards = clusterService().state().routingTable()
-            .allShards(toIndexName(sqlExecutor.getCurrentSchema(), "t", null));
+            .allShards(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null));
         for (ShardRouting shard : shards) {
             assertThat(shard.allocationId()).isNotEqualTo(failedShard.allocationId());
         }
@@ -373,7 +374,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     @Test
     public void testRestartNodeWhileIndexing() throws Exception {
         startCluster(3);
-        String index = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        String index = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
 
         int numberOfReplicas = between(1, 2);
         logger.info("creating table with {} shards and {} replicas", 1, numberOfReplicas);

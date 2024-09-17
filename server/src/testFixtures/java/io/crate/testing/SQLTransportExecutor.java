@@ -72,6 +72,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
+import io.crate.auth.Protocol;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -82,6 +83,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
@@ -247,13 +249,15 @@ public class SQLTransportExecutor {
 
     public Session newSession() {
         return clientProvider.sqlOperations().newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null),
             searchPath.currentSchema(),
             Role.CRATE_USER
         );
     }
 
     public SQLResponse executeAs(String stmt, Role user) {
-        try (Session session = clientProvider.sqlOperations().newSession(null, user)) {
+        try (Session session = clientProvider.sqlOperations()
+            .newSession(new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
     }

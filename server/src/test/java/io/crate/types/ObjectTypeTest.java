@@ -36,8 +36,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.testing.DataTypeTesting;

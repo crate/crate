@@ -548,4 +548,19 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             )
         );
     }
+
+    @Test
+    public void test_analyze_all_like_operator_variants() {
+        Symbol symbol = executor.asSymbol("t1.a like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a ILIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT ILIKE ALL(['a', 'b', 'c']))");
+    }
 }

@@ -2,6 +2,7 @@
 queue_rules:
   - name: default
     conditions:
+      - check-success=verification/cla-signed
       - check-success=ci/jenkins/pr_tests
       - check-success~=^Test CrateDB SQL on ubuntu
       - check-success=docs/readthedocs.org:crate
@@ -15,6 +16,7 @@ pull_request_rules:
     conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
+      - status-success=verification/cla-signed
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success=docs/readthedocs.org:crate

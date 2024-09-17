@@ -400,8 +400,8 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
         if (viewsMetadata != null) {
             StreamSupport.stream(viewsMetadata.names().spliterator(), false)
-                .map(IndexParts::new)
-                .map(IndexParts::getSchema)
+                .map(IndexName::decode)
+                .map(IndexParts::schema)
                 .forEach(schemas::add);
         }
         return schemas;

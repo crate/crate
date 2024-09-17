@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static io.crate.metadata.IndexParts.toIndexName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -48,6 +47,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
 
 /**
  * Tests relating to the loss of the master.
@@ -240,7 +240,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         disruption.stopDisrupting();
 
-        String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
         assertBusy(() -> {
             IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {

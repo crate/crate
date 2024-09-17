@@ -55,7 +55,9 @@ import org.junit.rules.TemporaryFolder;
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
 import io.crate.action.sql.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.testing.Asserts;
@@ -1199,7 +1201,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         var roles = cluster().getInstance(Roles.class);
         Role user = roles.getUser("test_user");
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        try (var session = sqlOperations.newSession(null, user)) {
+        try (var session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
             assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
                 .isExactlyInstanceOf(UnauthorizedException.class)
                 .hasMessage("Only a superuser can read from the local file system");

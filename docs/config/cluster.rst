@@ -836,6 +836,9 @@ attribute filtering*.
 
       cluster.routing.allocation.include.zone: "zone1,zone2"`
 
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-include>`.
+
 .. _cluster.routing.allocation.exclude.*:
 
 **cluster.routing.allocation.exclude.***
@@ -848,6 +851,12 @@ attribute filtering*.
 
       cluster.routing.allocation.exclude.zone: "zone1"
 
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-exclude>`.
+
+  Therefore, if a node is excluded from shard allocation by this cluster level
+  setting, the node can still allocate shards if the table setting allows it.
+
 .. _cluster.routing.allocation.require.*:
 
 **cluster.routing.allocation.require.***
@@ -855,6 +864,9 @@ attribute filtering*.
 
   Used to specify a number of rules, which **all** of them must match for a node
   in order to :ref:`allocate a shard  <gloss-shard-allocation>` on it.
+
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-require>`.
 
 
 .. _conf-routing-allocation-disk:

@@ -35,6 +35,10 @@ e.g:
 Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
 <scalar-current_setting>` :ref:`scalar function <scalar-functions>`.
 
+.. NOTE::
+
+    All the active settings for a session can also be retrieved from the
+    :ref:`sys.sessions <sys-sessions>` table.
 
 Supported session settings
 ==========================

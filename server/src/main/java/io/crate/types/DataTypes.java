@@ -177,7 +177,8 @@ public final class DataTypes {
             entry(DateType.ID, in -> DATE),
             entry(BitStringType.ID, BitStringType::new),
             entry(JsonType.ID, in -> JsonType.INSTANCE),
-            entry(FloatVectorType.ID, FloatVectorType::new)
+            entry(FloatVectorType.ID, FloatVectorType::new),
+            entry(NullArrayType.ID, _ -> NullArrayType.INSTANCE)
         )
     );
 
@@ -244,7 +245,7 @@ public final class DataTypes {
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
         entry(ObjectType.ID, Set.of(GEO_SHAPE.id(), JsonType.ID)),
-        entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
+        entry(ArrayType.ID, Set.of(NullArrayType.ID)), // convertability handled in ArrayType
         entry(BitStringType.ID, Set.of(BitStringType.ID)),
         entry(JsonType.ID, Set.of(ObjectType.ID))
     );
@@ -312,8 +313,8 @@ public final class DataTypes {
         return switch (value) {
             case null -> UNDEFINED;
             case Map<?, ?> map -> UNTYPED_OBJECT;
-            case List<?> list -> valueFromList(list);
-            case Object[] array -> valueFromList(Arrays.asList(array));
+            case List<?> list -> valueFromList(list, false);
+            case Object[] array -> valueFromList(Arrays.asList(array), false);
             case float[] values -> new FloatVectorType(values.length);
             case BigDecimal bigDecimal -> new NumericType(bigDecimal.precision(), bigDecimal.scale());
             default -> {
@@ -347,7 +348,25 @@ public final class DataTypes {
         }
     }
 
-    private static DataType<?> valueFromList(List<?> value) {
+    /**
+     * Given a numeric data type, converts it to the widest possible implementation.
+     * So bytes, shorts and integers become long, and floats become double.
+     */
+    public static DataType<?> upcast(DataType<?> type) {
+        return switch (type.id()) {
+            case ByteType.ID, ShortType.ID, IntegerType.ID -> DataTypes.LONG;
+            case FloatType.ID -> DataTypes.DOUBLE;
+            default -> type;
+        };
+    }
+
+    /**
+     * Given a list of values, return an ArrayType that can refer to all of them
+     * @param value     the list of values
+     * @param upcast    if true, then use the widest possible compatible numeric type
+     *                  e.g. a list of integers produces array(long)
+     */
+    public static DataType<?> valueFromList(List<?> value, boolean upcast) {
         DataType<?> highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
@@ -363,6 +382,12 @@ public final class DataTypes {
             if (current.precedes(highest)) {
                 highest = current;
             }
+        }
+        if (highest == DataTypes.UNDEFINED) {
+            return NullArrayType.INSTANCE;
+        }
+        if (upcast) {
+            highest = upcast(highest);
         }
         return new ArrayType<>(highest);
     }
@@ -431,7 +456,8 @@ public final class DataTypes {
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
         entry("decimal", NUMERIC),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
+        entry(NullArrayType.NAME, NullArrayType.INSTANCE)
     );
 
     public static DataType<?> ofName(String typeName) {
@@ -488,7 +514,8 @@ public final class DataTypes {
         entry("object", UNTYPED_OBJECT),
         entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
+        entry(NullArrayType.NAME, NullArrayType.INSTANCE)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
@@ -510,7 +537,8 @@ public final class DataTypes {
         entry(INTERVAL.id(), "interval"),
         entry(BitStringType.ID, "bit"),
         entry(NumericType.ID, "numeric"),
-        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName())
+        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
+        entry(NullArrayType.ID, NullArrayType.INSTANCE.getName())
     );
 
     @Nullable

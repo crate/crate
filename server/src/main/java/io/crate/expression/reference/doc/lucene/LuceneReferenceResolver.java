@@ -47,6 +47,7 @@ import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.NullArrayType;
 import io.crate.types.NumericStorage;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
@@ -139,7 +140,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
             case IntegerType.ID -> new IntegerColumnReference(fqn);
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
-            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
+            case ArrayType.ID, NullArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
             case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
             default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());

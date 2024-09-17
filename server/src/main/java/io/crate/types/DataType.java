@@ -100,7 +100,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * type should be preferred (higher precedence) or converted (lower
      * precedence) during type conversions.
      */
-    public abstract Precedence precedence();
+    protected abstract Precedence precedence();
 
     public abstract String getName();
 
@@ -174,8 +174,32 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @param other The other type to compare against.
      * @return True if the current type precedes, false otherwise.
      */
-    public boolean precedes(DataType<?> other) {
-        return this.precedence().ordinal() > other.precedence().ordinal();
+    public boolean precedes(DataType<?> that) {
+        int thisOrdinal = this.precedence().ordinal();
+        int thatOrdinal = that.precedence().ordinal();
+        if (thisOrdinal == thatOrdinal) {
+            Integer thisPrecision = this.numericPrecision();
+            Integer thatPrecision = that.numericPrecision();
+            if (thisPrecision == null && thatPrecision == null) {
+                Integer thisLength = this.characterMaximumLength();
+                Integer thatLength = that.characterMaximumLength();
+                if (thisLength == null) {
+                    return true;
+                }
+                if (thatLength == null) {
+                    return false;
+                }
+                return thisLength > thatLength;
+            }
+            if (thisPrecision == null) {
+                return false;
+            }
+            if (thatPrecision == null) {
+                return true;
+            }
+            return thisPrecision > thatPrecision;
+        }
+        return thisOrdinal > thatOrdinal;
     }
 
     /**

@@ -56,7 +56,7 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -279,7 +279,7 @@ public class FetchTask implements Task {
                 }
                 IndexMetadata indexMetadata = metadata.index(indexName);
                 if (indexMetadata == null) {
-                    if (IndexParts.isPartitioned(indexName)) {
+                    if (IndexName.isPartitioned(indexName)) {
                         continue;
                     }
                     throw new IndexNotFoundException(indexName);
@@ -301,7 +301,7 @@ public class FetchTask implements Task {
                                 searchers.put(readerId, shardContext.acquireSearcher(source));
                             }
                         } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
-                            if (!IndexParts.isPartitioned(indexName)) {
+                            if (!IndexName.isPartitioned(indexName)) {
                                 throw e;
                             }
                         }

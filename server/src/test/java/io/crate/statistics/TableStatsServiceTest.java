@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -34,6 +35,7 @@ import org.mockito.Mockito;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -109,7 +111,10 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = Mockito.mock(Session.class);
-        Mockito.when(sqlOperations.newSession(ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(session);
+        Mockito.when(sqlOperations.newSession(
+            any(ConnectionProperties.class),
+            ArgumentMatchers.anyString(), any())
+        ).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,

@@ -526,6 +526,7 @@ public class Node implements Closeable {
 
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
+                nodeContext,
                 settings,
                 clusterService,
                 indicesService,

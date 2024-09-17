@@ -21,15 +21,18 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.metadata.IndexParts;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 
 public class SysSnapshotRestoreInProgress {
 
@@ -112,7 +115,7 @@ public class SysSnapshotRestoreInProgress {
                 shardsRestoreInfo.add(
                     new ShardRestoreInfo(
                         shardId.id(),
-                        new IndexParts(shardId.getIndexName()),
+                        IndexName.decode(shardId.getIndexName()),
                         status.state())
                 );
             }
@@ -151,9 +154,9 @@ public class SysSnapshotRestoreInProgress {
             }
             ShardRestoreInfo that = (ShardRestoreInfo) o;
             return id == that.id &&
-                   Objects.equals(indexParts.getTable(), that.indexParts.getTable()) &&
-                   Objects.equals(indexParts.getSchema(), that.indexParts.getSchema()) &&
-                   Objects.equals(indexParts.getPartitionIdent(), that.indexParts.getPartitionIdent()) &&
+                   Objects.equals(indexParts.table(), that.indexParts.table()) &&
+                   Objects.equals(indexParts.schema(), that.indexParts.schema()) &&
+                   Objects.equals(indexParts.partitionIdent(), that.indexParts.partitionIdent()) &&
                    state == that.state;
         }
 

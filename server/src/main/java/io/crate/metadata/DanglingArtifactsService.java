@@ -63,7 +63,7 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
         if (LOGGER.isInfoEnabled() && event.isNewCluster()) {
             for (ObjectCursor<String> key : event.state().metadata().indices().keys()) {
                 String indexName = key.value;
-                if (IndexParts.isDangling(indexName)) {
+                if (IndexName.isDangling(indexName)) {
                     LOGGER.info("Dangling artifacts like {} exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them", indexName);
                     doStop();
                     return;

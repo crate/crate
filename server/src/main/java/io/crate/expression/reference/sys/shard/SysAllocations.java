@@ -38,7 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.snapshots.SnapshotsInfoService;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @Singleton
 public class SysAllocations implements Iterable<SysAllocation> {
@@ -77,7 +77,7 @@ public class SysAllocations implements Iterable<SysAllocation> {
         );
         return allocation.routingTable().allShards()
             .stream()
-            .filter(shardRouting -> !IndexParts.isDangling(shardRouting.getIndexName()))
+            .filter(shardRouting -> !IndexName.isDangling(shardRouting.getIndexName()))
             .map(shardRouting -> createSysAllocations(allocation, shardRouting))
             .iterator();
     }

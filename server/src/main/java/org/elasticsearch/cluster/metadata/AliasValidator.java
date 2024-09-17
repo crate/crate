@@ -25,6 +25,8 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.indices.InvalidAliasNameException;
 
+import io.crate.metadata.IndexName;
+
 
 /**
  * Validator for an alias, to be used before adding an alias to the index metadata
@@ -41,16 +43,15 @@ public final class AliasValidator {
      * @throws IllegalArgumentException if the alias is not valid
      */
     public static void validateAlias(Alias alias, String index, Metadata metadata) {
-        validateAlias(alias.name(), index, metadata::index);
-    }
-
-    /**
-     * Allows to validate an {@link AliasMetadata} and make sure
-     * it's valid before it gets added to the index metadata. Doesn't validate the alias filter.
-     * @throws IllegalArgumentException if the alias is not valid
-     */
-    public static void validateAliasMetadata(AliasMetadata aliasMetadata, String index, Metadata metadata) {
-        validateAlias(aliasMetadata.alias(), index, metadata::index);
+        String aliasName = alias.name();
+        validateAliasName(aliasName);
+        if (!Strings.hasText(index)) {
+            throw new IllegalArgumentException("index name is required");
+        }
+        IndexMetadata indexNamedSameAsAlias = ((Function<String, IndexMetadata>) metadata::index).apply(aliasName);
+        if (indexNamedSameAsAlias != null) {
+            throw new InvalidAliasNameException(indexNamedSameAsAlias.getIndex(), aliasName, "an index exists with the same name as the alias");
+        }
     }
 
     /**
@@ -60,30 +61,10 @@ public final class AliasValidator {
      * without validating it as a filter though.
      * @throws IllegalArgumentException if the alias is not valid
      */
-    public static void validateAliasStandalone(Alias alias) {
-        validateAliasStandalone(alias.name());
-    }
-
-    /**
-     * Validate a proposed alias.
-     */
-    public static void validateAlias(String alias, String index, Function<String, IndexMetadata> indexLookup) {
-        validateAliasStandalone(alias);
-
-        if (!Strings.hasText(index)) {
-            throw new IllegalArgumentException("index name is required");
-        }
-
-        IndexMetadata indexNamedSameAsAlias = indexLookup.apply(alias);
-        if (indexNamedSameAsAlias != null) {
-            throw new InvalidAliasNameException(indexNamedSameAsAlias.getIndex(), alias, "an index exists with the same name as the alias");
-        }
-    }
-
-    static void validateAliasStandalone(String alias) {
+    public static void validateAliasName(String alias) {
         if (!Strings.hasText(alias)) {
             throw new IllegalArgumentException("alias name is required");
         }
-        MetadataCreateIndexService.validateIndexOrAliasName(alias, InvalidAliasNameException::new);
+        IndexName.validate(alias, InvalidAliasNameException::new);
     }
 }

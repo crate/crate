@@ -23,6 +23,7 @@ package io.crate.rest.action;
 
 import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -58,6 +60,7 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
+import io.crate.auth.Protocol;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
@@ -65,6 +68,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.protocols.http.Headers;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.netty.buffer.ByteBuf;
@@ -108,7 +112,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
         if (request.uri().startsWith("/_sql")) {
-            Session session = ensureSession(request);
+            Session session = ensureSession(
+                new ConnectionProperties(
+                    null, // not used
+                    Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
+                    Protocol.HTTP,
+                    getSession(ctx.channel())),
+                request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
             handleSQLRequest(session, content, paramContainFlag(parameters, "types"))
@@ -213,15 +223,15 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     @VisibleForTesting
-    Session ensureSession(FullHttpRequest request) {
+    Session ensureSession(ConnectionProperties connectionProperties, FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sessions.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
         } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sessions.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
         }
         this.session = session;
         return session;

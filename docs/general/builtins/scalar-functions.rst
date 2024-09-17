@@ -2331,24 +2331,35 @@ and the implementation is free to change.
 
 .. _scalar-round:
 
-``round(number)``
------------------
+``round(number[, precision])``
+------------------------------
 
-If the input is of type ``double precision`` or ``bigint`` the result is the
-closest ``bigint`` to the argument, with ties rounding up.
+Returns ``number`` rounded to the specified ``precision`` (decimal places).
 
-If the input is of type ``real`` or ``integer`` the result is the closest
-integer to the argument, with ties rounding up.
+When ``precision`` is not specified, the ``round`` function rounds the input
+value to the closest integer for ``real`` and ``integer`` data types with ties
+rounding up, and to the closest ``bigint`` value for ``double precision`` and
+``bigint`` data types with ties rounding up.
 
-Returns: ``bigint`` or ``integer``
+When it is specified, the result's type is ``numeric``. Notice that
+``round(number)`` and ``round(number, 0)`` return different result types.
 
-See below for an example::
+
+See below for examples::
 
     cr> select round(42.2) AS round;
     +-------+
     | round |
     +-------+
     |    42 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+    cr> select round(42.21, 1) AS round;
+    +-------+
+    | round |
+    +-------+
+    |  42.2 |
     +-------+
     SELECT 1 row in set (... sec)
 

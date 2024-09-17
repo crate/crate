@@ -51,6 +51,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -60,13 +61,17 @@ import io.crate.role.Securable;
 @Singleton
 public class Sessions {
 
+    public static final String MEMORY_LIMIT_KEY = "memory.operation_limit";
+    public static final String NODE_READ_ONLY_SETTING_KEY = "node.sql.read_only";
+    public static final String STATEMENT_TIMEOUT_KEY = "statement_timeout";
+
     public static final Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
-        "node.sql.read_only",
+        NODE_READ_ONLY_SETTING_KEY,
         false,
         Setting.Property.NodeScope);
 
     public static final Setting<TimeValue> STATEMENT_TIMEOUT = Setting.timeSetting(
-        "statement_timeout",
+        STATEMENT_TIMEOUT_KEY,
         TimeValue.timeValueMillis(0),
         Setting.Property.Dynamic,
         Setting.Property.NodeScope,
@@ -74,7 +79,7 @@ public class Sessions {
     );
 
     public static final Setting<Integer> MEMORY_LIMIT = Setting.intSetting(
-        "memory.operation_limit", 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
+        MEMORY_LIMIT_KEY, 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
 
 
     private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
@@ -122,13 +127,15 @@ public class Sessions {
         this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
-    private Session newSession(CoordinatorSessionSettings sessionSettings) {
+    private Session newSession(@Nullable ConnectionProperties connectionProperties,
+                               CoordinatorSessionSettings sessionSettings) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
         int sessionId = nextSessionId.incrementAndGet();
         Session session = new Session(
             sessionId,
+            connectionProperties,
             analyzer,
             planner,
             jobsLogs,
@@ -141,7 +148,9 @@ public class Sessions {
         return session;
     }
 
-    public Session newSession(@Nullable String defaultSchema, Role authenticatedUser) {
+    public Session newSession(ConnectionProperties connectionProperties,
+                              @Nullable String defaultSchema,
+                              Role authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
             sessionSettings = new CoordinatorSessionSettings(
@@ -166,11 +175,11 @@ public class Sessions {
             setting.apply(sessionSettings, entry.getValue());
         }
 
-        return newSession(sessionSettings);
+        return newSession(connectionProperties, sessionSettings);
     }
 
     public Session newSystemSession() {
-        return newSession(CoordinatorSessionSettings.systemDefaults());
+        return newSession(null, CoordinatorSessionSettings.systemDefaults());
     }
 
     /**

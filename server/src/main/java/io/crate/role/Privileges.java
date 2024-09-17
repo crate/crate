@@ -22,12 +22,12 @@
 package io.crate.role;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -126,7 +126,7 @@ public final class Privileges {
         }
         assert ident != null : "ident must not be null if privilege securable is not 'CLUSTER'";
         if (Securable.TABLE.equals(securable)) {
-            schemaName = new IndexParts(ident).getSchema();
+            schemaName = IndexName.decode(ident).schema();
         } else {
             schemaName = ident;
         }

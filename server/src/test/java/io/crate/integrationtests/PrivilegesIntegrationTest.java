@@ -36,7 +36,9 @@ import org.junit.Test;
 
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.testing.Asserts;
@@ -70,7 +72,8 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     private Session testUserSession(String defaultSchema) {
         Role user = roles.findUser(TEST_USERNAME);
         assertThat(user).isNotNull();
-        return sqlOperations.newSession(defaultSchema, user);
+        return sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), defaultSchema, user);
     }
 
     @Override

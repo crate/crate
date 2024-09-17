@@ -89,7 +89,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.engine.indexing.GroupRowsByShard;
-import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
@@ -100,7 +99,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -209,7 +208,7 @@ public class InsertFromValues implements LogicalPlan {
             onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults);
             onConflictColumns = assignments.targetNames();
         }
-        var indexNameResolver = IndexNameResolver.create(
+        var indexNameResolver = IndexName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
@@ -351,7 +350,7 @@ public class InsertFromValues implements LogicalPlan {
             context.add(writerProjection.clusteredBy());
         }
 
-        var indexNameResolver = IndexNameResolver.create(
+        var indexNameResolver = IndexName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
@@ -614,7 +613,7 @@ public class InsertFromValues implements LogicalPlan {
                         itemAndRoutingAndSourceInfo.routing(),
                         clusterService);
                 } catch (IndexNotFoundException e) {
-                    if (IndexParts.isPartitioned(index)) {
+                    if (IndexName.isPartitioned(index)) {
                         requestItemsIterator.remove();
                         continue;
                     } else {
@@ -674,7 +673,7 @@ public class InsertFromValues implements LogicalPlan {
                     .currentNodeId();
             } catch (IndexNotFoundException e) {
                 lastFailure.set(e);
-                if (!IndexParts.isPartitioned(request.index())) {
+                if (!IndexName.isPartitioned(request.index())) {
                     synchronized (compressedResult) {
                         compressedResult.markAsFailed(request.items());
                     }
@@ -732,11 +731,11 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private static boolean partitionWasDeleted(Throwable throwable, String index) {
-        return throwable instanceof IndexNotFoundException && IndexParts.isPartitioned(index);
+        return throwable instanceof IndexNotFoundException && IndexName.isPartitioned(index);
     }
 
     private static boolean partitionClosed(Throwable throwable, String index) {
-        if (throwable instanceof ClusterBlockException blockException && IndexParts.isPartitioned(index)) {
+        if (throwable instanceof ClusterBlockException blockException && IndexName.isPartitioned(index)) {
             for (ClusterBlock clusterBlock : blockException.blocks()) {
                 if (clusterBlock.id() == INDEX_CLOSED_BLOCK.id()) {
                     return true;
@@ -752,7 +751,7 @@ public class InsertFromValues implements LogicalPlan {
         Metadata metadata = clusterService.state().metadata();
         List<String> indicesToCreate = new ArrayList<>();
         for (var index : indices) {
-            if (IndexParts.isPartitioned(index) && metadata.hasIndex(index) == false) {
+            if (IndexName.isPartitioned(index) && metadata.hasIndex(index) == false) {
                 indicesToCreate.add(index);
             }
         }

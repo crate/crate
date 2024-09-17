@@ -66,7 +66,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.DropSubscriptionAction;
@@ -447,7 +447,7 @@ public final class MetadataTracker implements Closeable {
             }
         }
         for (var templateName : stateResponse.concreteTemplates()) {
-            var indexParts = new IndexParts(templateName);
+            var indexParts = IndexName.decode(templateName);
             if (indexParts.isPartitioned()) {
                 var relationName = indexParts.toRelationName();
                 if (subscriberState.metadata().templates().get(templateName) == null) {

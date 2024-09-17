@@ -31,7 +31,7 @@ import io.crate.expression.scalar.ScalarTestCase;
 public class AnyNotLikeOperatorTest extends ScalarTestCase {
 
     @Test
-    public void testNormalizeSingleSymbolEqual() {
+    public void testNormalizeSimpleSymbolEqual() {
         assertNormalize("'foo' not like any (['foo'])", isLiteral(false));
         assertNormalize("'notFoo' not like any (['foo'])", isLiteral(true));
 

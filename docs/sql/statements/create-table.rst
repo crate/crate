@@ -825,7 +825,9 @@ shard before giving up and leaving the shard unallocated.
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has at least one of the
-comma-separated values.
+comma-separated values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.include.*>` for the given
+table, which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 
@@ -838,7 +840,9 @@ comma-separated values.
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has all of the comma-separated
-values.
+values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.require.*>` for the given
+table which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 
@@ -850,8 +854,10 @@ values.
 ``routing.allocation.exclude.{attribute}``
 ------------------------------------------
 
-Assign the table to a node whose ``{attribute}`` has none of the
-comma-separated values.
+Assign the table to a node whose ``{attribute}`` has none of the comma-separated
+values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.exclude.*>` for the given
+table which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 

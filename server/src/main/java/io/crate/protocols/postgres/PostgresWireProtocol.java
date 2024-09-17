@@ -48,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
@@ -58,7 +59,6 @@ import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -196,8 +196,8 @@ public class PostgresWireProtocol {
     private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
 
-    public static int SERVER_VERSION_NUM = 140000;
-    public static String PG_SERVER_VERSION = "14.0";
+    public static final int SERVER_VERSION_NUM = 140000;
+    public static final String PG_SERVER_VERSION = "14.0";
 
     final PgDecoder decoder;
     final MessageHandler handler;
@@ -257,7 +257,7 @@ public class PostgresWireProtocol {
             }
             String value = readCString(buffer);
             LOGGER.trace("payload: key={} value={}", key, value);
-            if (!"".equals(key) && !"".equals(value)) {
+            if (!key.isEmpty() && !"".equals(value)) {
                 properties.setProperty(key, value);
             }
         }
@@ -444,7 +444,7 @@ public class PostgresWireProtocol {
         try {
             Role authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sessions.newSession(database, authenticatedUser);
+            session = sessions.newSession(authContext.connectionProperties(), database, authenticatedUser);
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);
@@ -683,7 +683,7 @@ public class PostgresWireProtocol {
             Messages.sendEmptyQueryResponse(channel);
             return;
         }
-        List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
+        List<? extends DataType<?>> outputTypes = session.getOutputTypes(portalName);
 
         // .execute is going async and may execute the query in another thread-pool.
         // The results are later sent to the clients via the `ResultReceiver` created

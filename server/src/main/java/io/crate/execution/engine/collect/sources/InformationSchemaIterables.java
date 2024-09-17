@@ -55,7 +55,7 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
@@ -265,7 +265,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(schema -> sequentialStream(schema.getViews()))
-            .filter(i -> !IndexParts.isPartitioned(i.ident().indexNameOrAlias()));
+            .filter(i -> !IndexName.isPartitioned(i.ident().indexNameOrAlias()));
     }
 
     public static Stream<TableInfo> tablesStream(Schemas schemas) {
