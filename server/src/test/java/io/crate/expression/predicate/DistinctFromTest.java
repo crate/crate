@@ -118,6 +118,10 @@ public class DistinctFromTest extends ScalarTestCase {
             assertThat(query)
                 .hasToString("+*:* -str:hello");
 
+            query = tester.toQuery("str IS NOT DISTINCT FROM 'hello'");
+            assertThat(query)
+                .hasToString("+str:hello");
+
             assertThat(tester.runQuery("str", "str IS DISTINCT FROM 'hello'"))
                 .containsExactly("Duke", "rules", null);
             assertThat(tester.runQuery("str", "str IS DISTINCT FROM null"))

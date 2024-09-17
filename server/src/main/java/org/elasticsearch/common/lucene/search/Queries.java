@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.lucene.search;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.search.BooleanClause;
@@ -45,6 +46,17 @@ public class Queries {
 
     /** Return a query that matches all documents but those that match the given query. */
     public static Query not(Query q) {
+        // Change not(not(q)) to q
+        if (q instanceof BooleanQuery booleanQuery && booleanQuery.clauses().size() == 2) {
+            List<BooleanClause> clauses = booleanQuery.clauses();
+            BooleanClause fst = clauses.get(0);
+            BooleanClause snd = clauses.get(1);
+            if (fst.getQuery() instanceof MatchAllDocsQuery
+                && fst.getOccur() == Occur.MUST
+                && snd.getOccur() == Occur.MUST_NOT) {
+                return snd.getQuery();
+            }
+        }
         return new BooleanQuery.Builder()
             .add(new MatchAllDocsQuery(), Occur.MUST)
             .add(q, Occur.MUST_NOT)
