@@ -23,7 +23,6 @@ package io.crate.expression.operator.any;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.search.MatchNoDocsQuery;
@@ -48,7 +47,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
-import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -71,15 +69,6 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         LikeOperators.ANY_ILIKE,
         LikeOperators.ANY_NOT_LIKE,
         LikeOperators.ANY_NOT_ILIKE
-    );
-
-    public static final Set<String> SUPPORTED_COMPARISONS = Set.of(
-        ComparisonExpression.Type.EQUAL.getValue(),
-        ComparisonExpression.Type.NOT_EQUAL.getValue(),
-        ComparisonExpression.Type.LESS_THAN.getValue(),
-        ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue(),
-        ComparisonExpression.Type.GREATER_THAN.getValue(),
-        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
     );
 
     protected final DataType<T> leftType;

@@ -56,3 +56,7 @@ Fixes
 - Fixed an issue that caused filtering by :ref:`ANY <sql_any_array_comparison>`
   operator on an array typed column under an explicit cast to return invalid
   results.
+
+- Fixed an issue that caused filtering by :ref:`ALL <all_array_comparison>`
+  operator on :ref:`REAL <type-real>` array columns against literals to return
+  invalid results.
