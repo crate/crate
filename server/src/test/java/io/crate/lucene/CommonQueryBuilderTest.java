@@ -138,12 +138,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("x != 10");
         assertThat(query)
             .isExactlyInstanceOf(BooleanQuery.class)
-            .hasToString("+(+*:* -x:[10 TO 10])");
+            .hasToString("+*:* -x:[10 TO 10]");
 
         query = convert("not x = 10");
         assertThat(query)
             .isExactlyInstanceOf(BooleanQuery.class)
-            .hasToString("+(+*:* -x:[10 TO 10])");
+            .hasToString("+*:* -x:[10 TO 10]");
     }
 
     @Test
@@ -797,7 +797,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_nested_not_operators() {
         Query query = convert("not (y is not null)");
-        assertThat(query).hasToString("+(+*:* -FieldExistsQuery [field=y])");
+        assertThat(query).hasToString("+*:* -FieldExistsQuery [field=y]");
     }
 
     @Test
