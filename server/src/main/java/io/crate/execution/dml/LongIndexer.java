@@ -46,6 +46,10 @@ public class LongIndexer implements ValueIndexer<Long> {
     @Override
     public void indexValue(@NotNull Long value, IndexDocumentBuilder docBuilder) throws IOException {
         long longValue = value;
+        if (longValue == Long.MAX_VALUE || longValue == Long.MIN_VALUE) {
+            throw new IllegalArgumentException(
+                "Value " + longValue + " exceeds allowed range for column of type bigint");
+        }
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new LongField(name, longValue, Field.Store.NO));
         } else {

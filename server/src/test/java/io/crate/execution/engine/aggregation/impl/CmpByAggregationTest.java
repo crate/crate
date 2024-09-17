@@ -196,7 +196,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             new Object[][] {
                 new Object[] { "a", 1L },
                 new Object[] { "b", 2L },
-                new Object[] { "c", Long.MIN_VALUE},
+                new Object[] { "c", Long.MIN_VALUE + 1},
             },
             List.of()
         );

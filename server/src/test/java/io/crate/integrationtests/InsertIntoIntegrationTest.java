@@ -104,9 +104,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "   string text" +
                 ")");
 
-        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
+        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775806, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-            new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
+            new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775806L, 32767, "Youri"});
         assertThat(response).hasRowCount(1);
         refresh();
 
@@ -118,7 +118,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][2]).isEqualTo(1.79769313486231570e+308);
         assertThat(((Number) response.rows()[0][3]).floatValue()).isCloseTo(3.402f, offset(0.002f));
         assertThat(response.rows()[0][4]).isEqualTo(2147483647);
-        assertThat(response.rows()[0][5]).isEqualTo(9223372036854775807L);
+        assertThat(response.rows()[0][5]).isEqualTo(9223372036854775806L);
         assertThat(response.rows()[0][6]).isEqualTo((short) 32767);
         assertThat(response.rows()[0][7]).isEqualTo("Youri");
 
@@ -127,7 +127,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[1][2]).isEqualTo(1.79769313486231570e+308);
         assertThat(((Number) response.rows()[1][3]).floatValue()).isCloseTo(3.402f, offset(0.002f));
         assertThat(response.rows()[1][4]).isEqualTo(2147483647);
-        assertThat(response.rows()[1][5]).isEqualTo(9223372036854775807L);
+        assertThat(response.rows()[1][5]).isEqualTo(9223372036854775806L);
         assertThat(response.rows()[1][6]).isEqualTo((short) 32767);
         assertThat(response.rows()[1][7]).isEqualTo("Youri");
     }
@@ -155,7 +155,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
                 new Float[]{3.402f, 3.403f, null},
                 new Integer[]{2147483647, 234583},
-                new Long[]{9223372036854775807L, 4L},
+                new Long[]{9223372036854775806L, 4L},
                 new Short[]{32767, 2},
                 new String[]{"Youri", "Juri"}
             }
@@ -183,7 +183,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(((List<?>) row[4]).get(0)).isEqualTo(2147483647);
         assertThat(((List<?>) row[4]).get(1)).isEqualTo(234583);
 
-        assertThat(((List<?>) row[5]).get(0)).isEqualTo(9223372036854775807L);
+        assertThat(((List<?>) row[5]).get(0)).isEqualTo(9223372036854775806L);
         assertThat(((List<?>) row[5]).get(1)).isEqualTo(4L);
 
         assertThat(((List<?>) row[6]).get(0)).isEqualTo((short) 32767);
