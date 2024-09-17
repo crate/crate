@@ -120,7 +120,7 @@ public class DistinctFromTest extends ScalarTestCase {
 
             query = tester.toQuery("str IS NOT DISTINCT FROM 'hello'");
             assertThat(query)
-                .hasToString("+str:hello");
+                .hasToString("str:hello");
 
             assertThat(tester.runQuery("str", "str IS DISTINCT FROM 'hello'"))
                 .containsExactly("Duke", "rules", null);
@@ -302,6 +302,19 @@ public class DistinctFromTest extends ScalarTestCase {
                 List.of(1, 2), null
             );
         }
+    }
 
+    @Test
+    public void test_not_is_distinct_on_primitive_results_in_same_query_than_eq() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "CREATE TABLE tbl (name text)");
+        try (QueryTester tester = builder.build()) {
+            var query1 = tester.toQuery("name is not distinct from 'foo'");
+            var query2 = tester.toQuery("name = 'foo'");
+            assertThat(query1.toString()).isEqualTo(query2.toString());
+        }
     }
 }
