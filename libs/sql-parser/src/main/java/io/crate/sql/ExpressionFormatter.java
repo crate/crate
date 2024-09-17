@@ -163,12 +163,12 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, @Nullable List<Expression> parameters) {
-
             String array = node.getRight().accept(this, parameters);
             String left = node.getLeft().accept(this, parameters);
             String type = node.getType().getValue();
+            String quantifier = node.quantifier().name();
 
-            return "(" + left + " " + type + " ANY(" + array + "))";
+            return "(" + left + " " + type + " " + quantifier + "(" + array + "))";
         }
 
         @Override

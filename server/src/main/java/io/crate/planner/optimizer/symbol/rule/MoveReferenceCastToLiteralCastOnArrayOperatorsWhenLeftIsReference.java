@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
 
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
@@ -40,15 +41,15 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
 
-public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference implements Rule<Function> {
+public class MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference implements Rule<Function> {
 
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
 
-    public MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference() {
+    public MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
-            .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
+            .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()) || AllOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast() && CastMode.IMPLICIT.equals(f.castMode()))
