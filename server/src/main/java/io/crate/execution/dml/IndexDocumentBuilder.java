@@ -134,7 +134,7 @@ public class IndexDocumentBuilder {
         BytesRef translogRef = translog.toBytesRef();
         if (tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
             addField(new StoredField(DocSysColumns.Source.RECOVERY_NAME, translogRef.bytes, translogRef.offset, translogRef.length));
-            addField(new NumericDocValuesField(DocSysColumns.Source.RECOVERY_NAME, 1));
+//            addField(new NumericDocValuesField(DocSysColumns.Source.RECOVERY_NAME, 1));
         } else {
             addField(new StoredField(DocSysColumns.Source.NAME, translogRef.bytes, translogRef.offset, translogRef.length));
         }
