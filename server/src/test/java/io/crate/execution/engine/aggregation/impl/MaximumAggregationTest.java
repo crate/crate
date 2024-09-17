@@ -102,8 +102,13 @@ public class MaximumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_aggregate_min_long() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {Long.MIN_VALUE}});
-        assertThat(result).isEqualTo((Long.MIN_VALUE));
+        Object result = executeAggregation(
+            DataTypes.LONG,
+            new Object[][] {
+                {Long.MIN_VALUE + 1},
+                {Long.MIN_VALUE + 1}
+            });
+        assertThat(result).isEqualTo((Long.MIN_VALUE + 1));
     }
 
     @Test

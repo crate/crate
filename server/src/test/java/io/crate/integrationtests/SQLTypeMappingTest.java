@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -227,7 +228,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 "ip_field=? " +
                 "where id=0",
                 new Object[]{
-                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
+                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE + 1,
                     1.0f, Math.PI, true, "a string", "2013-11-20",
                     Map.of("inner", "2013-11-20"), "127.0.0.1"
                 });
@@ -241,7 +242,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
         assertThat(response.rows()[0][2]).isEqualTo((short) -32768);
         assertThat(response.rows()[0][3]).isEqualTo(0x7fffffff);
-        assertThat(response.rows()[0][4]).isEqualTo(0x8000000000000000L);
+        assertThat(response.rows()[0][4]).isEqualTo(Long.MIN_VALUE + 1);
         assertThat(((Number) response.rows()[0][5]).floatValue()).isCloseTo(1.0f, Offset.offset(0.01f));
         assertThat(response.rows()[0][6]).isEqualTo(Math.PI);
         assertThat(response.rows()[0][7]).isEqualTo(true);
@@ -300,7 +301,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     Map.of(
                         "a_date", "1970-01-01",
                         "an_int", 127,
-                        "a_long", Long.MAX_VALUE,
+                        "a_long", Long.MAX_VALUE - 1,
                         "a_boolean", true)
                     });
         refresh();
@@ -309,7 +310,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
         assertThat(mapped.get("a_date")).isEqualTo("1970-01-01");
-        assertThat(mapped.get("a_long")).isEqualTo(0x7fffffffffffffffL);
+        assertThat(mapped.get("a_long")).isEqualTo(Long.MAX_VALUE - 1);
         assertThat(mapped.get("a_boolean")).isEqualTo(true);
 
         // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing

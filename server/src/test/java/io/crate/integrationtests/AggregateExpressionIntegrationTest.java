@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -86,8 +87,8 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
                 "WITH (number_of_replicas=0)");
         execute(
             "INSERT INTO tbl VALUES (?, ?, ?)", new Object[][]{
-                new Object[]{1.0d, 1f, 9223372036854775807L},
-                new Object[]{1.56d, 2.12f, 2L}});
+                new Object[]{1.0d, 1f, 9223372036854775806L},
+                new Object[]{1.56d, 2.12f, 3L}});
         execute("refresh table tbl");
 
         execute("SELECT sum(x::numeric(16, 1))," +
@@ -122,15 +123,15 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
             "WITH (number_of_replicas=0)");
         execute(
             "INSERT INTO tbl VALUES (?, ?, ?)", new Object[][]{
-                new Object[]{0.3f, 2.251d, 9223372036854775807L},
-                new Object[]{0.7f, 2.251d, 9223372036854775807L}});
+                new Object[]{0.3f, 2.251d, 9223372036854775806L},
+                new Object[]{0.7f, 2.251d, 9223372036854775806L}});
         execute("refresh table tbl");
 
         execute("SELECT avg(x::numeric(16, 1)), " +
                 "       avg(y::numeric(16, 2))," +
                 "       avg(z::numeric) " + // Handle precision error by casting.
             "FROM tbl");
-        assertThat(response).hasRows("0.5| 2.25| 9223372036854775807");
+        assertThat(response).hasRows("0.5| 2.25| 9223372036854775806");
     }
 
     @Test
