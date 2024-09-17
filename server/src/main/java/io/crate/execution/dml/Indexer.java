@@ -72,6 +72,7 @@ import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.NullArrayType;
 import io.crate.types.ObjectType;
 
 /**
@@ -592,10 +593,20 @@ public class Indexer {
                 if (oldRef.equals(newRef) == false) {
                     columns.set(idx, newRef);
                     valueIndexers.set(idx, newRef.valueType().valueIndexer(
-                            newRef.ident().tableIdent(),
-                            newRef,
-                            getRef
+                        newRef.ident().tableIdent(),
+                        newRef,
+                        getRef
                     ));
+                }
+            } else if (oldRef.valueType().id() == NullArrayType.ID) {
+                // null arrays may be upgraded to arrays of a defined type
+                Reference newRef = getRef.apply(oldRef.column());
+                if (newRef == null) {
+                    continue;
+                }
+                if (newRef.valueType().id() == ArrayType.ID) {
+                    columns.set(idx, newRef);
+                    valueIndexers.set(idx, newRef.valueType().valueIndexer(newRef.ident().tableIdent(), newRef, getRef));
                 }
             } else {
                 valueIndexers.get(idx).updateTargets(getRef);
