@@ -67,6 +67,7 @@ import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NullArrayType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
@@ -224,6 +225,7 @@ public final class SourceParser {
             } else if (token == START_ARRAY
                 && required instanceof DataType<?>
                 && !(required instanceof ArrayType<?>)
+                && !(required instanceof NullArrayType)
                 && !(required instanceof GeoPointType)
                 && !(required instanceof GeoShapeType)
                 && !(required instanceof FloatVectorType)

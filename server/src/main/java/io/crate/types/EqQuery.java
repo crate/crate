@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.util.List;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,4 +54,23 @@ public interface EqQuery<T> {
 
     @Nullable
     Query termsQuery(String field, List<T> nonNullValues, boolean hasDocValues, boolean isIndexed);
+
+    static <T> EqQuery<T> nonMatchingEqQuery() {
+        return new EqQuery<>() {
+            @Override
+            public Query termQuery(String field, T value, boolean hasDocValues, boolean isIndexed) {
+                return new MatchNoDocsQuery();
+            }
+
+            @Override
+            public Query rangeQuery(String field, T lowerTerm, T upperTerm, boolean includeLower, boolean includeUpper, boolean hasDocValues, boolean isIndexed) {
+                return new MatchNoDocsQuery();
+            }
+
+            @Override
+            public Query termsQuery(String field, List<T> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                return new MatchNoDocsQuery();
+            }
+        };
+    }
 }
