@@ -77,7 +77,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -118,6 +117,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.auth.Protocol;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
@@ -168,6 +168,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -428,7 +429,7 @@ public class SQLExecutor {
      *
      * <p>Building a cluster state is a rather expensive operation thus this method should NOT be used when multiple
      * tables are needed (e.g. inside a loop) but instead building the cluster state once containing all tables
-     * using {@link #builder(ClusterService, AbstractModule...)} and afterwards resolve all table infos manually.</p>
+     * using {@link #builder(ClusterService)} and afterwards resolve all table infos manually.</p>
      */
     public static DocTableInfo tableInfo(RelationName name, String stmt, ClusterService clusterService) {
         try {
@@ -662,6 +663,7 @@ public class SQLExecutor {
 
     public Session createSession() {
         return sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null),
             sessionSettings.currentSchema(),
             sessionSettings.authenticatedUser()
         );
