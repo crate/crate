@@ -21,7 +21,7 @@
 
 package io.crate.data;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -101,10 +101,11 @@ class AsyncCompositeBatchIteratorTest {
 
             TestingRowConsumer consumer = new TestingRowConsumer();
             consumer.accept(batchIterator, null);
-            consumer.getResult();
-            fail("The AsyncBatchIterator should not handle the case when the executor rejects new tasks");
-        } catch (RejectedExecutionException ignored) {
-            // expected
+            assertThat(consumer.completionFuture())
+                .failsWithin(100, TimeUnit.MILLISECONDS)
+                .withThrowableThat()
+                    .havingCause()
+                    .isExactlyInstanceOf(RejectedExecutionException.class);
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);
