@@ -23,7 +23,6 @@ package io.crate.types;
 
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,7 +70,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     public void test_reference_resolver_docvalues_off() throws Exception {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
-                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE, NullArrayType.INSTANCE)
         );
         DataType<List<List<Object>>> type = new ArrayType<>(new ArrayType<>(randomType));
         String definition = type.getTypeSignature().toString() + " STORAGE WITH (columnstore=false)";
@@ -83,7 +82,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     public void test_reference_resolver_index_and_docvalues_off() throws Exception {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
-                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE, NullArrayType.INSTANCE)
         );
         DataType<List<List<Object>>> type = new ArrayType<>(new ArrayType<>(randomType));
         String definition = type.getTypeSignature().toString() + " INDEX OFF STORAGE WITH (columnstore=false)";

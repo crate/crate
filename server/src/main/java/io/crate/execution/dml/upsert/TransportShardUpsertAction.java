@@ -504,11 +504,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        @Nullable RawIndexer rawIndexer,
                                        long version) throws Exception {
         final long startTime = System.nanoTime();
-
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        if (!newColumns.isEmpty()) {
+        if (newColumns.isEmpty() == false) {
             var addColumnRequest = new AddColumnRequest(
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
                 newColumns,

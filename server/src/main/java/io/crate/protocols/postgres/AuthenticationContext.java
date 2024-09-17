@@ -80,6 +80,10 @@ class AuthenticationContext implements Closeable {
         return credentials.password();
     }
 
+    ConnectionProperties connectionProperties() {
+        return connProperties;
+    }
+
     /**
      * Close method should be called as soon as possible in order to clear out the password char[].
      * Once close was called, {@link #authenticate()} would fail due to empty password.

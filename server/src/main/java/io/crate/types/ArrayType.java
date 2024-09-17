@@ -318,6 +318,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         return other.id() == UndefinedType.ID
             || other.id() == GeoPointType.ID
             || other.id() == FloatVectorType.ID
+            || other.id() == NullArrayType.ID
             || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
     }

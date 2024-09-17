@@ -94,6 +94,13 @@ Breaking Changes
 - Changed the output of ``COPY TO``, executed on a partitioned table, to now
   include partition columns.
 
+- Dynamically added empty arrays, or arrays that only contain ``NULL``, are
+  now stored in the schema and automatically updated to an array of defined type
+  when a row containing concrete values are added.  Once an empty array has been
+  inserted, subsequent inserts into that column must contain array values, or
+  ``NULL``.  Previously, CrateDB would accept non-array values in subsequent
+  inserts.
+
 Deprecations
 ============
 
@@ -123,6 +130,9 @@ SQL Standard and PostgreSQL Compatibility
 
 - `Martin Stein <https://github.com/marstein>`_ added support for the
   IS DISTINCT FROM operator.
+
+- Added Azure Blob Storage support to the :ref:`COPY FROM <sql-copy-from>` and
+  :ref:`COPY TO <sql-copy-to>` statements.
 
 Data Types
 ----------
@@ -165,6 +175,9 @@ Performance and Resilience Improvements
 
 Administration and Operations
 -----------------------------
+
+- Added :ref:`sys.sessions <sys-sessions>` table, to expose information about
+  the active sessions in the cluster.
 
 - Added support to override ``routing.allocation.*`` cluster settings
   with a ``routing.allocation.*`` table setting. This can be used to define the
