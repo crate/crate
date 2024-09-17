@@ -39,8 +39,8 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.symbol.rule.MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators;
-import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference;
-import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference;
+import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference;
+import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnArrayOperatorsWhenRightIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveSubscriptOnReferenceCastToLiteralCastInsideOperators;
 import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdenticalReferences;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInComparisonOperators;
@@ -52,8 +52,8 @@ public class Optimizer {
     private static final List<Rule<?>> RULES = List.of(
         new SwapCastsInComparisonOperators(),
         new SwapCastsInLikeOperators(),
-        new MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference(),
-        new MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference(),
+        new MoveReferenceCastToLiteralCastOnArrayOperatorsWhenRightIsReference(),
+        new MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference(),
         new MoveSubscriptOnReferenceCastToLiteralCastInsideOperators(),
         new MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators(),
         new SimplifyEqualsOperationOnIdenticalReferences()
