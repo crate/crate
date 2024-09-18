@@ -38,7 +38,6 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
-import io.crate.types.NullArrayType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
@@ -87,6 +86,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.CHARACTER), PGArray.CHARACTER_ARRAY)
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.UNTYPED_OBJECT), PGArray.JSON_ARRAY)
+        .put(new ArrayType<>(DataTypes.UNDEFINED), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
@@ -95,7 +95,6 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
-        .put(NullArrayType.INSTANCE, PGArray.ANY_ARRAY)
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

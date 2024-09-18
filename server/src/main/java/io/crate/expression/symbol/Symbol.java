@@ -50,6 +50,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.UndefinedType;
 
 public interface Symbol extends Writeable, Accountable {
 
@@ -192,7 +193,9 @@ public interface Symbol extends Writeable, Accountable {
      * @return An instance of {@link Function} which casts this symbol.
      */
     default Symbol cast(DataType<?> targetType, CastMode... modes) {
-        if (targetType.equals(valueType())) {
+        if (targetType.equals(UndefinedType.INSTANCE)) {
+            return this;
+        } else if (targetType.equals(valueType())) {
             return this;
         } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
                    && valueType().id() == targetType.id()) {

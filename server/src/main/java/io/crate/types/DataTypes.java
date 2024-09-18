@@ -177,8 +177,7 @@ public final class DataTypes {
             entry(DateType.ID, in -> DATE),
             entry(BitStringType.ID, BitStringType::new),
             entry(JsonType.ID, in -> JsonType.INSTANCE),
-            entry(FloatVectorType.ID, FloatVectorType::new),
-            entry(NullArrayType.ID, _ -> NullArrayType.INSTANCE)
+            entry(FloatVectorType.ID, FloatVectorType::new)
         )
     );
 
@@ -245,7 +244,6 @@ public final class DataTypes {
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
         entry(ObjectType.ID, Set.of(GEO_SHAPE.id(), JsonType.ID)),
-        entry(ArrayType.ID, Set.of(NullArrayType.ID)), // convertability handled in ArrayType
         entry(BitStringType.ID, Set.of(BitStringType.ID)),
         entry(JsonType.ID, Set.of(ObjectType.ID))
     );
@@ -383,9 +381,6 @@ public final class DataTypes {
                 highest = current;
             }
         }
-        if (highest == DataTypes.UNDEFINED) {
-            return NullArrayType.INSTANCE;
-        }
         if (upcast) {
             highest = upcast(highest);
         }
@@ -456,8 +451,7 @@ public final class DataTypes {
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
         entry("decimal", NUMERIC),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry(NullArrayType.NAME, NullArrayType.INSTANCE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
     );
 
     public static DataType<?> ofName(String typeName) {
@@ -514,8 +508,7 @@ public final class DataTypes {
         entry("object", UNTYPED_OBJECT),
         entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry(NullArrayType.NAME, NullArrayType.INSTANCE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
@@ -538,7 +531,7 @@ public final class DataTypes {
         entry(BitStringType.ID, "bit"),
         entry(NumericType.ID, "numeric"),
         entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
-        entry(NullArrayType.ID, NullArrayType.INSTANCE.getName())
+        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName())
     );
 
     @Nullable
@@ -665,5 +658,17 @@ public final class DataTypes {
             .filter(x -> x.id() == id)
             .findFirst()
             .orElse(DataTypes.UNDEFINED);
+    }
+
+    public static boolean isArrayOf(DataType<?> type, DataType<?> innerType) {
+        return type instanceof ArrayType<?> at && at.innerType().id() == innerType.id();
+    }
+
+    public static boolean isArrayOfNulls(DataType<?> type) {
+        return isArrayOf(type, UndefinedType.INSTANCE);
+    }
+
+    public static boolean isNestedArray(DataType<?> type) {
+        return type instanceof ArrayType<?> at && at.innerType() instanceof ArrayType<?>;
     }
 }

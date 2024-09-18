@@ -72,7 +72,7 @@ import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.NullArrayType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 /**
@@ -422,7 +422,6 @@ public class Indexer {
                         table.ident()
                     ));
                 }
-                // Empty arrays are not registered as known references, such they are stored in the source as unknown columns
                 valueIndexer = new DynamicIndexer(ref.ident(), position, getRef, writeOids);
                 position--;
             } else {
@@ -598,7 +597,7 @@ public class Indexer {
                         getRef
                     ));
                 }
-            } else if (oldRef.valueType().id() == NullArrayType.ID) {
+            } else if (DataTypes.isArrayOfNulls(oldRef.valueType())) {
                 // null arrays may be upgraded to arrays of a defined type
                 Reference newRef = getRef.apply(oldRef.column());
                 if (newRef == null) {

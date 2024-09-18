@@ -30,7 +30,6 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -62,6 +61,32 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         this.useOids = useOids;
     }
 
+    /**
+     * Create a new Reference based on a dynamically detected type
+     */
+    public static Reference buildReference(ReferenceIdent refIdent, DataType<?> type, int position, long oid) {
+        throwOnNestedArray(type);
+        StorageSupport<?> storageSupport = type.storageSupport();
+        if (storageSupport == null) {
+            throw new IllegalArgumentException(
+                "Cannot create columns of type " + type.getName() + " dynamically. " +
+                    "Storage is not supported for this type");
+        }
+        return new SimpleReference(
+            refIdent,
+            RowGranularity.DOC,
+            type,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            storageSupport.docValuesDefault(),
+            position,
+            oid,
+            false,
+            null
+        );
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public void collectSchemaUpdates(Object value,
@@ -69,28 +94,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                                      Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
-            DynamicIndexer.throwOnNestedArray(type);
+            Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
             StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
-            }
-            boolean nullable = true;
-            Symbol defaultExpression = null;
-            Reference newColumn = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                type,
-                ColumnPolicy.DYNAMIC,
-                IndexType.PLAIN,
-                nullable,
-                storageSupport.docValuesDefault(),
-                position,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                defaultExpression
-            );
+            assert storageSupport != null; // will have already thrown in buildReference
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
@@ -119,21 +125,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        boolean nullable = true;
-        Symbol defaultExpression = null;
-        Reference newColumn = new SimpleReference(
-            refIdent,
-            RowGranularity.DOC,
-            type,
-            ColumnPolicy.DYNAMIC,
-            IndexType.PLAIN,
-            nullable,
-            storageSupport.docValuesDefault(),
-            position,
-            COLUMN_OID_UNASSIGNED,
-            false,
-            defaultExpression
-        );
+        Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
         if (indexer == null) {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.
@@ -181,7 +173,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * used when reading from the translog can't handle them.  So we also check
      * here that we're not trying to dynamically create one.
      */
-    public static void throwOnNestedArray(DataType<?> type) {
+    private static void throwOnNestedArray(DataType<?> type) {
         if (type instanceof ArrayType<?> at) {
             if (at.innerType() instanceof ArrayType<?>) {
                 throw new IllegalArgumentException("Dynamic nested arrays are not supported");
