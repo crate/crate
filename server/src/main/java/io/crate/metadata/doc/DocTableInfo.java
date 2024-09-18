@@ -110,7 +110,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.NullArrayType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 
@@ -703,7 +703,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
      * <ul>
      *  <li>OBJECT (IGNORED) sub-columns</li>
-     *  <li>Empty arrays, or arrays with only null values</li>
      *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
      * </ul>
      */
@@ -1110,12 +1109,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 addedColumn = true;
                 newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
-            } else if (exists.valueType().id() == NullArrayType.ID && newRef.valueType().id() == ArrayType.ID) {
+            } else if (
+                DataTypes.isArrayOfNulls(exists.valueType())
+                    && newRef.valueType().id() == ArrayType.ID
+                    && DataTypes.isArrayOfNulls(newRef.valueType()) == false
+            ) {
                 // upgrade array_of_null to typed array
                 // we do not need a new OID as we are replacing the existing NullArrayType reference
                 newReferences.put(newColumn, newRef);
                 addedColumn = true;
-            } else if (exists.valueType().id() == ArrayType.ID && newRef.valueType().id() == NullArrayType.ID) {
+            } else if (exists.valueType().id() == ArrayType.ID && DataTypes.isArrayOfNulls(newRef.valueType())) {
                 // one shard is trying to create array_of_null while another has already created a typed array
                 // don't do anything
                 continue;

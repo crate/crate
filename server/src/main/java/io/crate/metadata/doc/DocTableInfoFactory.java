@@ -86,6 +86,7 @@ import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
+import io.crate.types.UndefinedType;
 
 public class DocTableInfoFactory {
 
@@ -702,6 +703,9 @@ public class DocTableInfoFactory {
 
         if (typeName.equalsIgnoreCase("array")) {
             Map<String, Object> innerProperties = Maps.get(columnProperties, "inner");
+            if (Objects.equals(UndefinedType.INSTANCE.getName(), innerProperties.get("type"))) {
+                return new ArrayType<>(UndefinedType.INSTANCE);
+            }
             DataType<?> innerType = getColumnDataType(innerProperties);
             return new ArrayType<>(innerType);
         }

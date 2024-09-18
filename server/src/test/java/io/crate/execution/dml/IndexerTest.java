@@ -864,37 +864,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_empty_array_and_array_with_nulls_adds_array_of_null() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getReference(ColumnIdent.of("o")),
-                table.getDynamic(ColumnIdent.of("n1"), true, false),
-                table.getDynamic(ColumnIdent.of("n2"), true, false)
-            ),
-            null
-        );
-        List<Object> n1 = List.of();
-        List<Object> n2 = Arrays.asList(null, null);
-        IndexItem item = item(Map.of("inner", n1), n1, n2);
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        ParsedDocument doc = indexer.index(item);
-        assertThat(newColumns).hasSize(3);
-        assertThat(source(doc, table)).isIn(
-            "{\"o\":{\"inner\":[]},\"n1\":[],\"n2\":[null,null]}",
-            "{\"n1\":[],\"n2\":[null,null],\"o\":{\"inner\":[]}}"
-        );
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
-        assertTranslogParses(doc, table);
-    }
-
-    @Test
     public void test_leaves_out_generated_column_if_dependency_is_null() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int generated always as x + 1)");
@@ -1206,44 +1175,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"a":"foo","i":1,"empty_arr":[]}
             """
         );
-    }
-
-    @Test
-    public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-                .addTable("create table tbl (i int) with (column_policy='dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getDynamic(ColumnIdent.of("empty_arr"), true, false)
-            ),
-            null
-        );
-        var item = item(List.of());
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        assertThat(newColumns).hasSize(1);
-
-        ParsedDocument doc = indexer.index(item);
-        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
-                """
-                {"_u_empty_arr":[]}
-                """
-        );
-        // prefix is stripped on non _raw lookups
-        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
-                """
-                {"empty_arr":[]}
-                """
-        );
-
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
-
-        assertTranslogParses(doc, table);
     }
 
     @Test
