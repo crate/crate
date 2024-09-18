@@ -31,7 +31,6 @@ import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVE
 import static org.elasticsearch.test.XContentTestUtils.convertToMap;
 import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgnoringArrayOrder;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 
 import java.io.IOException;
@@ -61,7 +60,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -79,8 +77,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -154,13 +150,11 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.auth.Protocol;
 import io.crate.common.collections.Lists;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
@@ -962,25 +956,6 @@ public abstract class IntegTestCase extends ESTestCase {
 
     protected static void ensureFullyConnectedCluster(TestCluster cluster) {
         NetworkDisruption.ensureFullyConnectedCluster(cluster);
-    }
-
-    /**
-     * Waits for relocations and refreshes all indices in the cluster.
-     *
-     * @see #waitForRelocation()
-     * @deprecated use SQL: refresh table
-     */
-    @Deprecated(forRemoval = true)
-    protected final RefreshResponse refresh(String... indices) {
-        waitForRelocation();
-        RefreshResponse actionGet;
-        try {
-            actionGet = client().admin().indices().refresh(new RefreshRequest(indices)).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw Exceptions.toRuntimeException(SQLExceptions.unwrap(e));
-        }
-        assertNoFailures(actionGet);
-        return actionGet;
     }
 
     /**

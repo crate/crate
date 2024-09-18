@@ -103,7 +103,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{
             copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount()).isEqualTo(3L);
-        refresh();
+        execute("refresh table quotes");
         execute("select id, date, quote from quotes order by id asc");
         assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0][0]).isEqualTo(1);
@@ -115,7 +115,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("copy quotes partition (date=1800507539938) from ?", new Object[]{
             copyFilePath + "test_copy_from.json"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select partition_ident from information_schema.table_partitions " +
                 "where table_name = 'quotes' " +
@@ -135,7 +135,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount()).isEqualTo(3L);
-        refresh();
+        execute("refresh table quotes");
         ensureYellow();
 
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -165,7 +165,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount()).isEqualTo(3L);
-        refresh();
+        execute("refresh table quotes");
         ensureYellow();
 
         execute("select * from quotes");
@@ -227,7 +227,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
         assertThat(response.rowCount()).isEqualTo(2L);
-        refresh();
+        execute("refresh table my_schema.parted");
 
         ensureGreen();
         waitNoPendingTasksOnAll();
@@ -282,7 +282,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{1, "Ford", 13959981214861L});
         assertThat(response).hasRowCount(1);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         Metadata metadata = clusterService().state().metadata();
         String fqTablename = getFqn("parted");
@@ -323,7 +323,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             });
         assertThat(response.rowCount()).isEqualTo(3L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         validateInsertPartitionedTable();
     }
@@ -339,7 +339,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{3, "Zaphod", null}
         });
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         validateInsertPartitionedTable();
     }
@@ -381,12 +381,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select name, date from parted");
         assertThat(response.rowCount()).isEqualTo(2L);
@@ -411,7 +411,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{42, "Zaphod", dateValue});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         Asserts.assertSQLError(() -> execute("insert into parted (id, name, date) values (?, ?, ?)",
                                    new Object[]{42, "Zaphod", 0L}))
@@ -435,7 +435,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{1, dateValue, "Trillian"});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
         String partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Arrays.asList("Trillian", dateValue.toString())).asIndexName();
@@ -457,7 +457,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted_generated (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-23T14:43:00"
         });
-        refresh();
+        execute("refresh table parted_generated");
 
         execute("select day from parted_generated");
         assertThat(response.rows()[0][0]).isEqualTo(1448236800000L);
@@ -473,7 +473,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -489,7 +489,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select count(*) from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000)");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -509,7 +509,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
         execute("select id, quote, timestamp as ts, timestamp from quotes where timestamp > 1395874800000");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0]).isEqualTo(2);
@@ -563,12 +563,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("update quotes set quote = ? where timestamp = ?",
             new Object[]{"I'd far rather be happy than right any day.", 1395874800000L});
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -578,7 +578,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("update quotes set quote = ?",
             new Object[]{"Don't panic"});
         assertThat(response.rowCount()).isEqualTo(2L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes where quote = ?",
             new Object[]{"Don't panic"});
@@ -600,10 +600,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("update quotes set quote='now panic' where timestamp = ?", new Object[]{1395874800123L});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -624,10 +624,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("update quotes set quote='now panic' where o['timestamp'] = ?", new Object[]{1395874800123L});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -643,12 +643,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
             new Object[]{1395874800123L, "Don't panic"});
         assertThat(response.rowCount()).isEqualTo(0L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -664,11 +664,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{2, "Don't panic", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("update quotes set quote='now panic' where not timestamp = ? and quote=?",
             new Object[]{1395874800000L, "Don't panic"});
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes where quote = 'now panic'");
         assertThat(response.rowCount()).isEqualTo(1L);
     }
@@ -699,11 +699,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{3, "I'd far rather be happy than right any day", 1396303200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("delete from quotes where timestamp = 1395874800000 and id = 1");
         assertThat(response.rowCount()).isEqualTo(1);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -713,7 +713,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("delete from quotes");
         assertThat(response.rowCount()).isIn(0L, -1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -733,7 +733,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident());
 
         execute("delete from parted where date = '2014-03-01'");
-        refresh();
+        execute("refresh table parted");
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
                                           "where table_name='parted' and table_schema = ? " +
@@ -755,7 +755,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident());
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
-        refresh();
+        execute("refresh table parted");
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
                                           "where table_name='parted' and table_schema = ? " +
@@ -781,7 +781,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{4, "Now panic", 1395874800000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
                                        "where table_name='quotes' and table_schema = ? " +
@@ -795,7 +795,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new RelationName(defaultSchema, "parted"), List.of("1396303200000")).ident());
 
         execute("delete from quotes where quote = 'Don''t panic'");
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes where quote = 'Don''t panic'");
         assertThat(this.response.rowCount()).isEqualTo(0L);
@@ -826,22 +826,22 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{4, "Now panic", 1395874800000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         // does not match
         execute("delete from quotes where quote = 'Don''t panic' and timestamp=?", new Object[]{1396303200000L});
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
         assertThat(response.rowCount()).isEqualTo(1L);
 
         // matches
         execute("delete from quotes where quote = 'I''d far rather be happy than right any day' and timestamp=?", new Object[]{1396303200000L});
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
         assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("delete from quotes where timestamp=? and o['x']=5", new Object[]{1395874800000L});
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes where timestamp=?", new Object[]{1395874800000L});
         assertThat(response.rowCount()).isEqualTo(2L);
 
@@ -859,10 +859,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{2, "Don't panic", 1395961200000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{3, "Don't panic", 1396303200000L});
-        refresh();
+        execute("refresh table quotes");
 
         execute("delete from quotes where not timestamp=? and quote=?", new Object[]{1396303200000L, "Don't panic"});
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes");
         assertThat(response.rowCount()).isEqualTo(1L);
     }
@@ -895,7 +895,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{0, "Trillian", 100L});
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
@@ -910,12 +910,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 1001L});
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{2, "Arthur", 1001L});
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
@@ -939,7 +939,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{0, "Trillian", 100L});
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select date, count(*) from parted group by date");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -952,7 +952,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 2, "Ford", null
             });
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select date, count(*) from parted group by date order by count(*) desc");
         assertThat(response.rowCount()).isEqualTo(2L);
@@ -973,7 +973,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{0, "Trillian", 100L});
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select date, count(*) from parted where date > 0 group by date");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -985,7 +985,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             }
         );
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select date, count(*) from parted where date > 100 group by date");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1018,7 +1018,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             });
         assertThat(response.rowCount()).isEqualTo(4L);
         ensureYellow();
-        refresh();
+        execute("refresh table parted");
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted where date > 0");
@@ -1063,7 +1063,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 2, "Time is an illusion. Lunchtime doubly so", -4.0d
             });
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
         execute("select * from quotes where id = 1 and num = 4");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(String.join(", ", response.cols())).isEqualTo("id, quote, num");
@@ -1093,7 +1093,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                     }}
             });
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
         assertThat(response.rowCount()).isEqualTo(5L);
@@ -1106,7 +1106,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                     }}
             });
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
         assertThat(response.rowCount()).isEqualTo(6L);
@@ -1131,7 +1131,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote from quotes where user_id = 'Arthur'");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1139,11 +1139,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("update quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("delete from quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1168,7 +1168,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table my_schema.quotes");
 
         execute("select id, quote from my_schema.quotes where user_id = 'Arthur'");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1176,11 +1176,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("update my_schema.quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table my_schema.quotes");
 
         execute("delete from my_schema.quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table my_schema.quotes");
 
         execute("select * from my_schema.quotes");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1201,7 +1201,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t1 (id, date, dynamic_added_col1) values (1, '2014-01-01', 'foo')");
         execute("insert into t1 (id, date, dynamic_added_col2) values (2, '2014-02-01', 'bar')");
-        refresh();
+        execute("refresh table t1");
         ensureYellow();
 
         // schema updates are async and cannot reliably be forced
@@ -1234,7 +1234,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", Map.of("date", 1395961200000L, "user_id", "Ford")});
         assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1251,7 +1251,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("delete from quotes where created['user_id'] = 'Arthur' and id = 1 and created['date'] = 1395874800000");
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1282,7 +1282,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into tbl (id, p) values (1, 1), (2, 2)");
         assertThat(response).hasRowCount(2);
         ensureYellow();
-        refresh();
+        execute("refresh table tbl");
 
         assertThat(clusterService().state().metadata().hasAlias(getFqn("tbl"))).isTrue();
 
@@ -1357,7 +1357,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         );
         assertThat(response).hasRowCount(2);
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
         ensureYellow();
@@ -1384,7 +1384,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
             new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
-        refresh();
+        execute("refresh table attrs");
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
         Map<String, Object> routingAllocation = Map.ofEntries(
             Map.entry("enable", "all"),
@@ -1432,7 +1432,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
             new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
-        refresh();
+        execute("refresh table attrs");
 
         execute("alter table ONLY attrs set (\"routing.allocation.total_shards_per_node\"=1)");
 
@@ -1444,7 +1444,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         // new partitions must use new settings
         execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
             new Object[]{"Arthur", "shards", 1, "Ford", "replicas", 2});
-        refresh();
+        execute("refresh table attrs");
 
         execute("select settings['routing']['allocation']['total_shards_per_node'] from information_schema.table_partitions where table_name='attrs' order by 1");
         assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
@@ -1690,7 +1690,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testPartitionedTableNestedPk() throws Exception {
         execute("create table t (o object as (i int primary key, name string)) partitioned by (o['i']) with (number_of_replicas=0)");
         execute("insert into t (o) values (?)", new Object[]{Map.of("i", 1, "name", "Zaphod")});
-        refresh();
+        execute("refresh table t");
         execute("select o['i'], o['name'] from t");
         assertThat(response.rows()[0][0]).isEqualTo(1);
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
@@ -1724,7 +1724,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("insert into tbl (x, p) values (1, 1)");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table tbl");
 
         execute("select number_of_shards from information_schema.table_partitions where table_name='tbl'");
         assertThat(response).hasRows("2");
@@ -1732,7 +1732,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table tbl set (number_of_shards = 1)");
         assertThat(execute("insert into tbl (x, p) values (2, 2)")).hasRowCount(1);
         ensureYellow();
-        refresh();
+        execute("refresh table tbl");
 
         execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'tbl'");
         assertThat(response).hasRows("0-all| 1");
@@ -2016,7 +2016,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         // we need at least 1 row/partition, otherwise the table is empty and no evaluation occurs
         execute("insert into t1 (id) values (1)");
-        refresh();
+        execute("refresh table t1");
 
         Asserts.assertSQLError(() -> execute("select id/0 from t1"))
             .hasPGError(INTERNAL_ERROR)
@@ -2122,7 +2122,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         // update is expected to be executed without exception since this partition has no write block
         execute("update my_table set content=\'content42\' where par=2");
-        refresh();
+        execute("refresh table my_table");
         // verifying update
         execute("select content from my_table where par=2");
         assertThat(response).hasRowCount(3);
@@ -2154,7 +2154,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
             .hasMessageContaining("blocked by: [FORBIDDEN/8/index write (api)];");
 
-        refresh();
+        execute("refresh table my_table");
         execute("select * from my_table");
         assertThat(response.rowCount()).isBetween(2L, 5L);
         //cleaning up
@@ -2199,7 +2199,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("INSERT INTO test (id, metadata) (SELECT ?, ?)", new Object[]{1, Map.of("date", "2014-05-28")});
         execute("INSERT INTO test (id, metadata) VALUES (?, ?)", new Object[]{2, Map.of("date", "2014-05-28")});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT table_name, partition_ident, values " +
@@ -2323,7 +2323,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         );
         // create a partition before creating a prepared statement
         execute("INSERT INTO doc.t VALUES (1)");
-        refresh();
+        execute("refresh table doc.t");
 
         try (var session = sqlExecutor.newSession()) {
             // create a prepared statement that selects from 'doc.t'
@@ -2335,14 +2335,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
             // create another partition for 'doc.t' after creating the prepared statement
             execute("INSERT INTO doc.t VALUES (2)");
-            refresh();
+            execute("refresh table doc.t");
 
             // execute the prepared statement
             session.bind("portalName", "preparedStatement", List.of(), null);
             session.execute("portalName", 0, new BaseResultReceiver());
             session.sync().get();
         }
-        refresh();
+        execute("refresh table doc.t2");
 
         // verify that '2' is inserted which implies that the prepared statement
         // can access the latest partition info and select from it

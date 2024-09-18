@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
     public void testDeleteWhereSeqNoAndTermThatMatch() throws Exception {
         execute("create table t (x integer primary key, y string) with (number_of_replicas=0)");
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table t");
 
         execute("select _seq_no, _primary_term from t where x = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -58,7 +57,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
     public void testDeleteWithSeqNoAndTermThatConflict() throws Exception {
         execute("create table t (x integer primary key, y string)");
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table t");
 
         execute("select _seq_no, _primary_term from t where x = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -67,7 +66,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
 
         execute("update t set y = ? where x = ?", new Object[]{"ok now panic", 1});
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table t");
 
         execute("delete from t where x = 1 and _seq_no = ? and _primary_term = ?",
                 new Object[]{preUpdateSeqNo, preUpdatePrimaryTerm});
@@ -79,7 +78,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
     public void testUpdateWhereSeqNoAndPrimaryTermWithPrimaryKey() throws Exception {
         execute("create table t (x integer primary key, y string)");
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table t");
 
         execute("select _seq_no, _primary_term from t where x = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -101,7 +100,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into t (x, y) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table t");
 
         execute("select _seq_no, _primary_term from t where x = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -113,7 +112,7 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(0L);
 
         // Validate that the row is really NOT updated
-        refresh();
+        execute("refresh table t");
         execute("select y from t where x = 1");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0]).isEqualTo("don't panic");
