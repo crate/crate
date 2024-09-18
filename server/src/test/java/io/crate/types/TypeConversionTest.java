@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.DataTypeTesting.randomType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -209,13 +210,24 @@ public class TypeConversionTest extends ESTestCase {
     @Test
     public void test_numeric_type_conversions_to_and_from_primitive_numeric_types() {
         for (DataType<?> type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            assertThat(DataTypes.NUMERIC.isConvertableTo(type, false))
+            assertThat(DataTypes.NUMERIC.isConvertableTo(type, true))
                 .withFailMessage(" numeric is not convertible to type ' + type + ',")
                 .isTrue();
 
-            assertThat(type.isConvertableTo(DataTypes.NUMERIC, false))
+            assertThat(type.isConvertableTo(DataTypes.NUMERIC, true))
                 .withFailMessage("'" + type + "' is not convertible to numeric type")
                 .isTrue();
+        }
+    }
+
+    @Test
+    public void test_implicit_type_conversion_conform_with_type_precedence() {
+        var type1 = randomType();
+        var type2 = randomType();
+        if (type1.isConvertableTo(type2, false)) {
+            assertThat(type2.precedes(type1) || type1.equals(type2)).isTrue();
+        } else if (type2.isConvertableTo(type1, false)) {
+            assertThat(type1.precedes(type2) || type1.equals(type2)).isTrue();
         }
     }
 }

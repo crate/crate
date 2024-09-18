@@ -217,7 +217,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         if (possibleConversions == null) {
             return false;
         }
-        return possibleConversions.contains(other.id());
+        return (explicitCast || other.precedes(this)) && possibleConversions.contains(other.id());
     }
 
     @Override
