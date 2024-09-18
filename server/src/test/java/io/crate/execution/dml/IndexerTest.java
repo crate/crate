@@ -1403,6 +1403,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(ClassCastException.class);
     }
 
+
+    @Test
+    public void test_exceeding_value_limits_raises_errors() throws Exception {
+        // long max values are used as sentinel values during ORDER BY
+        // -> byte, short and int max values are allowed
+        // -> long is restricted to min-value + 1 to max-value - 1
+
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (b byte, s smallint, i int, l long)");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "b", "s", "i", "l");
+
+        indexer.index(item(Byte.MAX_VALUE, 0, 0, 0));
+        indexer.index(item(0, Short.MAX_VALUE, 0, 0));
+        indexer.index(item(0, 0, Integer.MAX_VALUE, 0));
+
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
         TranslogIndexer ti = new TranslogIndexer(info);
         ParsedDocument d = ti.index(doc.id(), doc.source());

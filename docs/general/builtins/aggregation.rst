@@ -765,7 +765,7 @@ the :ref:`function <gloss-function>` argument to the :ref:`numeric type
 
 .. Hidden: insert into uservisits table
 
-    cr> INSERT INTO uservisits VALUES (1, 9223372036854775807), (2, 10);
+    cr> INSERT INTO uservisits VALUES (1, 9223372036854775806), (2, 10);
     INSERT OK, 2 rows affected  (... sec)
 
 .. Hidden: refresh uservisits table
@@ -788,7 +788,7 @@ the aggregation column to the ``numeric`` data type::
     +-----------------------------+
     | sum(cast(count AS numeric)) |
     +-----------------------------+
-    |         9223372036854775817 |
+    |         9223372036854775816 |
     +-----------------------------+
     SELECT 1 row in set (... sec)
 

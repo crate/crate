@@ -953,7 +953,7 @@ Example::
 
 A large integer.
 
-Limited to eight bytes, with a range from -2^63 to 2^63-1.
+Limited to eight bytes, with a range from -2^63 + 1 to 2^63-2.
 
 Example:
 
@@ -969,7 +969,7 @@ Example:
     cr> INSERT INTO my_table (
     ...     number
     ... ) VALUES (
-    ...     9223372036854775807
+    ...     9223372036854775806
     ... );
     INSERT OK, 1 row affected (... sec)
 
@@ -984,7 +984,7 @@ Example:
     +---------------------+
     | number              |
     +---------------------+
-    | 9223372036854775807 |
+    | 9223372036854775806 |
     +---------------------+
     SELECT 1 row in set (... sec)
 
