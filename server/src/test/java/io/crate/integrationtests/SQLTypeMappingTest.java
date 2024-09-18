@@ -25,7 +25,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -87,7 +86,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             );
         }
 
-        refresh();
+        execute("refresh table t1");
         SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");
 
         assertThat(response.rows()[0][0]).isEqualTo(1);
@@ -136,7 +135,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 Map.of(
                     "path", "/etc/shadow",
                     "dynamic_again", Map.of("field", 1384790145.289))});
-        refresh();
+        execute("refresh table test12");
 
         SQLResponse response = execute("select object_field, strict_field, no_dynamic_field from test12");
         assertThat(response.rowCount()).isEqualTo(1);
@@ -232,7 +231,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     1.0f, Math.PI, true, "a string", "2013-11-20",
                     Map.of("inner", "2013-11-20"), "127.0.0.1"
                 });
-        refresh();
+        execute("refresh table t1");
 
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
                                        "float_field, double_field, boolean_field, string_field, timestamp_field," +
@@ -269,7 +268,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     0, "Blabla", true, 120, 1000, 1200000,
                     120000000000L, 1.4, 3.456789, Map.of("inner", "1970-01-01"),
                     "1970-01-01", "127.0.0.1"});
-        refresh();
+        execute("refresh table t1");
         SQLResponse getResponse = execute("select * from t1 where id=0");
         SQLResponse searchResponse = execute("select * from t1 limit 1");
         for (int i = 0; i < getResponse.rows()[0].length; i++) {
@@ -304,7 +303,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                         "a_long", Long.MAX_VALUE - 1,
                         "a_boolean", true)
                     });
-        refresh();
+        execute("refresh table t1");
 
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
@@ -326,7 +325,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "another_new_col", "1970-01-01T00:00:00");
         execute("insert into test12 (object_field) values (?)",
             new Object[]{objectContent});
-        refresh();
+        execute("refresh table test12");
         SQLResponse response = execute("select object_field from test12");
         assertThat(response.rowCount()).isEqualTo(1);
         @SuppressWarnings("unchecked")
@@ -356,7 +355,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "another_new_col", "1970-01-01T00:00:00");
         execute("insert into test12 (no_dynamic_field) values (?)",
             new Object[]{notDynamicContent});
-        refresh();
+        execute("refresh table test12");
         SQLResponse response = execute("select no_dynamic_field from test12");
         assertThat(response.rowCount()).isEqualTo(1);
         @SuppressWarnings("unchecked")
@@ -484,7 +483,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         ensureYellow();
         execute("refresh table assets");
 
-        refresh();
+        execute("refresh table assets");
         waitNoPendingTasksOnAll();
         execute("select categories['items']['id'] from assets");
         Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
@@ -502,7 +501,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         ensureYellow();
         execute("refresh table assets");
 
-        refresh();
+        execute("refresh table assets");
         waitNoPendingTasksOnAll();
         execute("select categories['subcategories']['items']['id'] from assets");
         Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
@@ -523,7 +522,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         ensureYellow();
         execute("refresh table assets");
 
-        refresh();
+        execute("refresh table assets");
         waitNoPendingTasksOnAll();
         SQLResponse response = execute("select categories[1]['subcategories']['id'] from assets");
         assertThat(1L).isEqualTo(response.rowCount());
@@ -549,7 +548,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into ts_table (ts) values (?)", new Object[]{ 0L });
         execute("insert into ts_table (ts) values (?)", new Object[]{ maxDateMillis });
         // TODO: select timestamps with correct sorting
-        refresh();
+        execute("refresh table ts_table");
         SQLResponse response = execute("select * from ts_table order by ts desc");
         assertThat(3L).isEqualTo(response.rowCount());
     }
@@ -561,7 +560,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         ensureYellow();
         execute("insert into ts_table (ts) values (?)", new Object[]{ 1000L });
         execute("insert into ts_table (ts) values (?)", new Object[]{ "2016" });
-        refresh();
+        execute("refresh table ts_table");
         SQLResponse response = execute("select ts from ts_table order by ts asc");
         assertThat((Long) response.rows()[0][0]).isEqualTo(1000L);
         assertThat((Long) response.rows()[1][0]).isEqualTo(2016L);

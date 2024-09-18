@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -67,7 +66,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     public void test_simple_close_open_with_records() {
         execute("alter table t open");
         execute("insert into t values (1), (2)");
-        refresh();
+        execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRowCount(2L);
 
@@ -128,7 +127,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{i};
         }
         execute("insert into test values (?)", bulkArgs);
-        refresh();
+        execute("refresh table test");
 
         for (String blockSetting : List.of("blocks.read", "blocks.write")) {
             try {
@@ -157,7 +156,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{i};
         }
         execute("insert into test values (?)", bulkArgs);
-        refresh();
+        execute("refresh table test");
 
         for (String blockSetting : List.of("blocks.read_only", "blocks.metadata")) {
             try {
@@ -180,7 +179,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{i};
         }
         execute("insert into test values (?)", bulkArgs);
-        refresh();
+        execute("refresh table test");
 
         for (String blockSetting : List.of(
             "blocks.read_only",
@@ -285,7 +284,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     public void test_select_partitioned_table_containing_closed_partition() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
-        refresh();
+        execute("refresh table partitioned_table");
         ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table partition (i=1) close");
         execute("select i from partitioned_table");
@@ -298,7 +297,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     public void testSelectClosedPartitionTable() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
-        refresh();
+        execute("refresh table partitioned_table");
         ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table close");
         Asserts.assertSQLError(() -> execute("select i from partitioned_table"))

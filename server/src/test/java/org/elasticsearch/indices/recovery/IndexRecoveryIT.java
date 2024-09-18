@@ -1323,7 +1323,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        refresh(indexName);
+        execute("refresh table doc.test");
         String failingNode = randomFrom(nodes);
         PlainFuture<StartRecoveryRequest> startRecoveryRequestFuture = new PlainFuture<>();
         // Peer recovery fails if the primary does not see the recovering replica in the replication group (when the cluster state

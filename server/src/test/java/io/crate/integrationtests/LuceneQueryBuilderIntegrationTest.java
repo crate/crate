@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -60,7 +59,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (text) values ('hello world')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
         assertThat(response).hasRowCount(1L);
@@ -97,7 +96,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (text) values ('hello world')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
         assertThat(response).hasRowCount(1L);
@@ -111,7 +110,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (text) values ('hello world')");
         execute("insert into t (text) values ('harr')");
         execute("insert into t (text) values ('hh')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text_ft, 1, 1) = 'h'");
         assertThat(response).hasRowCount(0L);
@@ -124,7 +123,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (a) values ([{b=[{n=1}, {n=2}, {n=3}]}])");
         execute("insert into t (a) values ([{b=[{n=3}, {n=4}, {n=5}]}])");
-        refresh();
+        execute("refresh table t");
 
         execute("select * from t where 3 = any(a[1]['b']['n'])");
         assertThat(response).hasRowCount(2L);
@@ -140,7 +139,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
-        refresh();
+        execute("refresh table t");
 
         execute("select dummy from t where substr(_uid, 1, 1) != '{'");
         assertThat(response).hasRowCount(1L);
@@ -302,7 +301,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
-        refresh();
+        execute("refresh table t");
 
         execute("select dummy from t where substr(_id, 1, 1) != '{'");
         assertThat(response).hasRowCount(1L);

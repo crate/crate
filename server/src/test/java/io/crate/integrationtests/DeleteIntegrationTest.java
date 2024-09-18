@@ -37,7 +37,7 @@ import io.crate.testing.UseJdbc;
 
 public class DeleteIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testDeleteTableWithoutWhere() throws Exception {
@@ -80,9 +80,9 @@ public class DeleteIntegrationTest extends IntegTestCase {
         execute("insert into test (id, name) values (1, 'foo')"); // name exists
         execute("insert into test (id, name) values (2, null)"); // name is null
         execute("insert into test (id) values (3)"); // name does not exist
-        refresh();
+        execute("refresh table test");
         execute("delete from test where name is null");
-        refresh();
+        execute("refresh table test");
         execute("select * from test");
         assertThat(response).hasRowCount(1);
         execute("select * from test where name is not null");
@@ -115,11 +115,11 @@ public class DeleteIntegrationTest extends IntegTestCase {
                 1, "Douglas", "Don't panic"}
         );
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("delete from quotes where id=1 and author='Ford'");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where id=1");
         assertThat(response).hasRowCount(1L);
@@ -135,11 +135,11 @@ public class DeleteIntegrationTest extends IntegTestCase {
                 1, "Douglas", "Don't panic"}
         );
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("delete from quotes where id=1");
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where id=1");
         assertThat(response).hasRowCount(0L);
@@ -153,7 +153,7 @@ public class DeleteIntegrationTest extends IntegTestCase {
         execute("refresh table ip_table");
         execute("delete from ip_table where addr = '127.0.0.1'");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table ip_table");
         execute("select addr from ip_table");
         assertThat(response).hasRows(
             "23.235.33.143"
@@ -166,11 +166,11 @@ public class DeleteIntegrationTest extends IntegTestCase {
 
         execute("insert into test (pk_col, message) values ('123', 'bar')");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("delete from test where pk_col='123'");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test where pk_col='123'");
         assertThat(response).hasRowCount(0);
@@ -183,11 +183,11 @@ public class DeleteIntegrationTest extends IntegTestCase {
         execute("insert into test (pk_col, message) values ('1', 'foo')");
         execute("insert into test (pk_col, message) values ('2', 'bar')");
         execute("insert into test (pk_col, message) values ('3', 'baz')");
-        refresh();
+        execute("refresh table test");
 
         execute("DELETE FROM test WHERE pk_col IN (?, ?, ?)", new Object[]{"1", "2", "4"});
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table test");
 
         execute("SELECT pk_col FROM test");
         assertThat(response).hasRows(
@@ -199,10 +199,10 @@ public class DeleteIntegrationTest extends IntegTestCase {
     public void testDeleteToRoutedRequestByPlannerWhereOr() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
         execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
-        refresh();
+        execute("refresh table test");
         execute("DELETE FROM test WHERE pk_col=? or pk_col=? or pk_col=?", new Object[]{"1", "2", "4"});
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table test");
         execute("SELECT pk_col FROM test");
         assertThat(response).hasRows(
             "3"
@@ -287,7 +287,7 @@ public class DeleteIntegrationTest extends IntegTestCase {
     public void test_delete_partitions_from_subquery_does_not_leave_empty_orphan_partitions() {
         execute("CREATE TABLE t (x int) PARTITIONED by (x)");
         execute("INSERT INTO t (x) VALUES (1), (2)");
-        refresh();
+        execute("refresh table t");
         execute(
             "SELECT count(1) " +
             "FROM information_schema.table_partitions " +
@@ -321,14 +321,14 @@ public class DeleteIntegrationTest extends IntegTestCase {
 
             // insert a value that the prepared statement will delete
             execute("INSERT INTO doc.t SELECT now() - '3 minute'::INTERVAL");
-            refresh();
+            execute("refresh table doc.t");
 
             // execute the prepared statement to delete the inserted value
             session.bind("portalName", "preparedStatement", List.of(), null);
             session.execute("portalName", 0, new BaseResultReceiver());
             session.sync().get();
         }
-        refresh();
+        execute("refresh table doc.t");
 
         // empty rows implies that the now() in the prepared statement is evaluated during execution
         execute("SELECT * FROM doc.t");

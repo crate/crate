@@ -46,7 +46,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Before
     public void initTestData() {
@@ -110,7 +110,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 {5L, 42, 0L, "foo"}
             });
         ensureYellow();
-        refresh();
+        execute("refresh table tickets");
         execute("select pk2, count(pk2) from tickets group by pk2 order by pk2 limit 100");
         assertThat(response).hasRows(
             "42| 2", // assert that different partitions have been merged
@@ -814,7 +814,7 @@ public class GroupByAggregateTest extends IntegTestCase {
             new Object[]{5, "Ford", "German"},
             new Object[]{6, "Slartibardfast", "Italy"},
         });
-        refresh();
+        execute("refresh table foo");
 
 
         execute("select country from foo group by country having country = 'Austria'");
@@ -843,10 +843,10 @@ public class GroupByAggregateTest extends IntegTestCase {
             new Object[]{5, "Ford", "German"},
             new Object[]{6, "Slartibardfast", "Italy"},
         });
-        refresh();
+        execute("refresh table foo");
 
         execute("insert into bar(country)(select country from foo group by country having country = 'Austria')");
-        refresh();
+        execute("refresh table bar");
         execute("select country from bar");
         assertThat(response).hasRowCount(1L);
     }
@@ -870,7 +870,7 @@ public class GroupByAggregateTest extends IntegTestCase {
             new Object[]{5, "Ford", "Germany"},
             new Object[]{6, "Slartibardfast", "Italy"},
         });
-        refresh();
+        execute("refresh table foo");
 
         execute("select count(*), country from foo group by country order by count(*) desc");
         assertThat(response).hasRows(
@@ -891,7 +891,7 @@ public class GroupByAggregateTest extends IntegTestCase {
             new Object[]{3, "Slartibardfast"},
             new Object[]{4, "Marvin"},
         });
-        refresh();
+        execute("refresh table foo");
 
         execute("select count(*), name from foo group by id, name order by name desc");
         assertThat(response).hasRows(
@@ -972,7 +972,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 "A",
                 "https://Ä.com",
                 99.6d});
-        refresh();
+        execute("refresh table twice");
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
         assertThat(response).hasRows("99.6| https://Ä.com| 99.6");
     }
@@ -1138,7 +1138,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                 {5L, 42, 0L},
             });
         ensureYellow();
-        refresh();
+        execute("refresh table tickets");
 
         execute("select count(*), tenant_id from tickets group by 2 order by tenant_id limit 100");
         assertThat(response).hasRows(
@@ -1242,7 +1242,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                     {2, "bar"},
                     {1, "foo"}
                 });
-        refresh();
+        execute("refresh table t1");
         execute("select count(*), i, s from t1 group by i, s order by 1");
         assertThat(response).hasRows(
             "1| 2| bar",
@@ -1259,7 +1259,7 @@ public class GroupByAggregateTest extends IntegTestCase {
                     {2, "foobar"},
                     {1, "foo"}
                 });
-        refresh();
+        execute("refresh table t1");
         execute("select sum(i), max(s) from t1");
         assertThat(response).hasRows("4| foobar");
     }
@@ -1432,7 +1432,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into tbl(arr) values ([]::int[]), ([]::int[]), ([]::int[])");
         execute("insert into tbl(arr) values ([null]), ([null]), ([null]), ([null])");
         execute("insert into tbl(arr) values (null), (null), (null), (null), (null)");
-        refresh();
+        execute("refresh table tbl");
         execute("select arr, count(*) cnt from tbl group by arr order by cnt, arr[1]");
         assertThat(response).hasRows(
             "[1, 2, null]| 1",
