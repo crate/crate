@@ -110,6 +110,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.NullArrayType;
 import io.crate.types.ObjectType;
 
 
@@ -1109,6 +1110,15 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 addedColumn = true;
                 newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
+            } else if (exists.valueType().id() == NullArrayType.ID && newRef.valueType().id() == ArrayType.ID) {
+                // upgrade array_of_null to typed array
+                // we do not need a new OID as we are replacing the existing NullArrayType reference
+                newReferences.put(newColumn, newRef);
+                addedColumn = true;
+            } else if (exists.valueType().id() == ArrayType.ID && newRef.valueType().id() == NullArrayType.ID) {
+                // one shard is trying to create array_of_null while another has already created a typed array
+                // don't do anything
+                continue;
             } else if (exists.valueType().id() != newRef.valueType().id()) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
@@ -1193,7 +1203,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 String expressionStr = entry.getValue();
                 Expression expression = SqlParser.createExpression(expressionStr);
                 Symbol expressionSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-                newChecks.add(new CheckConstraint<Symbol>(name, expressionSymbol, expressionStr));
+                newChecks.add(new CheckConstraint<>(name, expressionSymbol, expressionStr));
             }
         }
         return new DocTableInfo(

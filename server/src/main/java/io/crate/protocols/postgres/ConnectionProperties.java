@@ -21,16 +21,18 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.auth.Credentials;
-import io.crate.auth.Protocol;
-
-import org.jetbrains.annotations.Nullable;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.auth.Credentials;
+import io.crate.auth.Protocol;
 
 public class ConnectionProperties {
 
@@ -47,7 +49,7 @@ public class ConnectionProperties {
         TRUST
     }
 
-    public ConnectionProperties(Credentials credentials,
+    public ConnectionProperties(@Nullable Credentials credentials,
                                 InetAddress address,
                                 Protocol protocol,
                                 @Nullable SSLSession sslSession) {
@@ -72,12 +74,14 @@ public class ConnectionProperties {
         if (certificate != null) {
             clientMethods.add(ClientMethod.CERT);
         }
-        if (credentials.password() != null || Protocol.POSTGRES.equals(protocol)) {
-            // The PG protocol will not give any hints at this stage if password will be used, so we always enable support for it.
-            clientMethods.add(ConnectionProperties.ClientMethod.PASSWORD);
-        }
-        if (credentials.decodedToken() != null) {
-            clientMethods.add(ConnectionProperties.ClientMethod.JWT);
+        if (credentials != null) {
+            if (credentials.password() != null || Protocol.POSTGRES.equals(protocol)) {
+                // The PG protocol will not give any hints at this stage if password will be used, so we always enable support for it.
+                clientMethods.add(ConnectionProperties.ClientMethod.PASSWORD);
+            }
+            if (credentials.decodedToken() != null) {
+                clientMethods.add(ConnectionProperties.ClientMethod.JWT);
+            }
         }
     }
 

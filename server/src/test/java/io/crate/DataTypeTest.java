@@ -40,6 +40,7 @@ import io.crate.data.RowN;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NullArrayType;
 import io.crate.types.ObjectType;
 import io.crate.types.Regproc;
 import io.crate.types.RowType;
@@ -125,7 +126,7 @@ public class DataTypeTest extends ESTestCase {
     public void testForValueWithEmptyList() {
         List<Object> objects = Arrays.<Object>asList();
         DataType<?> type = DataTypes.guessType(objects);
-        assertThat(type).isEqualTo(new ArrayType<>(DataTypes.UNDEFINED));
+        assertThat(type).isEqualTo(NullArrayType.INSTANCE);
     }
 
     @Test

@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -54,6 +55,7 @@ import io.crate.analyze.ParameterTypes;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.auth.Protocol;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -78,6 +80,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
@@ -148,6 +151,8 @@ public class Session implements AutoCloseable {
     private UUID mostRecentJobID;
 
     private final int id;
+    private final ConnectionProperties connectionProperties;
+    private final long timeCreated;
     private final int secret;
     private final Analyzer analyzer;
     private final Planner planner;
@@ -156,9 +161,13 @@ public class Session implements AutoCloseable {
     private final Runnable onClose;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
+    private volatile String lastStmt;
 
-
+    /**
+     * @param connectionProperties client connection details. If null this is considered a system session
+     **/
     public Session(int sessionId,
+                   @Nullable ConnectionProperties connectionProperties,
                    Analyzer analyzer,
                    Planner planner,
                    JobsLogs jobsLogs,
@@ -167,6 +176,8 @@ public class Session implements AutoCloseable {
                    CoordinatorSessionSettings sessionSettings,
                    Runnable onClose) {
         this.id = sessionId;
+        this.connectionProperties = connectionProperties;
+        this.timeCreated = System.currentTimeMillis();
         this.secret = ThreadLocalRandom.current().nextInt();
         this.analyzer = analyzer;
         this.planner = planner;
@@ -181,6 +192,30 @@ public class Session implements AutoCloseable {
         return id;
     }
 
+    public long timeCreated() {
+        return timeCreated;
+    }
+
+    public boolean isSystemSession() {
+        return connectionProperties == null;
+    }
+
+    public InetAddress clientAddress() {
+        return connectionProperties == null ? null : connectionProperties.address();
+    }
+
+    public Protocol protocol() {
+        return connectionProperties == null ? null : connectionProperties.protocol();
+    }
+
+    public boolean hasSSL() {
+        return connectionProperties != null && connectionProperties.hasSSL();
+    }
+
+    public String lastStmt() {
+        return lastStmt;
+    }
+
     public int secret() {
         return secret;
     }
@@ -190,6 +225,7 @@ public class Session implements AutoCloseable {
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
+        lastStmt = statement;
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         Statement parsedStmt = SqlParser.createStatement(statement);
         AnalyzedStatement analyzedStatement = analyzer.analyze(
@@ -633,6 +669,7 @@ public class Session implements AutoCloseable {
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
         AnalyzedStatement analyzedStatement = firstPreparedStatement.analyzedStatement();
+        lastStmt = firstPreparedStatement.rawStatement();
 
         Plan plan;
         try {
@@ -716,6 +753,7 @@ public class Session implements AutoCloseable {
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
+        lastStmt = rawStatement;
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
             jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionSettings.sessionUser());

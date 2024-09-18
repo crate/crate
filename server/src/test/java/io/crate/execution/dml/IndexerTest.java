@@ -28,7 +28,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -865,7 +864,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_empty_array_and_array_with_nulls_does_not_result_in_new_column() throws Exception {
+    public void test_empty_array_and_array_with_nulls_adds_array_of_null() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
@@ -886,11 +885,12 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(Map.of("inner", n1), n1, n2);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         ParsedDocument doc = indexer.index(item);
-        assertThat(newColumns).isEmpty();
+        assertThat(newColumns).hasSize(3);
         assertThat(source(doc, table)).isIn(
             "{\"o\":{\"inner\":[]},\"n1\":[],\"n2\":[null,null]}",
             "{\"n1\":[],\"n2\":[null,null],\"o\":{\"inner\":[]}}"
         );
+        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
         assertTranslogParses(doc, table);
     }
 
@@ -1188,7 +1188,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(1, List.of(), "foo");
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         assertThat(newColumns).satisfiesExactly(
-            x -> assertThat(x.column()).isEqualTo(ColumnIdent.of("a"))
+            ref1 -> assertThat(ref1.column()).isEqualTo(ColumnIdent.of("empty_arr")),
+            ref2 -> assertThat(ref2.column()).isEqualTo(ColumnIdent.of("a"))
         );
         ParsedDocument doc = indexer.index(item);
         // `_u_a` is not a valid real-world scenario, as column `a` would have been
@@ -1213,8 +1214,21 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .addTable("create table tbl (i int) with (column_policy='dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
-        var indexer = getIndexer(e, "tbl", "empty_arr");
-        ParsedDocument doc = indexer.index(item(List.of()));
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            e.nodeCtx,
+            List.of(
+                table.getDynamic(ColumnIdent.of("empty_arr"), true, false)
+            ),
+            null
+        );
+        var item = item(List.of());
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        assertThat(newColumns).hasSize(1);
+
+        ParsedDocument doc = indexer.index(item);
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
                 {"_u_empty_arr":[]}
@@ -1226,6 +1240,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 {"empty_arr":[]}
                 """
         );
+
+        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
 
         assertTranslogParses(doc, table);
     }
@@ -1275,11 +1291,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_ignored_object_child_columns_are_not_prefixed_on_tables_created_less_5_5() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-                // old tables created with CrateDB < 5.5.0 do not assign any OID, fake it here
-                .setColumnOidSupplier(() -> COLUMN_OID_UNASSIGNED)
-                .addTable("create table tbl (o object (ignored) as (i int))",
-                        Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-                );
+            // old tables created with CrateDB < 5.5.0 do not assign any OID, fake it here
+            .setColumnOidSupplier(() -> COLUMN_OID_UNASSIGNED)
+            .addTable("create table tbl (o object (ignored) as (i int))",
+                Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
+            );
 
         var indexer = getIndexer(e, "tbl", "o");
         ParsedDocument doc = indexer.index(item(Map.of("i", 1, "ignored_col", "foo")));
@@ -1385,6 +1401,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThatThrownBy(() -> indexer.index(item(value1)))
             .isExactlyInstanceOf(ClassCastException.class);
+    }
+
+
+    @Test
+    public void test_exceeding_value_limits_raises_errors() throws Exception {
+        // long max values are used as sentinel values during ORDER BY
+        // -> byte, short and int max values are allowed
+        // -> long is restricted to min-value + 1 to max-value - 1
+
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (b byte, s smallint, i int, l long)");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "b", "s", "i", "l");
+
+        indexer.index(item(Byte.MAX_VALUE, 0, 0, 0));
+        indexer.index(item(0, Short.MAX_VALUE, 0, 0));
+        indexer.index(item(0, 0, Integer.MAX_VALUE, 0));
+
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {

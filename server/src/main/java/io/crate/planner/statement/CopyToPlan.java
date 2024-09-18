@@ -255,7 +255,7 @@ public final class CopyToPlan implements Plan {
         if (uri.startsWith("/") || uri.startsWith("file:")) {
             // Settings of other schemes are validated later in plugins
             // as only plugins are aware of scheme specific properties.
-            properties.ensureContainsOnly(CopyStatementSettings.commonCopyToSettings);
+            properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_TO_SETTINGS);
         }
         return new BoundCopyTo(
             outputs,

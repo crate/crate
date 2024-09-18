@@ -329,6 +329,7 @@
     <versions.caffeine>3.1.8</versions.caffeine>
     <versions.jodatime>2.12.7</versions.jodatime>
     <versions.aws>1.12.353</versions.aws>
+    <versions.opendal>0.46.3</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.17.1</versions.commonscodec>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
@@ -383,6 +384,7 @@
     <versions.plugin.jar>3.4.2</versions.plugin.jar>
     <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
     <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
+    <versions.plugin.os>1.7.0</versions.plugin.os>
   </properties>
 
   <modules>
@@ -404,6 +406,7 @@
     <module>plugins/repository-gcs</module>
     <module>plugins/dns-discovery</module>
     <module>plugins/cr8-copy-s3</module>
+    <module>plugins/crate-copy-azure</module>
     <module>extensions/functions</module>
     <module>extensions/lang-js</module>
     <module>extensions/jmx-monitoring</module>

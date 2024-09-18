@@ -24,7 +24,6 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -199,7 +198,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         streamer.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        assertThat(type.compare(streamer.readValueFrom(in), value)).isEqualTo(0);
+        assertThat(streamer.readValueFrom(in)).usingComparator(type).isEqualTo(value);
         assertThat(streamer.readValueFrom(in)).isNull();
     }
 }

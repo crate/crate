@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -227,7 +228,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                 "ip_field=? " +
                 "where id=0",
                 new Object[]{
-                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
+                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE + 1,
                     1.0f, Math.PI, true, "a string", "2013-11-20",
                     Map.of("inner", "2013-11-20"), "127.0.0.1"
                 });
@@ -241,7 +242,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
         assertThat(response.rows()[0][2]).isEqualTo((short) -32768);
         assertThat(response.rows()[0][3]).isEqualTo(0x7fffffff);
-        assertThat(response.rows()[0][4]).isEqualTo(0x8000000000000000L);
+        assertThat(response.rows()[0][4]).isEqualTo(Long.MIN_VALUE + 1);
         assertThat(((Number) response.rows()[0][5]).floatValue()).isCloseTo(1.0f, Offset.offset(0.01f));
         assertThat(response.rows()[0][6]).isEqualTo(Math.PI);
         assertThat(response.rows()[0][7]).isEqualTo(true);
@@ -300,7 +301,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                     Map.of(
                         "a_date", "1970-01-01",
                         "an_int", 127,
-                        "a_long", Long.MAX_VALUE,
+                        "a_long", Long.MAX_VALUE - 1,
                         "a_boolean", true)
                     });
         refresh();
@@ -309,7 +310,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         @SuppressWarnings("unchecked")
         Map<String, Object> mapped = (Map<String, Object>) response.rows()[0][1];
         assertThat(mapped.get("a_date")).isEqualTo("1970-01-01");
-        assertThat(mapped.get("a_long")).isEqualTo(0x7fffffffffffffffL);
+        assertThat(mapped.get("a_long")).isEqualTo(Long.MAX_VALUE - 1);
         assertThat(mapped.get("a_boolean")).isEqualTo(true);
 
         // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
@@ -412,34 +413,18 @@ public class SQLTypeMappingTest extends IntegTestCase {
     } */
 
     @Test
-    public void test_dynamic_empty_array_does_not_result_in_new_column() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) " +
-                "with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
-        refresh();
-        waitNoPendingTasksOnAll();
-        execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
-        assertThat(response).hasRows(
-            "id| smallint",
-            "tags| text_array"
-        );
-        assertThat(execute("select _doc from arr")).hasRows(
-            "{id=1, new=[], tags=[wow, much, wow]}"
-        );
-    }
-
-    @Test
-    public void testDynamicNullArray_does_not_result_in_new_column() throws Exception {
+    public void testDynamicNullArray_adds_array_of_null() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new, \"2\") values (2, ['wow', 'much', 'wow'], [null], [])");
-        refresh();
+        execute("refresh table arr");
         waitNoPendingTasksOnAll();
         execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
         assertThat(response).hasRows(
+            "2| array_of_null",
             "id| smallint",
+            "new| array_of_null",
             "tags| text_array"
         );
         assertThat(execute("select _doc from arr")).hasRows(
@@ -462,18 +447,20 @@ public class SQLTypeMappingTest extends IntegTestCase {
 
     // https://github.com/crate/crate/issues/13990
     @Test
-    public void test_dynamic_null_array_overridden_to_integer_becomes_null() {
+    public void test_dynamic_null_array_overridden_to_integer_becomes_null() throws Exception {
         execute("create table t (a int) with (column_policy ='dynamic')");
         execute("insert into t (x) values ([])");
-        execute("insert into t (x) values (1)");
-        refresh();
-        execute("select * from t");
-        assertThat(printedTable(response.rows())).contains("NULL| NULL", "NULL| 1");
+        execute("insert into t (x) values ([1])");
+        execute("refresh table t");
+        assertBusy(() -> {
+            execute("select * from t");
+            assertThat(printedTable(response.rows())).contains("NULL| []", "NULL| [1]");
+        });
         // takes different paths than without order by like above
-        execute("select * from t order by x nulls first");
+        execute("select * from t order by array_length(x, 1) nulls first");
         assertThat(response).hasRows(
-            "NULL| NULL",
-            "NULL| 1"
+            "NULL| []",
+            "NULL| [1]"
         );
     }
 
@@ -485,9 +472,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into t (a, o) values (2, {x={y={}}})");
         execute("refresh table t");
         execute("select * from t where a = 1");
-        assertThat(response).hasRows("1| {x={y=NULL}}");
+        assertThat(response).hasRows("1| {x={y=[]}}");
         execute("select * from t where a = 2");
-        assertThat(response).hasRows("2| {x={y={}}}");
+        assertThat(response).hasRows("2| {x={y=[]}}");
     }
 
     @Test

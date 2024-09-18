@@ -134,6 +134,13 @@
     </dependency>
     <dependency>
       <groupId>io.crate</groupId>
+      <artifactId>crate-copy-azure</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.crate</groupId>
       <artifactId>crate-functions</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
