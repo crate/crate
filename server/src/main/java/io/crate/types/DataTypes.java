@@ -456,8 +456,7 @@ public final class DataTypes {
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
         entry("decimal", NUMERIC),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry(NullArrayType.NAME, NullArrayType.INSTANCE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
     );
 
     public static DataType<?> ofName(String typeName) {

@@ -2309,4 +2309,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select x from tbl where y in ('123456789.123456789', '778941863531215726456187232788659941.79')");
         assertThat(response).hasRows("123456789.123456789");
     }
+
+    @Test
+    public void test_array_of_null_cannot_be_explicitly_added() {
+        Asserts.assertSQLError(() -> execute("create table tbl (x array_of_null)"))
+            .hasMessageContaining("Cannot find data type: array_of_null");
+        Asserts.assertSQLError(() -> execute("select 1::array_of_null"))
+            .hasMessageContaining("Cannot find data type: array_of_null");
+    }
 }

@@ -171,6 +171,8 @@ public class TypeSignature implements Writeable, Accountable {
             }
             DataType<?> innerType = parameters.get(0).createType();
             return new ArrayType<>(innerType);
+        } else if (baseTypeName.equalsIgnoreCase(NullArrayType.NAME)) {
+            return NullArrayType.INSTANCE;
         } else if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
             var builder = ObjectType.builder();
             // Only build typed objects if we receive parameter key-value pairs which may not exist on generic
