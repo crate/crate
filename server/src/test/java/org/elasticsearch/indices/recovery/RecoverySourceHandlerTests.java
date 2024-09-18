@@ -74,7 +74,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.LatchedActionListener;
 import org.elasticsearch.action.StepListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Numbers;
@@ -192,7 +192,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor),
             threadPool, request, Math.toIntExact(recoverySettings.getChunkSize().getBytes()), between(1, 5), between(1, 5));
-        PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
+        PlainFuture<Void> sendFilesFuture = new PlainFuture<>();
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
         FutureUtils.get(sendFilesFuture, (long) 5, TimeUnit.SECONDS);
         Store.MetadataSnapshot targetStoreMetadata = targetStore.getMetadata(null);
@@ -261,7 +261,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(shard, new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
             threadPool, request, fileChunkSizeInBytes, between(1, 10), between(1, 10));
-        PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
+        PlainFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainFuture<>();
         handler.phase2(
             startingSeqNo,
             endingSeqNo,
@@ -316,7 +316,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(shard, new AsyncRecoveryTarget(recoveryTarget, threadPool.generic()),
             threadPool, request, fileChunkSizeInBytes, between(1, 10), between(1, 10));
-        PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
+        PlainFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainFuture<>();
         final long startingSeqNo = randomLongBetween(0, ops.size() - 1L);
         final long endingSeqNo = randomLongBetween(startingSeqNo, ops.size() - 1L);
         handler.phase2(
@@ -372,7 +372,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             }
         };
 
-        PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> sendFuture = new PlainActionFuture<>();
+        PlainFuture<RecoverySourceHandler.SendSnapshotResult> sendFuture = new PlainFuture<>();
         long startingSeqNo = randomIntBetween(0, 1000);
         long endingSeqNo = startingSeqNo + randomIntBetween(0, 10000);
         List<Translog.Operation> operations = generateOperations(numOps);
@@ -536,7 +536,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 failedEngine.set(true);
             }
         };
-        PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
+        PlainFuture<Void> sendFilesFuture = new PlainFuture<>();
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
         assertThatThrownBy(sendFilesFuture::get)
             .rootCause()
@@ -616,7 +616,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             }
 
         };
-        PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
+        PlainFuture<RecoveryResponse> future = new PlainFuture<>();
         assertThatThrownBy(() -> {
             handler.recoverToTarget(future);
             FutureUtils.get(future);
@@ -650,7 +650,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         Store store = newStore(createTempDir(), false);
         List<StoreFileMetadata> files = generateFiles(store, between(1, 10), () -> between(1, chunkSize * 20));
         int totalChunks = files.stream().mapToInt(md -> ((int) md.length() + chunkSize - 1) / chunkSize).sum();
-        PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
+        PlainFuture<Void> sendFilesFuture = new PlainFuture<>();
         handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
         assertBusy(() -> {
             assertThat(sentChunks.get()).isEqualTo(Math.min(totalChunks, maxConcurrentChunks));

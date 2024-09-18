@@ -59,7 +59,7 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
@@ -1325,7 +1325,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         refresh(indexName);
         String failingNode = randomFrom(nodes);
-        PlainActionFuture<StartRecoveryRequest> startRecoveryRequestFuture = new PlainActionFuture<>();
+        PlainFuture<StartRecoveryRequest> startRecoveryRequestFuture = new PlainFuture<>();
         // Peer recovery fails if the primary does not see the recovering replica in the replication group (when the cluster state
         // update on the primary is delayed). To verify the local recovery stats, we have to manually remember this value in the
         // first try because the local recovery happens once and its stats is reset when the recovery fails.
@@ -1431,7 +1431,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                                             .waitForEvents(Priority.LANGUID)
                                                     ).get().isTimedOut()).isFalse();
 
-                                              final PlainActionFuture<ReplicationResponse> future = new PlainActionFuture<>();
+                                              final PlainFuture<ReplicationResponse> future = new PlainFuture<>();
                                               primary.removeRetentionLease(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting), future);
                                               future.get();
 

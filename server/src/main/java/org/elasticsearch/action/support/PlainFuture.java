@@ -17,12 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common.util.concurrent;
-
-import org.elasticsearch.cluster.service.ClusterApplierService;
-import org.elasticsearch.cluster.service.MasterService;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.threadpool.ThreadPool;
+package org.elasticsearch.action.support;
 
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -32,7 +27,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
-public abstract class BaseFuture<V> implements Future<V> {
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.service.ClusterApplierService;
+import org.elasticsearch.cluster.service.MasterService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
+
+public class PlainFuture<V> implements Future<V>, ActionListener<V> {
 
     private static final String BLOCKING_OP_REASON = "Blocking operation";
 
@@ -41,10 +42,17 @@ public abstract class BaseFuture<V> implements Future<V> {
      */
     private final Sync<V> sync = new Sync<>();
 
-    /*
-    * Improve the documentation of when InterruptedException is thrown. Our
-    * behavior matches the JDK's, but the JDK's documentation is misleading.
-    */
+
+    @Override
+    public void onResponse(V result) {
+        set(result);
+    }
+
+    @Override
+    public void onFailure(Exception e) {
+        setException(e);
+    }
+
 
     /**
      * {@inheritDoc}
@@ -58,8 +66,7 @@ public abstract class BaseFuture<V> implements Future<V> {
      * @throws CancellationException {@inheritDoc}
      */
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException,
-            TimeoutException, ExecutionException {
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
         assert timeout <= 0 || blockingAllowed();
         return sync.get(unit.toNanos(timeout));
     }

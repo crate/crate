@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NotMasterException;
@@ -173,7 +173,7 @@ public class JoinHelperTests extends ESTestCase {
         final ClusterState otherClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(Metadata.builder()
             .generateClusterUuidIfNeeded()).build();
 
-        final PlainActionFuture<TransportResponse.Empty> future = new PlainActionFuture<>();
+        final PlainFuture<TransportResponse.Empty> future = new PlainFuture<>();
         transportService.sendRequest(localNode, actionName,
             new ValidateJoinRequest(otherClusterState),
             new ActionListenerResponseHandler<>(future, in -> TransportResponse.Empty.INSTANCE));

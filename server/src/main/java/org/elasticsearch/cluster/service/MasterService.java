@@ -33,7 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.AckedClusterStateTaskListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -215,7 +215,7 @@ public class MasterService extends AbstractLifecycleComponent {
     }
 
     protected <T> void publish(ClusterChangedEvent clusterChangedEvent, TaskOutputs<T> taskOutputs, long startTimeMillis) {
-        final PlainActionFuture<Void> fut = new PlainActionFuture<Void>() {
+        final PlainFuture<Void> fut = new PlainFuture<Void>() {
             @Override
             protected boolean blockingAllowed() {
                 return isMasterUpdateThread() || super.blockingAllowed();
