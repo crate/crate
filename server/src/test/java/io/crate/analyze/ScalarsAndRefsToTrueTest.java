@@ -153,4 +153,16 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
             "(NOT(((table_name = 'foo') AND null) IS NULL)) OR (NOT(((table_name = 'foo') AND null) IS NOT NULL))");
         assertThat(symbol).isLiteral(true);
     }
+
+    /**
+     * Tracks a bug: https://github.com/crate/crate/issues/16614.
+     * Top level 'NOT' used to be not applied and result of  {@link ScalarsAndRefsToTrue#rewrite(Symbol)} was "NOT (NULL IS NULL)" -> "false".
+     * Now it looks like "NOT (NOT (NULL IS NULL))" -> "true".
+     */
+    @Test
+    public void test_not_on_top_of_IsNotNull() {
+        Symbol symbol = convertFromSQL(
+            "(NOT (table_name IS NOT NULL))");
+        assertThat(symbol).isLiteral(true);
+    }
 }

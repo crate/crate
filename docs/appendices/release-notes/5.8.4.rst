@@ -60,3 +60,9 @@ Fixes
 - Fixed an issue that caused filtering by :ref:`ALL <all_array_comparison>`
   operator on :ref:`REAL <type-real>` array columns against literals to return
   invalid results.
+
+- Fixed an issue that caused ``WHERE`` clause to wrongly filter out whole
+  partitions when operator ``NOT`` is applied on top of
+  :ref:`IS NOT NULL<sql_dql_is_not_null>`. e.g.::
+
+    SELECT * FROM tbl WHERE NOT (column IS NOT NULL);

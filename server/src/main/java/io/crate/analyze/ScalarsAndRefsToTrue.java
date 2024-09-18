@@ -79,7 +79,18 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Boolean, Symbol> {
                 return argument.accept(this, isNullPredicate);
             } else if (argument instanceof Function fn) {
                 if (!Operators.LOGICAL_OPERATORS.contains(fn.name())) {
-                    return argument.accept(this, isNullPredicate);
+                    Symbol processedOperand = argument.accept(this, isNullPredicate);
+                    if (processedOperand.symbolType().isValueSymbol()) {
+                        // Function could be replaced with Literal.BOOLEAN_TRUE to indicate a possible match.
+                        // We don't apply NOT as we don't want 'true' to be negated.
+                        // It's just a marker, so we return marker.
+                        // I.e. if expression can match, then NOT(expression) can match as well.
+                        return processedOperand;
+                    } else {
+                        // We don't have a marker, we got a Function which will be actually normalized and evaluated.
+                        // It's important to apply NOT as it's part of the actual expression.
+                        return new Function(symbol.signature(), List.of(processedOperand), symbol.valueType());
+                    }
                 }
             }
         }
