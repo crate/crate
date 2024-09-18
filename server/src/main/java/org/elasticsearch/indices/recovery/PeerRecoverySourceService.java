@@ -32,7 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ChannelActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -285,12 +285,12 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
         void awaitEmpty() {
             assert lifecycle.stoppedOrClosed();
-            final PlainActionFuture<Void> future;
+            final PlainFuture<Void> future;
             synchronized (this) {
                 if (ongoingRecoveries.isEmpty()) {
                     return;
                 }
-                future = new PlainActionFuture<>();
+                future = new PlainFuture<>();
                 if (emptyListeners == null) {
                     emptyListeners = new ArrayList<>();
                 }

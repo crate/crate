@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.Lifecycle;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -382,7 +382,7 @@ public class TcpTransportTests extends ESTestCase {
 
             EmbeddedChannel embeddedChannel = new EmbeddedChannel();
             CloseableChannel channel = new CloseableChannel(embeddedChannel, false);
-            final PlainActionFuture<Void> listener = new PlainActionFuture<>();
+            final PlainFuture<Void> listener = new PlainFuture<>();
             channel.addCloseListener(listener);
 
             var logger = LogManager.getLogger(TcpTransport.class);

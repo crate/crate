@@ -79,7 +79,7 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -353,7 +353,7 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testRunUnderPrimaryPermitDelaysToExecutorWhenBlocked() throws Exception {
         final IndexShard indexShard = newStartedShard(true);
         try {
-            final PlainActionFuture<Releasable> onAcquired = new PlainActionFuture<>();
+            final PlainFuture<Releasable> onAcquired = new PlainFuture<>();
             indexShard.acquireAllPrimaryOperationsPermits(onAcquired, new TimeValue(Long.MAX_VALUE, TimeUnit.NANOSECONDS));
             final Releasable permit = FutureUtils.get(onAcquired);
             final CountDownLatch latch = new CountDownLatch(1);
@@ -386,7 +386,7 @@ public class IndexShardTests extends IndexShardTestCase {
         final CountDownLatch allPermitsAcquired = new CountDownLatch(1);
 
         final Thread[] threads = new Thread[randomIntBetween(2, 5)];
-        final List<PlainActionFuture<Releasable>> futures = new ArrayList<>(threads.length);
+        final List<PlainFuture<Releasable>> futures = new ArrayList<>(threads.length);
         final AtomicArray<Tuple<Boolean, Exception>> results = new AtomicArray<>(threads.length);
         final CountDownLatch allOperationsDone = new CountDownLatch(threads.length);
 
@@ -394,7 +394,7 @@ public class IndexShardTests extends IndexShardTestCase {
             final int threadId = i;
             final boolean singlePermit = randomBoolean();
 
-            final PlainActionFuture<Releasable> future = new PlainActionFuture<>() {
+            final PlainFuture<Releasable> future = new PlainFuture<>() {
                 @Override
                 public void onResponse(final Releasable releasable) {
                     if (singlePermit) {
@@ -434,7 +434,7 @@ public class IndexShardTests extends IndexShardTestCase {
         final AtomicBoolean blocked = new AtomicBoolean();
         final CountDownLatch allPermitsTerminated = new CountDownLatch(1);
 
-        final PlainActionFuture<Releasable> futureAllPermits = new PlainActionFuture<>() {
+        final PlainFuture<Releasable> futureAllPermits = new PlainFuture<>() {
             @Override
             public void onResponse(final Releasable releasable) {
                 try {
@@ -1709,7 +1709,7 @@ public class IndexShardTests extends IndexShardTestCase {
             while (stop.get() == false) {
                 if (indexShard.routingEntry().primary()) {
                     assertThat(indexShard.getPendingPrimaryTerm()).isEqualTo(promotedTerm);
-                    final PlainActionFuture<Releasable> permitAcquiredFuture = new PlainActionFuture<>();
+                    final PlainFuture<Releasable> permitAcquiredFuture = new PlainFuture<>();
                     indexShard.acquirePrimaryOperationPermit(permitAcquiredFuture, ThreadPool.Names.SAME, "bla");
                     try (Releasable ignored = FutureUtils.get(permitAcquiredFuture)) {
                         assertThat(indexShard.getReplicationGroup()).isNotNull();
@@ -2287,7 +2287,7 @@ public class IndexShardTests extends IndexShardTestCase {
         replica.advanceMaxSeqNoOfUpdatesOrDeletes(currentMaxSeqNoOfUpdates);
 
         long newMaxSeqNoOfUpdates = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
-        PlainActionFuture<Releasable> fut = new PlainActionFuture<>();
+        PlainFuture<Releasable> fut = new PlainFuture<>();
         randomReplicaOperationPermitAcquisition(
             replica,
             replica.getOperationPrimaryTerm(),
@@ -2975,10 +2975,10 @@ public class IndexShardTests extends IndexShardTestCase {
         int recoveryIndex = randomIntBetween(0, numberOfAcquisitions - 1);
 
         for (int i = 0; i < numberOfAcquisitions; i++) {
-            PlainActionFuture<Releasable> onLockAcquired;
+            PlainFuture<Releasable> onLockAcquired;
             if (i < recoveryIndex) {
                 AtomicBoolean invoked = new AtomicBoolean();
-                onLockAcquired = new PlainActionFuture<>() {
+                onLockAcquired = new PlainFuture<>() {
 
                     @Override
                     public void onResponse(Releasable releasable) {
@@ -2997,7 +2997,7 @@ public class IndexShardTests extends IndexShardTestCase {
             } else if (recoveryIndex == i) {
                 startRecovery.countDown();
                 relocationStarted.await();
-                onLockAcquired = new PlainActionFuture<>();
+                onLockAcquired = new PlainFuture<>();
                 assertions.add(() -> {
                     assertThatThrownBy(() -> onLockAcquired.get(30, TimeUnit.SECONDS))
                         .isExactlyInstanceOf(ExecutionException.class)
@@ -3006,7 +3006,7 @@ public class IndexShardTests extends IndexShardTestCase {
                             .hasMessageContaining("shard is not in primary mode");
                 });
             } else {
-                onLockAcquired = new PlainActionFuture<>();
+                onLockAcquired = new PlainFuture<>();
                 assertions.add(() -> {
                     assertThatThrownBy(() -> onLockAcquired.get(30, TimeUnit.SECONDS))
                         .isExactlyInstanceOf(ExecutionException.class)
@@ -4078,14 +4078,14 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     private Releasable acquirePrimaryOperationPermitBlockingly(IndexShard indexShard) throws ExecutionException, InterruptedException {
-        PlainActionFuture<Releasable> fut = new PlainActionFuture<>();
+        PlainFuture<Releasable> fut = new PlainFuture<>();
         indexShard.acquirePrimaryOperationPermit(fut, ThreadPool.Names.WRITE, "");
         return fut.get();
     }
 
     private Releasable acquireReplicaOperationPermitBlockingly(IndexShard indexShard, long opPrimaryTerm)
         throws ExecutionException, InterruptedException {
-        PlainActionFuture<Releasable> fut = new PlainActionFuture<>();
+        PlainFuture<Releasable> fut = new PlainFuture<>();
         indexShard.acquireReplicaOperationPermit(
             opPrimaryTerm, indexShard.getLastKnownGlobalCheckpoint(),
             randomNonNegativeLong(), fut, ThreadPool.Names.WRITE, "");

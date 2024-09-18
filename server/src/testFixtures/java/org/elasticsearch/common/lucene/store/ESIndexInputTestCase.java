@@ -28,7 +28,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
@@ -116,7 +116,7 @@ public class ESIndexInputTestCase extends ESTestCase {
                     final CountDownLatch startLatch = new CountDownLatch(1 + cloneCount);
                     final CountDownLatch finishLatch = new CountDownLatch(cloneCount);
 
-                    final PlainActionFuture<byte[]> mainThreadResultFuture = new PlainActionFuture<>();
+                    final PlainFuture<byte[]> mainThreadResultFuture = new PlainFuture<>();
                     final int mainThreadReadStart = readPos;
                     final int mainThreadReadEnd = randomIntBetween(readPos + 1, length);
 

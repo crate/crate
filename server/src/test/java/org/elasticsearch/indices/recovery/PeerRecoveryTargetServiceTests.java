@@ -39,7 +39,7 @@ import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -83,7 +83,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         final DiscoveryNode rNode = getFakeDiscoNode(targetShard.routingEntry().currentNodeId());
         targetShard.markAsRecovering("test-peer-recovery", new RecoveryState(targetShard.routingEntry(), rNode, pNode));
         final RecoveryTarget recoveryTarget = new RecoveryTarget(targetShard, null, null);
-        final PlainActionFuture<Void> receiveFileInfoFuture = new PlainActionFuture<>();
+        final PlainFuture<Void> receiveFileInfoFuture = new PlainFuture<>();
         recoveryTarget.receiveFileInfo(
             mdFiles.stream().map(StoreFileMetadata::name).collect(Collectors.toList()),
             mdFiles.stream().map(StoreFileMetadata::length).collect(Collectors.toList()),
@@ -137,7 +137,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         for (Thread sender : senders) {
             sender.join();
         }
-        PlainActionFuture<Void> cleanFilesFuture = new PlainActionFuture<>();
+        PlainFuture<Void> cleanFilesFuture = new PlainFuture<>();
         recoveryTarget.cleanFiles(0, Long.parseLong(sourceSnapshot.getCommitUserData().get(SequenceNumbers.MAX_SEQ_NO)),
             sourceSnapshot, cleanFilesFuture);
         FutureUtils.get(cleanFilesFuture);
