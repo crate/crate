@@ -81,7 +81,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         final LinkedHashMap<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
 
         public Builder setInnerType(String key, DataType<?> innerType) {
-            innerTypesBuilder.put(key, innerType);
+            var exists = innerTypesBuilder.put(key, innerType);
+            if (exists != null) {
+                throw new IllegalArgumentException("Column \"" + key + "\" specified more than once");
+            }
             return this;
         }
 
