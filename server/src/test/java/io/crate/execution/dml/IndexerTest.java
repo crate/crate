@@ -107,9 +107,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            Stream.of(columns)
+            new ArrayList<>(Stream.of(columns)
                 .map(x -> table.resolveColumn(x, true, false))
-                .toList(),
+                .toList()),
             null
         );
     }
@@ -800,6 +800,22 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"xs": [1, 42, null, 21]}
             """
         );
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_index_array_of_nulls() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (a int) with(column_policy='dynamic')");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        IndexItem item = item(List.of());
+        var indexer = getIndexer(e, "tbl", "narr");
+        var narr = indexer.collectSchemaUpdates(item);
+        table = addColumns(e, table, narr);
+        indexer.updateTargets(table::getReference);
+        ParsedDocument doc = indexer.index(item);
+        assertThat(doc.doc().getFields(toArrayLengthFieldName(table.getReference("narr"), table::getReference))[0].toString())
+            .isEqualTo("IntField <_array_length_2:0>"); // oid 1 is mapped to 'a'
         assertTranslogParses(doc, table);
     }
 

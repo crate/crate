@@ -35,6 +35,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -55,6 +56,11 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         return new FieldExistsQuery(toArrayLengthFieldName(arrayRef, getRef));
     }
 
+    public static Field arrayLengthField(Reference arrayRef, Function<ColumnIdent, Reference> getRef, int length) {
+        return new IntField(toArrayLengthFieldName(arrayRef, getRef), length, Field.Store.NO);
+    }
+
+    @VisibleForTesting
     static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
         // If the arrayRef is a descendant of an object array its type can be a readType. i.e. the type of
         // obj_array['int_col'] is 'int' BUT its readType is 'array(int)'. If so, there is no '_array_length_' indexed
@@ -81,17 +87,17 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         return ARRAY_LENGTH_FIELD_PREFIX + arrayRef.storageIdentLeafName();
     }
 
-    /**
-     * Field prefix used for the array length field here and in {@link io.crate.types.NullArrayType}
-     */
-    public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
+    @VisibleForTesting
+    static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
     private final ValueIndexer<T> innerIndexer;
-    private final String arrayLengthFieldName;
+    private final Reference ref;
+    private final Function<ColumnIdent, Reference> getRef;
 
     public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
-        this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
+        this.ref = reference;
+        this.getRef = getRef;
     }
 
     @Override
@@ -108,7 +114,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             // map '[]' to '_array_length_ = 0'
             // map '[null]' to '_array_length_ = 1'
             // 'null' is not mapped; can utilize 'FieldExistsQuery' for 'IS NULL' filtering
-            docBuilder.addField(new IntField(arrayLengthFieldName, values.size(), Field.Store.NO));
+            docBuilder.addField(arrayLengthField(ref, getRef, values.size()));
         }
         docBuilder.translogWriter().endArray();
     }

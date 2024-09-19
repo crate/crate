@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntField;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -117,7 +115,6 @@ public class NullArrayType extends DataType<List<Object>> {
         return new StorageSupport<>(false, false, EqQuery.nonMatchingEqQuery()) {
             @Override
             public ValueIndexer<? super List<Object>> valueIndexer(RelationName table, Reference ref, Function<ColumnIdent, Reference> getRef) {
-                String arrayLengthFieldName = ArrayIndexer.ARRAY_LENGTH_FIELD_PREFIX + ref.column().leafName();
                 return new ValueIndexer<>() {
                     @Override
                     public void indexValue(@NotNull List<Object> value, IndexDocumentBuilder docBuilder) {
@@ -126,7 +123,7 @@ public class NullArrayType extends DataType<List<Object>> {
                             // map '[]' to '_array_length_ = 0'
                             // map '[null]' to '_array_length_ = 1'
                             // 'null' is not mapped; can utilize 'FieldExistsQuery' for 'IS NULL' filtering
-                            docBuilder.addField(new IntField(arrayLengthFieldName, value.size(), Field.Store.NO));
+                            docBuilder.addField(ArrayIndexer.arrayLengthField(ref, getRef, value.size()));
                         }
                     }
 
