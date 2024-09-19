@@ -176,7 +176,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     private static int maxMapSize(int x) {
         // max map size should be 4 * the limit based on the power of 2 to avoid errors
-        return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2))) * 4;
+        return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2))) * 32;
     }
 
     private static long calculateRamUsage(long maxMapSize) {
