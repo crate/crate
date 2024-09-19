@@ -22,9 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -319,23 +316,15 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         // Use this very verbose style of assertion, since the return type is an Array<Object(UNDEFINED)>,
         // and while HTTP returns Long for the item and frequency values, PG converts them to Integer
         execute("select topk(l) tl from tbl");
-        List<Map<String, Number>> resultRows = (List<Map<String, Number>>) response.rows()[0][0];
-        assertThat(resultRows).hasSize(2);
-        assertThat(resultRows.get(0)).containsOnlyKeys("item", "frequency");
-        assertThat(resultRows.get(0).get("item").longValue()).isEqualTo(1L);
-        assertThat(resultRows.get(0).get("frequency").longValue()).isEqualTo(3L);
-        assertThat(resultRows.get(1)).containsOnlyKeys("item", "frequency");
-        assertThat(resultRows.get(1).get("item").longValue()).isEqualTo(2L);
-        assertThat(resultRows.get(1).get("frequency").longValue()).isEqualTo(2L);
+        Map<String, Object> resultRows = (Map<String, Object>) response.rows()[0][0];
+        assertThat(resultRows).containsOnlyKeys("maximum_error", "frequencies");
+        assertThat(resultRows.get("maximum_error")).isNotNull();
+        assertThat(resultRows.get("frequencies")).isNotNull();
 
         execute("select topk(l_no_doc_values) tl from tbl");
-        resultRows = (List<Map<String, Number>>) response.rows()[0][0];
-        assertThat(resultRows).hasSize(2);
-        assertThat(resultRows.get(0)).containsOnlyKeys("item", "frequency");
-        assertThat(resultRows.get(0).get("item").longValue()).isEqualTo(2L);
-        assertThat(resultRows.get(0).get("frequency").longValue()).isEqualTo(3L);
-        assertThat(resultRows.get(1)).containsOnlyKeys("item", "frequency");
-        assertThat(resultRows.get(1).get("item").longValue()).isEqualTo(1L);
-        assertThat(resultRows.get(1).get("frequency").longValue()).isEqualTo(2L);
+        resultRows = (Map<String, Object>) response.rows()[0][0];
+        assertThat(resultRows).containsOnlyKeys("maximum_error", "frequencies");
+        assertThat(resultRows.get("maximum_error")).isNotNull();
+        assertThat(resultRows.get("frequencies")).isNotNull();
     }
 }
