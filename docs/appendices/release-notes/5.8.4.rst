@@ -47,4 +47,9 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue causing an object column definition with duplicate child
+  column names to be accepted (last definition was used) instead of throwing an
+  error. E.g.::
+
+      CREATE TABLE tbl (obj OBJECT AS (a BOOLEAN, a INTEGER));
+
