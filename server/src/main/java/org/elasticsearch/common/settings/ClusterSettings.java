@@ -95,14 +95,12 @@ import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.fs.FsRepository;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
-import io.crate.session.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
@@ -111,11 +109,13 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.legacy.LegacySettings;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.session.Sessions;
 import io.crate.statistics.TableStatsService;
 import io.crate.udc.service.UDCService;
 
@@ -398,7 +398,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndexingMemoryController.MAX_INDEX_BUFFER_SIZE_SETTING,
         IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING,
         IndexingMemoryController.SHARD_MEMORY_INTERVAL_TIME_SETTING,
-        SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING,
+        LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING,
         ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING,
         IndexGraveyard.SETTING_MAX_TOMBSTONES,
         PeerFinder.DISCOVERY_FIND_PEERS_INTERVAL_SETTING,

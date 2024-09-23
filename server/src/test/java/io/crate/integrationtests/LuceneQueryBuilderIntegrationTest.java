@@ -26,15 +26,16 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
@@ -49,7 +50,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
                        .put(super.nodeSettings(nodeOrdinal))
-                       .put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
+                       .put(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
                        .build();
     }
 
