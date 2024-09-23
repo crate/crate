@@ -339,7 +339,7 @@ public class DocTableInfoFactory {
         if (primaryKeys.size() == 1) {
             return primaryKeys.get(0);
         }
-        return DocSysColumns.ID.COLUMN;
+        return SysColumns.ID.COLUMN;
     }
 
     private static List<CheckConstraint<Symbol>> getCheckConstraints(

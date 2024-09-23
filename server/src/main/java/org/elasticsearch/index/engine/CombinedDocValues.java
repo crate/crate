@@ -27,7 +27,7 @@ import java.util.Objects;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 final class CombinedDocValues {
     private final NumericDocValues versionDV;
@@ -37,19 +37,19 @@ final class CombinedDocValues {
     private final NumericDocValues recoverySource;
 
     CombinedDocValues(LeafReader leafReader) throws IOException {
-        this.versionDV = Objects.requireNonNull(leafReader.getNumericDocValues(DocSysColumns.VERSION.name()), "VersionDV is missing");
-        this.seqNoDV = Objects.requireNonNull(leafReader.getNumericDocValues(DocSysColumns.Names.SEQ_NO), "SeqNoDV is missing");
+        this.versionDV = Objects.requireNonNull(leafReader.getNumericDocValues(SysColumns.VERSION.name()), "VersionDV is missing");
+        this.seqNoDV = Objects.requireNonNull(leafReader.getNumericDocValues(SysColumns.Names.SEQ_NO), "SeqNoDV is missing");
         this.primaryTermDV = Objects.requireNonNull(
-            leafReader.getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM), "PrimaryTermDV is missing");
-        this.tombstoneDV = leafReader.getNumericDocValues(DocSysColumns.Names.TOMBSTONE);
-        this.recoverySource = leafReader.getNumericDocValues(DocSysColumns.Source.RECOVERY_NAME);
+            leafReader.getNumericDocValues(SysColumns.Names.PRIMARY_TERM), "PrimaryTermDV is missing");
+        this.tombstoneDV = leafReader.getNumericDocValues(SysColumns.Names.TOMBSTONE);
+        this.recoverySource = leafReader.getNumericDocValues(SysColumns.Source.RECOVERY_NAME);
     }
 
     long docVersion(int segmentDocId) throws IOException {
         assert versionDV.docID() < segmentDocId;
         if (versionDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + DocSysColumns.VERSION.name() + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + DocSysColumns.VERSION.name() + "] is not found");
+            assert false : "DocValues for field [" + SysColumns.VERSION.name() + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + SysColumns.VERSION.name() + "] is not found");
         }
         return versionDV.longValue();
     }
@@ -57,8 +57,8 @@ final class CombinedDocValues {
     long docSeqNo(int segmentDocId) throws IOException {
         assert seqNoDV.docID() < segmentDocId;
         if (seqNoDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + DocSysColumns.Names.SEQ_NO + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + DocSysColumns.Names.SEQ_NO + "] is not found");
+            assert false : "DocValues for field [" + SysColumns.Names.SEQ_NO + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + SysColumns.Names.SEQ_NO + "] is not found");
         }
         return seqNoDV.longValue();
     }
@@ -67,8 +67,8 @@ final class CombinedDocValues {
         // We exclude non-root nested documents when querying changes, every returned document must have primary term.
         assert primaryTermDV.docID() < segmentDocId;
         if (primaryTermDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + DocSysColumns.Names.PRIMARY_TERM + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + DocSysColumns.Names.PRIMARY_TERM + "] is not found");
+            assert false : "DocValues for field [" + SysColumns.Names.PRIMARY_TERM + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + SysColumns.Names.PRIMARY_TERM + "] is not found");
         }
         return primaryTermDV.longValue();
     }

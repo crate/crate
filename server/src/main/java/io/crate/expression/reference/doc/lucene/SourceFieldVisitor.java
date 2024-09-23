@@ -25,7 +25,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.common.bytes.BytesArray;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public final class SourceFieldVisitor extends StoredFieldVisitor {
 
@@ -34,7 +34,7 @@ public final class SourceFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public Status needsField(FieldInfo fieldInfo) {
-        if (fieldInfo.name.equals(DocSysColumns.Source.NAME)) {
+        if (fieldInfo.name.equals(SysColumns.Source.NAME)) {
             done = true;
             return Status.YES;
         }
@@ -43,7 +43,7 @@ public final class SourceFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) {
-        assert DocSysColumns.Source.NAME.equals(fieldInfo.name) : "Must only receive a source field";
+        assert SysColumns.Source.NAME.equals(fieldInfo.name) : "Must only receive a source field";
         source = new BytesArray(value);
     }
 

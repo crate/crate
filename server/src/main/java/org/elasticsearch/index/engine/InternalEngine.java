@@ -116,7 +116,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.lucene.index.ShuffleForcedMergePolicy;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class InternalEngine extends Engine {
 
@@ -628,7 +628,7 @@ public class InternalEngine extends Engine {
 
     @Override
     public GetResult get(Get get, BiFunction<String, SearcherScope, Engine.Searcher> searcherFactory) throws EngineException {
-        assert Objects.equals(get.uid().field(), DocSysColumns.Names.ID) : get.uid().field();
+        assert Objects.equals(get.uid().field(), SysColumns.Names.ID) : get.uid().field();
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
             VersionValue versionValue = null;
@@ -865,7 +865,7 @@ public class InternalEngine extends Engine {
 
     @Override
     public IndexResult index(Index index) throws IOException {
-        assert Objects.equals(index.uid().field(), DocSysColumns.Names.ID) : index.uid().field();
+        assert Objects.equals(index.uid().field(), SysColumns.Names.ID) : index.uid().field();
         final boolean doThrottle = index.origin().isRecovery() == false;
         try (ReleasableLock releasableLock = readLock.acquire()) {
             ensureOpen();
@@ -1283,7 +1283,7 @@ public class InternalEngine extends Engine {
     @Override
     public DeleteResult delete(Delete delete) throws IOException {
         versionMap.enforceSafeAccess();
-        assert Objects.equals(delete.uid().field(), DocSysColumns.Names.ID) : delete.uid().field();
+        assert Objects.equals(delete.uid().field(), SysColumns.Names.ID) : delete.uid().field();
         assert assertIncomingSequenceNumber(delete.origin(), delete.seqNo());
         final boolean doThrottle = delete.origin().isRecovery() == false;
         final DeleteResult deleteResult;
@@ -1478,7 +1478,7 @@ public class InternalEngine extends Engine {
                 tombstone.updateSeqID(delete.seqNo(), delete.primaryTerm());
                 tombstone.version().setLongValue(plan.versionOfDeletion);
                 final Document doc = tombstone.doc();
-                assert doc.getField(DocSysColumns.Names.TOMBSTONE) != null :
+                assert doc.getField(SysColumns.Names.TOMBSTONE) != null :
                     "Delete tombstone document but _tombstone field is not set [" + doc + " ]";
                 doc.add(softDeletesField);
                 if (plan.addStaleOpToLucene || plan.currentlyDeleted) {
@@ -1620,7 +1620,7 @@ public class InternalEngine extends Engine {
                         // 1L is selected to optimize the compression because it might probably be the most common value in version field.
                         tombstone.version().setLongValue(1L);
                         final Document doc = tombstone.doc();
-                        assert doc.getField(DocSysColumns.Names.TOMBSTONE) != null
+                        assert doc.getField(SysColumns.Names.TOMBSTONE) != null
                             : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
                         doc.add(softDeletesField);
                         indexWriter.addDocument(doc);
@@ -2287,12 +2287,12 @@ public class InternalEngine extends Engine {
         iwc.setSoftDeletesField(Lucene.SOFT_DELETES_FIELD);
         if (softDeleteEnabled) {
             mergePolicy = new RecoverySourcePruneMergePolicy(
-                DocSysColumns.Source.RECOVERY_NAME,
+                SysColumns.Source.RECOVERY_NAME,
                 softDeletesPolicy::getRetentionQuery,
                 new SoftDeletesRetentionMergePolicy(
                     Lucene.SOFT_DELETES_FIELD,
                     softDeletesPolicy::getRetentionQuery,
-                    new PrunePostingsMergePolicy(mergePolicy, DocSysColumns.Names.ID)
+                    new PrunePostingsMergePolicy(mergePolicy, SysColumns.Names.ID)
                 )
             );
         }
@@ -2851,9 +2851,9 @@ public class InternalEngine extends Engine {
         searcher.setQueryCache(null);
         final Query query = new BooleanQuery.Builder()
             .add(LongPoint.newRangeQuery(
-                    DocSysColumns.Names.SEQ_NO, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE), BooleanClause.Occur.MUST)
+                    SysColumns.Names.SEQ_NO, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new FieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
+            .add(new FieldExistsQuery(SysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
         final Weight weight = searcher.createWeight(searcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         for (LeafReaderContext leaf : directoryReader.leaves()) {
@@ -2864,7 +2864,7 @@ public class InternalEngine extends Engine {
             final LeafReader reader = leaf.reader();
             final StoredFields storedFields = reader.storedFields();
             final CombinedDocValues dv = new CombinedDocValues(reader);
-            final IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);
+            final IDVisitor idFieldVisitor = new IDVisitor(SysColumns.Names.ID);
             final DocIdSetIterator iterator = scorer.iterator();
             int docId;
             while ((docId = iterator.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
@@ -2878,7 +2878,7 @@ public class InternalEngine extends Engine {
                     assert dv.isTombstone(docId);
                     continue;
                 }
-                final BytesRef uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(idFieldVisitor.getId())).bytes();
+                final BytesRef uid = new Term(SysColumns.Names.ID, Uid.encodeId(idFieldVisitor.getId())).bytes();
                 try (Releasable ignored = versionMap.acquireLock(uid)) {
                     final VersionValue curr = versionMap.getUnderLock(uid);
                     if (curr == null ||

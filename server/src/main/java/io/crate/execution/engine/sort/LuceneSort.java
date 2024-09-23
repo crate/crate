@@ -52,7 +52,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
@@ -137,16 +137,16 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
 
         // Always prefer doc-values. Should be faster for sorting and otherwise we'd
         // default to the `NullFieldComparatorSource` - leading to `null` values.
-        if (ref.column().isChildOf(DocSysColumns.DOC)) {
+        if (ref.column().isChildOf(SysColumns.DOC)) {
             ref = (Reference) DocReferences.inverseSourceLookup(ref);
         }
 
         ColumnIdent columnIdent = ref.column();
-        if (DocSysColumns.SCORE.equals(columnIdent)) {
+        if (SysColumns.SCORE.equals(columnIdent)) {
             return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
         }
-        if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.COLUMN.equals(columnIdent)) {
-            return customSortField(DocSysColumns.nameForLucene(columnIdent), ref, context);
+        if (SysColumns.RAW.equals(columnIdent) || SysColumns.ID.COLUMN.equals(columnIdent)) {
+            return customSortField(SysColumns.nameForLucene(columnIdent), ref, context);
         }
         if (!ref.hasDocValues()) {
             return customSortField(ref.toString(), ref, context);

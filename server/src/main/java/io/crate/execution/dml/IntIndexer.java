@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class IntIndexer implements ValueIndexer<Number> {
 
@@ -56,9 +56,9 @@ public class IntIndexer implements ValueIndexer<Number> {
                 docBuilder.addField(new SortedNumericDocValuesField(name, intValue));
             } else {
                 docBuilder.addField(new Field(
-                    DocSysColumns.FieldNames.NAME,
+                    SysColumns.FieldNames.NAME,
                     name,
-                    DocSysColumns.FieldNames.FIELD_TYPE));
+                    SysColumns.FieldNames.FIELD_TYPE));
             }
         }
         docBuilder.translogWriter().writeValue(intValue);
