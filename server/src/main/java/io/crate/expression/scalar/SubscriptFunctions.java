@@ -40,7 +40,7 @@ public final class SubscriptFunctions {
         assert base.valueType().id() == ObjectType.ID
             : "makeObjectSubscript only works on base symbols of type `object`, got `" + base.valueType().getName() + '`';
         List<Symbol> arguments = Lists.mapTail(base, path, Literal::of);
-        DataType<?> returnType = ((ObjectType) base.valueType()).resolveInnerType(path);
+        DataType<?> returnType = ((ObjectType) base.valueType()).innerType(path);
         return new Function(
             SubscriptObjectFunction.SIGNATURE,
             arguments,
@@ -60,7 +60,7 @@ public final class SubscriptFunctions {
         switch (baseType.id()) {
             case ObjectType.ID: {
                 List<Symbol> arguments = Lists.mapTail(baseSymbol, path, Literal::of);
-                DataType<?> returnType = ((ObjectType) baseType).resolveInnerType(path);
+                DataType<?> returnType = ((ObjectType) baseType).innerType(path);
                 return new Function(
                     SubscriptObjectFunction.SIGNATURE,
                     arguments,

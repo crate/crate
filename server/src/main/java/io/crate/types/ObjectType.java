@@ -63,7 +63,7 @@ import io.crate.sql.tree.ObjectColumnType;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
-    public static final ObjectType UNTYPED = new ObjectType();
+    public static final ObjectType UNTYPED = new ObjectType(Map.of());
     public static final int ID = 12;
     public static final String NAME = "object";
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
@@ -104,10 +104,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     private final Map<String, DataType<?>> innerTypes;
 
-    private ObjectType() {
-        this(Map.of());
-    }
-
     private ObjectType(Map<String, DataType<?>> innerTypes) {
         this.innerTypes = innerTypes;
     }
@@ -120,17 +116,14 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
     }
 
-    public DataType<?> resolveInnerType(List<String> path) {
+    public DataType<?> innerType(List<String> path) {
         if (path.isEmpty()) {
             return DataTypes.UNDEFINED;
         }
         DataType<?> innerType = DataTypes.UNDEFINED;
         ObjectType currentObject = this;
         for (int i = 0; i < path.size(); i++) {
-            innerType = currentObject.innerTypes().get(path.get(i));
-            if (innerType == null) {
-                return DataTypes.UNDEFINED;
-            }
+            innerType = currentObject.innerType(path.get(i));
             if (innerType.id() == ID) {
                 currentObject = (ObjectType) innerType;
             }
@@ -177,7 +170,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String str) {
-            value = mapFromJSONString(str);
+            value = mapFromJSON(str);
         }
         Map<String, Object> map = (Map<String, Object>) value;
         if (map == null || innerTypes == null) {
@@ -187,8 +180,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         HashMap<String, Object> newMap = (map instanceof LinkedHashMap<String, Object>) ? new LinkedHashMap<>(map) : new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
-            DataType<?> targetType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
-
+            DataType<?> targetType = innerType(key);
             Object sourceValue = entry.getValue();
             Object convertedInnerValue;
             try {
@@ -201,7 +193,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return newMap;
     }
 
-    private static Map<String,Object> mapFromJSONString(String value) {
+    private static Map<String,Object> mapFromJSON(String value) {
         try {
             XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY,
@@ -229,7 +221,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             LinkedHashMap<String, Object> m = LinkedHashMap.newLinkedHashMap(size);
             for (int i = 0; i < size; i++) {
                 String key = in.readString();
-                DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+                DataType innerType = innerType(key);
                 Object val = innerType.streamer().readValueFrom(in);
                 m.put(key, val);
             }
@@ -323,10 +315,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     public ObjectType(StreamInput in) throws IOException {
-        int typesSize = in.readVInt();
+        int numTypes = in.readVInt();
         // recover the order it was streamed out
-        LinkedHashMap<String, DataType<?>> builder = new LinkedHashMap<>();
-        for (int i = 0; i < typesSize; i++) {
+        LinkedHashMap<String, DataType<?>> builder = LinkedHashMap.newLinkedHashMap(numTypes);
+        for (int i = 0; i < numTypes; i++) {
             String key = in.readString();
             DataType<?> type = DataTypes.fromStream(in);
             builder.put(key, type);
@@ -345,11 +337,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public TypeSignature getTypeSignature() {
+        TypeSignature stringTypeSignature = StringType.INSTANCE.getTypeSignature();
         ArrayList<TypeSignature> parameters = new ArrayList<>(innerTypes.size() * 2);
         for (var innerTypeKeyValue : innerTypes.entrySet()) {
             // all keys are of type 'text'
-            parameters.add(StringType.INSTANCE.getTypeSignature());
-
+            parameters.add(stringTypeSignature);
             var innerType = innerTypeKeyValue.getValue();
             parameters.add(
                 new ParameterTypeSignature(innerTypeKeyValue.getKey(), innerType.getTypeSignature()));
