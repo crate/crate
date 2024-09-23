@@ -48,7 +48,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.common.io.IOUtils;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * A {@link Translog.Snapshot} from changes in a Lucene index
@@ -212,11 +212,11 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
 
     private TopDocs searchOperations(ScoreDoc after) throws IOException {
         final Query rangeQuery = new BooleanQuery.Builder()
-            .add(LongPoint.newRangeQuery(DocSysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
+            .add(LongPoint.newRangeQuery(SysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new FieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
+            .add(new FieldExistsQuery(SysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
-        final Sort sortedBySeqNo = new Sort(new SortField(DocSysColumns.Names.SEQ_NO, SortField.Type.LONG));
+        final Sort sortedBySeqNo = new Sort(new SortField(SysColumns.Names.SEQ_NO, SortField.Type.LONG));
         return indexSearcher.searchAfter(after, rangeQuery, searchBatchSize, sortedBySeqNo);
     }
 
@@ -232,8 +232,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             return null;
         }
         final long version = parallelArray.version[docIndex];
-        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? DocSysColumns.Source.RECOVERY_NAME :
-            DocSysColumns.Source.NAME;
+        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? SysColumns.Source.RECOVERY_NAME :
+            SysColumns.Source.NAME;
         final FieldsVisitor fields = new FieldsVisitor(true, sourceField);
         StoredFields storedFields = leaf.reader().storedFields();
         storedFields.document(segmentDocID, fields);
@@ -246,7 +246,7 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Noop but soft_deletes field is not set [" + op + "]";
         } else {
             final String id = fields.id();
-            final Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(id));
+            final Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(id));
             if (isTombstone) {
                 op = new Translog.Delete(id, uid, seqNo, primaryTerm, version);
                 assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Delete op but soft_deletes field is not set [" + op + "]";

@@ -60,8 +60,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
@@ -142,7 +142,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE),
             new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexShard.shardId().getIndexName())),
             docCtx.topLevelInputs(),
             docCtx.expressions()
@@ -227,7 +227,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.hasColumn(phase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(phase.toCollect(), SysColumns.SCORE),
             batchSize,
             collectTask.getRamAccounting(),
             collectorContext,

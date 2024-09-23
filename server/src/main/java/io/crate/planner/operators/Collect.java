@@ -63,8 +63,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -358,7 +358,7 @@ public class Collect implements LogicalPlan {
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (output.hasColumn(DocSysColumns.SCORE)) {
+            if (output.hasColumn(SysColumns.SCORE)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
             } else if (!output.any(Symbol.IS_COLUMN)) {

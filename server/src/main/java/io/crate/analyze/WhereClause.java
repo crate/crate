@@ -34,7 +34,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class WhereClause {
 
@@ -99,19 +99,19 @@ public class WhereClause {
     }
 
     public static void validateVersioningColumnsUsage(Symbol query) {
-        if (query.hasColumn(DocSysColumns.SEQ_NO)) {
-            if (!query.hasColumn(DocSysColumns.PRIMARY_TERM)) {
+        if (query.hasColumn(SysColumns.SEQ_NO)) {
+            if (!query.hasColumn(SysColumns.PRIMARY_TERM)) {
                 throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
-                if (query.hasColumn(DocSysColumns.VERSION)) {
+                if (query.hasColumn(SysColumns.VERSION)) {
                     throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
-        } else if (query.hasColumn(DocSysColumns.PRIMARY_TERM)) {
-            if (!query.hasColumn(DocSysColumns.SEQ_NO)) {
+        } else if (query.hasColumn(SysColumns.PRIMARY_TERM)) {
+            if (!query.hasColumn(SysColumns.SEQ_NO)) {
                 throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
-                if (query.hasColumn(DocSysColumns.VERSION)) {
+                if (query.hasColumn(SysColumns.VERSION)) {
                     throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
@@ -157,13 +157,13 @@ public class WhereClause {
     }
 
     public boolean hasVersions() {
-        return query != null && query.hasColumn(DocSysColumns.VERSION);
+        return query != null && query.hasColumn(SysColumns.VERSION);
     }
 
     public boolean hasSeqNoAndPrimaryTerm() {
         return query != null
-            && query.hasColumn(DocSysColumns.SEQ_NO)
-            && query.hasColumn(DocSysColumns.PRIMARY_TERM);
+            && query.hasColumn(SysColumns.SEQ_NO)
+            && query.hasColumn(SysColumns.PRIMARY_TERM);
     }
 
     /**
