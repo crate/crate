@@ -38,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.jetbrains.annotations.Nullable;
@@ -77,6 +78,14 @@ import io.crate.types.EqQuery;
 
 @Singleton
 public class LuceneQueryBuilder {
+
+    public static final Setting<Integer> INDICES_MAX_CLAUSE_COUNT_SETTING = Setting.intSetting(
+        "indices.query.bool.max_clause_count",
+        8192,
+        1,
+        Integer.MAX_VALUE,
+        Setting.Property.NodeScope
+    );
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();

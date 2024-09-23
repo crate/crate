@@ -151,7 +151,6 @@ import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
@@ -165,7 +164,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.RelationAnalyzer;
@@ -194,6 +192,7 @@ import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.fdw.ForeignDataWrappers;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
@@ -228,6 +227,7 @@ import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
+import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -462,7 +462,7 @@ public class Node implements Closeable {
             IndicesModule indicesModule = new IndicesModule();
             modules.add(indicesModule);
 
-            IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
+            IndexSearcher.setMaxClauseCount(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
             CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);
