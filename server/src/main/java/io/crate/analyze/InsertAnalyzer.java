@@ -59,8 +59,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
@@ -235,7 +235,7 @@ class InsertAnalyzer {
 
     private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {
         ColumnIdent clusteredBy = tableInfo.clusteredBy();
-        if (clusteredBy == null || clusteredBy.equals(DocSysColumns.ID.COLUMN)) {
+        if (clusteredBy == null || clusteredBy.equals(SysColumns.ID.COLUMN)) {
             return;
         }
         Reference clusteredByRef = tableInfo.getReference(clusteredBy);

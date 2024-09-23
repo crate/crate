@@ -85,8 +85,8 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
 
 final class GroupByOptimizedIterator {
@@ -133,8 +133,8 @@ final class GroupByOptimizedIterator {
         if (!keyRef.hasDocValues()) {
             return null;
         }
-        if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
+        if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE)
+            || collectPhase.where().hasColumn(SysColumns.SCORE)) {
             // We could optimize this, but since it's assumed to be an uncommon case we fallback to generic group-by
             // to keep the optimized implementation a bit simpler
             return null;

@@ -56,8 +56,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -180,7 +180,7 @@ public final class DeletePlanner {
 
     private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN), "Table has to have a _id reference");
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
         var sessionSettings = context.transactionContext().sessionSettings();
         Routing routing = context.allocateRouting(

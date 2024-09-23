@@ -47,7 +47,7 @@ import org.apache.lucene.search.KnnCollector;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.index.translog.Translog;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Internal class that mocks a single doc read from the transaction log as a leaf reader.
@@ -56,10 +56,10 @@ final class TranslogLeafReader extends LeafReader {
 
     private final Translog.Index operation;
     private static final FieldInfo FAKE_SOURCE_FIELD
-        = new FieldInfo(DocSysColumns.Source.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
+        = new FieldInfo(SysColumns.Source.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
         0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
     private static final FieldInfo FAKE_ID_FIELD
-        = new FieldInfo(DocSysColumns.Names.ID, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
+        = new FieldInfo(SysColumns.Names.ID, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
         0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
 
     TranslogLeafReader(Translog.Index operation) {

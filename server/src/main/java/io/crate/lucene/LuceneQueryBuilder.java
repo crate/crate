@@ -68,8 +68,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -314,10 +314,10 @@ public class LuceneQueryBuilder {
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.column().equals(DocSysColumns.UID)) {
+                    if (ref.column().equals(SysColumns.UID)) {
                         return new Function(
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID.COLUMN), right),
+                            List.of(SysColumns.forTable(ref.ident().tableIdent(), SysColumns.ID.COLUMN), right),
                             function.valueType()
                         );
                     } else {

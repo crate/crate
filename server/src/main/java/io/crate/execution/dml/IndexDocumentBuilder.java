@@ -37,7 +37,7 @@ import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Used by ValueIndexer implementations to construct a lucene document for indexing
@@ -102,7 +102,7 @@ public class IndexDocumentBuilder {
      */
     public ParsedDocument build(String id) {
 
-        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
+        NumericDocValuesField version = new NumericDocValuesField(SysColumns.Names.VERSION, -1L);
         addField(version);
 
         BytesReference source = translogWriter.bytes();
@@ -110,7 +110,7 @@ public class IndexDocumentBuilder {
         addField(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
 
         BytesRef idBytes = Uid.encodeId(id);
-        addField(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
+        addField(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         // Actual values are set via ParsedDocument.updateSeqID

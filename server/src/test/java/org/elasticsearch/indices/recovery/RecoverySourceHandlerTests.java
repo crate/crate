@@ -125,7 +125,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class RecoverySourceHandlerTests extends ESTestCase {
     private static final IndexSettings INDEX_SETTINGS = IndexSettingsModule.newIndexSettings(
@@ -400,9 +400,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final Document document = new Document();
         document.add(new TextField("test", "test", Field.Store.YES));
         final Field idField = new Field(
-            DocSysColumns.ID.COLUMN.name(),
+            SysColumns.ID.COLUMN.name(),
             Uid.encodeId(id),
-            DocSysColumns.ID.FIELD_TYPE
+            SysColumns.ID.FIELD_TYPE
         );
         final Field versionField = new NumericDocValuesField("_version", Versions.MATCH_ANY);
         final SequenceIDFields seqID = SequenceIDFields.emptySeqID();

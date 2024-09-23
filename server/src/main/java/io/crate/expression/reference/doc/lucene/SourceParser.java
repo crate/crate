@@ -51,8 +51,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
@@ -95,7 +95,7 @@ public final class SourceParser {
     }
 
     public void register(List<? extends Symbol> symbols) {
-        if (!Symbols.hasColumn(symbols, DocSysColumns.DOC)) {
+        if (!Symbols.hasColumn(symbols, SysColumns.DOC)) {
             Consumer<Reference> register = ref -> {
                 if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
                     register(DocReferences.toDocLookup(ref).column(), ref.valueType());
@@ -109,7 +109,7 @@ public final class SourceParser {
 
     @SuppressWarnings({"unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
-        assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
+        assert docColumn.name().equals(SysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
 
         List<String> path = docColumn.path();

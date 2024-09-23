@@ -65,8 +65,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -160,11 +160,11 @@ public class Indexer {
             //  - Can be a child column, where the root is part of the targetColumns / insertValues
 
             ColumnIdent column = ref.column();
-            if (column.equals(DocSysColumns.ID.COLUMN)) {
+            if (column.equals(SysColumns.ID.COLUMN)) {
                 return NestableCollectExpression.forFunction(IndexItem::id);
-            } else if (column.equals(DocSysColumns.SEQ_NO)) {
+            } else if (column.equals(SysColumns.SEQ_NO)) {
                 return NestableCollectExpression.forFunction(IndexItem::seqNo);
-            } else if (column.equals(DocSysColumns.PRIMARY_TERM)) {
+            } else if (column.equals(SysColumns.PRIMARY_TERM)) {
                 return NestableCollectExpression.forFunction(IndexItem::primaryTerm);
             }
             int pkIndex = table.primaryKey().indexOf(column);

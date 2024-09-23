@@ -153,7 +153,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Simple unit-test IndexShard related operations.
@@ -3599,14 +3599,14 @@ public class IndexShardTests extends IndexShardTestCase {
         Document deleteDoc = deleteTombstone.doc();
         assertThat(deleteDoc.getFields().stream().map(IndexableField::name).toList())
             .containsExactlyInAnyOrder(
-                DocSysColumns.Names.ID,
-                DocSysColumns.VERSION.name(),
-                DocSysColumns.Names.SEQ_NO,
-                DocSysColumns.Names.SEQ_NO,
-                DocSysColumns.Names.PRIMARY_TERM,
-                DocSysColumns.Names.TOMBSTONE);
-        assertThat(deleteDoc.getField(DocSysColumns.Names.ID).binaryValue()).isEqualTo(Uid.encodeId(id));
-        assertThat(deleteDoc.getField(DocSysColumns.Names.TOMBSTONE).numericValue().longValue()).isEqualTo(1L);
+                SysColumns.Names.ID,
+                SysColumns.VERSION.name(),
+                SysColumns.Names.SEQ_NO,
+                SysColumns.Names.SEQ_NO,
+                SysColumns.Names.PRIMARY_TERM,
+                SysColumns.Names.TOMBSTONE);
+        assertThat(deleteDoc.getField(SysColumns.Names.ID).binaryValue()).isEqualTo(Uid.encodeId(id));
+        assertThat(deleteDoc.getField(SysColumns.Names.TOMBSTONE).numericValue().longValue()).isEqualTo(1L);
 
         updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
             .putMapping("{ \"properties\": {}}").build());
@@ -3615,14 +3615,14 @@ public class IndexShardTests extends IndexShardTestCase {
         Document noopDoc = noopTombstone.doc();
         assertThat(noopDoc.getFields().stream().map(IndexableField::name).toList())
             .containsExactlyInAnyOrder(
-                DocSysColumns.VERSION.name(),
-                DocSysColumns.Source.NAME,
-                DocSysColumns.Names.TOMBSTONE,
-                DocSysColumns.Names.SEQ_NO,
-                DocSysColumns.Names.SEQ_NO,
-                DocSysColumns.Names.PRIMARY_TERM);
-        assertThat(noopDoc.getField(DocSysColumns.Names.TOMBSTONE).numericValue().longValue()).isEqualTo(1L);
-        assertThat(noopDoc.getField(DocSysColumns.Source.NAME).binaryValue()).isEqualTo(new BytesRef(reason));
+                SysColumns.VERSION.name(),
+                SysColumns.Source.NAME,
+                SysColumns.Names.TOMBSTONE,
+                SysColumns.Names.SEQ_NO,
+                SysColumns.Names.SEQ_NO,
+                SysColumns.Names.PRIMARY_TERM);
+        assertThat(noopDoc.getField(SysColumns.Names.TOMBSTONE).numericValue().longValue()).isEqualTo(1L);
+        assertThat(noopDoc.getField(SysColumns.Source.NAME).binaryValue()).isEqualTo(new BytesRef(reason));
 
         closeShards(shard);
     }
