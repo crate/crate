@@ -311,7 +311,6 @@ public class MetadataCreateIndexService {
 
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
-                .put(IndexMetadata.SETTING_INDEX_PROVIDED_NAME, request.getProvidedName())
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
@@ -678,7 +677,6 @@ public class MetadataCreateIndexService {
         Settings.Builder indexSettingsBuilder = Settings.builder()
             .put(settings)
             .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-            .put(IndexMetadata.SETTING_INDEX_PROVIDED_NAME, indexName)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {

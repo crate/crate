@@ -189,7 +189,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
             .build();
         targetIndex.settings(settings);
 
-        return new CreateIndexClusterStateUpdateRequest(cause, targetIndex.index(), targetIndexName)
+        return new CreateIndexClusterStateUpdateRequest(cause, targetIndex.index())
                 // mappings are updated on the node when creating in the shards, this prevents race-conditions since all mapping must be
                 // applied once we took the snapshot and if somebody messes things up and switches the index read/write and adds docs we
                 // miss the mappings for everything is corrupted and hard to debug
