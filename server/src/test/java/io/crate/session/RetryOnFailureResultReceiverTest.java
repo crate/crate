@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,7 +32,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.junit.Test;
 
-import io.crate.session.BaseResultReceiver;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 

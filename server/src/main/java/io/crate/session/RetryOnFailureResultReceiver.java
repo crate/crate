@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.session;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -35,7 +35,6 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
 import io.crate.Constants;
-import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 
@@ -99,7 +98,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     }
 
     private boolean indexWasTemporaryUnavailable(Throwable t) {
-        return t instanceof IndexNotFoundException && hasIndex.test(((IndexNotFoundException) t).getIndex().getName());
+        return t instanceof IndexNotFoundException inf && hasIndex.test(inf.getIndex().getName());
     }
 
     @Override

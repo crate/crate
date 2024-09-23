@@ -84,7 +84,6 @@ import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
-import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
