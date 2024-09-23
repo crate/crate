@@ -43,7 +43,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class DocSysColumns {
+public class SysColumns {
 
 
     public static class Names {

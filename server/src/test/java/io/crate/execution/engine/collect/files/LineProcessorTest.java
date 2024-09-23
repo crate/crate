@@ -40,7 +40,7 @@ import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceParsingFailureExpression;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
@@ -65,7 +65,7 @@ public class LineProcessorTest {
             FileLineReferenceResolver::getImplementation
         );
         ctxForRefs.add(List.of(
-            TestingHelpers.createReference(DocSysColumns.RAW, DataTypes.STRING),
+            TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
             TestingHelpers.createReference("x", DataTypes.INTEGER)
         ));
 
@@ -99,7 +99,7 @@ public class LineProcessorTest {
             FileLineReferenceResolver::getImplementation
         );
         ctxForRefs.add(List.of(
-            TestingHelpers.createReference(DocSysColumns.RAW, DataTypes.STRING),
+            TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
             TestingHelpers.createReference("x", DataTypes.INTEGER),
             TestingHelpers.createReference("y", DataTypes.INTEGER)
         ));
@@ -135,7 +135,7 @@ public class LineProcessorTest {
             FileLineReferenceResolver::getImplementation
         );
         ctxForRefs.add(List.of(
-            TestingHelpers.createReference(DocSysColumns.RAW, DataTypes.STRING),
+            TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
             TestingHelpers.createReference("x", DataTypes.INTEGER),
             TestingHelpers.createReference("y", DataTypes.INTEGER)
         ));
@@ -170,7 +170,7 @@ public class LineProcessorTest {
             FileLineReferenceResolver::getImplementation
         );
         ctxForRefs.add(List.of(
-            TestingHelpers.createReference(DocSysColumns.RAW, DataTypes.STRING),
+            TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
             TestingHelpers.createReference(SourceParsingFailureExpression.COLUMN_NAME, DataTypes.STRING),
             TestingHelpers.createReference("x", DataTypes.INTEGER)
         ));

@@ -59,8 +59,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -210,7 +210,7 @@ public final class UpdatePlanner {
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN), "Table must have a _id column");
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -257,7 +257,7 @@ public final class UpdatePlanner {
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN),
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
