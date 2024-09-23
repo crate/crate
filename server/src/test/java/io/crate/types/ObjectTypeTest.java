@@ -22,7 +22,7 @@
 package io.crate.types;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -192,7 +192,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
                 .build())
             .build();
 
-        assertThat(type.resolveInnerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
+        assertThat(type.innerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
