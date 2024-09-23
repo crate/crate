@@ -24,7 +24,7 @@ package io.crate.rest.action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.BaseResultReceiver;
+import io.crate.session.BaseResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 

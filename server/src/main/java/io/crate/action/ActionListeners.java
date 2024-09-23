@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.support;
+package io.crate.action;
+
+import java.util.function.Supplier;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import io.crate.common.unit.TimeValue;
 
-import java.util.function.Supplier;
+import io.crate.common.unit.TimeValue;
 
 public final class ActionListeners {
 

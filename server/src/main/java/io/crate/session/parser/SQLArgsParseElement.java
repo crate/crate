@@ -19,30 +19,41 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
+package io.crate.session.parser;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 import org.elasticsearch.common.xcontent.XContentParser;
 
-/**
- * used to parse the "stmt" element that is expected to be in requests
- * parsed by the io.crate.action.sql.parser.SQLRequestParser
- * <p>
- * Fills the stmt in the io.crate.action.sql.parser.SQLRequestParseContext.
- * </p>
- */
-class SQLStmtParseElement implements SQLParseElement {
+class SQLArgsParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
-
-        if (!token.isValue()) {
+        if (token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-        String stmt = parser.text();
-        if (stmt == null || stmt.length() == 0) {
-            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has no value");
+        context.args(parseSubArray(parser));
+    }
+
+    ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
+        XContentParser.Token token;
+        ArrayList<Object> args = new ArrayList<>();
+        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+            if (token.isValue()) {
+                args.add(parser.objectText());
+            } else if (token == XContentParser.Token.START_ARRAY) {
+                args.add(parseSubArray(parser));
+            } else if (token == XContentParser.Token.START_OBJECT) {
+                args.add(parser.map());
+            } else if (token == XContentParser.Token.VALUE_NULL) {
+                args.add(null);
+            } else {
+                throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
+            }
         }
-        context.stmt(parser.text());
+        return args;
     }
 }
+

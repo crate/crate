@@ -28,8 +28,8 @@ import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
-import io.crate.action.sql.Cursor;
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursor;
+import io.crate.session.Cursors;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;

@@ -32,7 +32,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
+import io.crate.session.Session;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends IntegTestCase {

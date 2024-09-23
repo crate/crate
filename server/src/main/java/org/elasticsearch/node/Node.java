@@ -165,7 +165,7 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.RelationAnalyzer;

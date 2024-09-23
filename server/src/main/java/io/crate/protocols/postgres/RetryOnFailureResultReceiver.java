@@ -35,7 +35,7 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
 import io.crate.Constants;
-import io.crate.action.sql.ResultReceiver;
+import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 

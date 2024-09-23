@@ -46,9 +46,9 @@ import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
-import io.crate.action.sql.CollectingResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.CollectingResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.ConnectionProperties;

@@ -27,8 +27,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
-import io.crate.action.sql.Cursor;
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursor;
+import io.crate.session.Cursors;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;

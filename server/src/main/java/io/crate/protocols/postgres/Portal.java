@@ -25,8 +25,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.PreparedStmt;
-import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.session.PreparedStmt;
+import io.crate.session.RowConsumerToResultReceiver;
 import io.crate.analyze.AnalyzedStatement;
 
 public final class Portal {

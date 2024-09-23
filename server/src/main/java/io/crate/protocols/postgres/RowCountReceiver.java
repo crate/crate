@@ -23,7 +23,7 @@ package io.crate.protocols.postgres;
 
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.action.sql.BaseResultReceiver;
+import io.crate.session.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;

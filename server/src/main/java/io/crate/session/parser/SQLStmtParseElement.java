@@ -19,36 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
-
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+package io.crate.session.parser;
 
 import org.elasticsearch.common.xcontent.XContentParser;
 
-class SQLBulkArgsParseElement extends SQLArgsParseElement {
+/**
+ * used to parse the "stmt" element that is expected to be in requests
+ * parsed by the io.crate.action.sql.parser.SQLRequestParser
+ * <p>
+ * Fills the stmt in the io.crate.action.sql.parser.SQLRequestParseContext.
+ * </p>
+ */
+class SQLStmtParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
-        if (token != XContentParser.Token.START_ARRAY) {
+
+        if (!token.isValue()) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-        context.bulkArgs(parseSubArrays(parser));
-    }
-
-    private List<List<Object>> parseSubArrays(XContentParser parser) throws IOException {
-        XContentParser.Token token;
-        ArrayList<List<Object>> bulkArgs = new ArrayList<>();
-        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-            if (token == XContentParser.Token.START_ARRAY) {
-                bulkArgs.add(parseSubArray(parser));
-            } else {
-                throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
-            }
+        String stmt = parser.text();
+        if (stmt == null || stmt.length() == 0) {
+            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has no value");
         }
-        return bulkArgs;
+        context.stmt(parser.text());
     }
 }

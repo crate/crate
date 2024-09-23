@@ -32,7 +32,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.junit.Test;
 
-import io.crate.action.sql.BaseResultReceiver;
+import io.crate.session.BaseResultReceiver;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 

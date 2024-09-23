@@ -19,24 +19,39 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.session;
 
-import io.crate.concurrent.CompletionListenable;
+import java.util.concurrent.CompletableFuture;
+
+import io.crate.common.annotations.OverridingMethodsMustInvokeSuper;
 import io.crate.data.Row;
 
-/**
- * Used via {@link RowConsumerToResultReceiver} to receive results from the execution of a plan
- */
-public interface ResultReceiver<T> extends CompletionListenable<T> {
+public class BaseResultReceiver implements ResultReceiver<Void> {
 
-    void setNextRow(Row row);
+    private CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
-    void batchFinished();
+    @Override
+    public void setNextRow(Row row) {
+    }
 
-    /**
-     * Called when receiver finished.
-     */
-    void allFinished();
+    @Override
+    public void batchFinished() {
+    }
 
-    void fail(Throwable t);
+    @Override
+    @OverridingMethodsMustInvokeSuper
+    public void allFinished() {
+        completionFuture.complete(null);
+    }
+
+    @Override
+    @OverridingMethodsMustInvokeSuper
+    public void fail(Throwable t) {
+        completionFuture.completeExceptionally(t);
+    }
+
+    @Override
+    public CompletableFuture<Void> completionFuture() {
+        return completionFuture;
+    }
 }
