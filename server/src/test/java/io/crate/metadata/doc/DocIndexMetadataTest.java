@@ -54,7 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.Constants;
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursors;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.BoundCreateTable;

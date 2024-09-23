@@ -146,7 +146,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;

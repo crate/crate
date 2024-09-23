@@ -19,16 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
+package io.crate.session.parser;
 
-import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
- * An exception thrown if the XContent source of a request cannot be parsed.
+ * This interface is for the {@link SQLRequestParser}
+ * The {@link SQLRequestParser} receives a JSON structured body in the form of:
+ * <p>
+ * {
+ * "stmt": "...",
+ * "other_property": "..."
+ * }
+ * <p>
+ * it then utilizes a {@link SQLParseElement} for each property in that structure.
+ * <p>
+ * E.g. for "stmt" property the {@link io.crate.action.sql.parser.SQLStmtParseElement} is used.
  */
-class SQLParseSourceException extends ElasticsearchException {
+interface SQLParseElement {
 
-    SQLParseSourceException(String msg) {
-        super("Parse Failure [" + msg + "]");
-    }
+    void parse(XContentParser parser, SQLRequestParseContext context) throws Exception;
 }

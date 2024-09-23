@@ -50,8 +50,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.yaml.snakeyaml.Yaml;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 

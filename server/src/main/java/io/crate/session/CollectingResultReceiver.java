@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.session;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;

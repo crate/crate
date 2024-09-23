@@ -30,7 +30,7 @@ import java.util.Map;
 
 import org.elasticsearch.common.inject.Inject;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.NodeContext;

@@ -24,7 +24,7 @@ package io.crate.analyze;
 import java.util.List;
 import java.util.function.Consumer;
 
-import io.crate.action.sql.Cursor;
+import io.crate.session.Cursor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.Fetch.ScrollMode;

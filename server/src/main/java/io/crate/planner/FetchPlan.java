@@ -21,7 +21,7 @@
 
 package io.crate.planner;
 
-import io.crate.action.sql.Cursor;
+import io.crate.session.Cursor;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

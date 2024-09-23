@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursors;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;

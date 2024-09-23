@@ -19,32 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.session;
 
-import io.crate.protocols.postgres.Portal;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.data.Row;
 
-public final class DeferredExecution {
+/**
+ * Used via {@link RowConsumerToResultReceiver} to receive results from the execution of a plan
+ */
+public interface ResultReceiver<T> extends CompletionListenable<T> {
 
-    private final Portal portal;
-    private final int maxRows;
-    private final ResultReceiver<?> resultReceiver;
+    void setNextRow(Row row);
 
-    public DeferredExecution(Portal portal, int maxRows, ResultReceiver<?> resultReceiver) {
-        this.portal = portal;
-        this.maxRows = maxRows;
-        this.resultReceiver = resultReceiver;
-    }
+    void batchFinished();
 
-    public Portal portal() {
-        return portal;
-    }
+    /**
+     * Called when receiver finished.
+     */
+    void allFinished();
 
-    public int maxRows() {
-        return maxRows;
-    }
-
-    public ResultReceiver<?> resultReceiver() {
-        return resultReceiver;
-    }
-
+    void fail(Throwable t);
 }

@@ -34,8 +34,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.protocols.postgres.ConnectionProperties;

@@ -95,9 +95,9 @@ import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.Constants;
-import io.crate.action.sql.Cursors;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;

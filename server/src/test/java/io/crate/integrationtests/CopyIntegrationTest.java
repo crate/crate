@@ -54,7 +54,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.protocols.postgres.ConnectionProperties;

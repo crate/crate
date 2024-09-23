@@ -19,24 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
+package io.crate.session.parser;
 
-import org.elasticsearch.common.xcontent.XContentParser;
+import java.util.List;
 
 /**
- * This interface is for the {@link SQLRequestParser}
- * The {@link SQLRequestParser} receives a JSON structured body in the form of:
- * <p>
- * {
- * "stmt": "...",
- * "other_property": "..."
- * }
- * <p>
- * it then utilizes a {@link SQLParseElement} for each property in that structure.
- * <p>
- * E.g. for "stmt" property the {@link io.crate.action.sql.parser.SQLStmtParseElement} is used.
+ * Context for information gathered by parsing an XContent based sql request
  */
-interface SQLParseElement {
+public final class SQLRequestParseContext {
 
-    void parse(XContentParser parser, SQLRequestParseContext context) throws Exception;
+    private String stmt;
+    private List<Object> args;
+    private List<List<Object>> bulkArgs;
+
+    public String stmt() {
+        return stmt;
+    }
+
+    public void stmt(String stmt) {
+        this.stmt = stmt;
+    }
+
+    public List<Object> args() {
+        return args;
+    }
+
+    public void args(List<Object> args) {
+        this.args = args;
+    }
+
+    public List<List<Object>> bulkArgs() {
+        return bulkArgs;
+    }
+
+    public void bulkArgs(List<List<Object>> bulkArgs) {
+        this.bulkArgs = bulkArgs;
+    }
 }

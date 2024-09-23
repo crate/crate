@@ -19,14 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
+package io.crate.session.parser;
 
-import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
-class SQLArgsParseElement implements SQLParseElement {
+import org.elasticsearch.common.xcontent.XContentParser;
+
+class SQLBulkArgsParseElement extends SQLArgsParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
@@ -34,26 +36,19 @@ class SQLArgsParseElement implements SQLParseElement {
         if (token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-        context.args(parseSubArray(parser));
+        context.bulkArgs(parseSubArrays(parser));
     }
 
-    ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
+    private List<List<Object>> parseSubArrays(XContentParser parser) throws IOException {
         XContentParser.Token token;
-        ArrayList<Object> args = new ArrayList<>();
+        ArrayList<List<Object>> bulkArgs = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-            if (token.isValue()) {
-                args.add(parser.objectText());
-            } else if (token == XContentParser.Token.START_ARRAY) {
-                args.add(parseSubArray(parser));
-            } else if (token == XContentParser.Token.START_OBJECT) {
-                args.add(parser.map());
-            } else if (token == XContentParser.Token.VALUE_NULL) {
-                args.add(null);
+            if (token == XContentParser.Token.START_ARRAY) {
+                bulkArgs.add(parseSubArray(parser));
             } else {
                 throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
             }
         }
-        return args;
+        return bulkArgs;
     }
 }
-

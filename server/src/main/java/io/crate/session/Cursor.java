@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.session;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +27,9 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.breaker.TypedCellsAccounting;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;

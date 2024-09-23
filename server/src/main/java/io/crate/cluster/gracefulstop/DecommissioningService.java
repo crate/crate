@@ -21,7 +21,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;

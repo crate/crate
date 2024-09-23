@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Session;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Session;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

@@ -30,7 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.action.sql.BaseResultReceiver;
+import io.crate.session.BaseResultReceiver;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.UseJdbc;

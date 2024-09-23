@@ -19,40 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql.parser;
+package io.crate.session;
 
-import java.util.List;
+import io.crate.protocols.postgres.Portal;
 
-/**
- * Context for information gathered by parsing an XContent based sql request
- */
-public final class SQLRequestParseContext {
+public final class DeferredExecution {
 
-    private String stmt;
-    private List<Object> args;
-    private List<List<Object>> bulkArgs;
+    private final Portal portal;
+    private final int maxRows;
+    private final ResultReceiver<?> resultReceiver;
 
-    public String stmt() {
-        return stmt;
+    public DeferredExecution(Portal portal, int maxRows, ResultReceiver<?> resultReceiver) {
+        this.portal = portal;
+        this.maxRows = maxRows;
+        this.resultReceiver = resultReceiver;
     }
 
-    public void stmt(String stmt) {
-        this.stmt = stmt;
+    public Portal portal() {
+        return portal;
     }
 
-    public List<Object> args() {
-        return args;
+    public int maxRows() {
+        return maxRows;
     }
 
-    public void args(List<Object> args) {
-        this.args = args;
+    public ResultReceiver<?> resultReceiver() {
+        return resultReceiver;
     }
 
-    public List<List<Object>> bulkArgs() {
-        return bulkArgs;
-    }
-
-    public void bulkArgs(List<List<Object>> bulkArgs) {
-        this.bulkArgs = bulkArgs;
-    }
 }

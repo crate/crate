@@ -19,39 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.session.parser;
 
-import java.util.concurrent.CompletableFuture;
+import org.elasticsearch.ElasticsearchException;
 
-import io.crate.common.annotations.OverridingMethodsMustInvokeSuper;
-import io.crate.data.Row;
+/**
+ * An exception thrown if the XContent source of a request cannot be parsed.
+ */
+class SQLParseSourceException extends ElasticsearchException {
 
-public class BaseResultReceiver implements ResultReceiver<Void> {
-
-    private CompletableFuture<Void> completionFuture = new CompletableFuture<>();
-
-    @Override
-    public void setNextRow(Row row) {
-    }
-
-    @Override
-    public void batchFinished() {
-    }
-
-    @Override
-    @OverridingMethodsMustInvokeSuper
-    public void allFinished() {
-        completionFuture.complete(null);
-    }
-
-    @Override
-    @OverridingMethodsMustInvokeSuper
-    public void fail(Throwable t) {
-        completionFuture.completeExceptionally(t);
-    }
-
-    @Override
-    public CompletableFuture<Void> completionFuture() {
-        return completionFuture;
+    SQLParseSourceException(String msg) {
+        super("Parse Failure [" + msg + "]");
     }
 }

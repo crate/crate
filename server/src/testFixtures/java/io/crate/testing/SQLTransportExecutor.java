@@ -21,7 +21,7 @@
 
 package io.crate.testing;
 
-import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.session.Session.UNNAMED;
 import static io.crate.types.ResultSetParser.getObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -67,10 +67,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
 import io.crate.common.exceptions.Exceptions;
@@ -87,6 +83,10 @@ import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.ResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

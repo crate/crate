@@ -67,7 +67,7 @@ import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.TestCluster.RestartCallback;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.Asserts;

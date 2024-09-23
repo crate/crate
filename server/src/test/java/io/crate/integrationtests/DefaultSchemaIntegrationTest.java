@@ -31,7 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.action.sql.Session;
+import io.crate.session.Session;
 import io.crate.testing.SQLResponse;
 
 public class DefaultSchemaIntegrationTest extends IntegTestCase {

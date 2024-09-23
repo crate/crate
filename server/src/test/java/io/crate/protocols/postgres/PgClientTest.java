@@ -49,8 +49,8 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;

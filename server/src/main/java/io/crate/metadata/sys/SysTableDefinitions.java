@@ -35,7 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;

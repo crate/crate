@@ -38,9 +38,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 

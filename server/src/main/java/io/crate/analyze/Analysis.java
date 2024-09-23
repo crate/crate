@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursors;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
