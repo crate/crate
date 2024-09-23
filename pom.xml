@@ -300,13 +300,13 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>22</maven.compiler.source>
-    <maven.compiler.target>22</maven.compiler.target>
+    <maven.compiler.source>23</maven.compiler.source>
+    <maven.compiler.target>23</maven.compiler.target>
 
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>22.0.2+9</versions.jdk>
+    <versions.jdk>23</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.23.1</versions.log4j>
     <versions.assertj>3.26.3</versions.assertj>
