@@ -92,7 +92,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     public void setUp() throws Exception {
         super.setUp();
         var handler = new AzureHttpHandler(CONTAINER_NAME, true);
-        httpServer = HttpServer.create(new InetSocketAddress(AZURE_ACCOUNT + "." + "localhost", 0), 0);
+        httpServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME , handler);
         httpServer.start();
         InetSocketAddress address = httpServer.getAddress();
