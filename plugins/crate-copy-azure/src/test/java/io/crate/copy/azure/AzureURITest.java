@@ -51,22 +51,6 @@ public class AzureURITest {
     }
 
     @Test
-    public void test_account_has_uppercase_letter_throws_exception() throws Exception {
-        URI uri = URI.create("az://myAccount.blob.core.windows.net/container/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. Account length must be between 3 and 24 characters and contain only lowercase characters and numbers");
-    }
-
-    @Test
-    public void test_account_has_invalid_length_throws_exception() throws Exception {
-        URI uri = URI.create("az://ac.blob.core.windows.net/container/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. Account length must be between 3 and 24 characters and contain only lowercase characters and numbers");
-    }
-
-    @Test
     public void test_no_container_throws_exception() throws Exception {
         URI uri = URI.create("az://myaccount.blob.core.windows.net/dir");
         assertThatThrownBy(() -> AzureURI.of(uri))

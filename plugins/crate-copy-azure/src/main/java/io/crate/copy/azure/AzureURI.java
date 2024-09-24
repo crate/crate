@@ -24,7 +24,6 @@ package io.crate.copy.azure;
 import static io.crate.copy.azure.AzureCopyPlugin.USER_FACING_SCHEME;
 
 import java.net.URI;
-import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -45,10 +44,6 @@ public record AzureURI(
     Globs.GlobPredicate globPredicate
 ) {
 
-
-    private static final Pattern ACCOUNT_PATTERN = Pattern.compile("[a-z0-9]{3,24}");
-    private static final Pattern CONTAINER_PATTERN = Pattern.compile("[a-z0-9-]{3,63}");
-
     public static AzureURI of(URI uri) {
 
         if (uri.getScheme().equals(USER_FACING_SCHEME) == false) {
@@ -62,11 +57,6 @@ public record AzureURI(
             throw new IllegalArgumentException("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
         }
         String account = endpoint.substring(0, dotIndex);
-        if (ACCOUNT_PATTERN.matcher(account).matches() == false) {
-            throw new IllegalArgumentException(
-                "Invalid URI. Account length must be between 3 and 24 characters and contain only lowercase characters and numbers"
-            );
-        }
 
         assert path.charAt(0) == '/' : "URI path starts with /";
         int secondSlashIndex = path.indexOf('/', 1); // Skip first slash;
@@ -81,11 +71,6 @@ public record AzureURI(
         }
 
         String container = path.substring(1, secondSlashIndex);
-        if (CONTAINER_PATTERN.matcher(container).matches() == false) {
-            throw new IllegalArgumentException(
-                "Invalid URI. Container length must be between 3 and 63 characters and contain only lowercase characters, numbers and hyphens"
-            );
-        }
 
         String resourcePath = path.substring(secondSlashIndex); // At least one symbol as path cannot be empty.
         // List API returns entries without leading backslash.
