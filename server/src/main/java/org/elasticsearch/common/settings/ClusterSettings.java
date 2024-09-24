@@ -449,6 +449,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         Sessions.NODE_READ_ONLY_SETTING,
         Sessions.STATEMENT_TIMEOUT,
         Sessions.MEMORY_LIMIT,
+        Sessions.TEMP_ERROR_RETRY_COUNT,
         PostgresNetty.PSQL_ENABLED_SETTING,
         PostgresNetty.PSQL_PORT_SETTING,
         AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,

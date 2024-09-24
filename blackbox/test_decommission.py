@@ -136,6 +136,7 @@ class GracefulStopTest(unittest.TestCase):
                     'cluster.name': self.__class__.__name__,
                     'node.name': self.node_name(i),
                     'transport.tcp.port': transport_port_range,
+                    'node.sql.num_temp_error_retries': 15,
                 },
                 env={
                     **os.environ.copy(),
