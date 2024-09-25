@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
@@ -250,12 +251,10 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             byte[] bytes = in.readByteArray();
-            int scale;
-            if (in.readBoolean()) {
+            int scale = this.scale == null ? 0 : this.scale;
+            if (in.getVersion().onOrAfter(Version.V_5_9_0) && in.readBoolean()) {
                 scale = in.readVInt();
                 assert this.scale == null || this.scale == scale : "streamed value scale differs from type scale";
-            } else {
-                scale = this.scale == null ? 0 : this.scale;
             }
             return new BigDecimal(
                 new BigInteger(bytes),
@@ -272,11 +271,13 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (v != null) {
             out.writeBoolean(true);
             out.writeByteArray(v.unscaledValue().toByteArray());
-            if (scale == null) {
-                out.writeBoolean(true);
-                out.writeVInt(v.scale());
-            } else {
-                out.writeBoolean(false);
+            if (out.getVersion().onOrAfter(Version.V_5_9_0)) {
+                if (scale == null) {
+                    out.writeBoolean(true);
+                    out.writeVInt(v.scale());
+                } else {
+                    out.writeBoolean(false);
+                }
             }
         } else {
             out.writeBoolean(false);
