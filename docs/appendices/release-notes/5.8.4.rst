@@ -64,6 +64,10 @@ Fixes
   operator on :ref:`REAL <type-real>` array columns against literals to return
   invalid results.
 
+- Fixed an issue that caused ``=`` or ``!=`` :ref:`ANY <sql_any_array_comparison>`
+  operator to throw a ``ClassCastException`` when the right hand side argument
+  was more than 1 dimensions higher than the left hand side argument.
+
 - Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
   incorrect results, with missing ``scale``. This issue has only affected
   multi-node cluster installations.
