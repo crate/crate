@@ -60,6 +60,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
@@ -296,13 +297,17 @@ public final class SourceParser {
                 colPath);
             case START_OBJECT -> parseObject(parser, requiredColumns, droppedColumns, lookupNameBySourceKey,
                 colPath, includeUnknown);
-            case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
-            case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
-            case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
-            case VALUE_EMBEDDED_OBJECT -> type == null ? parser.binaryValue() : parseByType(parser, type);
+            case VALUE_STRING -> isUndefined(type) ? parser.text() : parseByType(parser, type);
+            case VALUE_NUMBER -> isUndefined(type) ? parser.numberValue() : parseByType(parser, type);
+            case VALUE_BOOLEAN -> isUndefined(type) ? parser.booleanValue() : parseByType(parser, type);
+            case VALUE_EMBEDDED_OBJECT -> isUndefined(type) ? parser.binaryValue() : parseByType(parser, type);
             default -> throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got "
                 + parser.currentToken());
         };
+    }
+
+    private static boolean isUndefined(@Nullable DataType<?> type) {
+        return type == null || type.id() == DataTypes.UNDEFINED.id();
     }
 
     private static Object parseByType(XContentParser parser, DataType<?> type) throws IOException {
