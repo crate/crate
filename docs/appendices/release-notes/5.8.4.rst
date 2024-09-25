@@ -64,3 +64,6 @@ Fixes
 - Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
   incorrect results, with missing ``scale``. This issue has only affected
   multi-node cluster installations.
+
+- Fixed an integer overflow issue when the total shards (shards and replicas)
+  configured for a table are greater than ``Integer.MAX_VALUE``.
