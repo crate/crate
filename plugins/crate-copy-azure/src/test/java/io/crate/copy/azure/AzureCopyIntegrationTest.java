@@ -51,7 +51,6 @@ import io.crate.lucene.CrateLuceneTestCase;
 public class AzureCopyIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "test";
-    public static final String AZURE_ACCOUNT = "devstoreaccount1";
     private static final String AZURE_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
     /**
@@ -87,12 +86,19 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
         return plugins;
     }
 
+    /**
+     * Azure BlobStorage URI must look like 'az://account.endpoint_suffix/container/path/to/file'.
+     * Part 'account.endpoint_suffix' is the endpoint.
+     * We cannot start stub server on domain looking like 'acc.localhost' and neither can OpenDAL client issue requests for such domain.
+     * We use "127.0.0.1" as account.endpoint_suffix for tests.
+     * This way we get a valid host to run stub server, issue requests from OpenDAL and pretend that account = 127 and suffix is 0.0.1.
+     */
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
         var handler = new AzureHttpHandler(CONTAINER_NAME, true);
-        httpServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME , handler);
         httpServer.start();
         InetSocketAddress address = httpServer.getAddress();
@@ -100,13 +106,12 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
         String host = String.format(
             Locale.ENGLISH,
             "%s:%d",
-            address.getAddress().getCanonicalHostName(),
+            "127.0.0.1",
             address.getPort()
         );
         containerUri = String.format(
             Locale.ENGLISH,
-            "az://%s.%s/%s",
-            AZURE_ACCOUNT,
+            "az://%s/%s",
             host,
             CONTAINER_NAME
         );
