@@ -20,6 +20,7 @@
 package org.elasticsearch.indices;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.shards.ShardCounts.forDataNodeCount;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,12 +35,14 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.shards.ShardCounts;
+import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class ShardLimitValidatorTests extends ESTestCase {
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+
+public class ShardLimitValidatorTests extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOverShardLimit() {
@@ -96,5 +99,39 @@ public class ShardLimitValidatorTests extends ESTestCase {
             .metadata(metadata)
             .nodes(nodes)
             .build();
+    }
+
+    @Test
+    public void test_supported_total_shards_cannot_exceed_integer_max_value() {
+        Settings settings = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 4)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1925152226)
+            .build();
+        var validator = new ShardLimitValidator(settings, clusterService);
+        assertThatThrownBy(() -> validator.validateShardLimit(settings, clusterService.state()))
+            .isExactlyInstanceOf(ValidationException.class)
+            .hasMessage("Validation Failed: 1: this action would add more than the supported [2147483647] total shards;");
+    }
+
+    @Test
+    public void test_supported_replica_shards_cannot_exceed_integer_max_value_minus_one() {
+        Settings settings = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2147483647)
+            .build();
+        var validator = new ShardLimitValidator(settings, clusterService);
+        assertThatThrownBy(() -> validator.validateShardLimit(settings, clusterService.state()))
+            .isExactlyInstanceOf(ValidationException.class)
+            .hasMessage("Validation Failed: 1: this action would add more than the supported [2147483647] total shards;");
+    }
+
+    @Test
+    public void test_max_shards_in_cluster_cannot_exceed_integer_max_value() {
+        int nodesInCluster = 2;
+        ClusterState state = createClusterForShardLimitTest(nodesInCluster, 1, 0);
+
+        Optional<String> errorMessage = ShardLimitValidator.checkShardLimit(1, state, Integer.MAX_VALUE);
+        assertThat(errorMessage.isPresent()).isTrue();
+        assertThat(errorMessage.get()).isEqualTo("this action would add more than the supported [2147483647] total shards");
     }
 }
