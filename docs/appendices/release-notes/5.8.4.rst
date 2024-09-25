@@ -68,6 +68,9 @@ Fixes
   operator to throw a ``ClassCastException`` when the right hand side argument
   was more than 1 dimensions higher than the left hand side argument.
 
+- Fixed an issue that caused :ref:`ANY <sql_any_array_comparison>` operator to
+  throw a ``ClassCastException`` when the arguments were nested arrays.
+
 - Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
   incorrect results, with missing ``scale``. This issue has only affected
   multi-node cluster installations.
