@@ -39,6 +39,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
@@ -89,6 +90,9 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        if (DataTypes.isArray(probe.valueType())) {
+            return null;
+        }
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
