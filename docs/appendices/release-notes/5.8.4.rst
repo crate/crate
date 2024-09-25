@@ -60,3 +60,7 @@ Fixes
 - Fixed an issue that caused filtering by :ref:`ALL <all_array_comparison>`
   operator on :ref:`REAL <type-real>` array columns against literals to return
   invalid results.
+
+- Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
+  incorrect results, with missing ``scale``. This issue has only affected
+  multi-node cluster installations.

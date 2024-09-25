@@ -30,13 +30,14 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
@@ -70,7 +71,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Nullable
     private final Integer precision;
 
-    private NumericType(@Nullable Integer precision, @Nullable Integer scale) {
+    public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
         this.precision = precision;
         this.scale = scale;
     }
@@ -221,9 +222,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             byte[] bytes = in.readByteArray();
+            int scale = this.scale == null ? 0 : this.scale;
+            if (in.getVersion().onOrAfter(Version.V_5_8_4) && in.readBoolean()) {
+                scale = in.readVInt();
+                assert this.scale == null || this.scale == scale : "streamed value scale differs from type scale";
+            }
             return new BigDecimal(
                 new BigInteger(bytes),
-                scale == null ? 0 : scale,
+                scale,
                 mathContextOrDefault()
             );
         } else {
@@ -236,6 +242,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (v != null) {
             out.writeBoolean(true);
             out.writeByteArray(v.unscaledValue().toByteArray());
+            if (out.getVersion().onOrAfter(Version.V_5_8_4)) {
+                if (scale == null) {
+                    out.writeBoolean(true);
+                    out.writeVInt(v.scale());
+                } else {
+                    out.writeBoolean(false);
+                }
+            }
         } else {
             out.writeBoolean(false);
         }
