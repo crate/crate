@@ -250,9 +250,16 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             byte[] bytes = in.readByteArray();
+            int scale;
+            if (in.readBoolean()) {
+                scale = in.readVInt();
+                assert this.scale == null || this.scale == scale : "streamed value scale differs from type scale";
+            } else {
+                scale = this.scale == null ? 0 : this.scale;
+            }
             return new BigDecimal(
                 new BigInteger(bytes),
-                scale == null ? 0 : scale,
+                scale,
                 mathContext()
             );
         } else {
@@ -265,6 +272,12 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (v != null) {
             out.writeBoolean(true);
             out.writeByteArray(v.unscaledValue().toByteArray());
+            if (scale == null) {
+                out.writeBoolean(true);
+                out.writeVInt(v.scale());
+            } else {
+                out.writeBoolean(false);
+            }
         } else {
             out.writeBoolean(false);
         }
