@@ -47,6 +47,9 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused numeric values inside of ``OBJECT (IGNORED)``
+  columns to be returned as text instead of number.
+
 - Fixed an issue causing an object column definition with duplicate child
   column names to be accepted (last definition was used) instead of throwing an
   error. E.g.::
