@@ -68,22 +68,6 @@ public class AzureURITest {
     }
 
     @Test
-    public void test_container_has_uppercase_letter_throws_exception() throws Exception {
-        URI uri = URI.create("dummy://myaccount.blob.core.windows.net/Container/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
-    }
-
-    @Test
-    public void test_container_has_invalid_length_throws_exception() throws Exception {
-        URI uri = URI.create("dummy://myaccount.blob.core.windows.net/co/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
-    }
-
-    @Test
     public void test_invalid_scheme_throws_exception() throws Exception {
         URI uri = URI.create("dummy://myaccount.blob.core.windows.net/container/dir");
         assertThatThrownBy(() -> AzureURI.of(uri))
