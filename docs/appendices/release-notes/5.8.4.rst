@@ -85,3 +85,6 @@ Fixes
 - Fixed an issue that caused :ref:`in <sql_in_array_comparison>` operator with
   array typed column on left hand side of the arguments to return invalid
   results.
+
+- Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
+  to internal concurrent unsafe access.
