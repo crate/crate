@@ -33,6 +33,15 @@ public class AzureURITest {
 
     private static final String COMMON_PREFIX = "az://myaccount.blob.core.windows.net/my-container";
 
+    @Test
+    public void test_port_is_added_when_defined() throws Exception {
+        AzureURI azureURI = AzureURI.of(URI.create("az://myaccount.blob.core.windows.net:1234/container/file.json"));
+        assertThat(azureURI.endpoint()).isEqualTo("myaccount.blob.core.windows.net:1234");
+
+        // No port
+        azureURI = AzureURI.of(URI.create("az://myaccount.blob.core.windows.net/container/file.json"));
+        assertThat(azureURI.endpoint()).isEqualTo("myaccount.blob.core.windows.net");
+    }
 
     @Test
     public void test_empty_path_after_container_throws_exception() throws Exception {
