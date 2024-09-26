@@ -109,7 +109,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             Arrays.stream(fileUris).map(FileReadingIterator::toURI).toList(),
             compression,
             Map.of(
-                S3FileInputFactory.NAME,
+                S3CopyPlugin.SCHEME,
                 (uri, withClauseOptions) -> new S3FileInput(new S3ClientHelper() {
                     @Override
                     protected AmazonS3 initClient(String accessKey, String secretKey, String endpoint, String protocol) {

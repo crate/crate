@@ -23,38 +23,26 @@ package io.crate.copy.s3.common;
 
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
+import java.util.List;
 import java.util.Locale;
 
-public enum S3Protocol {
-    HTTPS,
-    HTTP;
+public class S3Settings {
 
-    private static final String NAME = "protocol";
+    private static final List<String> SUPPORTED_PROTOCOLS = List.of("https", "http");
 
-    private static final Setting<S3Protocol> PROTOCOL = new Setting<>(
-        NAME,
-        HTTPS.toString(),
-        p -> {
-            for (S3Protocol s3Protocol : S3Protocol.values()) {
-                if (s3Protocol.toString().equals(p)) {
-                    return s3Protocol;
-                }
+    public static final Setting<String> PROTOCOL_SETTING = new Setting<>(
+        "protocol",
+        "https",
+        s -> {
+            if (SUPPORTED_PROTOCOLS.contains(s) == false) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH,"Invalid protocol `%s`. Expected HTTP or HTTPS", s)
+                );
             }
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "invalid protocol `%s`. Expected HTTP or HTTPS", p));
+            return s;
+
         },
-        DataTypes.STRING,
-        Setting.Property.Final
-    );
+        DataTypes.STRING);
 
-    public static String get(Settings settings) {
-        return PROTOCOL.get(settings).toString();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase(Locale.ENGLISH);
-    }
 }

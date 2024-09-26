@@ -35,6 +35,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 
 public class FileWriterProjector implements Projector {
 
@@ -47,6 +48,7 @@ public class FileWriterProjector implements Projector {
     private final WriterProjection.CompressionType compressionType;
     private final Executor executor;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
+    private final Map<String, SchemeSettings> schemeSettingsMap;
     private final Settings withClauseOptions;
 
     /**
@@ -65,6 +67,7 @@ public class FileWriterProjector implements Projector {
                                @Nullable List<String> outputNames,
                                WriterProjection.OutputFormat outputFormat,
                                Map<String, FileOutputFactory> fileOutputFactoryMap,
+                               Map<String, SchemeSettings> schemeSettingsMap,
                                Settings withClauseOptions) {
         this.collectExpressions = collectExpressions;
         this.executor = executor;
@@ -74,6 +77,7 @@ public class FileWriterProjector implements Projector {
         this.compressionType = compressionType;
         this.uri = uri;
         this.fileOutputFactoryMap = fileOutputFactoryMap;
+        this.schemeSettingsMap = schemeSettingsMap;
         this.withClauseOptions = withClauseOptions;
     }
 
@@ -90,6 +94,7 @@ public class FileWriterProjector implements Projector {
                 outputNames,
                 outputFormat,
                 fileOutputFactoryMap,
+                schemeSettingsMap,
                 withClauseOptions
             )
         );

@@ -40,6 +40,7 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
@@ -70,7 +71,8 @@ public abstract class ShardCollectorProvider {
                            ElasticsearchClient elasticsearchClient,
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
-                           Map<String, FileOutputFactory> fileOutputFactoryMap) {
+                           Map<String, FileOutputFactory> fileOutputFactoryMap,
+                           Map<String, SchemeSettings> schemeSettingsMap) {
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
@@ -93,7 +95,8 @@ public abstract class ShardCollectorProvider {
             t -> null,
             indexShard.indexSettings().getIndexVersionCreated(),
             indexShard.shardId(),
-            fileOutputFactoryMap
+            fileOutputFactoryMap,
+            schemeSettingsMap
         );
         this.batchIteratorFactory = new BatchIteratorFactory();
     }

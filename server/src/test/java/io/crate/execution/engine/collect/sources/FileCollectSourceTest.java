@@ -89,6 +89,7 @@ public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
             createNodeContext(),
             clusterService,
             Map.of(),
+            Map.of(),
             THREAD_POOL,
             () -> List.of(Role.CRATE_USER)
         );

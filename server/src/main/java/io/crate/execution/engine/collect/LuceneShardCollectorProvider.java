@@ -46,6 +46,7 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.sort.LuceneSort;
 import io.crate.execution.jobs.NodeLimits;
@@ -86,7 +87,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         ElasticsearchClient elasticsearchClient,
                                         IndexShard indexShard,
                                         BigArrays bigArrays,
-                                        Map<String, FileOutputFactory> fileOutputFactoryMap) {
+                                        Map<String, FileOutputFactory> fileOutputFactoryMap,
+                                        Map<String, SchemeSettings> schemeSettingsMap) {
         super(
             clusterService,
             circuitBreakerService,
@@ -97,7 +99,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             elasticsearchClient,
             indexShard,
             new ShardRowContext(indexShard, clusterService),
-            fileOutputFactoryMap
+            fileOutputFactoryMap,
+            schemeSettingsMap
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;

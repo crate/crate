@@ -60,10 +60,9 @@ public class OperatorHelper {
 
     /**
      * @param settings represents WITH clause parameters in COPY... operation.
-     * @param read is 'true' for COPY FROM and 'false' for COPY TO.
      */
-    public static Map<String, String> config(AzureURI azureURI, Settings settings, boolean read) {
-        validate(settings, read);
+    public static Map<String, String> config(AzureURI azureURI, Settings settings) {
+        validate(settings);
 
         Map<String, String> config = new HashMap<>();
         for (Setting<String> setting : SETTINGS_TO_REWRITE) {

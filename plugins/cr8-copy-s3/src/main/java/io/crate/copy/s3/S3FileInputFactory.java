@@ -21,7 +21,8 @@
 
 package io.crate.copy.s3;
 
-import io.crate.copy.s3.common.S3Protocol;
+import static io.crate.copy.s3.common.S3Settings.PROTOCOL_SETTING;
+
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import org.elasticsearch.common.settings.Settings;
@@ -30,10 +31,8 @@ import java.net.URI;
 
 public class S3FileInputFactory implements FileInputFactory {
 
-    public static final String NAME = "s3";
-
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) {
-        return new S3FileInput(uri, S3Protocol.get(withClauseOptions));
+        return new S3FileInput(uri, PROTOCOL_SETTING.get(withClauseOptions));
     }
 }

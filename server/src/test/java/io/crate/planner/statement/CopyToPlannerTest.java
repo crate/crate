@@ -23,7 +23,6 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -180,7 +179,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void copy_to_protocol_in_with_clause_is_not_rejected() {
         // We do unknown or irrelevant property validation for "file" scheme in the server module.
         // Verify that properties of a non-file scheme are not rejected.
-        // They are supposed to be validated later in a plugin, implementing the scheme.
+        // They are supposed to be validated later, when scheme specific settings are injected by a plugin.
         Merge merge = plan("COPY users to DIRECTORY 's3://bucket' WITH (protocol='http')");
         Collect collect = (Collect) merge.subPlan();
         WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();

@@ -119,6 +119,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                     null,
                     Settings.EMPTY,
                     mock(ElasticsearchClient.class),
+                    Map.of(),
                     Map.of()
                 );
                 assertThat(collectorProvider).isNotNull();

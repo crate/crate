@@ -54,6 +54,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 
 /**
  * Collector implementation which writes the rows to the configured {@link FileOutput}
@@ -83,6 +84,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
                              @Nullable List<String> outputNames,
                              WriterProjection.OutputFormat outputFormat,
                              Map<String, FileOutputFactory> fileOutputFactories,
+                             Map<String, SchemeSettings> schemeSettingsMap,
                              Settings withClauseOptions) {
         this.executor = executor;
         this.collectExpressions = collectExpressions;
@@ -97,6 +99,10 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         }
         String scheme = uri.getScheme();
         scheme = (scheme == null) ? LocalFsFileOutputFactory.NAME : scheme;
+        SchemeSettings schemeSettings = schemeSettingsMap.get(scheme);
+        if (schemeSettings != null) {
+            schemeSettings.validate(withClauseOptions, false);
+        }
         FileOutputFactory fileOutputFactory = fileOutputFactories.get(scheme);
         if (fileOutputFactory == null) {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", scheme));

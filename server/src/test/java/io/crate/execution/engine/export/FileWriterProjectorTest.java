@@ -70,7 +70,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
             null, null, Set.of(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Map.of(), Settings.EMPTY);
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
@@ -90,7 +90,7 @@ public class FileWriterProjectorTest extends ESTestCase {
                 executorService, directory.toUri().toString(),
                 null, null, Set.of(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
-                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
+                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Map.of(), Settings.EMPTY);
         assertThatThrownBy(() -> new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null))
             .isExactlyInstanceOf(UnhandledServerException.class)
             .hasMessageStartingWith("Failed to open output: 'Output path is a directory: ");
@@ -103,7 +103,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
                 null, null, Set.of(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
-                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
+                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Map.of(), Settings.EMPTY);
 
         assertThatThrownBy(() -> new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null))
             .isExactlyInstanceOf(UnhandledServerException.class)

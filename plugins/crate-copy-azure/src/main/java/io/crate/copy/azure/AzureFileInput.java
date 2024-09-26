@@ -56,7 +56,7 @@ public class AzureFileInput implements FileInput {
                           Settings settings) {
 
         this.azureURI = AzureURI.of(uri);
-        this.config = OperatorHelper.config(azureURI, settings, true);
+        this.config = OperatorHelper.config(azureURI, settings);
 
         this.operator = AsyncOperator.of(OPEN_DAL_SCHEME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
 

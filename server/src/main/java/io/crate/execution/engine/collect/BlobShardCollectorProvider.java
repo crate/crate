@@ -40,6 +40,7 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
@@ -62,7 +63,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       ThreadPool threadPool,
                                       Settings settings,
                                       ElasticsearchClient elasticsearchClient,
-                                      Map<String, FileOutputFactory> fileOutputFactoryMap) {
+                                      Map<String, FileOutputFactory> fileOutputFactoryMap,
+                                      Map<String, SchemeSettings> schemeSettingsMap) {
         super(
             clusterService,
             circuitBreakerService,
@@ -73,7 +75,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             elasticsearchClient,
             blobShard.indexShard(),
             new ShardRowContext(blobShard, clusterService),
-            fileOutputFactoryMap
+            fileOutputFactoryMap,
+            schemeSettingsMap
         );
         inputFactory = new InputFactory(nodeCtx);
         this.blobShard = blobShard;

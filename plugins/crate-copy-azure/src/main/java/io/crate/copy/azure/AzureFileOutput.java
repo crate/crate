@@ -45,7 +45,7 @@ public class AzureFileOutput implements FileOutput {
 
     public AzureFileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
         AzureURI azureURI = AzureURI.of(uri);
-        this.config = OperatorHelper.config(azureURI, settings, false);
+        this.config = OperatorHelper.config(azureURI, settings);
         this.resourcePath = azureURI.resourcePath();
         this.operator = AsyncOperator.of(OPEN_DAL_SCHEME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }

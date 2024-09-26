@@ -67,6 +67,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             createNodeContext(),
             clusterService,
             Collections.emptyMap(),
+            Collections.emptyMap(),
             THREAD_POOL,
             () -> List.of(Role.CRATE_USER)
             );

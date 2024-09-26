@@ -83,6 +83,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             t -> null,
             Version.CURRENT,
             new ShardId("dummy", UUID.randomUUID().toString(), 0),
+            null,
             null
         );
     }

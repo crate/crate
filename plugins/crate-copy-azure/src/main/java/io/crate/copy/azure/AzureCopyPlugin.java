@@ -21,7 +21,10 @@
 
 package io.crate.copy.azure;
 
+import static io.crate.copy.azure.AzureBlobStorageSettings.SUPPORTED_SETTINGS;
+
 import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.plugin.CopyPlugin;
 
@@ -39,7 +42,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class AzureCopyPlugin extends Plugin implements CopyPlugin {
@@ -54,12 +57,24 @@ public class AzureCopyPlugin extends Plugin implements CopyPlugin {
         this.sharedAsyncExecutor = new SharedAsyncExecutor(settings);
     }
 
-    public Map<String, FileInputFactory> getFileInputFactories() {
-        return Map.of(USER_FACING_SCHEME, new AzureFileInputFactory(sharedAsyncExecutor));
+    @Override
+    public String scheme() {
+        return USER_FACING_SCHEME;
     }
 
-    public Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Map.of(USER_FACING_SCHEME, new AzureFileOutputFactory(sharedAsyncExecutor));
+    @Override
+    public FileInputFactory inputFactory() {
+        return new AzureFileInputFactory(sharedAsyncExecutor);
+    }
+
+    @Override
+    public FileOutputFactory outputFactory() {
+        return new AzureFileOutputFactory(sharedAsyncExecutor);
+    }
+
+    @Override
+    public SchemeSettings getSchemeSettings() {
+        return new SchemeSettings(List.of(), SUPPORTED_SETTINGS);
     }
 
     @Override

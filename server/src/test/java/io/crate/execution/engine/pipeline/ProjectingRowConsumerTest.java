@@ -104,7 +104,8 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             t -> null,
             Version.CURRENT,
             new ShardId("dummy", UUID.randomUUID().toString(), 0),
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory())
+            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()),
+            Map.of()
         );
     }
 

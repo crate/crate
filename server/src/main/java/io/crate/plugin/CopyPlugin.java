@@ -22,18 +22,22 @@
 package io.crate.plugin;
 
 import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
-
-import java.util.Collections;
-import java.util.Map;
 
 public interface CopyPlugin {
 
-    default Map<String, FileInputFactory> getFileInputFactories() {
-        return Collections.emptyMap();
-    }
+    /**
+     * User facing scheme name.
+     */
+    String scheme();
 
-    default Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Collections.emptyMap();
-    }
+    FileInputFactory inputFactory();
+
+    FileOutputFactory outputFactory();
+
+    /**
+     * Scheme specific settings (mandatory and optional).
+     */
+    SchemeSettings getSchemeSettings();
 }

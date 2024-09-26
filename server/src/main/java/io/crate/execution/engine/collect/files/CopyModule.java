@@ -41,17 +41,15 @@ public class CopyModule extends AbstractModule {
     protected void configure() {
         MapBinder<String, FileInputFactory> fileInputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileInputFactory.class);
         MapBinder<String, FileOutputFactory> fileOutputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileOutputFactory.class);
+        MapBinder<String, SchemeSettings> schemeSettingBinder = MapBinder.newMapBinder(binder(), String.class, SchemeSettings.class);
 
         fileInputFactoryMapBinder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
         fileOutputFactoryMapBinder.addBinding(LocalFsFileOutputFactory.NAME).to(LocalFsFileOutputFactory.class).asEagerSingleton();
 
         for (var copyPlugin : copyPlugins) {
-            for (var e : copyPlugin.getFileInputFactories().entrySet()) {
-                fileInputFactoryMapBinder.addBinding(e.getKey()).toInstance(e.getValue());
-            }
-            for (var e : copyPlugin.getFileOutputFactories().entrySet()) {
-                fileOutputFactoryMapBinder.addBinding(e.getKey()).toInstance(e.getValue());
-            }
+            fileInputFactoryMapBinder.addBinding(copyPlugin.scheme()).toInstance(copyPlugin.inputFactory());
+            fileOutputFactoryMapBinder.addBinding(copyPlugin.scheme()).toInstance(copyPlugin.outputFactory());
+            schemeSettingBinder.addBinding(copyPlugin.scheme()).toInstance(copyPlugin.getSchemeSettings());
         }
     }
 }

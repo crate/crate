@@ -21,9 +21,6 @@
 
 package io.crate.copy.azure;
 
-import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_FROM_SETTINGS;
-import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_TO_SETTINGS;
-
 import java.util.List;
 import java.util.Locale;
 
@@ -31,12 +28,12 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.common.collections.Lists;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.types.DataTypes;
 
 public class AzureBlobStorageSettings {
 
-    private static List<String> SUPPORTED_PROTOCOLS = List.of("https", "http");
+    private static final List<String> SUPPORTED_PROTOCOLS = List.of("https", "http");
 
     public static final Setting<String> KEY_SETTING = Setting.simpleString("key", Property.NodeScope);
     public static final Setting<String> SAS_TOKEN_SETTING = Setting.simpleString("sas_token");
@@ -54,22 +51,16 @@ public class AzureBlobStorageSettings {
         },
         DataTypes.STRING);
 
-    public static final List<Setting<String>> SUPPORTED_SETTINGS = List.of(
+    public static final List<Setting<?>> SUPPORTED_SETTINGS = List.of(
         KEY_SETTING,
         SAS_TOKEN_SETTING,
         PROTOCOL_SETTING
     );
 
-    static void validate(Settings settings, boolean read) {
-        List<String> validSettings = Lists.concat(
-            SUPPORTED_SETTINGS.stream().map(Setting::getKey).toList(),
-            read ? COMMON_COPY_FROM_SETTINGS : COMMON_COPY_TO_SETTINGS
-        );
-        for (String key : settings.keySet()) {
-            if (validSettings.contains(key) == false) {
-                throw new IllegalArgumentException("Setting '" + key + "' is not supported");
-            }
-        }
+    /**
+     * Scheme specific validation. Common validation is done by the {@link SchemeSettings}.
+     */
+    static void validate(Settings settings) {
         if (settings.get(SAS_TOKEN_SETTING.getKey()) == null && settings.get(KEY_SETTING.getKey()) == null) {
             throw new IllegalArgumentException("Authentication setting must be provided: either sas_token or key");
         }

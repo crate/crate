@@ -21,20 +21,37 @@
 
 package io.crate.copy.s3;
 
+import static io.crate.copy.s3.common.S3Settings.PROTOCOL_SETTING;
+
 import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.plugin.CopyPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.Map;
+import java.util.List;
 
 public class S3CopyPlugin extends Plugin implements CopyPlugin {
 
-    public Map<String, FileInputFactory> getFileInputFactories() {
-        return Map.of(S3FileInputFactory.NAME, new S3FileInputFactory());
+    public static final String SCHEME = "s3";
+
+    @Override
+    public String scheme() {
+        return SCHEME;
     }
 
-    public Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Map.of(S3FileOutputFactory.NAME, new S3FileOutputFactory());
+    @Override
+    public FileInputFactory inputFactory() {
+        return new S3FileInputFactory();
+    }
+
+    @Override
+    public FileOutputFactory outputFactory() {
+        return new S3FileOutputFactory();
+    }
+
+    @Override
+    public SchemeSettings getSchemeSettings() {
+        return new SchemeSettings(List.of(), List.of(PROTOCOL_SETTING));
     }
 }

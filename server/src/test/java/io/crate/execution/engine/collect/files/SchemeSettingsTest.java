@@ -19,29 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.azure;
+package io.crate.execution.engine.collect.files;
 
-import static io.crate.copy.azure.AzureBlobStorageSettings.PROTOCOL_SETTING;
-import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-public class AzureBlobStorageSettingsTest {
+public class SchemeSettingsTest {
 
     @Test
-    public void test_auth_param_is_required() throws Exception {
-        assertThatThrownBy(() -> validate(Settings.EMPTY))
+    public void test_unknown_setting_is_rejected() throws Exception {
+        Settings settings = Settings.builder().put("dummy", "dummy").build();
+        SchemeSettings schemeSettings = new SchemeSettings(List.of(), List.of());
+        assertThatThrownBy(() -> schemeSettings.validate(settings, true))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Authentication setting must be provided: either sas_token or key");
+            .hasMessage("Setting 'dummy' is not supported");
     }
 
     @Test
-    public void test_unknown_protocol_is_rejected() throws Exception {
-        Settings settings = Settings.builder().put(PROTOCOL_SETTING.getKey(), "pg").build();
-        assertThatThrownBy(() -> PROTOCOL_SETTING.get(settings))
+    public void test_mandatory_setting_not_provided_throws_an_error() throws Exception {
+        var mandatory = Setting.simpleString("mandatory");
+        var optional = Setting.simpleString("optional");
+        Settings settings = Settings.builder().put(optional.getKey(), "dummy").build();
+        SchemeSettings schemeSettings = new SchemeSettings(List.of(mandatory), List.of(optional));
+        assertThatThrownBy(() -> schemeSettings.validate(settings, true))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid protocol `pg`. Expected HTTP or HTTPS");
+            .hasMessage("Setting 'mandatory' must be provided");
     }
 }

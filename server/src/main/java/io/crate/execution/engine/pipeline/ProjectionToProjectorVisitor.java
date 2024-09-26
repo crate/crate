@@ -98,6 +98,7 @@ import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchNodeAction;
@@ -174,6 +175,7 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
     private final int numProcessors;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
+    private final Map<String, SchemeSettings> schemeSettingsMap;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeLimits nodeJobsCounter,
@@ -188,7 +190,8 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         Version indexVersionCreated,
                                         @Nullable ShardId shardId,
-                                        Map<String, FileOutputFactory> fileOutputFactoryMap) {
+                                        Map<String, FileOutputFactory> fileOutputFactoryMap,
+                                        Map<String, SchemeSettings> schemeSettingsMap) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
@@ -204,6 +207,7 @@ public class ProjectionToProjectorVisitor
         this.shardId = shardId;
         this.numProcessors = EsExecutors.numberOfProcessors(settings);
         this.fileOutputFactoryMap = fileOutputFactoryMap;
+        this.schemeSettingsMap = schemeSettingsMap;
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -229,6 +233,7 @@ public class ProjectionToProjectorVisitor
             sysUpdaterGetter,
             staticTableDefinitionGetter,
             Version.CURRENT,
+            null,
             null,
             null
         );
@@ -407,6 +412,7 @@ public class ProjectionToProjectorVisitor
             projection.outputNames(),
             projection.outputFormat(),
             fileOutputFactoryMap,
+            schemeSettingsMap,
             projection.withClauseOptions()
         );
     }

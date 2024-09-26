@@ -179,7 +179,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void copy_from_protocol_in_with_clause_is_not_rejected() {
         // We do unknown or irrelevant property validation for "file" scheme in the server module.
         // Verify that properties of a non-file scheme are not rejected.
-        // They are supposed to be validated later in a plugin, implementing the scheme.
+        // They are supposed to be validated later, when scheme specific settings are injected by a plugin.
         Collect collect = plan("COPY users FROM 's3://bucket' WITH (protocol='http')");
         assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();

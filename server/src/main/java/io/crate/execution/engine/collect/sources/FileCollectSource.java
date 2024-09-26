@@ -51,6 +51,7 @@ import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.execution.engine.collect.files.LineProcessor;
+import io.crate.execution.engine.collect.files.SchemeSettings;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
@@ -66,6 +67,7 @@ public class FileCollectSource implements CollectSource {
 
     private final ClusterService clusterService;
     private final Map<String, FileInputFactory> fileInputFactoryMap;
+    private final Map<String, SchemeSettings> schemeSettingsMap;
     private final InputFactory inputFactory;
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
@@ -75,9 +77,11 @@ public class FileCollectSource implements CollectSource {
     public FileCollectSource(NodeContext nodeCtx,
                              ClusterService clusterService,
                              Map<String, FileInputFactory> fileInputFactoryMap,
+                             Map<String, SchemeSettings> schemeSettingsMap,
                              ThreadPool threadPool,
                              Roles roles) {
         this.fileInputFactoryMap = fileInputFactoryMap;
+        this.schemeSettingsMap = schemeSettingsMap;
         this.nodeCtx = nodeCtx;
         this.inputFactory = new InputFactory(nodeCtx);
         this.clusterService = clusterService;
@@ -91,6 +95,8 @@ public class FileCollectSource implements CollectSource {
                                                              CollectTask collectTask,
                                                              boolean supportMoveToStart) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
+
+
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
@@ -105,6 +111,12 @@ public class FileCollectSource implements CollectSource {
                 return uri;
             })
             .toList();
+        URI uri = fileUris.getFirst(); // All URI-s have the same scheme, we can take any for validation
+        assert uri != null : "At least one URi must be provided for the COPY FROM statement";
+        SchemeSettings schemeSettings = schemeSettingsMap.get(uri.getScheme());
+        if (schemeSettings != null) {
+            schemeSettings.validate(fileUriCollectPhase.withClauseOptions(), true);
+        }
         FileReadingIterator fileReadingIterator = new FileReadingIterator(
             fileUris,
             fileUriCollectPhase.compression(),
