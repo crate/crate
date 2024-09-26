@@ -10,7 +10,8 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>crate-copy-azure</artifactId>
+    <artifactId>crate-libs-copy</artifactId>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
@@ -19,15 +20,22 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.crate</groupId>
-            <artifactId>crate-libs-copy</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <version>${versions.annotations}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.opendal</groupId>
+            <artifactId>opendal-java</artifactId>
+            <version>${versions.opendal}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.opendal</groupId>
+            <artifactId>opendal-java</artifactId>
+            <version>${versions.opendal}</version>
+            <classifier>${os.detected.classifier}</classifier>
+        </dependency>
+
         <dependency>
             <groupId>io.crate</groupId>
             <artifactId>crate-server</artifactId>
@@ -90,4 +98,16 @@
             <classifier>tests</classifier>
         </dependency>
     </dependencies>
+
+    <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${versions.plugin.os}</version>
+            </extension>
+        </extensions>
+    </build>
+
+
 </project>

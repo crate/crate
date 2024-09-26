@@ -25,6 +25,7 @@ import java.net.URI;
 
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.copy.SharedAsyncExecutor;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 

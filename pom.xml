@@ -396,6 +396,7 @@
     <module>libs/sql-parser</module>
     <module>libs/pgwire</module>
     <module>libs/azure-testing</module>
+    <module>libs/copy</module>
     <module>server</module>
     <module>plugins/es-analysis-common</module>
     <module>plugins/es-analysis-phonetic</module>

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.azure;
+package io.crate.copy;
 
 import java.io.IOException;
 

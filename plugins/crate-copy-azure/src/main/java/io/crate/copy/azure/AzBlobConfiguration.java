@@ -24,7 +24,7 @@ package io.crate.copy.azure;
 import static io.crate.copy.azure.AzureBlobStorageSettings.KEY_SETTING;
 import static io.crate.copy.azure.AzureBlobStorageSettings.PROTOCOL_SETTING;
 import static io.crate.copy.azure.AzureBlobStorageSettings.SAS_TOKEN_SETTING;
-import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
+import static io.crate.copy.azure.AzureBlobStorageSettings.SUPPORTED_SETTINGS;
 
 import java.util.HashMap;
 import java.util.List;
@@ -34,46 +34,22 @@ import java.util.Map;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-/**
- * Helper class to build OpenDAL config.
- */
-public class OperatorHelper {
+import io.crate.copy.Configuration;
 
-    /**
-     * OpenDAL specific settings.
-     * Not same with SUPPORTED_SETTINGS since protocol is not related and required only to construct endpoint.
-     */
-    public static final List<Setting<String>> SETTINGS_TO_REWRITE = List.of(
-        KEY_SETTING,
-        SAS_TOKEN_SETTING
-    );
+public class AzBlobConfiguration implements Configuration<AzureURI> {
 
-    /**
-     * Mapping of the user provided setting names,
-     * which are aligned with 'CREATE REPOSITORY ... TYPE AZURE',
-     * to OpenDAL supported names, listed in https://docs.rs/opendal/latest/opendal/services/struct.Azblob.html.
-     */
-    private static Map<String, String> AZURE_TO_OPEN_DAL = Map.of(
-        KEY_SETTING.getKey(), "account_key",
-        SAS_TOKEN_SETTING.getKey(), "sas_token"
-    );
+    @Override
+    public List<Setting<String>> supportedSettings() {
+        return SUPPORTED_SETTINGS;
+    }
 
-    /**
-     * @param settings represents WITH clause parameters in COPY... operation.
-     * @param read is 'true' for COPY FROM and 'false' for COPY TO.
-     */
-    public static Map<String, String> config(AzureURI azureURI, Settings settings, boolean read) {
-        validate(settings, read);
-
-        Map<String, String> config = new HashMap<>();
-        for (Setting<String> setting : SETTINGS_TO_REWRITE) {
-            var value = setting.get(settings);
-            var key = setting.getKey();
-            var mappedKey = AZURE_TO_OPEN_DAL.get(key);
-            assert mappedKey != null : "All known settings must have their OpenDAL counterpart specified.";
-            if (value != null) {
-                config.put(mappedKey, value);
-            }
+    @Override
+    public Map<String, String> fromURIAndSettings(AzureURI azureURI, Settings settings) {
+        // Scheme specific validation. Common validation is already done at this point.
+        var key = settings.get(KEY_SETTING.getKey());
+        var token = settings.get(SAS_TOKEN_SETTING.getKey());
+        if (key == null && token == null) {
+            throw new IllegalArgumentException("Authentication setting must be provided: either sas_token or key");
         }
         String endpoint = String.format(
             Locale.ENGLISH,
@@ -81,9 +57,18 @@ public class OperatorHelper {
             PROTOCOL_SETTING.get(settings),
             azureURI.endpoint()
         );
+
+        Map<String, String> config = new HashMap<>();
         config.put("account_name", azureURI.account());
         config.put("container", azureURI.container());
         config.put("endpoint", endpoint);
+
+        if (key != null) {
+            config.put("account_key", key);
+        } else {
+            // Validation passed, SAS token is not null.
+            config.put("sas_token", token);
+        }
         return config;
     }
 }

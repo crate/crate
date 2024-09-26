@@ -19,26 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.azure;
+package io.crate.copy;
 
-import io.crate.copy.SharedAsyncExecutor;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileInputFactory;
+import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_FROM_SETTINGS;
+import static io.crate.analyze.CopyStatementSettings.COMMON_COPY_TO_SETTINGS;
 
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.net.URI;
+import io.crate.common.collections.Lists;
 
-public class AzureFileInputFactory implements FileInputFactory {
+public interface Configuration<T extends OpenDalURI> {
 
-    private final SharedAsyncExecutor sharedAsyncExecutor;
+    List<Setting<String>> supportedSettings();
 
-    public AzureFileInputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
-        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    /**
+     * @param read is true for COPY FROM validation and false for COPY TO.
+     */
+    default void validate(Settings settings, boolean read) {
+        List<String> validSettings = Lists.concat(
+            supportedSettings().stream().map(Setting::getKey).toList(),
+            read ? COMMON_COPY_FROM_SETTINGS : COMMON_COPY_TO_SETTINGS
+        );
+        for (String key : settings.keySet()) {
+            if (validSettings.contains(key) == false) {
+                throw new IllegalArgumentException("Setting '" + key + "' is not supported");
+            }
+        }
     }
 
-    @Override
-    public FileInput create(URI uri, Settings withClauseOptions) {
-        return new AzureFileInput(uri, sharedAsyncExecutor, withClauseOptions);
-    }
+    Map<String, String> fromURIAndSettings(T uri, Settings settings);
 }

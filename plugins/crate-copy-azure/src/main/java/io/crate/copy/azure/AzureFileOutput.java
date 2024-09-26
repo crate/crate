@@ -23,46 +23,16 @@ package io.crate.copy.azure;
 
 import static io.crate.copy.azure.AzureCopyPlugin.OPEN_DAL_SCHEME;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.zip.GZIPOutputStream;
 
-import org.apache.opendal.AsyncOperator;
-import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.engine.export.FileOutput;
+import io.crate.copy.OpenDALOutput;
+import io.crate.copy.SharedAsyncExecutor;
 
-public class AzureFileOutput implements FileOutput {
-
-    private final Map<String, String> config;
-    private final Operator operator;
-    private final String resourcePath;
+public class AzureFileOutput extends OpenDALOutput<AzureURI> {
 
     public AzureFileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        AzureURI azureURI = AzureURI.of(uri);
-        this.config = OperatorHelper.config(azureURI, settings, false);
-        this.resourcePath = azureURI.resourcePath();
-        this.operator = AsyncOperator.of(OPEN_DAL_SCHEME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
+        super(OPEN_DAL_SCHEME, AzureURI.of(uri), new AzBlobConfiguration(), sharedAsyncExecutor, settings);
     }
-
-    @Override
-    public OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException {
-        OutputStream outputStream = operator.createOutputStream(resourcePath);
-        if (compressionType != null) {
-            outputStream = new GZIPOutputStream(outputStream);
-        }
-        return outputStream;
-    }
-
-    @Override
-    public void close() {
-        assert operator != null : "Operator must be created before FileOutput is closed";
-        operator.close();
-    }
-
 }

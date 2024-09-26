@@ -25,27 +25,31 @@ import static io.crate.copy.azure.AzureCopyPlugin.USER_FACING_SCHEME;
 
 import java.net.URI;
 
-import org.jetbrains.annotations.Nullable;
-
+import io.crate.copy.OpenDalURI;
 import io.crate.execution.engine.collect.files.Globs;
 
 /**
- * Represents URI provided by a user.
- * @param account must be between 3 and 24 characters in length and may contain only numbers and lowercase letters.
- * @param container must be between 3 and 63 characters in length  and may contain only numbers, lowercase letters and the hyphen character.
- * @param endpoint which includes account name (for example, myaccount.blob.core.windows.net) without protocol (protocol is extracted from the setting).
- * @param resourcePath path to the file
+ * Represents URI with 'az' scheme.
  */
-public record AzureURI(
-    String account,
-    String container,
-    String endpoint,
-    String resourcePath,
-    Globs.GlobPredicate globPredicate
-) {
+public class AzureURI extends OpenDalURI {
+
+    private final String account;
+    private final String container;
+    private final String endpoint;
+
+    private AzureURI(URI uri,
+                     String resourcePath,
+                     Globs.GlobPredicate globPredicate,
+                     String account,
+                     String container,
+                     String endpoint) {
+        super(uri, resourcePath, globPredicate);
+        this.account = account;
+        this.container = container;
+        this.endpoint = endpoint;
+    }
 
     public static AzureURI of(URI uri) {
-
         if (uri.getScheme().equals(USER_FACING_SCHEME) == false) {
             throw new IllegalArgumentException("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
         }
@@ -79,35 +83,19 @@ public record AzureURI(
         String resourcePath = path.substring(secondSlashIndex); // At least one symbol as path cannot be empty.
         // List API returns entries without leading backslash.
         var globPredicate = new Globs.GlobPredicate(resourcePath.substring(1));
-        return new AzureURI(account, container, endpoint, resourcePath, globPredicate);
+
+        return new AzureURI(uri, resourcePath, globPredicate, account, container, endpoint);
     }
 
-    /**
-     * This is directory-only path (without host/bucket/container or any storage specific part of the user provided URI.
-     * @return String as it's used by OpenDAL list/write/read API-s which work with String.
-     */
-    public String resourcePath() {
-        return resourcePath;
+    public String account() {
+        return account;
     }
 
-    @Nullable
-    public String preGlobPath() {
-        int asteriskIndex = resourcePath.indexOf("*");
-        if (asteriskIndex < 0) {
-            return null;
-        }
-        int lastBeforeAsterisk = 0;
-        for (int i = asteriskIndex; i >= 0; i--) {
-            if (resourcePath.charAt(i) == '/') {
-                lastBeforeAsterisk = i;
-                break;
-            }
-        }
-        assert resourcePath.charAt(0) == '/' : "Resource path must start with the forwarding slash.";
-        return resourcePath.substring(0, lastBeforeAsterisk + 1); // Returns "/" if glob matches the whole container.
+    public String container() {
+        return container;
     }
 
-    public boolean matchesGlob(String path) {
-        return globPredicate.test(path);
+    public String endpoint() {
+        return endpoint;
     }
 }

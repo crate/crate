@@ -21,6 +21,7 @@
 
 package io.crate.copy.azure;
 
+import io.crate.copy.SharedAsyncExecutor;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.plugin.CopyPlugin;

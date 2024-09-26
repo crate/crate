@@ -19,37 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.azure;
+package io.crate.copy;
 
-import static io.crate.copy.azure.AzureBlobStorageSettings.PROTOCOL_SETTING;
-import static io.crate.copy.azure.AzureBlobStorageSettings.validate;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-public class AzureBlobStorageSettingsTest {
+public class ConfigurationTest {
 
     @Test
     public void test_unknown_setting_is_rejected() throws Exception {
+        Configuration<?> configuration = new Configuration<>() {
+            @Override
+            public List<Setting<String>> supportedSettings() {
+                return List.of();
+            }
+
+            @Override
+            public Map<String, String> fromURIAndSettings(OpenDalURI uri, Settings settings) {
+                return Map.of();
+            }
+        };
         Settings settings = Settings.builder().put("dummy", "dummy").build();
-        assertThatThrownBy(() -> validate(settings, true))
+        // COPY FROM
+        assertThatThrownBy(() -> configuration.validate(settings, true))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'dummy' is not supported");
+
+        // COPY TO
+        assertThatThrownBy(() -> configuration.validate(settings, false))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'dummy' is not supported");
     }
 
-    @Test
-    public void test_auth_param_is_required() throws Exception {
-        assertThatThrownBy(() -> validate(Settings.EMPTY, true))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Authentication setting must be provided: either sas_token or key");
-    }
-
-    @Test
-    public void test_unknown_protocol_is_rejected() throws Exception {
-        Settings settings = Settings.builder().put(PROTOCOL_SETTING.getKey(), "pg").build();
-        assertThatThrownBy(() -> PROTOCOL_SETTING.get(settings))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid protocol `pg`. Expected HTTP or HTTPS");
-    }
 }
