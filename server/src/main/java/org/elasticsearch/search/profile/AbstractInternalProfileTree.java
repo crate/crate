@@ -19,14 +19,14 @@
 
 package org.elasticsearch.search.profile;
 
-import org.elasticsearch.search.profile.query.QueryProfileBreakdown;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.search.profile.query.QueryProfileBreakdown;
 
 public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBreakdown<?>, E> {
 
@@ -60,7 +60,7 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      * @param query The scoring query we wish to profile
      * @return      A ProfileBreakdown for this query
      */
-    public PB getProfileBreakdown(E query) {
+    public synchronized PB getProfileBreakdown(E query) {
         int token = currentToken;
 
         boolean stackEmpty = stack.isEmpty();
@@ -145,7 +145,7 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      * @param token  The node we are currently finalizing
      * @return       A hierarchical representation of the tree inclusive of children at this level
      */
-    private ProfileResult doGetTree(int token) {
+    private synchronized ProfileResult doGetTree(int token) {
         E element = elements.get(token);
         PB breakdown = timings.get(token);
         Map<String, Long> timings = breakdown.toTimingMap();
