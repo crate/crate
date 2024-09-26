@@ -66,7 +66,7 @@ public final class QueryProfiler {
      * @param query The scoring query we wish to profile
      * @return      A ProfileBreakdown for this query
      */
-    public QueryProfileBreakdown getProfileBreakdown(Query query) {
+    public synchronized QueryProfileBreakdown getProfileBreakdown(Query query) {
         int token = currentToken;
 
         boolean stackEmpty = stack.isEmpty();
@@ -122,7 +122,7 @@ public final class QueryProfiler {
         return queryTimings;
     }
 
-    protected QueryProfileBreakdown createProfileBreakdown() {
+    private QueryProfileBreakdown createProfileBreakdown() {
         return new QueryProfileBreakdown();
     }
 
@@ -140,7 +140,7 @@ public final class QueryProfiler {
      *
      * @return a hierarchical representation of the profiled query tree
      */
-    public List<ProfileResult> getTree() {
+    public synchronized List<ProfileResult> getTree() {
         ArrayList<ProfileResult> results = new ArrayList<>(roots.size());
         for (Integer root : roots) {
             results.add(doGetTree(root));
@@ -175,7 +175,7 @@ public final class QueryProfiler {
         return new ProfileResult(type, description, timings, childrenProfileResults);
     }
 
-    protected String getTypeFromElement(Query query) {
+    private String getTypeFromElement(Query query) {
         // Anonymous classes won't have a name,
         // we need to get the super class
         if (query.getClass().getSimpleName().isEmpty()) {
@@ -184,7 +184,7 @@ public final class QueryProfiler {
         return query.getClass().getSimpleName();
     }
 
-    protected String getDescriptionFromElement(Query query) {
+    private String getDescriptionFromElement(Query query) {
         return query.toString();
     }
 

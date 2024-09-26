@@ -81,3 +81,6 @@ Fixes
 
 - Fixed an issue that caused :ref:`ANY <sql_any_array_comparison>` operator to
   throw a ``ClassCastException`` when the arguments were nested arrays.
+
+- Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
+  to internal concurrent unsafe access.
