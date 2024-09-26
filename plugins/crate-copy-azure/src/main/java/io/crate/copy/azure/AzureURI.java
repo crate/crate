@@ -49,7 +49,11 @@ public record AzureURI(
         if (uri.getScheme().equals(USER_FACING_SCHEME) == false) {
             throw new IllegalArgumentException("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
         }
-        String endpoint = uri.getHost() + ":" + uri.getPort();
+        String endpoint = uri.getHost();
+        var port = uri.getPort();
+        if (port != -1) {
+            endpoint += ":" + port;
+        }
         String path = uri.getPath();
 
         int dotIndex = endpoint.indexOf(".");
