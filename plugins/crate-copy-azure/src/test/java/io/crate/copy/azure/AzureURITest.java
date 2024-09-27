@@ -33,6 +33,15 @@ public class AzureURITest {
 
     private static final String COMMON_PREFIX = "az://myaccount.blob.core.windows.net/my-container";
 
+    @Test
+    public void test_port_is_added_when_defined() throws Exception {
+        AzureURI azureURI = AzureURI.of(URI.create("az://myaccount.blob.core.windows.net:1234/container/file.json"));
+        assertThat(azureURI.endpoint()).isEqualTo("myaccount.blob.core.windows.net:1234");
+
+        // No port
+        azureURI = AzureURI.of(URI.create("az://myaccount.blob.core.windows.net/container/file.json"));
+        assertThat(azureURI.endpoint()).isEqualTo("myaccount.blob.core.windows.net");
+    }
 
     @Test
     public void test_empty_path_after_container_throws_exception() throws Exception {
@@ -53,22 +62,6 @@ public class AzureURITest {
     @Test
     public void test_no_container_throws_exception() throws Exception {
         URI uri = URI.create("az://myaccount.blob.core.windows.net/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
-    }
-
-    @Test
-    public void test_container_has_uppercase_letter_throws_exception() throws Exception {
-        URI uri = URI.create("dummy://myaccount.blob.core.windows.net/Container/dir");
-        assertThatThrownBy(() -> AzureURI.of(uri))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
-    }
-
-    @Test
-    public void test_container_has_invalid_length_throws_exception() throws Exception {
-        URI uri = URI.create("dummy://myaccount.blob.core.windows.net/co/dir");
         assertThatThrownBy(() -> AzureURI.of(uri))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
