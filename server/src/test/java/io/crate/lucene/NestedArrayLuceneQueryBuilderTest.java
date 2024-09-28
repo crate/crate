@@ -49,6 +49,30 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_empty_nested_array_equals() {
         var query = convert("a = [[]]");
         assertThat(query.toString()).isEqualTo("+_array_length_a:[0 TO 0] +(a = [[]])");
+
+        query = convert("a[1] = []");
+        assertThat(query.toString()).isEqualTo("(a[1] = [])");
+    }
+
+    @Test
+    public void test_array_length_scalar_on_nested_array() {
+        var query = convert("array_length(a, 1) = 1");
+        assertThat(query.toString()).isEqualTo("_array_length_a:[1 TO 1]");
+
+        query = convert("array_length(a[1], 1) = 1");
+        assertThat(query.toString()).isEqualTo("(array_length(a[1], 1) = 1)");
+
+        query = convert("array_length(a, 2) = 1");
+        assertThat(query.toString()).isEqualTo("(array_length(a, 2) = 1)");
+    }
+
+    @Test
+    public void test_is_null_predicate_on_nested_array() {
+        var query = convert("a is null");
+        assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=_array_length_a]");
+
+        query = convert("a[1] is null");
+        assertThat(query.toString()).isEqualTo("(a[1] IS NULL)");
     }
 
     @Test
