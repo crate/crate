@@ -26,22 +26,30 @@ import org.jetbrains.annotations.VisibleForTesting;
 import java.net.URI;
 import java.util.Objects;
 
-public class S3URI {
+import io.crate.copy.OpenDalURI;
+import io.crate.execution.engine.collect.files.Globs;
+
+public class S3URI extends OpenDalURI {
     private static final String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     private final URI uri;
     private final String accessKey;
     private final String secretKey;
     private final String bucket;
-    private final String key;
     private final String endpoint;
 
-    private S3URI(URI uri, String accessKey, String secretKey, String bucket, String key, String endpoint) {
+    private S3URI(URI uri,
+                  String resourcePath,
+                  Globs.GlobPredicate globPredicate,
+                  String accessKey,
+                  String secretKey,
+                  String bucket,
+                  String endpoint) {
+        super(uri, resourcePath, globPredicate);
         this.uri = uri;
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.bucket = bucket;
-        this.key = key;
         this.endpoint = endpoint;
     }
 
@@ -65,15 +73,15 @@ public class S3URI {
         }
 
         String bucket;
-        String key;
+        String resourcePath;
         String path = normalizedURI.getPath().substring(1);
         int splitIndex = path.indexOf('/');
         if (splitIndex == -1) {
             bucket = path;
-            key = "";
+            resourcePath = "";
         } else {
             bucket = path.substring(0, splitIndex);
-            key = path.substring(splitIndex + 1);
+            resourcePath = path.substring(splitIndex);
         }
 
         String endpoint = null;
@@ -81,7 +89,10 @@ public class S3URI {
             endpoint = normalizedURI.getHost() + ":" + normalizedURI.getPort();
         }
 
-        return new S3URI(normalizedURI, accessKey, secretKey, bucket, key, endpoint);
+        // List API returns entries without leading backslash.
+        var globPredicate = new Globs.GlobPredicate(resourcePath.substring(1));
+
+        return new S3URI(normalizedURI, resourcePath, globPredicate, accessKey, secretKey, bucket, endpoint);
     }
 
     @VisibleForTesting
@@ -134,16 +145,6 @@ public class S3URI {
         return uri;
     }
 
-    public S3URI replacePath(String bucket, String key) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("s3://");
-        if (uri.getRawAuthority() != null) {
-            sb.append(uri.getRawAuthority());
-        }
-        sb.append("/").append(bucket).append("/").append(key);
-        return new S3URI(URI.create(sb.toString()), accessKey, secretKey, bucket, key, endpoint);
-    }
-
     @Override
     public String toString() {
         return uri.toString();
@@ -161,25 +162,16 @@ public class S3URI {
                Objects.equals(accessKey, that.accessKey) &&
                Objects.equals(secretKey, that.secretKey) &&
                Objects.equals(bucket, that.bucket) &&
-               Objects.equals(key, that.key) &&
                Objects.equals(endpoint, that.endpoint);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uri, accessKey, secretKey, bucket, key, endpoint);
-    }
-
-    public URI uri() {
-        return uri;
+        return Objects.hash(uri, accessKey, secretKey, bucket, endpoint);
     }
 
     public String bucket() {
         return bucket;
-    }
-
-    public String key() {
-        return key;
     }
 
     public String accessKey() {

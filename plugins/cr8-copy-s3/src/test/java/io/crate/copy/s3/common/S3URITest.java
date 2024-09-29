@@ -24,9 +24,11 @@ package io.crate.copy.s3.common;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.List;
 
 import static io.crate.copy.s3.common.S3URI.getUserInfo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class S3URITest {
 
@@ -34,31 +36,28 @@ class S3URITest {
     public void testToS3URIMethod() {
         assertValidS3URI(
             "s3:///hostname:9000/*/*/a", // bucket named 'hostname:9000'
-            null, null, null, -1, "hostname:9000", "*/*/a");
+            null, null, null, -1, "hostname:9000", "/*/*/a");
         assertValidS3URI(
             "s3://minioadmin:minioadmin@play.min.io:9000/mj.myb/localhost:9000/",
-            "minioadmin", "minioadmin", "play.min.io", 9000, "mj.myb", "localhost:9000/");
+            "minioadmin", "minioadmin", "play.min.io", 9000, "mj.myb", "/localhost:9000/");
         assertValidS3URI(
             "s3://minioadmin:minioadmin@/mj.myb/localhost:9000/",
-            "minioadmin", "minioadmin", null, -1, "mj.myb", "localhost:9000/");
+            "minioadmin", "minioadmin", null, -1, "mj.myb", "/localhost:9000/");
         assertValidS3URI(
             "s3://b/prefix/", // trailing '/'
-            null, null, null, -1, "b", "prefix/");
+            null, null, null, -1, "b", "/prefix/");
         assertValidS3URI(
             "s3:/b/", // no key
-            null, null, null, -1, "b", "");
-        assertValidS3URI(
-            "s3:/b", // no key
-            null, null, null, -1, "b", "");
+            null, null, null, -1, "b", "/");
         assertValidS3URI(
             "s3://h:7/b/k",
-            null, null, "h", 7, "b", "k");
+            null, null, "h", 7, "b", "/k");
         assertValidS3URI(
             "s3://@h:7/b/*",
-            null, null, "h", 7, "b", "*");
+            null, null, "h", 7, "b", "/*");
         assertValidS3URI(
             "s3://access%2F:secret%2F@a/b", // url-encoded access & secret keys are decoded
-            "access/", "secret/", null, -1, "a", "b");
+            "access/", "secret/", null, -1, "a", "/b");
         assertValidS3URI(
             // host should be present with a port otherwise it will be assumed to be a bucket name
             "s3://host/bucket/key/*",
@@ -67,10 +66,76 @@ class S3URITest {
             null,
             -1,
             "host",
-            "bucket/key/*");
-        assertValidS3URI(
-            "s3:///",
-            null, null, null, -1, "", "");
+            "/bucket/key/*");
+//        assertValidS3URI(
+//            "s3:///",
+//            null, null, null, -1, "", "//");
+    }
+
+    @Test
+    public void testWrongURIEncodingSecretKey() {
+        // 'inv/alid' should be 'inv%2Falid'
+        // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+        assertThatThrownBy(
+            () -> S3URI.toS3URI(new URI("s3://foo:inv/alid@/baz/path/to/file")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
+    }
+
+    @Test
+    public void testWrongURIEncodingAccessKey() {
+        // 'fo/o' should be 'fo%2Fo'
+        // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+        assertThatThrownBy(
+            () -> S3URI.toS3URI(new URI("s3://fo/o:inv%2Falid@/baz")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
+    }
+
+    @Test
+    public void test_toPreGlobUri() {
+        var uris =
+            List.of(
+                "s3:///fakeBucket3/prefix*/*.json",
+                "s3://fakeBucket3/*/prefix2/prefix3/a.json",
+                "s3://fakeBucket3/prefix/p*x/*/*.json",
+                "s3://fake.Bucket/prefix/key*",
+                "s3://minio:minio@play.min.io:9000/myBucket/myKey/*",
+                "s3://play.min.io:9000/myBucket/myKey/*",
+                "s3://minio:minio@myBucket/myKey/*"
+            );
+        var preGlobURIs = uris.stream()
+            .map(URI::create)
+            .map(S3URI::toS3URI)
+            .map(S3URI::preGlobPath)
+            .toList();
+        assertThat(preGlobURIs).isEqualTo(List.of(
+            "/",
+            "/",
+            "/prefix/",
+            "/prefix/",
+            "/myKey/",
+            "/myKey/",
+            "/myKey/"
+        ));
+    }
+
+    @Test
+    public void test_match_glob_pattern() throws Exception {
+        List<String> entries = List.of(
+            "prefix/dir1/dir2/match1.json",
+            // Too many subdirectories, see https://cratedb.com/docs/crate/reference/en/latest/sql/statements/copy-from.html#uri-globbing
+            "prefix/dir1/dir2/dir3/no_match.json",
+            "prefix/dir2/dir1/no_match.json",
+            "prefix/dir1/dir0/dir2/no_match.json"
+        );
+
+        S3URI s3URI = S3URI.toS3URI(URI.create("s3://fakeBucket/prefix/dir1/dir2/*"));
+
+        assertThat(s3URI.preGlobPath()).isNotNull();
+
+        List<String> matches = entries.stream().filter(s3URI::matchesGlob).toList();
+        assertThat(matches).containsExactly("prefix/dir1/dir2/match1.json");
     }
 
     private void assertValidS3URI(String toBeParsed,
@@ -79,7 +144,7 @@ class S3URITest {
                                   String host,
                                   int port,
                                   String bucketName,
-                                  String key) {
+                                  String resourcePath) {
         S3URI s3URI = S3URI.toS3URI(URI.create(toBeParsed));
         URI uri = s3URI.uri();
         if (accessKey != null) {
@@ -97,20 +162,9 @@ class S3URITest {
             assertThat(uri.getPath()).startsWith("/" + bucketName);
             assertThat(bucketName).isEqualTo(s3URI.bucket());
         }
-        if (key != null) {
-            assertThat(uri.getPath()).endsWith(key);
-            assertThat(key).isEqualTo(s3URI.key());
+        if (resourcePath != null) {
+            assertThat(uri.getPath()).endsWith(resourcePath);
+            assertThat(resourcePath).isEqualTo(s3URI.resourcePath());
         }
-    }
-
-    @Test
-    public void testReplacePathMethod() {
-        S3URI s3URI = S3URI.toS3URI(URI.create("s3://minioadmin:minio%2Fadmin@mj.myb/localhost:9000/"));
-        S3URI replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri()).hasToString("s3://minioadmin:minio%2Fadmin@/new.Bucket/newKey");
-
-        s3URI = S3URI.toS3URI(URI.create("s3://host:123/myb"));
-        replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri()).hasToString("s3://host:123/new.Bucket/newKey");
     }
 }

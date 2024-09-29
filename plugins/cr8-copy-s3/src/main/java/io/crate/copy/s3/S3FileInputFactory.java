@@ -21,7 +21,7 @@
 
 package io.crate.copy.s3;
 
-import io.crate.copy.s3.common.S3Protocol;
+import io.crate.copy.SharedAsyncExecutor;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import org.elasticsearch.common.settings.Settings;
@@ -30,10 +30,14 @@ import java.net.URI;
 
 public class S3FileInputFactory implements FileInputFactory {
 
-    public static final String NAME = "s3";
+    private final SharedAsyncExecutor sharedAsyncExecutor;
+
+    public S3FileInputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
+        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    }
 
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) {
-        return new S3FileInput(uri, S3Protocol.get(withClauseOptions));
+        return new S3FileInput(uri, sharedAsyncExecutor, withClauseOptions);
     }
 }

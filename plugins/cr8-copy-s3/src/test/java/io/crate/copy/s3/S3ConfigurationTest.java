@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,21 +21,23 @@
 
 package io.crate.copy.s3;
 
-import static io.crate.copy.s3.S3CopyPlugin.SCHEME;
-
-import io.crate.copy.OpenDALOutput;
-import io.crate.copy.SharedAsyncExecutor;
-import io.crate.copy.s3.common.S3URI;
+import static io.crate.copy.s3.common.S3Settings.PROTOCOL_SETTING;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.annotations.NotThreadSafe;
+import org.junit.Test;
 
-import java.net.URI;
+public class S3ConfigurationTest {
 
-@NotThreadSafe
-public class S3FileOutput extends OpenDALOutput<S3URI> {
-
-    public S3FileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        super(SCHEME, S3URI.toS3URI(uri), new S3Configuration(), sharedAsyncExecutor, settings);
+    @Test
+    public void test_unknown_protocol_is_rejected() throws Exception {
+        S3Configuration s3Configuration = new S3Configuration();
+        Settings settings = Settings.builder()
+            .put(PROTOCOL_SETTING.getKey(), "pg")
+            .build();
+        assertThatThrownBy(() -> s3Configuration.fromURIAndSettings(null, settings))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid protocol `pg`. Expected HTTP or HTTPS");
     }
+
 }

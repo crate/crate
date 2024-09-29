@@ -23,17 +23,21 @@ package io.crate.copy.s3;
 
 import java.net.URI;
 
-import io.crate.copy.s3.common.S3Protocol;
+import io.crate.copy.SharedAsyncExecutor;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 import org.elasticsearch.common.settings.Settings;
 
 public class S3FileOutputFactory implements FileOutputFactory {
 
-    public static final String NAME = "s3";
+    private final SharedAsyncExecutor sharedAsyncExecutor;
+
+    public S3FileOutputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
+        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    }
 
     @Override
     public FileOutput create(URI uri, Settings withClauseOptions) {
-        return new S3FileOutput(uri, S3Protocol.get(withClauseOptions));
+        return new S3FileOutput(uri, sharedAsyncExecutor, withClauseOptions);
     }
 }

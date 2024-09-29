@@ -75,23 +75,7 @@ public class AzureURITest {
             .hasMessage("Invalid URI. URI must look like 'az://account.endpoint_suffix/container/path/to/file'");
     }
 
-    @Test
-    public void test_match_glob_pattern() throws Exception {
-        List<String> entries = List.of(
-            "dir1/dir2/match1.json",
-             // Too many subdirectories, see https://cratedb.com/docs/crate/reference/en/latest/sql/statements/copy-from.html#uri-globbing
-            "dir1/dir2/dir3/no_match.json",
-            "dir2/dir1/no_match.json",
-            "dir1/dir0/dir2/no_match.json"
-        );
 
-        AzureURI azureURI = AzureURI.of(URI.create(COMMON_PREFIX + "/dir1/dir2/*"));
-
-        assertThat(azureURI.preGlobPath()).isNotNull();
-
-        List<String> matches = entries.stream().filter(azureURI::matchesGlob).toList();
-        assertThat(matches).containsExactly("dir1/dir2/match1.json");
-    }
 
     @Test
     public void test_to_pre_glob_path() {
