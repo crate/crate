@@ -255,6 +255,7 @@
             <addModule>jdk.management</addModule>
             <addModule>jdk.management.agent</addModule>
             <addModule>jdk.crypto.ec</addModule>
+            <addModule>jdk.incubator.vector</addModule>
 
             <!-- These are required to use https://github.com/crate/jmx_exporter -->
             <addModule>java.instrument</addModule>

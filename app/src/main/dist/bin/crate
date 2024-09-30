@@ -161,6 +161,9 @@ JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=tru
 # Disable netty recycler
 JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
 
+# Lucene uses native access and vector module
+JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
+
 # Dump heap on OOM
 JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
