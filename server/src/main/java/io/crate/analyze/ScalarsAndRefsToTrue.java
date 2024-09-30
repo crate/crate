@@ -24,6 +24,7 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -32,7 +33,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 /**
@@ -53,42 +54,44 @@ import io.crate.types.DataTypes;
  * </pre>
  * <p>
  * <pre>
- *     true and id is null  -&gt; true and null IS NULL
+ *     true and id is null  -&gt; true and null IS NULL -&gt;  true and true -&gt; true
  * </pre>
  */
-public final class ScalarsAndRefsToTrue extends SymbolVisitor<Boolean, Symbol> {
+public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTrue.Context, Symbol> {
 
     private static final ScalarsAndRefsToTrue INSTANCE = new ScalarsAndRefsToTrue();
 
     private ScalarsAndRefsToTrue() {}
 
-    public static Symbol rewrite(Symbol symbol) {
-        return symbol.accept(INSTANCE, Boolean.FALSE);
+    public static class Context {
+        private final EvaluatingNormalizer normalizer;
+        private final TransactionContext txnCtx;
+        private boolean isNullPredicate;
+
+        private Context(EvaluatingNormalizer normalizer, TransactionContext txnCtx) {
+            this.normalizer = normalizer;
+            this.txnCtx = txnCtx;
+            this.isNullPredicate = false;
+        }
+    }
+
+    public static Symbol rewrite(EvaluatingNormalizer normalizer, TransactionContext txnCtx, Symbol symbol) {
+        return symbol.accept(INSTANCE, new ScalarsAndRefsToTrue.Context(normalizer, txnCtx));
     }
 
     @Override
-    public Symbol visitFunction(Function symbol, Boolean isNullPredicate) {
+    public Symbol visitFunction(Function symbol, ScalarsAndRefsToTrue.Context ctx) {
         String functionName = symbol.name();
 
         if (functionName.equals(IsNullPredicate.NAME)) {
-            isNullPredicate = Boolean.TRUE;
-        }
-        if (functionName.equals(NotPredicate.NAME)) {
-            Symbol argument = symbol.arguments().getFirst();
-            if (argument instanceof Reference) {
-                return argument.accept(this, isNullPredicate);
-            } else if (argument instanceof Function fn) {
-                if (!Operators.LOGICAL_OPERATORS.contains(fn.name())) {
-                    return argument.accept(this, isNullPredicate);
-                }
-            }
+            ctx.isNullPredicate = true;
         }
 
         List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
         boolean allLiterals = true;
         boolean hasNullArg = false;
         for (Symbol arg : symbol.arguments()) {
-            Symbol processedArg = arg.accept(this, isNullPredicate);
+            Symbol processedArg = arg.accept(this, ctx);
             newArgs.add(processedArg);
             if (!processedArg.symbolType().isValueSymbol()) {
                 allLiterals = false;
@@ -103,24 +106,35 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Boolean, Symbol> {
             && !IsNullPredicate.NAME.equals(functionName)) {
             return hasNullArg ? Literal.NULL : Literal.BOOLEAN_TRUE;
         }
-        return new Function(symbol.signature(), newArgs, symbol.valueType());
+        if (functionName.equals(NotPredicate.NAME)) {
+            Symbol arg = newArgs.get(0);
+            assert arg instanceof Literal<?> : "argument of NOT should have been normalized to literal";
+            return arg;
+        }
+
+        // Without normalization, IS NULL inside an expression stays as a function
+        // and therefore later on `allLiterals` is false, thus an outer function cannot be resolved
+        // to a literal, stays as is, and is normalized, outside of this class in
+        // WhereClauseAnalyzer#tieBreakPartitionQueries(), possibly to `false`, which in turn is not
+        // inverted, since `NOT` operators are dropped completely.
+        return ctx.normalizer.normalize(new Function(symbol.signature(), newArgs, symbol.valueType()), ctx.txnCtx);
     }
 
     @Override
-    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Boolean isNullPredicate) {
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, ScalarsAndRefsToTrue.Context ctx) {
         return Literal.BOOLEAN_TRUE;
     }
 
     @Override
-    protected Symbol visitSymbol(Symbol symbol, Boolean isNullPredicate) {
-        if (isNullPredicate || symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
+    protected Symbol visitSymbol(Symbol symbol, ScalarsAndRefsToTrue.Context ctx) {
+        if (ctx.isNullPredicate || symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
             return Literal.NULL;
         }
         return Literal.BOOLEAN_TRUE;
     }
 
     @Override
-    public Symbol visitLiteral(Literal<?> symbol, Boolean isNullPredicate) {
+    public Symbol visitLiteral(Literal<?> symbol, ScalarsAndRefsToTrue.Context ctx) {
         return symbol;
     }
 }
