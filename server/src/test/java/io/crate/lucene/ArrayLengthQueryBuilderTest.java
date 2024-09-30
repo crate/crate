@@ -79,6 +79,17 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_array_length_with_dimension_arg_exceeding_array_dimension_is_no_match() {
+        Query query = convert("array_length(y_array, 2) = 3");
+        assertThat(query).hasToString(
+            "MatchNoDocsQuery(\"Dimension argument <= 0 or exceeding the dimension of the array cannot match\")");
+
+        query = convert("array_length(y_array, 0) = 3");
+        assertThat(query).hasToString(
+            "MatchNoDocsQuery(\"Dimension argument <= 0 or exceeding the dimension of the array cannot match\")");
+    }
+
+    @Test
     public void test_NumTermsPerDocQuery_maps_column_idents_to_oids() throws Exception {
         final long oid = 123;
         try (QueryTester tester = new QueryTester.Builder(

@@ -169,6 +169,9 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             return null;
         }
         int dimension = ((Number) ((Input<?>) dimensionSymbol).value()).intValue();
+        if (dimension <= 0 || dimension > ArrayType.dimensions(arrayRef.valueType())) {
+            return new MatchNoDocsQuery("Dimension argument <= 0 or exceeding the dimension of the array cannot match");
+        }
         if (dimension != 1) {
             // Storage of the multidimensional arrays is not supported.
             return null;
