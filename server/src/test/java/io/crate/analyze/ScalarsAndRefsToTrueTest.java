@@ -53,7 +53,10 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
     }
 
     private Symbol convert(Symbol symbol) {
-        return expressions.normalize(ScalarsAndRefsToTrue.rewrite(expressions.normalize(symbol)));
+        return expressions.normalize(ScalarsAndRefsToTrue.rewrite(
+            expressions.normalizer(),
+            expressions.txnCtx(),
+            expressions.normalize(symbol)));
     }
 
     private Symbol fromSQL(String expression) {
@@ -151,6 +154,29 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
     public void test_IsNull_and_IsNotNull_nested_with_complex_expression() {
         Symbol symbol = convertFromSQL(
             "(NOT(((table_name = 'foo') AND null) IS NULL)) OR (NOT(((table_name = 'foo') AND null) IS NOT NULL))");
+        assertThat(symbol).isLiteral(true);
+    }
+
+    /**
+     * Tracks a bug: {@see https://github.com/crate/crate/issues/16614}
+     * NOT should be just removed and the inner argument should be returned instead, if it's normalized to a literal
+     */
+    @Test
+    public void test_not_on_top_of_IsNotNull() {
+        Symbol symbol = convertFromSQL(
+            "NOT (table_name IS NOT NULL)");
+        assertThat(symbol).isLiteral(true);
+    }
+
+    /**
+     * Tracks a bug: {@see https://github.com/crate/crate/issues/16614}
+     * NOT should be just removed and the inner argument should be returned instead, since NOT(IS NULL) is also
+     * normalized to a literal
+     */
+    @Test
+    public void test_not_on_top_of_IsNull_and_complex_function() {
+        Symbol symbol = convertFromSQL(
+            "NOT (CASE 'foo' WHEN '' THEN TRUE WHEN 'E' THEN ((table_name) IS NOT NULL) ELSE false END )");
         assertThat(symbol).isLiteral(true);
     }
 }
