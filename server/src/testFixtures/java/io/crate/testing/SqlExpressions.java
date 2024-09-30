@@ -46,6 +46,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.optimizer.LoadedRules;
@@ -101,6 +102,14 @@ public class SqlExpressions {
         );
         normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext(sessionSettings);
+    }
+
+    public EvaluatingNormalizer normalizer() {
+        return normalizer;
+    }
+
+    public TransactionContext txnCtx() {
+        return coordinatorTxnCtx;
     }
 
     public Symbol asSymbol(String expression) {
