@@ -31,10 +31,10 @@ B127	Routine language PL/I			NO
 B128	Routine language SQL			NO		
 B211	Module language Ada: VARCHAR and NUMERIC support			NO		
 B221	Routine language Ada: VARCHAR and NUMERIC support			NO		
-E011	Numeric data types			NO		Only Java types are supported
+E011	Numeric data types			YES		Only Java types are supported
 E011	Numeric data types	1	INTEGER and SMALLINT data types	YES		
 E011	Numeric data types	2	REAL, DOUBLE PRECISION, and FLOAT data types	YES		
-E011	Numeric data types	3	DECIMAL and NUMERIC data types	YES		Not supported in DDL
+E011	Numeric data types	3	DECIMAL and NUMERIC data types	YES		
 E011	Numeric data types	4	Arithmetic operators	YES		
 E011	Numeric data types	5	Numeric comparison	YES		
 E011	Numeric data types	6	Implicit casting among the numeric data types	YES		
@@ -69,7 +69,7 @@ E061	Basic predicates and search conditions	1	Comparison predicate	YES
 E061	Basic predicates and search conditions	2	BETWEEN predicate	YES		
 E061	Basic predicates and search conditions	3	IN predicate with list of values	YES		
 E061	Basic predicates and search conditions	4	LIKE predicate	YES		
-E061	Basic predicates and search conditions	5	LIKE predicate ESCAPE clause	NO		
+E061	Basic predicates and search conditions	5	LIKE predicate ESCAPE clause	YES		
 E061	Basic predicates and search conditions	6	NULL predicate	YES		
 E061	Basic predicates and search conditions	7	Quantified comparison predicate	NO		only ANY(array) 
 E061	Basic predicates and search conditions	8	EXISTS predicate	YES		
@@ -107,7 +107,7 @@ E101	Basic data manipulation			YES
 E101	Basic data manipulation	1	INSERT statement	YES		
 E101	Basic data manipulation	3	Searched UPDATE statement	YES		
 E101	Basic data manipulation	4	Searched DELETE statement	YES		
-E111	Single row SELECT statement			NO		
+E111	Single row SELECT statement			YES		
 E121	Basic cursor support			NO		
 E121	Basic cursor support	1	DECLARE CURSOR	YES		
 E121	Basic cursor support	2	ORDER BY columns need not be in select list	NO		
@@ -229,7 +229,7 @@ F311	Schema definition statement	1	CREATE SCHEMA	NO		will be explicitly defined 
 F311	Schema definition statement	2	CREATE TABLE for persistent base tables	YES		
 F311	Schema definition statement	3	CREATE VIEW	YES		
 F311	Schema definition statement	4	CREATE VIEW: WITH CHECK OPTION	NO		
-F311	Schema definition statement	5	GRANT statement	NO		
+F311	Schema definition statement	5	GRANT statement	YES		
 F312	MERGE statement			NO		
 F313	Enhanced MERGE statement			NO		
 F314	MERGE statement with DELETE branch			NO		
@@ -406,9 +406,9 @@ T044	Multiplier P			NO
 T051	Row types			YES		Limited to built-in table functions
 T052	MAX and MIN for row types			NO		
 T053	Explicit aliases for all-fields reference			NO		
-T054	GREATEST and LEAST			yes		
-T055	String padding functions			yes		
-T056	Multi-character trim functions			yes		
+T054	GREATEST and LEAST			YES		
+T055	String padding functions			YES		
+T056	Multi-character trim functions			YES		
 T061	UCS support			NO		
 T071	BIGINT data type			YES		
 T081	Optional string types maximum length 			YES		
