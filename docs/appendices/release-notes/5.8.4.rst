@@ -47,6 +47,25 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused wrong results when ordering by an IP field or whehn
+  comparing values of :ref:`IP type <type-ip>`, e.g.::
+
+    SELECT * FROM tbl ORDER BY ip_col;
+    SELECT ip_col > '11.22.33.44' FROM tbl;
+
+- Fixed an issue that caused ``WHERE`` clause to wrongly filter out whole
+  partitions when there is a :ref:`NOT<sql_dql_not>` wrapping
+  :ref:`IS NULL<sql_dql_is_null>` or a complex expression::
+
+    CREATE TABLE tbl(a STRING, b STRING) PARTITIONED BY (a);
+    SELECT * FROM tbl
+    WHERE NOT (
+        CASE t1.c0
+            WHEN '' THEN TRUE
+            WHEN 'E' THEN ((t1.c1) IS NOT NULL)
+            ELSE t1.c0 > 'a'
+        END)
+
 - Fixed an issue that caused numeric values inside of ``OBJECT (IGNORED)``
   columns to be returned as text instead of number.
 
