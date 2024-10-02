@@ -383,11 +383,25 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public long valueBytes(Map<String, Object> value) {
-        if (value == null) {
+    @SuppressWarnings("unchecked")
+    public long valueBytes(Map<String, Object> map) {
+        if (map == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
-        return RamUsageEstimator.sizeOfMap(value);
+        long bytes = 0;
+        long entrySize = -1;
+        for (var entry : map.entrySet()) {
+            if (entrySize == -1) {
+                entrySize = RamUsageEstimator.shallowSizeOf(entry);
+            }
+            bytes += entrySize;
+            bytes += RamUsageEstimator.sizeOf(entry.getKey());
+
+            Object value = entry.getValue();
+            DataType<?> innerType = DataTypes.guessType(value);
+            bytes += ((DataType<Object>) innerType).valueBytes(value);
+        }
+        return bytes;
     }
 
     @Override
