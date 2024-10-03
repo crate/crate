@@ -157,7 +157,7 @@ public final class EqOperator extends Operator<Object> {
         }
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
-            return null;
+            return NumTermsPerDocQuery.forColumn(column, type, numTerms -> numTerms == 0);
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
