@@ -21,16 +21,14 @@
 
 package io.crate.expression.operator.any;
 
-import java.util.List;
-
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.query.RegexpFlag;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
@@ -41,6 +39,7 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
 
 public final class AnyNotLikeOperator extends AnyOperator<String> {
 
@@ -65,7 +64,14 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();

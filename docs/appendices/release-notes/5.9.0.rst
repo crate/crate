@@ -50,6 +50,10 @@ Version 5.9.0 - Unreleased
 Breaking Changes
 ================
 
+- Narrowed the allowed min and max values for ``bigint`` by one to solve an
+  issue where a query using ``ORDER BY`` would return ``NULL`` instead of the
+  inserted value.
+
 - Removed deprecated ``validation`` parameter from ``COPY FROM``.
 
 - Added validation of unknown or irrelevant for the ``file`` scheme properties
@@ -130,6 +134,9 @@ SQL Standard and PostgreSQL Compatibility
 
 - `Martin Stein <https://github.com/marstein>`_ added support for the
   IS DISTINCT FROM operator.
+
+- Added Azure Blob Storage support to the :ref:`COPY FROM <sql-copy-from>` and
+  :ref:`COPY TO <sql-copy-to>` statements.
 
 Data Types
 ----------

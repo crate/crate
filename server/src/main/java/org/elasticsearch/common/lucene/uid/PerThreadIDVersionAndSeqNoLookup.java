@@ -19,6 +19,8 @@
 
 package org.elasticsearch.common.lucene.uid;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
@@ -33,9 +35,7 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqN
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
-import io.crate.metadata.doc.DocSysColumns;
-
-import java.io.IOException;
+import io.crate.metadata.doc.SysColumns;
 
 
 /** Utility class to do efficient primary-key (only 1 doc contains the
@@ -71,7 +71,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
         if (terms == null) {
             // If a segment contains only no-ops, it does not have _uid but has both _soft_deletes and _tombstone fields.
             final NumericDocValues softDeletesDV = reader.getNumericDocValues(Lucene.SOFT_DELETES_FIELD);
-            final NumericDocValues tombstoneDV = reader.getNumericDocValues(DocSysColumns.Names.TOMBSTONE);
+            final NumericDocValues tombstoneDV = reader.getNumericDocValues(SysColumns.Names.TOMBSTONE);
             // this is a special case when we pruned away all IDs in a segment since all docs are deleted.
             final boolean allDocsDeleted = (softDeletesDV != null && reader.numDocs() == 0);
             if ((softDeletesDV == null || tombstoneDV == null) && allDocsDeleted == false) {
@@ -82,8 +82,8 @@ final class PerThreadIDVersionAndSeqNoLookup {
         } else {
             termsEnum = terms.iterator();
         }
-        if (reader.getNumericDocValues(DocSysColumns.VERSION.name()) == null) {
-            throw new IllegalArgumentException("reader misses the [" + DocSysColumns.VERSION.name() + "] field; _uid terms [" + terms + "]");
+        if (reader.getNumericDocValues(SysColumns.VERSION.name()) == null) {
+            throw new IllegalArgumentException("reader misses the [" + SysColumns.VERSION.name() + "] field; _uid terms [" + terms + "]");
         }
         Object readerKey = null;
         assert (readerKey = reader.getCoreCacheHelper().getKey()) != null;
@@ -106,13 +106,13 @@ final class PerThreadIDVersionAndSeqNoLookup {
             final long seqNo;
             final long term;
             if (loadSeqNo) {
-                seqNo = readNumericDocValues(context.reader(), DocSysColumns.Names.SEQ_NO, docID);
-                term = readNumericDocValues(context.reader(), DocSysColumns.Names.PRIMARY_TERM, docID);
+                seqNo = readNumericDocValues(context.reader(), SysColumns.Names.SEQ_NO, docID);
+                term = readNumericDocValues(context.reader(), SysColumns.Names.PRIMARY_TERM, docID);
             } else {
                 seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
                 term = 0;
             }
-            final long version = readNumericDocValues(context.reader(), DocSysColumns.VERSION.name(), docID);
+            final long version = readNumericDocValues(context.reader(), SysColumns.VERSION.name(), docID);
             return new DocIdAndVersion(docID, version, seqNo, term, context.reader(), context.docBase);
         } else {
             return null;
@@ -157,7 +157,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
             "context's reader is not the same as the reader class was initialized on.";
         final int docID = getDocID(id, context);
         if (docID != DocIdSetIterator.NO_MORE_DOCS) {
-            final long seqNo = readNumericDocValues(context.reader(), DocSysColumns.Names.SEQ_NO, docID);
+            final long seqNo = readNumericDocValues(context.reader(), SysColumns.Names.SEQ_NO, docID);
             return new DocIdAndSeqNo(docID, seqNo, context);
         } else {
             return null;

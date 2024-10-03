@@ -32,7 +32,7 @@ import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * A policy that controls how many soft-deleted documents should be retained for peer-recovery and querying history changes purpose.
@@ -155,7 +155,7 @@ final class SoftDeletesPolicy {
      * Documents including tombstones are soft-deleted and matched this query will be retained and won't cleaned up by merges.
      */
     Query getRetentionQuery() {
-        return LongPoint.newRangeQuery(DocSysColumns.Names.SEQ_NO, getMinRetainedSeqNo(), Long.MAX_VALUE);
+        return LongPoint.newRangeQuery(SysColumns.Names.SEQ_NO, getMinRetainedSeqNo(), Long.MAX_VALUE);
     }
 
 }

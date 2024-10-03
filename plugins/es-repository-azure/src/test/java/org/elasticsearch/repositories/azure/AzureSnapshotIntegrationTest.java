@@ -60,7 +60,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        handler = new AzureHttpHandler(CONTAINER_NAME);
+        handler = new AzureHttpHandler(CONTAINER_NAME, false);
         httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME, handler);
         httpServer.start();

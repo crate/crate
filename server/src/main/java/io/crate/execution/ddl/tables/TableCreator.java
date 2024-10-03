@@ -40,7 +40,7 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class TableCreator {
@@ -61,7 +61,7 @@ public class TableCreator {
         var policy = createTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
         var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
 
-        String routingColumn = createTable.routingColumn().equals(DocSysColumns.ID.COLUMN) ? null : createTable.routingColumn().fqn();
+        String routingColumn = createTable.routingColumn().equals(SysColumns.ID.COLUMN) ? null : createTable.routingColumn().fqn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
                 relationName,

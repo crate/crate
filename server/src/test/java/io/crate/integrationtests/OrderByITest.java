@@ -47,8 +47,8 @@ public class OrderByITest extends IntegTestCase {
         assertThat(response).hasRows(
             "10.0.0.1",
             "10.200.1.100",
-            "10.220.1.120",
             "10.220.1.20",
+            "10.220.1.120",
             "127.0.0.1",
             "NULL");
 
@@ -56,8 +56,8 @@ public class OrderByITest extends IntegTestCase {
         assertThat(response).hasRows(
             "NULL",
             "127.0.0.1",
-            "10.220.1.20",
             "10.220.1.120",
+            "10.220.1.20",
             "10.200.1.100",
             "10.0.0.1");
     }

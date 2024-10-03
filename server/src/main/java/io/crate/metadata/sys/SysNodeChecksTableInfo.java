@@ -33,7 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
 
 
@@ -54,7 +54,7 @@ public class SysNodeChecksTableInfo {
         .add("description", STRING, SysNodeCheck::description)
         .add("passed", BOOLEAN, SysNodeCheck::isValid)
         .add("acknowledged", BOOLEAN, SysNodeCheck::acknowledged)
-        .add(DocSysColumns.ID.COLUMN.name(), STRING, SysNodeCheck::rowId)
+        .add(SysColumns.ID.COLUMN.name(), STRING, SysNodeCheck::rowId)
         .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
         .withSupportedOperations(SUPPORTED_OPERATIONS)
         .setPrimaryKeys(

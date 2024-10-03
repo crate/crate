@@ -87,7 +87,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
         if (path == null) {
             return func;
         } else {
-            DataType<?> returnType = objectType.resolveInnerType(path);
+            DataType<?> returnType = objectType.innerType(path);
             return returnType.equals(DataTypes.UNDEFINED)
                 ? func
                 : new Function(

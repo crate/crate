@@ -21,7 +21,7 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.Cursor;
+import io.crate.session.Cursor;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;

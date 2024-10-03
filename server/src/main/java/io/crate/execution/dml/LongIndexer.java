@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class LongIndexer implements ValueIndexer<Long> {
 
@@ -47,6 +47,10 @@ public class LongIndexer implements ValueIndexer<Long> {
     @Override
     public void indexValue(@NotNull Long value, IndexDocumentBuilder docBuilder) throws IOException {
         long longValue = value;
+        if (longValue == Long.MAX_VALUE || longValue == Long.MIN_VALUE) {
+            throw new IllegalArgumentException(
+                "Value " + longValue + " exceeds allowed range for column of type bigint");
+        }
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new LongField(name, longValue, Field.Store.NO));
         } else {
@@ -60,9 +64,9 @@ public class LongIndexer implements ValueIndexer<Long> {
                     docBuilder.addField(new StoredField(name, longValue));
                 }
                 docBuilder.addField(new Field(
-                        DocSysColumns.FieldNames.NAME,
+                        SysColumns.FieldNames.NAME,
                         name,
-                        DocSysColumns.FieldNames.FIELD_TYPE));
+                        SysColumns.FieldNames.FIELD_TYPE));
             }
         }
         docBuilder.translogWriter().writeValue(longValue);

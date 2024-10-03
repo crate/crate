@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction.ReplicaResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -242,14 +242,14 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         final List<Thread> threads = new ArrayList<>(delayedOperationsBarrier.getParties());
 
         @SuppressWarnings("unchecked")
-        final PlainActionFuture<Response>[] futures = new PlainActionFuture[numOperations];
+        final PlainFuture<Response>[] futures = new PlainFuture[numOperations];
         final TestAction[] actions = new TestAction[numOperations];
 
         for (int i = 0; i < numOperations; i++) {
             final int threadId = i;
             final boolean delayed = (threadId < delayedOperations);
 
-            final PlainActionFuture<Response> listener = new PlainActionFuture<>();
+            final PlainFuture<Response> listener = new PlainFuture<>();
             futures[threadId] = listener;
 
             final TestAction singlePermitAction = new SinglePermitWithBlocksAction(Settings.EMPTY,
@@ -309,7 +309,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         final TestAction allPermitsAction = new AllPermitsThenBlockAction(Settings.EMPTY, "cluster:admin/test/all_permits",
             transportService, clusterService, shardStateAction, threadPool, shardId, primary, replica);
 
-        final PlainActionFuture<Response> allPermitFuture = new PlainActionFuture<>();
+        final PlainFuture<Response> allPermitFuture = new PlainFuture<>();
         Thread thread = new Thread(() -> {
             final TransportReplicationAction.ConcreteShardRequest<Request> primaryRequest
                 = new TransportReplicationAction.ConcreteShardRequest<>(request(), allocationId(), primaryTerm());
@@ -358,7 +358,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         assertSuccessfulOperation(allPermitsAction, allPermitsResponse);
 
         for (int i = 0; i < numOperations; i++) {
-            final PlainActionFuture<Response> future = futures[i];
+            final PlainFuture<Response> future = futures[i];
             final TestAction action = actions[i];
 
             if (i < delayedOperations) {
@@ -611,7 +611,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
     /**
      * Transport channel that is needed for replica operation testing.
      */
-    public TransportChannel transportChannel(final PlainActionFuture<Response> listener) {
+    public TransportChannel transportChannel(final PlainFuture<Response> listener) {
         return new TransportChannel() {
 
             @Override

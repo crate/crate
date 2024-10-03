@@ -46,6 +46,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StorageSupport;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
@@ -90,7 +92,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
     /**
-     * Field prefix used for the array length field here and in {@link io.crate.types.NullArrayType}
+     * Field prefix used for the array length field
      */
     public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
@@ -102,6 +104,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         this.innerIndexer = innerIndexer;
         this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
+        this.reference = reference;
     }
 
     @Override
@@ -145,12 +148,38 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                                      Consumer<? super Reference> onDynamicColumn,
                                      Synthetics synthetics) throws IOException {
         if (values != null) {
-            for (T value : values) {
-                if (value != null) {
-                    innerIndexer.collectSchemaUpdates(value, onDynamicColumn, synthetics);
+            if (DataTypes.isArrayOfNulls(this.reference.valueType())) {
+                handleNullArrayUpcast(values, onDynamicColumn, synthetics);
+            } else {
+                for (T value : values) {
+                    if (value != null) {
+                        innerIndexer.collectSchemaUpdates(value, onDynamicColumn, synthetics);
+                    }
                 }
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleNullArrayUpcast(List<?> values,
+                                       Consumer<? super Reference> onDynamicColumn,
+                                       Synthetics synthetics) throws IOException {
+        DataType<?> type = DataTypes.valueFromList(values, true);
+        if (DataTypes.isArrayOfNulls(type)) {
+            return;
+        }
+        Reference ref = DynamicIndexer.buildReference(
+            this.reference.ident(),
+            type,
+            this.reference.position(),
+            this.reference.oid()
+        );
+        onDynamicColumn.accept(ref);
+        StorageSupport<?> storageSupport = type.storageSupport();
+        assert storageSupport != null;  // null storage will have thrown an exception in buildReference
+        ValueIndexer<Object> indexer
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> ref);
+        indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 
     @Override
@@ -164,6 +193,6 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @Override
     public String storageIdentLeafName() {
-        return innerIndexer.storageIdentLeafName();
+        return reference.storageIdentLeafName();
     }
 }

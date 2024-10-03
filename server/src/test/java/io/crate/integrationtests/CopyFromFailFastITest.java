@@ -48,7 +48,7 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;

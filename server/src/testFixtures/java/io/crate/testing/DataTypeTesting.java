@@ -63,7 +63,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.NullArrayType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.ObjectType.Builder;
@@ -88,7 +87,7 @@ public class DataTypeTesting {
                 }
                 return type;
             })
-            .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != NullArrayType.ID && x.id() != UndefinedType.ID)
+            .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != UndefinedType.ID)
             .collect(Collectors.toSet());
     }
 
@@ -256,16 +255,6 @@ public class DataTypeTesting {
                     }
                     return (T) values;
                 };
-            case NullArrayType.ID:
-                if (random.nextBoolean()) {
-                    return () -> (T) new ArrayList<T>();
-                }
-                int size = random.nextInt(5);
-                ArrayList<Object> l = new ArrayList<>();
-                for (int i = 0; i < size; i++) {
-                    l.add(null);
-                }
-                return () -> (T) l;
             default:
                 throw new AssertionError("No data generator for type " + type.getName());
         }

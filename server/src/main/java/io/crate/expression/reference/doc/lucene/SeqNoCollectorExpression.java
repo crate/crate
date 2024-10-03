@@ -21,12 +21,13 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.NumericDocValues;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
+
+import org.apache.lucene.index.NumericDocValues;
+
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.doc.SysColumns;
 
 public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -36,7 +37,7 @@ public class SeqNoCollectorExpression extends LuceneCollectorExpression<Long> {
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         try {
-            seqNumbers = context.reader().getNumericDocValues(DocSysColumns.SEQ_NO.name());
+            seqNumbers = context.reader().getNumericDocValues(SysColumns.SEQ_NO.name());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

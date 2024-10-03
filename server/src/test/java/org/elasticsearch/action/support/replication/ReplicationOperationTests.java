@@ -46,7 +46,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -140,7 +140,7 @@ public class ReplicationOperationTests extends ESTestCase {
         }
 
         Request request = new Request(shardId);
-        PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final TestReplicaProxy replicasProxy = new TestReplicaProxy(simulatedFailures);
 
         final TestPrimary primary = new TestPrimary(primaryShard, () -> replicationGroup, threadPool);
@@ -228,7 +228,7 @@ public class ReplicationOperationTests extends ESTestCase {
         }
 
         Request request = new Request(shardId);
-        PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final TestReplicaProxy replicasProxy = new TestReplicaProxy(simulatedFailures, true);
 
         final TestPrimary primary = new TestPrimary(primaryShard, () -> replicationGroup, threadPool);
@@ -311,7 +311,7 @@ public class ReplicationOperationTests extends ESTestCase {
         expectedFailures.put(failedReplica, new CorruptIndexException("simulated", (String) null));
 
         Request request = new Request(shardId);
-        PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final boolean testPrimaryDemotedOnStaleShardCopies = randomBoolean();
         final Exception shardActionFailure;
         if (randomBoolean()) {
@@ -409,7 +409,7 @@ public class ReplicationOperationTests extends ESTestCase {
         };
 
         Request request = new Request(shardId);
-        PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final TestReplicationOperation op = new TestReplicationOperation(
             request,
             primary,
@@ -459,7 +459,7 @@ public class ReplicationOperationTests extends ESTestCase {
         addTrackingInfo(shardRoutingTable, null, trackedShards, new HashSet<>());
         final ReplicationGroup initialReplicationGroup = new ReplicationGroup(shardRoutingTable, inSyncAllocationIds, trackedShards, 0);
 
-        PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final ShardRouting primaryShard = shardRoutingTable.primaryShard();
         final TestReplicationOperation op = new TestReplicationOperation(
             request,
@@ -525,7 +525,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
             };
 
-        final PlainActionFuture<TestPrimary.Result> listener = new PlainActionFuture<>();
+        final PlainFuture<TestPrimary.Result> listener = new PlainFuture<>();
         final ReplicationOperation.Replicas<Request> replicas = new TestReplicaProxy(Collections.emptyMap());
         TestReplicationOperation operation = new TestReplicationOperation(
             request, primary, listener, replicas, logger, threadPool, "test", primaryTerm);
@@ -834,7 +834,7 @@ public class ReplicationOperationTests extends ESTestCase {
         }
     }
 
-    private <T> void assertListenerThrows(String msg, PlainActionFuture<T> listener, Class<?> klass) throws InterruptedException {
+    private <T> void assertListenerThrows(String msg, PlainFuture<T> listener, Class<?> klass) throws InterruptedException {
         try {
             listener.get();
             fail(msg);

@@ -27,11 +27,11 @@ import java.io.UncheckedIOException;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
-    private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.COLUMN.name());
+    private final IDVisitor visitor = new IDVisitor(SysColumns.ID.COLUMN.name());
     private ReaderContext context;
     private int docId;
 

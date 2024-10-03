@@ -50,8 +50,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
@@ -59,6 +59,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
@@ -66,7 +67,6 @@ import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
-import io.crate.types.NullArrayType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
@@ -106,7 +106,7 @@ public final class SourceParser {
 
     @SuppressWarnings({"unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
-        assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
+        assert docColumn.name().equals(SysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
 
         List<String> path = docColumn.path();
@@ -222,7 +222,6 @@ public final class SourceParser {
             } else if (token == START_ARRAY
                 && required instanceof DataType<?>
                 && !(required instanceof ArrayType<?>)
-                && !(required instanceof NullArrayType)
                 && !(required instanceof GeoPointType)
                 && !(required instanceof GeoShapeType)
                 && !(required instanceof FloatVectorType)
@@ -296,13 +295,17 @@ public final class SourceParser {
                 colPath);
             case START_OBJECT -> parseObject(parser, requiredColumns, droppedColumns, lookupNameBySourceKey,
                 colPath, includeUnknown);
-            case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
-            case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
-            case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
-            case VALUE_EMBEDDED_OBJECT -> type == null ? parser.binaryValue() : parseByType(parser, type);
+            case VALUE_STRING -> isUndefined(type) ? parser.text() : parseByType(parser, type);
+            case VALUE_NUMBER -> isUndefined(type) ? parser.numberValue() : parseByType(parser, type);
+            case VALUE_BOOLEAN -> isUndefined(type) ? parser.booleanValue() : parseByType(parser, type);
+            case VALUE_EMBEDDED_OBJECT -> isUndefined(type) ? parser.binaryValue() : parseByType(parser, type);
             default -> throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got "
                 + parser.currentToken());
         };
+    }
+
+    private static boolean isUndefined(@Nullable DataType<?> type) {
+        return type == null || type.id() == DataTypes.UNDEFINED.id();
     }
 
     private static Object parseByType(XContentParser parser, DataType<?> type) throws IOException {

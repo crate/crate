@@ -53,8 +53,8 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.CollectingResultReceiver;
-import io.crate.action.sql.Sessions;
+import io.crate.session.CollectingResultReceiver;
+import io.crate.session.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;

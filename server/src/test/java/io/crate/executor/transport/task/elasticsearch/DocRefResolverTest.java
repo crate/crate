@@ -38,7 +38,7 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class DocRefResolverTest extends ESTestCase {
 
@@ -67,13 +67,13 @@ public class DocRefResolverTest extends ESTestCase {
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
         List<Reference> references = List.of(
-            refInfo("t1._id", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.ID.COLUMN), RowGranularity.DOC),
-            refInfo("t1._version", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.VERSION), RowGranularity.DOC),
-            refInfo("t1._doc", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOC), RowGranularity.DOC),
-            refInfo("t1._raw", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.RAW), RowGranularity.DOC),
-            refInfo("t1._docid", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOCID), RowGranularity.DOC),
-            refInfo("t1._seq_no", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.SEQ_NO), RowGranularity.DOC),
-            refInfo("t1._primary_term", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.PRIMARY_TERM), RowGranularity.DOC)
+            refInfo("t1._id", SysColumns.COLUMN_IDENTS.get(SysColumns.ID.COLUMN), RowGranularity.DOC),
+            refInfo("t1._version", SysColumns.COLUMN_IDENTS.get(SysColumns.VERSION), RowGranularity.DOC),
+            refInfo("t1._doc", SysColumns.COLUMN_IDENTS.get(SysColumns.DOC), RowGranularity.DOC),
+            refInfo("t1._raw", SysColumns.COLUMN_IDENTS.get(SysColumns.RAW), RowGranularity.DOC),
+            refInfo("t1._docid", SysColumns.COLUMN_IDENTS.get(SysColumns.DOCID), RowGranularity.DOC),
+            refInfo("t1._seq_no", SysColumns.COLUMN_IDENTS.get(SysColumns.SEQ_NO), RowGranularity.DOC),
+            refInfo("t1._primary_term", SysColumns.COLUMN_IDENTS.get(SysColumns.PRIMARY_TERM), RowGranularity.DOC)
         );
 
         List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);

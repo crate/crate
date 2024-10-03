@@ -26,16 +26,16 @@ import static io.crate.common.collections.Lists.concat;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
@@ -47,7 +47,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         super(
             tableInfo,
             List.copyOf(tableInfo.columns()),
-            concat(DocSysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
+            concat(SysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
         );
     }
 

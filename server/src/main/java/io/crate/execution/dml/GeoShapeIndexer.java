@@ -51,7 +51,7 @@ import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.server.xcontent.XContentHelper;
 
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
@@ -94,9 +94,9 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
             docBuilder.addField(new StoredField(this.name, bytes));
         }
         docBuilder.addField(new Field(
-            DocSysColumns.FieldNames.NAME,
+            SysColumns.FieldNames.NAME,
             name,
-            DocSysColumns.FieldNames.FIELD_TYPE));
+            SysColumns.FieldNames.FIELD_TYPE));
         docBuilder.translogWriter().writeValue(value);
     }
 

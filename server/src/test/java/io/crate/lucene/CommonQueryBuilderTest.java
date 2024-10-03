@@ -138,12 +138,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("x != 10");
         assertThat(query)
             .isExactlyInstanceOf(BooleanQuery.class)
-            .hasToString("+(+*:* -x:[10 TO 10])");
+            .hasToString("+*:* -x:[10 TO 10]");
 
         query = convert("not x = 10");
         assertThat(query)
             .isExactlyInstanceOf(BooleanQuery.class)
-            .hasToString("+(+*:* -x:[10 TO 10])");
+            .hasToString("+*:* -x:[10 TO 10]");
     }
 
     @Test
@@ -797,7 +797,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_nested_not_operators() {
         Query query = convert("not (y is not null)");
-        assertThat(query).hasToString("+(+*:* -FieldExistsQuery [field=y])");
+        assertThat(query).hasToString("+*:* -FieldExistsQuery [field=y]");
     }
 
     @Test
@@ -810,5 +810,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_neq_on_object_literal() {
         Query query = convert("(obj_no_sub_columns != {})");
         assertThat(query).hasToString("+(+*:* -(obj_no_sub_columns = {})) #(NOT (obj_no_sub_columns = {}))");
+    }
+
+    @Test
+    public void test_in_operator_with_arrays_on_both_lhs_and_rhs() {
+        Query query = convert("(string_array in (['hello', 'world']))");
+        assertThat(query).hasToString("+string_array:(hello world) #(string_array = ANY([['hello', 'world']]))");
+
+        query = convert("(['hello', 'world'] in (string_array))");
+        assertThat(query).hasToString("(['hello', 'world'] = ANY([string_array]))");
     }
 }

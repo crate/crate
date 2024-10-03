@@ -31,7 +31,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
@@ -49,7 +49,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
             .with(collect ->
                       collect.relation() instanceof DocTableRelation
                       && collect.where().hasQuery()
-                      && !Symbols.hasColumn(collect.outputs(), DocSysColumns.FETCHID)
+                      && !Symbols.hasColumn(collect.outputs(), SysColumns.FETCHID)
             );
     }
 

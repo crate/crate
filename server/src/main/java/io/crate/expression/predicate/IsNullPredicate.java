@@ -53,7 +53,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -181,7 +181,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (ref.indexType() == IndexType.NONE) {
                 return null;
             } else {
-                return new ConstantScoreQuery(new TermQuery(new Term(DocSysColumns.FieldNames.NAME, field)));
+                return new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, field)));
             }
         } else {
             return null;

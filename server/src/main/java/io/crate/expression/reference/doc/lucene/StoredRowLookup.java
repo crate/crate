@@ -45,7 +45,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -102,7 +102,7 @@ public abstract class StoredRowLookup implements StoredRow {
     protected abstract void registerRef(Reference ref);
 
     public final void register(List<Symbol> symbols) {
-        if (symbols != null && Symbols.hasColumn(symbols, DocSysColumns.DOC) == false) {
+        if (symbols != null && Symbols.hasColumn(symbols, SysColumns.DOC) == false) {
             Consumer<Reference> register = ref -> {
                 if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
                     registerRef(DocReferences.toDocLookup(ref));
@@ -209,7 +209,7 @@ public abstract class StoredRowLookup implements StoredRow {
                     this.fieldsVisitor.registerRef(storedParent);
                 }
             }
-            if (ref.hasColumn(DocSysColumns.DOC) || ref.hasColumn(DocSysColumns.RAW)) {
+            if (ref.hasColumn(SysColumns.DOC) || ref.hasColumn(SysColumns.RAW)) {
                 // top-level _doc - we register all table columns
                 registerAll();
             } else if (ref.valueType() instanceof GeoPointType) {
@@ -229,7 +229,7 @@ public abstract class StoredRowLookup implements StoredRow {
                     this.fieldsVisitor.registerRef(ref);
                 } else {
                     var column = ref.toColumn();
-                    if (column.isRoot() == false && column.name().equals(DocSysColumns.Names.DOC)) {
+                    if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
                         column = column.shiftRight();
                     }
                     expressions.add(new ColumnExpression(expr, column, ref.storageIdent()));

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -99,7 +99,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
 
         logger.info("Total ops: {}, global checkpoint: {}", numDocs, globalCheckPoint);
 
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<>();
         syncer.resync(shard, fut);
         PrimaryReplicaSyncer.ResyncTask resyncTask = fut.get();
 
@@ -171,7 +171,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         );
 
         CountDownLatch syncCalledLatch = new CountDownLatch(1);
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<PrimaryReplicaSyncer.ResyncTask>() {
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<PrimaryReplicaSyncer.ResyncTask>() {
             @Override
             public void onFailure(Exception e) {
                 try {
@@ -180,6 +180,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
                     syncCalledLatch.countDown();
                 }
             }
+
             @Override
             public void onResponse(PrimaryReplicaSyncer.ResyncTask result) {
                 try {
@@ -224,7 +225,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         };
         PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<>();
         syncer.resync(shard, fut);
         FutureUtils.get(fut);
         assertThat(sentOperations).isEqualTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList()));

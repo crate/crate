@@ -21,12 +21,13 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.NumericDocValues;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
+
+import org.apache.lucene.index.NumericDocValues;
+
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.doc.SysColumns;
 
 public class VersionCollectorExpression extends LuceneCollectorExpression<Long> {
 
@@ -36,7 +37,7 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         try {
-            versions = context.reader().getNumericDocValues(DocSysColumns.VERSION.name());
+            versions = context.reader().getNumericDocValues(SysColumns.VERSION.name());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

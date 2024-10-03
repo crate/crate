@@ -59,8 +59,8 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.types.DataTypes;
 
@@ -95,7 +95,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             NumberOfReplicas.effectiveNumReplicas(table.parameters(), state.nodes()),
             cluster().client(),
             IndexName.createResolver(bulkImportIdent),
-            new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
+            new SimpleReference(new ReferenceIdent(bulkImportIdent, SysColumns.RAW),
                           RowGranularity.DOC,
                           DataTypes.STRING,
                           0,

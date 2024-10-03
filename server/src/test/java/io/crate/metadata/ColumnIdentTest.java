@@ -31,7 +31,7 @@ import java.util.List;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class ColumnIdentTest {
 
@@ -77,7 +77,7 @@ public class ColumnIdentTest {
     @Test
     public void testPrepend() throws Exception {
         ColumnIdent foo = ColumnIdent.of("foo");
-        assertThat(foo.prepend(DocSysColumns.DOC.name())).isEqualTo(ColumnIdent.of(DocSysColumns.DOC.name(), "foo"));
+        assertThat(foo.prepend(SysColumns.DOC.name())).isEqualTo(ColumnIdent.of(SysColumns.DOC.name(), "foo"));
 
         ColumnIdent fooBar = ColumnIdent.of("foo", "bar");
         assertThat(fooBar.prepend("x")).isEqualTo(ColumnIdent.of("x", Arrays.asList("foo", "bar")));

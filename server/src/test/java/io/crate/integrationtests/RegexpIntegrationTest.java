@@ -32,7 +32,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class RegexpIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testRegexpReplaceIsNull() throws Exception {
@@ -46,7 +46,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
             new Object[]{5, "foo"},
             new Object[]{6, null}
         });
-        refresh();
+        execute("refresh table regex_test");
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is not null");
         assertThat(response.rowCount()).isEqualTo(5L);
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is null");
@@ -60,7 +60,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
         execute("insert into phone (phone) values (?)", new Object[][]{
             new Object[]{"+1234567890"}
         });
-        refresh();
+        execute("refresh table phone");
         Asserts.assertSQLError(() -> execute("select * from phone where phone ~* '+1234567890'"))
                 .hasPGError(PGErrorStatus.INTERNAL_ERROR)
                 .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
@@ -84,7 +84,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorFast() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
         execute("select distinct name from locations where name ~ '[A-Z][a-z0-9]+' order by name");
         assertThat(response.rowCount()).isEqualTo(5L);
         assertThat((String) response.rows()[0][0]).isEqualTo("Aldebaran");
@@ -119,7 +119,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithCaseInsensitivity() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
         execute("select distinct name from locations where name ~* 'aldebaran'");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((String) response.rows()[0][0]).isEqualTo("Aldebaran");
@@ -148,7 +148,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcre() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         // character class shortcut aliases
         execute("select distinct name from locations where name ~ 'Alpha\\sCentauri'");
@@ -185,7 +185,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
+        execute("refresh table locations");
 
         execute("select count(*) from locations where name ~ '(?i).*centauri.*'");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -203,7 +203,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("delete from locations where name ~ '(?i).*centauri.*'");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -216,7 +216,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorOnSysShards() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("select table_name, * from sys.shards where table_name ~ '(?i)LOCATIONS' order by table_name");
         assertThat(response.rowCount()).isEqualTo(2L);
@@ -227,7 +227,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithCaseInsensitivityOnSysShards() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("select table_name, * from sys.shards where table_name ~* 'LOCATIONS' order by table_name");
         assertThat(response.rowCount()).isEqualTo(2L);

@@ -32,8 +32,8 @@ import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

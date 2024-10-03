@@ -37,7 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -166,7 +166,7 @@ public class BlobTransferTarget {
         DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
         String senderNodeId = nodes.getLocalNodeId();
 
-        var listener = new PlainActionFuture<BlobTransferInfoResponse>();
+        var listener = new PlainFuture<BlobTransferInfoResponse>();
         transportService.sendRequest(
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
@@ -191,7 +191,7 @@ public class BlobTransferTarget {
                      transferInfoResponse.digest, request.transferId
         );
 
-        var getBlobHeadListener = new PlainActionFuture<>();
+        var getBlobHeadListener = new PlainFuture<>();
         transportService.sendRequest(
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,

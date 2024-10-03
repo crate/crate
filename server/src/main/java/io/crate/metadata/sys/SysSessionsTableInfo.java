@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.Session;
+import io.crate.session.Session;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;

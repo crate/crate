@@ -81,8 +81,8 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -223,11 +223,11 @@ public final class CopyFromPlan implements Plan {
 
         // need to exclude _id columns; they're auto generated and won't be available in the files being imported
         ColumnIdent clusteredBy = table.clusteredBy();
-        if (DocSysColumns.ID.COLUMN.equals(clusteredBy)) {
+        if (SysColumns.ID.COLUMN.equals(clusteredBy)) {
             clusteredBy = null;
         }
         List<Reference> primaryKeyRefs = table.primaryKey().stream()
-            .filter(r -> !r.equals(DocSysColumns.ID.COLUMN))
+            .filter(r -> !r.equals(SysColumns.ID.COLUMN))
             .map(table::getReference)
             .collect(Collectors.toList());
 
@@ -270,7 +270,7 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
+                table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
@@ -290,7 +290,7 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
+                table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
@@ -406,9 +406,9 @@ public final class CopyFromPlan implements Plan {
      */
     private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
         if (table.isPartitioned() && selectedPartitionIdent == null) {
-            return table.getReference(DocSysColumns.DOC);
+            return table.getReference(SysColumns.DOC);
         }
-        return table.getReference(DocSysColumns.RAW);
+        return table.getReference(SysColumns.RAW);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
@@ -436,7 +436,7 @@ public final class CopyFromPlan implements Plan {
         if (uri instanceof String) {
             String uriAsString = DataTypes.STRING.sanitizeValue(uri);
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
             }
             return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
@@ -445,7 +445,7 @@ public final class CopyFromPlan implements Plan {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }

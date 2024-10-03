@@ -34,7 +34,7 @@ import io.crate.common.collections.Maps;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
@@ -56,7 +56,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
             return;
         }
         var column = ref.column();
-        if (column.name().equals(DocSysColumns.Names.DOC)) {
+        if (column.name().equals(SysColumns.Names.DOC)) {
             column = column.shiftRight();
         }
         var storageName = ref.storageIdentLeafName();

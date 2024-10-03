@@ -39,15 +39,15 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testNotAnyEqWithout3vl() {
         assertThat(convert("NOT ignore3vl(20 = ANY(y_array))")).hasToString(
-            "+(+*:* -y_array:[20 TO 20])");
+            "+*:* -y_array:[20 TO 20]");
         assertThat(convert("NOT ignore3vl(d = ANY([1,2,3]))")).hasToString(
-            "+(+*:* -d:{1.0 2.0 3.0})");
+            "+*:* -d:{1.0 2.0 3.0}");
     }
 
     @Test
     public void testComplexOperatorTreeWith3vlAndIgnore3vl() {
         assertThat(convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')")).hasToString(
-            "+(+(+*:* -name:foo) +FieldExistsQuery [field=name]) +(+(+*:* -name:bar))");
+            "+(+(+*:* -name:foo) +FieldExistsQuery [field=name]) +(+*:* -name:bar)");
     }
 
     @Test
@@ -70,7 +70,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_negated_concat_with_three_valued_logic() {
         assertThat(convert("NOT (x || 1) < -1")).hasToString(
-            "+(+*:* -((x || '1') < -1))");
+            "+*:* -((x || '1') < -1)");
     }
 
     @Test

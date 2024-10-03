@@ -23,12 +23,9 @@ package io.crate.expression.operator.any;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.StreamSupport;
 
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
@@ -48,7 +45,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
-import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -71,15 +68,6 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         LikeOperators.ANY_ILIKE,
         LikeOperators.ANY_NOT_LIKE,
         LikeOperators.ANY_NOT_ILIKE
-    );
-
-    public static final Set<String> SUPPORTED_COMPARISONS = Set.of(
-        ComparisonExpression.Type.EQUAL.getValue(),
-        ComparisonExpression.Type.NOT_EQUAL.getValue(),
-        ComparisonExpression.Type.LESS_THAN.getValue(),
-        ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue(),
-        ComparisonExpression.Type.GREATER_THAN.getValue(),
-        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
     );
 
     protected final DataType<T> leftType;
@@ -110,6 +98,12 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         );
     }
 
+    protected static List<?> filterNullValues(Literal<?> literal) {
+        assert ArrayType.dimensions(literal.valueType()) == 1 : "The literal must be 1D array";
+        return StreamSupport.stream(((Iterable<?>) literal.value()).spliterator(), false)
+            .filter(Objects::nonNull).toList();
+    }
+
     @SuppressWarnings("unchecked")
     AnyOperator(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
@@ -118,7 +112,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
 
     abstract boolean matches(T probe, T candidate);
 
-    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context);
+    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
 
     protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
 
@@ -162,13 +156,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
             return literalMatchesAnyArrayRef(function, literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
-            var nonNullValues = StreamSupport
-                .stream(((Iterable<?>) literal.value()).spliterator(), false)
-                .filter(Objects::nonNull).toList();
-            if (nonNullValues.isEmpty()) {
-                return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
-            }
-            return refMatchesAnyArrayLiteral(function, ref, nonNullValues, context);
+            return refMatchesAnyArrayLiteral(function, ref, literal, context);
         } else {
             return null;
         }

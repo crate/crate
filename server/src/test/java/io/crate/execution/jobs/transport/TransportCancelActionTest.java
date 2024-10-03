@@ -29,7 +29,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.protocols.postgres.KeyData;
 
 public class TransportCancelActionTest {

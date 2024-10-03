@@ -101,7 +101,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;

@@ -121,13 +121,13 @@ public final class CopyStatementSettings {
         return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
 
-    public static List<String> commonCopyToSettings = List.of(
+    public static List<String> COMMON_COPY_TO_SETTINGS = List.of(
         COMPRESSION_SETTING.getKey(),
         OUTPUT_FORMAT_SETTING.getKey(),
         WAIT_FOR_COMPLETION_SETTING.getKey()
     );
 
-    public static List<String> commonCopyFromSettings = List.of(
+    public static List<String> COMMON_COPY_FROM_SETTINGS = List.of(
         COMPRESSION_SETTING.getKey(),
         INPUT_FORMAT_SETTING.getKey(),
         WAIT_FOR_COMPLETION_SETTING.getKey(),

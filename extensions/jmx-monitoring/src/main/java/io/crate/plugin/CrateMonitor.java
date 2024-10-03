@@ -41,7 +41,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.beans.CircuitBreakers;
 import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;

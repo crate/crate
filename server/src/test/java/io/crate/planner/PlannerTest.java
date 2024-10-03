@@ -39,7 +39,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnavailableShardsException;

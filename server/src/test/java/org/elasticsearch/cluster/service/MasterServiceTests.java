@@ -45,6 +45,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterName;
@@ -63,7 +64,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.BaseFuture;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
@@ -559,7 +559,7 @@ public class MasterServiceTests extends ESTestCase {
     }
 
     public void testBlockingCallInClusterStateTaskListenerFails() throws InterruptedException {
-        assumeTrue("assertions must be enabled for this test to work", BaseFuture.class.desiredAssertionStatus());
+        assumeTrue("assertions must be enabled for this test to work", PlainFuture.class.desiredAssertionStatus());
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<AssertionError> assertionRef = new AtomicReference<>();
 
@@ -575,7 +575,7 @@ public class MasterServiceTests extends ESTestCase {
                 new ClusterStateTaskListener() {
                     @Override
                     public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                        BaseFuture<Void> future = new BaseFuture<Void>() {
+                        PlainFuture<Void> future = new PlainFuture<Void>() {
                         };
                         try {
                             if (randomBoolean()) {

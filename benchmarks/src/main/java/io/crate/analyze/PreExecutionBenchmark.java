@@ -42,10 +42,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Cursors;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;

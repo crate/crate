@@ -26,18 +26,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
@@ -65,7 +60,6 @@ public class CountTaskTest extends ESTestCase {
     @Test
     public void testClose() throws Exception {
         CompletableFuture<Long> future = new CompletableFuture<>();
-
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
@@ -93,29 +87,16 @@ public class CountTaskTest extends ESTestCase {
 
     @Test
     public void testKillOperationFuture() throws Exception {
-        CompletableFuture<Long> future = mock(CompletableFuture.class);
-        CountOperation countOperation = new FakeCountOperation(future);
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        CountOperation countOperation = mock(CountOperation.class);
+        when(countOperation.count(any(), any(), any())).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
 
         countTask.start();
         countTask.kill(JobKilledException.of("dummy"));
 
-        verify(future, times(1)).cancel(true);
+        assertThat(future.isCancelled()).isTrue();
         assertThat(countTask.isClosed()).isTrue();
-    }
-
-    private static class FakeCountOperation implements CountOperation {
-
-        private final CompletableFuture<Long> future;
-
-        public FakeCountOperation(CompletableFuture<Long> future) {
-            this.future = future;
-        }
-
-        @Override
-        public CompletableFuture<Long> count(TransactionContext txnCtx, Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
-            return future;
-        }
     }
 }

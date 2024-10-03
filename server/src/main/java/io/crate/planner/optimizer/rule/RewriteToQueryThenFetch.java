@@ -32,7 +32,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Eval;
@@ -74,7 +74,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     public LogicalPlan apply(Limit limit,
                              Captures captures,
                              Rule.Context context) {
-        if (Symbols.hasColumn(limit.outputs(), DocSysColumns.FETCHID)) {
+        if (Symbols.hasColumn(limit.outputs(), SysColumns.FETCHID)) {
             return null;
         }
         FetchRewrite fetchRewrite = limit.source().rewriteToFetch(Set.of());

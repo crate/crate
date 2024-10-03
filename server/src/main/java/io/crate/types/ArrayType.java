@@ -247,6 +247,8 @@ public class ArrayType<T> extends DataType<List<T>> {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        } else if (value instanceof Map<?,?> map && map.isEmpty()) {
+            return List.of();
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -326,7 +328,6 @@ public class ArrayType<T> extends DataType<List<T>> {
         return other.id() == UndefinedType.ID
             || other.id() == GeoPointType.ID
             || other.id() == FloatVectorType.ID
-            || other.id() == NullArrayType.ID
             || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
     }

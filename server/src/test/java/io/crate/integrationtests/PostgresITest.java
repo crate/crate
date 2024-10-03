@@ -60,7 +60,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;

@@ -32,7 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
@@ -47,7 +47,6 @@ import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.NullArrayType;
 import io.crate.types.NumericStorage;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
@@ -73,35 +72,35 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         final ColumnIdent column = ref.column();
         switch (column.name()) {
-            case DocSysColumns.Names.RAW:
+            case SysColumns.Names.RAW:
                 if (column.isRoot()) {
                     return new RawCollectorExpression();
                 }
                 throw new UnsupportedFeatureException("_raw expression does not support subscripts: " + column);
 
-            case DocSysColumns.Names.UID:
-            case DocSysColumns.Names.ID:
+            case SysColumns.Names.UID:
+            case SysColumns.Names.ID:
                 return new IdCollectorExpression();
 
-            case DocSysColumns.Names.FETCHID:
+            case SysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();
 
-            case DocSysColumns.Names.DOCID:
+            case SysColumns.Names.DOCID:
                 return new DocIdCollectorExpression();
 
-            case DocSysColumns.Names.SCORE:
+            case SysColumns.Names.SCORE:
                 return new ScoreCollectorExpression();
 
-            case DocSysColumns.Names.VERSION:
+            case SysColumns.Names.VERSION:
                 return new VersionCollectorExpression();
 
-            case DocSysColumns.Names.SEQ_NO:
+            case SysColumns.Names.SEQ_NO:
                 return new SeqNoCollectorExpression();
 
-            case DocSysColumns.Names.PRIMARY_TERM:
+            case SysColumns.Names.PRIMARY_TERM:
                 return new PrimaryTermCollectorExpression();
 
-            case DocSysColumns.Names.DOC: {
+            case SysColumns.Names.DOC: {
                 return DocCollectorExpression.create(ref);
             }
 
@@ -140,7 +139,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
             case IntegerType.ID -> new IntegerColumnReference(fqn);
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
-            case ArrayType.ID, NullArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
+            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
             case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
             default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());

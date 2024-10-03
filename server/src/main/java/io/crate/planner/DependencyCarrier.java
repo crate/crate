@@ -34,7 +34,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.action.sql.DCLStatementDispatcher;
+import io.crate.session.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;

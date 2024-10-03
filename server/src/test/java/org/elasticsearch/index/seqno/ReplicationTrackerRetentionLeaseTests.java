@@ -40,7 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.settings.Settings;
@@ -243,7 +243,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final long addTime = randomLongBetween(timeReference.get(), Long.MAX_VALUE);
         timeReference.set(addTime);
         final long minimumRetainingSequenceNumber = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
-        final PlainActionFuture<ReplicationResponse> addFuture = new PlainActionFuture<>();
+        final PlainFuture<ReplicationResponse> addFuture = new PlainFuture<>();
         replicationTracker.addRetentionLease("source", minimumRetainingSequenceNumber, "test-source", addFuture);
         FutureUtils.get(addFuture);
         assertThat(synced.get()).isTrue();
@@ -251,7 +251,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
 
         final long cloneTime = randomLongBetween(timeReference.get(), Long.MAX_VALUE);
         timeReference.set(cloneTime);
-        final PlainActionFuture<ReplicationResponse> cloneFuture = new PlainActionFuture<>();
+        final PlainFuture<ReplicationResponse> cloneFuture = new PlainFuture<>();
         final RetentionLease clonedLease = replicationTracker.cloneRetentionLease("source", "target", cloneFuture);
         FutureUtils.get(cloneFuture);
         assertThat(synced.get()).isTrue();

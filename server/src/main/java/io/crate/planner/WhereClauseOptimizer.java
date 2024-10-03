@@ -46,8 +46,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
@@ -161,9 +161,9 @@ public final class WhereClauseOptimizer {
         }
         WhereClause.validateVersioningColumnsUsage(query);
 
-        boolean versionInQuery = query.hasColumn(DocSysColumns.VERSION);
-        boolean sequenceVersioningInQuery = query.hasColumn(DocSysColumns.SEQ_NO) &&
-                                            query.hasColumn(DocSysColumns.PRIMARY_TERM);
+        boolean versionInQuery = query.hasColumn(SysColumns.VERSION);
+        boolean sequenceVersioningInQuery = query.hasColumn(SysColumns.SEQ_NO) &&
+                                            query.hasColumn(SysColumns.PRIMARY_TERM);
         List<ColumnIdent> pkCols = pkColsInclVersioning(table, versionInQuery, sequenceVersioningInQuery);
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
@@ -188,11 +188,11 @@ public final class WhereClauseOptimizer {
         int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
         final DocKeys docKeys;
         final boolean shouldUseDocKeys = table.isPartitioned() == false && (
-                DocSysColumns.ID.COLUMN.equals(table.clusteredBy()) || (
+                SysColumns.ID.COLUMN.equals(table.clusteredBy()) || (
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().getFirst())));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
-            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx);
+            pkMatches = eqExtractor.extractMatches(List.of(SysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx);
         }
 
         if (pkMatches.matches() == null) {
@@ -240,13 +240,13 @@ public final class WhereClauseOptimizer {
         if (versionInQuery) {
             ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 1);
             pkCols.addAll(table.primaryKey());
-            pkCols.add(DocSysColumns.VERSION);
+            pkCols.add(SysColumns.VERSION);
             return pkCols;
         } else if (seqNoAndPrimaryTermInQuery) {
             ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 2);
             pkCols.addAll(table.primaryKey());
-            pkCols.add(DocSysColumns.SEQ_NO);
-            pkCols.add(DocSysColumns.PRIMARY_TERM);
+            pkCols.add(SysColumns.SEQ_NO);
+            pkCols.add(SysColumns.PRIMARY_TERM);
             return pkCols;
         }
         return table.primaryKey();

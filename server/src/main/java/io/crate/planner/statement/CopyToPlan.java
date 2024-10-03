@@ -63,8 +63,8 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -233,7 +233,7 @@ public final class CopyToPlan implements Plan {
             }
             columnsDefined = true;
         } else {
-            var docRef = table.getReference(DocSysColumns.DOC);
+            var docRef = table.getReference(SysColumns.DOC);
             assert docRef != null : "_doc reference must be resolvable";
             outputs = List.of(docRef.cast(DataTypes.STRING, CastMode.EXPLICIT));
         }
@@ -255,7 +255,7 @@ public final class CopyToPlan implements Plan {
         if (uri.startsWith("/") || uri.startsWith("file:")) {
             // Settings of other schemes are validated later in plugins
             // as only plugins are aware of scheme specific properties.
-            properties.ensureContainsOnly(CopyStatementSettings.commonCopyToSettings);
+            properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_TO_SETTINGS);
         }
         return new BoundCopyTo(
             outputs,

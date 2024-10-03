@@ -53,7 +53,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -451,7 +451,7 @@ public class RecoverySourceHandler {
     }
 
     private void runWithGenericThreadPool(CheckedRunnable<Exception> task) {
-        final PlainActionFuture<Void> future = new PlainActionFuture<>();
+        final PlainFuture<Void> future = new PlainFuture<>();
         assert threadPool.generic().isShutdown() == false;
         // TODO: We shouldn't use the generic thread pool here as we already execute this from the generic pool.
         //       While practically unlikely at a min pool size of 128 we could technically block the whole pool by waiting on futures

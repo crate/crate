@@ -222,7 +222,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 .add(notX, Occur.MUST)
                 .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
                 .build();
-        } else {
+        } else if (ctx.nullableReferences().isEmpty() == false) {
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(notX, BooleanClause.Occur.MUST);
             for (Reference nullableRef : ctx.nullableReferences()) {
@@ -244,6 +244,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             }
             return builder.build();
         }
+        return notX;
     }
 
     /**

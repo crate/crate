@@ -39,7 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class RowShardResolverTest extends ESTestCase {
 
@@ -160,7 +160,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(DocSysColumns.ID.COLUMN),
+            List.of(SysColumns.ID.COLUMN),
             primaryKeySymbols,
             null,
             null
@@ -191,7 +191,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(DocSysColumns.ID.COLUMN, ColumnIdent.of("my_pk")),
+            List.of(SysColumns.ID.COLUMN, ColumnIdent.of("my_pk")),
             primaryKeySymbols,
             null,
             null

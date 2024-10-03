@@ -21,10 +21,10 @@
 
 package io.crate.rest.action;
 
-import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.http.Headers.isCloseConnection;
+import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -50,12 +50,6 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
-import io.crate.action.sql.parser.SQLRequestParseContext;
-import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
@@ -71,6 +65,12 @@ import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.DescribeResult;
+import io.crate.session.ResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
+import io.crate.session.parser.SQLRequestParseContext;
+import io.crate.session.parser.SQLRequestParser;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;

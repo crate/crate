@@ -47,7 +47,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Takes care of writing, reading and querying of values of type {@link NumericType} in Lucene.
@@ -126,9 +126,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             } else {
                 docBuilder.addField(new StoredField(name, longValue));
                 docBuilder.addField(new Field(
-                    DocSysColumns.FieldNames.NAME,
+                    SysColumns.FieldNames.NAME,
                     name,
-                    DocSysColumns.FieldNames.FIELD_TYPE));
+                    SysColumns.FieldNames.FIELD_TYPE));
             }
 
             docBuilder.translogWriter().writeValue(value);
@@ -161,9 +161,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             } else {
                 docBuilder.addField(new StoredField(name, new BytesRef(bytes)));
                 docBuilder.addField(new Field(
-                    DocSysColumns.FieldNames.NAME,
+                    SysColumns.FieldNames.NAME,
                     name,
-                    DocSysColumns.FieldNames.FIELD_TYPE));
+                    SysColumns.FieldNames.FIELD_TYPE));
             }
             docBuilder.translogWriter().writeValue(value);
         }

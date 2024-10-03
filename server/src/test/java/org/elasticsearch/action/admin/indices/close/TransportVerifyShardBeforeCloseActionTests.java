@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -288,7 +288,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             0);
         assertThat(replicationGroup.getUnavailableInSyncShards()).hasSizeGreaterThan(0);
 
-        PlainActionFuture<PrimaryResult> listener = new PlainActionFuture<>();
+        PlainFuture<PrimaryResult> listener = new PlainFuture<>();
         TransportVerifyShardBeforeCloseAction.ShardRequest request =
             new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, clusterBlock);
         ReplicationOperation.Replicas<TransportVerifyShardBeforeCloseAction.ShardRequest> proxy =

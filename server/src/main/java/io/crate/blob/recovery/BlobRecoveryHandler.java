@@ -34,7 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -109,7 +109,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private Set<BytesArray> getExistingDigestsFromTarget(byte prefix) {
-        var listener = new PlainActionFuture<BlobStartPrefixResponse>();
+        var listener = new PlainFuture<BlobStartPrefixResponse>();
         transportService.sendRequest(
             request.targetNode(),
             BlobRecoveryTarget.Actions.START_PREFIX,
@@ -211,7 +211,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private void deleteFilesRequest(BytesArray[] digests) {
-        var listener = new PlainActionFuture<TransportResponse>();
+        var listener = new PlainFuture<TransportResponse>();
         transportService.sendRequest(
             request.targetNode(),
             BlobRecoveryTarget.Actions.DELETE_FILE,
@@ -223,7 +223,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private void sendFinalizeRecoveryRequest() {
-        var listener = new PlainActionFuture<TransportResponse>();
+        var listener = new PlainFuture<TransportResponse>();
         transportService.sendRequest(
             request.targetNode(),
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
@@ -235,7 +235,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     private void sendStartRecoveryRequest() {
-        var listener = new PlainActionFuture<TransportResponse>();
+        var listener = new PlainFuture<TransportResponse>();
         transportService.sendRequest(
             request.targetNode(),
             BlobRecoveryTarget.Actions.START_RECOVERY,
@@ -294,7 +294,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                      relPath,
                                      fileSize
                         );
-                        var listener = new PlainActionFuture<>();
+                        var listener = new PlainFuture<>();
                         transportService.sendRequest(
                             request.targetNode(),
                             BlobRecoveryTarget.Actions.START_TRANSFER,
@@ -319,7 +319,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                             }
                             content = new BytesArray(buf, 0, bytesRead);
 
-                            var transferChunkListener = new PlainActionFuture<>();
+                            var transferChunkListener = new PlainFuture<>();
                             transportService.sendRequest(
                                 request.targetNode(),
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
@@ -333,7 +333,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
                         if (!isLast && sentChunks) {
                             LOGGER.error("Sending isLast because it wasn't sent before for {}", relPath);
-                            var transferMissingChunkListener = new PlainActionFuture<>();
+                            var transferMissingChunkListener = new PlainFuture<>();
                             transportService.sendRequest(
                                 request.targetNode(),
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,

@@ -51,21 +51,21 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.t (id int) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into custom.t (id) values (?)", new Object[][]{{1}, {2}, {3}, {4}});
-        refresh();
+        execute("refresh table custom.t");
 
         execute("select count(*) from custom.t");
         assertThat((Long) response.rows()[0][0]).isEqualTo(4L);
 
         execute("delete from custom.t where id=1");
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table custom.t");
 
         execute("select * from custom.t");
         assertThat(response.rowCount()).isEqualTo(3L);
 
         execute("delete from custom.t");
         assertThat(response.rowCount()).isEqualTo(3L);
-        refresh();
+        execute("refresh table custom.t");
 
         execute("select count(*) from custom.t");
         assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
@@ -76,10 +76,10 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.t (id int, name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into custom.t (id, name) values (?, ?)", new Object[][]{{1, "A"}, {2, "A"}, {3, "A"}, {4, "A"}});
-        refresh();
+        execute("refresh table custom.t");
 
         execute("update custom.t set name='B' where id=1");
-        refresh();
+        execute("refresh table custom.t");
 
         execute("select * from custom.t order by id");
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1| B\n2| A\n3| A\n4| A\n");
@@ -90,7 +90,7 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.t (id int) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into custom.t (id) values (?)", new Object[][]{{1}, {2}, {3}, {4}});
-        refresh();
+        execute("refresh table custom.t");
 
         execute("select id from custom.t where id=1");
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1\n");

@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class BooleanIndexer implements ValueIndexer<Boolean> {
 
@@ -65,9 +65,9 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                 docBuilder.addField(new StoredField(name, value ? 1 : 0));
             }
             docBuilder.addField(new Field(
-                DocSysColumns.FieldNames.NAME,
+                SysColumns.FieldNames.NAME,
                 name,
-                DocSysColumns.FieldNames.FIELD_TYPE));
+                SysColumns.FieldNames.FIELD_TYPE));
         }
         docBuilder.translogWriter().writeValue(value);
     }

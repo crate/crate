@@ -31,7 +31,9 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     protected String createStmt() {
         return """
             create table t (
-                a int[][]
+                a int[][],
+                b int[],
+                c int[][][]
             )
             """;
     }
@@ -61,5 +63,18 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
         var query = convert("a = any([ [ [1], [1, 2] ], [ [3], [4, 5] ] ])");
         // pre-filter by a terms query with 1, 2, 3, 4, 5 then a generic function query to make sure an exact match
         assertThat(query.toString()).isEqualTo("+a:{1 2 3 4 5} #(a = ANY([[[1], [1, 2]], [[3], [4, 5]]]))");
+    }
+
+    @Test
+    public void test_any_equals_nested_array_literal_with_automatic_array_dimension_leveling() {
+        var query = convert("b = any([ [ [1], [1, 2] ], [ [3], [4, 5] ] ])");
+        // pre-filter by a terms query with 1, 2, 3, 4, 5 then a generic function query to make sure an exact match
+        assertThat(query.toString()).isEqualTo("+b:{1 2 3 4 5} #(b = ANY([[1], [1, 2], [3], [4, 5]]))");
+    }
+
+    @Test
+    public void test_any_not_equals_on_array_literal_and_nested_array_ref_with_automatic_array_dimension_leveling() {
+        var query = convert("[1] != any(c)");
+        assertThat(query.toString()).isEqualTo("([1] <> ANY(array_unnest(c)))");
     }
 }

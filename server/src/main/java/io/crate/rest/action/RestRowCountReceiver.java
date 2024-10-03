@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.action.sql.ResultReceiver;
+import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
 
 class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {

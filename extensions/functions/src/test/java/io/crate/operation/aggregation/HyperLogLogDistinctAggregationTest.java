@@ -147,7 +147,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         // They return different result for Long.MIN_VALUE (and all close numbers with same 63-th bit)
         // but providing 1 Long.MIN_VALUE as input is still not enough.
         // The difference is revealed only when input data consists of many tricky values i.e values, close to Long.MIN_VALUE.
-        Object result = executeAggregation(DataTypes.LONG, createTestData(10_000, i -> Long.MIN_VALUE + i, null));
+        Object result = executeAggregation(DataTypes.LONG, createTestData(10_000, i -> Long.MIN_VALUE + 1 + i, null));
         assertThat(result).isEqualTo(9925L);
     }
 

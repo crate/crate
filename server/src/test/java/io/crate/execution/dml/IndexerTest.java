@@ -865,37 +865,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_empty_array_and_array_with_nulls_adds_array_of_null() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getReference(ColumnIdent.of("o")),
-                table.getDynamic(ColumnIdent.of("n1"), true, false),
-                table.getDynamic(ColumnIdent.of("n2"), true, false)
-            ),
-            null
-        );
-        List<Object> n1 = List.of();
-        List<Object> n2 = Arrays.asList(null, null);
-        IndexItem item = item(Map.of("inner", n1), n1, n2);
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        ParsedDocument doc = indexer.index(item);
-        assertThat(newColumns).hasSize(3);
-        assertThat(source(doc, table)).isIn(
-            "{\"o\":{\"inner\":[]},\"n1\":[],\"n2\":[null,null]}",
-            "{\"n1\":[],\"n2\":[null,null],\"o\":{\"inner\":[]}}"
-        );
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
-        assertTranslogParses(doc, table);
-    }
-
-    @Test
     public void test_leaves_out_generated_column_if_dependency_is_null() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int generated always as x + 1)");
@@ -1210,44 +1179,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-                .addTable("create table tbl (i int) with (column_policy='dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getDynamic(ColumnIdent.of("empty_arr"), true, false)
-            ),
-            null
-        );
-        var item = item(List.of());
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        assertThat(newColumns).hasSize(1);
-
-        ParsedDocument doc = indexer.index(item);
-        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
-                """
-                {"_u_empty_arr":[]}
-                """
-        );
-        // prefix is stripped on non _raw lookups
-        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
-                """
-                {"empty_arr":[]}
-                """
-        );
-
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
-
-        assertTranslogParses(doc, table);
-    }
-
-    @Test
     public void test_empty_arrays_are_not_prefixed_as_unknown_on_tables_created_less_5_5() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable(
@@ -1402,6 +1333,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThatThrownBy(() -> indexer.index(item(value1)))
             .isExactlyInstanceOf(ClassCastException.class);
+    }
+
+
+    @Test
+    public void test_exceeding_value_limits_raises_errors() throws Exception {
+        // long max values are used as sentinel values during ORDER BY
+        // -> byte, short and int max values are allowed
+        // -> long is restricted to min-value + 1 to max-value - 1
+
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (b byte, s smallint, i int, l long)");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "b", "s", "i", "l");
+
+        indexer.index(item(Byte.MAX_VALUE, 0, 0, 0));
+        indexer.index(item(0, Short.MAX_VALUE, 0, 0));
+        indexer.index(item(0, 0, Integer.MAX_VALUE, 0));
+
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {

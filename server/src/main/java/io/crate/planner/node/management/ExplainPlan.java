@@ -44,8 +44,8 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.RowConsumerToResultReceiver;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.collections.MapBuilder;

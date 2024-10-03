@@ -78,8 +78,8 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataType;
 
 final class DocValuesGroupByOptimizedIterator {
@@ -93,8 +93,8 @@ final class DocValuesGroupByOptimizedIterator {
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
                                           CollectTask collectTask) {
-        if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
+        if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE)
+            || collectPhase.where().hasColumn(SysColumns.SCORE)) {
             return null;
         }
 

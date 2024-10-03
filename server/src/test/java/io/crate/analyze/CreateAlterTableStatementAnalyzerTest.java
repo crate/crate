@@ -1940,4 +1940,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot use table function in default expression of column `x`");
     }
+
+    @Test
+    public void test_conflicting_column_in_dynamic_object_definition() throws Exception {
+        assertThatThrownBy(() -> analyze("CREATE TABLE tbl (obj object as (x int, x text))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"x\" specified more than once");
+    }
 }

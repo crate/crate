@@ -31,7 +31,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.session.SessionSettingRegistry;

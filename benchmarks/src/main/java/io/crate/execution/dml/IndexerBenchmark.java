@@ -45,9 +45,9 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.data.Row;
 import io.crate.execution.dml.IndexItem.StaticItem;
 import io.crate.metadata.ColumnIdent;

@@ -37,8 +37,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;

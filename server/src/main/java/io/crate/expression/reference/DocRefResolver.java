@@ -32,7 +32,7 @@ import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from {@link Doc}
@@ -51,29 +51,29 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {
-            case DocSysColumns.Names.VERSION:
+            case SysColumns.Names.VERSION:
                 return forFunction(Doc::getVersion);
 
-            case DocSysColumns.Names.SEQ_NO:
+            case SysColumns.Names.SEQ_NO:
                 return forFunction(Doc::getSeqNo);
 
-            case DocSysColumns.Names.PRIMARY_TERM:
+            case SysColumns.Names.PRIMARY_TERM:
                 return forFunction(Doc::getPrimaryTerm);
 
-            case DocSysColumns.Names.ID:
+            case SysColumns.Names.ID:
                 return NestableCollectExpression.forFunction(Doc::getId);
 
-            case DocSysColumns.Names.DOCID:
+            case SysColumns.Names.DOCID:
                 return forFunction(Doc::docId);
 
-            case DocSysColumns.Names.RAW:
+            case SysColumns.Names.RAW:
                 return forFunction(Doc::getRaw);
 
-            case DocSysColumns.Names.DOC:
+            case SysColumns.Names.DOC:
                 return forFunction(Doc::getSource);
 
             default:
-                final ColumnIdent column = columnIdent.name().equals(DocSysColumns.Names.DOC)
+                final ColumnIdent column = columnIdent.name().equals(SysColumns.Names.DOC)
                     ? columnIdent.shiftRight()
                     : columnIdent;
                 for (int i = 0; i < partitionedByColumns.size(); i++) {

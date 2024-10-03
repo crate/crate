@@ -30,7 +30,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.util.BytesRef;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class RawFieldVisitor extends StoredFieldVisitor {
 
@@ -40,7 +40,7 @@ public class RawFieldVisitor extends StoredFieldVisitor {
         return storedValues;
     }
 
-    private static final Set<String> IGNORED_FIELDS = Set.of(DocSysColumns.Source.RECOVERY_NAME, DocSysColumns.Names.ID);
+    private static final Set<String> IGNORED_FIELDS = Set.of(SysColumns.Source.RECOVERY_NAME, SysColumns.Names.ID);
 
     @Override
     public Status needsField(FieldInfo fieldInfo) throws IOException {

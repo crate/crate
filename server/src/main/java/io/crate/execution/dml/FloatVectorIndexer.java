@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.FloatVectorType;
 
 public class FloatVectorIndexer implements ValueIndexer<float[]> {
@@ -109,9 +109,9 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                 addField.accept(new StoredField(fqn, byteRepresentation));
             }
             addField.accept(new Field(
-                DocSysColumns.FieldNames.NAME,
+                SysColumns.FieldNames.NAME,
                 fqn,
-                DocSysColumns.FieldNames.FIELD_TYPE));
+                SysColumns.FieldNames.FIELD_TYPE));
         }
     }
 

@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class ReferenceTree {
 
@@ -101,7 +101,7 @@ public class ReferenceTree {
     public Reference findFirstParentMatching(Reference child, Predicate<Reference> test) {
         Node node = root;
         var col = child.column();
-        if (col.name().equals(DocSysColumns.Names.DOC) == false) {
+        if (col.name().equals(SysColumns.Names.DOC) == false) {
             child = DocReferences.toDocLookup(child);
             col = child.column();
         }
@@ -139,7 +139,7 @@ public class ReferenceTree {
     }
 
     private Node findRef(Reference ref) {
-        if (Objects.equals(DocSysColumns.Names.DOC, ref.column().name())) {
+        if (Objects.equals(SysColumns.Names.DOC, ref.column().name())) {
             if (ref.column().isRoot()) {
                 return root;
             }

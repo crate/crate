@@ -42,7 +42,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ComparisonExpression;
 
 public final class WhereClauseValidator {
@@ -146,7 +146,7 @@ public final class WhereClauseValidator {
                 validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioningValidationException::seqNoAndPrimaryTermUsage);
             } else if (columnName.equalsIgnoreCase(SCORE)) {
                 validateSysReference(context, SCORE_ALLOWED_COMPARISONS, () -> new UnsupportedOperationException(SCORE_ERROR));
-            } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {
+            } else if (columnName.equalsIgnoreCase(SysColumns.RAW.name())) {
                 throw new UnsupportedOperationException("The _raw column is not searchable and cannot be used inside a query");
             }
         }

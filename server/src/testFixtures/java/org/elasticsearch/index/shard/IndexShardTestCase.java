@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -818,7 +818,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             routingTable
         );
         try {
-            PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
+            PlainFuture<RecoveryResponse> future = new PlainFuture<>();
             recovery.recoverToTarget(future);
             FutureUtils.get(future);
             recoveryTarget.markAsDone();
