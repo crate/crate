@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -313,5 +314,29 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public ColumnStatsSupport<T> columnStatsSupport() {
         throw new UnsupportedOperationException("Datatype " + this + " does not support column stats");
+    }
+
+    /**
+     * Similar to {@link RamUsageEstimator#sizeOfMap(Map)} but not limited with depth = 1.
+     */
+    @SuppressWarnings("unchecked")
+    public final long sizeOfMap(Map<?, Object> map) {
+        if (map == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        long bytes = RamUsageEstimator.shallowSizeOf(map);
+        long entrySize = -1;
+        for (var entry : map.entrySet()) {
+            if (entrySize == -1) {
+                entrySize = RamUsageEstimator.shallowSizeOf(entry);
+            }
+            bytes += entrySize;
+            bytes += RamUsageEstimator.sizeOfObject(entry.getKey());
+
+            Object value = entry.getValue();
+            DataType<?> innerType = DataTypes.guessType(value);
+            bytes += ((DataType<Object>) innerType).valueBytes(value);
+        }
+        return bytes;
     }
 }

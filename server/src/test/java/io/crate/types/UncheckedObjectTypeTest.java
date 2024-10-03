@@ -65,4 +65,17 @@ public class UncheckedObjectTypeTest extends ESTestCase {
         Map<Object, Object> v = readType.readValueFrom(in);
         assertThat(v).isNull();
     }
+
+    @Test
+    public void test_value_bytes_accounts_for_deep_objects() throws Exception {
+        String str = "a".repeat(1024);
+        long valueBytes = UncheckedObjectType.INSTANCE.valueBytes(
+            Map.of("a",
+                Map.of("b",
+                    Map.of("c", Map.of("d", str))
+                )
+            )
+        );
+        assertThat(valueBytes).isEqualTo(2504L);
+    }
 }

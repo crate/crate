@@ -183,6 +183,21 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         }
     }
 
+    @Test
+    public void test_value_bytes_accounts_for_deep_objects() throws Exception {
+        Map<String, Object> geoShape = type.implicitCast(parse("{ \"type\": \"GeometryCollection\",\n" +
+            "    \"geometries\": [\n" +
+            "      { \"type\": \"Point\",\n" +
+            "        \"coordinates\": [100.0, 0.0]\n" +
+            "        },\n" +
+            "      { \"type\": \"LineString\",\n" +
+            "        \"coordinates\": [ [101.0, 0.0], [102.0, 1.0] ]\n" +
+            "        }\n" +
+            "    ]\n" +
+            "  }"));
+        assertThat(type.valueBytes(geoShape)).isEqualTo(1136L);
+    }
+
     @Override
     public void test_reference_resolver_docvalues_off() throws Exception {
         assumeFalse("GeoShapeType cannot disable column store", true);

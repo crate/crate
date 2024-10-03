@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -118,9 +117,6 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
 
     @Override
     public long valueBytes(Map<Object, Object> value) {
-        if (value == null) {
-            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
-        }
-        return RamUsageEstimator.sizeOfMap(value);
+        return sizeOfMap(value);
     }
 }

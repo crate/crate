@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -150,9 +149,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     public long valueBytes(Map<String, Object> value) {
-        if (value == null) {
-            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
-        }
-        return RamUsageEstimator.sizeOfMap(value);
+        return sizeOfMap(value);
     }
 }

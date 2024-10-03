@@ -235,6 +235,6 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
                 )
             )
         );
-        assertThat(valueBytes).isEqualTo(2376L);
+        assertThat(valueBytes).isEqualTo(2504L);
     }
 }
