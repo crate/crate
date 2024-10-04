@@ -47,7 +47,12 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that caused wrong results when ordering by an IP field or whehn
+- Fixed an issue that caused an error or wrong results when a table function was
+  combined with a UNION ALL in a sub-query e.g.::
+
+      SELECT a FROM (SELECT a, b FROM tbl UNION ALL SELECT 3 AS a, 3 AS b) t;
+
+- Fixed an issue that caused wrong results when ordering by an IP field or when
   comparing values of :ref:`IP type <type-ip>`, e.g.::
 
     SELECT * FROM tbl ORDER BY ip_col;
