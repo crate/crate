@@ -29,7 +29,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.VectorSimilarityFunction;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -54,34 +53,10 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     public static final VectorSimilarityFunction SIMILARITY_FUNC = VectorSimilarityFunction.EUCLIDEAN;
     public static final int MAX_DIMENSIONS = 2048;
 
-    private static final EqQuery<float[]> EQ_QUERY = new EqQuery<>() {
-
-        @Override
-        public Query termQuery(String field, float[] value, boolean hasDocValues, boolean isIndexed) {
-            return null;
-        }
-
-        @Override
-        public Query rangeQuery(String field,
-                                float[] lowerTerm,
-                                float[] upperTerm,
-                                boolean includeLower,
-                                boolean includeUpper,
-                                boolean hasDocValues,
-                                boolean isIndexed) {
-            return null;
-        }
-
-        @Override
-        public Query termsQuery(String field, List<float[]> nonNullValues, boolean hasDocValues, boolean isIndexed) {
-            return null;
-        }
-    };
-
     private static final StorageSupport<? super float[]> STORAGE_SUPPORT = new StorageSupport<>(
-            true,
-            true,
-            EQ_QUERY) {
+        true,
+        true,
+        EqQuery.nullEqQuery()) {
 
         @Override
         public ValueIndexer<? super float[]> valueIndexer(RelationName table,

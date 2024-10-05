@@ -100,9 +100,6 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             return null;
         }
         EqQuery eqQuery = storageSupport.eqQuery();
-        if (eqQuery == null) {
-            return null;
-        }
         Object value = probe.value();
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);

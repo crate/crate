@@ -338,10 +338,8 @@ public class LuceneQueryBuilder {
             // called for queries like: where boolColumn
             if (type == DataTypes.BOOLEAN) {
                 EqQuery<? super Boolean> eqQuery = DataTypes.BOOLEAN.storageSupportSafe().eqQuery();
-                if (eqQuery != null) {
-                    return eqQuery.termQuery(
-                        ref.storageIdent(), Boolean.TRUE, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
-                }
+                return eqQuery.termQuery(
+                    ref.storageIdent(), Boolean.TRUE, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
             }
             return super.visitReference(ref, context);
         }

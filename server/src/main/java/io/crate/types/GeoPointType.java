@@ -46,15 +46,16 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
-    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
+    private static final StorageSupport<Point> STORAGE =
+        new StorageSupport<>(true, false, EqQuery.nullEqQuery()) {
 
-        @Override
-        public ValueIndexer<Point> valueIndexer(RelationName table,
-                                                Reference ref,
-                                                Function<ColumnIdent, Reference> getRef) {
-            return new GeoPointIndexer(ref);
-        }
-    };
+            @Override
+            public ValueIndexer<Point> valueIndexer(RelationName table,
+                                                    Reference ref,
+                                                    Function<ColumnIdent, Reference> getRef) {
+                return new GeoPointIndexer(ref);
+            }
+        };
 
     private GeoPointType() {
     }

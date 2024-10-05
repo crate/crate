@@ -56,15 +56,16 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
 
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
+    private static final StorageSupport<Map<String, Object>> STORAGE =
+        new StorageSupport<>(false, false, EqQuery.nullEqQuery()) {
 
-        @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
-            return new GeoShapeIndexer(ref);
-        }
-    };
+            @Override
+            public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                                  Reference ref,
+                                                                  Function<ColumnIdent, Reference> getRef) {
+                return new GeoShapeIndexer(ref);
+            }
+        };
 
     private GeoShapeType() {
     }

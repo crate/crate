@@ -66,15 +66,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType(Map.of());
     public static final int ID = 12;
     public static final String NAME = "object";
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
+    private static final StorageSupport<Map<String, Object>> STORAGE =
+        new StorageSupport<>(false, false, EqQuery.nullEqQuery()) {
 
-        @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
-            return new ObjectIndexer(table, ref, getRef);
-        }
-    };
+            @Override
+            public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                                  Reference ref,
+                                                                  Function<ColumnIdent, Reference> getRef) {
+                return new ObjectIndexer(table, ref, getRef);
+            }
+        };
 
     public static class Builder {
 

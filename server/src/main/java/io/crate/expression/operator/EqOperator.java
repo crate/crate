@@ -34,7 +34,6 @@ import java.util.Objects;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
@@ -160,28 +159,11 @@ public final class EqOperator extends Operator<Object> {
             return null;
         }
         StorageSupport<?> storageSupport = type.storageSupport();
-        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
-        if (eqQuery == null) {
-            return booleanShould(column, type, nonNullValues, hasDocValues, indexType);
+        if (storageSupport == null) {
+            return null;
         }
+        EqQuery<?> eqQuery = storageSupport.eqQuery();
         return ((EqQuery<Object>) eqQuery).termsQuery(column, (List<Object>) nonNullValues, hasDocValues, indexType != IndexType.NONE);
-    }
-
-    @Nullable
-    private static Query booleanShould(String column,
-                                       DataType<?> type,
-                                       Collection<?> values,
-                                       boolean hasDocValues,
-                                       IndexType indexType) {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        for (var term : values) {
-            var fromPrimitive = EqOperator.fromPrimitive(type, column, term, hasDocValues, indexType);
-            if (fromPrimitive == null) {
-                return null;
-            }
-            builder.add(fromPrimitive, Occur.SHOULD);
-        }
-        return new ConstantScoreQuery(builder.build());
     }
 
     public static Function of(Symbol first, Symbol second) {
@@ -278,10 +260,10 @@ public final class EqOperator extends Operator<Object> {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         StorageSupport<?> storageSupport = type.storageSupport();
-        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
-        if (eqQuery == null) {
+        if (storageSupport == null) {
             return null;
         }
+        EqQuery<?> eqQuery = storageSupport.eqQuery();
         return ((EqQuery<Object>) eqQuery).termQuery(column, value, hasDocValues, indexType != IndexType.NONE);
     }
 

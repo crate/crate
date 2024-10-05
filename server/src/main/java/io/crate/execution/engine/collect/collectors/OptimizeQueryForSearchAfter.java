@@ -65,11 +65,11 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     return null;
                 }
                 StorageSupport<?> storageSupport = ref.valueType().storageSupport();
-                //noinspection unchecked
-                EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
-                if (eqQuery == null) {
+                if (storageSupport == null) {
                     return null;
                 }
+                //noinspection unchecked
+                EqQuery<Object> eqQuery = (EqQuery<Object>) storageSupport.eqQuery();
                 boolean nullsFirst = orderBy.nullsFirst()[i];
                 value = value == null || value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {

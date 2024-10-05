@@ -73,4 +73,23 @@ public interface EqQuery<T> {
             }
         };
     }
+
+    static <T> EqQuery<T> nullEqQuery() {
+        return new EqQuery<>() {
+            @Override
+            public Query termQuery(String field, T value, boolean hasDocValues, boolean isIndexed) {
+                return null;
+            }
+
+            @Override
+            public Query rangeQuery(String field, T lowerTerm, T upperTerm, boolean includeLower, boolean includeUpper, boolean hasDocValues, boolean isIndexed) {
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<T> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                return null;
+            }
+        };
+    }
 }

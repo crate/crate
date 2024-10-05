@@ -23,7 +23,6 @@ package io.crate.expression.operator;
 
 import java.util.function.IntPredicate;
 
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
@@ -75,9 +74,6 @@ public final class CmpOperator extends Operator<Object> {
             return null;
         }
         EqQuery eqQuery = storageSupport.eqQuery();
-        if (eqQuery == null) {
-            return new MatchNoDocsQuery("For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match");
-        }
         String field = ref.storageIdent();
         return switch (functionName) {
             case GtOperator.NAME -> eqQuery.rangeQuery(
