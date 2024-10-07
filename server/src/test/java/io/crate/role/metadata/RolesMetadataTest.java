@@ -55,8 +55,12 @@ import org.junit.Test;
 import io.crate.role.GrantedRole;
 import io.crate.role.GrantedRolesChange;
 import io.crate.role.JwtProperties;
+import io.crate.role.Permission;
 import io.crate.role.Policy;
+import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.RolePrivileges;
+import io.crate.role.Securable;
 
 public class RolesMetadataTest extends ESTestCase {
 
@@ -161,8 +165,8 @@ public class RolesMetadataTest extends ESTestCase {
             new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES)
         );
         assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))),
+                "Ford", DUMMY_USERS.get("Ford").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Ford")))));
     }
 
     @Test
@@ -175,8 +179,8 @@ public class RolesMetadataTest extends ESTestCase {
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))),
+                "Ford", DUMMY_USERS.get("Ford").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Ford")))));
     }
 
     @Test
@@ -275,5 +279,26 @@ public class RolesMetadataTest extends ESTestCase {
             .isExactlyInstanceOf(ElasticsearchParseException.class)
             .hasMessage("failed to parse jwt, unknown property 'prop'");
 
+    }
+
+    @Test
+    public void test_grant_roles_do_not_loose_existing_privileges() {
+        var rolesMetadata = new RolesMetadata();
+        rolesMetadata.roles().put("Ford", userOf(
+            "Ford",
+            Set.of(new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate")),
+            Set.of(),
+            getSecureHash("fords-pwd"))
+        );
+        rolesMetadata.roles().put("role1", roleOf("role1"));
+        assertThat(rolesMetadata.roles().get("Ford").privileges().size()).isEqualTo(1);
+
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor"));
+
+        assertThat(affectedRolePrivileges).isEqualTo(1);
+        assertThat(rolesMetadata.roles().get("Ford").privileges().size()).isEqualTo(1);
     }
 }

@@ -184,8 +184,12 @@ public class Role implements Writeable, ToXContent {
 
     }
 
-    public Role with(Set<Privilege> privileges) {
-        return new Role(name, new RolePrivileges(privileges), grantedRoles, properties, false);
+    public Role with(RolePrivileges privileges) {
+        return new Role(name, privileges, grantedRoles, properties, isSuperUser);
+    }
+
+    public Role with(Set<GrantedRole> grantedRoles) {
+        return new Role(name, privileges, grantedRoles, properties, isSuperUser);
     }
 
     public Role with(@Nullable SecureHash password,
@@ -195,7 +199,7 @@ public class Role implements Writeable, ToXContent {
             privileges,
             grantedRoles,
             new Properties(properties.login, password, jwtProperties),
-            false
+            isSuperUser
         );
     }
 
