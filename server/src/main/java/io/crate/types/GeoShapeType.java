@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -148,11 +149,70 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         return STORAGE;
     }
 
+    private static long sizeOf(Object object) {
+        // Not Using RamUsageEstimator.sizeOfMap because it is limited to depth 1
+        // Coordinates can be arrays/lists with 4 levels,
+        // and in geometry collections the whole thing is within a list of objects
+        //
+        // depending on the source of the GeoJSON it is either using lists or double arrays
+        return switch (object) {
+            case Map<?, ?> map -> sizeOf(map);
+            case Collection<?> collection -> {
+                long bytes = RamUsageEstimator.shallowSizeOf(collection);
+                for (var item : collection) {
+                    bytes += sizeOf(item);
+                }
+                yield bytes;
+            }
+            case double[][][][] multiPolygon -> {
+                long bytes = RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+                for (double[][][] polygon : multiPolygon) {
+                    bytes += sizeOf(polygon);
+                }
+                yield bytes;
+            }
+            case double[][][] polygon -> {
+                long bytes = RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+                for (double[][] lineRing : polygon) {
+                    bytes += sizeOf(lineRing);
+                }
+                yield bytes;
+            }
+            case double[][] lineRing -> {
+                long bytes = RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+                for (double[] points : lineRing) {
+                    bytes += RamUsageEstimator.sizeOf(points);
+                }
+                yield bytes;
+            }
+            default -> RamUsageEstimator.sizeOfObject(object);
+        };
+    }
+
+    private static long sizeOf(Map<?, ?> map) {
+        long bytes = RamUsageEstimator.shallowSizeOf(map);
+        long entrySize = -1;
+        for (var entry : map.entrySet()) {
+            if (entrySize == -1) {
+                entrySize = RamUsageEstimator.shallowSizeOf(entry);
+            }
+            bytes += entrySize;
+
+            // Keys should be strings, no problem with depth here:
+            Object key = entry.getKey();
+            bytes += RamUsageEstimator.sizeOfObject(key);
+
+            Object value = entry.getValue();
+            bytes += sizeOf(value);
+        }
+        return bytes;
+    }
+
     @Override
-    public long valueBytes(Map<String, Object> value) {
-        if (value == null) {
+    public long valueBytes(Map<String, Object> map) {
+        if (map == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
-        return RamUsageEstimator.sizeOfMap(value);
+        return RamUsageEstimator.alignObjectSize(sizeOf(map));
     }
 }
