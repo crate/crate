@@ -1,17 +1,10 @@
 .. _version_5.8.4:
 
-==========================
-Version 5.8.4 - Unreleased
-==========================
+=============
+Version 5.8.4
+=============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.8.4 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2024-10-07.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
