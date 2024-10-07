@@ -1,17 +1,10 @@
 .. _version_5.8.4:
 
-==========================
-Version 5.8.4 - Unreleased
-==========================
+=============
+Version 5.8.4
+=============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.8.4 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2024-10-07.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -92,13 +85,12 @@ Fixes
   operator on :ref:`REAL <type-real>` array columns against literals to return
   invalid results.
 
-- Fixed an issue that caused :ref:`in <sql_in_array_comparison>` operator with
-  array typed column on left hand side of the arguments to return invalid
-  results.
-
 - Fixed an issue that caused ``=`` or ``!=`` :ref:`ANY <sql_any_array_comparison>`
   operator to throw a ``ClassCastException`` when the right hand side argument
   was more than 1 dimensions higher than the left hand side argument.
+
+- Fixed an issue that caused :ref:`ANY <sql_any_array_comparison>` operator to
+  throw a ``ClassCastException`` when the arguments were nested arrays.
 
 - Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
   incorrect results, with missing ``scale``. This issue has only affected
@@ -107,8 +99,9 @@ Fixes
 - Fixed an integer overflow issue when the total shards (shards and replicas)
   configured for a table are greater than ``Integer.MAX_VALUE``.
 
-- Fixed an issue that caused :ref:`ANY <sql_any_array_comparison>` operator to
-  throw a ``ClassCastException`` when the arguments were nested arrays.
+- Fixed an issue that caused :ref:`in <sql_in_array_comparison>` operator with
+  array typed column on left hand side of the arguments to return invalid
+  results.
 
 - Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
   to internal concurrent unsafe access.
