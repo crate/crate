@@ -48,7 +48,7 @@ Fixes
 =====
 
 - Fixed an issue that could lead to nodes crashing with out of memory errors
-  when running ``INSERT INTO ... (SELECT ...)`` statements with large payloads
+  when running ``INSERT INTO ... VALUES(...)`` statements with large payloads
   of type ``OBJECT`` or ``GEO_SHAPE``.
 
 - Fixed an issue that caused wrong results when ordering by an IP field or whehn
