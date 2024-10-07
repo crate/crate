@@ -239,14 +239,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             }
         }
         if (affectedCount > 0) {
-            roles.put(role.name(), new Role(
-                role.name(),
-                role.isUser(),
-                Set.of(),
-                grantedRoles,
-                role.password(),
-                role.jwtProperties(),
-                role.sessionSettings()));
+            roles.put(role.name(), role.with(grantedRoles));
         }
         return affectedCount;
     }
