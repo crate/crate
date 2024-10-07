@@ -170,9 +170,9 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(res).isTrue();
 
         var newFordUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Ford")
-                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"));
+                .with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Ford")));
         var newArthurUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Arthur")
-                .with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))
+                .with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")))
                 .with(newPasswd, null, Map.of());
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", newArthurUser,

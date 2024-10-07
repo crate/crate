@@ -47,6 +47,10 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could lead to nodes crashing with out of memory errors
+  when running ``INSERT INTO ... (SELECT ...)`` statements with large payloads
+  of type ``OBJECT``.
+
 - Fixed an issue that caused an error or wrong results when a table function was
   combined with a UNION ALL in a sub-query e.g.::
 
@@ -108,3 +112,7 @@ Fixes
 
 - Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
   to internal concurrent unsafe access.
+
+- Fixed an issue causing a role to loose it's concrete privileges once it gets
+  granted another role using the :ref:`GRANT role TO role <ref-grant>`
+  statement.
