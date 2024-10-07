@@ -1,26 +1,26 @@
-.. _version_5.8.5:
+.. _version_5.9.1:
 
 ==========================
-Version 5.8.5 - Unreleased
+Version 5.9.1 - Unreleased
 ==========================
 
 
 .. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
 .. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
 .. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
 
-    In development. 5.8.5 isn't released yet. These are the release notes for
+.. NOTE::
+    In development. 5.9.1 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.8.5.
+    before you upgrade to 5.9.1.
 
-    We recommend that you upgrade to the latest 5.7 release before moving to
-    5.8.5.
+    We recommend that you upgrade to the latest 5.8 release before moving to
+    5.9.1.
 
-    A rolling upgrade from 5.7.x to 5.8.5 is supported.
+    A rolling upgrade from 5.8.x to 5.9.1 is supported.
 
     Before upgrading, you should `back up your data`_.
 
@@ -41,8 +41,8 @@ Version 5.8.5 - Unreleased
 .. contents::
    :local:
 
-See the :ref:`version_5.8.0` release notes for a full list of changes in the
-5.8 series.
+See the :ref:`version_5.9.0` release notes for a full list of changes in the
+5.9 series.
 
 Fixes
 =====
@@ -56,9 +56,10 @@ Fixes
       ) AS t
       FROM (SELECT x FROM tbl) as b;
 
-- Fixed an issue that would cause an error to be thrown when trying to get ``0``
-  numeric value from a query when using
-  :ref:`PostgreSQL wire protocol<interface-postgresql>`,  e.g.::
+- Fixed an issue that would cause an error to be thrown when using
+  :ref:`PostgreSQL wire protocol<interface-postgresql>` and attempting to
+  insert ``0`` value for a numeric :ref:`NUMERIC<type-numeric>`, or trying to
+  get ``0`` numeric value from a query, e.g.::
 
       SELECT 0::numeric;
 
@@ -101,6 +102,9 @@ Fixes
 - Fixed an issue resulting in different (and partly wrong)
   ``sys.allocations.decisions`` results when querying the table on different
   nodes.
+
+- Fixed a BWC issue resulting in an exception when querying the ``sys.users``
+  table on an older node (< :ref:`version_5.9.0`) during a rolling upgrade.
 
 - Fixed an incorrect optimization of comparison operators in combination with
   array subscript expression, :ref:`ANY <sql_any_array_comparison>`,
