@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.Streamer;
@@ -41,8 +40,9 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.types.geo.GeoShape;
 
-public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
+public class GeoShapeType extends DataType<GeoShape> implements Streamer<GeoShape> {
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
@@ -56,12 +56,12 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
 
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
+    private static final StorageSupport<GeoShape> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
+        public ValueIndexer<GeoShape> valueIndexer(RelationName table,
+                                                   Reference ref,
+                                                   Function<ColumnIdent, Reference> getRef) {
             return new GeoShapeIndexer(ref);
         }
     };
@@ -85,17 +85,17 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Streamer<Map<String, Object>> streamer() {
+    public Streamer<GeoShape> streamer() {
         return this;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public GeoShape implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof String) {
-            return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
+        } else if (value instanceof String str) {
+            return GeoJSONUtils.wkt2Map(str);
         } else if (value instanceof Point point) {
             return GeoJSONUtils.shape2Map(SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY()));
         } else if (value instanceof Shape shape) {
@@ -110,19 +110,19 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> sanitizeValue(Object value) {
+    public GeoShape sanitizeValue(Object value) {
         if (value == null) {
             return null;
         } else if (value instanceof Map<?, ?> map) {
             GeoJSONUtils.validateGeoJson(map);
-            return (Map<String, Object>) value;
+            return GeoJSONUtils.spatialShapeToGeoShape(GeoJSONUtils.map2Shape((Map<String, Object>) map));
         } else {
-            return GeoJSONUtils.shape2Map((Shape) value);
+            return GeoJSONUtils.spatialShapeToGeoShape((Shape) value);
         }
     }
 
     @Override
-    public int compare(Map<String, Object> val1, Map<String, Object> val2) {
+    public int compare(GeoShape val1, GeoShape val2) {
         // TODO: compare without converting to shape
         Shape shape1 = GeoJSONUtils.map2Shape(val1);
         Shape shape2 = GeoJSONUtils.map2Shape(val2);
@@ -134,25 +134,25 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
-        return in.readMap();
+    public GeoShape readValueFrom(StreamInput in) throws IOException {
+        return GeoShape.fromStream(in);
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
-        out.writeMap(v);
+    public void writeValueTo(StreamOutput out, GeoShape v) throws IOException {
+        GeoShape.toStream(out, v);
     }
 
     @Override
-    public StorageSupport<Map<String, Object>> storageSupport() {
+    public StorageSupport<GeoShape> storageSupport() {
         return STORAGE;
     }
 
     @Override
-    public long valueBytes(Map<String, Object> value) {
+    public long valueBytes(GeoShape value) {
         if (value == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
-        return RamUsageEstimator.sizeOfMap(value);
+        return value.ramBytesUsed();
     }
 }

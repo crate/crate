@@ -55,7 +55,7 @@ public class AreaFunctionTest extends ScalarTestCase {
     public void testWithMapShape() throws Exception {
         String wkt = "POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))";
         Shape shape = GeoJSONUtils.wkt2Shape(wkt);
-        Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
+        Map<String, Object> map = GeoJSONUtils.spatialShapeToGeoShape(shape);
 
         assertThat(getArea(map)).isEqualTo(20.996801695711337);
     }

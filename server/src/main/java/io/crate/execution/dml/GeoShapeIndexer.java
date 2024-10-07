@@ -27,7 +27,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
@@ -51,8 +50,9 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.GeoShapeType.Names;
+import io.crate.types.geo.GeoShape;
 
-public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
+public class GeoShapeIndexer implements ValueIndexer<GeoShape> {
 
     private final IndexableFieldsFactory indexableFieldsFactory;
     private final Reference ref;
@@ -87,7 +87,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(@NotNull GeoShape value, IndexDocumentBuilder docBuilder) throws IOException {
         indexableFieldsFactory.create(value, docBuilder::addField);
         docBuilder.addField(new Field(
             SysColumns.FieldNames.NAME,
@@ -103,7 +103,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
     private interface IndexableFieldsFactory {
 
-        void create(Map<String, Object> value, Consumer<? super IndexableField> addField);
+        void create(GeoShape value, Consumer<? super IndexableField> addField);
     }
 
     private static class PrefixTreeIndexableFieldsFactory implements IndexableFieldsFactory {
@@ -120,7 +120,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         }
 
         @Override
-        public void create(Map<String, Object> value, Consumer<? super IndexableField> addField) {
+        public void create(GeoShape value, Consumer<? super IndexableField> addField) {
             Shape shape = GeoJSONUtils.map2Shape(value);
             Field[] fields = strategy.createIndexableFields(shape);
             for (var field : fields) {
@@ -175,7 +175,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         }
 
         @Override
-        public void create(Map<String, Object> value, Consumer<? super IndexableField> addField) {
+        public void create(GeoShape value, Consumer<? super IndexableField> addField) {
             Object shape = GeoJSONUtils.map2LuceneShape(value);
             LatLonShapeUtils.createIndexableFields(name, shape, addField);
         }

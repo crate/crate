@@ -24,8 +24,6 @@ package io.crate.geo;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -40,21 +38,18 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollection;
-import org.locationtech.jts.geom.LineString;
-import org.locationtech.jts.geom.MultiLineString;
-import org.locationtech.jts.geom.MultiPoint;
-import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.Polygon;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.shape.Circle;
+import org.locationtech.spatial4j.shape.Rectangle;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.ShapeCollection;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.types.GeoPointType;
+import io.crate.types.geo.GeoShape;
 
 public class GeoJSONUtils {
 
@@ -88,8 +83,6 @@ public class GeoJSONUtils {
         Map.entry(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
     );
 
-    private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();
-
     /**
      * Invoke a consumer for each elements of a collection or an array
      *
@@ -110,25 +103,26 @@ public class GeoJSONUtils {
         }
     }
 
-    public static Map<String, Object> shape2Map(Shape shape) {
-        if (shape instanceof ShapeCollection) {
-            ShapeCollection<?> shapeCollection = (ShapeCollection<?>) shape;
-            List<Map<String, Object>> geometries = new ArrayList<>(shapeCollection.size());
-            for (Shape collShape : shapeCollection) {
-                geometries.add(shape2Map(collShape));
+    public static GeoShape spatialShapeToGeoShape(Shape shape) {
+        return switch (shape) {
+            case JtsGeometry jtsGeometry -> null;
+            case JtsPoint point -> new GeoShape.Point(new double[] { point.getX(), point.getY() });
+            case Point point -> new GeoShape.Point(new double[] { point.getX(), point.getY() });
+            case Rectangle rectangle -> null;
+            case Circle circle -> null;
+            case ShapeCollection<?> shapeCollection -> {
+                List<GeoShape> shapes = new ArrayList<>(shapeCollection.size());
+                for (Shape collShape : shapeCollection) {
+                    shapes.add(spatialShapeToGeoShape(collShape));
+                }
+                yield new GeoShape.GeometryCollection(shapes);
             }
-            return Map.of(
-                TYPE_FIELD, GEOMETRY_COLLECTION,
-                GEOMETRIES_FIELD, geometries
-            );
-        } else {
-            try {
-                return GEOJSON_CONVERTER.convert(JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape));
-            } catch (InvalidShapeException e) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Cannot convert shape %s to Map", shape), e);
-            }
-        }
+            default -> throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Cannot convert shape %s to GeoShape",
+                shape
+            ));
+        };
     }
 
     public static Shape wkt2Shape(String wkt) {
@@ -143,8 +137,8 @@ public class GeoJSONUtils {
     /*
      * TODO: improve by directly parsing WKT 2 map
      */
-    public static Map<String, Object> wkt2Map(String wkt) {
-        return shape2Map(wkt2Shape(wkt));
+    public static GeoShape wkt2Map(String wkt) {
+        return spatialShapeToGeoShape(wkt2Shape(wkt));
     }
 
     public static Shape map2Shape(Map<String, Object> geoJSONMap) {
@@ -264,101 +258,5 @@ public class GeoJSONUtils {
 
     private static String invalidGeoJSON(String message) {
         return String.format(Locale.ENGLISH, "Invalid GeoJSON: %s", message);
-    }
-
-    /**
-     * converts JTS geometries to geoJSON compatible Maps
-     */
-    private static class GeoJSONMapConverter {
-
-        public Map<String, Object> convert(Geometry geometry) {
-            HashMap<String, Object> builder = new HashMap<>();
-
-            if (geometry instanceof Point) {
-                builder.put(TYPE_FIELD, POINT);
-                builder.put(COORDINATES_FIELD, extract((Point) geometry));
-            } else if (geometry instanceof MultiPoint) {
-                builder.put(TYPE_FIELD, MULTI_POINT);
-                builder.put(COORDINATES_FIELD, extract((MultiPoint) geometry));
-            } else if (geometry instanceof LineString) {
-                builder.put(TYPE_FIELD, LINE_STRING);
-                builder.put(COORDINATES_FIELD, extract((LineString) geometry));
-            } else if (geometry instanceof MultiLineString) {
-                builder.put(TYPE_FIELD, MULTI_LINE_STRING);
-                builder.put(COORDINATES_FIELD, extract((MultiLineString) geometry));
-            } else if (geometry instanceof Polygon) {
-                builder.put(TYPE_FIELD, POLYGON);
-                builder.put(COORDINATES_FIELD, extract((Polygon) geometry));
-            } else if (geometry instanceof MultiPolygon) {
-                builder.put(TYPE_FIELD, MULTI_POLYGON);
-                builder.put(COORDINATES_FIELD, extract((MultiPolygon) geometry));
-            } else if (geometry instanceof GeometryCollection) {
-                GeometryCollection geometryCollection = (GeometryCollection) geometry;
-                int size = geometryCollection.getNumGeometries();
-                List<Map<String, Object>> geometries = new ArrayList<>(size);
-                for (int i = 0; i < size; i++) {
-                    geometries.add(convert(geometryCollection.getGeometryN(i)));
-                }
-                builder.put(TYPE_FIELD, GEOMETRY_COLLECTION);
-                builder.put(GEOMETRIES_FIELD, geometries);
-            } else {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot extract coordinates from geometry %s", geometry.getGeometryType()));
-            }
-            return Collections.unmodifiableMap(builder);
-        }
-
-        private double[] extract(Point point) {
-            return toArray(point.getCoordinate());
-        }
-
-        private double[][] extract(MultiPoint multiPoint) {
-            return toArray(multiPoint.getCoordinates());
-        }
-
-        private double[][] extract(LineString lineString) {
-            return toArray(lineString.getCoordinates());
-        }
-
-        private double[][][] extract(MultiLineString multiLineString) {
-            int size = multiLineString.getNumGeometries();
-            double[][][] lineStrings = new double[size][][];
-            for (int i = 0; i < size; i++) {
-                lineStrings[i] = toArray(multiLineString.getGeometryN(i).getCoordinates());
-            }
-            return lineStrings;
-        }
-
-        private double[][][] extract(Polygon polygon) {
-            int size = polygon.getNumInteriorRing() + 1;
-            double[][][] rings = new double[size][][];
-            rings[0] = toArray(polygon.getExteriorRing().getCoordinates());
-            for (int i = 0; i < size - 1; i++) {
-                rings[i + 1] = toArray(polygon.getInteriorRingN(i).getCoordinates());
-            }
-            return rings;
-        }
-
-        private double[][][][] extract(MultiPolygon multiPolygon) {
-            int size = multiPolygon.getNumGeometries();
-            double[][][][] polygons = new double[size][][][];
-            for (int i = 0; i < size; i++) {
-                polygons[i] = extract((Polygon) multiPolygon.getGeometryN(i));
-            }
-            return polygons;
-        }
-
-        double[] toArray(Coordinate coordinate) {
-            return new double[]{coordinate.x, coordinate.y};
-        }
-
-        double[][] toArray(Coordinate[] coordinates) {
-            double[][] array = new double[coordinates.length][];
-            for (int i = 0; i < coordinates.length; i++) {
-                array[i] = toArray(coordinates[i]);
-            }
-            return array;
-        }
-
     }
 }

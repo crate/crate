@@ -21,7 +21,7 @@
 
 package io.crate.geo;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -98,7 +98,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testShape2Map() throws Exception {
         for (Shape shape : SHAPES) {
-            Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
+            Map<String, Object> map = GeoJSONUtils.spatialShapeToGeoShape(shape);
             assertThat(map).containsKey("type");
             GeoJSONUtils.validateGeoJson(map);
         }
@@ -108,7 +108,7 @@ public class GeoJSONUtilsTest {
     public void testPoint2Map() throws Exception {
         Point point = GEOMETRY_FACTORY.createPoint(new Coordinate(0.0, 0.0));
         Shape shape = new JtsPoint(point, JtsSpatialContext.GEO);
-        Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
+        Map<String, Object> map = GeoJSONUtils.spatialShapeToGeoShape(shape);
         assertThat(map).containsEntry("type", "Point");
         assertThat(map.get("coordinates").getClass().isArray()).isTrue();
         assertThat(((double[]) map.get("coordinates")).length).isEqualTo(2);
@@ -118,7 +118,7 @@ public class GeoJSONUtilsTest {
     public void testMapFromWktRoundTrip() throws Exception {
         String wkt = "MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))";
         Shape shape = GeoJSONUtils.wkt2Shape(wkt);
-        Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
+        Map<String, Object> map = GeoJSONUtils.spatialShapeToGeoShape(shape);
 
         Map<String, Object> wktMap = GeoJSONUtils.wkt2Map(wkt);
         assertThat(map.get("type")).isEqualTo(wktMap.get("type"));
