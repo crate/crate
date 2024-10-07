@@ -23,7 +23,13 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
 import org.junit.Test;
+
+import io.crate.testing.QueryTester;
 
 public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -48,10 +54,35 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_empty_nested_array_equals() {
         var query = convert("a = [[]]");
-        assertThat(query.toString()).isEqualTo("+_array_length_a:[0 TO 0] +(a = [[]])");
+        assertThat(query.toString()).isEqualTo("(a = [[]])");
 
         query = convert("a[1] = []");
         assertThat(query.toString()).isEqualTo("(a[1] = [])");
+    }
+
+    @Test
+    public void test_empty_nested_array_equals_execution() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int[][])"
+        );
+        List<Integer> nullArray = new ArrayList<>();
+        nullArray.add(null);
+        builder.indexValue("a", List.of(List.of()));
+        builder.indexValue("a", List.of(List.of(1)));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", null);
+        builder.indexValue("a", nullArray);
+        builder.indexValue("a", List.of(nullArray));
+        builder.indexValue("a", List.of(nullArray, List.of()));
+
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("a", "a = [[]]")).containsExactly(List.of(List.of()));
+            assertThat(tester.runQuery("a", "a = []")).containsExactly(List.of());
+            assertThat(tester.runQuery("a", "a[1] = []")).containsExactly(List.of(List.of()));
+        }
     }
 
     @Test
