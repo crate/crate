@@ -44,5 +44,15 @@ public final class LtOperator {
                     new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)
+        );
     }
 }

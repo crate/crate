@@ -55,6 +55,50 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_compact_numeric_with_different_precision() {
+        assertThat(convert("x > '1.111'")).isEqualTo(convert("x > '1.11'"));
+        assertThat(convert("x > '1.119'")).isEqualTo(convert("x > '1.11'"));
+        assertThat(convert("x > '1.1100'")).isEqualTo(convert("x > '1.11'"));
+        assertThat(convert("x > '1.105'")).isEqualTo(convert("x > '1.10'"));
+
+        assertThat(convert("x >= '1.111'")).isEqualTo(convert("x > '1.11'"));
+        assertThat(convert("x >= '1.119'")).isEqualTo(convert("x > '1.11'"));
+        assertThat(convert("x >= '1.1100'")).isEqualTo(convert("x > '1.10'"));
+        assertThat(convert("x >= '1.105'")).isEqualTo(convert("x > '1.10'"));
+
+        assertThat(convert("x < '1.111'")).isEqualTo(convert("x < '1.12'"));
+        assertThat(convert("x < '1.119'")).isEqualTo(convert("x < '1.12'"));
+        assertThat(convert("x < '1.1100'")).isEqualTo(convert("x < '1.11'"));
+        assertThat(convert("x < '1.105'")).isEqualTo(convert("x < '1.11'"));
+
+        assertThat(convert("x <= '1.111'")).isEqualTo(convert("x < '1.12'"));
+        assertThat(convert("x <= '1.119'")).isEqualTo(convert("x < '1.12'"));
+        assertThat(convert("x <= '1.1100'")).isEqualTo(convert("x < '1.12'"));
+        assertThat(convert("x <= '1.105'")).isEqualTo(convert("x < '1.11'"));
+
+        // negative values
+        assertThat(convert("x > '-1.111'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x > '-1.119'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x > '-1.1100'")).isEqualTo(convert("x > '-1.11'"));
+        assertThat(convert("x > '-1.105'")).isEqualTo(convert("x > '-1.11'"));
+
+        assertThat(convert("x >= '-1.111'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.119'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.1100'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.105'")).isEqualTo(convert("x > '-1.11'"));
+
+        assertThat(convert("x < '-1.111'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.119'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.1100'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.105'")).isEqualTo(convert("x < '-1.10'"));
+
+        assertThat(convert("x <= '-1.111'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x <= '-1.119'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x <= '-1.1100'")).isEqualTo(convert("x < '-1.10'"));
+        assertThat(convert("x <= '-1.105'")).isEqualTo(convert("x < '-1.10'"));
+    }
+
+    @Test
     public void test_uses_binary_encoded_range_queries_for_large_numeric() throws Exception {
         Query query = convert("y = '2746799837116176.76'");
         assertThat(query).isInstanceOf(PointRangeQuery.class);
@@ -67,5 +111,49 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("y <= '2746799837116176.76'");
         assertThat(query).isInstanceOf(PointRangeQuery.class);
         assertThat(query.toString()).isEqualTo("y:[-99999999999999999999999999999999999999 TO 274679983711617676]");
+    }
+
+    @Test
+    public void test_large_numeric_with_different_precision() {
+        assertThat(convert("y > '1.111'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.119'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.1100'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.105'")).isEqualTo(convert("y > '1.10'"));
+
+        assertThat(convert("y >= '1.111'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y >= '1.119'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y >= '1.1100'")).isEqualTo(convert("y > '1.10'"));
+        assertThat(convert("y >= '1.105'")).isEqualTo(convert("y > '1.10'"));
+
+        assertThat(convert("y < '1.111'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y < '1.119'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y < '1.1100'")).isEqualTo(convert("y < '1.11'"));
+        assertThat(convert("y < '1.105'")).isEqualTo(convert("y < '1.11'"));
+
+        assertThat(convert("y <= '1.111'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.119'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.1100'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.105'")).isEqualTo(convert("y < '1.11'"));
+
+        // negative values
+        assertThat(convert("x > '-1.111'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x > '-1.119'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x > '-1.1100'")).isEqualTo(convert("x > '-1.11'"));
+        assertThat(convert("x > '-1.105'")).isEqualTo(convert("x > '-1.11'"));
+
+        assertThat(convert("x >= '-1.111'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.119'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.1100'")).isEqualTo(convert("x > '-1.12'"));
+        assertThat(convert("x >= '-1.105'")).isEqualTo(convert("x > '-1.11'"));
+
+        assertThat(convert("x < '-1.111'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.119'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.1100'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x < '-1.105'")).isEqualTo(convert("x < '-1.10'"));
+
+        assertThat(convert("x <= '-1.111'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x <= '-1.119'")).isEqualTo(convert("x < '-1.11'"));
+        assertThat(convert("x <= '-1.1100'")).isEqualTo(convert("x < '-1.10'"));
+        assertThat(convert("x <= '-1.105'")).isEqualTo(convert("x < '-1.10'"));
     }
 }
