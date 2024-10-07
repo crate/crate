@@ -376,7 +376,7 @@
     <versions.plugin.puppycrawl>10.18.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
-    <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
+    <versions.plugin.forbiddenapis>3.8</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
     <versions.plugin.download>1.9.0</versions.plugin.download>
