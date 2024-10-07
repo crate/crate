@@ -23,21 +23,53 @@ package io.crate.types.geo;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.locationtech.spatial4j.shape.Shape;
 
 /**
  * https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.6
  **/
-public sealed interface GeoShape extends Accountable permits
+public sealed interface GeoShape extends Accountable, Comparable<GeoShape> permits
     GeoShape.Point,
     GeoShape.LineString,
     GeoShape.Polygon,
     GeoShape.MultiPolygon,
     GeoShape.GeometryCollection {
+
+    public static class Types {
+        public static final String POINT = "Point";
+        public static final String MULTI_POINT = "MultiPoint";
+        public static final String LINE_STRING = "LineString";
+        public static final String MULTI_LINE_STRING = "MultiLineString";
+        public static final String POLYGON = "Polygon";
+        public static final String MULTI_POLYGON = "MultiPolygon";
+        public static final String GEOMETRY_COLLECTION = "GeometryCollection";
+    }
+
+    public static GeoShape of(String wkt) {
+        throw new UnsupportedOperationException("NYI");
+    }
+
+    public static GeoShape of(Map<String, Object> geoJSON) {
+        throw new UnsupportedOperationException("NYI");
+    }
+
+    default Map<String, Object> toGeoJSON() {
+        throw new UnsupportedOperationException("NYI");
+    }
+
+    default Shape toShape() {
+        throw new UnsupportedOperationException("NYI");
+    }
+
+    default Object toLuceneShape() {
+        throw new UnsupportedOperationException("NYI");
+    }
 
     public static GeoShape fromStream(StreamInput in) throws IOException {
         short type = in.readShort();
@@ -104,6 +136,11 @@ public sealed interface GeoShape extends Accountable permits
         public long ramBytesUsed() {
             return RamUsageEstimator.sizeOf(xy);
         }
+
+        @Override
+        public int compareTo(GeoShape o) {
+            return 0;
+        }
     }
 
     public static record LineString(double[][] points) implements GeoShape {
@@ -115,6 +152,11 @@ public sealed interface GeoShape extends Accountable permits
                 bytes += RamUsageEstimator.sizeOf(point);
             }
             return bytes;
+        }
+
+        @Override
+        public int compareTo(GeoShape o) {
+            return 0;
         }
     }
 
@@ -129,6 +171,11 @@ public sealed interface GeoShape extends Accountable permits
                 }
             }
             return bytes;
+        }
+
+        @Override
+        public int compareTo(GeoShape o) {
+            return 0;
         }
     }
 
@@ -145,6 +192,11 @@ public sealed interface GeoShape extends Accountable permits
             }
             return bytes;
         }
+
+        @Override
+        public int compareTo(GeoShape o) {
+            return 0;
+        }
     }
 
     public static record GeometryCollection(List<GeoShape> shapes) implements GeoShape {
@@ -152,6 +204,11 @@ public sealed interface GeoShape extends Accountable permits
         @Override
         public long ramBytesUsed() {
             return shapes.stream().mapToLong(GeoShape::ramBytesUsed).sum();
+        }
+
+        @Override
+        public int compareTo(GeoShape o) {
+            return 0;
         }
     }
 }

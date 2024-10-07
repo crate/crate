@@ -28,15 +28,10 @@ import java.util.function.Function;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
-import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -94,15 +89,10 @@ public class GeoShapeType extends DataType<GeoShape> implements Streamer<GeoShap
     public GeoShape implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof String str) {
-            return GeoJSONUtils.wkt2Map(str);
-        } else if (value instanceof Point point) {
-            return GeoJSONUtils.shape2Map(SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY()));
-        } else if (value instanceof Shape shape) {
-            return GeoJSONUtils.shape2Map(shape);
+        } else if (value instanceof String wkt) {
+            return GeoShape.of(wkt);
         } else if (value instanceof Map<?, ?> map) {
-            GeoJSONUtils.validateGeoJson(map);
-            return (Map<String, Object>) value;
+            return GeoShape.of((Map<String, Object>) map);
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -114,23 +104,15 @@ public class GeoShapeType extends DataType<GeoShape> implements Streamer<GeoShap
         if (value == null) {
             return null;
         } else if (value instanceof Map<?, ?> map) {
-            GeoJSONUtils.validateGeoJson(map);
-            return GeoJSONUtils.spatialShapeToGeoShape(GeoJSONUtils.map2Shape((Map<String, Object>) map));
+            return GeoShape.of((Map<String, Object>) map);
         } else {
-            return GeoJSONUtils.spatialShapeToGeoShape((Shape) value);
+            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
     }
 
     @Override
     public int compare(GeoShape val1, GeoShape val2) {
-        // TODO: compare without converting to shape
-        Shape shape1 = GeoJSONUtils.map2Shape(val1);
-        Shape shape2 = GeoJSONUtils.map2Shape(val2);
-        return switch (shape1.relate(shape2)) {
-            case WITHIN -> -1;
-            case CONTAINS -> 1;
-            default -> Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
-        };
+        return val1.compareTo(val2);
     }
 
     @Override

@@ -25,55 +25,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LatLonShape;
 import org.apache.lucene.document.ShapeField;
 import org.apache.lucene.geo.LatLonGeometry;
 import org.apache.lucene.geo.Line;
 import org.apache.lucene.geo.Point;
 import org.apache.lucene.geo.Polygon;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 
 public class LatLonShapeUtils {
-
-    public static void createIndexableFields(String name, Object luceneShape, Consumer<? super IndexableField> addField) {
-        if (luceneShape instanceof Point point) {
-            addFields(LatLonShape.createIndexableFields(name, point.getLat(), point.getLon()), addField);
-        } else if (luceneShape instanceof Line line) {
-            addFields(LatLonShape.createIndexableFields(name, line), addField);
-        } else if (luceneShape instanceof Polygon polygon) {
-            addFields(LatLonShape.createIndexableFields(name, polygon), addField);
-        } else if (luceneShape instanceof Point[] points) {
-            for (Point point : points) {
-                addFields(LatLonShape.createIndexableFields(name, point.getLat(), point.getLon()), addField);
-            }
-        } else if (luceneShape instanceof Line[] lines) {
-            for (int i = 0; i < lines.length; ++i) {
-                addFields(LatLonShape.createIndexableFields(name, lines[i]), addField);
-            }
-        } else if (luceneShape instanceof Polygon[] polygons) {
-            for (int i = 0; i < polygons.length; ++i) {
-                addFields(LatLonShape.createIndexableFields(name, polygons[i]), addField);
-            }
-        } else if (luceneShape instanceof Object[] collection) {
-            for (Object o : collection) {
-                createIndexableFields(name, o, addField);
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid shape type found [" + luceneShape.getClass() + "] while indexing shape");
-        }
-    }
-
-    private static void addFields(Field[] indexableFields, Consumer<? super IndexableField> addField) {
-        for (var field : indexableFields) {
-            addField.accept(field);
-        }
-    }
 
     public static Query newLatLonShapeQuery(String fieldName, ShapeField.QueryRelation relation, Object queryShape) {
         List<LatLonGeometry> geometries = collectGeometries(fieldName, queryShape);

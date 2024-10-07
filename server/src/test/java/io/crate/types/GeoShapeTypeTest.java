@@ -35,10 +35,10 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 
-import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
+import io.crate.types.geo.GeoShape;
 
-public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
+public class GeoShapeTypeTest extends DataTypeTestCase<GeoShape> {
 
     private static final List<String> WKT = List.of(
         "multipolygon empty",
@@ -56,7 +56,7 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
     private GeoShapeType type = GeoShapeType.INSTANCE;
 
     @Override
-    public DataType<Map<String, Object>> getType() {
+    public DataType<GeoShape> getType() {
         return type;
     }
 
@@ -119,8 +119,8 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testCompareValueTo() throws Exception {
-        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
-        Map<String, Object> val2 = type.implicitCast("POINT (10 10)");
+        var val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
+        var val2 = type.implicitCast("POINT (10 10)");
 
         assertThat(type.compare(val1, val2)).isEqualTo(1);
         assertThat(type.compare(val2, val1)).isEqualTo(-1);

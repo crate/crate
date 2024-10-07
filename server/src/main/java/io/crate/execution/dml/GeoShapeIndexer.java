@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LatLonShape;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
@@ -43,8 +44,6 @@ import org.elasticsearch.common.unit.DistanceUnit;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
-import io.crate.geo.GeoJSONUtils;
-import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
@@ -121,7 +120,7 @@ public class GeoShapeIndexer implements ValueIndexer<GeoShape> {
 
         @Override
         public void create(GeoShape value, Consumer<? super IndexableField> addField) {
-            Shape shape = GeoJSONUtils.map2Shape(value);
+            Shape shape = value.toShape();
             Field[] fields = strategy.createIndexableFields(shape);
             for (var field : fields) {
                 addField.accept(field);
@@ -176,8 +175,34 @@ public class GeoShapeIndexer implements ValueIndexer<GeoShape> {
 
         @Override
         public void create(GeoShape value, Consumer<? super IndexableField> addField) {
-            Object shape = GeoJSONUtils.map2LuceneShape(value);
-            LatLonShapeUtils.createIndexableFields(name, shape, addField);
+            switch (value) {
+                case GeoShape.Point point -> {
+                    double x = point.xy()[0];
+                    double y = point.xy()[1];
+                    addFields(LatLonShape.createIndexableFields(name, x, y), addField);
+                }
+                case GeoShape.LineString lineString -> {
+                    throw new UnsupportedOperationException("NYI");
+                    // addFields(LatLonShape.createIndexableFields(name, line), addField);
+                }
+                case GeoShape.Polygon polygon -> {
+                    throw new UnsupportedOperationException("NYI");
+                    // addFields(LatLonShape.createIndexableFields(name, polygon), addField);
+                }
+                case GeoShape.MultiPolygon multiPolygon -> {
+                    throw new UnsupportedOperationException("NYI");
+                }
+                case GeoShape.GeometryCollection geometryCollection -> {
+                    throw new UnsupportedOperationException("NYI");
+                }
+            }
+        }
+    }
+
+
+    private static void addFields(Field[] indexableFields, Consumer<? super IndexableField> addField) {
+        for (var field : indexableFields) {
+            addField.accept(field);
         }
     }
 }
