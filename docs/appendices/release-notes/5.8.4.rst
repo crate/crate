@@ -112,3 +112,7 @@ Fixes
 
 - Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
   to internal concurrent unsafe access.
+
+- Fixed an issue causing a role to loose it's concrete privileges once it gets
+  granted another role using the :ref:`GRANT role TO role <ref-grant>`
+  statement.
