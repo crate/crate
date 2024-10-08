@@ -31,9 +31,6 @@ import java.util.Set;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
-import org.apache.lucene.document.StoredField;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
@@ -118,20 +115,20 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
             = indexer.index(new IndexItem.StaticItem("id", List.of(), insertValues, 0, 0));
 
         // Leaf values are stored as individual int points + docvalues
+        var ref = table.getReference(ColumnIdent.fromPath("x"));
+        assertThat(ref).isNotNull();
         Document expected = new Document();
-        String resolvedField = table.getReference(ColumnIdent.fromPath("x")).storageIdent();
-        String arrayValuesField = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + resolvedField;
+        String resolvedField = ref.storageIdent();
         expected.add(new IntField(resolvedField, 1, Field.Store.NO));
         expected.add(new IntField(resolvedField, 2, Field.Store.NO));
         expected.add(new IntField(resolvedField, 3, Field.Store.NO));
         expected.add(new IntField(resolvedField, 4, Field.Store.NO));
 
-        BytesStreamOutput bytes = new BytesStreamOutput();
-        bytes.writeCollection(List.of(1, 2, 3, 4), StreamOutput::writeGenericValue);
-        expected.add(new StoredField(arrayValuesField, bytes.bytes().toBytesRef()));
-
         assertThat(doc).hasSameResolvedFields(expected, resolvedField);
-        assertThat(doc).hasSameResolvedFields(expected, arrayValuesField);
+
+        DataType<?> type = ref.valueType();
+        var bytes = doc.doc().getBinaryValue(ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + ref.storageIdentLeafName()).bytes;
+        assertThat(type.sanitizeValue(bytes)).isEqualTo(insertValues[0]);
 
         // Source stores the original nested array structure
         assertThat(doc.source().utf8ToString()).isEqualTo("{\"" + resolvedField + "\":[[1,2],[3,4]]}");

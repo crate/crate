@@ -459,6 +459,15 @@ public abstract sealed class ColumnIdent
         }
     }
 
+    @Nullable
+    public ColumnIdent shiftTo(ColumnIdent base) {
+        if (this.isChildOf(base) == false) {
+            return null;
+        }
+        var baseIndex = base.path().size();
+        return new ColN(this.path().get(baseIndex - 1), this.path().subList(baseIndex, path().size()));
+    }
+
     /**
      * Returns true if this is a system column.
      *

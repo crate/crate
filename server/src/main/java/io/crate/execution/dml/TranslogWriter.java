@@ -24,7 +24,7 @@ package io.crate.execution.dml;
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
- * Builds a document map for an indexed row
+ * Builds a translog entry for an indexed row
  */
 public interface TranslogWriter {
 
@@ -48,15 +48,6 @@ public interface TranslogWriter {
 
     /** Write a non-null field value */
     void writeValue(Object value);
-
-    /** Write an array of null values */
-    default void writeNullArray(int size) {
-        startArray();
-        for (int i = 0; i < size; i++) {
-            writeNull();
-        }
-        endArray();
-    }
 
     /**
      * Return a byte array representation of the transaction log entry

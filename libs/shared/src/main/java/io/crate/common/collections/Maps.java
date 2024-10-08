@@ -116,25 +116,30 @@ public final class Maps {
         return map;
     }
 
-    @Nullable
     @SuppressWarnings("unchecked")
-    public static <T> T removeByPath(Map<String, T> map, List<String> path) {
+    public static void removeByPath(Map<String, ?> map, List<String> path) {
         assert path instanceof RandomAccess : "`path` must support random access for performance";
-        Map<String, T> m = map;
+        Map<String, ?> m = map;
         for (int i = 0; i < path.size(); i++) {
             String key = path.get(i);
             if (i + 1 == path.size()) {
-                return m.remove(key);
+                m.remove(key);
+                return;
             } else {
-                T val = map.get(key);
+                Object val = map.get(key);
                 if (val instanceof Map) {
-                    m = (Map<String, T>) val;
+                    m = (Map<String, ?>) val;
+                } else if (val instanceof List<?> l) {
+                    for (var x : l) {
+                        if (x instanceof Map<?, ?> cm) {
+                            removeByPath((Map<String, ?>) cm, path.subList(i + 1, path.size()));
+                        }
+                    }
                 } else {
-                    return null;
+                    return;
                 }
             }
         }
-        return null;
     }
 
     /**

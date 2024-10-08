@@ -31,10 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -99,6 +101,7 @@ public final class MappingUtil {
      *
      */
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
+                                                    Version tableVersion,
                                                     @Nullable String pkConstraintName,
                                                     List<Reference> columns,
                                                     IntArrayList pKeyIndices,
@@ -108,7 +111,7 @@ public final class MappingUtil {
                                                     @Nullable String routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
+        Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, tableVersion, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
@@ -166,15 +169,17 @@ public final class MappingUtil {
      * }
      */
     public static Map<String, Map<String, Object>> toProperties(AllocPosition allocPosition,
+                                                                Version tableVersion,
                                                                 HashMap<ColumnIdent, List<Reference>> tree) {
-        return toProperties(allocPosition, null, tree);
+        return toProperties(allocPosition, tableVersion, null, tree);
     }
 
     /**
-     * See {@link #toProperties(AllocPosition, HashMap)}
+     * See {@link #toProperties(AllocPosition, Version, HashMap)}
      */
     @Nullable
     private static Map<String, Map<String, Object>> toProperties(AllocPosition position,
+                                                                 Version tableVersion,
                                                                  @Nullable ColumnIdent currentNode,
                                                                  HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
@@ -183,13 +188,13 @@ public final class MappingUtil {
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
         for (Reference child: children) {
-            allColumnsMap.put(mappingKey(child), addColumnProperties(position, child, tree));
+            allColumnsMap.put(mappingKey(tableVersion, child), addColumnProperties(position, tableVersion, child, tree));
         }
         return allColumnsMap;
     }
 
-    private static String mappingKey(Reference reference) {
-        if (reference.isDropped()) {
+    private static String mappingKey(Version tableVersion, Reference reference) {
+        if (reference.isDropped() && tableVersion.before(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
             assert reference.oid() != COLUMN_OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
             return DROPPED_COLUMN_NAME_PREFIX + reference.oid();
         } else {
@@ -198,6 +203,7 @@ public final class MappingUtil {
     }
 
     private static Map<String, Object> addColumnProperties(AllocPosition position,
+                                                           Version tableVersion,
                                                            Reference reference,
                                                            HashMap<ColumnIdent, List<Reference>> tree) {
         Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()));
@@ -211,17 +217,18 @@ public final class MappingUtil {
             properties = arrayMapping;
         }
         if (valueType.id() == ObjectType.ID) {
-            objectMapping(position, leafProperties, reference, tree);
+            objectMapping(position, tableVersion, leafProperties, reference, tree);
         }
         return properties;
     }
 
     private static void objectMapping(AllocPosition position,
+                                      Version tableVersion,
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put(ColumnPolicy.MAPPING_KEY, reference.columnPolicy().toMappingValue());
-        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, tableVersion, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }
