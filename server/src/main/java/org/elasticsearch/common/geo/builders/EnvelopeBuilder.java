@@ -56,11 +56,6 @@ public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
     }
 
     @Override
-    public int numDimensions() {
-        return Double.isNaN(topLeft.z) ? 2 : 3;
-    }
-
-    @Override
     public int hashCode() {
         return Objects.hash(topLeft, bottomRight);
     }
