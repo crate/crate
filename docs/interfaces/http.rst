@@ -308,63 +308,6 @@ IDs of all currently available data types:
      - :ref:`ARRAY <type-array>`
 
 
-.. _http-bulk-ops:
-
-Bulk operations
-===============
-
-The REST endpoint allows to issue bulk operations which are executed as single
-calls on the back-end site. It can be compared to `prepared statement`_.
-
-A bulk operation can be expressed simply as an SQL statement.
-
-Supported bulk SQL statements are:
-
-- Insert
-- Update
-- Delete
-
-Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
-``bulk_args``. This allows to specify a list of lists, containing all the
-records which shall be processed. The inner lists need to match the specified
-columns.
-
-The bulk response contains a ``results`` array, with a row count for each bulk
-operation. Those results are in the same order as the issued operations of the
-bulk operation.
-
-The following example describes how to issue an insert bulk operation and
-insert three records at once::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
-    ... {
-    ...   "stmt": "INSERT INTO locations (id, name, kind, description)
-    ...           VALUES (?, ?, ?, ?)",
-    ...   "bulk_args": [
-    ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
-    ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
-    ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
-    ...   ]
-    ... }
-    ... EOF
-    {
-      "cols": [],
-      "duration": ...,
-      "results": [
-        {
-          "rowcount": 1
-        },
-        {
-          "rowcount": 1
-        },
-        {
-          "rowcount": 1
-        }
-      ]
-    }
-
-
 .. _http-error-handling:
 
 Error handling
@@ -503,6 +446,63 @@ Code   Error
 ====== =====================================================================
 
 
+.. _http-bulk-ops:
+
+Bulk operations
+===============
+
+The REST endpoint allows to issue bulk operations which are executed as single
+calls on the back-end site. It can be compared to `prepared statement`_.
+
+A bulk operation can be expressed simply as an SQL statement.
+
+Supported bulk SQL statements are:
+
+- Insert
+- Update
+- Delete
+
+Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
+``bulk_args``. This allows to specify a list of lists, containing all the
+records which shall be processed. The inner lists need to match the specified
+columns.
+
+The bulk response contains a ``results`` array, with a row count for each bulk
+operation. Those results are in the same order as the issued operations of the
+bulk operation.
+
+The following example describes how to issue an insert bulk operation and
+insert three records at once::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
+    ... {
+    ...   "stmt": "INSERT INTO locations (id, name, kind, description)
+    ...           VALUES (?, ?, ?, ?)",
+    ...   "bulk_args": [
+    ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
+    ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
+    ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
+    ...   ]
+    ... }
+    ... EOF
+    {
+      "cols": [],
+      "duration": ...,
+      "results": [
+        {
+          "rowcount": 1
+        },
+        {
+          "rowcount": 1
+        },
+        {
+          "rowcount": 1
+        }
+      ]
+    }
+
+
 .. _http-bulk-errors:
 
 Bulk errors
@@ -535,10 +535,27 @@ error::
       ]
     }
 
-.. NOTE::
+.. rubric:: Error handling
 
-   Every bulk operation will be executed, independent if one of the operation
-   fails.
+In general, every bulk operation item will be executed, independent if one of
+the other operations fails. However, there are two kinds of errors that will be
+handled differently, depending on in which of the query execution phases they
+are determined.
+
+1. **Analysis:** When the bulk operation statement is invalid (syntax error,
+   wrong values for one of the rows to insert, etc.), which can be identified
+   in the analysis phase, before the whole bulk starts to execute, the **whole
+   bulk operation will fail**.
+
+2. **Execution:** When the bulk operation statement and all the values are
+   valid, the plan is built, and query execution starts. From then, runtime
+   errors may occur (duplicate primary key errors, etc.). In this case, CrateDB
+   will continue processing the other bulk operation items while tracking
+   successful and erroneous operations.
+
+.. note::
+
+    The ``error_trace`` option does not work with bulk operations.
 
 
 .. _here documents: https://en.wikipedia.org/wiki/Here_document
