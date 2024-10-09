@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
@@ -63,7 +64,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     // Everything what's not covered by AddColumnRequest is added as a separate field.
     private final Settings settings;
     @Nullable
-    private final String routingColumn;
+    private final ColumnIdent routingColumn;
     private final ColumnPolicy tableColumnPolicy; // The only setting which is set as a "mapping" change (see TableParameter.mappings()), 'strict' by default.
     private final List<List<String>> partitionedBy;
 
@@ -73,7 +74,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
                               IntArrayList pKeyIndices,
                               Map<String, String> checkConstraints,
                               Settings settings,
-                              @Nullable String routingColumn,
+                              @Nullable ColumnIdent routingColumn,
                               ColumnPolicy tableColumnPolicy,
                               List<List<String>> partitionedBy) {
         this.relationName = relationName;
@@ -120,7 +121,11 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
 
         this.settings = readSettingsFromStream(in);
-        this.routingColumn = in.readOptionalString();
+        if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+            this.routingColumn = in.readOptionalWriteable(ColumnIdent::of);
+        } else {
+            this.routingColumn = ColumnIdent.fromPath(in.readOptionalString());
+        }
         this.tableColumnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
         this.partitionedBy = in.readList(StreamInput::readStringList);
     }
@@ -139,7 +144,11 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
             out.writeVInt(pKeyIndices.get(i));
         }
         writeSettingsToStream(out, settings);
-        out.writeOptionalString(routingColumn);
+        if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+            out.writeOptionalWriteable(routingColumn);
+        } else {
+            out.writeOptionalString(routingColumn == null ? null : routingColumn.fqn());
+        }
         out.writeVInt(tableColumnPolicy.ordinal());
         out.writeCollection(partitionedBy, StreamOutput::writeStringCollection);
     }
@@ -150,7 +159,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     }
 
     @Nullable
-    public String routingColumn() {
+    public ColumnIdent routingColumn() {
         return routingColumn;
     }
 
