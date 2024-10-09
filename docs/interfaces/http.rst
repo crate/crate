@@ -537,18 +537,40 @@ error::
 
 .. rubric:: Error handling
 
-In general, each bulk operation item will be executed independently, unless an error is detected during the analysis phase, in which case no operations will be executed. There are two kinds of errors that are handled differently depending on the query execution phase in which they are encountered:
+There are two kinds of error behaviors for bulk requests:
 
-1. **Analysis:** When the bulk operation statement is invalid (syntax error,
-   wrong values for one of the rows to insert, etc.), which can be identified
-   in the analysis phase, before the whole bulk starts to execute, the **whole
-   bulk operation will fail**.
+1. **Analysis error:** Occurs if the statement is invalid, either due to syntax
+   errors or semantic errors identified during the analysis phase before the
+   execution starts. In this case the **whole** operation fails and you'll get
+   a single error::
 
-2. **Execution:** When the bulk operation statement and all the values are
-   valid, the plan is built, and query execution starts. From then, runtime
-   errors may occur (duplicate primary key errors, etc.). In this case, CrateDB
-   will continue processing the other bulk operation items while tracking
-   successful and erroneous operations.
+    {
+        "error": {
+            "code": 4043,
+            "message": "ColumnUnknownException[Column y unknown]"
+        }
+    }
+
+
+2. **Runtime error:** For errors happening after the analysis phase succeeded
+   during execution. For example on duplicate primary key errors or check
+   constraint failures. In this case CrateDB continues processing the other
+   bulk arguments and reports the results via a ``rowcount`` where ``-2``
+   indicates an error::
+
+
+    {
+        "cols": [],
+        "duration": 2.195417,
+        "results": [
+            {
+                "rowcount": 1
+            },
+            {
+                "rowcount": -2
+            }
+        ]
+    }
 
 .. note::
 
