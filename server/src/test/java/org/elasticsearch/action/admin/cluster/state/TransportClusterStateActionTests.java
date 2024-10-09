@@ -24,15 +24,12 @@ package org.elasticsearch.action.admin.cluster.state;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -51,10 +48,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())
-                .put(IndexTemplateMetadata.builder("template1")
-                    .patterns(List.of("*"))
-                    .putMapping("{\"default\": {}}")
-                    .build())
                 .put(IndexMetadata.builder("index1")
                          .settings(settings(Version.CURRENT))
                          .numberOfShards(1)
@@ -73,7 +66,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isEqualTo("bar");
     }
@@ -85,7 +77,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.templates("template1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isFalse();
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
@@ -97,7 +88,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.indices("index1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
@@ -110,7 +100,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.indices("index1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }

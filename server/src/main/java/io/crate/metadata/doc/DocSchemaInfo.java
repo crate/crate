@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -36,17 +37,14 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.ObjectLookupContainer;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
@@ -168,40 +166,12 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private static long getTableVersion(Metadata metadata, RelationName relation) {
-        String templateName = PartitionName.templateName(relation.schema(), relation.name());
-        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-        if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
-            return index == null ? 0 : index.getVersion();
-        } else {
-            return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
+        RelationMetadata relationMd = metadata.getRelation(relation);
+        if (relationMd != null) {
+            // TODO:
         }
-    }
-
-    private Collection<String> tableNames() {
-        Set<String> tables = new HashSet<>();
-        extractRelationNamesForSchema(Stream.of(clusterService.state().metadata().getConcreteAllIndices()),
-            schemaName, tables);
-
-        // Search for partitioned table templates
-        Iterator<String> templates = clusterService.state().metadata().templates().keysIt();
-        while (templates.hasNext()) {
-            String templateName = templates.next();
-            if (!IndexName.isPartitioned(templateName)) {
-                continue;
-            }
-            try {
-                PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
-                RelationName ti = partitionName.relationName();
-                if (schemaName.equals(ti.schema())) {
-                    tables.add(ti.name());
-                }
-            } catch (IllegalArgumentException e) {
-                // do nothing
-            }
-        }
-
-        return tables;
+        IndexMetadata index = metadata.index(relation.indexNameOrAlias());
+        return index == null ? 0 : index.getVersion();
     }
 
     @Nullable
@@ -249,21 +219,8 @@ public class DocSchemaInfo implements SchemaInfo {
             invalidateAliases(newMetadata.index(index).getAliases());
         }
 
-        // search for templates with changed meta data => invalidate template aliases
-        ImmutableOpenMap<String, IndexTemplateMetadata> newTemplates = newMetadata.templates();
-        ImmutableOpenMap<String, IndexTemplateMetadata> prevTemplates = prevMetadata.templates();
-        if (!newTemplates.equals(prevTemplates)) {
-            for (ObjectCursor<IndexTemplateMetadata> cursor : newTemplates.values()) {
-                invalidateAliases(cursor.value.aliases());
-            }
-            for (ObjectCursor<IndexTemplateMetadata> cursor : prevTemplates.values()) {
-                invalidateAliases(cursor.value.aliases());
-            }
-        }
-
         // search indices with changed meta data
         Iterator<String> currentTablesIt = docTableByName.keySet().iterator();
-        ObjectLookupContainer<String> templates = newTemplates.keys();
         ImmutableOpenMap<String, IndexMetadata> indices = newMetadata.indices();
         while (currentTablesIt.hasNext()) {
             String tableName = currentTablesIt.next();
@@ -281,15 +238,6 @@ public class DocSchemaInfo implements SchemaInfo {
                     invalidateAliases(oldIndexMetadata.getAliases());
                 } else {
                     // this is the case if a single partition has been modified using alter table <t> partition (...)
-                    String possibleTemplateName = PartitionName.templateName(name(), tableName);
-                    if (templates.contains(possibleTemplateName)) {
-                        for (ObjectObjectCursor<String, IndexMetadata> indexEntry : indices) {
-                            if (IndexName.isPartitioned(indexEntry.key)) {
-                                docTableByName.remove(tableName);
-                                break;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -414,9 +362,13 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<TableInfo> getTables() {
-        return tableNames().stream()
-            .map(this::getTableInfo)
-            .filter(Objects::nonNull)
+        Metadata metadata = clusterService.state().metadata();
+        SchemaMetadata schemaMetadata = metadata.schemas().get(schemaName);
+        if (schemaMetadata == null) {
+            return List.of();
+        }
+        return StreamSupport.stream(schemaMetadata.relations().spliterator(), false)
+            .map(cursor -> getTableInfo(cursor.key))
             ::iterator;
     }
 

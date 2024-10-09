@@ -50,6 +50,7 @@ public record BoundCreateTable(
          * By constraint name; In order of definition
          **/
         Map<String, AnalyzedCheck> checks,
+        @Nullable
         ColumnIdent routingColumn,
         List<Reference> partitionedBy) {
 

@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -40,7 +41,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -85,7 +85,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -109,8 +108,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .put("index.version.created", org.elasticsearch.Version.CURRENT);
 
         IndexMetadata.Builder mdBuilder = IndexMetadata.builder(indexName)
-            .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(mappingSource));
+            .settings(settingsBuilder);
         return mdBuilder.build();
     }
 
@@ -1195,7 +1193,6 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         IndexMetadata indexMetadata = IndexMetadata.builder(boundCreateTable.tableName().name())
             .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(TestingHelpers.toMapping(boundCreateTable)))
             .build();
 
         return newTable(indexMetadata, boundCreateTable.tableName().name());

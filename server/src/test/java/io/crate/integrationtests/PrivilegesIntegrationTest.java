@@ -352,10 +352,10 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
+        execute("refresh table t1");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
-        ensureYellow();
 
         try (Session testUserSession = testUserSession()) {
             execute("select * from t1_renamed", null, testUserSession);

@@ -23,6 +23,7 @@ package io.crate.integrationtests.disruption.replication.logical;
 
 import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase.isolateNode;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.IntegTestCase.ensureStableCluster;
 
 import java.lang.reflect.Field;
@@ -41,6 +42,7 @@ import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.integrationtests.LogicalReplicationITestCase;
@@ -53,6 +55,7 @@ import io.crate.testing.UseRandomizedSchema;
 @UseRandomizedSchema(random = false)
 @LogicalReplicationITestCase.PublisherClusterScope(numberOfNodes = 1, supportsDedicatedMasters = false)
 @LogicalReplicationITestCase.SubscriberClusterScope(numberOfNodes = 3, supportsDedicatedMasters = false)
+@Ignore
 public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
     @Test

@@ -315,7 +315,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public Timeout globalTimeout = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
         .anyMatch(s -> s.contains("-agentlib:jdwp"))
             ? new Timeout(30, TimeUnit.MINUTES)
-            : new Timeout(3, TimeUnit.MINUTES);
+            : new Timeout(30, TimeUnit.SECONDS);
 
     @Rule
     public TestName testName = new TestName();
@@ -859,15 +859,19 @@ public abstract class IntegTestCase extends ESTestCase {
             if (masterState.version() == localState.version()
                 && masterId.equals(localState.nodes().getMasterNodeId())) {
 
-                assertThat(localState)
-                    .usingRecursiveComparison(RecursiveComparisonConfiguration.builder()
-                        // routingNodes is built on demand
-                        .withIgnoredFields("routingNodes")
-                        .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenMap.class)
-                        .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenIntMap.class)
-                        .withIgnoreAllOverriddenEquals(false)
-                        .build())
-                    .isEqualTo(masterState);
+                try {
+                    assertThat(localState)
+                        .usingRecursiveComparison(RecursiveComparisonConfiguration.builder()
+                            // routingNodes is built on demand
+                            .withIgnoredFields("routingNodes")
+                            .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenMap.class)
+                            .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenIntMap.class)
+                            .withIgnoreAllOverriddenEquals(false)
+                            .build())
+                        .isEqualTo(masterState);
+                } catch (AssertionError ex) {
+                    throw ex;
+                }
             }
         }
     }

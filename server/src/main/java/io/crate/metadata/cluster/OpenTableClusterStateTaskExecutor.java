@@ -21,24 +21,19 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 
@@ -49,9 +44,6 @@ import io.crate.metadata.RelationName;
 
 
 public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<OpenTableRequest> {
-
-    private record Context(Set<IndexMetadata> indicesMetadata, IndexTemplateMetadata templateMetadata, PartitionName partitionName) {
-    }
 
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
@@ -70,20 +62,38 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
     @Override
     protected ClusterState execute(ClusterState currentState, OpenTableRequest request) throws Exception {
-        Context context = prepare(currentState, request);
-        Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
-        IndexTemplateMetadata templateMetadata = context.templateMetadata();
-
-        if (indicesToOpen.isEmpty() && templateMetadata == null) {
+        RelationName relationName = request.relation();
+        List<String> partitionValues = request.partitionValues();
+        List<IndexMetadata> closedIndices = currentState.metadata().getIndices(
+            relationName,
+            partitionValues,
+            idx -> idx.getState() == State.CLOSE ? idx : null
+        );
+        RelationMetadata.Table table = (RelationMetadata.Table) currentState.metadata().getRelation(relationName);
+        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+        if (partitionValues.isEmpty()) {
+            mdBuilder.addTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.OPEN,
+                table.indexUUIDs()
+            );
+        } else if (closedIndices.isEmpty()) {
             return currentState;
         }
 
-        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
         final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
             .minimumIndexCompatibilityVersion();
-        for (IndexMetadata closedMetadata : indicesToOpen) {
+        for (IndexMetadata closedMetadata : closedIndices) {
             final String indexName = closedMetadata.getIndex().getName();
             blocksBuilder.removeIndexBlockWithId(indexName, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
 
@@ -101,7 +111,7 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
-            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, templateMetadata, minIndexCompatibilityVersion);
+            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, minIndexCompatibilityVersion);
             try {
                 indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {
@@ -111,62 +121,27 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             mdBuilder.put(updatedIndexMetadata, true);
         }
 
-        // remove closed flag at possible partitioned table template
-        if (templateMetadata != null) {
-            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata));
-        }
-
         // The Metadata will always be overridden (and not merged!) when applying it on a cluster state builder.
         // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
         // Otherwise they would operate on the old Metadata and would just ignore any modifications.
         ClusterState updatedState = ClusterState.builder(currentState).metadata(mdBuilder).blocks(blocksBuilder).build();
 
         // call possible registered modifiers
-        if (context.partitionName() != null) {
-            updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, context.partitionName());
-        } else {
+        if (request.partitionValues().isEmpty()) {
             updatedState = ddlClusterStateService.onOpenTable(updatedState, request.relation());
+        } else {
+            PartitionName partitionName = new PartitionName(relationName, request.partitionValues());
+            updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, partitionName);
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());
-        for (IndexMetadata index : indicesToOpen) {
+        for (IndexMetadata index : closedIndices) {
             rtBuilder.addAsFromCloseToOpen(updatedState.metadata().getIndexSafe(index.getIndex()));
         }
 
         //no explicit wait for other nodes needed as we use AckedClusterStateUpdateTask
         return allocationService.reroute(
             ClusterState.builder(updatedState).routingTable(rtBuilder.build()).build(),
-            "indices opened " + indicesToOpen);
+            "indices opened " + closedIndices);
     }
-
-    private Context prepare(ClusterState currentState, OpenTableRequest request) {
-        RelationName relationName = request.relation();
-        List<String> partitionValues = request.partitionValues();
-        PartitionName partitionName = partitionValues.isEmpty() ? null : new PartitionName(relationName, partitionValues);
-        Metadata metadata = currentState.metadata();
-        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            currentState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            partitionName == null ? relationName.indexNameOrAlias() : partitionName.asIndexName()
-        );
-        Set<IndexMetadata> indicesMetadata = DDLClusterStateHelpers.indexMetadataSetFromIndexNames(metadata, concreteIndices, IndexMetadata.State.OPEN);
-        IndexTemplateMetadata indexTemplateMetadata = null;
-        if (partitionName == null) {
-            indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(metadata, relationName);
-        }
-        return new Context(indicesMetadata, indexTemplateMetadata, partitionName);
-    }
-
-    private static IndexTemplateMetadata updateOpenCloseOnPartitionTemplate(IndexTemplateMetadata indexTemplateMetadata) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        //Remove the mapping from the template.
-        return DDLClusterStateHelpers.updateTemplate(
-            indexTemplateMetadata,
-            Collections.emptyMap(),
-            metaMap,
-            Settings.EMPTY,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-        );
-    }
-
 }

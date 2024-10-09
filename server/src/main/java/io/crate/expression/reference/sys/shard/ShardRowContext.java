@@ -28,7 +28,6 @@ import java.util.function.Supplier;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -151,12 +150,7 @@ public class ShardRowContext {
     }
 
     public boolean isOrphanedPartition() {
-        if (aliasName != null && templateName != null) {
-            Metadata metadata = clusterService.state().metadata();
-            return !(metadata.templates().containsKey(templateName) && metadata.hasConcreteIndex(aliasName));
-        } else {
-            return false;
-        }
+        return false;
     }
 
     public boolean isClosed() {

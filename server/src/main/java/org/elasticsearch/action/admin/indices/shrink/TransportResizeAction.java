@@ -19,6 +19,7 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntFunction;
@@ -82,11 +83,12 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
 
     @Override
     protected ClusterBlockException checkBlock(ResizeRequest request, ClusterState state) {
-        if (request.partitionValues().isEmpty()) {
-            return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.table().indexNameOrAlias());
-        }
-        PartitionName partitionName = new PartitionName(request.table(), request.partitionValues());
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, partitionName.asIndexName());
+        List<String> indices = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            idxMd -> idxMd.getIndex().getName()
+        );
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices.toArray(String[]::new));
     }
 
     @Override
@@ -94,15 +96,25 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                    final ClusterState state,
                                    final ActionListener<ResizeResponse> listener) {
 
-        String sourceIndex = request.partitionValues().isEmpty()
+        List<String> indices = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            idxMd -> idxMd.getIndex().getName()
+        );
+        String sourceIndexName = request.partitionValues().isEmpty()
             ? request.table().indexNameOrAlias()
             : new PartitionName(request.table(), request.partitionValues()).asIndexName();
+        final String targetIndex = AlterTableClient.RESIZE_PREFIX + sourceIndexName;
+        if (indices.size() != 1) {
+            listener.onResponse(new ResizeResponse(false, false, targetIndex));
+            return;
+        }
+        String index = indices.getFirst();
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
-        final String targetIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
         client.admin().indices().stats(new IndicesStatsRequest()
             .clear()
-            .indices(sourceIndex)
+            .indices(index)
             .docs(true))
             .whenComplete(ActionListener.delegateFailure(
                 listener,
@@ -111,18 +123,18 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                         request,
                         state,
                         i -> {
-                            IndexShardStats shard = indicesStatsResponse.getIndex(sourceIndex).getIndexShards().get(i);
+                            IndexShardStats shard = indicesStatsResponse.getIndex(index).getIndexShards().get(i);
                             return shard == null ? null : shard.getPrimary().getDocs();
                         },
-                        sourceIndex,
+                        index,
                         targetIndex
                     );
-                    createIndexService.createIndex(
-                        updateRequest,
+                    createIndexService.resize(
+                        request,
                         delegate.map(
                             response -> new ResizeResponse(
                                 response.isAcknowledged(),
-                                response.isShardsAcknowledged(),
+                                true,
                                 updateRequest.index()
                             )
                         )

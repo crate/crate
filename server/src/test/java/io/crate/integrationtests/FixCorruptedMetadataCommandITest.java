@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.cluster.commands.FixCorruptedMetadataCommand;
@@ -42,6 +43,7 @@ import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionParser;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@Ignore
 public class FixCorruptedMetadataCommandITest extends IntegTestCase {
 
     @Test

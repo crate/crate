@@ -39,7 +39,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.session.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnavailableShardsException;
@@ -52,6 +51,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.Cursors;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

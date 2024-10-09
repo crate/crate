@@ -349,10 +349,12 @@ public class TestingHelpers {
         return values;
     }
 
+    @Deprecated
     public static Map<String, Object> toMapping(BoundCreateTable boundCreateTable) {
         return toMapping(null, boundCreateTable);
     }
 
+    @Deprecated
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 

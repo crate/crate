@@ -44,6 +44,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
@@ -82,14 +83,13 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.CreateTableRequest;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -235,8 +235,154 @@ public class MetadataCreateIndexService {
                     nodeContext));
     }
 
+    public void resize(ResizeRequest request, ActionListener<ClusterStateUpdateResponse> listener) {
+        ResizeTableTask updateTask = new ResizeTableTask(allocationService, indexScopedSettings, request);
+        clusterService.submitStateUpdateTask(
+            "resize-table",
+            updateTask
+        );
+        updateTask.completionFuture().whenComplete((resp, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(err));
+            } else {
+                List<String> indexNames = clusterService.state().metadata().getIndices(
+                    request.table(),
+                    request.partitionValues(),
+                    idxMd -> idxMd.getIndex().getName()
+                );
+                activeShardsObserver.waitForActiveShards(
+                    indexNames.toArray(String[]::new),
+                    ActiveShardCount.ONE,
+                    request.ackTimeout(),
+                    result -> listener.onResponse(resp),
+                    ex -> listener.onFailure(ex)
+                );
+            }
+        });
+    }
+
     interface IndexValidator {
         void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state);
+    }
+
+
+    static class ResizeTableTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
+
+        private final AllocationService allocationService;
+        private final IndexScopedSettings indexScopedSettings;
+        private final ResizeRequest request;
+
+        protected ResizeTableTask(AllocationService allocationService,
+                                  IndexScopedSettings indexScopedSettings,
+                                  ResizeRequest request) {
+            super(Priority.HIGH, request);
+            this.allocationService = allocationService;
+            this.indexScopedSettings = indexScopedSettings;
+            this.request = request;
+        }
+
+        @Override
+        protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+            return new ClusterStateUpdateResponse(acknowledged);
+        }
+
+        @Override
+        public ClusterState execute(ClusterState currentState) throws Exception {
+            Metadata metadata = currentState.metadata();
+            RelationMetadata.Table table = metadata.getRelation(request.table());
+
+            Metadata.Builder newMetadata = Metadata.builder(metadata);
+            ClusterBlocks.Builder newBlocks = ClusterBlocks.builder().blocks(currentState.blocks());
+            RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
+            List<String> newIndexUUIDs = new ArrayList<>();
+            for (String indexUUID : table.indexUUIDs()) {
+                IndexMetadata sourceMetadata = metadata.indexByUUID(indexUUID);
+                Index sourceIndex = sourceMetadata.getIndex();
+                boolean shrink = request.newNumShards() < sourceMetadata.getNumberOfShards();
+
+                String targetName = AlterTableClient.RESIZE_PREFIX + sourceIndex.getName();
+                IndexMetadata.Builder newIndexMetadata = IndexMetadata.builder(targetName)
+                    .partitionValues(sourceMetadata.partitionValues());
+
+                String newIndexUUID = UUIDs.randomBase64UUID();
+                newIndexUUIDs.add(newIndexUUID);
+                Settings.Builder newSettings = Settings.builder()
+                    .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID)
+                    .put(IndexMetadata.SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, request.newNumShards())
+                    .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, sourceIndex.getName())
+                    .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, sourceIndex.getUUID());
+
+                for (String key : sourceMetadata.getSettings().keySet()) {
+                    final Setting<?> setting = indexScopedSettings.get(key);
+                    if (setting == null) {
+                        assert indexScopedSettings.isPrivateSetting(key) : key;
+                    } else if (setting.getProperties().contains(Setting.Property.NotCopyableOnResize)) {
+                        continue;
+                    }
+                    // do not override settings that have already been set (for example, from the request)
+                    if (newSettings.keys().contains(key)) {
+                        continue;
+                    }
+                    newSettings.copy(key, sourceMetadata.getSettings());
+                }
+
+                if (shrink) {
+                    List<String> nodesToAllocateOn = validateShrinkIndex(
+                        currentState,
+                        sourceIndex.getName(),
+                        targetName,
+                        sourceMetadata.getSettings()
+                    );
+                    newSettings.put(
+                        IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getKey() + "_id",
+                        Strings.arrayToCommaDelimitedString(nodesToAllocateOn.toArray())
+                    );
+                } else {
+                    validateSplitIndex(
+                        currentState,
+                        sourceIndex.getName(),
+                        targetName,
+                        sourceMetadata.getSettings()
+                    );
+                }
+
+                newIndexMetadata.settings(newSettings);
+                long primaryTerm = IntStream
+                    .range(0, sourceMetadata.getNumberOfShards())
+                    .mapToLong(sourceMetadata::primaryTerm)
+                    .max()
+                    .getAsLong();
+                for (int shardId = 0; shardId < request.newNumShards(); shardId++) {
+                    newIndexMetadata.primaryTerm(shardId, primaryTerm);
+                }
+                IndexMetadata indexMetadata = newIndexMetadata.build();
+                newBlocks.updateBlocks(indexMetadata);
+                newMetadata.put(indexMetadata, true);
+                newRoutingTable.addAsNew(indexMetadata);
+            }
+
+            newMetadata.addTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newIndexUUIDs
+            );
+
+            ClusterState newState = ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .blocks(newBlocks)
+                .routingTable(newRoutingTable.build())
+                .build();
+            return allocationService.reroute(newState, "indices of table resized: " + table.name());
+        }
     }
 
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
@@ -283,30 +429,8 @@ public class MetadataCreateIndexService {
                 AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
             }
 
-            // No template handling here since neither of usages of this service is relevant to them:
-            // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
-            // 2. Resize partitioned tables. findTemplates always returns an empty list since
-            //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
-            // 3. Creating partitions/indices by inserting into a partitioned table.
-            //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
-            //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
-            IndexTemplateMetadata template = null;
-            try {
-                template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
-            } catch (Exception ex) {
-                // Creation of regular tables or resizing a partition don't pass validation.
-                // Catching validation errors to do a safe assertion.
-            }
-            assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
-
             final Index recoverFromIndex = request.recoverFrom();
-            MappingMetadata mapping;
-            if (recoverFromIndex == null) {
-                mapping = new MappingMetadata(Map.of());
-            } else {
-                IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                mapping = sourceMetadata.mapping();
-            }
+            // TODO: recoverFromIndex mapping
 
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
@@ -400,7 +524,6 @@ public class MetadataCreateIndexService {
                     Metadata.builder(currentState.metadata()),
                     request.index(),
                     tmpImd,
-                    mapping,
                     request.aliases(),
                     routingNumShards
                 );
@@ -650,7 +773,8 @@ public class MetadataCreateIndexService {
 
     public ClusterState add(ClusterState currentState,
                             CreateTableRequest request,
-                            Settings settings) throws IOException {
+                            Settings settings,
+                            String indexUUID) throws IOException {
         RelationName tableName = request.getTableName();
         String indexName = tableName.indexNameOrAlias();
 
@@ -659,20 +783,9 @@ public class MetadataCreateIndexService {
         shardLimitValidator.validateShardLimit(settings, currentState);
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
-            request.pkConstraintName(),
-            DocReferences.applyOid(request.references(), metadataBuilder.columnOidSupplier()),
-            request.pKeyIndices(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
-        )));
-
         Settings.Builder indexSettingsBuilder = Settings.builder()
             .put(settings)
-            .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+            .put(SETTING_INDEX_UUID, indexUUID)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         final Settings idxSettings = indexSettingsBuilder.build();
@@ -708,11 +821,9 @@ public class MetadataCreateIndexService {
                 metadataBuilder,
                 indexName,
                 tmpImd,
-                mapping,
                 List.of(),
                 routingNumShards
             );
-            new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
             return updatedState;
         });
     }
@@ -723,14 +834,12 @@ public class MetadataCreateIndexService {
                                          Metadata.Builder metadataBuilder,
                                          String indexName,
                                          IndexMetadata tmpImd,
-                                         MappingMetadata mapping,
                                          Iterable<Alias> aliases,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
-            .state(State.OPEN)
-            .putMapping(mapping);
+            .state(State.OPEN);
 
         for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
             indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));

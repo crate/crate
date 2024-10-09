@@ -42,7 +42,6 @@ import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -53,9 +52,9 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -67,7 +66,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.CountDown;
@@ -85,14 +83,12 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
     private static final Logger LOGGER = LogManager.getLogger(TransportCloseTable.class);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/close";
-    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     public static final int INDEX_CLOSED_BLOCK_ID = 4;
 
     private final TransportVerifyShardBeforeCloseAction verifyShardBeforeClose;
@@ -154,25 +150,36 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         // that does not support the replication of closed indices
         final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
 
-        IndexTemplateMetadata templateMetadata = target.templateMetadata();
-        ClusterState updatedState;
-        if (templateMetadata == null) {
-            updatedState = currentState;
-        } else {
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
-            updatedState = ClusterState.builder(currentState).metadata(metadata).build();
+        ClusterState updatedState = currentState;
+        RelationMetadata relation = updatedState.metadata().getRelation(target.table());
+        if (!(relation instanceof RelationMetadata.Table table)) {
+            throw new IllegalArgumentException("Cannot close non-table relation: " + relation);
         }
 
         List<String> partitionValues = target.partitionValues();
+        final Metadata.Builder metadata;
         if (partitionValues.isEmpty()) {
             updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            metadata = Metadata.builder(updatedState.metadata());
+            metadata.addTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.CLOSE,
+                table.indexUUIDs()
+            );
         } else {
             PartitionName partitionName = new PartitionName(target.table(), partitionValues);
             updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
+            metadata = Metadata.builder(updatedState.metadata());
         }
 
-        final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
         final ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(updatedState.blocks());
         final RoutingTable.Builder routingTable = RoutingTable.builder(updatedState.routingTable());
         final Set<String> closedIndices = new HashSet<>();
@@ -238,55 +245,25 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             .build();
     }
 
-    private static IndexTemplateMetadata closePartitionTemplate(IndexTemplateMetadata templateMetadata) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        return DDLClusterStateHelpers.updateTemplate(
-            templateMetadata,
-            metaMap,
-            Collections.emptyMap(),
-            Settings.EMPTY,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-        );
-    }
-
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        List<String> partitionValues = request.partitionValues();
-        String[] indexNames;
-        if (partitionValues.isEmpty()) {
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                request.table().indexNameOrAlias()
-            );
-        } else {
-            String indexName = new PartitionName(request.table(), partitionValues).asIndexName();
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                indexName
-            );
-        }
+        String[] indexNames = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            idxMd -> idxMd.getIndex().getName()
+        ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
                                                   ClusterState clusterState) {
-        var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            clusterState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()
-        );
-        if (concreteIndices.length > 0) {
-            return false;
-        }
-
-        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        var templateMetadata = clusterState.metadata().templates().get(templateName);
-        return templateMetadata != null;
+        RelationMetadata relation = clusterState.metadata().getRelation(relationName);
+        return relation instanceof RelationMetadata.Table table
+            && !table.partitionedBy().isEmpty()
+            && table.indexUUIDs().isEmpty();
     }
 
 
@@ -298,7 +275,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
      * should start to reject writing operations and we can proceed with step 2.
      */
     private static ClusterState addCloseBlocks(ClusterState currentState,
-                                               Index[] indices,
+                                               List<Index> indices,
                                                Map<Index, ClusterBlock> blockedIndices) {
         Metadata.Builder metadata = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
@@ -380,23 +357,15 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            RelationName table = request.table();
-            Index[] indices;
-            if (request.partitionValues().isEmpty()) {
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    currentState.metadata(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN,
-                    table.indexNameOrAlias()
-                );
-            } else {
-                String indexName = new PartitionName(table, request.partitionValues()).asIndexName();
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    currentState.metadata(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN,
-                    indexName
-                );
+            RelationName relationName = request.table();
+            Metadata metadata = currentState.metadata();
+            RelationMetadata relation = metadata.getRelation(relationName);
+            if (relation == null) {
+                return currentState;
             }
-            if (indices.length == 0) {
+            List<Index> indices = metadata.getIndices(
+                relationName, request.partitionValues(), IndexMetadata::getIndex);
+            if (indices.isEmpty()) {
                 return currentState;
             }
             return addCloseBlocks(currentState, indices, blockedIndices);

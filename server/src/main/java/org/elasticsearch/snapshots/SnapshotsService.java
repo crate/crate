@@ -419,9 +419,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     builder.put(indexMetadata, false);
                 }
             }
-            for (String template : snapshot.templates()) {
-                builder.put(metadata.templates().get(template));
-            }
         } else {
             builder = Metadata.builder(metadata);
         }

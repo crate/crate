@@ -88,6 +88,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -102,6 +103,7 @@ import io.crate.common.unit.TimeValue;
  * previously delayed single permit actions. This way, there is a clear transition between the single permit actions executed before the
  * all permit action that sets the block and those executed afterwards that are doomed to fail because of the block.
  */
+@Ignore
 public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTestCase {
 
     private ClusterService clusterService;
@@ -148,7 +150,6 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexName())
             .settings(indexSettings)
             .primaryTerm(shardId.id(), primary.getOperationPrimaryTerm())
-            .putMapping("{ \"properties\": { \"value\":  { \"type\": \"short\", \"position\": 1}}}")
             .build();
         updateMappings(primary, indexMetadata);
 

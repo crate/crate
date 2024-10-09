@@ -52,7 +52,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
@@ -516,7 +515,6 @@ public abstract class AggregationTestCase extends ESTestCase {
         var indexMetadata = IndexMetadata.builder(routing.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, 1)
-            .putMapping(Strings.toString(mapping))
             .build();
         var shardId = routing.shardId();
         var nodePath = new NodeEnvironment.NodePath(createTempDir());

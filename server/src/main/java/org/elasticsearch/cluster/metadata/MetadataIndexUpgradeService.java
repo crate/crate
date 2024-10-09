@@ -20,7 +20,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import java.util.Collection;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,18 +45,18 @@ public class MetadataIndexUpgradeService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataIndexUpgradeService.class);
 
     private final IndexScopedSettings indexScopedSettings;
-    private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
+    private final Function<IndexMetadata, IndexMetadata> upgraders;
     private final DocTableInfoFactory tableFactory;
 
     public MetadataIndexUpgradeService(NodeContext nodeContext,
                                        IndexScopedSettings indexScopedSettings,
-                                       Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders) {
+                                       Collection<Function<IndexMetadata, IndexMetadata>> indexMetadataUpgraders) {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
-        this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
+        this.upgraders = (indexMetadata) -> {
             IndexMetadata newIndexMetadata = indexMetadata;
-            for (BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgrader : indexMetadataUpgraders) {
-                newIndexMetadata = upgrader.apply(newIndexMetadata, indexTemplateMetadata);
+            for (Function<IndexMetadata, IndexMetadata> upgrader : indexMetadataUpgraders) {
+                newIndexMetadata = upgrader.apply(newIndexMetadata);
             }
             return newIndexMetadata;
         };
@@ -69,7 +69,7 @@ public class MetadataIndexUpgradeService {
      * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
      * cannot be updated the method throws an exception.
      */
-    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata, Version minimumIndexCompatibilityVersion) {
+    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, Version minimumIndexCompatibilityVersion) {
         // Throws an exception if there are too-old segments:
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
@@ -79,7 +79,7 @@ public class MetadataIndexUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = upgraders.apply(newMetadata, indexTemplateMetadata);
+        newMetadata = upgraders.apply(newMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
     }

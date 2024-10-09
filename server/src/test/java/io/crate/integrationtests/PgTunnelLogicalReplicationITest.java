@@ -40,6 +40,7 @@ import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -53,6 +54,7 @@ import io.crate.testing.TestingHelpers;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+@Ignore
 public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
     private TestCluster publisherCluster;

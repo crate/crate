@@ -52,8 +52,7 @@ public class LicenseCustomMetadataUpgraderTest {
         var metadata = randomMetadata(new LicenseCustomMetadata("license_key"));
         var customMetadataUpgraderLoader = new CustomMetadataUpgraderLoader(Settings.EMPTY);
         var metadataUpgrader = new MetadataUpgrader(
-            List.of(customs -> customMetadataUpgraderLoader.apply(customs)),
-            List.of()
+            List.of(customs -> customMetadataUpgraderLoader.apply(customs))
         );
         var upgrade = GatewayMetaState.upgradeMetadata(metadata, new GatewayMetaStateTests.MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();

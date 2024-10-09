@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -84,7 +84,6 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
 
         // s1 fails for SnapshotInfo
         doReturn(CompletableFuture.completedFuture(metadata))
@@ -144,7 +143,6 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)
@@ -197,7 +195,6 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)

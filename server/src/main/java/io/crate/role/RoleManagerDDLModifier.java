@@ -27,8 +27,8 @@ import java.util.Objects;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import io.crate.role.metadata.RolesMetadata;
@@ -130,7 +130,12 @@ public class RoleManagerDDLModifier implements DDLClusterStateModifier {
         validateMigrationToRolesMetadata(minNodeVersion, "rename tables or views");
 
         var oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
-        RolesMetadata migratedMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldPrivilegesMetadata, oldRolesMetadata);
+        RolesMetadata migratedMetadata = RolesMetadata.of(
+            mdBuilder,
+            oldUsersMetadata,
+            oldPrivilegesMetadata,
+            oldRolesMetadata
+        );
 
         // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
         RolesMetadata newMetadata = PrivilegesModifier.maybeCopyAndReplaceTableIdents(migratedMetadata, sourceRelationName.fqn(), targetRelationName.fqn());

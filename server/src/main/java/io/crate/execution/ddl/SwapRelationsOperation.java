@@ -21,200 +21,109 @@
 
 package io.crate.execution.ddl;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.index.Index;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
+import io.crate.common.collections.Lists;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public class SwapRelationsOperation {
 
-    private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
+    private final MetadataDeleteIndexService deleteIndexService;
 
-    public SwapRelationsOperation(AllocationService allocationService, DDLClusterStateService ddlClusterStateService) {
-        this.allocationService = allocationService;
+    public SwapRelationsOperation(MetadataDeleteIndexService deleteIndexService,
+                                  DDLClusterStateService ddlClusterStateService) {
+        this.deleteIndexService = deleteIndexService;
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
-    static class UpdatedState {
-        ClusterState newState;
-        Set<String> newIndices;
-
-        UpdatedState(ClusterState newState, Set<String> newIndices) {
-            this.newState = newState;
-            this.newIndices = newIndices;
-        }
-    }
-
-    public UpdatedState execute(ClusterState state, SwapRelationsRequest swapRelationsRequest) {
-        UpdatedState stateAfterRename = applyRenameActions(state, swapRelationsRequest);
+    public ClusterState execute(ClusterState state, SwapRelationsRequest swapRelationsRequest) {
+        Metadata metadata = state.metadata();
+        Metadata.Builder builder = new Metadata.Builder(metadata);
+        List<RelationNameSwap> swapActions = swapRelationsRequest.swapActions();
         List<RelationName> dropRelations = swapRelationsRequest.dropRelations();
-        if (dropRelations.isEmpty()) {
-            return stateAfterRename;
-        } else {
-            return applyDropRelations(stateAfterRename, dropRelations);
+        for (RelationNameSwap nameSwap : swapActions) {
+            RelationName source = nameSwap.source();
+            RelationName target = nameSwap.target();
+
+            SchemaMetadata sourceSchema = metadata.schemas().get(source.schema());
+            SchemaMetadata targetSchema = metadata.schemas().get(target.schema());
+
+            RelationMetadata.Table sourceRelation = (RelationMetadata.Table) sourceSchema.get(source);
+            RelationMetadata.Table targetRelation = (RelationMetadata.Table) targetSchema.get(target);
+
+            builder
+                .dropTable(source)
+                .dropTable(target)
+                .addTable(
+                    target,
+                    Lists.map(
+                        sourceRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                    ),
+                    sourceRelation.settings(),
+                    sourceRelation.routingColumn(),
+                    sourceRelation.columnPolicy(),
+                    sourceRelation.pkConstraintName(),
+                    sourceRelation.checkConstraints(),
+                    sourceRelation.primaryKeys(),
+                    sourceRelation.partitionedBy(),
+                    sourceRelation.state(),
+                    sourceRelation.indexUUIDs()
+                )
+                .addTable(
+                    source,
+                    Lists.map(
+                        targetRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(source, ref.column()))
+                    ),
+                    targetRelation.settings(),
+                    targetRelation.routingColumn(),
+                    targetRelation.columnPolicy(),
+                    targetRelation.pkConstraintName(),
+                    targetRelation.checkConstraints(),
+                    targetRelation.primaryKeys(),
+                    targetRelation.partitionedBy(),
+                    targetRelation.state(),
+                    targetRelation.indexUUIDs()
+                );
         }
-    }
-
-    private UpdatedState applyDropRelations(UpdatedState updatedState, List<RelationName> dropRelations) {
-        ClusterState stateAfterRename = updatedState.newState;
-        Metadata.Builder updatedMetadata = Metadata.builder(stateAfterRename.metadata());
-        RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
-
-        for (RelationName dropRelation : dropRelations) {
-            for (Index index : IndexNameExpressionResolver.concreteIndices(
-                    stateAfterRename.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
-
-                String indexName = index.getName();
-                updatedMetadata.remove(indexName);
-                routingBuilder.remove(indexName);
-                updatedState.newIndices.remove(indexName);
+        List<Index> toDelete = new ArrayList<>();
+        for (RelationName relation : dropRelations) {
+            RelationMetadata relationMetadata = builder.getRelation(relation);
+            if (relationMetadata instanceof RelationMetadata.Table table) {
+                for (String indexUUID : table.indexUUIDs()) {
+                    IndexMetadata indexMetadata = metadata.indexByUUID(indexUUID);
+                    if (indexMetadata != null) {
+                        toDelete.add(indexMetadata.getIndex());
+                    }
+                }
             }
-
-            // In case former "target" was partitioned therefore,
-            // we have to drop a partitioned (currently "source") table
-            String templateName = PartitionName.templateName(dropRelation.schema(), dropRelation.name());
-            updatedMetadata.removeTemplate(templateName);
+            builder.dropTable(relation);
         }
-        ClusterState stateAfterDropRelations = ClusterState
-            .builder(stateAfterRename)
-            .metadata(updatedMetadata)
-            .routingTable(routingBuilder.build())
-            .build();
-        return new UpdatedState(
-            allocationService.reroute(
-                applyDropTableClusterStateModifiers(stateAfterDropRelations, dropRelations),
-                "indices drop after name switch"
-            ),
-            updatedState.newIndices
-        );
-    }
-
-    private ClusterState applyDropTableClusterStateModifiers(ClusterState stateAfterDropRelations,
-                                                             List<RelationName> dropRelations) {
-        ClusterState updatedState = stateAfterDropRelations;
-        for (RelationName dropRelation : dropRelations) {
-            updatedState = ddlClusterStateService.onDropTable(updatedState, dropRelation);
-        }
-        return updatedState;
-    }
-
-    private UpdatedState applyRenameActions(ClusterState state,
-                                            SwapRelationsRequest swapRelationsRequest) {
-        HashSet<String> newIndexNames = new HashSet<>();
-        Metadata metadata = state.metadata();
-        Metadata.Builder updatedMetadata = Metadata.builder(state.metadata());
-        RoutingTable.Builder routingBuilder = RoutingTable.builder(state.routingTable());
-        ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(state.blocks());
-
-        // Remove all involved indices first so that rename operations are independent of each other
-        for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
-            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.source());
-            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.target());
-        }
-        for (RelationNameSwap relationNameSwap : swapRelationsRequest.swapActions()) {
-            RelationName source = relationNameSwap.source();
-            RelationName target = relationNameSwap.target();
-            addSourceIndicesRenamedToTargetName(
-                metadata, updatedMetadata, blocksBuilder, routingBuilder, source, target, newIndexNames::add);
-            addSourceIndicesRenamedToTargetName(
-                metadata, updatedMetadata, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
-        }
-        ClusterState stateAfterSwap = ClusterState.builder(state)
-            .metadata(updatedMetadata)
-            .routingTable(routingBuilder.build())
-            .blocks(blocksBuilder)
-            .build();
-        ClusterState reroutedState = allocationService.reroute(
-            applyClusterStateModifiers(stateAfterSwap, swapRelationsRequest.swapActions()),
-            "indices name switch"
-        );
-        return new UpdatedState(reroutedState, newIndexNames);
-    }
-
-    private ClusterState applyClusterStateModifiers(ClusterState newState, List<RelationNameSwap> swapActions) {
-        ClusterState updatedState = newState;
+        ClusterState updatedState = ClusterState.builder(state).metadata(builder).build();
+        updatedState = deleteIndexService.deleteIndices(updatedState, toDelete);
         for (RelationNameSwap swapAction : swapActions) {
-            updatedState = ddlClusterStateService.onSwapRelations(updatedState, swapAction.source(), swapAction.target());
+            updatedState = ddlClusterStateService.onSwapRelations(
+                updatedState,
+                swapAction.source(),
+                swapAction.target()
+            );
+        }
+        for (RelationName relation : dropRelations) {
+            updatedState = ddlClusterStateService.onDropTable(updatedState, relation);
         }
         return updatedState;
-    }
-
-    private void removeOccurrences(ClusterState state,
-                                   ClusterBlocks.Builder blocksBuilder,
-                                   RoutingTable.Builder routingBuilder,
-                                   Metadata.Builder updatedMetadata,
-                                   RelationName name) {
-        String aliasOrIndexName = name.indexNameOrAlias();
-        String templateName = PartitionName.templateName(name.schema(), name.name());
-        Metadata metadata = state.metadata();
-        for (Index index : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, aliasOrIndexName)) {
-
-            String indexName = index.getName();
-            routingBuilder.remove(indexName);
-            updatedMetadata.remove(indexName);
-            blocksBuilder.removeIndexBlocks(indexName);
-        }
-        updatedMetadata.removeTemplate(templateName);
-    }
-
-    private void addSourceIndicesRenamedToTargetName(Metadata metadata,
-                                                     Metadata.Builder updatedMetadata,
-                                                     ClusterBlocks.Builder blocksBuilder,
-                                                     RoutingTable.Builder routingBuilder,
-                                                     RelationName source,
-                                                     RelationName target,
-                                                     Consumer<String> onProcessedIndex) {
-        String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
-        IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
-
-        for (Index sourceIndex : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
-
-            String sourceIndexName = sourceIndex.getName();
-            IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
-            IndexMetadata targetMd;
-            if (sourceTemplate == null) {
-                targetMd = IndexMetadata.builder(sourceMd)
-                    .removeAllAliases()
-                    .index(target.indexNameOrAlias())
-                    .build();
-                onProcessedIndex.accept(target.indexNameOrAlias());
-            } else {
-                PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
-                String targetIndexName = IndexName.encode(target, partitionName.ident());
-                targetMd = IndexMetadata.builder(sourceMd)
-                    .removeAllAliases()
-                    .putAlias(new AliasMetadata(target.indexNameOrAlias()))
-                    .index(targetIndexName)
-                    .build();
-                onProcessedIndex.accept(targetIndexName);
-            }
-            updatedMetadata.put(targetMd, true);
-            blocksBuilder.addBlocks(targetMd);
-            routingBuilder.addAsFromCloseToOpen(targetMd);
-        }
-        if (sourceTemplate != null) {
-            IndexTemplateMetadata.Builder templateBuilder = Templates.withName(sourceTemplate, target);
-            updatedMetadata.put(templateBuilder);
-        }
     }
 }

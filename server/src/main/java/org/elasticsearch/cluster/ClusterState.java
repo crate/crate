@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigE
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -226,6 +227,20 @@ public class ClusterState implements Diffable<ClusterState> {
                 .append("last_accepted_config: ").append(coordinationMetadata().getLastAcceptedConfiguration()).append("\n");
         sb.append(TAB).append(TAB)
                 .append("voting tombstones: ").append(coordinationMetadata().getVotingConfigExclusions()).append("\n");
+        for (var schemaCursor : metadata.schemas()) {
+            String schemaName = schemaCursor.key;
+            SchemaMetadata schemaMetadata = schemaCursor.value;
+            sb.append(TAB)
+                .append("schema: ")
+                .append(schemaName)
+                .append("\n");
+            for (var relationCursor : schemaMetadata.relations()) {
+                sb.append(TAB).append(TAB)
+                    .append("relation: ")
+                    .append(relationCursor.key)
+                    .append("\n");
+            }
+        }
         for (IndexMetadata indexMetadata : metadata) {
             sb.append(TAB).append(indexMetadata.getIndex());
             sb.append(": v[").append(indexMetadata.getVersion())

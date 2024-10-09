@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -49,14 +48,12 @@ import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
 import org.elasticsearch.cluster.routing.allocation.IndexMetadataUpdater;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
@@ -67,9 +64,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
-import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
 
 public class IndexMetadata implements Diffable<IndexMetadata> {
@@ -272,11 +267,12 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     private final State state;
 
+    @Deprecated
     private final ImmutableOpenMap<String, AliasMetadata> aliases;
 
-    private final Settings settings;
+    private final List<String> partitionValues;
 
-    private final MappingMetadata mapping;
+    private final Settings settings;
 
     private final ImmutableOpenIntMap<Set<String>> inSyncAllocationIds;
 
@@ -301,8 +297,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                           int numberOfShards,
                           int numberOfReplicas,
                           Settings settings,
-                          MappingMetadata mapping,
                           ImmutableOpenMap<String, AliasMetadata> aliases,
+                          List<String> partitionValues,
                           ImmutableOpenIntMap<Set<String>> inSyncAllocationIds,
                           DiscoveryNodeFilters requireFilters,
                           DiscoveryNodeFilters initialRecoveryFilters,
@@ -327,8 +323,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         this.numberOfReplicas = numberOfReplicas;
         this.totalNumberOfShards = numberOfShards * (numberOfReplicas + 1);
         this.settings = settings;
-        this.mapping = mapping;
         this.aliases = aliases;
+        this.partitionValues = partitionValues;
         this.inSyncAllocationIds = inSyncAllocationIds;
         this.requireFilters = requireFilters;
         this.includeFilters = includeFilters;
@@ -442,16 +438,13 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return settings;
     }
 
-    public ImmutableOpenMap<String, AliasMetadata> getAliases() {
-        return this.aliases;
+    public List<String> partitionValues() {
+        return partitionValues;
     }
 
-    /**
-     * Return the concrete mapping for this index or {@code null} if this index has no mappings at all.
-     */
-    @Nullable
-    public MappingMetadata mapping() {
-        return mapping;
+    @Deprecated
+    public ImmutableOpenMap<String, AliasMetadata> getAliases() {
+        return this.aliases;
     }
 
     // we keep the shrink settings for BWC - this can be removed in 8.0
@@ -522,9 +515,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         if (!index.equals(that.index)) {
             return false;
         }
-        if (!Objects.equals(mapping, that.mapping)) {
-            return false;
-        }
         if (!settings.equals(that.settings)) {
             return false;
         }
@@ -553,7 +543,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         result = 31 * result + state.hashCode();
         result = 31 * result + aliases.hashCode();
         result = 31 * result + settings.hashCode();
-        result = 31 * result + Objects.hashCode(mapping);
         result = 31 * result + Long.hashCode(routingFactor);
         result = 31 * result + Long.hashCode(routingNumShards);
         result = 31 * result + Arrays.hashCode(primaryTerms);
@@ -585,7 +574,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final long[] primaryTerms;
         private final State state;
         private final Settings settings;
-        private final Diff<ImmutableOpenMap<String, MappingMetadata>> mappings;
         private final Diff<ImmutableOpenMap<String, AliasMetadata>> aliases;
         private final Diff<ImmutableOpenIntMap<Set<String>>> inSyncAllocationIds;
 
@@ -598,15 +586,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             state = after.state;
             settings = after.settings;
             primaryTerms = after.primaryTerms;
-            ImmutableOpenMap.Builder<String, MappingMetadata> beforeMappings = ImmutableOpenMap.builder();
-            if (before.mapping != null) {
-                beforeMappings.put(Constants.DEFAULT_MAPPING_TYPE, before.mapping);
-            }
-            ImmutableOpenMap.Builder<String, MappingMetadata> afterMappings = ImmutableOpenMap.builder();
-            if (after.mapping != null) {
-                afterMappings.put(Constants.DEFAULT_MAPPING_TYPE, after.mapping);
-            }
-            mappings = Diffs.diff(beforeMappings.build(), afterMappings.build(), Diffs.stringKeySerializer());
             aliases = Diffs.diff(before.aliases, after.aliases, Diffs.stringKeySerializer());
             inSyncAllocationIds = Diffs.diff(before.inSyncAllocationIds, after.inSyncAllocationIds,
                 Diffs.intKeySerializer(), Diffs.StringSetValueSerializer.getInstance());
@@ -614,8 +593,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         private static final Diffs.DiffableValueReader<String, AliasMetadata> ALIAS_METADATA_DIFF_VALUE_READER =
                 new Diffs.DiffableValueReader<>(AliasMetadata::new, AliasMetadata::readDiffFrom);
-        private static final Diffs.DiffableValueReader<String, MappingMetadata> MAPPING_DIFF_VALUE_READER =
-                new Diffs.DiffableValueReader<>(MappingMetadata::new, MappingMetadata::readDiffFrom);
         private static final Diffs.DiffableValueReader<String, DiffableStringMap> CUSTOM_DIFF_VALUE_READER =
                 new Diffs.DiffableValueReader<>(DiffableStringMap::readFrom, DiffableStringMap::readDiffFrom);
 
@@ -628,7 +605,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             state = State.fromId(in.readByte());
             settings = Settings.readSettingsFromStream(in);
             primaryTerms = in.readVLongArray();
-            mappings = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), MAPPING_DIFF_VALUE_READER);
             aliases = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), ALIAS_METADATA_DIFF_VALUE_READER);
             if (in.getVersion().before(Version.V_5_8_0)) {
                 Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_DIFF_VALUE_READER);
@@ -647,7 +623,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             out.writeByte(state.id);
             Settings.writeSettingsToStream(out, settings);
             out.writeVLongArray(primaryTerms);
-            mappings.writeTo(out);
             aliases.writeTo(out);
             if (out.getVersion().before(Version.V_5_8_0)) {
                 Diff<ImmutableOpenMap<String, DiffableStringMap>> customData = Diffs.diff(
@@ -670,16 +645,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             builder.state(state);
             builder.settings(settings);
             builder.primaryTerms(primaryTerms);
-            ImmutableOpenMap.Builder<String, MappingMetadata> mappingBuilder = ImmutableOpenMap.<String, MappingMetadata>builder();
-            if (part.mapping != null) {
-                mappingBuilder.put(Constants.DEFAULT_MAPPING_TYPE, part.mapping);
-                MappingMetadata appliedMapping = mappings.apply(mappingBuilder.build()).get(Constants.DEFAULT_MAPPING_TYPE);
-                if (appliedMapping != null) {
-                    builder.mapping = appliedMapping;
-                }
-            } else {
-                builder.mapping = part.mapping;
-            }
             builder.aliases.putAll(aliases.apply(part.aliases));
             builder.inSyncAllocationIds.putAll(inSyncAllocationIds.apply(part.inSyncAllocationIds));
             return builder.build();
@@ -697,8 +662,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         builder.primaryTerms(in.readVLongArray());
         int mappingsSize = in.readVInt();
         for (int i = 0; i < mappingsSize; i++) {
-            MappingMetadata mappingMd = new MappingMetadata(in);
-            builder.putMapping(mappingMd);
+            new MappingMetadata(in);
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
@@ -731,12 +695,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         out.writeByte(state.id());
         writeSettingsToStream(out, settings);
         out.writeVLongArray(primaryTerms);
-        if (mapping == null) {
-            out.writeVInt(0);
-        } else {
-            out.writeVInt(1);
-            mapping.writeTo(out);
-        }
+        out.writeVInt(0); // mapping size
         out.writeVInt(aliases.size());
         for (ObjectCursor<AliasMetadata> cursor : aliases.values()) {
             cursor.value.writeTo(out);
@@ -769,7 +728,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private long settingsVersion = 1;
         private long[] primaryTerms = null;
         private Settings settings = Settings.EMPTY;
-        private MappingMetadata mapping;
+        private List<String> partitionValues;
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
@@ -778,6 +737,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.indexName = indexName;
             this.aliases = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
+            this.partitionValues = List.of();
         }
 
         public Builder(IndexMetadata indexMetadata) {
@@ -788,7 +748,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.settingsVersion = indexMetadata.settingsVersion;
             this.settings = indexMetadata.getSettings();
             this.primaryTerms = indexMetadata.primaryTerms.clone();
-            this.mapping = indexMetadata.mapping;
+            this.partitionValues = indexMetadata.partitionValues;
             this.aliases = ImmutableOpenMap.builder(indexMetadata.aliases);
             this.routingNumShards = indexMetadata.routingNumShards;
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder(indexMetadata.inSyncAllocationIds);
@@ -879,42 +839,35 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             return this;
         }
 
-        public MappingMetadata mapping() {
-            return mapping;
-        }
-
-        public Builder putMapping(String source) throws IOException {
-            putMapping(new MappingMetadata(XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, source, true)));
-            return this;
-        }
-
-        public Builder putMapping(MappingMetadata mappingMd) {
-            if (mappingMd != null) {
-                mapping = mappingMd;
-            }
-            return this;
-        }
-
         public Builder state(State state) {
             this.state = state;
             return this;
         }
 
+        public Builder partitionValues(List<String> values) {
+            this.partitionValues = values;
+            return this;
+        }
+
+        @Deprecated
         public Builder putAlias(AliasMetadata aliasMetadata) {
             aliases.put(aliasMetadata.alias(), aliasMetadata);
             return this;
         }
 
+        @Deprecated
         public Builder putAlias(AliasMetadata.Builder aliasMetadata) {
             aliases.put(aliasMetadata.alias(), aliasMetadata.build());
             return this;
         }
 
+        @Deprecated
         public Builder removeAlias(String alias) {
             aliases.remove(alias);
             return this;
         }
 
+        @Deprecated
         public Builder removeAllAliases() {
             aliases.clear();
             return this;
@@ -1085,8 +1038,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 numberOfShards,
                 numberOfReplicas,
                 tmpSettings,
-                mapping,
                 tmpAliases.build(),
+                partitionValues,
                 filledInSyncAllocationIds.build(),
                 requireFilters,
                 initialRecoveryFilters,
@@ -1132,7 +1085,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                             } else if (token == XContentParser.Token.START_OBJECT) {
                                 String mappingType = currentFieldName;
                                 Map<String, Object> mappingSource = MapBuilder.<String, Object>newMapBuilder().put(mappingType, parser.mapOrdered()).map();
-                                builder.putMapping(new MappingMetadata(mappingSource));
                             } else {
                                 throw new IllegalArgumentException("Unexpected token: " + token);
                             }
@@ -1173,12 +1125,9 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                     if (KEY_MAPPINGS.equals(currentFieldName)) {
                         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                             if (token == XContentParser.Token.VALUE_EMBEDDED_OBJECT) {
-                                builder.putMapping(new MappingMetadata(new CompressedXContent(parser.binaryValue())));
+                                parser.binaryValue();
                             } else {
-                                Map<String, Object> mapping = parser.mapOrdered();
-                                if (mapping.size() == 1) {
-                                    builder.putMapping(new MappingMetadata(mapping));
-                                }
+                                parser.mapOrdered();
                             }
                         }
                     } else if (KEY_PRIMARY_TERMS.equals(currentFieldName)) {
@@ -1222,6 +1171,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             }
             return builder.build();
         }
+
     }
 
     /**
@@ -1374,5 +1324,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return indexMetadata.getState() == IndexMetadata.State.CLOSE
             && VERIFIED_BEFORE_CLOSE_SETTING.exists(indexMetadata.getSettings())
             && VERIFIED_BEFORE_CLOSE_SETTING.get(indexMetadata.getSettings());
+    }
+
+    @Override
+    public String toString() {
+        return "IndexMetadata{" + index.getName() + "}";
     }
 }

@@ -21,14 +21,8 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.role.Roles;
+import java.util.Locale;
+
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -41,7 +35,13 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Locale;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.role.Roles;
 
 @Singleton
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
@@ -92,8 +92,7 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
 
                 // Ensure tables exists
                 for (var relation : request.tables()) {
-                    if (currentMetadata.hasIndex(relation.indexNameOrAlias()) == false
-                        && currentMetadata.templates().containsKey(PartitionName.templateName(relation.schema(), relation.name())) == false) {
+                    if (!currentMetadata.contains(relation)) {
                         throw new RelationUnknown(relation);
                     }
                 }

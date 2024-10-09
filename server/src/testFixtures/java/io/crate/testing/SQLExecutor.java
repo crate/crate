@@ -25,7 +25,6 @@ import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -39,6 +38,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -57,11 +57,9 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -75,12 +73,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationD
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -94,7 +88,6 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
-import io.crate.Constants;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -105,6 +98,7 @@ import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.TableParameters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -142,6 +136,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -669,34 +664,14 @@ public class SQLExecutor {
         );
     }
 
-    private static IndexMetadata.Builder getIndexMetadata(String indexName,
-                                                            Settings settings,
-                                                            @Nullable Map<String, Object> mapping,
-                                                            Version smallestNodeVersion) throws IOException {
-        Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
-        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
-            .settings(indexSettings);
-        if (mapping != null) {
-            metaBuilder.putMapping(new MappingMetadata(mapping));
+    private static Settings addIndexUUID(Settings settings) {
+        if (settings.get(SETTING_INDEX_UUID) == null) {
+            return Settings.builder()
+                .put(settings)
+                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                .build();
         }
-
-        return metaBuilder;
-    }
-
-    private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
-        Settings.Builder builder = Settings.builder()
-            .put(settings);
-        if (settings.get(SETTING_VERSION_CREATED) == null) {
-            builder.put(SETTING_VERSION_CREATED, smallestNodeVersion);
-        }
-        if (settings.get(SETTING_CREATION_DATE) == null) {
-            builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
-        }
-        if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
-            builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
-        }
-
-        return builder.build();
+        return settings;
     }
 
     public SQLExecutor addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
@@ -725,37 +700,41 @@ public class SQLExecutor {
         var combinedSettings = Settings.builder()
             .put(boundCreateTable.settings())
             .put(customSettings)
+            .put(SETTING_VERSION_CREATED, prevState.nodes().getSmallestNonClientNodeVersion())
+            .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
             .build();
 
         // addPartitionedTable can be called multiple times, create supplier based on existing state.
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-        LongSupplier columnOidSupplier =
-                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-        Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
-
-        XContentBuilder mappingBuilder =
-            JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
-        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
-        IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
-            .patterns(singletonList(boundCreateTable.templatePrefix()))
-            .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
-            .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
-            .putAlias(alias);
-
-        mdBuilder.put(template);
 
         RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
+        ArrayList<String> indexUUIDs = new ArrayList<>();
         for (String partition : partitions) {
-            IndexMetadata indexMetadata = getIndexMetadata(
-                partition,
-                combinedSettings,
-                mapping, // Each partition has the same mapping.
-                prevState.nodes().getSmallestNonClientNodeVersion())
-                .putAlias(alias)
+            IndexMetadata indexMetadata = IndexMetadata.builder(partition)
+                .settings(Settings.builder()
+                    .put(combinedSettings)
+                    .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                    .build())
                 .build();
             mdBuilder.put(indexMetadata, true);
             routingBuilder.addAsNew(indexMetadata);
+            indexUUIDs.add(indexMetadata.getIndexUUID());
         }
+
+        mdBuilder.addTable(
+            columnOidSupplier,
+            boundCreateTable.tableName(),
+            boundCreateTable.columns().values(),
+            combinedSettings,
+            boundCreateTable.routingColumn(),
+            TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+            boundCreateTable.pkConstraintName(),
+            boundCreateTable.getCheckConstraints(),
+            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+            Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+            State.OPEN,
+            indexUUIDs
+        );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
             .routingTable(routingBuilder.build())
@@ -791,6 +770,7 @@ public class SQLExecutor {
         }
 
         var combinedSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(boundCreateTable.settings())
             .put(settings)
             .build();
@@ -799,17 +779,25 @@ public class SQLExecutor {
 
         // addTable can be called multiple times, create supplier based on existing state.
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-        LongSupplier columnOidSupplier =
-                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-
         RelationName relationName = boundCreateTable.tableName();
-        IndexMetadata indexMetadata = getIndexMetadata(
-            relationName.indexNameOrAlias(),
-            combinedSettings,
-            TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
-            prevState.nodes().getSmallestNonClientNodeVersion()
-        ).build();
+        IndexMetadata indexMetadata = IndexMetadata.builder(relationName.indexNameOrAlias())
+            .settings(addIndexUUID(combinedSettings))
+            .build();
 
+        mdBuilder.addTable(
+            columnOidSupplier,
+            relationName,
+            boundCreateTable.columns().values(),
+            combinedSettings,
+            boundCreateTable.routingColumn(),
+            TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+            boundCreateTable.pkConstraintName(),
+            boundCreateTable.getCheckConstraints(),
+            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+            Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+            State.OPEN,
+            List.of(indexMetadata.getIndexUUID())
+        );
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder.put(indexMetadata, true))
             .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
@@ -930,17 +918,20 @@ public class SQLExecutor {
             new NumberOfShards(clusterService));
 
         ClusterState prevState = clusterService.state();
-        IndexMetadata indexMetadata = getIndexMetadata(
-            fullIndexName(analyzedStmt.relationName().name()),
-            settings,
-            Collections.emptyMap(),
-            prevState.nodes().getSmallestNonClientNodeVersion()
-        ).build();
+        String indexName = fullIndexName(analyzedStmt.relationName().name());
+        IndexMetadata indexMetadata = IndexMetadata.builder(indexName)
+            .settings(Settings.builder()
+                .put(settings)
+                .put(IndexMetadata.SETTING_VERSION_CREATED, prevState.nodes().getSmallestNonClientNodeVersion())
+                .build())
+            .build();
 
         ClusterState state = ClusterState.builder(prevState)
             .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
             .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
             .build();
+
+        // TODO: add relationMetadata?
 
         ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
         return this;

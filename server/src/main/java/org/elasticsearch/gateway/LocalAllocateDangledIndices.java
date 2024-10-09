@@ -54,9 +54,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
-
 
 public class LocalAllocateDangledIndices {
 
@@ -149,9 +146,6 @@ public class LocalAllocateDangledIndices {
                             String indexName = indexMetadata.getIndex().getName();
                             upgradedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                                 indexMetadata,
-                                IndexName.isPartitioned(indexName) ?
-                                    currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
-                                    null,
                                 minIndexCompatibilityVersion);
                             upgradedIndexMetadata = IndexMetadata.builder(upgradedIndexMetadata).settings(
                                 Settings.builder().put(upgradedIndexMetadata.getSettings()).put(

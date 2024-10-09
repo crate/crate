@@ -26,10 +26,8 @@ import java.util.List;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -43,20 +41,17 @@ import io.crate.metadata.RelationName;
  */
 public final record AlterTableTarget(RelationName table,
                                      Index[] indices,
-                                     List<String> partitionValues,
-                                     @Nullable IndexTemplateMetadata templateMetadata) {
+                                     List<String> partitionValues) {
 
     public static AlterTableTarget of(ClusterState state, RelationName table, List<String> partitionValues) {
         Metadata metadata = state.metadata();
         if (partitionValues.isEmpty()) {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, table.indexNameOrAlias());
-            String templateName = PartitionName.templateName(table.schema(), table.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            return new AlterTableTarget(table, indices, partitionValues, indexTemplateMetadata);
+            return new AlterTableTarget(table, indices, partitionValues);
         } else {
             String indexName = new PartitionName(table, partitionValues).asIndexName();
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
-            return new AlterTableTarget(table, indices, partitionValues, null);
+            return new AlterTableTarget(table, indices, partitionValues);
         }
     }
 
@@ -65,6 +60,6 @@ public final record AlterTableTarget(RelationName table,
     }
 
     public boolean isEmpty() {
-        return indices.length == 0 && templateMetadata == null;
+        return indices.length == 0;
     }
 }

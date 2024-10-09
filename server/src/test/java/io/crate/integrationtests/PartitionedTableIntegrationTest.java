@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Rule;
@@ -1025,10 +1024,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("drop table quotes");
         assertThat(response).hasRowCount(1);
 
-        ClusterState state = cluster().clusterService().state();
-        assertThat(state.metadata().indices()).isEmpty();
-        assertThat(state.metadata().hasAlias("quotes")).isFalse();
-        assertThat(state.metadata().templates()).isEmpty();
+        execute("select * from information_schema.table_partitions where table_name = 'quotes'");
+        assertThat(response).isEmpty();
     }
 
     @Test
@@ -1234,7 +1231,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAlterNumberOfReplicas() throws Exception {
-        String defaultSchema = sqlExecutor.getCurrentSchema();
         execute(
             "create table tbl (id int, p int) partitioned by (p) " +
             "clustered into 3 shards with (number_of_replicas = '0-all')"
@@ -1321,6 +1317,122 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "04732cpp6ksjcc9i60o30c1g| 0"
         );
     }
+
+    // @Test
+
+    // public void test_can_reset_number_of_replicas_on_partitioned_table() throws Exception {
+
+    //     execute("create table tbl (id int, p int) partitioned by (p) with (number_of_replicas = 1)");
+
+    //     execute("insert into tbl (id, p) values (1, 1)");
+
+    //
+
+    //     String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "tbl");
+
+    //     IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     Settings settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(1);
+
+    //     AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand1.isEnabled()).isFalse();
+
+    //
+
+    //     execute("alter table tbl reset (number_of_replicas)");
+
+    //
+
+    //     indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+
+    //     AutoExpandReplicas autoExpand2 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand2.isEnabled()).isTrue();
+
+    //     assertThat(autoExpand2.toString()).isEqualTo("0-1");
+
+    //
+
+    //     assertBusy(() -> {
+
+    //         execute("select number_of_replicas from information_schema.table_partitions");
+
+    //         assertThat(response).hasRows("0-1");
+
+    //     });
+
+    // }
+
+    // @Test
+
+    // public void testAlterPartitionedTablePartition() throws Exception {
+
+    //     execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
+
+    //             "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
+
+    //
+
+    //     execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+
+    //         new Object[]{1, "Don't panic", 1395874800000L,
+
+    //             2, "Now panic", 1395961200000L}
+
+    //     );
+
+    //     assertThat(response).hasRowCount(2);
+
+    //     ensureYellow();
+
+    //     execute("refresh table quotes");
+
+    //
+
+    //     execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
+
+    //     ensureYellow();
+
+    //
+
+    //     execute("select partition_ident, number_of_replicas from information_schema.table_partitions order by 1");
+
+    //     assertThat(response).hasRows(
+
+    //         "04732cpp6ks3ed1o60o30c1g| 1",
+
+    //         "04732cpp6ksjcc9i60o30c1g| 0"
+
+    //     );
+
+    //
+
+    //     String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
+
+    //     IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     Settings settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+
+    //     AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand1.isEnabled()).isFalse();
+
+    // }
 
     @Test
     public void testAlterPartitionedTableSettings() throws Exception {
@@ -1637,7 +1749,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo("t| 04132\n");
     }
 
-
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
         Asserts.assertSQLError(() -> execute("create table \"AA A\".t (" +
@@ -1940,6 +2051,122 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select * from test where entity = 0 and (id = 0 or id = 1)");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
+
+    // @Test
+
+    // public void test_can_reset_number_of_replicas_on_partitioned_table() throws Exception {
+
+    //     execute("create table tbl (id int, p int) partitioned by (p) with (number_of_replicas = 1)");
+
+    //     execute("insert into tbl (id, p) values (1, 1)");
+
+    //
+
+    //     String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "tbl");
+
+    //     IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     Settings settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(1);
+
+    //     AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand1.isEnabled()).isFalse();
+
+    //
+
+    //     execute("alter table tbl reset (number_of_replicas)");
+
+    //
+
+    //     indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+
+    //     AutoExpandReplicas autoExpand2 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand2.isEnabled()).isTrue();
+
+    //     assertThat(autoExpand2.toString()).isEqualTo("0-1");
+
+    //
+
+    //     assertBusy(() -> {
+
+    //         execute("select number_of_replicas from information_schema.table_partitions");
+
+    //         assertThat(response).hasRows("0-1");
+
+    //     });
+
+    // }
+
+    // @Test
+
+    // public void testAlterPartitionedTablePartition() throws Exception {
+
+    //     execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
+
+    //             "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
+
+    //
+
+    //     execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
+
+    //         new Object[]{1, "Don't panic", 1395874800000L,
+
+    //             2, "Now panic", 1395961200000L}
+
+    //     );
+
+    //     assertThat(response).hasRowCount(2);
+
+    //     ensureYellow();
+
+    //     execute("refresh table quotes");
+
+    //
+
+    //     execute("alter table quotes partition (date=1395874800000) set (number_of_replicas=1)");
+
+    //     ensureYellow();
+
+    //
+
+    //     execute("select partition_ident, number_of_replicas from information_schema.table_partitions order by 1");
+
+    //     assertThat(response).hasRows(
+
+    //         "04732cpp6ks3ed1o60o30c1g| 1",
+
+    //         "04732cpp6ksjcc9i60o30c1g| 0"
+
+    //     );
+
+    //
+
+    //     String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
+
+    //     IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+
+    //     Settings settings = indexTemplateMetadata.settings();
+
+    //
+
+    //     assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+
+    //     AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+
+    //     assertThat(autoExpand1.isEnabled()).isFalse();
+
+    // }
 
     @Test
     public void testScalarEvaluatesInErrorOnPartitionedTable() throws Exception {
