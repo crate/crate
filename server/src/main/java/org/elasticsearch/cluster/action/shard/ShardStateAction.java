@@ -116,7 +116,8 @@ public class ShardStateAction {
     }
 
     private void sendShardAction(final String actionName, final ClusterState currentState, final TransportRequest request, final ActionListener<Void> listener) {
-        ClusterStateObserver observer = new ClusterStateObserver(currentState, clusterService, null, LOGGER);
+        ClusterStateObserver observer = new ClusterStateObserver(
+            currentState, clusterService.getClusterApplierService(), null, LOGGER);
         DiscoveryNode masterNode = currentState.nodes().getMasterNode();
         Predicate<ClusterState> changePredicate = MasterNodeChangePredicate.build(currentState);
         if (masterNode == null) {

@@ -54,8 +54,8 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.replication.logical.engine.SubscriberEngine;
 import io.crate.replication.logical.exceptions.InvalidShardEngineException;
@@ -184,7 +184,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  Consumer<Exception> failure) {
             var indexName = request.shardId().getIndexName();
             var currentMappingVersion = clusterService.state().metadata().index(indexName).getMappingVersion();
-            var clusterStateObserver = new ClusterStateObserver(clusterService, LOGGER);
+            var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
                     @Override

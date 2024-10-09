@@ -45,7 +45,12 @@ public class NodeAndClusterIdStateListener implements ClusterStateObserver.Liste
      */
     public static void getAndSetNodeIdAndClusterId(ClusterService clusterService) {
         ClusterState clusterState = clusterService.state();
-        ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, LOGGER);
+        ClusterStateObserver observer = new ClusterStateObserver(
+            clusterState,
+            clusterService.getClusterApplierService(),
+            null,
+            LOGGER
+        );
 
         observer.waitForNextChange(new NodeAndClusterIdStateListener(), NodeAndClusterIdStateListener::isNodeAndClusterIdPresent);
     }

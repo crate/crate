@@ -219,7 +219,12 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                     listener.onFailure(new MasterNotDiscoveredException(failure));
                     return;
                 }
-                this.observer = new ClusterStateObserver(state, clusterService, TimeValue.timeValueMillis(remainingTimeoutMS), logger);
+                this.observer = new ClusterStateObserver(
+                    state,
+                    clusterService.getClusterApplierService(),
+                    TimeValue.timeValueMillis(remainingTimeoutMS),
+                    logger
+                );
             }
             observer.waitForNextChange(
                 new ClusterStateObserver.Listener() {

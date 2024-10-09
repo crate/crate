@@ -61,7 +61,7 @@ public final class ShardStateObserver {
             // Fall-through to use observer and wait for state update
         }
         var stateObserver = new ClusterStateObserver(
-            state, clusterService, MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER);
+            state, clusterService.getClusterApplierService(), MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER);
         var listener = new RetryIsShardActive(shardId);
         stateObserver.waitForNextChange(listener, newState -> shardStartedOrIndexDeleted(newState, shardId));
         return listener.result();
