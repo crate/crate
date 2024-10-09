@@ -451,30 +451,22 @@ Code   Error
 Bulk operations
 ===============
 
-The REST endpoint allows to issue bulk operations which are executed as single
-calls on the back-end site. It can be compared to `prepared statement`_.
-
-A bulk operation can be expressed simply as an SQL statement.
-
-Supported bulk SQL statements are:
-
-- Insert
-- Update
-- Delete
+The HTTP endpoint supports executing a single SQL statement many times with
+different parameters.
 
 Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
 ``bulk_args``. This allows to specify a list of lists, containing all the
-records which shall be processed. The inner lists need to match the specified
+parameters which shall be processed. The inner lists need to match the specified
 columns.
 
 The bulk response contains a ``results`` array, with a row count for each bulk
 operation. Those results are in the same order as the issued operations of the
 bulk operation.
 
-The following example describes how to issue an insert bulk operation and
-insert three records at once::
 
-    sh$ curl -sS -H 'Content-Type: application/json' \
+Here an example that inserts three records at once::
+
+ sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt": "INSERT INTO locations (id, name, kind, description)
@@ -501,6 +493,14 @@ insert three records at once::
         }
       ]
     }
+
+
+Statements with a result set cannot be executed in bulk. The supported bulk SQL
+statements are:
+
+- Insert
+- Update
+- Delete
 
 
 .. _http-bulk-errors:
