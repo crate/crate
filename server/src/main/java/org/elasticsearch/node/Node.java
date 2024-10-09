@@ -1085,7 +1085,8 @@ public class Node implements Closeable {
 
         if (initialStateTimeout.millis() > 0) {
             ClusterState clusterState = clusterService.state();
-            ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger);
+            ClusterStateObserver observer = new ClusterStateObserver(
+                clusterState, clusterService.getClusterApplierService(), null, logger);
 
             if (clusterState.nodes().getMasterNodeId() == null) {
                 logger.debug("waiting to join the cluster. timeout [{}]", initialStateTimeout);

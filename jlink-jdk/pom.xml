@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.9.0</version>
+    <version>5.10.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>jlink-jdk</artifactId>
