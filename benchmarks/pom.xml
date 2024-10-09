@@ -7,6 +7,7 @@
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
     <version>5.10.0</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>crate-benchmarks</artifactId>
@@ -73,6 +74,7 @@
       <groupId>io.crate</groupId>
       <artifactId>crate-server</artifactId>
       <version>${project.version}</version>
+      <type>jar</type>
     </dependency>
     <dependency>
       <groupId>io.crate</groupId>
@@ -90,5 +92,36 @@
       <version>${versions.jmh}</version>
       <scope>provided</scope>
     </dependency>
+
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-server</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <exclusions>
+        <exclusion>
+          <groupId>com.carrotsearch.randomizedtesting</groupId>
+          <artifactId>randomizedtesting-runner</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-test-framework</artifactId>
+      <version>${versions.lucene}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.carrotsearch.randomizedtesting</groupId>
+          <artifactId>randomizedtesting-runner</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${versions.mockito}</version>
+    </dependency>
+
+
   </dependencies>
 </project>
