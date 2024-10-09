@@ -159,13 +159,8 @@ public final class PrivilegesModifier {
             for (Privilege privilege : role.privileges()) {
                 Subject subject = privilege.subject();
                 Securable securable = subject.securable();
-                if (securable != Securable.TABLE && securable != Securable.VIEW) {
-                    continue;
-                }
-
-                String ident = subject.ident();
-                assert ident != null : "ident must not be null for securable 'TABLE'";
-                if (ident.equals(tableOrViewIdent)) {
+                if ((securable == Securable.TABLE || securable == Securable.VIEW) &&
+                    tableOrViewIdent.equals(subject.ident())) {
                     affectedPrivileges++;
                 } else {
                     updatedPrivileges.add(privilege);
