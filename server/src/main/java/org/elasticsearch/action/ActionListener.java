@@ -212,24 +212,6 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
     }
 
     /**
-     * Wraps a given listener and returns a new listener which makes sure {@link #onResponse(Object)}
-     * and {@link #onFailure(Exception)} of the provided listener will be called at most once.
-     */
-    static <Response> ActionListener<Response> notifyOnce(ActionListener<Response> delegate) {
-        return new NotifyOnceListener<>() {
-            @Override
-            protected void innerOnResponse(Response response) {
-                delegate.onResponse(response);
-            }
-
-            @Override
-            protected void innerOnFailure(Exception e) {
-                delegate.onFailure(e);
-            }
-        };
-    }
-
-    /**
      * Completes the given listener with the result from the provided supplier accordingly.
      * This method is mainly used to complete a listener with a block of synchronous code.
      */
