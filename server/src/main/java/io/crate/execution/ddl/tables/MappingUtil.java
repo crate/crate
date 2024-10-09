@@ -105,7 +105,7 @@ public final class MappingUtil {
                                                     Map<String, String> checkConstraints,
                                                     List<List<String>> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
-                                                    @Nullable String routingColumn) {
+                                                    @Nullable ColumnIdent routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
         Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
@@ -118,7 +118,7 @@ public final class MappingUtil {
         }
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
-            meta.put("routing", routingColumn);
+            meta.put("routing", routingColumn.fqn());
         }
 
         if (tableColumnPolicy != null) {

@@ -35,6 +35,7 @@ import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +51,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubscriptExpression;
 
 public abstract sealed class ColumnIdent
-    implements Comparable<ColumnIdent>, Accountable
+    implements Comparable<ColumnIdent>, Accountable, Writeable
     permits ColumnIdent.Col0, ColumnIdent.ColN {
 
     private static final Comparator<ColumnIdent> COMPARATOR = Comparator.comparing(ColumnIdent::name)
@@ -523,6 +524,7 @@ public abstract sealed class ColumnIdent
         return COMPARATOR.compare(this, o);
     }
 
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name());
         out.writeVInt(path().size());

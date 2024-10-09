@@ -1044,7 +1044,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             checkConstraintMap,
             Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
             columnPolicy,
-            clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy.fqn()
+            clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));
         for (String indexName : concreteIndices(metadata)) {
             IndexMetadata indexMetadata = metadata.index(indexName);
