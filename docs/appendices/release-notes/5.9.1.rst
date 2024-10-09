@@ -47,6 +47,10 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Improved the memory accounting for values of type ``geo_shape`` to avoid
+  running into out of memory errors or higher than expected GC load when running
+  queries like ``INSERT INTO ... (query)``.
+
 - Fixed a regression introduced in 5.8.4 leading to a rejection of writes into
   a column of the ``OBJECT(IGNORED)`` type if it had an array sub-column with
   mixed types.

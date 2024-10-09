@@ -65,15 +65,6 @@ public class MultiPolygonBuilder extends ShapeBuilder {
     }
 
     @Override
-    public int numDimensions() {
-        if (polygons == null || polygons.isEmpty()) {
-            throw new IllegalStateException("unable to get number of dimensions, " +
-                "Polygons have not yet been initialized");
-        }
-        return polygons.get(0).numDimensions();
-    }
-
-    @Override
     public Shape buildS4J() {
         List<Shape> shapes = new ArrayList<>(this.polygons.size());
         if (wrapdateline) {

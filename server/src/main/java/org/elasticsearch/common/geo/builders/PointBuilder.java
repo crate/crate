@@ -48,9 +48,4 @@ public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
     public org.apache.lucene.geo.Point buildLucene() {
         return new org.apache.lucene.geo.Point(coordinates.get(0).y, coordinates.get(0).x);
     }
-
-    @Override
-    public int numDimensions() {
-        return Double.isNaN(coordinates.get(0).z) ? 2 : 3;
-    }
 }
