@@ -93,6 +93,7 @@ public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUni
                " x_array_no_docvalues array(int) storage with (columnstore = false)," +
                " o_array array(object as (xs array(integer), obj object as (x int), o_array_2 array(object as (x int))))," +
                " ts_array array(timestamp with time zone)," +
+               " string_array array(string)," +
                " shape geo_shape," +
                " bkd_shape geo_shape index using bkdtree," +
                " point geo_point," +

@@ -23,13 +23,12 @@ package io.crate.expression.operator.any;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
@@ -58,13 +57,17 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         String columnName = probe.storageIdent();
         DataType<?> type = probe.valueType();
         DataType<?> innerType = ArrayType.unnest(type);
-        if (ArrayType.dimensions(type) > 1) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
             // nested_array_ref = any([[1], [1,2]])
-            return termsAndGenericFilter(any, probe, nonNullValues, context);
+            return termsAndGenericFilter(any, probe, candidates.value(), context);
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
         }
         return EqOperator.termsQuery(columnName, innerType, nonNullValues, probe.hasDocValues(), probe.indexType());
     }

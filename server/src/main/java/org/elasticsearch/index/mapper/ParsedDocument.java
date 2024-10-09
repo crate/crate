@@ -27,7 +27,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * The result of parsing a document.
@@ -38,9 +38,9 @@ public class ParsedDocument {
         Document doc = new Document();
 
         BytesRef idBytes = Uid.encodeId(id);
-        doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
+        doc.add(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
 
-        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        NumericDocValuesField version = new NumericDocValuesField(SysColumns.VERSION.name(), -1L);
         doc.add(version);
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
@@ -61,7 +61,7 @@ public class ParsedDocument {
 
         final String id = ""; // _id won't be used.
 
-        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        NumericDocValuesField version = new NumericDocValuesField(SysColumns.VERSION.name(), -1L);
         doc.add(version);
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
@@ -77,7 +77,7 @@ public class ParsedDocument {
         ).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);
-        doc.add(new StoredField(DocSysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+        doc.add(new StoredField(SysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
     }
 

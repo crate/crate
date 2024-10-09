@@ -87,6 +87,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
             new Object[]{99, "Marvin"},
             null
         ));
@@ -94,6 +95,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
             new Object[]{99, "Marvin"},
             new Symbol[0]
         ));
@@ -105,7 +107,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             1L,
             5L,
             List.of(),
-            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            0
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -138,6 +141,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
             new Object[]{99, "Marvin"},
             null
         ));
@@ -145,6 +149,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "99",
             List.of(),
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
             new Object[]{99, "Marvin"},
             new Symbol[0]
         ));
@@ -156,7 +161,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             1L,
             5L,
             List.of(),
-            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            0
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -189,6 +195,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
                 "42",
                 List.of(),
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                missingAssignmentColumns,
                 new Object[]{42, "Marvin"},
                 new Symbol[0]
         ));

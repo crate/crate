@@ -781,7 +781,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   └ Eval[1]
                     └ Limit[2::bigint;0::bigint]
                       └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
-                        └ TableFunction[empty_row | [] | true]
+                        └ TableFunction[empty_row | [1] | true]
             """
         );
     }

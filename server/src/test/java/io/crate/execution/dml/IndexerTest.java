@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -817,6 +818,28 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_only_top_most_array_length_is_indexed_for_multi_dimensional_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs int[][], xs2 int[][][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of(List.of(1), List.of(1, 1), List.of(1, 2, 3, 4)))); // [ [1], [1,1], [1,2,3,4] ]
+        IndexableField[] arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_1:3>");
+
+        indexer = getIndexer(e, "tbl", "xs2");
+        doc = indexer.index(item(List.of(List.of(List.of(1, 1, 1)), List.of(List.of(2, 2, 2, 2))))); // [ [ [1,1,1] ], [ [2],[2],[2] ] ]
+        arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs2"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_2:2>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
     public void test_array_length_is_indexed_for_child_arrays() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs int[])))))");
@@ -847,6 +870,19 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_cannot_create_value_indexer_from_an_inner_array_of_multi_dimensional_array() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService).addTable("create table tbl (xs int[][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Function<ColumnIdent, Reference> getRef = table::getReference;
+        Reference ref = table.getReference("xs");
+        ArrayType<?> type = (ArrayType<?>) ref.valueType();
+        ArrayType<?> innerType = (ArrayType<?>) type.innerType();
+        assertThatThrownBy(
+            () -> innerType.storageSupport().valueIndexer(table.ident(), ref, getRef)
+        ).hasMessage("Must not retrieve value indexer of the child array of a multi dimensional array");
+    }
+
+    @Test
     public void test_can_have_ft_index_for_array() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs text[], index ft using fulltext (xs))");
@@ -860,37 +896,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"xs": ["foo", "bar", "baz"]}
             """
         );
-        assertTranslogParses(doc, table);
-    }
-
-    @Test
-    public void test_empty_array_and_array_with_nulls_adds_array_of_null() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (o object (dynamic)) with (column_policy = 'dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getReference(ColumnIdent.of("o")),
-                table.getDynamic(ColumnIdent.of("n1"), true, false),
-                table.getDynamic(ColumnIdent.of("n2"), true, false)
-            ),
-            null
-        );
-        List<Object> n1 = List.of();
-        List<Object> n2 = Arrays.asList(null, null);
-        IndexItem item = item(Map.of("inner", n1), n1, n2);
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        ParsedDocument doc = indexer.index(item);
-        assertThat(newColumns).hasSize(3);
-        assertThat(source(doc, table)).isIn(
-            "{\"o\":{\"inner\":[]},\"n1\":[],\"n2\":[null,null]}",
-            "{\"n1\":[],\"n2\":[null,null],\"o\":{\"inner\":[]}}"
-        );
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
         assertTranslogParses(doc, table);
     }
 
@@ -1206,44 +1211,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"a":"foo","i":1,"empty_arr":[]}
             """
         );
-    }
-
-    @Test
-    public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-                .addTable("create table tbl (i int) with (column_policy='dynamic')");
-        DocTableInfo table = e.resolveTableInfo("tbl");
-
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getDynamic(ColumnIdent.of("empty_arr"), true, false)
-            ),
-            null
-        );
-        var item = item(List.of());
-        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        assertThat(newColumns).hasSize(1);
-
-        ParsedDocument doc = indexer.index(item);
-        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
-                """
-                {"_u_empty_arr":[]}
-                """
-        );
-        // prefix is stripped on non _raw lookups
-        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
-                """
-                {"empty_arr":[]}
-                """
-        );
-
-        table = table.addColumns(e.nodeCtx, () -> 1, newColumns, new IntArrayList(), Map.of());
-
-        assertTranslogParses(doc, table);
     }
 
     @Test

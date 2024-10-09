@@ -22,7 +22,7 @@
 package io.crate.types;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -192,7 +192,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
                 .build())
             .build();
 
-        assertThat(type.resolveInnerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
+        assertThat(type.innerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
@@ -223,5 +223,18 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
     @Override
     public void test_reference_resolver_index_off() throws Exception {
         assumeFalse("ObjectType cannot disable index", true);
+    }
+
+    @Test
+    public void test_value_bytes_accounts_for_deep_objects() throws Exception {
+        String str = "a".repeat(1024);
+        long valueBytes = ObjectType.UNTYPED.valueBytes(
+            Map.of("a",
+                Map.of("b",
+                    Map.of("c", Map.of("d", str))
+                )
+            )
+        );
+        assertThat(valueBytes).isEqualTo(2504L);
     }
 }

@@ -36,19 +36,15 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import io.crate.types.StorageSupport;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -219,28 +215,11 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 ));
             }
             var type = DynamicIndexer.guessType(innerValue);
-            DynamicIndexer.throwOnNestedArray(type);
-            innerValue = type.sanitizeValue(innerValue);
-            StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
-            }
-            boolean nullable = true;
-            Symbol defaultExpression = null;
-            Reference newColumn = new SimpleReference(
+            Reference newColumn = DynamicIndexer.buildReference(
                 new ReferenceIdent(table, column.getChild(innerName)),
-                RowGranularity.DOC,
                 type,
-                columnPolicy,
-                IndexType.PLAIN,
-                nullable,
-                storageSupport.docValuesDefault(),
                 position,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                defaultExpression
+                COLUMN_OID_UNASSIGNED
             );
             position--;
             onDynamicColumn.accept(newColumn);
@@ -249,6 +228,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 newColumn,
                 getRef
             );
+            innerValue = type.sanitizeValue(innerValue);
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,

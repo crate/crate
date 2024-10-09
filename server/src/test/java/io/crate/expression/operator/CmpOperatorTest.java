@@ -49,6 +49,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval <= " +
                         "'1035 years 7 months 2 days 18 hours 45 mins 13 seconds'::interval",
                         isLiteral(false)); // manual normalize up to years
+        assertNormalize("'::1'::ip <= '11.22.33.44'::ip",
+            isLiteral(true));
         assertEvaluateNull("true <= null");
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
@@ -69,6 +71,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval < " +
                         "'1035 years 7 months 2 days 18 hours 45 mins 14 seconds'::interval",
                         isLiteral(false)); // manual normalize up to years
+        assertNormalize("'11.22.33.44'::ip < '11.99.33.44'::ip",
+            isLiteral(true));
         assertEvaluateNull("true < null");
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
@@ -86,6 +90,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'0.002 secs'::interval >= '2 ms'::interval", isLiteral(true));
         assertNormalize("'12 hour'::interval >= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval >= '1 month 2 hour'::interval", isLiteral(false));
+        assertNormalize("'2001:4f8:3:ba:2e0:81ff:fe22:d1f2'::ip >= '2001:4f8:3:ba:2e0:81ff:fe22:d1f1'::ip",
+            isLiteral(true));
         assertEvaluateNull("true >= null");
         assertEvaluateNull("null >= 1");
         assertEvaluateNull("null >= 'abc'");
@@ -100,6 +106,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'abd' > 'abc'", isLiteral(true));
         assertNormalize("'10 hour'::interval > '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval > '1 month 2 hour'::interval", isLiteral(false));
+        assertNormalize("'2002:4f8:3:ba:2e0:81ff:fe22:d1f1'::ip > '2001:4f8:3:ba:2e0:81ff:fe22:d1f1'::ip",
+            isLiteral(true));
         assertEvaluateNull("true > null");
         assertEvaluateNull("null > 1");
         assertEvaluateNull("name > null", Literal.of("foo"));
@@ -111,6 +119,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 between 0.01 and 0.2", isLiteral(true));
         assertNormalize("10 between 1 and 2", isLiteral(false));
         assertNormalize("'abd' between 'abc' and 'abe'", isLiteral(true));
+        assertNormalize("'11.22.33.44'::ip between '11.22.33.44'::ip and '11.22.33.45'::ip", isLiteral(true));
         assertEvaluateNull("1 between 0 and null");
         assertEvaluateNull("1 between null and 10");
         assertEvaluateNull("1 between null and null");

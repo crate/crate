@@ -20,17 +20,14 @@
 package org.elasticsearch.cluster;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.client.node.NodeClient;
@@ -42,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -84,25 +82,19 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
     }
 
     @Override
-    protected CountDownLatch updateNodeStats(ActionListener<NodesStatsResponse> listener) {
-        return super.updateNodeStats(new ActionListener<>() {
-            @Override
-            public void onResponse(NodesStatsResponse nodesStatsResponse) {
-                ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsagesBuilder = ImmutableOpenMap.builder();
-                ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsagesBuilder = ImmutableOpenMap.builder();
-                fillDiskUsagePerNode(
-                    LOGGER,
-                    adjustNodesStats(nodesStatsResponse.getNodes()),
-                    leastAvailableUsagesBuilder,
-                    mostAvailableUsagesBuilder
-                );
-                leastAvailableSpaceUsages = leastAvailableUsagesBuilder.build();
-                mostAvailableSpaceUsages = mostAvailableUsagesBuilder.build();
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-            }
+    protected CompletableFuture<NodesStatsResponse> updateNodeStats() {
+        return super.updateNodeStats().thenApply(resp -> {
+            ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsagesBuilder = ImmutableOpenMap.builder();
+            ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsagesBuilder = ImmutableOpenMap.builder();
+            fillDiskUsagePerNode(
+                LOGGER,
+                adjustNodesStats(resp.getNodes()),
+                leastAvailableUsagesBuilder,
+                mostAvailableUsagesBuilder
+            );
+            leastAvailableSpaceUsages = leastAvailableUsagesBuilder.build();
+            mostAvailableSpaceUsages = mostAvailableUsagesBuilder.build();
+            return resp;
         });
     }
 

@@ -78,6 +78,16 @@ public class Sessions {
         Setting.Property.Exposed
     );
 
+    /**
+     * How often to retry on errors which might be temporary like shard/index-not-found/connection errors.
+     * Currently not exposed (in sys.cluster settings) and not documented as it is for testing.
+     **/
+    public static final Setting<Integer> TEMP_ERROR_RETRY_COUNT = Setting.intSetting(
+        "node.sql.num_temp_error_retries",
+        3,
+        Setting.Property.NodeScope
+    );
+
     public static final Setting<Integer> MEMORY_LIMIT = Setting.intSetting(
         MEMORY_LIMIT_KEY, 0, Property.Dynamic, Property.NodeScope, Property.Exposed);
 
@@ -94,6 +104,7 @@ public class Sessions {
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
+    private final int tempErrorRetryCount;
 
     private volatile boolean disabled;
     private volatile TimeValue defaultStatementTimeout;
@@ -117,6 +128,7 @@ public class Sessions {
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
         this.memoryLimit = MEMORY_LIMIT.get(settings);
+        this.tempErrorRetryCount = TEMP_ERROR_RETRY_COUNT.get(settings);
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
         clusterSettings.addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
             this.defaultStatementTimeout = statementTimeout;
@@ -142,7 +154,8 @@ public class Sessions {
             isReadOnly,
             executorProvider.get(),
             sessionSettings,
-            () -> sessions.remove(sessionId)
+            () -> sessions.remove(sessionId),
+            tempErrorRetryCount
         );
         sessions.put(sessionId, session);
         return session;

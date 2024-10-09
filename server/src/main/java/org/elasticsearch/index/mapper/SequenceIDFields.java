@@ -28,7 +28,7 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * A sequence ID, which is made up of a sequence number (both the searchable
@@ -53,9 +53,9 @@ public class SequenceIDFields {
 
     public static SequenceIDFields emptySeqID() {
         return new SequenceIDFields(
-            new LongPoint(DocSysColumns.Names.SEQ_NO, SequenceNumbers.UNASSIGNED_SEQ_NO),
-            new NumericDocValuesField(DocSysColumns.Names.SEQ_NO, SequenceNumbers.UNASSIGNED_SEQ_NO),
-            new NumericDocValuesField(DocSysColumns.Names.PRIMARY_TERM, 0),
-            new NumericDocValuesField(DocSysColumns.Names.TOMBSTONE, 0));
+            new LongPoint(SysColumns.Names.SEQ_NO, SequenceNumbers.UNASSIGNED_SEQ_NO),
+            new NumericDocValuesField(SysColumns.Names.SEQ_NO, SequenceNumbers.UNASSIGNED_SEQ_NO),
+            new NumericDocValuesField(SysColumns.Names.PRIMARY_TERM, 0),
+            new NumericDocValuesField(SysColumns.Names.TOMBSTONE, 0));
     }
 }

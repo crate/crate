@@ -23,7 +23,13 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
 import org.junit.Test;
+
+import io.crate.testing.QueryTester;
 
 public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -31,7 +37,9 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     protected String createStmt() {
         return """
             create table t (
-                a int[][]
+                a int[][],
+                b int[],
+                c int[][][]
             )
             """;
     }
@@ -46,7 +54,56 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_empty_nested_array_equals() {
         var query = convert("a = [[]]");
-        assertThat(query.toString()).isEqualTo("+_array_length_a:[0 TO 0] +(a = [[]])");
+        assertThat(query.toString()).isEqualTo("(a = [[]])");
+
+        query = convert("a[1] = []");
+        assertThat(query.toString()).isEqualTo("(a[1] = [])");
+    }
+
+    @Test
+    public void test_empty_nested_array_equals_execution() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int[][])"
+        );
+        List<Integer> nullArray = new ArrayList<>();
+        nullArray.add(null);
+        builder.indexValue("a", List.of(List.of()));
+        builder.indexValue("a", List.of(List.of(1)));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", null);
+        builder.indexValue("a", nullArray);
+        builder.indexValue("a", List.of(nullArray));
+        builder.indexValue("a", List.of(nullArray, List.of()));
+
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("a", "a = [[]]")).containsExactly(List.of(List.of()));
+            assertThat(tester.runQuery("a", "a = []")).containsExactly(List.of());
+            assertThat(tester.runQuery("a", "a[1] = []")).containsExactly(List.of(List.of()));
+        }
+    }
+
+    @Test
+    public void test_array_length_scalar_on_nested_array() {
+        var query = convert("array_length(a, 1) = 1");
+        assertThat(query.toString()).isEqualTo("_array_length_a:[1 TO 1]");
+
+        query = convert("array_length(a[1], 1) = 1");
+        assertThat(query.toString()).isEqualTo("(array_length(a[1], 1) = 1)");
+
+        query = convert("array_length(a, 2) = 1");
+        assertThat(query.toString()).isEqualTo("(array_length(a, 2) = 1)");
+    }
+
+    @Test
+    public void test_is_null_predicate_on_nested_array() {
+        var query = convert("a is null");
+        assertThat(query.toString()).isEqualTo("+*:* -FieldExistsQuery [field=_array_length_a]");
+
+        query = convert("a[1] is null");
+        assertThat(query.toString()).isEqualTo("(a[1] IS NULL)");
     }
 
     @Test
@@ -61,5 +118,18 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
         var query = convert("a = any([ [ [1], [1, 2] ], [ [3], [4, 5] ] ])");
         // pre-filter by a terms query with 1, 2, 3, 4, 5 then a generic function query to make sure an exact match
         assertThat(query.toString()).isEqualTo("+a:{1 2 3 4 5} #(a = ANY([[[1], [1, 2]], [[3], [4, 5]]]))");
+    }
+
+    @Test
+    public void test_any_equals_nested_array_literal_with_automatic_array_dimension_leveling() {
+        var query = convert("b = any([ [ [1], [1, 2] ], [ [3], [4, 5] ] ])");
+        // pre-filter by a terms query with 1, 2, 3, 4, 5 then a generic function query to make sure an exact match
+        assertThat(query.toString()).isEqualTo("+b:{1 2 3 4 5} #(b = ANY([[1], [1, 2], [3], [4, 5]]))");
+    }
+
+    @Test
+    public void test_any_not_equals_on_array_literal_and_nested_array_ref_with_automatic_array_dimension_leveling() {
+        var query = convert("[1] != any(c)");
+        assertThat(query.toString()).isEqualTo("([1] <> ANY(array_unnest(c)))");
     }
 }

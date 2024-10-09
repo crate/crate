@@ -33,6 +33,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -84,5 +85,11 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_highest_precedence_type_is_chosen_as_target_column_type() {
         AnalyzedRelation relation = e.analyze("VALUES (null), (1.0), (1), ('1')");
         assertThat(relation.outputs()).satisfiesExactly(isReference("col1", DataTypes.DOUBLE));
+    }
+
+    @Test
+    public void test_empty_array_and_int_array_can_be_resolved_to_int_array() {
+        AnalyzedRelation relation = e.analyze("VALUES ([]), ([null]), ([1])");
+        assertThat(relation.outputs()).satisfiesExactly(isReference("col1", new ArrayType<>(DataTypes.INTEGER)));
     }
 }

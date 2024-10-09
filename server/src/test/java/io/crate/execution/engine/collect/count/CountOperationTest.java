@@ -58,7 +58,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SqlExpressions;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class InternalCountOperationTest extends IntegTestCase {
+public class CountOperationTest extends IntegTestCase {
 
     @Test
     public void testCount() throws Exception {
@@ -103,7 +103,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Metadata metadata = clusterService.state().metadata();
         Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
-        var countOperation = (InternalCountOperation) cluster().getDataNodeInstance(CountOperation.class);
+        var countOperation = (CountOperation) cluster().getDataNodeInstance(CountOperation.class);
         IndexService indexService = mock(IndexService.class);
         IndexShard indexShard = mock(IndexShard.class);
         when(indexShard.acquireSearcher(Mockito.anyString())).thenThrow(new IllegalIndexShardStateException(

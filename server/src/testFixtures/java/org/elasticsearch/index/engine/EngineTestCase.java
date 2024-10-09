@@ -118,7 +118,7 @@ import org.junit.Before;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.StringIndexer;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public abstract class EngineTestCase extends ESTestCase {
 
@@ -331,7 +331,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source,
                                                        boolean recoverySource) {
-        Field uidField = new Field("_id", Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
+        Field uidField = new Field("_id", Uid.encodeId(id), SysColumns.ID.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(uidField);
@@ -341,10 +341,10 @@ public abstract class EngineTestCase extends ESTestCase {
         document.add(seqID.primaryTerm);
         BytesRef ref = source.toBytesRef();
         if (recoverySource) {
-            document.add(new StoredField(DocSysColumns.Source.RECOVERY_NAME, ref.bytes, ref.offset, ref.length));
-            document.add(new NumericDocValuesField(DocSysColumns.Source.RECOVERY_NAME, 1));
+            document.add(new StoredField(SysColumns.Source.RECOVERY_NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new NumericDocValuesField(SysColumns.Source.RECOVERY_NAME, 1));
         } else {
-            document.add(new StoredField(DocSysColumns.Source.NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new StoredField(SysColumns.Source.NAME, ref.bytes, ref.offset, ref.length));
         }
         return new ParsedDocument(versionField, seqID, id, document, source);
     }
@@ -357,9 +357,9 @@ public abstract class EngineTestCase extends ESTestCase {
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
                 final Document doc = new Document();
-                Field uidField = new Field(DocSysColumns.Names.ID, Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
+                Field uidField = new Field(SysColumns.Names.ID, Uid.encodeId(id), SysColumns.ID.FIELD_TYPE);
                 doc.add(uidField);
-                Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
+                Field versionField = new NumericDocValuesField(SysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 SequenceIDFields seqID = SequenceIDFields.emptySeqID();
                 doc.add(seqID.seqNo);
@@ -380,10 +380,10 @@ public abstract class EngineTestCase extends ESTestCase {
                 doc.add(seqID.primaryTerm);
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
-                Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
+                Field versionField = new NumericDocValuesField(SysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 BytesRef byteRef = new BytesRef(reason);
-                doc.add(new StoredField(DocSysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+                doc.add(new StoredField(SysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
                     versionField, seqID, null, doc, null);
             }
@@ -1108,9 +1108,9 @@ public abstract class EngineTestCase extends ESTestCase {
             List<DocIdSeqNoAndSource> docs = new ArrayList<>();
             for (LeafReaderContext leafContext : searcher.getIndexReader().leaves()) {
                 LeafReader reader = leafContext.reader();
-                NumericDocValues seqNoDocValues = reader.getNumericDocValues(DocSysColumns.Names.SEQ_NO);
-                NumericDocValues primaryTermDocValues = reader.getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM);
-                NumericDocValues versionDocValues = reader.getNumericDocValues(DocSysColumns.VERSION.name());
+                NumericDocValues seqNoDocValues = reader.getNumericDocValues(SysColumns.Names.SEQ_NO);
+                NumericDocValues primaryTermDocValues = reader.getNumericDocValues(SysColumns.Names.PRIMARY_TERM);
+                NumericDocValues versionDocValues = reader.getNumericDocValues(SysColumns.VERSION.name());
                 Bits liveDocs = reader.getLiveDocs();
                 for (int i = 0; i < reader.maxDoc(); i++) {
                     if (liveDocs == null || liveDocs.get(i)) {
@@ -1119,10 +1119,10 @@ public abstract class EngineTestCase extends ESTestCase {
                             continue;
                         }
                         final long primaryTerm = primaryTermDocValues.longValue();
-                        Document doc = reader.document(i, Set.of(DocSysColumns.Names.ID, DocSysColumns.Source.NAME));
-                        BytesRef binaryID = doc.getBinaryValue(DocSysColumns.Names.ID);
+                        Document doc = reader.document(i, Set.of(SysColumns.Names.ID, SysColumns.Source.NAME));
+                        BytesRef binaryID = doc.getBinaryValue(SysColumns.Names.ID);
                         String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
-                        final BytesRef source = doc.getBinaryValue(DocSysColumns.Source.NAME);
+                        final BytesRef source = doc.getBinaryValue(SysColumns.Source.NAME);
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
@@ -1238,8 +1238,8 @@ public abstract class EngineTestCase extends ESTestCase {
         Set<Long> seqNos = new HashSet<>();
         final DirectoryReader wrappedReader = indexSettings.isSoftDeleteEnabled() ? Lucene.wrapAllDocsLive(reader) : reader;
         for (LeafReaderContext leaf : wrappedReader.leaves()) {
-            NumericDocValues primaryTermDocValues = leaf.reader().getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM);
-            NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(DocSysColumns.Names.SEQ_NO);
+            NumericDocValues primaryTermDocValues = leaf.reader().getNumericDocValues(SysColumns.Names.PRIMARY_TERM);
+            NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(SysColumns.Names.SEQ_NO);
             int docId;
             while ((docId = seqNoDocValues.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
                 assertThat(seqNoDocValues.advanceExact(docId)).isTrue();
@@ -1247,7 +1247,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 assertThat(seqNo).isGreaterThanOrEqualTo(0L);
                 if (primaryTermDocValues.advanceExact(docId)) {
                     if (seqNos.add(seqNo) == false) {
-                        IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);
+                        IDVisitor idFieldVisitor = new IDVisitor(SysColumns.Names.ID);
                         leaf.reader().document(docId, idFieldVisitor);
                         throw new AssertionError("found multiple documents for seq=" + seqNo + " id=" + idFieldVisitor.getId());
                     }
@@ -1289,7 +1289,7 @@ public abstract class EngineTestCase extends ESTestCase {
     static long maxSeqNosInReader(DirectoryReader reader) throws IOException {
         long maxSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
         for (LeafReaderContext leaf : reader.leaves()) {
-            final NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(DocSysColumns.Names.SEQ_NO);
+            final NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(SysColumns.Names.SEQ_NO);
             while (seqNoDocValues.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                 maxSeqNo = SequenceNumbers.max(maxSeqNo, seqNoDocValues.longValue());
             }

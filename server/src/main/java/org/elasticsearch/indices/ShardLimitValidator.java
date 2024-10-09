@@ -72,7 +72,14 @@ public class ShardLimitValidator {
     public void validateShardLimit(final Settings settings, final ClusterState state) {
         final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(settings);
         final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings);
-        final int shardsToCreate = numberOfShards * (1 + numberOfReplicas);
+        int shardsToCreate;
+        try {
+            shardsToCreate = Math.multiplyExact(numberOfShards, Math.addExact(1, numberOfReplicas));
+        } catch (ArithmeticException ae) {
+            final ValidationException e = new ValidationException();
+            e.addValidationError("this action would add more than the supported [" + Integer.MAX_VALUE + "] total shards");
+            throw e;
+        }
 
         final Optional<String> shardLimit = checkShardLimit(shardsToCreate, state);
         if (shardLimit.isPresent()) {
@@ -105,8 +112,13 @@ public class ShardLimitValidator {
         if (nodeCount == 0 || newShards < 0) {
             return Optional.empty();
         }
-        int maxShardsPerNode = maxShardsPerNodeSetting;
-        int maxShardsInCluster = maxShardsPerNode * nodeCount;
+        int maxShardsInCluster;
+        try {
+            maxShardsInCluster = Math.multiplyExact(maxShardsPerNodeSetting, nodeCount);
+        } catch (ArithmeticException ae) {
+            return Optional.of("this action would add more than the supported [" + Integer.MAX_VALUE + "] total shards");
+        }
+
         int currentOpenShards = state.metadata().getTotalOpenIndexShards();
 
         if ((currentOpenShards + newShards) > maxShardsInCluster) {

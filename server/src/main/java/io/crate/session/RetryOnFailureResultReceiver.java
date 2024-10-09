@@ -34,7 +34,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
-import io.crate.Constants;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 
@@ -47,13 +46,16 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     private final ResultReceiver<T> delegate;
     private final UUID jobId;
     private final BiConsumer<UUID, ResultReceiver<T>> retryAction;
+    private final int maxRetryCount;
     private int attempt = 1;
 
-    public RetryOnFailureResultReceiver(ClusterService clusterService,
+    public RetryOnFailureResultReceiver(int maxRetryCount,
+                                        ClusterService clusterService,
                                         Predicate<String> hasIndex,
                                         ResultReceiver<T> delegate,
                                         UUID jobId,
                                         BiConsumer<UUID, ResultReceiver<T>> retryAction) {
+        this.maxRetryCount = maxRetryCount;
         this.clusterService = clusterService;
         this.hasIndex = hasIndex;
         this.delegate = delegate;
@@ -79,7 +81,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     @Override
     public void fail(Throwable wrappedError) {
         final Throwable error = SQLExceptions.unwrap(wrappedError);
-        if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES &&
+        if (attempt <= maxRetryCount &&
             (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
 
             if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {

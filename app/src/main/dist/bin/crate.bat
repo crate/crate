@@ -93,6 +93,10 @@ set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx
 REM Disable netty recycler
 set JAVA_OPTS=%JAVA_OPTS% -Dio.netty.recycler.maxCapacityPerThread=0
 
+REM Lucene uses native access
+set JAVA_OPTS=%JAVA_OPTS% --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector
+
+
 REM Dump heap on OOM
 set JAVA_OPTS=%JAVA_OPTS% -XX:+HeapDumpOnOutOfMemoryError
 if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (

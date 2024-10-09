@@ -38,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.jetbrains.annotations.Nullable;
@@ -67,8 +68,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -77,6 +78,14 @@ import io.crate.types.EqQuery;
 
 @Singleton
 public class LuceneQueryBuilder {
+
+    public static final Setting<Integer> INDICES_MAX_CLAUSE_COUNT_SETTING = Setting.intSetting(
+        "indices.query.bool.max_clause_count",
+        8192,
+        1,
+        Integer.MAX_VALUE,
+        Setting.Property.NodeScope
+    );
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
@@ -305,10 +314,10 @@ public class LuceneQueryBuilder {
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.column().equals(DocSysColumns.UID)) {
+                    if (ref.column().equals(SysColumns.UID)) {
                         return new Function(
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID.COLUMN), right),
+                            List.of(SysColumns.forTable(ref.ident().tableIdent(), SysColumns.ID.COLUMN), right),
                             function.valueType()
                         );
                     } else {

@@ -79,8 +79,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -190,7 +190,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         RawIndexer rawIndexer = null;
 
-        if (firstColumnIdent.equals(DocSysColumns.RAW)) {
+        if (firstColumnIdent.equals(SysColumns.RAW)) {
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
@@ -311,7 +311,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         RawIndexer rawIndexer;
         Indexer indexer;
-        if (insertColumns[0].column().equals(DocSysColumns.RAW)) {
+        if (insertColumns[0].column().equals(SysColumns.RAW)) {
             // Even if insertColumns supposed to have a single column _raw,
             // insertColumns can be expanded to add non-deterministic synthetics.
             // We must not check that insertColumns.length is 1
@@ -367,7 +367,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
             ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
 
-            Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
+            Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
                 uid,
@@ -533,7 +533,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.insertValues(rawIndexer.addGeneratedValues(item));
         }
 
-        Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
+        Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,

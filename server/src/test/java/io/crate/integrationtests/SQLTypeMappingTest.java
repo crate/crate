@@ -421,9 +421,9 @@ public class SQLTypeMappingTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("select column_name, data_type from information_schema.columns where table_name='arr' order by 1");
         assertThat(response).hasRows(
-            "2| array_of_null",
+            "2| undefined_array",
             "id| smallint",
-            "new| array_of_null",
+            "new| undefined_array",
             "tags| text_array"
         );
         assertThat(execute("select _doc from arr")).hasRows(
@@ -461,6 +461,61 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "NULL| []",
             "NULL| [1]"
         );
+    }
+
+    @Test
+    public void test_dynamic_null_array_within_objects() {
+        execute("create table tbl (a int primary key, o object (dynamic)) with (column_policy = 'dynamic')");
+        execute("insert into tbl (a, o, n1, n2) values (1, {x=[],y=[null]}, [], [null,null])");
+        execute("refresh table tbl");
+        execute("select _doc from tbl");
+        assertThat(response).hasRows("""
+            {a=1, n1=[], n2=[null, null], o={x=[], y=[null]}}""");
+        execute("insert into tbl (a, o, n1, n2) values (2, {x=[1],y=[1]}, [1], [2])");
+        execute("refresh table tbl");
+        execute("select _doc from tbl order by a");
+        assertThat(response).hasRows("""
+                {a=1, n1=[], n2=[null, null], o={x=[], y=[null]}}""",
+            """
+                {a=2, n1=[1], n2=[2], o={x=[1], y=[1]}}""");
+    }
+
+    @Test
+    public void test_dynamic_nested_array_of_null_upcast() {
+        execute("create table t (a int) with (column_policy= 'dynamic')");
+        Asserts.assertSQLError(() -> execute("insert into t(a,b) values (1, [[]])"))
+                .hasMessageContaining("Dynamic nested arrays are not supported");
+
+        execute("insert into t(a, b) values (1, [])");
+        Asserts.assertSQLError(() -> execute("insert into t(a,b) values (1, [[]])"))
+            .hasMessageContaining("Dynamic nested arrays are not supported");
+    }
+
+    @Test
+    public void test_array_of_null_use_in_selects() {
+        execute("create table t (a int) with (column_policy='dynamic')");
+        execute("insert into t(a,b) values (null, [])");
+        execute("refresh table t");
+        execute("select array_append(b, 1) from t");
+        assertThat(response).hasRows("[1]");
+        execute("select b::array(int) from t");
+        assertThat(response).hasRows("[]");
+        execute("select * from t where b=[]");
+        assertThat(response).hasRows("NULL| []");
+    }
+
+    @Test
+    public void test_array_of_null_upcasts_to_array_of_object() throws Exception {
+        execute("create table t (a int) with (column_policy ='dynamic')");
+        execute("insert into t (a, x) values (1, [])");
+        execute("insert into t (a, x) values (2, [{y=1},{y=2}])");
+        execute("refresh table t");
+        assertBusy(() -> {
+            execute("select * from t order by a");
+            assertThat(response).hasRows("1| []", "2| [{y=1}, {y=2}]");
+        });
+        execute("select x['y'] from t order by a");
+        assertThat(response).hasRows("[]", "[1, 2]");
     }
 
     // https://github.com/crate/crate/issues/13990

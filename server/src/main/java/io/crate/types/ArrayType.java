@@ -99,7 +99,10 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public ValueIndexer<T> valueIndexer(RelationName table,
                                                     Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
-                    return new ArrayIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                    int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
+                    assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
+                        "Must not retrieve value indexer of the child array of a multi dimensional array";
+                    return ArrayIndexer.of(ref, getRef);
                 }
             };
         }
@@ -239,6 +242,8 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
+        } else if (value instanceof Map<?,?> map && map.isEmpty()) {
+            return List.of();
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -318,7 +323,6 @@ public class ArrayType<T> extends DataType<List<T>> {
         return other.id() == UndefinedType.ID
             || other.id() == GeoPointType.ID
             || other.id() == FloatVectorType.ID
-            || other.id() == NullArrayType.ID
             || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
     }
