@@ -47,4 +47,6 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 5.8.4 leading to a rejection of writes into
+  a column of the ``OBJECT(IGNORED)`` type if it had an array sub-column with
+  mixed types.
