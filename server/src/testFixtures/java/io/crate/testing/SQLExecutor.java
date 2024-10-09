@@ -95,9 +95,6 @@ import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.Constants;
-import io.crate.session.Cursors;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -138,7 +135,6 @@ import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.fdw.FdwAnalyzer;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -180,6 +176,9 @@ import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateForeignTable;
@@ -322,7 +321,7 @@ public class SQLExecutor {
             var tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
-            Path homeDir = CrateLuceneTestCase.createTempDir();
+            Path homeDir = TestingHelpers.createTempDir();
             Environment environment = new Environment(
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
                 homeDir.resolve("config")
