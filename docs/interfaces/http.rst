@@ -508,35 +508,6 @@ statements are:
 Bulk errors
 -----------
 
-If a bulk operation fails, the resulting row count will be ``-2`` and the
-resulting object may contain an ``error_message`` depending on the resulting
-error::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
-    ... {
-    ...   "stmt": "INSERT into locations (name, id) values (?,?)",
-    ...   "bulk_args": [
-    ...     ["Mars", 1341],
-    ...     ["Sun", 1341]
-    ...   ]
-    ... }
-    ... EOF
-    {
-      "cols": [],
-      "duration": ...,
-      "results": [
-        {
-          "rowcount": 1
-        },
-        {
-          "rowcount": -2
-        }
-      ]
-    }
-
-.. rubric:: Error handling
-
 There are two kinds of error behaviors for bulk requests:
 
 1. **Analysis error:** Occurs if the statement is invalid, either due to syntax
