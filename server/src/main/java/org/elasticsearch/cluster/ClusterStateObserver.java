@@ -23,13 +23,12 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -57,29 +56,18 @@ public class ClusterStateObserver {
     volatile boolean timedOut;
 
 
-    public ClusterStateObserver(ClusterService clusterService, Logger logger) {
-        this(clusterService, new TimeValue(60000), logger);
-    }
-
     /**
      * @param timeout        a global timeout for this observer. After it has expired the observer
      *                       will fail any existing or new #waitForNextChange calls. Set to null
      *                       to wait indefinitely
      */
     public ClusterStateObserver(ClusterService clusterService, @Nullable TimeValue timeout, Logger logger) {
-        this(clusterService.state(), clusterService, timeout, logger);
-    }
-
-    /**
-     * @param timeout        a global timeout for this observer. After it has expired the observer
-     *                       will fail any existing or new #waitForNextChange calls. Set to null
-     *                       to wait indefinitely
-     */
-    public ClusterStateObserver(ClusterState initialState,
-                                ClusterService clusterService,
-                                @Nullable TimeValue timeout,
-                                Logger logger) {
-        this(initialState, clusterService.getClusterApplierService(), timeout, logger);
+        this(
+            clusterService.state(),
+            clusterService.getClusterApplierService(),
+            timeout,
+            logger
+        );
     }
 
     public ClusterStateObserver(ClusterState initialState,

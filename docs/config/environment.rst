@@ -48,7 +48,7 @@ Application variables
 
   If you are installing manually, in most cases, this should be set to the
   directory from which you would normally execute ``bin/crate``, i.e. the root
-  directory of the :ref:`basic installation <guide:install-quick>`.
+  directory of the :ref:`basic installation <guide:install-tarball>`.
 
 .. _conf-env-java:
 
@@ -108,7 +108,7 @@ General
 
   Default values are as follows:
 
-  - For a :ref:`basic installation <guide:install-quick>`, the process working directory
+  - For a :ref:`basic installation <guide:install-tarball>`, the process working directory
 
   - If you have installed :ref:`a CrateDB Linux package <guide:install>`, ``/var/lib/crate``
 

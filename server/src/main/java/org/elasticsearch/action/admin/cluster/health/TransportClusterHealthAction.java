@@ -192,7 +192,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
             listener.onResponse(getResponse(request, currentState, waitCount, TimeoutState.OK));
         } else {
             final ClusterStateObserver observer
-                = new ClusterStateObserver(currentState, clusterService, null, LOGGER);
+                = new ClusterStateObserver(currentState, clusterService.getClusterApplierService(), null, LOGGER);
             final ClusterStateObserver.Listener stateListener = new ClusterStateObserver.Listener() {
                 @Override
                 public void onNewClusterState(ClusterState newState) {

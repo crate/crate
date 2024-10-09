@@ -72,8 +72,6 @@ import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.LatchedActionListener;
-import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -120,11 +118,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Sets;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.doc.SysColumns;
 
 public class RecoverySourceHandlerTests extends ESTestCase {
@@ -422,8 +419,10 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
     @Test
     public void testHandleCorruptedIndexOnSendSendFiles() throws Throwable {
-        Settings settings = Settings.builder().put("indices.recovery.concurrent_streams", 1).
-            put("indices.recovery.concurrent_small_file_streams", 1).build();
+        Settings settings = Settings.builder()
+            .put("indices.recovery.concurrent_streams", 1)
+            .put("indices.recovery.concurrent_small_file_streams", 1)
+            .build();
         final RecoverySettings recoverySettings = new RecoverySettings(settings, service);
         final StartRecoveryRequest request = getStartRecoveryRequest();
         Path tempDir = createTempDir();
@@ -475,13 +474,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 failedEngine.set(true);
             }
         };
-        SetOnce<Exception> sendFilesError = new SetOnce<>();
-        CountDownLatch latch = new CountDownLatch(1);
-        handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0,
-            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), sendFilesError::set), latch));
-        latch.await();
-        assertThat(sendFilesError.get()).isInstanceOf(IOException.class);
-        assertThat(SQLExceptions.unwrapCorruption(sendFilesError.get())).isNotNull();
+        FutureActionListener<Void> future = new FutureActionListener<>();
+        handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0, future);
+        assertThat(future).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .withRootCauseExactlyInstanceOf(CorruptIndexException.class);
         assertThat(failedEngine.get()).isTrue();
         // ensure all chunk requests have been completed; otherwise some files on the target are left open.
         IOUtils.close(() -> terminate(threadPool), () -> threadPool = null);
@@ -709,10 +706,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         Store store = newStore(createTempDir(), false);
         List<StoreFileMetadata> files = generateFiles(store, between(1, 10), () -> between(1, chunkSize * 20));
         int totalChunks = files.stream().mapToInt(md -> ((int) md.length() + chunkSize - 1) / chunkSize).sum();
-        SetOnce<Exception> sendFilesError = new SetOnce<>();
-        CountDownLatch sendFilesLatch = new CountDownLatch(1);
-        handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0,
-            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), sendFilesError::set), sendFilesLatch));
+        FutureActionListener<Void> future = new FutureActionListener<>();
+        handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0, future);
         assertBusy(() -> assertThat(sentChunks.get()).isEqualTo(Math.min(totalChunks, maxConcurrentChunks)));
         List<FileChunkResponse> failedChunks = randomSubsetOf(between(1, unrepliedChunks.size()), unrepliedChunks);
         CountDownLatch replyLatch = new CountDownLatch(failedChunks.size());
@@ -729,9 +724,10 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                 c.listener.onResponse(null);
             }
         });
-        sendFilesLatch.await();
-        assertThat(sendFilesError.get()).isExactlyInstanceOf(IllegalStateException.class);
-        assertThat(sendFilesError.get().getMessage()).contains("test chunk exception");
+        assertThat(future).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .withRootCauseExactlyInstanceOf(IllegalStateException.class)
+            .withMessageContaining("test chunk exception");
         assertThat(sentChunks.get()).as("no more chunks should be sent").isEqualTo(Math.min(totalChunks, maxConcurrentChunks));
         store.close();
     }
@@ -832,20 +828,16 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
         };
         cancelRecovery.set(() -> handler.cancel("test"));
-        final StepListener<RecoverySourceHandler.SendFileResult> phase1Listener = new StepListener<>();
-        try {
-            final CountDownLatch latch = new CountDownLatch(1);
-            handler.phase1(DirectoryReader.listCommits(dir).getFirst(),
-                0,
-                () -> 0,
-                new LatchedActionListener<>(phase1Listener, latch));
-            latch.await();
-            phase1Listener.result();
-        } catch (Exception e) {
-            assertThat(wasCancelled.get()).isTrue();
-            Class<?>[] clazzes = { CancellableThreads.ExecutionCancelledException.class };
-            assertThat(Exceptions.firstCause(e, clazzes)).isNotNull();
-        }
+        FutureActionListener<RecoverySourceHandler.SendFileResult> future = new FutureActionListener<>();
+        handler.phase1(
+            DirectoryReader.listCommits(dir).getFirst(),
+            0,
+            () -> 0,
+            future
+        );
+        assertThat(future).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .withRootCauseExactlyInstanceOf(CancellableThreads.ExecutionCancelledException.class);
         store.close();
     }
 
@@ -889,6 +881,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
     private Store newStore(Path path) throws IOException {
         return newStore(path, true);
     }
+
     private Store newStore(Path path, boolean checkIndex) throws IOException {
         BaseDirectoryWrapper baseDirectoryWrapper = RecoverySourceHandlerTests.newFSDirectory(path);
         if (checkIndex == false) {

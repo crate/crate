@@ -96,7 +96,7 @@ public final class PrivilegesModifier {
             }
 
             if (affectedCount > 0) {
-                roles.put(userName, role.with(privileges));
+                roles.put(userName, role.with(new RolePrivileges(privileges)));
             }
         }
 
@@ -139,7 +139,7 @@ public final class PrivilegesModifier {
                     privileges.add(privilege);
                 }
             }
-            newRoles.put(entry.getKey(), role.with(privileges));
+            newRoles.put(entry.getKey(), role.with(new RolePrivileges(privileges)));
         }
 
         if (privilegesChanged) {
@@ -171,7 +171,7 @@ public final class PrivilegesModifier {
                     updatedPrivileges.add(privilege);
                 }
             }
-            newRoles.put(role.name(), role.with(updatedPrivileges));
+            newRoles.put(role.name(), role.with(new RolePrivileges(updatedPrivileges)));
         }
         mdBuilder.putCustom(RolesMetadata.TYPE, new RolesMetadata(newRoles));
         return affectedPrivileges;
@@ -201,7 +201,7 @@ public final class PrivilegesModifier {
                     updatedPrivileges.add(privilege);
                 }
             }
-            newRoles.put(user, role.with(updatedPrivileges));
+            newRoles.put(user, role.with(new RolePrivileges(updatedPrivileges)));
         }
         return new RolesMetadata(newRoles);
     }

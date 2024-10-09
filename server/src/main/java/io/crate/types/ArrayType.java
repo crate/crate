@@ -99,7 +99,10 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public ValueIndexer<T> valueIndexer(RelationName table,
                                                     Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
-                    return new ArrayIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                    int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
+                    assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
+                        "Must not retrieve value indexer of the child array of a multi dimensional array";
+                    return ArrayIndexer.of(ref, getRef);
                 }
             };
         }

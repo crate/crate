@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -817,6 +818,28 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_only_top_most_array_length_is_indexed_for_multi_dimensional_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs int[][], xs2 int[][][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of(List.of(1), List.of(1, 1), List.of(1, 2, 3, 4)))); // [ [1], [1,1], [1,2,3,4] ]
+        IndexableField[] arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_1:3>");
+
+        indexer = getIndexer(e, "tbl", "xs2");
+        doc = indexer.index(item(List.of(List.of(List.of(1, 1, 1)), List.of(List.of(2, 2, 2, 2))))); // [ [ [1,1,1] ], [ [2],[2],[2] ] ]
+        arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs2"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_2:2>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
     public void test_array_length_is_indexed_for_child_arrays() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs int[])))))");
@@ -844,6 +867,19 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(List.of()));
         var arrayLengthField = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
         assertThat(arrayLengthField).isEmpty();
+    }
+
+    @Test
+    public void test_cannot_create_value_indexer_from_an_inner_array_of_multi_dimensional_array() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService).addTable("create table tbl (xs int[][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Function<ColumnIdent, Reference> getRef = table::getReference;
+        Reference ref = table.getReference("xs");
+        ArrayType<?> type = (ArrayType<?>) ref.valueType();
+        ArrayType<?> innerType = (ArrayType<?>) type.innerType();
+        assertThatThrownBy(
+            () -> innerType.storageSupport().valueIndexer(table.ident(), ref, getRef)
+        ).hasMessage("Must not retrieve value indexer of the child array of a multi dimensional array");
     }
 
     @Test

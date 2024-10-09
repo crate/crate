@@ -220,24 +220,16 @@ public final class EqOperator extends Operator<Object> {
                                               boolean hasDocValues,
                                               IndexType indexType,
                                               Occur termQueryOccur) {
-        var flatUniqueValues = flattenUnique(values);
         var canUseArrayLengthIndex = context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
-        if (flatUniqueValues.isEmpty()) { // using flatUnique to catch nested empty arrays
+        if (values.isEmpty()) {
             if (canUseArrayLengthIndex) {
                 var arrayLengthTermQuery = ArrayIndexer.arrayLengthTermQuery(
                     context.tableInfo().getReference(column),
                     0,
                     context.tableInfo()::getReference);
-                if (ArrayType.dimensions(arrayType) > 1) { // need generic function filter to differentiate [[]] and []
-                    return new BooleanQuery.Builder()
-                        .add(arrayLengthTermQuery, termQueryOccur)
-                        .add(genericFunctionFilter, Occur.MUST)
-                        .build();
-                } else {
-                    return termQueryOccur == Occur.MUST_NOT ? Queries.not(arrayLengthTermQuery) : arrayLengthTermQuery;
-                }
+                return termQueryOccur == Occur.MUST_NOT ? Queries.not(arrayLengthTermQuery) : arrayLengthTermQuery;
             } else {
                 // `arrayRef = []` - termsQuery would be null
 
@@ -261,7 +253,7 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, arrayType, flatUniqueValues, hasDocValues, indexType);
+            Query termsQuery = termsQuery(column, arrayType, flattenUnique(values), hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }

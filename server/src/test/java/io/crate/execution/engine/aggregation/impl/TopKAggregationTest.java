@@ -90,7 +90,7 @@ public class TopKAggregationTest extends AggregationTestCase {
         };
 
         assertThatThrownBy(() -> executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
+            TopKAggregation.LIMIT_SIGNATURE,
             List.of(DataTypes.LONG, DataTypes.INTEGER),
             DataTypes.UNTYPED_OBJECT,
             dataWithInvalidLimit,
@@ -98,6 +98,40 @@ public class TopKAggregationTest extends AggregationTestCase {
             List.of()
         )).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Limit parameter for topk must be between 0 and 10_000. Got: -1");
+    }
+
+    @Test
+    public void test_top_k_invalid_capacity_parameters() throws Exception {
+        Object[][] dataWithInvalidCapacity = {
+            new Object[]{1L, 2, 1},
+        };
+
+        assertThatThrownBy(() -> executeAggregation(
+            TopKAggregation.LIMIT_CAPACITY_SIGNATURE,
+            List.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.INTEGER),
+            DataTypes.UNTYPED_OBJECT,
+            dataWithInvalidCapacity,
+            true,
+            List.of()
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Limit parameter for topk must be less than capacity parameter. Got limit: 2 capacity: 1");
+    }
+
+    @Test
+    public void test_top_k_invalid_capacity_parameters_1() throws Exception {
+        Object[][] dataWithInvalidCapacity = {
+            new Object[]{1L, 2, 100},
+        };
+
+        assertThatThrownBy(() -> executeAggregation(
+            TopKAggregation.LIMIT_CAPACITY_SIGNATURE,
+            List.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.INTEGER),
+            DataTypes.UNTYPED_OBJECT,
+            dataWithInvalidCapacity,
+            true,
+            List.of()
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Capacity parameter must be a positive integer-power of 2. Got: 100");
     }
 
     @Test
@@ -111,7 +145,7 @@ public class TopKAggregationTest extends AggregationTestCase {
         };
 
         var result = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
+            TopKAggregation.LIMIT_SIGNATURE,
             List.of(DataTypes.BOOLEAN),
             DataTypes.UNTYPED_OBJECT,
             data,
@@ -121,9 +155,11 @@ public class TopKAggregationTest extends AggregationTestCase {
 
         assertThat(result)
             .isEqualTo(
-                List.of(
-                    Map.of("item", true, "frequency", 3L),
-                    Map.of("item", false, "frequency", 2L)
+                Map.of("maximum_error", 0L,
+                    "frequencies", List.of(
+                        Map.of("item", true, "estimate", 3L, "lower_bound", 3L, "upper_bound", 3L),
+                        Map.of("item", false, "estimate", 2L, "lower_bound", 2L, "upper_bound", 2L)
+                    )
                 )
             );
     }
@@ -141,7 +177,7 @@ public class TopKAggregationTest extends AggregationTestCase {
         };
 
         var resultWithLimit = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
+            TopKAggregation.LIMIT_SIGNATURE,
             List.of(DataTypes.BOOLEAN, DataTypes.INTEGER),
             DataTypes.UNTYPED_OBJECT,
             data,
@@ -151,8 +187,16 @@ public class TopKAggregationTest extends AggregationTestCase {
 
         assertThat(resultWithLimit)
             .isEqualTo(
-                List.of(
-                    Map.of("item", true, "frequency", 3L)
+                Map.of(
+                    "frequencies", List.of(
+                        Map.of(
+                            "item", true,
+                            "estimate", 3L,
+                            "lower_bound", 3L,
+                            "upper_bound", 3L
+                        )
+                    ),
+                    "maximum_error", 0L
                 )
             );
     }
@@ -181,7 +225,7 @@ public class TopKAggregationTest extends AggregationTestCase {
         assertHasDocValueAggregator(TopKAggregation.NAME, List.of(dataType));
 
         var result = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
+            TopKAggregation.LIMIT_SIGNATURE,
             List.of(dataType),
             DataTypes.UNTYPED_OBJECT,
             data,
@@ -191,10 +235,12 @@ public class TopKAggregationTest extends AggregationTestCase {
 
         assertThat(result)
             .isEqualTo(
-                List.of(
-                    Map.of("item", third, "frequency", 3L),
-                    Map.of("item", second, "frequency", 2L),
-                    Map.of("item", first, "frequency", 1L)
+                Map.of("maximum_error", 0L,
+                    "frequencies", List.of(
+                        Map.of("item", third, "estimate", 3L, "lower_bound", 3L, "upper_bound", 3L),
+                        Map.of("item", second, "estimate", 2L, "lower_bound", 2L, "upper_bound", 2L),
+                        Map.of("item", first, "estimate", 1L, "lower_bound", 1L, "upper_bound", 1L)
+                    )
                 )
             );
         int limit = 2;
@@ -209,7 +255,7 @@ public class TopKAggregationTest extends AggregationTestCase {
         };
 
         result = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
+            TopKAggregation.LIMIT_SIGNATURE,
             List.of(dataType, DataTypes.INTEGER),
             DataTypes.UNTYPED_OBJECT,
             dataWithLimit,
@@ -219,9 +265,11 @@ public class TopKAggregationTest extends AggregationTestCase {
 
         assertThat(result)
             .isEqualTo(
-                List.of(
-                    Map.of("item", third, "frequency", 3L),
-                    Map.of("item", second, "frequency", 2L)
+                Map.of("maximum_error", 0L,
+                    "frequencies", List.of(
+                        Map.of("item", third, "estimate", 3L, "lower_bound", 3L, "upper_bound", 3L),
+                        Map.of("item", second, "estimate", 2L, "lower_bound", 2L, "upper_bound", 2L)
+                    )
                 )
             );
     }

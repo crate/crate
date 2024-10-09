@@ -318,7 +318,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                           IndexShard shard,
                                                           Version minNodeVersion,
                                                           List<Literal<?>> optionalParams) throws Exception {
-        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes);
+        // Make sure optional parameters do not become references
+        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes.subList(0, argumentTypes.size() - optionalParams.size()));
         inputs.addAll(optionalParams);
         var aggregation = new Aggregation(
             signature,

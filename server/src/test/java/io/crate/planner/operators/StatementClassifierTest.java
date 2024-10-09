@@ -56,7 +56,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels()).containsExactly("Eval", "TableFunction");
+        assertThat(classification.labels()).containsExactly("TableFunction");
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = 1");
         classification = StatementClassifier.classify(plan);
