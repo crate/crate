@@ -24,7 +24,6 @@ package io.crate.execution.ddl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,19 +39,12 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 
-import io.crate.Constants;
 import io.crate.execution.ddl.tables.CreateTableRequest;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 public final class Templates {
@@ -66,7 +58,6 @@ public final class Templates {
             .builder(targetTemplateName)
             .patterns(Collections.singletonList(PartitionName.templatePrefix(newName.schema(), newName.name())))
             .settings(source.settings())
-            .putMapping(source.mapping())
             .putAlias(new AliasMetadata(targetAlias))
             .version(source.version());
 
@@ -118,29 +109,6 @@ public final class Templates {
                     .put(settings)
                     .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), versionCreated));
 
-            List<Reference> references = DocReferences.applyOid(
-                request.references(),
-                metadataBuilder.columnOidSupplier()
-            );
-            var mapping = Map.of(
-                Constants.DEFAULT_MAPPING_TYPE,
-                MappingUtil.createMapping(
-                    MappingUtil.AllocPosition.forNewTable(),
-                    request.pkConstraintName(),
-                    references,
-                    request.pKeyIndices(),
-                    request.checkConstraints(),
-                    request.partitionedBy(),
-                    request.tableColumnPolicy(),
-                    request.routingColumn()
-                )
-            );
-            try {
-                templateBuilder
-                    .putMapping(new CompressedXContent(Strings.toString(JsonXContent.builder().map(mapping))));
-            } catch (Exception e) {
-                throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
-            }
             LOGGER.info("adding template [{}] for index pattern {}", templateName, templatePrefix);
             return ClusterState.builder(clusterState)
                 .metadata(metadataBuilder.put(templateBuilder))

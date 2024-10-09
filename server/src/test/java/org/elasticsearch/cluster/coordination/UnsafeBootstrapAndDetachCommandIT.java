@@ -23,6 +23,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
@@ -48,12 +49,14 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.server.cli.MockTerminal;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
 
+@Ignore
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 

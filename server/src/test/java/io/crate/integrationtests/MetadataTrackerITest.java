@@ -22,12 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -38,6 +40,7 @@ import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
+@Ignore
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Rule

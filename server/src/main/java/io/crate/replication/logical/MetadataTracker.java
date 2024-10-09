@@ -359,9 +359,6 @@ public final class MetadataTracker implements Closeable {
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
                 var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
                 var updatedMapping = updateIndexMetadataMappings(publisherIndexMetadata, subscriberIndexMetadata);
-                if (updatedMapping != null) {
-                    updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
-                }
                 var updatedSettings = updateIndexMetadataSettings(
                     publisherIndexMetadata.getSettings(),
                     subscriberIndexMetadata.getSettings(),
@@ -537,16 +534,6 @@ public final class MetadataTracker implements Closeable {
     @Nullable
     private static MappingMetadata updateIndexMetadataMappings(IndexMetadata publisherIndexMetadata,
                                                                IndexMetadata subscriberIndexMetadata) {
-        var publisherMapping = publisherIndexMetadata.mapping();
-        var subscriberMapping = subscriberIndexMetadata.mapping();
-        if (publisherMapping != null && subscriberMapping != null) {
-            if (publisherIndexMetadata.getMappingVersion() > subscriberIndexMetadata.getMappingVersion()) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Updated index mapping {} for subscription {}", subscriberIndexMetadata.getIndex().getName(), publisherMapping.toString());
-                }
-                return publisherMapping;
-            }
-        }
         return null;
     }
 

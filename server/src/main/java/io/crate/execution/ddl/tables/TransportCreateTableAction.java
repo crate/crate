@@ -25,7 +25,9 @@ import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setI
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -37,9 +39,12 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -168,16 +173,45 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
+                ClusterState newState;
+                List<String> indexUUIDs;
                 if (isPartitioned) {
-                    return Templates.add(
-                        indicesService,
-                        createIndexService,
-                        currentState,
-                        request,
-                        normalizedSettings
-                    );
+                    indexUUIDs = List.of();
+                    newState = Templates.add(
+                        indicesService, createIndexService, currentState, request, normalizedSettings);
+                } else {
+                    String indexUUID = UUIDs.randomBase64UUID();
+                    indexUUIDs = List.of(indexUUID);
+                    newState = createIndexService.add(currentState, request, normalizedSettings, indexUUID);
                 }
-                return createIndexService.add(currentState, request, normalizedSettings);
+                Settings settings = Settings.builder()
+                    .put(request.settings())
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .build();
+
+                // TODO:
+                //  - Adapt/remove above logic
+                //  - some settings are index level settings, not table level
+                //  - routingColumn default - who resolves it?
+                Metadata.Builder newMetadata = Metadata.builder(newState.metadata());
+                newMetadata
+                    .addTable(
+                        relationName,
+                        request.references(),
+                        settings,
+                        request.routingColumn(),
+                        request.tableColumnPolicy(),
+                        request.pkConstraintName(),
+                        request.checkConstraints(),
+                        request.primaryKeys(),
+                        request.partitionedBy(),
+                        State.OPEN,
+                        indexUUIDs
+                    );
+                Metadata metadata = newMetadata.build();
+                return ClusterState.builder(newState)
+                    .metadata(metadata)
+                    .build();
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

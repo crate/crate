@@ -111,10 +111,6 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             mdBuilder.put(updatedIndexMetadata, true);
         }
 
-        // remove closed flag at possible partitioned table template
-        if (templateMetadata != null) {
-            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata));
-        }
 
         // The Metadata will always be overridden (and not merged!) when applying it on a cluster state builder.
         // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.

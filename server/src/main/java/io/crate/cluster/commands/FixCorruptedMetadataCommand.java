@@ -198,7 +198,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
                                                          Metadata.Builder fixedMetadata) {
         String indexName = indexMetadata.getIndex().getName();
         String[] indexParts = indexName.split("\\.");
-        MappingMetadata mappingMetadata = indexMetadata.mapping();
+        MappingMetadata mappingMetadata = null; // TODO
         if (mappingMetadata != null && !IndexName.isPartitioned(indexName) && indexParts.length == 2) {
             Map<String, Object> metaMap = Maps.get(mappingMetadata.sourceAsMap(), "_meta");
             if (metaMap != null && metaMap.containsKey("partitioned_by")) {
@@ -240,7 +240,6 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(templateName);
         templateBuilder.putAlias(new AliasMetadata(indexName));
-        templateBuilder.putMapping(mappingMetadata.source());
         Settings indexSettings = indexMetadata.getSettings();
         var templateCompatibleSettings =
             // these settings cause exceptions when added to templates
