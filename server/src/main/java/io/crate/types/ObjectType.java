@@ -26,6 +26,7 @@ import static io.crate.types.DataTypes.UNDEFINED;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -37,6 +38,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -396,20 +399,94 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (map == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
-        long bytes = RamUsageEstimator.shallowSizeOf(map);
-        long entrySize = -1;
-        for (var entry : map.entrySet()) {
-            if (entrySize == -1) {
-                entrySize = RamUsageEstimator.shallowSizeOf(entry);
-            }
-            bytes += entrySize;
-            bytes += RamUsageEstimator.sizeOf(entry.getKey());
+        return sizeOfMap(map);
+    }
 
-            Object value = entry.getValue();
-            DataType<?> innerType = DataTypes.guessType(value);
-            bytes += ((DataType<Object>) innerType).valueBytes(value);
+    /**
+     * Similar to {@link RamUsageEstimator#sizeOfMap(Map)}
+     * but not limited with depth = 1.
+     */
+    private static long sizeOfMap(Map<?, ?> map) {
+        if (map == null) {
+            return 0;
         }
-        return RamUsageEstimator.alignObjectSize(bytes);
+        long size = RamUsageEstimator.shallowSizeOf(map);
+        long sizeOfEntry = -1;
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (sizeOfEntry == -1) {
+                sizeOfEntry = RamUsageEstimator.shallowSizeOf(entry);
+            }
+            size += sizeOfEntry;
+
+            // In most cases key has type String but for ignored object can be another type.
+            size += sizeOfObject(entry.getKey());
+            size += sizeOfObject(entry.getValue());
+        }
+        return RamUsageEstimator.alignObjectSize(size);
+    }
+
+    /**
+     * Similar to {@link RamUsageEstimator#sizeOfObject(Object)}
+     * but sizeOfMap and sizeOfCollection are replaced by custom methods without depth limitation
+     */
+    private static long sizeOfObject(Object o) {
+        if (o == null) {
+            return 0;
+        }
+        long size;
+        if (o instanceof Accountable) {
+            size = ((Accountable) o).ramBytesUsed();
+        } else if (o instanceof String) {
+            size = RamUsageEstimator.sizeOf((String) o);
+        } else if (o instanceof boolean[]) {
+            size = RamUsageEstimator.sizeOf((boolean[]) o);
+        } else if (o instanceof byte[]) {
+            size = RamUsageEstimator.sizeOf((byte[]) o);
+        } else if (o instanceof char[]) {
+            size = RamUsageEstimator.sizeOf((char[]) o);
+        } else if (o instanceof double[]) {
+            size = RamUsageEstimator.sizeOf((double[]) o);
+        } else if (o instanceof float[]) {
+            size = RamUsageEstimator.sizeOf((float[]) o);
+        } else if (o instanceof int[]) {
+            size = RamUsageEstimator.sizeOf((int[]) o);
+        } else if (o instanceof Integer) {
+            size = RamUsageEstimator.sizeOf((Integer) o);
+        } else if (o instanceof Long) {
+            size = RamUsageEstimator.sizeOf((Long) o);
+        } else if (o instanceof long[]) {
+            size = RamUsageEstimator.sizeOf((long[]) o);
+        } else if (o instanceof short[]) {
+            size = RamUsageEstimator.sizeOf((short[]) o);
+        } else if (o instanceof String[]) {
+            size = RamUsageEstimator.sizeOf((String[]) o);
+        } else if (o instanceof Query) {
+            size = RamUsageEstimator.sizeOf((Query) o, RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED);
+        } else if (o instanceof Map<?, ?> map) {
+            size = sizeOfMap(map);
+        } else if (o instanceof Collection<?> collection) {
+            size = sizeOfCollection(collection);
+        } else {
+            size = RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
+        }
+        return size;
+    }
+
+    /**
+     * Similar to {@link RamUsageEstimator#sizeOfCollection(Collection)}
+     * but not limited with depth = 1.
+     */
+    private static long sizeOfCollection(Collection<?> collection) {
+        if (collection == null) {
+            return 0;
+        }
+        long size = RamUsageEstimator.shallowSizeOf(collection);
+        // assume array-backed collection and add per-object references
+        size += RamUsageEstimator.NUM_BYTES_ARRAY_HEADER + (long) collection.size() * RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+        for (Object o : collection) {
+            size += sizeOfObject(o);
+        }
+        return RamUsageEstimator.alignObjectSize(size);
     }
 
     @Override
