@@ -103,7 +103,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             threadPool,
             shardStateAction
         );
-       final RetentionLeases retentionLeases = mock(RetentionLeases.class);
+        final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
         action.shardOperationOnPrimary(request, indexShard,
