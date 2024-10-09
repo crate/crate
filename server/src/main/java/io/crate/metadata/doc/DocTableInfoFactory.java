@@ -24,6 +24,7 @@ package io.crate.metadata.doc;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +43,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -202,6 +204,29 @@ public class DocTableInfoFactory {
     }
 
     public DocTableInfo create(RelationName relation, Metadata metadata) {
+        RelationMetadata relationMetadata = metadata.getRelation(relation);
+        if (relationMetadata instanceof RelationMetadata.Table table) {
+            Map<ColumnIdent, Reference> columns = table.columns().stream()
+                .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+            return new DocTableInfo(
+                table.name(),
+                columns,
+                Map.of(),
+                Map.of(),
+                table.pkConstraintName(),
+                table.primaryKeys(),
+                List.of(), // table.checkConstraints()
+                table.routingColumn(),
+                table.settings(),
+                List.of(),
+                table.columnPolicy(),
+                Version.CURRENT,
+                null,
+                false,
+                EnumSet.allOf(Operation.class),
+                0
+            );
+        }
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         Version versionCreated;

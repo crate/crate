@@ -37,7 +37,9 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -168,16 +170,34 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                if (isPartitioned) {
-                    return Templates.add(
+                ClusterState newState = isPartitioned
+                    ? Templates.add(
                         indicesService,
                         createIndexService,
                         currentState,
                         request,
-                        normalizedSettings
-                    );
-                }
-                return createIndexService.add(currentState, request, normalizedSettings);
+                        normalizedSettings)
+                    : createIndexService.add(currentState, request, normalizedSettings);
+
+                // TODO:
+                //  - some settings are index level settings, not table level
+                //  - partitioning
+                //  - routingColumn default - who resolves it?
+                Metadata.Builder newMetadata = Metadata.builder(newState.metadata())
+                    .addSchema(relationName.schema())
+                    .addRelation(new RelationMetadata.Table(
+                        relationName,
+                        request.references(),
+                        request.settings(),
+                        request.routingColumn(),
+                        request.tableColumnPolicy(),
+                        request.pkConstraintName(),
+                        request.checkConstraints(),
+                        request.primaryKeys()
+                    ));
+                return ClusterState.builder(newState)
+                    .metadata(newMetadata)
+                    .build();
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

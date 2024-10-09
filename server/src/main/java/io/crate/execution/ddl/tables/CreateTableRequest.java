@@ -55,7 +55,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     // Fields required to add column(s), aligned with AddColumnRequest
     private final RelationName relationName;
-    private final List<Reference> colsToAdd;
+    private final List<Reference> columns;
     @Nullable
     private final String pkConstraintName;
     private final IntArrayList pKeyIndices;
@@ -70,7 +70,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     public CreateTableRequest(RelationName relationName,
                               @Nullable String pkConstraintName,
-                              List<Reference> colsToAdd,
+                              List<Reference> columns,
                               IntArrayList pKeyIndices,
                               Map<String, String> checkConstraints,
                               Settings settings,
@@ -79,7 +79,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
                               List<List<String>> partitionedBy) {
         this.relationName = relationName;
         this.pkConstraintName = pkConstraintName;
-        this.colsToAdd = colsToAdd;
+        this.columns = columns;
         this.pKeyIndices = pKeyIndices;
         this.checkConstraints = checkConstraints;
         this.settings = settings;
@@ -113,7 +113,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         this.relationName = new RelationName(in);
         this.checkConstraints = in.readMap(
             LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
-        this.colsToAdd = in.readList(Reference::fromStream);
+        this.columns = in.readList(Reference::fromStream);
         int numPKIndices = in.readVInt();
         this.pKeyIndices = new IntArrayList(numPKIndices);
         for (int i = 0; i < numPKIndices; i++) {
@@ -138,7 +138,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
         relationName.writeTo(out);
         out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeCollection(colsToAdd, Reference::toStream);
+        out.writeCollection(columns, Reference::toStream);
         out.writeVInt(pKeyIndices.size());
         for (int i = 0; i < pKeyIndices.size(); i++) {
             out.writeVInt(pKeyIndices.get(i));
@@ -180,11 +180,18 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     @NotNull
     public List<Reference> references() {
-        return this.colsToAdd;
+        return this.columns;
     }
 
     @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
+    }
+
+    /**
+     * Primary key columnIdents derived from {@link #references()} and {@link #pKeyIndices()}
+     **/
+    public List<ColumnIdent> primaryKeys() {
+        return List.of();
     }
 }

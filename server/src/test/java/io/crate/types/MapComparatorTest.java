@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
@@ -56,6 +57,13 @@ public class MapComparatorTest extends ESTestCase {
 
         map2.put("str2", null);
         assertThat(MapComparator.compareMaps(map2, map1)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_mixed_lists() throws Exception {
+        Map<String, Object> map1 = Map.of("foo", List.of("x", 1, 3.4));
+        Map<String, Object> map2 = Map.of("foo", List.of("x", 1, 3.4));
+        assertThat(MapComparator.compareMaps(map1, map2)).isEqualTo(0);
     }
 
     @Test
