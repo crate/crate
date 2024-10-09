@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.builders.CircleBuilder;
 import org.elasticsearch.common.geo.builders.GeometryCollectionBuilder;
@@ -187,7 +186,7 @@ public abstract class GeoJsonParser {
         // alt (for storing purposes only - future use includes 3d shapes)
         double alt = Double.NaN;
         if (token == XContentParser.Token.VALUE_NUMBER) {
-            alt = GeoPoint.assertZValue(parser.doubleValue());
+            alt = parser.doubleValue();
             parser.nextToken();
         }
         // do not support > 3 dimensions

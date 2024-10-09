@@ -19,12 +19,7 @@
 
 package org.elasticsearch.common.geo;
 
-import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.util.BitUtil;
-
-import java.util.Collection;
-
-import static org.apache.lucene.geo.GeoUtils.MAX_LAT_INCL;
 
 /**
  * Utilities for converting to/from the GeoHash standard
@@ -46,11 +41,7 @@ public class GeoHashUtils {
     /** number of bits used for quantizing latitude and longitude values */
     public static final short BITS = 31;
     /** scaling factors to convert lat/lon into unsigned space */
-    private static final double LAT_SCALE = (0x1L << BITS) / 180.0D;
-    private static final double LON_SCALE = (0x1L << BITS) / 360.0D;
     private static final short MORTON_OFFSET = (BITS << 1) - (PRECISION * 5);
-    /** Bit encoded representation of the latitude of north pole */
-    private static final long MAX_LAT_BITS = (0x1L << (PRECISION * 5 / 2)) - 1;
 
     // No instance:
     private GeoHashUtils() {
@@ -61,24 +52,6 @@ public class GeoHashUtils {
      *************************/
     public static long encodeLatLon(final double lat, final double lon) {
         return MortonEncoder.encode(lat, lon) >>> 2;
-    }
-
-    /**
-     * Encode from geohash string to the geohash based long format (lon/lat interleaved, 4 least significant bits = level)
-     */
-    private static long longEncode(final String hash, int length) {
-        int level = length - 1;
-        long b;
-        long l = 0L;
-        for (char c : hash.toCharArray()) {
-            b = BASE_32_STRING.indexOf(c);
-            l |= (b << (level-- * 5));
-            if (level < 0) {
-                // We cannot handle more than 12 levels
-                break;
-            }
-        }
-        return (l << 4) | length;
     }
 
     /**
@@ -122,70 +95,8 @@ public class GeoHashUtils {
 
     }
 
-    /**
-     * Encode to a morton long value from a given geohash string
-     */
-    public static final long mortonEncode(final String hash) {
-        if (hash.isEmpty()) {
-            throw new IllegalArgumentException("empty geohash");
-        }
-        int level = 11;
-        long b;
-        long l = 0L;
-        for (char c : hash.toCharArray()) {
-            b = (long) (BASE_32_STRING.indexOf(c));
-            if (b < 0) {
-                throw new IllegalArgumentException("unsupported symbol [" + c + "] in geohash [" + hash + "]");
-            }
-            l |= (b << ((level-- * 5) + MORTON_OFFSET));
-            if (level < 0) {
-                // We cannot handle more than 12 levels
-                break;
-            }
-        }
-        return BitUtil.flipFlop(l);
-    }
-
-    /**
-     * Encode to a morton long value from a given geohash long value
-     */
-    public static final long mortonEncode(final long geoHashLong) {
-        final int level = (int) (geoHashLong & 15);
-        final short odd = (short) (level & 1);
-
-        return BitUtil.flipFlop(((geoHashLong >>> 4) << odd) << (((12 - level) * 5) + (MORTON_OFFSET - odd)));
-    }
-
     private static char encode(int x, int y) {
         return BASE_32[((x & 1) + ((y & 1) * 2) + ((x & 2) * 2) + ((y & 2) * 4) + ((x & 4) * 4)) % 32];
-    }
-
-    /**
-     * Computes the bounding box coordinates from a given geohash
-     *
-     * @param geohash Geohash of the defined cell
-     * @return GeoRect rectangle defining the bounding box
-     */
-    public static Rectangle bbox(final String geohash) {
-        // bottom left is the coordinate
-        GeoPoint bottomLeft = GeoPoint.fromGeohash(geohash);
-        int len = Math.min(12, geohash.length());
-        long ghLong = longEncode(geohash, len);
-        // shift away the level
-        ghLong >>>= 4;
-        // deinterleave
-        long lon = BitUtil.deinterleave(ghLong >>> 1);
-        long lat = BitUtil.deinterleave(ghLong);
-        if (lat < MAX_LAT_BITS) {
-            // add 1 to lat and lon to get topRight
-            GeoPoint topRight = GeoPoint.fromGeohash(BitUtil.interleave((int)(lat + 1), (int)(lon + 1)) << 4 | len);
-            return new Rectangle(bottomLeft.lat(), topRight.lat(), bottomLeft.lon(), topRight.lon());
-        } else {
-            // We cannot go north of north pole, so just using 90 degrees instead of calculating it using
-            // add 1 to lon to get lon of topRight, we are going to use 90 for lat
-            GeoPoint topRight = GeoPoint.fromGeohash(BitUtil.interleave((int)lat, (int)(lon + 1)) << 4 | len);
-            return new Rectangle(bottomLeft.lat(), MAX_LAT_INCL, bottomLeft.lon(), topRight.lon());
-        }
     }
 
     /**
@@ -240,52 +151,5 @@ public class GeoHashUtils {
                 return (neighbor != null) ? neighbor + encode(nx, ny) : neighbor;
             }
         }
-    }
-
-    /**
-     * Add all geohashes of the cells next to a given geohash to a list.
-     *
-     * @param geohash   Geohash of a specified cell
-     * @param length    level of the given geohash
-     * @param neighbors list to add the neighbors to
-     * @return the given list
-     */
-    public static final <E extends Collection<? super String>> E addNeighbors(String geohash, int length, E neighbors) {
-        String north = neighbor(geohash, length, 0, +1);
-        if (north != null) {
-            neighbors.add(neighbor(north, length, -1, 0));
-            neighbors.add(north);
-            neighbors.add(neighbor(north, length, +1, 0));
-        }
-
-        neighbors.add(neighbor(geohash, length, -1, 0));
-        neighbors.add(neighbor(geohash, length, +1, 0));
-
-        String south = neighbor(geohash, length, 0, -1);
-        if (south != null) {
-            neighbors.add(neighbor(south, length, -1, 0));
-            neighbors.add(south);
-            neighbors.add(neighbor(south, length, +1, 0));
-        }
-
-        return neighbors;
-    }
-
-    /** decode longitude value from morton encoded geo point */
-    public static final double decodeLongitude(final long hash) {
-        return unscaleLon(BitUtil.deinterleave(hash));
-    }
-
-    /** decode latitude value from morton encoded geo point */
-    public static final double decodeLatitude(final long hash) {
-        return unscaleLat(BitUtil.deinterleave(hash >>> 1));
-    }
-
-    private static double unscaleLon(final long val) {
-        return (val / LON_SCALE) - 180;
-    }
-
-    private static double unscaleLat(final long val) {
-        return (val / LAT_SCALE) - 90;
     }
 }
