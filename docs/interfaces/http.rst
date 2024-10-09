@@ -466,7 +466,7 @@ bulk operation.
 
 Here an example that inserts three records at once::
 
- sh$ curl -sS -H 'Content-Type: application/json' \
+    sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
     ...   "stmt": "INSERT INTO locations (id, name, kind, description)
