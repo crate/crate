@@ -49,11 +49,9 @@ public class FixCorruptedMetadataCommandTest {
     @Test
     public void test_method_fixNameOfTemplateMetadata_fixes_corrupted_name_only() throws IOException {
         String corruptedName = ".partitioned.m1.s1.";
-        String mapping = "{\"default\":{\"_meta\":{\"partitioned_by\":[[\"t\",\"boolean\"]]},\"dynamic\":\"strict\",\"properties\":{\"t\":{\"index\":false,\"position\":1,\"type\":\"boolean\"}}}}";
         IndexTemplateMetadata.Builder corruptedBuilder = new IndexTemplateMetadata.Builder(corruptedName);
         corruptedBuilder.patterns(List.of(corruptedName + "*"));
         corruptedBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(300)));
-        corruptedBuilder.putMapping(mapping);
         IndexTemplateMetadata corrupted = corruptedBuilder.build();
 
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
@@ -67,18 +65,15 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(fixed).isNotNull();
         assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping().toString()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
     }
 
     @Test
     public void test_method_fixNameOfTemplateMetadata_fixes_corrupted_name_and_overwrites_existing_template() throws IOException {
         String corruptedName = ".partitioned.m1.s1.";
-        String mapping = "{\"default\":{\"_meta\":{\"partitioned_by\":[[\"t\",\"boolean\"]]},\"dynamic\":\"strict\",\"properties\":{\"t\":{\"index\":false,\"position\":1,\"type\":\"boolean\"}}}}";
         IndexTemplateMetadata.Builder corruptedBuilder = new IndexTemplateMetadata.Builder(corruptedName);
         corruptedBuilder.patterns(List.of(corruptedName + "*"));
         corruptedBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(300)));
-        corruptedBuilder.putMapping(mapping);
         IndexTemplateMetadata corrupted = corruptedBuilder.build();
 
         // to be overwritten
@@ -87,7 +82,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexTemplateMetadata.Builder existingBuilder = new IndexTemplateMetadata.Builder(nameOfExistingTemplate);
         existingBuilder.patterns(List.of(nameOfExistingTemplate + "*"));
         existingBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(400)));
-        existingBuilder.putMapping(mappingOfExistingTemplate);
         IndexTemplateMetadata existingTemplate = existingBuilder.build();
 
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
@@ -102,7 +96,6 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(fixed).isNotNull();
         assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
     }
 
@@ -113,7 +106,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexTemplateMetadata.Builder corruptedBuilder = new IndexTemplateMetadata.Builder(corruptedName);
         corruptedBuilder.patterns(List.of(corruptedName + "*"));
         corruptedBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(300)));
-        corruptedBuilder.putMapping(mapping);
         IndexTemplateMetadata corrupted = corruptedBuilder.build();
 
         String nameOfExistingTemplate = "m1..partitioned.s1.";
@@ -121,7 +113,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexTemplateMetadata.Builder existingBuilder = new IndexTemplateMetadata.Builder(nameOfExistingTemplate);
         existingBuilder.patterns(List.of(nameOfExistingTemplate + "*"));
         existingBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(400)));
-        existingBuilder.putMapping(mappingOfExistingTemplate);
         IndexTemplateMetadata existingTemplate = existingBuilder.build();
 
         String dummyName = "m2..partitioned.dummy.";
@@ -129,7 +120,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexTemplateMetadata.Builder dummyBuilder = new IndexTemplateMetadata.Builder(dummyName);
         dummyBuilder.patterns(List.of(dummyName + "*"));
         dummyBuilder.settings(Settings.builder().put(INDEX_REFRESH_INTERVAL_SETTING.getKey(), new TimeValue(500)));
-        dummyBuilder.putMapping(dummyMapping);
         IndexTemplateMetadata dummy = dummyBuilder.build();
 
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
@@ -145,7 +135,6 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(fixed).isNotNull();
         assertThat(fixed.patterns()).hasSize(1);
         assertThat(fixed.patterns().get(0)).isEqualTo(fixedName + "*");
-        assertThat(fixed.mapping()).hasToString(mapping);
         assertThat(fixed.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("300ms");
 
         //dummy is untouched
@@ -153,7 +142,6 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(dummyTemplate).isNotNull();
         assertThat(dummyTemplate.patterns()).hasSize(1);
         assertThat(dummyTemplate.patterns().get(0)).isEqualTo(dummyName + "*");
-        assertThat(dummyTemplate.mapping()).hasToString(dummyMapping);
         assertThat(dummyTemplate.settings().get(INDEX_REFRESH_INTERVAL_SETTING.getKey())).isEqualTo("500ms");
     }
 
@@ -192,7 +180,6 @@ public class FixCorruptedMetadataCommandTest {
         corruptedSettings.put(SETTING_NUMBER_OF_SHARDS, 1)
             .put(SETTING_NUMBER_OF_REPLICAS, 1)
             .put("index.version.created", org.elasticsearch.Version.CURRENT);
-        corruptedBuilder.putMapping(mappingForCorrupted);
         corruptedBuilder.settings(corruptedSettings);
 
         IndexMetadata corruptedMetadata = corruptedBuilder.build();
@@ -205,7 +192,6 @@ public class FixCorruptedMetadataCommandTest {
         // since the indexMetadata is invalid, it is now partitioned
         assertThat(upgradedMetadata.get("m7.s7")).isNull();
         IndexMetadata fixedIndexMetadata = upgradedMetadata.get("m7..partitioned.s7.08000");
-        assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
         assertThat(fixedIndexMetadata.getSettings().getAsStructuredMap())
             .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
 
@@ -214,7 +200,6 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(convertedFromIndexMetadata).isNotNull();
         assertThat(convertedFromIndexMetadata.settings().getAsStructuredMap())
             .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
-        assertThat(convertedFromIndexMetadata.mapping()).isEqualTo(corruptedMetadata.mapping().source());
     }
 
     @Test
@@ -231,7 +216,6 @@ public class FixCorruptedMetadataCommandTest {
         corruptedSettings.put(SETTING_NUMBER_OF_SHARDS, 1)
             .put(SETTING_NUMBER_OF_REPLICAS, 1)
             .put("index.version.created", org.elasticsearch.Version.CURRENT);
-        corruptedBuilder.putMapping(mappingForCorrupted);
         corruptedBuilder.settings(corruptedSettings);
 
         IndexMetadata corruptedMetadata = corruptedBuilder.build();
@@ -242,7 +226,6 @@ public class FixCorruptedMetadataCommandTest {
         // an existing template that will conflict with the template to be created.
         String existingTemplateName = "m7..partitioned.s7.";
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(existingTemplateName);
-        templateBuilder.patterns(List.of(existingTemplateName + "*")).putMapping("{\"default\": {}}");
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
         mapBuilder.put(existingTemplateName, templateBuilder.build());
         upgradedMetadata.templates(mapBuilder.build());
@@ -252,7 +235,6 @@ public class FixCorruptedMetadataCommandTest {
         // since the indexMetadata is invalid, it is now partitioned
         assertThat(upgradedMetadata.get("m7.s7")).isNull();
         IndexMetadata fixedIndexMetadata = upgradedMetadata.get("m7..partitioned.s7.08000");
-        assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
         assertThat(fixedIndexMetadata.getSettings().getAsStructuredMap())
             .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
 
@@ -261,7 +243,6 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(convertedFromIndexMetadata).isNotNull();
         assertThat(convertedFromIndexMetadata.settings().getAsStructuredMap())
             .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
-        assertThat(convertedFromIndexMetadata.mapping()).isEqualTo(corruptedMetadata.mapping().source());
     }
 
     @Test
@@ -277,7 +258,6 @@ public class FixCorruptedMetadataCommandTest {
         nonPartitionedSettings.put(SETTING_NUMBER_OF_SHARDS, 1)
             .put(SETTING_NUMBER_OF_REPLICAS, 1)
             .put("index.version.created", org.elasticsearch.Version.CURRENT);
-        nonPartitionedBuilder.putMapping(mappingForNonPartitioned);
         nonPartitionedBuilder.settings(nonPartitionedSettings);
 
         IndexMetadata nonPartitioned = nonPartitionedBuilder.build();
@@ -288,7 +268,6 @@ public class FixCorruptedMetadataCommandTest {
         // to be removed
         String invalidTemplateName = "m7..partitioned.s7.";
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(invalidTemplateName);
-        templateBuilder.patterns(List.of(invalidTemplateName + "*")).putMapping("{\"default\": {}}");
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
         mapBuilder.put(invalidTemplateName, templateBuilder.build());
         fixedMetadata.templates(mapBuilder.build());
@@ -296,7 +275,6 @@ public class FixCorruptedMetadataCommandTest {
         fixInconsistencyBetweenIndexAndTemplates(nonPartitioned, fixedMetadata);
         var afterFix = fixedMetadata.get("m7.s7");
         assertThat(afterFix).isNotNull();
-        assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
         assertThat(afterFix.getSettings().getAsStructuredMap())
             .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=" +
                          Version.CURRENT.internalId + "}}}");

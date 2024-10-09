@@ -21,8 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.action.support.IndicesOptions;
@@ -32,8 +30,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
@@ -96,28 +92,4 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
     }
 
     protected abstract IndexMetadata.State indexState();
-
-    static IndexTemplateMetadata updateOpenCloseOnPartitionTemplate(IndexTemplateMetadata indexTemplateMetadata,
-                                                                    boolean openTable) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        if (openTable) {
-            //Remove the mapping from the template.
-            return DDLClusterStateHelpers.updateTemplate(
-                indexTemplateMetadata,
-                Collections.emptyMap(),
-                metaMap,
-                Settings.EMPTY,
-                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-            );
-        } else {
-            //Otherwise, add the mapping to the template.
-            return DDLClusterStateHelpers.updateTemplate(
-                indexTemplateMetadata,
-                metaMap,
-                Collections.emptyMap(),
-                Settings.EMPTY,
-                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-            );
-        }
-    }
 }

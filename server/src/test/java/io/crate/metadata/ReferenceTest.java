@@ -154,8 +154,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -173,8 +171,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("doc_values", "false")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -192,8 +188,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("doc_values", "false")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     @Test
@@ -211,8 +205,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("default_expr", "'foo'")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
     /**

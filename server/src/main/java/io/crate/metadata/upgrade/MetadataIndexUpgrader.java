@@ -31,24 +31,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.collections.Maps;
-import io.crate.server.xcontent.XContentHelper;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-
-import io.crate.Constants;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.Constants;
+import io.crate.common.collections.Maps;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {
 
@@ -69,14 +64,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
      * template will apply any defaults for all indices.
      */
     private IndexMetadata createUpdatedIndexMetadata(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        return IndexMetadata.builder(indexMetadata)
-            .putMapping(
-                createUpdatedIndexMetadata(
-                    indexMetadata.mapping(),
-                    indexMetadata.getIndex().getName(),
-                    indexTemplateMetadata
-                ))
-            .build();
+        return indexMetadata;
     }
 
     @VisibleForTesting
@@ -86,8 +74,6 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
         }
         Map<String, Object> oldMapping = mappingMetadata.sourceAsMap();
         removeInvalidPropertyGeneratedByDroppingSysCols(oldMapping);
-        upgradeColumnPositions(oldMapping, indexTemplateMetadata);
-        upgradeIndexColumnMapping(oldMapping, indexTemplateMetadata);
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
@@ -186,41 +172,6 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
         return false;
     }
 
-    static void upgradeIndexColumnMapping(Map<String, Object> oldMapping,
-                                          @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        addIndexColumnSources(Maps.get(oldMapping, "properties"), oldMapping, "");
-
-        if (indexTemplateMetadata != null) {
-            Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(
-                indexTemplateMetadata.mapping().compressedReference(),
-                true,
-                XContentType.JSON).map();
-            addIndexColumnSources(Maps.get(parsedTemplateMapping, "properties"), parsedTemplateMapping, "");
-        }
-    }
-
-
-
-    /**
-     * Fixes index mappings such that all columns contain unique column positions.
-     * @param defaultMap An index mapping that may contain duplicates or null positions.
-     * @param indexTemplateMetadata if the table is partitioned, it should contain correct column positions.
-     */
-    private void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        if (indexTemplateMetadata != null) {
-            populateColumnPositionsFromMapping(defaultMap, indexTemplateMetadata.mapping());
-        } else {
-            IndexTemplateUpgrader.populateColumnPositions(defaultMap);
-        }
-    }
-
-    public static void populateColumnPositionsFromMapping(Map<String, Object> mapping, CompressedXContent mappingToReference) {
-        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true, XContentType.JSON).map();
-        populateColumnPositionsImpl(
-            Maps.getOrDefault(mapping, "default", mapping),
-            Maps.getOrDefault(parsedTemplateMapping, "default", parsedTemplateMapping)
-        );
-    }
 
     // template mappings must contain up-to-date and correct column positions that all relevant index mappings can reference.
     @VisibleForTesting

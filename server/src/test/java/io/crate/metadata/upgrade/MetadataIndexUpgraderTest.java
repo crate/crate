@@ -28,20 +28,15 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.VersionUtils;
 import org.junit.Test;
 
 import io.crate.Constants;
-import io.crate.metadata.RelationName;
 
 public class MetadataIndexUpgraderTest extends ESTestCase {
 
@@ -60,72 +55,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         assertThat("{\"default\":{}}").isEqualTo(newMappingMetadata.source().toString());
     }
 
-    @Test
-    public void test__all_is_removed_from_mapping() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
-            .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
-            .numberOfShards(1)
-            .numberOfReplicas(0)
-            .putMapping(
-                "{" +
-                "   \"_all\": {\"enabled\": false}," +
-                "   \"properties\": {" +
-                "       \"name\": {" +
-                "           \"type\": \"keyword\"" +
-                "       }" +
-                "   }" +
-                "}")
-            .build();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string()).isEqualTo(
-            "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
-    }
-
-    @Test
-    public void test__dropped_0_is_removed_from_mapping() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
-            .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
-            .numberOfShards(1)
-            .numberOfReplicas(0)
-            .putMapping(
-                "{" +
-                    "   \"_all\": {\"enabled\": false}," +
-                    "   \"properties\": {" +
-                    "       \"name\": {" +
-                    "           \"type\": \"keyword\"" +
-                    "       }," +
-                    "       \"_dropped_0\": {" +
-                    "       }" +
-                    "   }" +
-                    "}")
-            .build();
-
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string()).isEqualTo(
-            "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
-    }
-
-    @Test
-    public void test_mappingMetadata_set_to_null() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("blob", "b1").indexNameOrAlias())
-            .settings(Settings.builder().put("index.version.created", Version.V_4_7_0))
-            .numberOfShards(1)
-            .numberOfReplicas(0)
-            .putMapping((MappingMetadata) null) // here
-            .build();
-
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
-
-        assertThat(updatedMetadata.mapping()).isNull();
-    }
 
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
         // @formatter:off
@@ -149,23 +79,6 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         // @formatter:on
 
         return new CompressedXContent(BytesReference.bytes(builder));
-    }
-
-    @Test
-    public void test_copy_to_migrated_to_sources() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
-            .settings(Settings.builder().put("index.version.created", Version.V_5_3_0))
-            .numberOfShards(1)
-            .numberOfReplicas(0)
-            .putMapping(MappingConstants.FULLTEXT_MAPPING_5_3)
-            .build();
-
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string())
-            .isEqualTo(MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
     }
 
     @Test

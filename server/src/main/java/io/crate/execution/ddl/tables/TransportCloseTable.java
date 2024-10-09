@@ -66,7 +66,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.CountDown;
@@ -84,7 +83,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
@@ -159,7 +157,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             updatedState = currentState;
         } else {
             Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
+            // TODO: close
             updatedState = ClusterState.builder(currentState).metadata(metadata).build();
         }
 
@@ -235,17 +233,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             .metadata(metadata)
             .routingTable(routingTable.build())
             .build();
-    }
-
-    private static IndexTemplateMetadata closePartitionTemplate(IndexTemplateMetadata templateMetadata) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        return DDLClusterStateHelpers.updateTemplate(
-            templateMetadata,
-            metaMap,
-            Collections.emptyMap(),
-            Settings.EMPTY,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-        );
     }
 
     @Override

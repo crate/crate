@@ -48,7 +48,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -235,7 +234,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
-            MappingMetadata mappingMetadata = new MappingMetadata(template.mapping());
             for (String index : indicesToCreate) {
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
@@ -244,7 +242,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                         .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     );
 
-                indexMetadataBuilder.putMapping(mappingMetadata);
                 for (var aliasCursor : template.aliases().values()) {
                     indexMetadataBuilder.putAlias(aliasCursor.value);
                 }

@@ -22,7 +22,6 @@ package org.elasticsearch.cluster.metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -30,20 +29,14 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-
-import io.crate.Constants;
-import io.crate.common.collections.MapBuilder;
 
 public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {
 
@@ -73,25 +66,18 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
     private final Settings settings;
 
-    private final CompressedXContent mapping;
-
     private final ImmutableOpenMap<String, AliasMetadata> aliases;
 
     public IndexTemplateMetadata(String name, Integer version,
                                  List<String> patterns, Settings settings,
-                                 CompressedXContent mapping,
                                  ImmutableOpenMap<String, AliasMetadata> aliases) {
         if (patterns == null || patterns.isEmpty()) {
             throw new IllegalArgumentException("Index patterns must not be null or empty; got " + patterns);
-        }
-        if (mapping == null) {
-            throw new IllegalArgumentException("Template must have a mapping");
         }
         this.name = name;
         this.version = version;
         this.patterns = patterns;
         this.settings = settings;
-        this.mapping = mapping;
         this.aliases = aliases;
     }
 
@@ -112,10 +98,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         return this.settings;
     }
 
-    public CompressedXContent mapping() {
-        return this.mapping;
-    }
-
     public ImmutableOpenMap<String, AliasMetadata> aliases() {
         return this.aliases;
     }
@@ -131,7 +113,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         IndexTemplateMetadata that = (IndexTemplateMetadata) o;
 
-        if (!mapping.equals(that.mapping)) return false;
         if (!name.equals(that.name)) return false;
         if (!settings.equals(that.settings)) return false;
         if (!patterns.equals(that.patterns)) return false;
@@ -145,7 +126,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         result = 31 * result + Objects.hashCode(version);
         result = 31 * result + patterns.hashCode();
         result = 31 * result + settings.hashCode();
-        result = 31 * result + mapping.hashCode();
         return result;
     }
 
@@ -156,16 +136,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         }
         builder.patterns(in.readList(StreamInput::readString));
         builder.settings(Settings.readSettingsFromStream(in));
-        if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
-            builder.putMapping(CompressedXContent.readCompressedString(in));
-        } else {
-            int mappingsSize = in.readVInt();
-            assert mappingsSize <= 1 : "There was always a single `default` mapping";
-            for (int i = 0; i < mappingsSize; i++) {
-                in.readString(); // mappingType, was always "default"
-                builder.putMapping(CompressedXContent.readCompressedString(in));
-            }
-        }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
             AliasMetadata aliasMd = new AliasMetadata(in);
@@ -190,13 +160,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         }
         out.writeStringCollection(patterns);
         Settings.writeSettingsToStream(out, settings);
-        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
-            mapping.writeTo(out);
-        } else {
-            out.writeVInt(1);
-            out.writeString(Constants.DEFAULT_MAPPING_TYPE);
-            mapping.writeTo(out);
-        }
         out.writeVInt(aliases.size());
         for (ObjectCursor<AliasMetadata> cursor : aliases.values()) {
             cursor.value.writeTo(out);
@@ -217,8 +180,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         private Settings settings = Settings.EMPTY;
 
-        private CompressedXContent mapping;
-
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
 
         public Builder(String name) {
@@ -232,7 +193,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             patterns(indexTemplateMetadata.patterns());
             settings(indexTemplateMetadata.settings());
 
-            mapping = indexTemplateMetadata.mapping();
             aliases = ImmutableOpenMap.builder(indexTemplateMetadata.aliases());
         }
 
@@ -246,7 +206,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             return this;
         }
 
-
         public Builder settings(Settings.Builder settings) {
             this.settings = settings.build();
             return this;
@@ -254,18 +213,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         public Builder settings(Settings settings) {
             this.settings = settings;
-            return this;
-        }
-
-        public Builder putMapping(CompressedXContent mappingSource) {
-            if (mappingSource != null) {
-                mapping = mappingSource;
-            }
-            return this;
-        }
-
-        public Builder putMapping(String mappingSource) throws IOException {
-            mapping = new CompressedXContent(mappingSource);
             return this;
         }
 
@@ -280,7 +227,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         }
 
         public IndexTemplateMetadata build() {
-            return new IndexTemplateMetadata(name, version, indexPatterns, settings, mapping, aliases.build());
+            return new IndexTemplateMetadata(name, version, indexPatterns, settings, aliases.build());
         }
 
         public static IndexTemplateMetadata fromXContent(XContentParser parser, String templateName) throws IOException {
@@ -302,10 +249,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                             if (token == XContentParser.Token.FIELD_NAME) {
                                 currentFieldName = parser.currentName();
                             } else if (token == XContentParser.Token.START_OBJECT) {
-                                String mappingType = currentFieldName;
-                                Map<String, Object> mappingSource =
-                                    MapBuilder.<String, Object>newMapBuilder().put(mappingType, parser.mapOrdered()).map();
-                                builder.putMapping(Strings.toString(JsonXContent.builder().map(mappingSource)));
+                                parser.mapOrdered(); // mapping
                             }
                         }
                     } else if ("aliases".equals(currentFieldName)) {
@@ -318,15 +262,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 } else if (token == XContentParser.Token.START_ARRAY) {
                     if ("mappings".equals(currentFieldName)) {
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            Map<String, Object> mapping = parser.mapOrdered();
-                            if (mapping.size() == 1) {
-                                String mappingSource = Strings.toString(JsonXContent.builder().map(mapping));
-                                if (mappingSource == null) {
-                                    // crap, no mapping source, warn?
-                                } else {
-                                    builder.putMapping(mappingSource);
-                                }
-                            }
+                            parser.mapOrdered(); // mapping
                         }
                     } else if ("index_patterns".equals(currentFieldName)) {
                         List<String> index_patterns = new ArrayList<>();

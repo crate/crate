@@ -21,7 +21,11 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
+
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -34,10 +38,7 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
+import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 
 
 public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {
@@ -84,11 +85,6 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
             final String indexName = openIndexMetadata.getIndex().getName();
             mdBuilder.put(IndexMetadata.builder(openIndexMetadata).state(IndexMetadata.State.CLOSE));
             blocksBuilder.addIndexBlock(indexName, INDEX_CLOSED_BLOCK);
-        }
-
-        // mark closed at possible partitioned table template
-        if (templateMetadata != null) {
-            mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetadata, false));
         }
 
         // The Metadata will always be overridden (and not merged!) when applying it on a cluster state builder.

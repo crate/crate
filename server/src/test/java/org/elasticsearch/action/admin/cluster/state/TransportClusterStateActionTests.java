@@ -53,7 +53,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())
                 .put(IndexTemplateMetadata.builder("template1")
                     .patterns(List.of("*"))
-                    .putMapping("{\"default\": {}}")
                     .build())
                 .put(IndexMetadata.builder("index1")
                          .settings(settings(Version.CURRENT))

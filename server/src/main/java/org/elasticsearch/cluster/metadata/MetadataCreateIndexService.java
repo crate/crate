@@ -84,8 +84,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.CreateTableRequest;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
@@ -300,13 +298,7 @@ public class MetadataCreateIndexService {
             assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
             final Index recoverFromIndex = request.recoverFrom();
-            MappingMetadata mapping;
-            if (recoverFromIndex == null) {
-                mapping = new MappingMetadata(Map.of());
-            } else {
-                IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                mapping = sourceMetadata.mapping();
-            }
+            // TODO: recoverFromIndex mapping
 
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
@@ -400,7 +392,6 @@ public class MetadataCreateIndexService {
                     Metadata.builder(currentState.metadata()),
                     request.index(),
                     tmpImd,
-                    mapping,
                     request.aliases(),
                     routingNumShards
                 );
@@ -650,7 +641,8 @@ public class MetadataCreateIndexService {
 
     public ClusterState add(ClusterState currentState,
                             CreateTableRequest request,
-                            Settings settings) throws IOException {
+                            Settings settings,
+                            String indexUUID) throws IOException {
         RelationName tableName = request.getTableName();
         String indexName = tableName.indexNameOrAlias();
 
@@ -659,20 +651,9 @@ public class MetadataCreateIndexService {
         shardLimitValidator.validateShardLimit(settings, currentState);
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
-            request.pkConstraintName(),
-            DocReferences.applyOid(request.references(), metadataBuilder.columnOidSupplier()),
-            request.pKeyIndices(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
-        )));
-
         Settings.Builder indexSettingsBuilder = Settings.builder()
             .put(settings)
-            .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+            .put(SETTING_INDEX_UUID, indexUUID)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         final Settings idxSettings = indexSettingsBuilder.build();
@@ -708,7 +689,6 @@ public class MetadataCreateIndexService {
                 metadataBuilder,
                 indexName,
                 tmpImd,
-                mapping,
                 List.of(),
                 routingNumShards
             );
@@ -723,14 +703,12 @@ public class MetadataCreateIndexService {
                                          Metadata.Builder metadataBuilder,
                                          String indexName,
                                          IndexMetadata tmpImd,
-                                         MappingMetadata mapping,
                                          Iterable<Alias> aliases,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
-            .state(State.OPEN)
-            .putMapping(mapping);
+            .state(State.OPEN);
 
         for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
             indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));

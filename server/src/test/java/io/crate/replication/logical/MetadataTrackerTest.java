@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -86,7 +85,6 @@ public class MetadataTrackerTest extends ESTestCase {
 
         public Builder addTable(String name, Map<String, Object> mapping, Settings settings) throws IOException {
             var indexMetadata = IndexMetadata.builder(name)
-                .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -108,7 +106,6 @@ public class MetadataTrackerTest extends ESTestCase {
             Map<String, Object> mapping = Map.of();
             Settings settings = Settings.EMPTY;
             var indexMetadata = IndexMetadata.builder(partition)
-                .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -144,7 +141,6 @@ public class MetadataTrackerTest extends ESTestCase {
                 .builder(templateName)
                 .patterns(Collections.singletonList(PartitionName.templatePrefix(relation.schema(), relation.name())))
                 .putAlias(new AliasMetadata(relation.indexNameOrAlias()))
-                .putMapping("{\"default\": {}}")
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -163,7 +159,6 @@ public class MetadataTrackerTest extends ESTestCase {
         public Builder updateTableMapping(String name, Map<String, Object> newMapping) throws IOException {
             var indexMetadata = clusterState.metadata().index(name);
             var newIndexMetadata = IndexMetadata.builder(indexMetadata)
-                .putMapping(new MappingMetadata(newMapping))
                 .mappingVersion(2L)
                 .build();
             clusterState = ClusterState.builder(clusterState)
@@ -295,7 +290,6 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         var updatedPublisherMetadata = updatedPublisherClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.mapping()).isEqualTo(updatedPublisherMetadata.mapping());
     }
 
     @Test
