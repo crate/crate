@@ -537,10 +537,7 @@ error::
 
 .. rubric:: Error handling
 
-In general, every bulk operation item will be executed, independent if one of
-the other operations fails. However, there are two kinds of errors that will be
-handled differently, depending on in which of the query execution phases they
-are determined.
+In general, each bulk operation item will be executed independently, unless an error is detected during the analysis phase, in which case no operations will be executed. There are two kinds of errors that are handled differently depending on the query execution phase in which they are encountered:
 
 1. **Analysis:** When the bulk operation statement is invalid (syntax error,
    wrong values for one of the rows to insert, etc.), which can be identified
