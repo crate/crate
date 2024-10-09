@@ -36,13 +36,13 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.Uid;
 
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Base {@link StoredFieldVisitor} that retrieves all non-redundant metadata.
  */
 public class FieldsVisitor extends StoredFieldVisitor {
-    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(DocSysColumns.Names.ID);
+    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(SysColumns.Names.ID);
 
     private final boolean loadSource;
     private final String sourceFieldName;
@@ -52,7 +52,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     protected Map<String, List<Object>> fieldsValues;
 
     public FieldsVisitor(boolean loadSource) {
-        this(loadSource, DocSysColumns.Source.NAME);
+        this(loadSource, SysColumns.Source.NAME);
     }
 
     public FieldsVisitor(boolean loadSource, String sourceFieldName) {
@@ -78,7 +78,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         if (sourceFieldName.equals(fieldInfo.name)) {
             source = new BytesArray(value);
-        } else if (DocSysColumns.Names.ID.equals(fieldInfo.name)) {
+        } else if (SysColumns.Names.ID.equals(fieldInfo.name)) {
             id = Uid.decodeId(value);
         } else {
             addValue(fieldInfo.name, new BytesRef(value));

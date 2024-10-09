@@ -54,7 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.Constants;
-import io.crate.session.Cursors;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.BoundCreateTable;
@@ -79,6 +78,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.server.xcontent.XContentHelper;
+import io.crate.session.Cursors;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -1623,9 +1623,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = newTable(metadata, "test");
 
         ObjectType objectType = (ObjectType) table.getReference(ColumnIdent.of("object")).valueType();
-        assertThat(objectType.resolveInnerType(List.of("nestedString"))).isEqualTo(DataTypes.STRING);
-        assertThat(objectType.resolveInnerType(List.of("nestedObject")).id()).isEqualTo(ObjectType.ID);
-        assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString"))).isEqualTo(DataTypes.STRING);
+        assertThat(objectType.innerType(List.of("nestedString"))).isEqualTo(DataTypes.STRING);
+        assertThat(objectType.innerType(List.of("nestedObject")).id()).isEqualTo(ObjectType.ID);
+        assertThat(objectType.innerType(List.of("nestedObject", "nestedNestedString"))).isEqualTo(DataTypes.STRING);
     }
 
     @Test

@@ -158,6 +158,7 @@ public class Session implements AutoCloseable {
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final Runnable onClose;
+    private final int tempErrorRetryCount;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
@@ -173,7 +174,8 @@ public class Session implements AutoCloseable {
                    boolean isReadOnly,
                    DependencyCarrier executor,
                    CoordinatorSessionSettings sessionSettings,
-                   Runnable onClose) {
+                   Runnable onClose,
+                   int tempErrorRetryCount) {
         this.id = sessionId;
         this.connectionProperties = connectionProperties;
         this.timeCreated = System.currentTimeMillis();
@@ -185,6 +187,7 @@ public class Session implements AutoCloseable {
         this.executor = executor;
         this.sessionSettings = sessionSettings;
         this.onClose = onClose;
+        this.tempErrorRetryCount = tempErrorRetryCount;
     }
 
     public int id() {
@@ -259,6 +262,7 @@ public class Session implements AutoCloseable {
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
+                tempErrorRetryCount,
                 executor.clusterService(),
                 // not using planner.currentClusterState().metadata()::hasIndex to make sure the *current*
                 // clusterState at the time of the index check is used
@@ -767,6 +771,7 @@ public class Session implements AutoCloseable {
         }
         if (!analyzedStmt.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
+                tempErrorRetryCount,
                 executor.clusterService(),
                 indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,

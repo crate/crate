@@ -127,8 +127,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
@@ -318,7 +318,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                           IndexShard shard,
                                                           Version minNodeVersion,
                                                           List<Literal<?>> optionalParams) throws Exception {
-        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes);
+        // Make sure optional parameters do not become references
+        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes.subList(0, argumentTypes.size() - optionalParams.size()));
         inputs.addAll(optionalParams);
         var aggregation = new Aggregation(
             signature,
@@ -417,7 +418,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
             IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
             ParsedDocument parsedDoc = indexer.index(item);
-            Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
+            Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             Engine.Index index = new Engine.Index(
                 uid,
                 parsedDoc,

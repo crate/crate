@@ -185,6 +185,19 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
     }
 
     @Test
+    public void test_numeric_value_streaming_does_not_loose_scale() throws IOException {
+        BigDecimal expected = BigDecimal.valueOf(1234, 2);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        NumericType.INSTANCE.writeValueTo(out, expected);
+
+        StreamInput in = out.bytes().streamInput();
+        BigDecimal actual = NumericType.INSTANCE.readValueFrom(in);
+
+        assertThat(expected).isEqualTo(actual);
+    }
+
+    @Test
     public void test_unscaled_numeric_serialization_round_trip() throws IOException {
         var out = new BytesStreamOutput();
         DataTypes.toStream(NumericType.INSTANCE, out);

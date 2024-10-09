@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -188,7 +189,9 @@ public class IpType extends DataType<String> implements Streamer<String> {
 
     @Override
     public int compare(String val1, String val2) {
-        return val1.compareTo(val2);
+        byte[] ip1 = InetAddresses.ipStringToBytes(val1);
+        byte[] ip2 = InetAddresses.ipStringToBytes(val2);
+        return Arrays.compareUnsigned(ip1, ip2);
     }
 
     @Override

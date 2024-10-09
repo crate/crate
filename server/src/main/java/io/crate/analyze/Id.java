@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 
 public class Id {
@@ -93,7 +93,7 @@ public class Id {
      */
     public static Function<List<String>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();
-        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID.COLUMN)) {
+        if (numPks == 1 && getOnlyElement(pkColumns).equals(SysColumns.ID.COLUMN)) {
             return RANDOM_ID;
         }
         int idx = -1;

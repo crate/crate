@@ -31,7 +31,7 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class GeoPointIndexer implements ValueIndexer<Point> {
 
@@ -53,9 +53,9 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
             docBuilder.addField(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
         } else {
             docBuilder.addField(new Field(
-                DocSysColumns.FieldNames.NAME,
+                SysColumns.FieldNames.NAME,
                 name,
-                DocSysColumns.FieldNames.FIELD_TYPE));
+                SysColumns.FieldNames.FIELD_TYPE));
         }
         docBuilder.translogWriter().startArray();
         docBuilder.translogWriter().writeValue(point.getX());

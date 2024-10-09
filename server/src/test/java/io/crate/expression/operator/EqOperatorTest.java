@@ -35,7 +35,7 @@ import org.junit.Test;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.lucene.GenericFunctionQuery;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
@@ -144,7 +144,7 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_terms_query_on__id_encodes_ids() throws Exception {
-        String idName = DocSysColumns.ID.COLUMN.name();
+        String idName = SysColumns.ID.COLUMN.name();
         Query query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
         query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);

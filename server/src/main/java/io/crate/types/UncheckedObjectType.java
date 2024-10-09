@@ -42,11 +42,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
 
     public static final String NAME = "unchecked_object";
 
-    public static UncheckedObjectType untyped() {
-        return new UncheckedObjectType();
-    }
-
-    UncheckedObjectType() {
+    private UncheckedObjectType() {
     }
 
     @Override

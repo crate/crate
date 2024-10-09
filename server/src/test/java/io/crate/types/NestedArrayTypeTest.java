@@ -70,7 +70,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     public void test_reference_resolver_docvalues_off() throws Exception {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
-                GeoPointType.INSTANCE, GeoShapeType.INSTANCE, NullArrayType.INSTANCE)
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
         );
         DataType<List<List<Object>>> type = new ArrayType<>(new ArrayType<>(randomType));
         String definition = type.getTypeSignature().toString() + " STORAGE WITH (columnstore=false)";
@@ -82,7 +82,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     public void test_reference_resolver_index_and_docvalues_off() throws Exception {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
-                GeoPointType.INSTANCE, GeoShapeType.INSTANCE, NullArrayType.INSTANCE)
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
         );
         DataType<List<List<Object>>> type = new ArrayType<>(new ArrayType<>(randomType));
         String definition = type.getTypeSignature().toString() + " INDEX OFF STORAGE WITH (columnstore=false)";

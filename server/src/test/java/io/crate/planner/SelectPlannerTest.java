@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -1230,8 +1229,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             Eval[unnest, sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
               └ WindowAgg[unnest, power(unnest, 2.0), sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
                 └ Eval[unnest, power(unnest, 2.0)]
-                  └ Rename[unnest] AS t
-                    └ TableFunction[unnest | [unnest] | true]
+                  └ Rename[unnest, unnest] AS t
+                    └ TableFunction[unnest | [unnest, unnest] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }

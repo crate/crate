@@ -44,8 +44,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
@@ -166,7 +166,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         DocTableInfo table = getTable("test");
         assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
-        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        assertThat(table.primaryKey()).containsExactly(SysColumns.ID.COLUMN);
         Reference col1 = table.getReference(ColumnIdent.of("col1"));
         assertThat(col1)
             .isExactlyInstanceOf(GeoReference.class)
@@ -184,7 +184,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
         DocTableInfo table = getTable("test");
         assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
-        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        assertThat(table.primaryKey()).containsExactly(SysColumns.ID.COLUMN);
         assertThat(table.getReference(ColumnIdent.of("id"))).hasPosition(1).hasOid(1).hasType(DataTypes.INTEGER);
 
         assertThat(table.getReference(ColumnIdent.of("col1")))
@@ -210,7 +210,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (col1 geo_shape)");
         DocTableInfo table = getTable("test");
         assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
-        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        assertThat(table.primaryKey()).containsExactly(SysColumns.ID.COLUMN);
         Reference col1 = table.getReference(ColumnIdent.of("col1"));
         assertThat(col1)
             .isExactlyInstanceOf(GeoReference.class)

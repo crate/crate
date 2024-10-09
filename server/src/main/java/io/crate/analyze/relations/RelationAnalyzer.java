@@ -823,7 +823,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 var cellType = cell.valueType();
                 if (r > 0 // skip first cell, we don't have to check for self-conversion
                     && !cellType.isConvertableTo(targetType, false)
-                    && targetType.id() != DataTypes.UNDEFINED.id()) {
+                    && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
                     throw new IllegalArgumentException(
                         "The types of the columns within VALUES lists must match. " +
                         "Found `" + targetType + "` and `" + cellType + "` at position: " + c);

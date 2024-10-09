@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Visitor to change a _doc reference into a regular column reference.
@@ -95,14 +95,14 @@ public final class DocReferences {
         if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
             && condition.test(reference)) {
             return reference.withReferenceIdent(
-                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.Names.DOC)));
+                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(SysColumns.Names.DOC)));
         }
         return reference;
     }
 
     public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
-        if (!column.isRoot() && column.name().equals(DocSysColumns.Names.DOC)) {
+        if (!column.isRoot() && column.name().equals(SysColumns.Names.DOC)) {
             return ref.withReferenceIdent(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
         }
         return ref;

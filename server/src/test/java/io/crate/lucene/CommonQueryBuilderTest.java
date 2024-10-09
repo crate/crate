@@ -811,4 +811,13 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("(obj_no_sub_columns != {})");
         assertThat(query).hasToString("+(+*:* -(obj_no_sub_columns = {})) #(NOT (obj_no_sub_columns = {}))");
     }
+
+    @Test
+    public void test_in_operator_with_arrays_on_both_lhs_and_rhs() {
+        Query query = convert("(string_array in (['hello', 'world']))");
+        assertThat(query).hasToString("+string_array:(hello world) #(string_array = ANY([['hello', 'world']]))");
+
+        query = convert("(['hello', 'world'] in (string_array))");
+        assertThat(query).hasToString("(['hello', 'world'] = ANY([string_array]))");
+    }
 }

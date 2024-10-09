@@ -20,6 +20,7 @@
 package org.elasticsearch.index.translog;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
@@ -129,7 +130,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 @LuceneTestCase.SuppressFileSystems("ExtrasFS")
 public class TranslogTests extends ESTestCase {
@@ -2940,7 +2941,7 @@ public class TranslogTests extends ESTestCase {
         seqID.seqNo.setLongValue(randomSeqNum);
         seqID.seqNoDocValue.setLongValue(randomSeqNum);
         seqID.primaryTerm.setLongValue(randomPrimaryTerm);
-        Field idField = new Field(DocSysColumns.ID.COLUMN.name(), Uid.encodeId("1"), DocSysColumns.ID.FIELD_TYPE);
+        Field idField = new Field(SysColumns.ID.COLUMN.name(), Uid.encodeId("1"), SysColumns.ID.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 1);
         Document document = new Document();
         document.add(new TextField("value", "test", Field.Store.YES));

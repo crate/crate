@@ -63,7 +63,7 @@ import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupOperation {
@@ -84,7 +84,7 @@ public final class PKLookupOperation {
                                 long seqNo,
                                 long primaryTerm,
                                 StoredRowLookup storedRowLookup) {
-        Term uidTerm = new Term(DocSysColumns.Names.ID, Uid.encodeId(id));
+        Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
             .versionType(versionType)

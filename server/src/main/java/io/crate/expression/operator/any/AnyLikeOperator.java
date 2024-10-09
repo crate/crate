@@ -21,13 +21,10 @@
 
 package io.crate.expression.operator.any;
 
-
-import java.util.List;
-
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
@@ -66,7 +63,14 @@ public final class AnyLikeOperator extends AnyOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
         String fqn = probe.storageIdent();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();

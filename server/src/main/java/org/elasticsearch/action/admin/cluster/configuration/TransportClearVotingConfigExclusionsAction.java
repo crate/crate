@@ -19,6 +19,9 @@
 
 package org.elasticsearch.action.admin.cluster.configuration;
 
+import java.io.IOException;
+import java.util.function.Predicate;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -36,13 +39,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 public class TransportClearVotingConfigExclusionsAction
     extends TransportMasterNodeAction<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
@@ -85,7 +86,7 @@ public class TransportClearVotingConfigExclusionsAction
         if (request.getWaitForRemoval() && allExclusionsRemoved.test(initialState) == false) {
             final ClusterStateObserver clusterStateObserver = new ClusterStateObserver(
                 initialState,
-                clusterService,
+                clusterService.getClusterApplierService(),
                 request.getTimeout(),
                 logger);
 

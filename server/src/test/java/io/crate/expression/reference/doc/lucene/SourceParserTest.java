@@ -308,7 +308,7 @@ public class SourceParserTest extends ESTestCase {
                     }
                     """
             ));
-        assertThat(result).isEqualTo(Map.of("obj", Map.of("x", List.of(List.of("1", "2"), List.of("3", "4")))));
+        assertThat(result).isEqualTo(Map.of("obj", Map.of("x", List.of(List.of(1, 2), List.of(3, 4)))));
     }
 
     @Test

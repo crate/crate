@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -42,7 +43,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
@@ -109,7 +110,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference) node.toCollect().getFirst();
 
-        assertThat(nameRef.column().name()).isEqualTo(DocSysColumns.DOC.name());
+        assertThat(nameRef.column().name()).isEqualTo(SysColumns.DOC.name());
         assertThat(nameRef.column().path().getFirst()).isEqualTo("name");
     }
 

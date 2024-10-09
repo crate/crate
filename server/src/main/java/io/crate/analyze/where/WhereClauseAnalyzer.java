@@ -61,7 +61,7 @@ public class WhereClauseAnalyzer {
                                                 CoordinatorTxnCtx coordinatorTxnCtx,
                                                 NodeContext nodeCtx,
                                                 Metadata metadata) {
-        if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation) || where.query().equals(Literal.BOOLEAN_TRUE)) {
+        if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation) || Literal.BOOLEAN_TRUE.equals(where.query())) {
             return where;
         }
         DocTableInfo table = ((DocTableRelation) tableRelation).tableInfo();
@@ -190,7 +190,7 @@ public class WhereClauseAnalyzer {
         for (Map.Entry<Symbol, List<Literal<?>>> entry : queryPartitionMap.entrySet()) {
             Symbol query = entry.getKey();
             List<Literal<?>> partitions = entry.getValue();
-            Symbol normalized = normalizer.normalize(ScalarsAndRefsToTrue.rewrite(query), coordinatorTxnCtx);
+            Symbol normalized = normalizer.normalize(ScalarsAndRefsToTrue.rewrite(normalizer, coordinatorTxnCtx, query), coordinatorTxnCtx);
             assert normalized instanceof Literal :
                 "after normalization and replacing all reference occurrences with true there must only be a literal left";
 

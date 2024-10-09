@@ -247,6 +247,46 @@ are likely to be larger due to additional metadata.
          defining a column to not use the column store or by :ref:`turning off indexing
          <sql_ddl_index_off>`.
 
+Precedence and type conversion
+------------------------------
+
+When expressions of different data types are combined by operators or scalars,
+the data type with the lower precedence is converted to the data type
+with the higher precedence. If an implicit conversion between the types isn't
+supported, an error is returned.
+
+The following precedence order is used for data types (highest to lowest):
+
+1. Custom (complex) types (currently: :ref:`bitstring <data-types-bit-strings>`,
+   :ref:`float_vector <type-float_vector>`) (highest)
+2. :ref:`GEO_SHAPE <data-types-geo-shape>`
+3. :ref:`JSON <data-type-json>`
+4. :ref:`OBJECT <data-types-objects>`
+5. :ref:`GEO_POINT <data-types-geo-point>`
+6. ``Record`` (internal type, return type of
+   :ref:`table functions <table-functions>`)
+7. :ref:`Array <data-types-arrays>`
+8. :ref:`Numeric <data-types-numeric>`
+9. :ref:`Double precision <type-double-precision>`
+10. :ref:`Real <type-real>`
+11. :ref:`IP <data-types-ip-addresses>`
+12. :ref:`Bigint <type-bigint>`
+13. :ref:`Timestamp without time zone <type-timestamp-without-tz>`
+14. :ref:`Timestamp with time zone <type-timestamp-with-tz>`
+15. :ref:`Date <type-date>`
+16. :ref:`Interval <type-interval>`
+17. :ref:`Regclass <type-regclass>`
+18. :ref:`Regproc <type-regproc>`
+19. :ref:`Integer <type-integer>`
+20. :ref:`Time with time zone <type-time>`
+21. :ref:`Smallint <type-smallint>`
+22. :ref:`Boolean <type-boolean>`
+23. :ref:`"Char" <type-char>`
+24. :ref:`Text <type-text>`
+25. :ref:`Character <data-type-character>`
+26. :ref:`NULL <type-null>` (lowest)
+
+
 .. _data-types-primitive:
 
 Primitive types

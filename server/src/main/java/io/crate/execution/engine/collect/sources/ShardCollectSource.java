@@ -99,7 +99,7 @@ import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataType;
@@ -396,7 +396,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
             // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
             // and the reader required in the fetchPhase would be missing.
-            if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+            if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.FETCHID)) {
                 throw Exceptions.toRuntimeException(err);
             }
             assert collectTask.completionFuture().isDone() == false : "Cannot resume a collect task that is completed";

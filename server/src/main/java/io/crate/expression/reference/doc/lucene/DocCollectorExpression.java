@@ -26,7 +26,7 @@ import java.util.Map;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
@@ -56,8 +56,8 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {
-        assert reference.column().name().equals(DocSysColumns.DOC.name()) :
-            "column name must be " + DocSysColumns.DOC.name();
+        assert reference.column().name().equals(SysColumns.DOC.name()) :
+            "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
             return new DocCollectorExpression();
         }
