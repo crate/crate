@@ -34,8 +34,6 @@ public class GeoHashUtils {
         '7', '8', '9', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'm', 'n',
         'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
-    private static final String BASE_32_STRING = new String(BASE_32);
-
     /** maximum precision for geohash strings */
     public static final int PRECISION = 12;
     /** number of bits used for quantizing latitude and longitude values */
@@ -64,92 +62,18 @@ public class GeoHashUtils {
     }
 
     /**
-     * Encode to a geohash string from the geohash based long format
-     */
-    public static String stringEncode(long geoHashLong) {
-        int level = (int) geoHashLong & 15;
-        geoHashLong >>>= 4;
-        char[] chars = new char[level];
-        do {
-            chars[--level] = BASE_32[(int) (geoHashLong & 31L)];
-            geoHashLong >>>= 5;
-        } while (level > 0);
-
-        return new String(chars);
-    }
-
-    /**
      * Encode to a geohash string from full resolution longitude, latitude)
      */
     public static final String stringEncode(final double lon, final double lat) {
-        return stringEncode(lon, lat, 12);
-    }
-
-    /**
-     * Encode to a level specific geohash string from full resolution longitude, latitude
-     */
-    public static final String stringEncode(final double lon, final double lat, final int level) {
-        // convert to geohashlong
-        final long ghLong = fromMorton(encodeLatLon(lat, lon), level);
-        return stringEncode(ghLong);
-
-    }
-
-    private static char encode(int x, int y) {
-        return BASE_32[((x & 1) + ((y & 1) * 2) + ((x & 2) * 2) + ((y & 2) * 4) + ((x & 4) * 4)) % 32];
-    }
-
-    /**
-     * Calculate the geohash of a neighbor of a geohash
-     *
-     * @param geohash the geohash of a cell
-     * @param level   level of the geohash
-     * @param dx      delta of the first grid coordinate (must be -1, 0 or +1)
-     * @param dy      delta of the second grid coordinate (must be -1, 0 or +1)
-     * @return geohash of the defined cell
-     */
-    public static final String neighbor(String geohash, int level, int dx, int dy) {
-        int cell = BASE_32_STRING.indexOf(geohash.charAt(level - 1));
-
-        // Decoding the Geohash bit pattern to determine grid coordinates
-        int x0 = cell & 1;  // first bit of x
-        int y0 = cell & 2;  // first bit of y
-        int x1 = cell & 4;  // second bit of x
-        int y1 = cell & 8;  // second bit of y
-        int x2 = cell & 16; // third bit of x
-
-        // combine the bitpattern to grid coordinates.
-        // note that the semantics of x and y are swapping
-        // on each level
-        int x = x0 + (x1 / 2) + (x2 / 4);
-        int y = (y0 / 2) + (y1 / 4);
-
-        if (level == 1) {
-            // Root cells at north (namely "bcfguvyz") or at
-            // south (namely "0145hjnp") do not have neighbors
-            // in north/south direction
-            if ((dy < 0 && y == 0) || (dy > 0 && y == 3)) {
-                return null;
-            } else {
-                return Character.toString(encode(x + dx, y + dy));
-            }
-        } else {
-            // define grid coordinates for next level
-            final int nx = ((level % 2) == 1) ? (x + dx) : (x + dy);
-            final int ny = ((level % 2) == 1) ? (y + dy) : (y + dx);
-
-            // if the defined neighbor has the same parent a the current cell
-            // encode the cell directly. Otherwise find the cell next to this
-            // cell recursively. Since encoding wraps around within a cell
-            // it can be encoded here.
-            // xLimit and YLimit must always be respectively 7 and 3
-            // since x and y semantics are swapping on each level.
-            if (nx >= 0 && nx <= 7 && ny >= 0 && ny <= 3) {
-                return geohash.substring(0, level - 1) + encode(nx, ny);
-            } else {
-                String neighbor = neighbor(geohash, level - 1, dx, dy);
-                return (neighbor != null) ? neighbor + encode(nx, ny) : neighbor;
-            }
-        }
+        int level = 12;
+        long ghLong = fromMorton(encodeLatLon(lat, lon), level);
+        int level1 = (int) ghLong & 15;
+        ghLong >>>= 4;
+        char[] chars = new char[level1];
+        do {
+            chars[--level1] = BASE_32[(int) (ghLong & 31L)];
+            ghLong >>>= 5;
+        } while (level1 > 0);
+        return new String(chars);
     }
 }
