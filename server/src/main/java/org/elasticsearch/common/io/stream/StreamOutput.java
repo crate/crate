@@ -49,9 +49,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
 import org.apache.lucene.index.IndexFormatTooOldException;
@@ -63,13 +60,15 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 import org.joda.time.ReadableInstant;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.sql.tree.BitString;
@@ -692,10 +691,7 @@ public abstract class StreamOutput extends OutputStream {
             o.writeByte((byte) 21);
             o.writeBytesRef((BytesRef) v);
         }),
-        Map.entry(GeoPoint.class, (o, v) -> {
-            o.writeByte((byte) 22);
-            o.writeGeoPoint((GeoPoint) v);
-        }),
+        // 22 was GeoPoint
         Map.entry(ZonedDateTime.class, (o, v) -> {
             o.writeByte((byte) 23);
             final ZonedDateTime zonedDateTime = (ZonedDateTime) v;
@@ -1025,14 +1021,6 @@ public abstract class StreamOutput extends OutputStream {
             writeBoolean(true);
             writeNamedWriteable(namedWriteable);
         }
-    }
-
-    /**
-     * Writes the given {@link GeoPoint} to the stream
-     */
-    public void writeGeoPoint(GeoPoint geoPoint) throws IOException {
-        writeDouble(geoPoint.lat());
-        writeDouble(geoPoint.lon());
     }
 
     /**
