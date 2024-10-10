@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -249,6 +248,34 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
         assertThat(execute("select geo from tbl")).hasRows(
             "{coordinates=[10, 20], type=point}"
+        );
+    }
+
+    @Test
+    public void test_polygon_can_be_used_as_generated_column() {
+        // Dynamic nested array is currently not supported, declaring coordinates array upfront.
+        execute("""
+            create table tbl
+            (
+                o object as (
+                    o1 object as (coordinates ARRAY(ARRAY(ARRAY(DOUBLE))), type string),
+                    geo as o['o1']::geo_shape
+               )
+            )
+            """
+        );
+        List<List<List<Double>>> coords = List.of(
+            List.of(List.of(0.0, 0.0), List.of(1.0, 0.0), List.of(1.0, 1.0), List.of(0.0, 0.0))
+        );
+        execute(
+            "insert into tbl (o) values (?)",
+            new Object[] {
+                Map.of("o1", Map.of("coordinates", coords, "type", "Polygon"))
+            }
+        );
+        execute("refresh table tbl");
+        assertThat(execute("select o['geo'] from tbl")).hasRows(
+            "{coordinates=[[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]], type=Polygon}"
         );
     }
 }
