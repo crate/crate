@@ -120,16 +120,6 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
 
     @Test
-    public void testCompareValueTo() throws Exception {
-        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
-        Map<String, Object> val2 = type.implicitCast("POINT (10 10)");
-
-        assertThat(type.compare(val1, val2)).isEqualTo(1);
-        assertThat(type.compare(val2, val1)).isEqualTo(-1);
-        assertThat(type.compare(val2, val2)).isEqualTo(0);
-    }
-
-    @Test
     public void testInvalidStringValueCausesIllegalArgumentException() throws Exception {
         assertThatThrownBy(() -> type.implicitCast("foobar"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -222,6 +212,13 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(424);
         assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1320);
         assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(880);
+    }
+
+    @Test
+    public void test_check_equality() throws Exception {
+        for (Map<String, Object> json: geoJson) {
+            assertThat(type.compare(json, json)).isEqualTo(0);
+        }
     }
 }
 

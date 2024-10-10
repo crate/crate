@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
@@ -124,14 +123,13 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     public int compare(Map<String, Object> val1, Map<String, Object> val2) {
-        // TODO: compare without converting to shape
-        Shape shape1 = GeoJSONUtils.map2Shape(val1);
-        Shape shape2 = GeoJSONUtils.map2Shape(val2);
-        return switch (shape1.relate(shape2)) {
-            case WITHIN -> -1;
-            case CONTAINS -> 1;
-            default -> Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
-        };
+        if (val1.equals(val2)) {
+            return 0;
+        } else {
+            // Order is undefined for GEO SHAPES, returning arbitrary value.
+            // TODO: Add a method to the DataType indicating comparison support and use it instead of SemanticSortValidator.SUPPORTED_TYPES.
+            return 1;
+        }
     }
 
     @Override
