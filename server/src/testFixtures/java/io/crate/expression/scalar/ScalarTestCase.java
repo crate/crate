@@ -105,7 +105,8 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  float_val real," +
             "  short_val smallint," +
             "  obj object," +
-            "  obj_ignored object(ignored)" +
+            "  obj_ignored object(ignored)," +
+            "  numeric_val numeric(3, 1)" +
             ")";
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(

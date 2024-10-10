@@ -24,10 +24,13 @@ package io.crate.expression.operator;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.types.NumericType;
 
 public class CmpOperatorTest extends ScalarTestCase {
 
@@ -55,6 +58,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
         assertEvaluateNull("null <= null");
+        assertNormalize("numeric_val <= 1.23::numeric(4,3)",
+            isFunction("op_<=", List.of(new NumericType(3, 1), new NumericType(4, 3))));
     }
 
     @Test
@@ -77,6 +82,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
         assertEvaluateNull("null < null");
+        assertNormalize("numeric_val < 1.23::numeric(4,3)",
+            isFunction("op_<", List.of(new NumericType(3, 1), new NumericType(4, 3))));
     }
 
     @Test
@@ -96,6 +103,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null >= 1");
         assertEvaluateNull("null >= 'abc'");
         assertEvaluateNull("null >= null");
+        assertNormalize("numeric_val >= 1.23::numeric(4,3)",
+            isFunction("op_>=", List.of(new NumericType(3, 1), new NumericType(4, 3))));
     }
 
     @Test
@@ -112,6 +121,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null > 1");
         assertEvaluateNull("name > null", Literal.of("foo"));
         assertEvaluateNull("null > null");
+        assertNormalize("numeric_val > 1.23::numeric(4,3)",
+            isFunction("op_>", List.of(new NumericType(3, 1), new NumericType(4, 3))));
     }
 
     @Test
