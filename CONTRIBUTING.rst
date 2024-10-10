@@ -65,11 +65,16 @@ like and don't like about CrateDB.
 Pull Requests
 =============
 
-Before we can accept any pull requests, we need you to agree to our Contributor License Agreement (CLA).
-If you are contributing as an individual, you must sign an Individual Contributor License Agreement (ICLA_). 
-If you are contributing as an employee of a company and the company wants to allow you to contribute your work, then the representative of your company must sign a Corporate Contributor License Agreement (CCLA_). 
-Note: a CCLA does not remove the need for you to sign you own ICLA as an individual, to cover both contributions which are owned and those that are not owned by the company signing the CCLA.
+Before we can accept any pull requests, we need you to agree to our Contributor
+License Agreement (CLA). If you are contributing as an individual, you must sign
+an Individual Contributor License Agreement (ICLA_). If you are contributing as
+an employee of a company and the company wants to allow you to contribute your
+work, then the representative of your company must sign a Corporate Contributor
+License Agreement (CCLA_).
 
+Note: a CCLA does not remove the need for you to sign you own ICLA as an
+individual, to cover both contributions which are owned and those that are not
+owned by the company signing the CCLA.
 
 
 Once that is complete, you should:
