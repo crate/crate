@@ -298,12 +298,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        NumericType that = (NumericType) o;
-        return Objects.equals(scale, that.scale) &&
-               Objects.equals(precision, that.precision);
+        return super.equals(o);
     }
 
     @Override
