@@ -47,6 +47,10 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause users and roles to loose irrelevant
+  privileges, like: ``Administration Language (AL)``, when a table or a view
+  is dropped.
+
 - Improved the memory accounting for values of type ``geo_shape`` to avoid
   running into out of memory errors or higher than expected GC load when running
   queries like ``INSERT INTO ... (query)``.
