@@ -221,7 +221,7 @@ public class CastFunctionTest extends ScalarTestCase {
                 geoShapes.get(0),
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
-                    GeoJSONUtils.COORDINATES_FIELD, new Double[]{2.0, 3.0})
+                    GeoJSONUtils.COORDINATES_FIELD, new double[]{2.0, 3.0})
             )).isEqualTo(0);
     }
 

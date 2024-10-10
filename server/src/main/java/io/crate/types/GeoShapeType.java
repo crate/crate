@@ -35,6 +35,7 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Maps;
 import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.geo.GeoJSONUtils;
@@ -123,7 +124,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     public int compare(Map<String, Object> val1, Map<String, Object> val2) {
-        if (val1.equals(val2)) {
+        if (Maps.equals(val1, val2)) {
             return 0;
         } else {
             // Order is undefined for GEO SHAPES, returning arbitrary value.
