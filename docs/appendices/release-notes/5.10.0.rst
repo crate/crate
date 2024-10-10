@@ -93,4 +93,5 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Added node settings for the :ref:`jwt_defaults` allowing to provide global
+  values for the :ref:`JWT properties <create-user-jwt>`.
