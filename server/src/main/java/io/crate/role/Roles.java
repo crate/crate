@@ -78,7 +78,8 @@ public interface Roles {
     }
 
     /**
-     * Finds a user by given predicate
+     * Finds a user by given predicate.
+     * Can match exactly 1 user.
      */
     @Nullable
     default Role findUser(Predicate<Role> predicate) {
@@ -86,7 +87,6 @@ public interface Roles {
             if (role.isUser() && predicate.test(role)) {
                 return role;
             }
-
         }
         return null;
     }

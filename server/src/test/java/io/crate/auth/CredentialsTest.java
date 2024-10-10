@@ -21,14 +21,23 @@
 
 package io.crate.auth;
 
+import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
+import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.auth.RsaKeys.PRIVATE_KEY_256;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
@@ -36,6 +45,9 @@ import org.junit.Test;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+
+import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class CredentialsTest extends ESTestCase {
 
@@ -80,5 +92,39 @@ public class CredentialsTest extends ESTestCase {
         assertThatThrownBy(() -> new Credentials(jwt))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The JWT token must contain a 'username' claim");
+    }
+
+    @Test
+    public void test_match_by_jwt_properties() {
+        Role userWithoutJWTProps = userOf(
+            "db_user",
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("pwd")
+        );
+        Roles roles = () -> List.of(userWithoutJWTProps, JWT_USER);
+        try (Credentials credentials = new Credentials(JWT_TOKEN)) {
+            Predicate<Role> predicate = credentials.matchByToken(true);
+            Role user = roles.findUser(predicate);
+            assertThat(user).isNotNull();
+            assertThat(user.name()).isEqualTo(JWT_USER.name());
+        }
+    }
+
+    @Test
+    public void test_match_by_jwt_username_claim() {
+        Role userWithoutJWTProps = userOf(
+            "cloud_user", // Name encoded in the JWT_TOKEN.
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("pwd")
+        );
+        Roles roles = () -> List.of(userWithoutJWTProps, JWT_USER);
+        try (Credentials credentials = new Credentials(JWT_TOKEN)) {
+            Predicate<Role> predicate = credentials.matchByToken(false);
+            Role user = roles.findUser(predicate);
+            assertThat(user).isNotNull();
+            assertThat(user.name()).isEqualTo("cloud_user");
+        }
     }
 }

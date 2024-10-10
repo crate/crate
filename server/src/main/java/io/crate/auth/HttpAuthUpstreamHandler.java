@@ -21,6 +21,7 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.protocols.SSL.getSession;
 import static io.netty.buffer.Unpooled.copiedBuffer;
 
@@ -72,6 +73,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private final Authentication authService;
     private final Settings settings;
+    private final boolean checkJwtProperties;
 
     private final Roles roles;
     private String authorizedUser = null;
@@ -80,6 +82,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         // do not auto-release reference counted messages which are just in transit here
         super(false);
         this.settings = settings;
+        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
         this.authService = authService;
         this.roles = roles;
     }
@@ -101,7 +104,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         SSLSession session = getSession(ctx.channel());
         Credentials credentials = credentialsFromRequest(request, session, settings);
 
-        Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+        Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
         if (rolePredicate != null) {
             Role role = roles.findUser(rolePredicate);
             if (role != null) {

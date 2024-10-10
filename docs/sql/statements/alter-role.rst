@@ -69,6 +69,11 @@ are supported to alter an existing user account:
 
   ``NULL`` removes the JWT properties from the user.
 
+.. WARNING::
+
+    If :ref:`auth.host_based.jwt.iss <auth.host_based.jwt.iss>` is set,
+    user specific properties are ignored and :ref:`jwt_defaults` are used.
+
 .. NOTE::
 
    ``jwt = {...}`` overrides existing jwt properties. If an optional property
