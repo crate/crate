@@ -175,10 +175,4 @@ public class EqOperatorTest extends ScalarTestCase {
             );
         }
     }
-
-    @Test
-    public void test_normalize_numeric_eq_numeric_with_inconsistent_scale_and_precision() {
-        assertNormalize("1.1::numeric(3,1) = 1.11::numeric(3,2)", isLiteral(false));
-        assertNormalize("1.1::numeric(3,1) = 1.11::numeric", isLiteral(false));
-    }
 }

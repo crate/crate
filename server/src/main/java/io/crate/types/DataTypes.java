@@ -637,15 +637,6 @@ public final class DataTypes {
             type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
         } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
             type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
-        } else if (leftType.id() == NumericType.ID && rightType.id() == NumericType.ID) {
-            Integer leftScale = ((NumericType) leftType).scale();
-            Integer rightScale = ((NumericType) rightType).scale();
-            Integer leftPrecision = leftType.numericPrecision();
-            Integer rightPrecision = rightType.numericPrecision();
-
-            Integer mergedScale = (leftScale == null || rightScale == null) ? null : Math.max(leftScale, rightScale);
-            Integer mergedPrecision = (leftPrecision == null || rightPrecision == null) ? null : Math.max(leftPrecision, rightPrecision);
-            type = new NumericType(mergedPrecision, mergedScale);
         } else {
             if (leftType.precedes(rightType)) {
                 if (rightType.isConvertableTo(leftType, false)) {
