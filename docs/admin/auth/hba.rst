@@ -166,6 +166,10 @@ superuser) can authenticate to CrateDB from any IP address using the
    Thus, if HBA entry has username with uppercase symbols, use ``CREATE USER``
    with quotes.
 
+.. WARNING::
+
+    User configuration takes precedence over :ref:`default JWT values <external_auth>`.
+
 
 .. _admin_hba_user:
 

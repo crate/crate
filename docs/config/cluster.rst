@@ -30,6 +30,30 @@ in the configuration of each node in the cluster.
    exactly the same on every node in the cluster for proper operation of the
    cluster.
 
+External Authentication
+-----------------------
+
+.. _external_auth:
+
+Default settings for the :ref:`JWT authentication <auth_jwt>`.
+If JWT properties are not provided by the :ref:`CREATE USER <create-user-jwt>`
+statement, default values are used.
+CrateDB username is dictated by the 'username' property of a JWT token.
+
+.. _external_auth.jwt.iss:
+
+**external_auth.jwt.iss**
+  | *Runtime:* ``no``
+
+  Default value for the ``iss`` `:ref:`JWT property <create-user-jwt>`.
+
+.. _external_auth.jwt.aud:
+
+**external_auth.jwt.aud**
+  | *Runtime:* ``no``
+
+  Default value for the ``aud`` :ref:`JWT property <create-user-jwt>`.
+
 .. _conf_collecting_stats:
 
 Collecting stats
