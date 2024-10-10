@@ -47,6 +47,12 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused an error when the same filter expression was applied
+  multiple times in an aggregation on an aliased table e.g.::
+      
+      SELECT alias.a ,MAX(b) FILTER (WHERE c>0) ,MAX(c) FILTER (WHERE c>0)
+      FROM tbl alias GROUP BY alias.a
+
 - Fixed an issue that would cause users and roles to loose irrelevant
   privileges, like: ``Administration Language (AL)``, when a table or a view
   is dropped.
