@@ -89,10 +89,12 @@ public class IndexDocumentBuilder {
 
     /**
      * Checks column constraints are all met for a given column and value
+     * @param noValue indicates that value is not coming from a user but a generated one.
+     * If value is generated, we can skip CheckGeneratedValue verification in order not to compare value with itself.
      */
-    public void checkColumnConstraint(ColumnIdent columnIdent, Object value) {
+    public void checkColumnConstraint(ColumnIdent columnIdent, Object value, boolean noValue) {
         Indexer.ColumnConstraint constraint = constraints.get(columnIdent);
-        if (constraint != null) {
+        if (constraint != null && (noValue && constraint instanceof Indexer.CheckGeneratedValue) == false) {
             constraint.verify(value);
         }
     }

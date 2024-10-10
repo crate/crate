@@ -1390,6 +1390,25 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
     }
 
+    @Test
+    public void test_not_null_constraint_is_verified_if_value_is_not_provided() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (obj object as (x int NOT NULL))");
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(ColumnIdent.of("obj"));
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(x),
+            null
+        );
+        assertThatThrownBy(() -> indexer.index(item(Map.of())))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContainingAll("obj['x']\" must not be null");
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
         TranslogIndexer ti = new TranslogIndexer(info);
         ParsedDocument d = ti.index(doc.id(), doc.source());

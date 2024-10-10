@@ -95,12 +95,14 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             String innerName = entry.getKey();
             Child child = entry.getValue();
             Object innerValue = null;
+            boolean noValue = false;
             if (value.containsKey(innerName) == false) {
+                noValue = true;
                 innerValue = docBuilder.getSyntheticValue(child.ident());
             } else {
                 innerValue = value.get(innerName);
             }
-            docBuilder.checkColumnConstraint(child.ident(), innerValue);
+            docBuilder.checkColumnConstraint(child.ident(), innerValue, noValue);
             if (innerValue == null) {
                 continue;
             }

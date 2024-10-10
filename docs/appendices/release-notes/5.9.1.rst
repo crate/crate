@@ -58,3 +58,6 @@ Fixes
 - Fixed a regression introduced in 5.8.4 leading to a rejection of writes into
   a column of the ``OBJECT(IGNORED)`` type if it had an array sub-column with
   mixed types.
+
+- Fixed an issue that caused write operations to fail if a table contained
+  generated ``geo_shape`` sub-column with ``Polygon`` or ``MultiPolygon`` type.
