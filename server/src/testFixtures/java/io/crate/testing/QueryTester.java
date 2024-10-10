@@ -240,6 +240,10 @@ public final class QueryTester implements AutoCloseable {
 
     public List<Object> runQuery(String resultColumn, String expression, Object ... params) throws Exception {
         Query query = toQuery(expression, params);
+        return runQuery(resultColumn, query);
+    }
+
+    public List<Object> runQuery(String resultColumn, Query query) throws Exception {
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
         return batchIterator
             .map(row -> row.get(0))
