@@ -129,8 +129,6 @@ These *features* of `standard SQL`_ are not supported:
 
 - Triggers
 
-  - ``WITH`` Queries (Common Table Expressions)
-
 - Sequences
 
 - Inheritance
