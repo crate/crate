@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -49,6 +50,40 @@ public final class Maps {
         result.putAll(m1);
         result.putAll(m2);
         return Collections.unmodifiableMap(result);
+    }
+
+    /**
+     * Similar to {@link java.util.AbstractMap#equals(Object)}}
+     * but compares nested arrays by values instead of relying on default Array implementation comparing by reference.
+     */
+    public static boolean equals(Map<?, ?> m1, Map<?, ?> m2) {
+        if (m1 == m2) {
+            return true;
+        }
+
+        if (m1.size() != m2.size()) {
+            return false;
+        }
+
+        try {
+            for (Map.Entry<?, ?> e : m1.entrySet()) {
+                var key = e.getKey();
+                var value = e.getValue();
+                var value2 = m2.get(key);
+                if (value == null) {
+                    if (!(value2 == null && m2.containsKey(key)))
+                        return false;
+                } else {
+                    // Compares arrays by values.
+                    if (!Objects.deepEquals(value, value2)) {
+                        return false;
+                    }
+                }
+            }
+        } catch (ClassCastException | NullPointerException unused) {
+            return false;
+        }
+        return true;
     }
 
 
