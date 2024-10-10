@@ -321,4 +321,116 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasHTTPError(NOT_FOUND, 4041)
             .hasMessageContaining("Relation 't' unknown");
     }
+
+    @Test
+    public void test_information_schema_roles_tables() {
+        executeAs("CREATE ROLE role1", GRANTOR_USER);
+        executeAs("CREATE ROLE role2", GRANTOR_USER);
+        executeAs("CREATE ROLE role3", GRANTOR_USER);
+        executeAs("GRANT role3 TO role2", GRANTOR_USER);
+        executeAs("GRANT role2 TO role1", GRANTOR_USER);
+        executeAs("GRANT role1 TO " + GRANTOR_USER, GRANTOR_USER);
+
+        executeAs("SELECT grantee, role_name, is_grantable FROM information_schema.applicable_roles ORDER BY 2, 3", GRANTOR_USER);
+        assertThat(response).hasRows(
+            "the_grantor| role1| false",
+            "the_grantor| role1| true",
+            "role1| role2| false",
+            "the_grantor| role2| true",
+            "role2| role3| false",
+            "the_grantor| role3| true"
+        );
+
+        executeAs("SELECT grantee, role_name, is_grantable FROM information_schema.administrable_role_authorizations ORDER BY 2, 3", GRANTOR_USER);
+        assertThat(response).hasRows(
+            "the_grantor| role1| true",
+            "the_grantor| role2| true",
+            "the_grantor| role3| true"
+        );
+
+        executeAs("SELECT role_name FROM information_schema.enabled_roles ORDER BY 1", GRANTOR_USER);
+        assertThat(response).hasRows(
+            "role1",
+            "role2",
+            "role3",
+            "the_grantor"
+        );
+    }
+
+    @Test
+    public void test_information_schema_role_table_grants() {
+        execute("CREATE USER user1");
+        execute("CREATE ROLE role1");
+        execute("CREATE ROLE role2");
+        execute("CREATE TABLE public_schema.t1 (id int)");
+        execute("CREATE TABLE my_schema.t2 (id int)");
+        execute("CREATE TABLE public_schema.t3 (id int)");
+        execute("CREATE TABLE public_schema.t4 (id int)");
+        execute("CREATE VIEW public_schema.view1 AS (SELECT id FROM public_schema.t3)");
+
+        execute("GRANT ALL ON TABLE public_schema.t1 TO " + GRANTOR_USER);
+        execute("GRANT ALL ON SCHEMA my_schema TO " + GRANTOR_USER);
+
+        execute("GRANT DML ON TABLE public_schema.t4 TO role2");
+        execute("GRANT role2 TO role1");
+        execute("GRANT role1 TO user1");
+
+        executeAs("GRANT DQL, DML ON TABLE public_schema.t1 TO user1", GRANTOR_USER);
+        // Same privilege than inherited from role2, must occur twice in the result (aligns with PostgreSQL behavior)
+        execute("GRANT DML ON TABLE public_schema.t4 TO user1");
+
+        execute("GRANT DQL ON VIEW public_schema.view1 TO user1");
+        execute("GRANT DQL ON VIEW public_schema.view1 TO " + GRANTOR_USER);
+
+        executeAs(
+            "SELECT " +
+                "grantor, grantee, table_catalog, table_schema, table_name, privilege_type, is_grantable, with_hierarchy " +
+                "FROM information_schema.role_table_grants " +
+                "ORDER BY table_schema, table_name, privilege_type",
+            GRANTOR_USER
+        );
+        assertThat(response).hasRows(
+            "crate| the_grantor| crate| my_schema| t2| AL| true| false",
+            "crate| the_grantor| crate| my_schema| t2| DDL| true| false",
+            "crate| the_grantor| crate| my_schema| t2| DML| true| false",
+            "crate| the_grantor| crate| my_schema| t2| DQL| true| false",
+            "crate| the_grantor| crate| public_schema| t1| AL| true| false",
+            "crate| the_grantor| crate| public_schema| t1| DDL| true| false",
+            "crate| the_grantor| crate| public_schema| t1| DML| true| false",
+            "crate| the_grantor| crate| public_schema| t1| DQL| true| false",
+            "crate| the_grantor| crate| public_schema| view1| DQL| true| false"
+        );
+
+        executeAs(
+            "SELECT " +
+                "grantor, grantee, table_catalog, table_schema, table_name, privilege_type, is_grantable, with_hierarchy " +
+                "FROM information_schema.role_table_grants " +
+                "ORDER BY table_schema, table_name, privilege_type",
+            "user1"
+        );
+        assertThat(response).hasRows(
+            "the_grantor| user1| crate| public_schema| t1| DML| false| false",
+            "the_grantor| user1| crate| public_schema| t1| DQL| false| false",
+            "crate| user1| crate| public_schema| t4| DML| false| false",
+            "crate| role2| crate| public_schema| t4| DML| false| false",
+            "crate| user1| crate| public_schema| view1| DQL| false| false"
+        );
+
+
+        // Explicit DENY on a table should make any other grants on the table ineffective
+        execute("DENY ALL ON TABLE public_schema.t4 TO user1");
+
+        executeAs(
+            "SELECT " +
+                "grantor, grantee, table_catalog, table_schema, table_name, privilege_type, is_grantable, with_hierarchy " +
+                "FROM information_schema.role_table_grants " +
+                "ORDER BY table_schema, table_name, privilege_type",
+            "user1"
+        );
+        assertThat(response).hasRows(
+            "the_grantor| user1| crate| public_schema| t1| DML| false| false",
+            "the_grantor| user1| crate| public_schema| t1| DQL| false| false",
+            "crate| user1| crate| public_schema| view1| DQL| false| false"
+        );
+    }
 }
