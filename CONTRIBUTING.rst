@@ -62,6 +62,22 @@ incredibly valuable as well. Please `get in touch`_ with us to tell us what you
 like and don't like about CrateDB.
 
 
+Issue assignments
+=================
+
+In general, we will not assign issues to community contributors. If you'd like
+to work on an issue you can just state it with a comment, so it's visible to
+everyone that you have started working on it, but this shouldn't block any other
+potential contributor to work on the same issue. If there are multiple pull
+requests opened, we will try to choose the one that is in a better shape. The
+reasoning behind this approach, is that we have experienced the case that people
+get assigned to an issue without any progress for very long time periods, while
+"blocking" other potential contributors from working on that issue.
+
+Note: Of course you're always welcome to ask questions on the issue that would
+help you to progress with the implementation.
+
+
 Pull Requests
 =============
 
