@@ -63,7 +63,7 @@ public class GeoJSONUtils {
     static final String GEOMETRIES_FIELD = "geometries";
 
     // GEO JSON Types
-    static final String GEOMETRY_COLLECTION = "GeometryCollection";
+    public static final String GEOMETRY_COLLECTION = "GeometryCollection";
     public static final String POINT = "Point";
     private static final String MULTI_POINT = "MultiPoint";
     public static final String LINE_STRING = "LineString";
@@ -153,6 +153,60 @@ public class GeoJSONUtils {
 
     public static Object map2LuceneShape(Map<String, Object> geoJSONMap) {
         return geoJSONString2ShapeBuilder(geoJSONMap).buildLucene();
+    }
+
+    /**
+     * @return 0 if shapes are topologically equal and 1 otherwise.
+     * This method doesn't do any validation and assumes that Maps represent correct geo shapes.
+     *
+     * When comparing geometries collections, order of geometries is important,
+     * ie collection(point1, point2) != collection(point2, point1).
+     * Each shape pair inside a GeometryCollection is equal if shapes are topologically equal.
+     *
+     * See https://postgis.net/docs/ST_Equals.html for topological equality reference.
+     */
+    @SuppressWarnings("unchecked")
+    public static int compare(Map<String, Object> val1, Map<String, Object> val2) {
+        Object type1 = val1.get(TYPE_FIELD);
+        Object type2 = val2.get(TYPE_FIELD);
+        assert type1 != null && type2 != null : "Shapes must be valid"; // implicitCast and sanitizeValue validate provided values.
+        if (type1.equals(type2) == false) {
+            return 1;
+        }
+
+        int result = 0;
+        if (GEOMETRY_COLLECTION.equals(type1)) {
+            // Both shapes are valid geometries collections.
+            Object geometries1 = val1.get(GeoJSONUtils.GEOMETRIES_FIELD);
+            Object geometries2 = val2.get(GeoJSONUtils.GEOMETRIES_FIELD);
+            assert geometries1 instanceof Collection : " Geometries must be a collection";
+            assert geometries2 instanceof Collection : " Geometries must be a collection";
+            Collection<?> geoms1 = (Collection<?>) geometries1;
+            Collection<?> geoms2 = (Collection<?>) geometries2;
+            if (geoms1.size() != geoms2.size()) {
+                return 1;
+            }
+            Iterator<?> it1 = geoms1.iterator();
+            Iterator<?> it2 = geoms2.iterator();
+            while (it1.hasNext()) {
+                Object value1 = it1.next();
+                Object value2 = it2.next();
+                assert value1 instanceof Map : "Shapes must be valid";
+                assert value2 instanceof Map : "Shapes must be valid";
+                if (compare((Map<String, Object>) value1, (Map<String, Object>) value2) != 0) {
+                    result = 1;
+                    break;
+                }
+            }
+        } else {
+            Shape shape1 = GeoJSONUtils.map2Shape(val1);
+            Shape shape2 = GeoJSONUtils.map2Shape(val2);
+            if (shape1.equals(shape2) == false && shape1.relate(shape2) != shape2.relate(shape1)) {
+                // Neither exact equality nor topological.
+                result = 1;
+            }
+        }
+        return result;
     }
 
     /*
