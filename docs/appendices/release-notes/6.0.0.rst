@@ -80,6 +80,11 @@ SQL Standard and PostgreSQL Compatibility
 - Added support for lower case format patterns to the
   :ref:`to_char <scalar-to_char>` scalar function.
 
+- Added the :ref:`information_schema.applicable_roles <applicable_roles>`,
+  :ref:`information_schema.enabled_roles <enabled_roles>`,
+  :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
+  and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
+
 Data Types
 ----------
 

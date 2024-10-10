@@ -325,6 +325,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
     }
 
+    @Nullable
+    public SchemaInfo getSchemaInfo(String schemaName) {
+        return schemas.get(schemaName);
+    }
+
     private SchemaInfo getSchemaInfo(RelationName ident) {
         String schemaName = ident.schema();
         SchemaInfo schemaInfo = schemas.get(schemaName);
@@ -509,14 +514,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             throw new RelationUnknown(viewName);
         }
         return new View(name, metadata);
-    }
-
-    /**
-     * Performs a lookup to see if a view with the relationName exists.
-     */
-    public boolean viewExists(RelationName relationName) {
-        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-        return views != null && views.getView(relationName) != null;
     }
 
     @Nullable
