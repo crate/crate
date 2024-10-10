@@ -28,6 +28,7 @@ import static java.util.stream.StreamSupport.stream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -80,6 +81,9 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.GrantedRole;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
@@ -412,6 +416,20 @@ public class InformationSchemaIterables implements ClusterStateListener {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
             metadata.custom(UserDefinedFunctionsMetadata.TYPE));
         routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
+    }
+
+    public Set<String> enabledRoles(Role role, Roles roles) {
+        Set<String> enabledRoles = new HashSet<>();
+        for (GrantedRole grantedRole: role.grantedRoles()) {
+            enabledRoles.add(grantedRole.roleName());
+            Role retrievedRole = roles.findRole(grantedRole.roleName());
+            if (retrievedRole != null) {
+                if (!retrievedRole.grantedRoles().isEmpty()) {
+                    enabledRoles.addAll(enabledRoles(retrievedRole, roles));
+                }
+            }
+        }
+        return enabledRoles;
     }
 
     /**
