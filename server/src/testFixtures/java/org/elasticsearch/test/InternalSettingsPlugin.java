@@ -18,24 +18,23 @@
  */
 package org.elasticsearch.test;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
 public final class InternalSettingsPlugin extends Plugin {
 
-    public static final Setting<String> PROVIDED_NAME_SETTING =
-        Setting.simpleString("index.provided_name",Property.IndexScope, Property.NodeScope);
     public static final Setting<Boolean> MERGE_ENABLED =
         Setting.boolSetting("index.merge.enabled", true, Property.IndexScope, Property.NodeScope);
     public static final Setting<Long> INDEX_CREATION_DATE_SETTING =
@@ -51,7 +50,6 @@ public final class InternalSettingsPlugin extends Plugin {
         return Arrays.asList(
                 MERGE_ENABLED,
                 INDEX_CREATION_DATE_SETTING,
-                PROVIDED_NAME_SETTING,
                 TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING,
                 IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
                 IndexModule.INDEX_QUERY_CACHE_EVERYTHING_SETTING,
