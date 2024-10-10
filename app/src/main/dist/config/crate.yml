@@ -107,6 +107,17 @@ auth:
 #  trust:
 #    http_default_user: dustin
 
+#///////////////////////// External Authentication //////////////////////////////
+
+# Default values for JWT properties.
+# If a user is created without specifying JWT properties, default values are used.
+# CrateDB username is dictated by the 'username' property of a JWT token.
+#external_auth:
+#  jwt:
+#    iss: https://example.com
+#    aud: test_aud
+
+
 #///////////////////////// User Defined Functions ////////////////////////////
 
 # To disable Javascript language for user defined functions, you can set it as

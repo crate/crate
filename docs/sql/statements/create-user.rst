@@ -97,6 +97,10 @@ The following ``user_parameter`` are supported to define a new user account:
 
   Combination of ``iss`` and ``username`` must be unique.
 
+  If JWT properties are not provided, values for ``iss`` and ``aud`` are taken
+  from the :ref:`Cluster Level JWT configuration <external_auth>`.
+  ``username`` in this case is not needed as CrateDB user must coincide with JWT token's ``username`` property.
+
 .. SEEALSO::
 
   :ref:`auth_jwt`

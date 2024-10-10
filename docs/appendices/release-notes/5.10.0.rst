@@ -84,4 +84,6 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Added support for the :ref:`Cluster Level JWT configuration <external_auth>`
+  allowing to provide default values for some of the
+  :ref:`JWT properties <create-user-jwt>`.

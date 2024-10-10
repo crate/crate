@@ -137,6 +137,11 @@ Token must contain the following claims:
 ``CREATE USER`` statement, the cluster id is used and must match the token's
 ``aud`` value. See :ref:`create-user-jwt` for details.
 
+For users, created without JWT properties,
+ref:`default JWT values <external_auth>` are used.
+``iss`` and ``aud`` must match default values.
+``username`` field defines CrateDB user.
+
 It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the
 header. If it's provided, the token's expiration date will be checked against
 the local system's time in UTC.

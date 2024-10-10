@@ -68,6 +68,7 @@ are supported to alter an existing user account:
   New JWT properties must not coincide with JWT properties of another user.
 
   ``NULL`` removes the JWT properties from the user.
+  :ref:`default JWT values <external_auth>` are used for the user without JWT properties.
 
 .. NOTE::
 
