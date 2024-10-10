@@ -120,16 +120,6 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
 
     @Test
-    public void testCompareValueTo() throws Exception {
-        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
-        Map<String, Object> val2 = type.implicitCast("POINT (10 10)");
-
-        assertThat(type.compare(val1, val2)).isEqualTo(1);
-        assertThat(type.compare(val2, val1)).isEqualTo(-1);
-        assertThat(type.compare(val2, val2)).isEqualTo(0);
-    }
-
-    @Test
     public void testInvalidStringValueCausesIllegalArgumentException() throws Exception {
         assertThatThrownBy(() -> type.implicitCast("foobar"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -222,6 +212,125 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(424);
         assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1320);
         assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(880);
+    }
+
+    @Test
+    public void test_check_equality_with_itself() throws Exception {
+        for (Map<String, Object> json: geoJson) {
+            assertThat(type.compare(json, json)).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void test_check_topological_equality() throws Exception {
+        // Both shapes have the same point set.
+        // They are not equal exactly but they equal topologically.
+        Map<String, Object> shape1 = type.implicitCast("polygon (( 0 0, 1 0, 1 1, 0 1, 0 0))");
+        Map<String, Object> shape2 = type.implicitCast("polygon (( 1 0, 1 1, 0 1, 0 0, 1 0))");
+        assertThat(type.compare(shape1, shape2)).isEqualTo(0);
+        assertThat(type.compare(shape2, shape1)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_geometry_collections_with_same_shapes_in_different_order_are_not_equal() throws Exception {
+        Map<String, Object> collection1 = parse(
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "type": "Point",
+                        "coordinates": [100.0, 0.0]
+                    },
+                    {
+                        "type": "LineString",
+                        "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+                    }
+                ]
+            }
+            """
+        );
+        Map<String, Object> collection2 = parse(
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "type": "LineString",
+                        "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+                    },
+                    {
+                        "type": "Point",
+                        "coordinates": [100.0, 0.0]
+                    }
+                ]
+            }
+            """
+        );
+        assertThat(type.compare(collection1, collection2)).isEqualTo(1);
+        assertThat(type.compare(collection2, collection1)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_check_equality_of_collections_of_different_sizes() throws Exception {
+        Map<String, Object> collection1 = parse(
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "type": "Point",
+                        "coordinates": [100.0, 0.0]
+                    },
+                    {
+                        "type": "LineString",
+                        "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+                    }
+                ]
+            }
+            """
+        );
+        Map<String, Object> collection2 = parse(
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "type": "Point",
+                        "coordinates": [100.0, 0.0]
+                    },
+                    {
+                        "type": "LineString",
+                        "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+                    },
+                    {
+                        "type": "LineString",
+                        "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+                    }
+                ]
+            }
+            """
+        );
+        assertThat(type.compare(collection1, collection2)).isEqualTo(1);
+        assertThat(type.compare(collection2, collection1)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_check_equality_of_shapes_of_same_type_with_different_coordinates_sizes() throws Exception {
+        Map<String, Object> shape1 = parse("""
+            {
+                "type": "LineString",
+                "coordinates": [[101.0, 0.0], [102.0, 1.0]]
+            }
+            """);
+        Map<String, Object> shape2 = parse("""
+            {
+                "type": "LineString",
+                "coordinates": [[101.0, 0.0], [102.0, 1.0], [103.0, 1.0]]
+            }
+            """);
+        assertThat(type.compare(shape1, shape2)).isEqualTo(1);
+        assertThat(type.compare(shape2, shape1)).isEqualTo(1);
     }
 }
 
