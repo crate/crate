@@ -148,7 +148,7 @@ public class Role implements Writeable, ToXContent {
             this(in.readBoolean(),
                  in.readOptionalWriteable(SecureHash::readFrom),
                  in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null,
-                 in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : null
+                 in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : Map.of()
             );
         }
 
