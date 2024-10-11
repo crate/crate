@@ -62,3 +62,6 @@ Fixes
 - Fixed an issue resulting in different (and partly wrong)
   ``sys.allocations.decisions`` results when querying the table on different
   nodes.
+
+- Fixed a BWC issue resulting in an exception when querying the ``sys.users``
+  table on an older node (< :ref:`version_5.9.0`) during a rolling upgrade.
