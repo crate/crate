@@ -21,11 +21,16 @@
 
 package io.crate.role;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -89,5 +94,27 @@ public class RolePropertiesTest {
         assertThatThrownBy(() -> Role.Properties.of(true, false, properties, sessionSettingRegistry))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'invalid_property' is not supported");
+    }
+
+    @Test
+    public void test_bwc_streaming() throws Exception {
+        var properties = new Role.Properties(
+            true,
+            SecureHash.of(new SecureString("foo".toCharArray())),
+            new JwtProperties("iss", "username", "aud"),
+            Map.of("key", "value")
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        properties.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_6_0);
+
+        Role.Properties actual = new Role.Properties(in);
+        assertThat(actual.login()).isEqualTo(properties.login());
+        assertThat(actual.password()).isEqualTo(properties.password());
+        assertThat(actual.jwtProperties()).isNull();
+        assertThat(actual.sessionSettings()).isEqualTo(Map.of());
     }
 }
