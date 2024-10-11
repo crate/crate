@@ -213,6 +213,7 @@ public class ScalarFunctions implements FunctionsProvider {
         ArrayPrependFunction.register(builder);
         ArrayUnnestFunction.register(builder);
         ArraySetFunction.register(builder);
+        ArrayOverlapFunction.register(builder);
 
         CoalesceFunction.register(builder);
         GreatestFunction.register(builder);

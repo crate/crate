@@ -2015,6 +2015,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitOverlap(SqlBaseParser.OverlapContext context) {
+        return new FunctionCall(
+            QualifiedName.of("array_overlap"),
+            List.of((Expression) visit(context.left), (Expression) visit(context.right))
+        );
+    }
+
+    @Override
     public Node visitOver(SqlBaseParser.OverContext context) {
         return visit(context.windowDefinition());
     }

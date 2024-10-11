@@ -160,4 +160,22 @@ The operator returns ``NULL`` if:
 - No comparison returns ``false`` and at least one right-hand value is ``NULL``
 
 
+.. _array_overlap_operator:
+
+``array expression && array expression``
+----------------------------------------
+
+Syntax:
+
+.. code-block:: sql
+
+    array_expression && array_expression
+
+The ``&&`` :ref:`operator <gloss-operator>` returns ``true`` if the two arrays
+have at least one element in common.
+If one of the argument is ``NULL`` the result is ``NULL``.
+
+This operator is an alias to the :ref:`scalar-array_overlap` function.
+
+
 .. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)

@@ -88,6 +88,9 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for the :ref:`array_overlap<scalar-array_overlap>` scalar
+  function and the associated :ref:`&&<array_overlap_operator>` operator.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
