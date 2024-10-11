@@ -38,6 +38,11 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
+    public void test_default_length() {
+        assertThat(CharacterType.INSTANCE.lengthLimit()).isEqualTo(1);
+    }
+
+    @Test
     public void test_value_for_insert_adds_blank_padding() {
         assertThat(CharacterType.of(5).valueForInsert("a")).isEqualTo("a    ");
     }
@@ -48,8 +53,8 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
     }
 
     @Test
-    public void test_default_length() {
-        assertThat(CharacterType.INSTANCE.lengthLimit()).isEqualTo(1);
+    public void test_explicit_cast_adds_blank_padding() {
+        assertThat(CharacterType.of(5).explicitCast("a", SESSION_SETTINGS)).isEqualTo("a    ");
     }
 
     @Test
@@ -58,5 +63,13 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
         assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS)).isEqualTo("t");
         assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS)).isEqualTo("1");
         assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS)).isEqualTo("-");
+    }
+
+    @Test
+    public void test_implicit_cast_truncates_overflow_chars() {
+        assertThat(CharacterType.of(1).implicitCast("foo")).isEqualTo("f");
+        assertThat(CharacterType.of(1).implicitCast(true)).isEqualTo("t");
+        assertThat(CharacterType.of(1).implicitCast(12)).isEqualTo("1");
+        assertThat(CharacterType.of(1).implicitCast(-12)).isEqualTo("-");
     }
 }

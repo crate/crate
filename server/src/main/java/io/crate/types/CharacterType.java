@@ -121,11 +121,7 @@ public class CharacterType extends StringType {
 
     @Override
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        var s = cast(value);
-        if (s != null) {
-            return padEnd(s, lengthLimit, ' ');
-        }
-        return s;
+        return explicitCast(value, null);
     }
 
     @Override
@@ -134,10 +130,10 @@ public class CharacterType extends StringType {
             return null;
         }
         var string = cast(value);
-        if (string.length() <= lengthLimit()) {
-            return string;
+        if (string.length() <= lengthLimit) {
+            return padEnd(string, lengthLimit, ' ');
         } else {
-            return string.substring(0, lengthLimit());
+            return string.substring(0, lengthLimit);
         }
     }
 

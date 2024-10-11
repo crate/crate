@@ -47,6 +47,10 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would lead to wrong results being returned when trying to
+  match a column of type :ref:`CHAR<type-char>` with string literals in the
+  ``WHERE`` clause.
+
 - Fixed an issue that would cause users and roles to loose irrelevant
   privileges, like: ``Administration Language (AL)``, when a table or a view
   is dropped.

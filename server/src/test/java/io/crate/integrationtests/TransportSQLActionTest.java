@@ -2029,11 +2029,11 @@ public class TransportSQLActionTest extends IntegTestCase {
     @Test
     public void test_can_insert_and_select_character_arrays() throws Exception {
         execute("create table tbl (c array(char(4)))");
-        execute("insert into tbl (c) values (['four', 'two'])");
+        execute("insert into tbl (c) values (['four', 'two', 'seven'])");
         execute("refresh table tbl");
         execute("select c from tbl");
         assertThat(response).hasRows(
-            "[four, two ]"
+            "[four, two , seve]"
         );
     }
 
