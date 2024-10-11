@@ -313,6 +313,7 @@ valueExpression
     | left=valueExpression operator=(BITWISE_AND | BITWISE_OR | BITWISE_XOR)
         right=valueExpression                                                        #bitwiseBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
+    | left=valueExpression OVERLAP right=valueExpression                             #overlap
     | dataType stringLiteral                                                         #fromStringLiteralCast
     ;
 
