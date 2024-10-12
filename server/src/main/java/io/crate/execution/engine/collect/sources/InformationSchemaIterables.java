@@ -49,6 +49,7 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
+import io.crate.expression.roles.ApplicableRole;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -82,8 +83,10 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.GrantedRole;
+import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
@@ -420,6 +423,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Set<String> enabledRoles(Role role, Roles roles) {
         Set<String> enabledRoles = new HashSet<>();
+        enabledRoles.add(role.name());
         for (GrantedRole grantedRole: role.grantedRoles()) {
             enabledRoles.add(grantedRole.roleName());
             Role retrievedRole = roles.findRole(grantedRole.roleName());
@@ -430,6 +434,20 @@ public class InformationSchemaIterables implements ClusterStateListener {
             }
         }
         return enabledRoles;
+    }
+
+    public Iterable<ApplicableRole> applicableRoles(Role role, Roles roles) {
+        List<ApplicableRole> applicableRoles = new ArrayList<>();
+
+        for (GrantedRole grantedRole: role.grantedRoles()) {
+            ApplicableRole newRole = new ApplicableRole();
+            newRole.setGrantee(role.name());
+            newRole.setRoleName(grantedRole.roleName());
+            newRole.setGrantable(roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null));
+            applicableRoles.add(newRole);
+        }
+
+        return applicableRoles;
     }
 
     /**

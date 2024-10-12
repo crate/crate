@@ -147,6 +147,14 @@ public class InformationSchemaTableDefinitions {
                     false
                 )
             ),
+            Map.entry (
+                InformationApplicableRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
+                    InformationApplicableRolesTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
             Map.entry(
                 ForeignServerTableInfo.IDENT,
                 new StaticTableDefinition<>(
