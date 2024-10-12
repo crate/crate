@@ -198,4 +198,6 @@ public class RolePrivileges implements Iterable<Privilege> {
     public int size() {
         return privilegeByIdent.size();
     }
+
+    public Map<String, Policy> getTablePrivileges() { return tablePrivileges; }
 }

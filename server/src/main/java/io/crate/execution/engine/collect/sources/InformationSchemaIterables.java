@@ -50,6 +50,7 @@ import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.roles.ApplicableRole;
+import io.crate.expression.roles.RoleTableGrant;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -448,6 +449,30 @@ public class InformationSchemaIterables implements ClusterStateListener {
         }
 
         return applicableRoles;
+    }
+
+    public Iterable<RoleTableGrant> roleTableGrants(Role role, Roles roles) {
+        List<RoleTableGrant> roleTableGrants = new ArrayList<>();
+        role.privileges().forEach(p -> {
+            RoleTableGrant roleTableGrant = new RoleTableGrant();
+            Securable securableType = p.subject().securable();
+            if (securableType.equals(Securable.TABLE)) {
+                roleTableGrant.setGrantor(p.grantor());
+
+                String[] fqn = Objects.requireNonNull(p.subject().ident()).split("\\.");
+                roleTableGrant.setTableSchema(fqn[0]);
+                roleTableGrant.setTableName(fqn[1]);
+                roleTableGrant.setGrantable(roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null));
+                roleTableGrant.setGrantee(role.name());
+                roleTableGrant.setPrivilegeType(p.subject().permission().name());
+                roleTableGrant.setWithHierarchy(p.subject().permission().equals(Permission.DQL));
+                roleTableGrant.setTableCatalog("doc");
+
+                roleTableGrants.add(roleTableGrant);
+            }
+        });
+
+        return roleTableGrants;
     }
 
     /**
