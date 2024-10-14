@@ -45,7 +45,7 @@ import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdentical
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInComparisonOperators;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
 
-public class Optimizer {
+public final class Optimizer {
 
     private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
     private static final List<Rule<?>> RULES = List.of(
@@ -69,9 +69,9 @@ public class Optimizer {
 
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
-    private FunctionLookup functionLookup;
+    private final FunctionLookup functionLookup;
 
-    public Optimizer(TransactionContext txnCtx, NodeContext nodeCtx) {
+    private Optimizer(TransactionContext txnCtx, NodeContext nodeCtx) {
         functionLookup = (f, args) -> {
             try {
                 return ExpressionAnalyzer.allocateFunction(
@@ -88,48 +88,12 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public Symbol optimize(Symbol node) {
+    private Symbol optimize(Symbol node) {
         return node.accept(visitor, null);
     }
 
-    public Symbol tryApplyRules(Symbol node) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
-        // Some rules may only become applicable after another rule triggered, so we keep
-        // trying to re-apply the rules as long as at least one plan was transformed.
-        boolean done = false;
-        int numIterations = 0;
-        while (!done && numIterations < 10_000) {
-            done = true;
-            for (Rule<?> rule : RULES) {
-                Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
-                if (transformed != null) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '{}' transformed the symbol", rule.getClass().getSimpleName());
-                    }
-                    node = transformed;
-                    done = false;
-                }
-            }
-            numIterations++;
-        }
-        assert numIterations < 10_000
-            : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
-        return node;
-    }
-
-    private <T> Symbol tryMatchAndApply(Rule<T> rule, Symbol node, NodeContext nodeCtx) {
-        Match<T> match = rule.pattern().accept(node, Captures.empty());
-        if (match.isPresent()) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Rule '{}' matched", rule.getClass().getSimpleName());
-            }
-            return rule.apply(match.value(), match.captures(), nodeCtx, functionLookup, visitor.getParentFunction());
-        }
-        return null;
-    }
-
     private class Visitor extends FunctionCopyVisitor<Void> {
-        private Deque<io.crate.expression.symbol.Function> visitedFunctions = new ArrayDeque<>();
+        private final Deque<io.crate.expression.symbol.Function> visitedFunctions = new ArrayDeque<>();
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {
@@ -144,7 +108,7 @@ public class Optimizer {
             return sym;
         }
 
-        public Symbol getParentFunction() {
+        private Symbol getParentFunction() {
             if (visitedFunctions.size() < 2) {
                 return null;
             }
@@ -152,6 +116,42 @@ public class Optimizer {
             var parent = visitedFunctions.peek();
             visitedFunctions.push(current);
             return parent;
+        }
+
+        private Symbol tryApplyRules(Symbol node) {
+            final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+            // Some rules may only become applicable after another rule triggered, so we keep
+            // trying to re-apply the rules as long as at least one plan was transformed.
+            boolean done = false;
+            int numIterations = 0;
+            while (!done && numIterations < 10_000) {
+                done = true;
+                for (Rule<?> rule : RULES) {
+                    Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
+                    if (transformed != null) {
+                        if (isTraceEnabled) {
+                            LOGGER.trace("Rule '{}' transformed the symbol", rule.getClass().getSimpleName());
+                        }
+                        node = transformed;
+                        done = false;
+                    }
+                }
+                numIterations++;
+            }
+            assert numIterations < 10_000
+                : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
+            return node;
+        }
+
+        private <T> Symbol tryMatchAndApply(Rule<T> rule, Symbol node, NodeContext nodeCtx) {
+            Match<T> match = rule.pattern().accept(node, Captures.empty());
+            if (match.isPresent()) {
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Rule '{}' matched", rule.getClass().getSimpleName());
+                }
+                return rule.apply(match.value(), match.captures(), nodeCtx, functionLookup, visitor.getParentFunction());
+            }
+            return null;
         }
     }
 }

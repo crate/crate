@@ -138,6 +138,8 @@ public final class UpdateAnalyzer {
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+            txnCtx,
+            nodeCtx,
             update.returningClause(),
             relCtx.sources(),
             sourceExprAnalyzer,

@@ -173,6 +173,8 @@ class InsertAnalyzer {
                 null
             );
             var selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+                txnCtx,
+                nodeCtx,
                 insert.returningClause(),
                 sources,
                 sourceExprAnalyzer,

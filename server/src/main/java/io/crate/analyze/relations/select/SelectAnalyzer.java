@@ -33,33 +33,46 @@ import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 
-public class SelectAnalyzer {
+public final class SelectAnalyzer {
 
-    public static final InnerVisitor INSTANCE = new InnerVisitor();
+    private SelectAnalyzer() {}
 
-    public static SelectAnalysis analyzeSelectItems(List<SelectItem> selectItems,
+    public static SelectAnalysis analyzeSelectItems(TransactionContext txnCtx,
+                                                    NodeContext nodeCtx,
+                                                    List<SelectItem> selectItems,
                                                     Map<RelationName, AnalyzedRelation> sources,
                                                     ExpressionAnalyzer expressionAnalyzer,
                                                     ExpressionAnalysisContext expressionAnalysisContext) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(
             selectItems.size(), sources, expressionAnalyzer, expressionAnalysisContext);
-        selectItems.forEach(x -> x.accept(INSTANCE, selectAnalysis));
+        selectItems.forEach(x -> x.accept(new InnerVisitor(txnCtx, nodeCtx), selectAnalysis));
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
     }
 
     private static class InnerVisitor extends DefaultTraversalVisitor<Void, SelectAnalysis> {
 
+        private final TransactionContext txnCtx;
+        private final NodeContext nodeCtx;
+
+        private InnerVisitor(TransactionContext txnCtx, NodeContext nodeCtx) {
+            this.txnCtx = txnCtx;
+            this.nodeCtx = nodeCtx;
+        }
+
         @Override
         protected Void visitSingleColumn(SingleColumn node, SelectAnalysis context) {
-            Symbol symbol = context.toSymbol(node.getExpression());
+            Symbol symbol = Optimizer.optimizeCasts(context.toSymbol(node.getExpression()), txnCtx, nodeCtx);
             String alias = node.getAlias();
             if (alias != null) {
                 context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol));
