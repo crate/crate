@@ -26,7 +26,7 @@ import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -93,9 +93,25 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF STORAGE WITH (columnstore=false)", dataDef.data.get());
     }
 
-    protected void doReferenceResolveTest(DataType<T> type, String definition, T data) throws Exception {
+    protected boolean supportsArrays() {
+        return true;
+    }
 
-        StorageSupport<? super T> storageSupport = type.storageSupport();
+    public void test_reference_resolver_with_list() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        assumeTrue("Data type " + dataDef.type + " cannot be stored in an array", supportsArrays());
+        DataType<List<T>> arrayType = new ArrayType<>(dataDef.type);
+        int valueCount = randomIntBetween(1, 6);
+        List<T> values = new ArrayList<>();
+        for (int i = 0; i < valueCount; i++) {
+            values.add(dataDef.data.get());
+        }
+        doReferenceResolveTest(arrayType, "array(" + dataDef.definition + ")", values);
+    }
+
+    protected <D> void doReferenceResolveTest(DataType<D> type, String definition, D data) throws Exception {
+
+        StorageSupport<? super D> storageSupport = type.storageSupport();
         assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
 
         var sqlExecutor = SQLExecutor.of(clusterService)
@@ -148,12 +164,25 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.startCollect(collectorContext);
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
-            assertEquals((T) docValueImpl.value(), data);
+
+            var value = docValueImpl.value();
+            if (value instanceof List<?> l) {
+                assertListEquals((List<T>) l, (List<T>) data);
+            } else {
+                assertEquals((T) docValueImpl.value(), (T) data);
+            }
         }
     }
 
     protected void assertEquals(T actual, T expected) {
         assertThat(actual).isEqualTo(expected);
+    }
+
+    protected void assertListEquals(List<T> actual, List<T> expected) {
+        assertThat(actual).hasSize(expected.size());
+        for (int i = 0; i < actual.size(); i++) {
+            assertEquals(actual.get(i), expected.get(i));
+        }
     }
 
     private static String toTypeSignature(DataType<?> dataType) {

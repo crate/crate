@@ -27,10 +27,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Maps;
 import io.crate.execution.dml.ArrayIndexer;
@@ -48,9 +50,15 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
             = droppedColumns.stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
     }
 
-    private interface Field {
+    private interface Field extends Comparable<Field> {
+
         Object sanitize(Object v);
+
         ColumnIdent column();
+
+        default int compareTo(@NotNull ColumnFieldVisitor.Field o) {
+            return column().compareTo(o.column());
+        }
     }
 
     private record ValueField(DataType<?> dataType, ColumnIdent column) implements Field {
@@ -80,7 +88,10 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     private final Map<String, Field> fields = new HashMap<>();
     private final Set<ColumnIdent> droppedColumns;
 
-    private Map<String, Object> doc = new HashMap<>();
+    // Maps.mergeInto() needs its inputs to be sorted, to ensure that a parent object o doesn't overwrite
+    // an already written child o['child'], so we read stored fields into a sorted map and then
+    // iterate them in column order when converting them into a docMap.
+    private Map<Field, Object> doc = new TreeMap<>();
 
     public void registerRef(Reference ref) {
         if (droppedColumns.contains(ref.column())) {
@@ -128,40 +139,42 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
         var v = field.sanitize(value);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), v);
+        this.doc.put(field, v);
     }
 
     @Override
     public void stringField(FieldInfo fieldInfo, String value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), field.sanitize(value));
+        this.doc.put(field, field.sanitize(value));
     }
 
     @Override
     public void intField(FieldInfo fieldInfo, int value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), field.sanitize(value));
+        this.doc.put(field, field.sanitize(value));
     }
 
     @Override
     public void longField(FieldInfo fieldInfo, long value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), field.sanitize(value));
+        this.doc.put(field, field.sanitize(value));
     }
 
     @Override
     public void floatField(FieldInfo fieldInfo, float value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), field.sanitize(value));
+        this.doc.put(field, field.sanitize(value));
     }
 
     @Override
     public void doubleField(FieldInfo fieldInfo, double value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column().name(), field.column().path(), field.sanitize(value));
+        this.doc.put(field, field.sanitize(value));
     }
 
     public Map<String, Object> getDocMap() {
-        return doc;
+        Map<String, Object> docMap = new HashMap<>();
+        this.doc.forEach((field, v) -> Maps.mergeInto(docMap, field.column().name(), field.column().path(), v));
+        return docMap;
     }
 }
