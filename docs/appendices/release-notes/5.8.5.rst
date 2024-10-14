@@ -47,6 +47,27 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause users and roles to loose irrelevant
+  privileges, like: ``Administration Language (AL)``, when a table or a view
+  is dropped.
+
+- Improved the memory accounting for values of type ``geo_shape`` to avoid
+  running into out of memory errors or higher than expected GC load when running
+  queries like ``INSERT INTO ... (query)``.
+
 - Fixed a regression introduced in 5.8.4 leading to a rejection of writes into
   a column of the ``OBJECT(IGNORED)`` type if it had an array sub-column with
   mixed types.
+
+- Fixed an issue resulting in different (and partly wrong)
+  ``sys.allocations.decisions`` results when querying the table on different
+  nodes.
+
+- Fixed an incorrect optimization of comparison operators in combination with
+  array subscript expression, :ref:`ANY <sql_any_array_comparison>`,
+  :ref:`ARRAY_UPPER <scalar-array_upper>` and
+  :ref:`ARRAY_LENGTH <scalar-array_length>` function argument whereas the array
+  (or array element) column has an explicit cast. Such queries may return wrong
+  results as the explicit cast was removed. Example:
+
+  ``WHERE my_array[1]::timestamptz > 3::timestamptz``

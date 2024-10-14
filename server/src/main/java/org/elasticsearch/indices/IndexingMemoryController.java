@@ -19,6 +19,16 @@
 
 package org.elasticsearch.indices;
 
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -28,7 +38,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
@@ -39,15 +48,7 @@ import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
+import io.crate.common.unit.TimeValue;
 
 public class IndexingMemoryController implements IndexingOperationListener, Closeable {
 
@@ -287,7 +288,8 @@ public class IndexingMemoryController implements IndexingOperationListener, Clos
             // to disk:
             long totalBytesUsed = 0;
             long totalBytesWriting = 0;
-            for (IndexShard shard : availableShards()) {
+            List<IndexShard> availableShards = availableShards();
+            for (IndexShard shard : availableShards) {
 
                 // Give shard a chance to transition to inactive so sync'd flush can happen:
                 checkIdle(shard, inactiveTime.nanos());
@@ -323,7 +325,7 @@ public class IndexingMemoryController implements IndexingOperationListener, Clos
                 // OK we are now over-budget; fill the priority queue and ask largest shard(s) to refresh:
                 PriorityQueue<ShardAndBytesUsed> queue = new PriorityQueue<>();
 
-                for (IndexShard shard : availableShards()) {
+                for (IndexShard shard : availableShards) {
                     // How many bytes this shard is currently (async'd) moving from heap to disk:
                     long shardWritingBytes = getShardWritingBytes(shard);
 
