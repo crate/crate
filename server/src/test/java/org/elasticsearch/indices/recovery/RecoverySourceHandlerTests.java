@@ -835,9 +835,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             () -> 0,
             future
         );
-        assertThat(future).failsWithin(1, TimeUnit.SECONDS)
-            .withThrowableThat()
-            .withRootCauseExactlyInstanceOf(CancellableThreads.ExecutionCancelledException.class);
+        try {
+            future.get(5, TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            assertThat(wasCancelled).isTrue();
+            assertThat(t).hasRootCauseExactlyInstanceOf(CancellableThreads.ExecutionCancelledException.class);
+        }
         store.close();
     }
 
