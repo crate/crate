@@ -53,7 +53,7 @@ import io.crate.data.SkippingBatchIterator;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.RowCollectExpression;
-import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
+import io.crate.execution.engine.join.HashJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.FunctionType;
@@ -156,7 +156,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,
@@ -164,7 +164,8 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            ignored -> 1000
+            ignored -> 1000,
+            false
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -173,7 +174,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,
@@ -186,7 +187,8 @@ public class RowsBatchIteratorBenchmark {
                 return value < 500 ? value : (value % 100) + 500;
             },
             row -> (Integer) row.get(0) % 500,
-            ignored -> 1000
+            ignored -> 1000,
+            false
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));

@@ -228,7 +228,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
-            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "  └ HashJoin[INNER | (x = x)] (rows=0)\n" +
             "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
@@ -236,7 +236,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
-            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "  └ HashJoin[INNER | (x = x)] (rows=0)\n" +
             "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
@@ -244,7 +244,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)]\n" +
-            "  └ HashJoin[(x = x)]\n" +
+            "  └ HashJoin[INNER | (x = x)]\n" +
             "    ├ Collect[doc.a | [x] | true]\n" +
             "    └ Collect[doc.b | [x] | true]"
         );
@@ -294,14 +294,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""}
         );
@@ -320,14 +320,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""}
         );
@@ -346,14 +346,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)]
-                  └ HashJoin[(x = x)]
+                  └ HashJoin[INNER | (x = x)]
                     ├ Collect[doc.a | [x] | true]
                     └ Collect[doc.b | [x] | true]"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)]
-                  └ HashJoin[(x = x)]
+                  └ HashJoin[INNER | (x = x)]
                     ├ Collect[doc.a | [x] | true]
                     └ Collect[doc.b | [x] | true]"""}
         );

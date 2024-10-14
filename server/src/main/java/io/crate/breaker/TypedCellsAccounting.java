@@ -25,7 +25,7 @@ import java.util.List;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
-import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
+import io.crate.execution.engine.join.HashJoinBatchIterator;
 import io.crate.types.DataType;
 
 /**
@@ -41,7 +41,7 @@ public class TypedCellsAccounting implements RowAccounting<Object[]> {
     /**
      * @param columnTypes     Column types to use for size estimation
      * @param ramAccounting   {@link RamAccounting} implementing the CircuitBreaker logic
-     * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
+     * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashJoinBatchIterator}
      *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
     public TypedCellsAccounting(List<? extends DataType<?>> columnTypes,
