@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -165,6 +166,12 @@ public final class ReservoirSampler {
                                Random random,
                                Metadata metadata) throws IOException {
 
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Start collecting samples for table: {}({}),",
+                docTable.ident().fqn(),
+                columns.stream().map(r -> r.column().fqn()).collect(Collectors.joining(", ")));
+        }
+
         Reservoir fetchIdSamples = new Reservoir(random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
@@ -293,7 +300,6 @@ public final class ReservoirSampler {
                 collectors.get(i).setShard(expressions.get(i));
             }
         }
-
     }
 
     private static class ColumnSampler {
