@@ -41,7 +41,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-public class HashInnerJoinBatchIteratorBehaviouralTest {
+public class HashJoinBatchIteratorBehaviouralTest {
 
     private int originalPageSize = Paging.PAGE_SIZE;
 
@@ -56,13 +56,13 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
     }
 
     @Test
-    public void testDistributed_SwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
+    public void test_inner_Distributed_SwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
         BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 4)), 1, 2, null);
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
-        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
                 leftIterator,
                 rightIterator,
                 mock(RowAccounting.class),
@@ -70,7 +70,8 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
                 row -> Objects.equals(row.get(0), row.get(1)),
                 row -> Objects.hash(row.get(0)),
                 row -> Objects.hash(row.get(0)),
-                ignored -> 2
+                ignored -> 2,
+                false
             );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -86,13 +87,13 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
     }
 
     @Test
-    public void test_SwitchToRightWhenLeftExhausted() throws Exception {
+    public void test_inner_SwitchToRightWhenLeftExhausted() throws Exception {
         BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 3, 4)), 2, 1, null);
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
-        BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
             leftIterator,
             rightIterator,
             mock(RowAccounting.class),
@@ -100,12 +101,69 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            ignored -> 500000
+            ignored -> 500000,
+            false
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
         assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{4, 4});
+    }
+
+    @Test
+    public void test_left_Distributed_SwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(Arrays.asList(1, 2, 4)), 1, 2, null);
+        BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
+
+        BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
+            leftIterator,
+            rightIterator,
+            mock(RowAccounting.class),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            ignored -> 2,
+            true
+        );
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(batchIterator, null);
+        List<Object[]> result = consumer.getResult();
+        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{1, null}, new Object[]{4, 4});
+
+        // as the blocksize is defined of 2 but the left batch size 1, normally it would call left loadNextBatch until
+        // the blocksize is reached. we don't want that as parallel running hash iterators must call loadNextBatch always
+        // on the same side synchronously as the upstreams will only send new data after all downstreams responded.
+        // to validate this, the right must be repeated 3 times
+        assertThat(rightIterator.getMovetoStartCalls()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_left_SwitchToRightWhenLeftExhausted() throws Exception {
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(List.of(1, 2, 3, 4)), 2, 1, null);
+        BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.ofValues(List.of(2, 0, 4, 5)), 2, 1, null);
+
+        BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
+            leftIterator,
+            rightIterator,
+            mock(RowAccounting.class),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            ignored -> 500000,
+            true
+        );
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(batchIterator, null);
+        List<Object[]> result = consumer.getResult();
+        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{4, 4}, new Object[]{1, null}, new Object[]{3, null});
     }
 }

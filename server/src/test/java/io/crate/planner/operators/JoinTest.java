@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -153,11 +152,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(0, 0, Map.of()));
         e.updateTableStats(rowCountByTable);
 
+        PlannerContext context = e.getPlannerContext();
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
+
         LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
 
-        PlannerContext context = e.getPlannerContext();
-        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
         Join nl = plan(mss, context);
         assertThat(tableName(nl.left())).isEqualTo("users");
         assertThat(tableName(nl.right())).isEqualTo("locations");
@@ -202,7 +202,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = buildLogicalPlan(mss);
         assertThat(plan).isEqualTo("""
             Eval[name, id]
-              └ HashJoin[(id = id)]
+              └ HashJoin[INNER | (id = id)]
                 ├ Collect[doc.users | [name, id] | true]
                 └ Collect[doc.locations | [id] | true]""");
 
@@ -223,6 +223,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table j.right_table (id int)");
         RelationName leftName = new RelationName("j", "left_table");
         RelationName rightName = new RelationName("j", "right_table");
+
+        PlannerContext context = e.getPlannerContext();
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
 
         QueriedSelectRelation mss = e.analyze("select * from j.left_table as l left join j.right_table as r on l.id = r.id");
 
@@ -301,7 +304,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
                 Eval[name, id]
-                  └ HashJoin[(id = id)]
+                  └ HashJoin[INNER | (id = id)]
                     ├ Collect[doc.users | [name, id] | true]
                     └ Collect[doc.locations | [id] | true]"""
         );
@@ -331,7 +334,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo("""
             Eval[name, id]
               └ Eval[name, id, id]
-                └ HashJoin[(id = id)]
+                └ HashJoin[INNER | (id = id)]
                   ├ Collect[doc.locations | [id] | true]
                   └ Collect[doc.users | [name, id] | true]""");
 
@@ -366,7 +369,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testMixedHashJoinNestedLoop() {
         QueriedSelectRelation mss = e.analyze("select * " +
                                               "from t1 inner join t2 on t1.a = t2.b " +
-                                              "left join t3 on t3.c = t2.b");
+                                              "left join t3 on t3.c > t2.b");
 
         LogicalPlan operator = buildLogicalPlan(mss);
         assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
@@ -569,7 +572,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[name]
-              └ HashJoin[(a = address['postcode'])]
+              └ HashJoin[INNER | (a = address['postcode'])]
                 ├ Collect[doc.users | [name, address['postcode']] | true]
                 └ Collect[doc.t1 | [a] | true]
             """;
@@ -582,7 +585,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         expectedPlan =
             """
             Eval[name]
-              └ HashJoin[(a = address['postcode'])]
+              └ HashJoin[INNER | (a = address['postcode'])]
                 ├ Rename[name, address['postcode']] AS u
                 │  └ Collect[doc.users | [name, address['postcode']] | true]
                 └ Collect[doc.t1 | [a] | true]
@@ -619,7 +622,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[start] AS doc.v1
               └ Eval[ts_production AS start]
-                └ HashJoin[(ts_production = max_ts)]
+                └ HashJoin[INNER | (ts_production = max_ts)]
                   ├ Rename[max_ts] AS last_record
                   │  └ Eval[max(ts) AS max_ts]
                   │    └ HashAggregate[max(ts)]
@@ -635,7 +638,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[start] AS doc.v1
               └ Eval[ts_production AS start]
-                └ HashJoin[(ts_production = max_ts)]
+                └ HashJoin[INNER | (ts_production = max_ts)]
                   ├ Rename[max_ts] AS last_record
                   │  └ Eval[max(ts) AS max_ts]
                   │    └ HashAggregate[max(ts)]
@@ -657,8 +660,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(logicalPlan).hasOperators(
             "Eval[a, x, i, b, y, i, c, z]",
-            "  └ HashJoin[(z = y)]",
-            "    ├ HashJoin[(z = x)]",
+            "  └ HashJoin[INNER | (z = y)]",
+            "    ├ HashJoin[INNER | (z = x)]",
             "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "    │  └ Collect[doc.t3 | [c, z] | true]",
             "    └ Collect[doc.t2 | [b, y, i] | true]"
@@ -695,7 +698,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).isEqualTo(
             """
             Eval[time, sensor_id, battery_level]
-              └ NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]
+              └ HashJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]
                 ├ NestedLoopJoin[CROSS]
                 │  ├ Rename[time] AS time_series
                 │  │  └ TableFunction[generate_series | [generate_series] | true]
@@ -721,7 +724,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).isEqualTo(
             """
             Eval[a, x, i, b]
-              └ HashJoin[(x = y)]
+              └ HashJoin[INNER | (x = y)]
                 ├ Collect[doc.t1 | [a, x, i] | true]
                 └ Collect[doc.t2 | [b, y] | (b = 'abc')]
             """);
@@ -740,7 +743,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).isEqualTo(
             """
             MultiPhase
-              └ HashJoin[(i = i)]
+              └ HashJoin[INNER | (i = i)]
                 ├ Collect[doc.t1 | [a, x, i] | true]
                 └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]
               └ OrderBy[z ASC]
@@ -1036,8 +1039,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(logicalPlan).isEqualTo(
                 """
-              HashJoin[((x = z) AND (y = z))]
-                ├ HashJoin[(x = y)]
+              HashJoin[INNER | ((x = z) AND (y = z))]
+                ├ HashJoin[INNER | (x = y)]
                 │  ├ Collect[doc.j1 | [x] | true]
                 │  └ Collect[doc.j2 | [y] | true]
                 └ Collect[doc.j3 | [z] | true]
@@ -1054,8 +1057,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(logicalPlan).isEqualTo(
                 """
-              HashJoin[((x = z) AND (y = z))]
-                ├ HashJoin[(x = y)]
+              HashJoin[INNER | ((x = z) AND (y = z))]
+                ├ HashJoin[INNER | (x = y)]
                 │  ├ Collect[doc.j1 | [x] | true]
                 │  └ Collect[doc.j2 | [y] | true]
                 └ Collect[doc.j3 | [z] | true]

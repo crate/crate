@@ -49,7 +49,7 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
             var query = "select t1.id, t2.id from doc.t1 join doc.t2 on t1.id = t2.id";
             execute("explain (costs false)" + query, session);
             assertThat(response).hasLines(
-                "HashJoin[(id = id)]",
+                "HashJoin[INNER | (id = id)]",
                 "  ├ MultiPhase",
                 "  │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
                 "  │  └ Collect[doc.t2 | [id] | true]",
@@ -113,7 +113,7 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
             execute("explain (costs false)" + query, session);
             assertThat(response).hasLines(
                 "HashAggregate[count(name)]",
-                "  └ HashJoin[(id = id)]",
+                "  └ HashJoin[INNER | (id = id)]",
                 "    ├ MultiPhase",
                 "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
                 "    │  └ Rename[id] AS x",
@@ -146,7 +146,7 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
             assertThat(response).hasLines(
                 "HashAggregate[count(name)]",
                 "  └ Eval[name, id, id]",
-                "    └ HashJoin[(id = id)]",
+                "    └ HashJoin[INNER | (id = id)]",
                 "      ├ MultiPhase",
                 "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
                 "      │  └ Eval[id]",

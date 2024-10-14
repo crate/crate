@@ -51,15 +51,10 @@ public class EquiJoinDetector {
 
     private static final Visitor VISITOR = new Visitor();
 
-    public static boolean isHashJoinPossible(JoinType joinType, Symbol joinCondition) {
-        if (joinType != JoinType.INNER) {
+    public static boolean isEquiJoin(Symbol joinCondition) {
+        if (joinCondition == null) {
             return false;
         }
-        return isEquiJoin(joinCondition);
-    }
-
-    public static boolean isEquiJoin(Symbol joinCondition) {
-        assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         joinCondition.accept(VISITOR, context);
         return context.isHashJoinPossible;
