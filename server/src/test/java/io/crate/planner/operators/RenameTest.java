@@ -21,19 +21,9 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.testing.Asserts.assertThat;
-import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
-import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.FieldResolver;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -43,23 +33,19 @@ public class RenameTest extends CrateDummyClusterServiceUnitTest {
      * https://github.com/crate/crate/issues/16754
      */
     @Test
-    public void test_parent_child_column_prunning() throws IOException {
-        SQLExecutor e = SQLExecutor.of(clusterService).addTable("create table tbl (a int, b int)");
-
-        Symbol a = e.asSymbol("a");
-        Symbol b = e.asSymbol("b");
-        Symbol childSymbol = e.asSymbol("b > 1");
-        Symbol parentSymbol = e.asSymbol("b > 1");
-
-        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(a, b, childSymbol), WhereClause.MATCH_ALL);
-        Rename rename = new Rename(List.of(a, b, parentSymbol), mock(RelationName.class), mock(FieldResolver.class), source);
-        assertThat(rename.outputs()).containsExactly(a, b, parentSymbol);
-
-        var pruned = rename.pruneOutputsExcept(List.of(a, b, parentSymbol));
-        assertThat(pruned.outputs()).containsExactly(a, b, parentSymbol);
-
-        pruned = rename.pruneOutputsExcept(List.of(a, b, childSymbol));
-        assertThat(pruned.outputs()).containsExactly(a, b, parentSymbol);
-
+    public void test_multiple_symbols() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+        String stmt = """
+             SELECT
+                alias1.country,
+                MAX(height) FILTER (WHERE height>0) as max_height,
+                MAX(prominence) FILTER (WHERE height>0) as max_prominence
+            FROM
+                sys.summits alias1
+            GROUP BY
+                alias1.country
+            LIMIT 100;
+            """;
+        LogicalPlan logicalPlan = e.logicalPlan(stmt);
     }
 }

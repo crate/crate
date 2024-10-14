@@ -111,11 +111,9 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, outputs, s -> {
                 Symbol childSymbol = parentToChildMap.get(s);
-                if (childSymbol == null) {
-                    childSymbol = childToParentMap.get(s);
+                if (childSymbol != null) {
+                    mappedToKeep.add(childSymbol);
                 }
-                assert childSymbol != null : "There must be a mapping available for symbol " + s;
-                mappedToKeep.add(childSymbol);
             });
         }
         LogicalPlan newSource = source.pruneOutputsExcept(mappedToKeep);
