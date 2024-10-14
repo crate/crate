@@ -98,7 +98,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             """
             GroupHashAggregate[count(id)]
               └ GroupHashAggregate[name | count(id)]
-                └ HashJoin[(department_id = id)]
+                └ HashJoin[INNER | (department_id = id)]
                   ├ Collect[doc.users | [id, department_id] | true]
                   └ Collect[doc.departments | [name, id] | true]
             """
@@ -118,7 +118,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             """
             OrderBy[name ASC]
               └ GroupHashAggregate[name]
-                └ HashJoin[(department_id = id)]
+                └ HashJoin[INNER | (department_id = id)]
                   ├ Collect[doc.users | [department_id] | true]
                   └ Collect[doc.departments | [name, id] | true]
             """

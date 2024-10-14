@@ -52,7 +52,7 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
             Eval[id]
               └ Rename[id, o['i']] AS doc.v1
                 └ Eval[id, o['i']]
-                  └ NestedLoopJoin[LEFT | (o['i'] = o['i'])]
+                  └ HashJoin[LEFT | (o['i'] = o['i'])]
                     ├ Rename[o['i']] AS g1
                     │  └ Collect[doc.t1 | [o['i']] | true]
                     └ Rename[id, o['i']] AS b
