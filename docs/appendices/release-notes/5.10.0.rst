@@ -79,7 +79,10 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Added hash-join execution for left-outer-equi-joins. This improves performance
+  for left-outer-join with an equi-join condition significantly with the cost of
+  higher memory consumption.
+
 
 Administration and Operations
 -----------------------------

@@ -85,7 +85,7 @@ public final class JoinConditionSymbolsExtractor {
             // For example, consider `t1.a = t2.a AND t1.a = t1.a + t2.b`, as a whole
             // it is an equi-join condition due to `t1.a = t2.b`
             // but `t1.a = t1.a + t2.b` by itself is not an equi-join condition.
-            if (!EquiJoinDetector.isEquiJoin(function)) {
+            if (!EquiJoinDetector.isEquiJoinCondition(function)) {
                 return null;
             }
 

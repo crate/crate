@@ -263,7 +263,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[i, cnt]
-              └ HashJoin[(cnt = cast(i AS bigint))]
+              └ HashJoin[INNER | (cnt = cast(i AS bigint))]
                 ├ Rename[cnt] AS t1
                 │  └ Eval[count(*) AS cnt]
                 │    └ Count[doc.t1 | true]
@@ -289,7 +289,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             Fetch[x, a, y]
               └ Limit[10::bigint;0]
                 └ OrderBy[x ASC]
-                  └ HashJoin[(x = y)]
+                  └ HashJoin[INNER | (x = y)]
                     ├ Collect[doc.t1 | [_fetchid, x] | true]
                     └ Collect[doc.t2 | [y] | true]
             """);
@@ -361,7 +361,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[a, i, b, i]
               └ Limit[10::bigint;0]
-                └ HashJoin[(i = i)]
+                └ HashJoin[INNER | (i = i)]
                   ├ Rename[a, i] AS t1
                   │  └ Filter[(a > '50')]
                   │    └ Fetch[a, i]
@@ -385,7 +385,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[x, a, x, a]
-              └ HashJoin[(x = x)]
+              └ HashJoin[INNER | (x = x)]
                 ├ Rename[a, x] AS doc.v2
                 │  └ Collect[doc.t1 | [a, x] | true]
                 └ Rename[a, x] AS doc.v3
@@ -447,7 +447,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[a, x, i, b, y, i]
               └ Limit[3::bigint;0]
-                └ HashJoin[(a = b)]
+                └ HashJoin[INNER | (a = b)]
                   ├ Collect[doc.t1 | [_fetchid, a] | true]
                   └ Collect[doc.t2 | [_fetchid, b] | true]
             """
@@ -513,7 +513,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[name, a, x, i]
               └ Limit[10::bigint;0]
-                └ HashJoin[(a = name)]
+                └ HashJoin[INNER | (a = name)]
                   ├ Rename[name] AS u
                   │  └ GroupHashAggregate[name]
                   │    └ Collect[doc.users | [name] | true]
@@ -560,7 +560,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                   ├ TableFunction[generate_series | [generate_series] | true]
                   └ Rename[v._fetchid, aliased] AS v
                     └ Eval[_fetchid, y AS aliased]
-                      └ HashJoin[(x = y)]
+                      └ HashJoin[INNER | (x = y)]
                         ├ Collect[doc.t1 | [_fetchid, x] | true]
                         └ Collect[doc.t2 | [y] | true]
             """
