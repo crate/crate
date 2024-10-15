@@ -107,6 +107,16 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return Precedence.NUMERIC;
     }
 
+    @Nullable
+    @Override
+    public Boolean precedes(DataType<?> that) {
+        if (that instanceof NumericType) {
+            return null;
+        } else {
+            return super.precedes(that);
+        }
+    }
+
     @Override
     public String getName() {
         return NAME;

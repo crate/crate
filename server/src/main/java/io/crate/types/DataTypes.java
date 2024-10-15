@@ -377,7 +377,7 @@ public final class DataTypes {
                 throw new IllegalArgumentException(
                     "Mixed dataTypes inside a list are not supported. Found " + highest + " and " + current);
             }
-            if (current.precedes(highest)) {
+            if (Boolean.TRUE.equals(current.precedes(highest))) {
                 highest = current;
             }
         }
@@ -390,7 +390,11 @@ public final class DataTypes {
     private static boolean safeConversionPossible(DataType<?> type1, DataType<?> type2) {
         final DataType<?> source;
         final DataType<?> target;
-        if (type1.precedes(type2)) {
+        Boolean type1PrecedesType2 = type1.precedes(type2);
+        if (type1PrecedesType2 == null) {
+            return false;
+        }
+        if (type1PrecedesType2) {
             source = type2;
             target = type1;
         } else {
@@ -638,7 +642,13 @@ public final class DataTypes {
         } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
             type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
         } else {
-            if (leftType.precedes(rightType)) {
+            Boolean leftPrecedesRight = leftType.precedes(rightType);
+            if (leftPrecedesRight == null) {
+                if (leftType.id() == NumericType.ID && rightType.id() == NumericType.ID) {
+                    return NUMERIC;
+                }
+                throw new IllegalArgumentException("Cannot merge " + leftType + " and " + rightType);
+            } else if (leftPrecedesRight) {
                 if (rightType.isConvertableTo(leftType, false)) {
                     return leftType;
                 }

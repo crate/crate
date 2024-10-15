@@ -56,7 +56,10 @@ public final class TypeCompatibility {
     private static DataType<?> convertTypeByPrecedence(DataType<?> type1, DataType<?> type2) {
         final DataType<?> higherPrecedenceArg;
         final DataType<?> lowerPrecedenceArg;
-        if (type1.precedes(type2)) {
+        Boolean type1PrecedesType2 = type1.precedes(type2);
+        if (type1PrecedesType2 == null) {
+            return null;
+        } else if (type1PrecedesType2) {
             higherPrecedenceArg = type1;
             lowerPrecedenceArg = type2;
         } else {

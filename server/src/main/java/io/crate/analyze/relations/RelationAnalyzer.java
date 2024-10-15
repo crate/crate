@@ -828,7 +828,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         "The types of the columns within VALUES lists must match. " +
                         "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
                 }
-                if (usePrecedence && cellType.precedes(targetType)) {
+                if (usePrecedence && Boolean.TRUE.equals(cellType.precedes(targetType))) {
                     targetType = cellType;
                 } else if (targetType == DataTypes.UNDEFINED) {
                     targetType = cellType;

@@ -470,7 +470,7 @@ public class SignatureBinder {
                 }
                 return fromType.equals(toType)
                        || (fromType.isConvertableTo(toTypeSignature.createType(), false)
-                          && toType.precedes(fromType));
+                          && Boolean.TRUE.equals(toType.precedes(fromType)));
             case NONE:
             default:
                 var fromTypeSignature = fromType.getTypeSignature();

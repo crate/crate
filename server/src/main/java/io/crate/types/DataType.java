@@ -169,10 +169,12 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     /**
      * Returns true if this DataType precedes the supplied DataType.
+     *
      * @param other The other type to compare against.
      * @return True if the current type precedes, false otherwise.
      */
-    public boolean precedes(DataType<?> that) {
+    @Nullable
+    public Boolean precedes(DataType<?> that) {
         int thisOrdinal = this.precedence().ordinal();
         int thatOrdinal = that.precedence().ordinal();
         if (thisOrdinal == thatOrdinal) {
