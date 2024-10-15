@@ -26,8 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -40,7 +42,7 @@ import io.crate.geo.GeoJSONUtilsTest;
 
 public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
-    private static final List<String> WKT = List.of(
+    private final List<String> wkt = List.of(
         "multipolygon empty",
         "MULTIPOLYGON (" +
         "  ((40 40, 20 45, 45 30, 40 40)),\n" +
@@ -68,11 +70,11 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
                 json
             ).mapOrdered();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
-    private static final List<Map<String, Object>> GEO_JSON = List.of(
+    private final List<Map<String, Object>> geoJson = List.of(
         parse("{ \"type\": \"Point\", \"coordinates\": [100.0, 0.0] }"),
         parse("{ \"type\": \"LineString\",\n" +
               "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
@@ -156,7 +158,7 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testConvertFromValidWKT() throws Exception {
-        for (String wkt : WKT) {
+        for (String wkt : wkt) {
             Map<String, Object> geoShape = type.implicitCast(wkt);
             assertThat(geoShape).isNotNull();
         }
@@ -164,7 +166,7 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testConvertFromValidGeoJSON() throws Exception {
-        for (Map<String, Object> geoJSON : GEO_JSON) {
+        for (Map<String, Object> geoJSON : geoJson) {
             Map<String, Object> geoShape = type.implicitCast(geoJSON);
             assertThat(geoShape).isNotNull();
         }
@@ -196,6 +198,30 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
     @Override
     public void test_reference_resolver_index_off() throws Exception {
         assumeFalse("GeoShapeType cannot disable index", true);
+    }
+
+    @Test
+    public void test_bytes_estimate() throws Exception {
+        assertThat(type.valueBytes(geoJson.get(0))).isEqualTo(848);
+        assertThat(type.valueBytes(geoJson.get(1))).isEqualTo(1416);
+        assertThat(type.valueBytes(geoJson.get(2))).isEqualTo(3040);
+        assertThat(type.valueBytes(geoJson.get(3))).isEqualTo(5744);
+        assertThat(type.valueBytes(geoJson.get(4))).isEqualTo(1416);
+        assertThat(type.valueBytes(geoJson.get(5))).isEqualTo(2544);
+        assertThat(type.valueBytes(geoJson.get(6))).isEqualTo(8504);
+        assertThat(type.valueBytes(geoJson.get(7))).isEqualTo(2624);
+
+        UnaryOperator<Map<String, Object>> normalize = geoJson -> {
+            return type.implicitCast(GeoJSONUtils.map2Shape(geoJson));
+        };
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(0)))).isEqualTo(264);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(1)))).isEqualTo(320);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(2)))).isEqualTo(424);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(3)))).isEqualTo(600);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(4)))).isEqualTo(824);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(424);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1320);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(880);
     }
 }
 

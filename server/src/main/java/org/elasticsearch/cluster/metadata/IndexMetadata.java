@@ -199,11 +199,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
     public static final String SETTING_VERSION_UPGRADED = "index.version.upgraded";
     public static final String SETTING_CREATION_DATE = "index.creation_date";
-    /**
-     * The user provided name for an index. This is the plain string provided by the user when the index was created.
-     * It might still contain date math expressions etc. (added in 5.0)
-     */
-    public static final String SETTING_INDEX_PROVIDED_NAME = "index.provided_name";
     public static final String SETTING_PRIORITY = "index.priority";
     public static final Setting<Integer> INDEX_PRIORITY_SETTING =
         Setting.intSetting("index.priority", 1, 0, Property.Dynamic, Property.IndexScope);

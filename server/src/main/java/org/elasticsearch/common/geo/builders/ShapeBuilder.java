@@ -142,9 +142,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
         }
     }
 
-    /** tracks number of dimensions for this shape */
-    public abstract int numDimensions();
-
     /**
      * Calculate the intersection of a line segment and a vertical dateline.
      *

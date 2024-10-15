@@ -44,7 +44,6 @@ import org.assertj.core.data.Offset;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
@@ -620,24 +619,6 @@ public class BytesStreamsTests extends ESTestCase {
         byte[] data = new byte[size];
         random().nextBytes(data);
         return data;
-    }
-
-    public void testReadWriteGeoPoint() throws IOException {
-        try (BytesStreamOutput out = new BytesStreamOutput()) {
-            GeoPoint geoPoint = new GeoPoint(randomDouble(), randomDouble());
-            out.writeGenericValue(geoPoint);
-            StreamInput wrap = out.bytes().streamInput();
-            GeoPoint point = (GeoPoint) wrap.readGenericValue();
-            assertThat(geoPoint).isEqualTo(point);
-        }
-
-        try (BytesStreamOutput out = new BytesStreamOutput()) {
-            GeoPoint geoPoint = new GeoPoint(randomDouble(), randomDouble());
-            out.writeGeoPoint(geoPoint);
-            StreamInput wrap = out.bytes().streamInput();
-            GeoPoint point = wrap.readGeoPoint();
-            assertThat(geoPoint).isEqualTo(point);
-        }
     }
 
     private static class TestWriteable implements Writeable {

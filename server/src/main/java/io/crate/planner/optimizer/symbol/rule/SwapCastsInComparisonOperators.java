@@ -28,7 +28,6 @@ import java.util.List;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
-import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -53,7 +52,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 // We have to respect explicit casts, see https://github.com/crate/crate/issues/12135
-                .with(f -> f.name().equals(ImplicitCastFunction.NAME) || f.name().equals(TryCastFunction.NAME))
+                .with(f -> f.name().equals(ImplicitCastFunction.NAME))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );
     }

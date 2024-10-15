@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import java.util.List;
 
 import io.crate.expression.scalar.ArrayUpperFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -50,7 +51,7 @@ public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implemen
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
-                .with(f -> f.isCast())
+                .with(f -> f.name().equals(ImplicitCastFunction.NAME))
                 .with(f -> f.arguments().get(0), typeOf(Function.class)
                     .with(f -> f.name().equals(ArrayUpperFunction.ARRAY_LENGTH)
                                || f.name().equals(ArrayUpperFunction.ARRAY_UPPER))

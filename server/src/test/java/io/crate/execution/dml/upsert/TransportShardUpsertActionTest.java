@@ -94,7 +94,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"),
         RowGranularity.DOC,
-        DataTypes.SHORT,
+        DataTypes.INTEGER,
         ColumnPolicy.DYNAMIC,
         IndexType.PLAIN,
         true,
@@ -204,17 +204,18 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -225,17 +226,18 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -249,17 +251,18 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -270,17 +273,18 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
         request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
@@ -302,19 +306,21 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             0
         );
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{dynamicRefConvertedToSimpleRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{dynamicRefConvertedToSimpleRef},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1,
                     ShardUpsertRequest.Item.forInsert(
                         "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                        missingAssignmentsColumns,
                         new Object[]{1}, // notice that it is not a 'long'
                         null));
 

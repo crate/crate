@@ -62,14 +62,35 @@ incredibly valuable as well. Please `get in touch`_ with us to tell us what you
 like and don't like about CrateDB.
 
 
+Issue assignments
+=================
+
+In general, we will not assign issues to community contributors. If you'd like
+to work on an issue you can just state it with a comment, so it's visible to
+everyone that you have started working on it, but this shouldn't block any other
+potential contributor to work on the same issue. If there are multiple pull
+requests opened, we will try to choose the one that is in a better shape. The
+reasoning behind this approach, is that we have experienced the case that people
+get assigned to an issue without any progress for very long time periods, while
+"blocking" other potential contributors from working on that issue.
+
+Note: Of course you're always welcome to ask questions on the issue that would
+help you to progress with the implementation.
+
+
 Pull Requests
 =============
 
-Before we can accept any pull requests, we need you to agree to our Contributor License Agreement (CLA).
-If you are contributing as an individual, you must sign an Individual Contributor License Agreement (ICLA_). 
-If you are contributing as an employee of a company and the company wants to allow you to contribute your work, then the representative of your company must sign a Corporate Contributor License Agreement (CCLA_). 
-Note: a CCLA does not remove the need for you to sign you own ICLA as an individual, to cover both contributions which are owned and those that are not owned by the company signing the CCLA.
+Before we can accept any pull requests, we need you to agree to our Contributor
+License Agreement (CLA). If you are contributing as an individual, you must sign
+an Individual Contributor License Agreement (ICLA_). If you are contributing as
+an employee of a company and the company wants to allow you to contribute your
+work, then the representative of your company must sign a Corporate Contributor
+License Agreement (CCLA_).
 
+Note: a CCLA does not remove the need for you to sign you own ICLA as an
+individual, to cover both contributions which are owned and those that are not
+owned by the company signing the CCLA.
 
 
 Once that is complete, you should:

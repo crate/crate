@@ -370,7 +370,7 @@ public class TestingHelpers {
             tableColumnPolicy,
             boundCreateTable.routingColumn().equals(SysColumns.ID.COLUMN)
                 ? null
-                : boundCreateTable.routingColumn().fqn()
+                : boundCreateTable.routingColumn()
         );
 
     }

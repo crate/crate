@@ -88,11 +88,6 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
     }
 
     @Override
-    public int numDimensions() {
-        return Double.isNaN(center.z) ? 2 : 3;
-    }
-
-    @Override
     public int hashCode() {
         return Objects.hash(center, radius, unit.ordinal());
     }

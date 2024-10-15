@@ -44,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StorageSupport;
@@ -90,6 +91,16 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
+    @SuppressWarnings("unchecked")
+    public static <T> ValueIndexer<T> of(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+        StorageSupport<?> innerMostStorageSupport = ArrayType.unnest(arrayRef.valueType()).storageSupportSafe();
+        ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.ident().tableIdent(), arrayRef, getRef);
+        for (int i = 0; i < ArrayType.dimensions(arrayRef.valueType()) - 1; i++) {
+            childIndexer = new ChildArrayIndexer<>(childIndexer, getRef, arrayRef);
+        }
+        return (ValueIndexer<T>) new ArrayIndexer<>(childIndexer, getRef, arrayRef);
+    }
+
     /**
      * Field prefix used for the array length field
      */
@@ -99,7 +110,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     protected final String arrayLengthFieldName;
     protected final Reference reference;
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    private ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
         this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
@@ -194,5 +205,24 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     @Override
     public String storageIdentLeafName() {
         return reference.storageIdentLeafName();
+    }
+
+    private static class ChildArrayIndexer<T> extends ArrayIndexer<T> {
+        public ChildArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+            super(innerIndexer, getRef, reference);
+        }
+
+        @Override
+        public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
+            docBuilder.translogWriter().startArray();
+            for (T value : values) {
+                if (value == null) {
+                    docBuilder.translogWriter().writeNull();
+                } else {
+                    innerIndexer.indexValue(value, docBuilder);
+                }
+            }
+            docBuilder.translogWriter().endArray();
+        }
     }
 }

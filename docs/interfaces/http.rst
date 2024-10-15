@@ -308,63 +308,6 @@ IDs of all currently available data types:
      - :ref:`ARRAY <type-array>`
 
 
-.. _http-bulk-ops:
-
-Bulk operations
-===============
-
-The REST endpoint allows to issue bulk operations which are executed as single
-calls on the back-end site. It can be compared to `prepared statement`_.
-
-A bulk operation can be expressed simply as an SQL statement.
-
-Supported bulk SQL statements are:
-
-- Insert
-- Update
-- Delete
-
-Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
-``bulk_args``. This allows to specify a list of lists, containing all the
-records which shall be processed. The inner lists need to match the specified
-columns.
-
-The bulk response contains a ``results`` array, with a row count for each bulk
-operation. Those results are in the same order as the issued operations of the
-bulk operation.
-
-The following example describes how to issue an insert bulk operation and
-insert three records at once::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
-    ... {
-    ...   "stmt": "INSERT INTO locations (id, name, kind, description)
-    ...           VALUES (?, ?, ?, ?)",
-    ...   "bulk_args": [
-    ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
-    ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
-    ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
-    ...   ]
-    ... }
-    ... EOF
-    {
-      "cols": [],
-      "duration": ...,
-      "results": [
-        {
-          "rowcount": 1
-        },
-        {
-          "rowcount": 1
-        },
-        {
-          "rowcount": 1
-        }
-      ]
-    }
-
-
 .. _http-error-handling:
 
 Error handling
@@ -503,22 +446,35 @@ Code   Error
 ====== =====================================================================
 
 
-.. _http-bulk-errors:
+.. _http-bulk-ops:
 
-Bulk errors
------------
+Bulk operations
+===============
 
-If a bulk operation fails, the resulting row count will be ``-2`` and the
-resulting object may contain an ``error_message`` depending on the resulting
-error::
+The HTTP endpoint supports executing a single SQL statement many times with
+different parameters.
+
+Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
+``bulk_args``. This allows to specify a list of lists, containing all the
+parameters which shall be processed. The inner lists need to match the specified
+columns.
+
+The bulk response contains a ``results`` array, with a row count for each bulk
+operation. Those results are in the same order as the issued operations of the
+bulk operation.
+
+
+Here an example that inserts three records at once::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql' -d@- <<- EOF
     ... {
-    ...   "stmt": "INSERT into locations (name, id) values (?,?)",
+    ...   "stmt": "INSERT INTO locations (id, name, kind, description)
+    ...           VALUES (?, ?, ?, ?)",
     ...   "bulk_args": [
-    ...     ["Mars", 1341],
-    ...     ["Sun", 1341]
+    ...     [1337, "Earth", "Planet", "An awesome place to spend some time on."],
+    ...     [1338, "Sun", "Star", "An extraordinarily hot place."],
+    ...     [1339, "Titan", "Moon", "Titan, where it rains fossil fuels."]
     ...   ]
     ... }
     ... EOF
@@ -530,15 +486,66 @@ error::
           "rowcount": 1
         },
         {
-          "rowcount": -2
+          "rowcount": 1
+        },
+        {
+          "rowcount": 1
         }
       ]
     }
 
-.. NOTE::
 
-   Every bulk operation will be executed, independent if one of the operation
-   fails.
+Statements with a result set cannot be executed in bulk. The supported bulk SQL
+statements are:
+
+- Insert
+- Update
+- Delete
+
+
+.. _http-bulk-errors:
+
+Bulk errors
+-----------
+
+There are two kinds of error behaviors for bulk requests:
+
+1. **Analysis error:** Occurs if the statement is invalid, either due to syntax
+   errors or semantic errors identified during the analysis phase before the
+   execution starts. In this case the **whole** operation fails and you'll get
+   a single error::
+
+    {
+        "error": {
+            "code": 4043,
+            "message": "ColumnUnknownException[Column y unknown]"
+        }
+    }
+
+
+2. **Runtime error:** For errors happening after the analysis phase succeeded
+   during execution. For example on duplicate primary key errors or check
+   constraint failures. In this case CrateDB continues processing the other
+   bulk arguments and reports the results via a ``rowcount`` where ``-2``
+   indicates an error::
+
+
+    {
+        "cols": [],
+        "duration": 2.195417,
+        "results": [
+            {
+                "rowcount": 1
+            },
+            {
+                "rowcount": -2
+            }
+        ]
+    }
+
+.. note::
+
+    The ``error_trace`` option does not work with bulk operations.
 
 
 .. _here documents: https://en.wikipedia.org/wiki/Here_document

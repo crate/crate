@@ -65,12 +65,14 @@ public class PrivilegesModifierTest {
         new Privilege(Policy.GRANT, Permission.DML, Securable.VIEW, "view3", "crate");
     public static final Privilege GRANT_SCHEMA_DML =
         new Privilege(Policy.GRANT, Permission.DML, Securable.SCHEMA, "testSchema", "crate");
+    public static final Privilege GRANT_AL =
+        new Privilege(Policy.GRANT, Permission.AL, Securable.CLUSTER, null, "crate");
 
     public static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
     public static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
     public static final String USER_WITHOUT_PRIVILEGES = "noPrivilegesUser";
     public static final String USER_WITH_DENIED_DQL = "userWithDeniedDQL";
-    public static final String USER_WITH_SCHEMA_AND_TABLE_PRIVS = "userWithTableAndSchemaPrivs";
+    public static final String USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS = "userWithTableSchemaViewAlPrivs";
 
     private RolesMetadata rolesMetadata;
 
@@ -81,8 +83,13 @@ public class PrivilegesModifierTest {
         }
         roles.put(USER_WITHOUT_PRIVILEGES, userOf(USER_WITHOUT_PRIVILEGES));
         roles.put(USER_WITH_DENIED_DQL, userOf(USER_WITH_DENIED_DQL, new HashSet<>(Collections.singletonList(DENY_DQL)), null));
-        roles.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, userOf(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(
-            Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL, GRANT_VIEW_DQL, GRANT_VIEW_DML, GRANT_VIEW_DDL)),
+        roles.put(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS, userOf(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS, new HashSet<>(
+            Arrays.asList(
+                GRANT_SCHEMA_DML,
+                GRANT_TABLE_DQL, GRANT_TABLE_DDL,
+                GRANT_VIEW_DQL, GRANT_VIEW_DML, GRANT_VIEW_DDL,
+                GRANT_AL)
+            ),
             null
         ));
 
@@ -187,7 +194,7 @@ public class PrivilegesModifierTest {
 
         assertThat(newRolesMetadata).isNotNull();
 
-        var role = newRolesMetadata.roles().get(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        var role = newRolesMetadata.roles().get(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS);
         HashSet<Privilege> updatedPrivileges = new HashSet<>(role.privileges().size());
         for (var privilege : role.privileges()) {
             updatedPrivileges.add(privilege);
@@ -221,15 +228,21 @@ public class PrivilegesModifierTest {
         assertThat(affectedPrivileges).isEqualTo(1L);
 
         var newRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-        var role = newRolesMetadata.roles().get(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        var role = newRolesMetadata.roles().get(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS);
         HashSet<Privilege> updatedPrivileges = new HashSet<>(role.privileges().size());
         for (var privilege : role.privileges()) {
             updatedPrivileges.add(privilege);
         }
-        Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
-            .filter(hasPrivilegeOn("testSchema.test"))
+        assertThat(updatedPrivileges).hasSize(6);
+
+        Optional<Privilege> privilege = updatedPrivileges.stream()
+            .filter(hasPrivilegeOn(GRANT_TABLE_DQL.subject().ident()))
             .findAny();
-        assertThat(sourcePrivilege.isPresent()).isFalse();
+        assertThat(privilege.isPresent()).isFalse();
+        privilege = updatedPrivileges.stream()
+            .filter(hasAlPrivilege())
+            .findAny();
+        assertThat(privilege.isPresent()).isTrue();
     }
 
     @Test
@@ -239,19 +252,32 @@ public class PrivilegesModifierTest {
         assertThat(affectedPrivileges).isEqualTo(1L);
 
         var newRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
-        var role = newRolesMetadata.roles().get(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        var role = newRolesMetadata.roles().get(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS);
         HashSet<Privilege> updatedPrivileges = new HashSet<>(role.privileges().size());
         for (var privilege : role.privileges()) {
             updatedPrivileges.add(privilege);
         }
-        Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
-            .filter(hasPrivilegeOn("testSchema.view1"))
+        assertThat(updatedPrivileges).hasSize(6);
+
+        Optional<Privilege> privilege = updatedPrivileges.stream()
+            .filter(hasPrivilegeOn(GRANT_VIEW_DQL.subject().ident()))
             .findAny();
-        assertThat(sourcePrivilege.isPresent()).isFalse();
+        assertThat(privilege.isPresent()).isFalse();
+        privilege = updatedPrivileges.stream()
+            .filter(hasAlPrivilege())
+            .findAny();
+        assertThat(privilege.isPresent()).isTrue();
     }
 
     @NotNull
     private static Predicate<Privilege> hasPrivilegeOn(String object) {
         return p -> object.equals(p.subject().ident());
+    }
+
+    @NotNull
+    private static Predicate<Privilege> hasAlPrivilege() {
+        return p -> p.subject().securable() == Securable.CLUSTER &&
+            p.subject().permission() == Permission.AL &&
+            p.policy() == Policy.GRANT;
     }
 }

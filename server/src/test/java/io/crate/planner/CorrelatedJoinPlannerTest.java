@@ -60,7 +60,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             "        └ SubPlan\n" +
             "          └ Eval[mountain]\n" +
             "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [] | true]"
+            "              └ TableFunction[empty_row | [mountain] | true]"
         );
     }
 
@@ -77,7 +77,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             "    └ SubPlan\n" +
             "      └ Eval[mountain]\n" +
             "        └ Limit[2::bigint;0::bigint]\n" +
-            "          └ TableFunction[empty_row | [] | true]"
+            "          └ TableFunction[empty_row | [mountain] | true]"
         );
     }
 

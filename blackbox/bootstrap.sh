@@ -34,12 +34,17 @@ else
     exit 1
 fi
 
-$PYTHON -m venv "$DIR/.venv"
-if [ ! -f "$DIR/.venv/bin/pip" ]; then
-    wget https://bootstrap.pypa.io/get-pip.py
-    "$DIR/.venv/bin/python" get-pip.py
-    rm -f get-pip.py
-fi
 
-"$DIR/.venv/bin/pip" install --upgrade pip setuptools wheel
-"$DIR/.venv/bin/pip" install --upgrade --requirement "$DIR/requirements.txt"
+if command -v uv 2> /dev/null > /dev/null; then
+  uv venv "$DIR/.venv"
+  uv --directory "$DIR" pip install --upgrade --requirement "requirements.txt"
+else
+  $PYTHON -m venv "$DIR/.venv"
+  if [ ! -f "$DIR/.venv/bin/pip" ]; then
+      wget https://bootstrap.pypa.io/get-pip.py
+      "$DIR/.venv/bin/python" get-pip.py
+      rm -f get-pip.py
+  fi
+  "$DIR/.venv/bin/pip" install --upgrade pip setuptools wheel
+  "$DIR/.venv/bin/pip" install --upgrade --requirement "$DIR/requirements.txt"
+fi

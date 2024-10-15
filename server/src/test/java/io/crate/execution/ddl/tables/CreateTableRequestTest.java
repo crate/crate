@@ -23,6 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -90,7 +92,7 @@ public class CreateTableRequestTest {
             IntArrayList.from(3),
             Map.of("check1", "just_col > 0"),
             Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_0).build(),
-            "some_routing_col",
+            ColumnIdent.of("some_routing_col"),
             ColumnPolicy.DYNAMIC,
             partitionedBy
         );
@@ -136,5 +138,35 @@ public class CreateTableRequestTest {
         in.setVersion(Version.V_5_5_0);
         actual = new CreateTableRequest(in);
         assertThat(actual.pkConstraintName()).isNull();
+    }
+
+    @Test
+    public void test_streaming_routing_59_bwc() throws Exception {
+        for (ColumnIdent routingColumn : Arrays.asList(null, ColumnIdent.of("foo", "bar"), ColumnIdent.of("foo"))) {
+            CreateTableRequest request = new CreateTableRequest(
+                new RelationName(null, "dummy"),
+                "pk_constraint",
+                List.of(),
+                new IntArrayList(),
+                Map.of(),
+                Settings.EMPTY,
+                routingColumn,
+                ColumnPolicy.DYNAMIC,
+                List.of()
+            );
+
+            BytesStreamOutput out = new BytesStreamOutput();
+            request.writeTo(out);
+            CreateTableRequest actual = new CreateTableRequest(out.bytes().streamInput());
+            assertThat(actual.routingColumn()).isEqualTo(routingColumn);
+
+            out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_9_0);
+            request.writeTo(out);
+            var in = out.bytes().streamInput();
+            in.setVersion(Version.V_5_9_0);
+            actual = new CreateTableRequest(in);
+            assertThat(actual.routingColumn()).isEqualTo(routingColumn);
+        }
     }
 }

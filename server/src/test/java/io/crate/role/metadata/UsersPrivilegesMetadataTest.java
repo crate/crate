@@ -22,6 +22,7 @@
 package io.crate.role.metadata;
 
 import static io.crate.role.PrivilegesModifierTest.DENY_DQL;
+import static io.crate.role.PrivilegesModifierTest.GRANT_AL;
 import static io.crate.role.PrivilegesModifierTest.GRANT_SCHEMA_DML;
 import static io.crate.role.PrivilegesModifierTest.GRANT_TABLE_DDL;
 import static io.crate.role.PrivilegesModifierTest.GRANT_TABLE_DQL;
@@ -32,7 +33,7 @@ import static io.crate.role.PrivilegesModifierTest.PRIVILEGES;
 import static io.crate.role.PrivilegesModifierTest.USERNAMES;
 import static io.crate.role.PrivilegesModifierTest.USER_WITHOUT_PRIVILEGES;
 import static io.crate.role.PrivilegesModifierTest.USER_WITH_DENIED_DQL;
-import static io.crate.role.PrivilegesModifierTest.USER_WITH_SCHEMA_AND_TABLE_PRIVS;
+import static io.crate.role.PrivilegesModifierTest.USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
@@ -68,8 +69,13 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
         }
         usersPrivileges.put(USER_WITHOUT_PRIVILEGES, new HashSet<>());
         usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Collections.singletonList(DENY_DQL)));
-        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(
-            Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL, GRANT_VIEW_DQL, GRANT_VIEW_DML, GRANT_VIEW_DDL)));
+        usersPrivileges.put(USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS, new HashSet<>(
+            Arrays.asList(
+                GRANT_SCHEMA_DML,
+                GRANT_TABLE_DQL, GRANT_TABLE_DDL,
+                GRANT_VIEW_DQL, GRANT_VIEW_DML, GRANT_VIEW_DDL,
+                GRANT_AL)
+        ));
 
         return new UsersPrivilegesMetadata(usersPrivileges);
     }

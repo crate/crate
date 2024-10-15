@@ -44,14 +44,6 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
         return this;
     }
 
-    public int numDimensions() {
-        if (lines == null || lines.isEmpty()) {
-            throw new IllegalStateException("unable to get number of dimensions, " +
-                "LineStrings have not yet been initialized");
-        }
-        return lines.get(0).numDimensions();
-    }
-
     @Override
     public JtsGeometry buildS4J() {
         final Geometry geometry;

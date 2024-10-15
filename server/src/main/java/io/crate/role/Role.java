@@ -148,7 +148,7 @@ public class Role implements Writeable, ToXContent {
             this(in.readBoolean(),
                  in.readOptionalWriteable(SecureHash::readFrom),
                  in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null,
-                 in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : null
+                 in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : Map.of()
             );
         }
 
@@ -241,8 +241,12 @@ public class Role implements Writeable, ToXContent {
 
     }
 
-    public Role with(Set<Privilege> privileges) {
-        return new Role(name, new RolePrivileges(privileges), grantedRoles, properties, false);
+    public Role with(RolePrivileges privileges) {
+        return new Role(name, privileges, grantedRoles, properties, isSuperUser);
+    }
+
+    public Role with(Set<GrantedRole> grantedRoles) {
+        return new Role(name, privileges, grantedRoles, properties, isSuperUser);
     }
 
     public Role with(@Nullable SecureHash password,
@@ -257,7 +261,7 @@ public class Role implements Writeable, ToXContent {
                 password,
                 jwtProperties,
                 sessionSettings),
-            false
+            isSuperUser
         );
     }
 

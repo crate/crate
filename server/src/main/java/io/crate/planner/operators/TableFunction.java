@@ -136,7 +136,7 @@ public final class TableFunction implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        if (outputsToKeep.containsAll(toCollect)) {
+        if (toCollect.size() == outputsToKeep.size() && outputsToKeep.containsAll(toCollect)) {
             return this;
         }
         return new TableFunction(relation, List.copyOf(outputsToKeep), where);

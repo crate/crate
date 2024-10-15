@@ -24,19 +24,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.LatchedActionListener;
-import org.elasticsearch.action.support.ActionTestUtils;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction.PrimaryResult;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.seqno.RetentionLeaseBackgroundSyncAction.Request;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -47,6 +47,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
 
 public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
@@ -110,15 +111,14 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseBackgroundSyncAction.Request request =
                 new RetentionLeaseBackgroundSyncAction.Request(indexShard.shardId(), retentionLeases);
-        final CountDownLatch latch = new CountDownLatch(1);
-        action.shardOperationOnPrimary(request, indexShard,
-            new LatchedActionListener<>(ActionTestUtils.assertNoFailureListener(result -> {
-                // the retention leases on the shard should be persisted
-                verify(indexShard).persistRetentionLeases();
-                // we should forward the request containing the current retention leases to the replica
-                assertThat(result.replicaRequest()).isSameAs(request);
-            }), latch));
-        latch.await();
+        FutureActionListener<PrimaryResult<RetentionLeaseBackgroundSyncAction.Request, ReplicationResponse>> future = new FutureActionListener<>();
+        action.shardOperationOnPrimary(request, indexShard, future);
+
+        PrimaryResult<Request, ReplicationResponse> result = future.get();
+        // the retention leases on the shard should be persisted
+        verify(indexShard).persistRetentionLeases();
+        // we should forward the request containing the current retention leases to the replica
+        assertThat(result.replicaRequest()).isSameAs(request);
     }
 
     @Test

@@ -74,7 +74,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
@@ -709,7 +708,8 @@ public abstract class StreamInput extends InputStream {
             case 21:
                 return readBytesRef();
             case 22:
-                return readGeoPoint();
+                // was GeoPoint. Point is binary compatible
+                return new PointImpl(readDouble(), readDouble(), JtsSpatialContext.GEO);
             case 23:
                 return readZonedDateTime();
             case 24:
@@ -811,13 +811,6 @@ public abstract class StreamInput extends InputStream {
 
     private Date readDate() throws IOException {
         return new Date(readLong());
-    }
-
-    /**
-     * Reads a {@link GeoPoint} from this stream input
-     */
-    public GeoPoint readGeoPoint() throws IOException {
-        return new GeoPoint(readDouble(), readDouble());
     }
 
     /**

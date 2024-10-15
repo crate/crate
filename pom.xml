@@ -4,7 +4,7 @@
 
   <groupId>io.crate</groupId>
   <artifactId>crate</artifactId>
-  <version>5.9.0</version>
+  <version>5.10.0</version>
   <packaging>pom</packaging>
 
   <build>
@@ -301,13 +301,13 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>22</maven.compiler.source>
-    <maven.compiler.target>22</maven.compiler.target>
+    <maven.compiler.source>23</maven.compiler.source>
+    <maven.compiler.target>23</maven.compiler.target>
 
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>22.0.2+9</versions.jdk>
+    <versions.jdk>23</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.23.1</versions.log4j>
     <versions.assertj>3.26.3</versions.assertj>
@@ -376,7 +376,7 @@
     <versions.plugin.puppycrawl>10.18.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
-    <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
+    <versions.plugin.forbiddenapis>3.8</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
     <versions.plugin.download>1.9.0</versions.plugin.download>

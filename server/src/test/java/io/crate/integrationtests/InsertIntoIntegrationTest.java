@@ -2070,4 +2070,13 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into tdst (x, y) (select x, y from tsrc order by y)");
         assertThat(response).hasRowCount(3);
     }
+
+    @Test
+    public void test_can_write_ignored_object_with_array_column_with_mixed_types() throws Exception {
+        execute("CREATE TABLE t (data OBJECT(IGNORED))");
+        execute("insert into t (data) VALUES ('{\"items\": [42.42, \"foo\"]}'::json)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
 }

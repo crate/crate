@@ -153,7 +153,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
             case IndexMetadata.SETTING_VERSION_CREATED:
             case IndexMetadata.SETTING_HISTORY_UUID:
             case IndexMetadata.SETTING_VERSION_UPGRADED:
-            case IndexMetadata.SETTING_INDEX_PROVIDED_NAME:
             case MergePolicyConfig.INDEX_MERGE_ENABLED:
             case IndexMetadata.INDEX_SHRINK_SOURCE_UUID_KEY:
             case IndexMetadata.INDEX_SHRINK_SOURCE_NAME_KEY:

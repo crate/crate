@@ -41,10 +41,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
@@ -96,7 +96,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
             ));
         } else {
             assert acceptableClusterStateOrNotMasterPredicate.test(state) == false;
-            new ClusterStateObserver(state, clusterService, request.waitForTimeout(), logger)
+            new ClusterStateObserver(state, clusterService.getClusterApplierService(), request.waitForTimeout(), logger)
                 .waitForNextChange(new ClusterStateObserver.Listener() {
 
                     @Override

@@ -96,7 +96,7 @@ public final class PrivilegesModifier {
             }
 
             if (affectedCount > 0) {
-                roles.put(userName, role.with(privileges));
+                roles.put(userName, role.with(new RolePrivileges(privileges)));
             }
         }
 
@@ -139,7 +139,7 @@ public final class PrivilegesModifier {
                     privileges.add(privilege);
                 }
             }
-            newRoles.put(entry.getKey(), role.with(privileges));
+            newRoles.put(entry.getKey(), role.with(new RolePrivileges(privileges)));
         }
 
         if (privilegesChanged) {
@@ -159,19 +159,14 @@ public final class PrivilegesModifier {
             for (Privilege privilege : role.privileges()) {
                 Subject subject = privilege.subject();
                 Securable securable = subject.securable();
-                if (securable != Securable.TABLE && securable != Securable.VIEW) {
-                    continue;
-                }
-
-                String ident = subject.ident();
-                assert ident != null : "ident must not be null for securable 'TABLE'";
-                if (ident.equals(tableOrViewIdent)) {
+                if ((securable == Securable.TABLE || securable == Securable.VIEW) &&
+                    tableOrViewIdent.equals(subject.ident())) {
                     affectedPrivileges++;
                 } else {
                     updatedPrivileges.add(privilege);
                 }
             }
-            newRoles.put(role.name(), role.with(updatedPrivileges));
+            newRoles.put(role.name(), role.with(new RolePrivileges(updatedPrivileges)));
         }
         mdBuilder.putCustom(RolesMetadata.TYPE, new RolesMetadata(newRoles));
         return affectedPrivileges;
@@ -201,7 +196,7 @@ public final class PrivilegesModifier {
                     updatedPrivileges.add(privilege);
                 }
             }
-            newRoles.put(user, role.with(updatedPrivileges));
+            newRoles.put(user, role.with(new RolePrivileges(updatedPrivileges)));
         }
         return new RolesMetadata(newRoles);
     }

@@ -29,6 +29,7 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 import io.crate.expression.reference.sys.shard.SysAllocation;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
 
 public class SysAllocationsTableInfo {
@@ -55,5 +56,6 @@ public class SysAllocationsTableInfo {
             ColumnIdent.of("partition_ident"),
             ColumnIdent.of("shard_id")
         )
+        .withRouting((state, ignored, ignored2) -> Routing.forTableOnSingleNode(IDENT, state.nodes().getMasterNodeId()))
         .build();
 }

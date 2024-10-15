@@ -68,7 +68,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "    └ SubPlan\n" +
             "      └ Eval[mountain]\n" +
             "        └ Limit[2::bigint;0::bigint]\n" +
-            "          └ TableFunction[empty_row | [] | true]\n"
+            "          └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute("SELECT 1, (SELECT t.mountain) FROM sys.summits t");
         Comparator<Object[]> compareMountain = Comparator.comparing((Object[] row) -> (String) row[1]);
@@ -121,7 +121,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        └ SubPlan\n" +
             "          └ Eval[mountain]\n" +
             "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [] | true]\n"
+            "              └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute(statement);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -230,7 +230,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ SubPlan\n" +
             "        └ Eval[x]\n" +
             "          └ Limit[1;0]\n" +
-            "            └ TableFunction[empty_row | [] | true]\n");
+            "            └ TableFunction[empty_row | [x] | true]\n");
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "1\n" +
@@ -254,7 +254,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "          └ SubPlan\n" +
             "            └ Eval[mountain]\n" +
             "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ TableFunction[empty_row | [] | true]\n"
+            "                └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -381,7 +381,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "          └ SubPlan\n" +
             "            └ Eval[attrelid]\n" +
             "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ TableFunction[empty_row | [] | true]\n"
+            "                └ TableFunction[empty_row | [attrelid] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
