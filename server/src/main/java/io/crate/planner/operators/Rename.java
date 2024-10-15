@@ -25,7 +25,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedCollection;
@@ -98,11 +98,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
-         * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
-         */
-        IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
-        IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
+        HashMap<Symbol, Symbol> parentToChildMap = HashMap.newHashMap(outputs.size());
+        HashMap<Symbol, Symbol> childToParentMap = HashMap.newHashMap(outputs.size());
         for (int i = 0; i < outputs.size(); i++) {
             parentToChildMap.put(outputs.get(i), source.outputs().get(i));
             childToParentMap.put(source.outputs().get(i), outputs.get(i));
@@ -134,8 +131,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     @Nullable
     @Override
     public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
-        IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
-        IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
+        HashMap<Symbol, Symbol> parentToChildMap = HashMap.newHashMap(outputs.size());
+        HashMap<Symbol, Symbol> childToParentMap = HashMap.newHashMap(outputs.size());
         for (int i = 0; i < outputs.size(); i++) {
             parentToChildMap.put(outputs.get(i), source.outputs().get(i));
             childToParentMap.put(source.outputs().get(i), outputs.get(i));
