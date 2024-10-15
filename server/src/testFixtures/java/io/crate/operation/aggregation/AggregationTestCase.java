@@ -444,7 +444,6 @@ public abstract class AggregationTestCase extends ESTestCase {
     private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
             AllocPosition.forNewTable(),
-            Version.CURRENT,
             Reference.buildTree(targetColumns)
         );
         return JsonXContent.builder()

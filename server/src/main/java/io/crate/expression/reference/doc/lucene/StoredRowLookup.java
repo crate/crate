@@ -189,7 +189,7 @@ public abstract class StoredRowLookup implements StoredRow {
 
         private ColumnAndStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
             super(table, indexName);
-            this.fieldsVisitor = new ColumnFieldVisitor(table.droppedColumns());
+            this.fieldsVisitor = new ColumnFieldVisitor(table);
             register(columns);
         }
 

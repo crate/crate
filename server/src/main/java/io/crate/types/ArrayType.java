@@ -51,6 +51,7 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
+import io.crate.execution.dml.ArrayOfObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -91,12 +92,17 @@ public class ArrayType<T> extends DataType<List<T>> {
         StorageSupport innerStorage = innerType.storageSupport();
         if (innerStorage == null) {
             this.storageSupport = null;
+        } else if (ArrayType.unnest(this) instanceof ObjectType) {
+            this.storageSupport = new StorageSupport<T>(innerStorage) {
+                @Override
+                public ValueIndexer<? super T> valueIndexer(RelationName table,
+                                                            Reference ref,
+                                                            Function<ColumnIdent, Reference> getRef) {
+                    return new ArrayOfObjectIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                }
+            };
         } else {
-            this.storageSupport = new StorageSupport<T>(
-                    innerStorage.docValuesDefault(),
-                    innerStorage.supportsDocValuesOff(),
-                    innerStorage.eqQuery()) {
-
+            this.storageSupport = new StorageSupport<T>(innerStorage) {
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table,
                                                     Reference ref,

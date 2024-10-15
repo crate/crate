@@ -126,7 +126,6 @@ public final class Templates {
                 Constants.DEFAULT_MAPPING_TYPE,
                 MappingUtil.createMapping(
                     MappingUtil.AllocPosition.forNewTable(),
-                    Version.CURRENT,
                     request.pkConstraintName(),
                     references,
                     request.pKeyIndices(),

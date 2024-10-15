@@ -23,7 +23,6 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,12 +31,14 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Maps;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -45,9 +46,14 @@ import io.crate.types.ObjectType;
 
 public class ColumnFieldVisitor extends StoredFieldVisitor {
 
-    public ColumnFieldVisitor(Set<Reference> droppedColumns) {
+    private final Map<String, Field> fields = new HashMap<>();
+    private final Set<ColumnIdent> droppedColumns;
+    private final SourceParser arraySourceParser;
+
+    public ColumnFieldVisitor(DocTableInfo table) {
         this.droppedColumns
-            = droppedColumns.stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
+            = table.droppedColumns().stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
+        this.arraySourceParser = new SourceParser(table);
     }
 
     private interface Field extends Comparable<Field> {
@@ -68,25 +74,16 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         }
     }
 
-    private record ArrayOfObjectField(DataType<?> dataType, Set<ColumnIdent> droppedColumns, ColumnIdent column) implements Field {
+    private record ArrayOfObjectField(DataType<?> dataType, ColumnIdent column, SourceParser sourceParser) implements Field {
         @Override
         public Object sanitize(Object v) {
-            var parsed = dataType.sanitizeValue(v);
-            if (parsed instanceof List<?> l) {
-                for (var entry : l) {
-                    if (entry instanceof Map<?, ?> m) {
-                        for (ColumnIdent col : droppedColumns) {
-                            Maps.removeByPath((Map<String, ?>) m, col.path());
-                        }
-                    }
-                }
+            var map = sourceParser.parse(new BytesArray((byte[]) v));
+            if (map.isEmpty()) {
+                return List.of();
             }
-            return parsed;
+            return map.values().iterator().next();
         }
     }
-
-    private final Map<String, Field> fields = new HashMap<>();
-    private final Set<ColumnIdent> droppedColumns;
 
     // Maps.mergeInto() needs its inputs to be sorted, to ensure that a parent object o doesn't overwrite
     // an already written child o['child'], so we read stored fields into a sorted map and then
@@ -105,21 +102,11 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
             if (ArrayType.unnest(ref.valueType()) instanceof ObjectType) {
-                fields.put(storageName, new ArrayOfObjectField(ref.valueType(), findChildDroppedColumns(ref.column()), column));
+                fields.put(storageName, new ArrayOfObjectField(ref.valueType(), column, arraySourceParser));
                 return;
             }
         }
         fields.put(storageName, new ValueField(ref.valueType(), column));
-    }
-
-    private Set<ColumnIdent> findChildDroppedColumns(ColumnIdent base) {
-        Set<ColumnIdent> childDroppedColumns = new HashSet<>();
-        for (var col : droppedColumns) {
-            if (col.isChildOf(base)) {
-                childDroppedColumns.add(col.shiftTo(base));
-            }
-        }
-        return childDroppedColumns;
     }
 
     public boolean shouldLoadStoredFields() {

@@ -1059,7 +1059,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         AllocPosition allocPosition = AllocPosition.forTable(this);
         Map<String, Object> mapping = Map.of("default", MappingUtil.createMapping(
             allocPosition,
-            versionCreated,
             pkConstraintName,
             allColumns,
             pKeyIndices,

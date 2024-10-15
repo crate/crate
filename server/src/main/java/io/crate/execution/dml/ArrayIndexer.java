@@ -95,9 +95,9 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
      */
     public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
-    private final ValueIndexer<T> innerIndexer;
-    private final String arrayLengthFieldName;
-    private final Reference reference;
+    protected final ValueIndexer<T> innerIndexer;
+    protected final String arrayLengthFieldName;
+    protected final Reference reference;
 
     public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;

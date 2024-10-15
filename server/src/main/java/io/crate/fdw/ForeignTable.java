@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -161,7 +160,6 @@ public record ForeignTable(RelationName name,
 
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
             AllocPosition.forTable(this),
-            Version.CURRENT,
             Reference.buildTree(references.values())
         );
         builder.field("references", properties);

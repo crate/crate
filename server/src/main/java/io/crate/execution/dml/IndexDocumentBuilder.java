@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -120,6 +121,10 @@ public class IndexDocumentBuilder {
                 return false;
             }
         };
+    }
+
+    public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated);
     }
 
     /**

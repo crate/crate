@@ -21,6 +21,10 @@
 
 package io.crate.execution.dml;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
+import org.apache.lucene.util.IORunnable;
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
@@ -99,5 +103,13 @@ public interface TranslogWriter {
                 return source;
             }
         };
+    }
+
+    static void uncheck(IORunnable runnable) {
+        try {
+            runnable.run();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }
