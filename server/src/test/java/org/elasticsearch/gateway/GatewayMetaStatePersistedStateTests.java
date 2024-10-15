@@ -92,7 +92,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
 
     private CoordinationState.PersistedState newGatewayPersistedState() {
         final MockGatewayMetaState gateway = new MockGatewayMetaState(localNode, bigArrays);
-        gateway.start(settings, nodeEnvironment, xContentRegistry());
+        gateway.start(settings, nodeEnvironment, xContentRegistry(), writableRegistry());
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
         assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.LucenePersistedState.class);
         return persistedState;
@@ -299,7 +299,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
     public void testStatePersistedOnLoad() throws IOException {
         // open LucenePersistedState to make sure that cluster state is written out to each data path
         final PersistedClusterStateService persistedClusterStateService =
-            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
+            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
         final ClusterState state = createClusterState(randomNonNegativeLong(),
                                                       Metadata.builder().clusterUUID(randomAlphaOfLength(10)).build());
@@ -318,7 +318,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 .put(Environment.PATH_DATA_SETTING.getKey(), path.getParent().getParent().toString()).build();
             try (NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, TestEnvironment.newEnvironment(settings))) {
                 final PersistedClusterStateService newPersistedClusterStateService =
-                    new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
+                    new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                         new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
                 final PersistedClusterStateService.OnDiskState onDiskState = newPersistedClusterStateService.loadBestOnDiskState();
                 assertThat(onDiskState.empty()).as("Path should not be empty: " + path.toAbsolutePath()).isFalse();
@@ -344,7 +344,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         when(clusterService.getClusterSettings()).thenReturn(
             new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS));
         final PersistedClusterStateService persistedClusterStateService =
-            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), BigArrays.NON_RECYCLING_INSTANCE,
+            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), BigArrays.NON_RECYCLING_INSTANCE,
                 new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
         gateway.start(settings, transportService, clusterService,
                       new MetaStateService(nodeEnvironment, xContentRegistry()), null, null, persistedClusterStateService);
@@ -422,7 +422,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         final AtomicReference<Double> ioExceptionRate = new AtomicReference<>(0.01d);
         final List<MockDirectoryWrapper> list = new ArrayList<>();
         final PersistedClusterStateService persistedClusterStateService =
-            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
+            new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L) {
                 @Override
                 Directory createDirectory(Path path) {
@@ -499,7 +499,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 .put(Environment.PATH_DATA_SETTING.getKey(), path.getParent().getParent().toString()).build();
             try (NodeEnvironment nodeEnvironment = new NodeEnvironment(settings, TestEnvironment.newEnvironment(settings))) {
                 final PersistedClusterStateService newPersistedClusterStateService =
-                    new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
+                    new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                         new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
                 final PersistedClusterStateService.OnDiskState onDiskState = newPersistedClusterStateService.loadBestOnDiskState();
                 assertThat(onDiskState.empty()).isFalse();

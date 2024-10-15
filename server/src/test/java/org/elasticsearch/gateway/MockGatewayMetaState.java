@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -69,7 +70,7 @@ public class MockGatewayMetaState extends GatewayMetaState {
         return ClusterStateUpdaters.setLocalNode(clusterState, localNode);
     }
 
-    public void start(Settings settings, NodeEnvironment nodeEnvironment, NamedXContentRegistry xContentRegistry) {
+    public void start(Settings settings, NodeEnvironment nodeEnvironment, NamedXContentRegistry namedXContentRegistry, NamedWriteableRegistry namedWritableRegistry) {
         final TransportService transportService = mock(TransportService.class);
         when(transportService.getThreadPool()).thenReturn(mock(ThreadPool.class));
         final ClusterService clusterService = mock(ClusterService.class);
@@ -81,8 +82,22 @@ public class MockGatewayMetaState extends GatewayMetaState {
         } catch (IOException e) {
             throw new AssertionError(e);
         }
-        start(settings, transportService, clusterService, metaStateService,
-            null, null, new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays,
-                new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L));
+        PersistedClusterStateService persistedClusterStateService = new PersistedClusterStateService(
+            nodeEnvironment,
+            namedXContentRegistry,
+            namedWritableRegistry,
+            bigArrays,
+            new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
+            () -> 0L
+        );
+        start(
+            settings,
+            transportService,
+            clusterService,
+            metaStateService,
+            null,
+            null,
+            persistedClusterStateService
+        );
     }
 }
