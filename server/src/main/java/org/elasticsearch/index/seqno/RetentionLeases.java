@@ -234,6 +234,10 @@ public class RetentionLeases implements ToXContentFragment, Writeable {
             return RetentionLeases.fromXContent(parser);
         }
 
+        @Override
+        public RetentionLeases readFrom(StreamInput in) throws IOException {
+            return new RetentionLeases(in);
+        }
     };
 
     @Override

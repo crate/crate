@@ -1114,6 +1114,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             public Metadata fromXContent(XContentParser parser) throws IOException {
                 return Builder.fromXContent(parser, preserveUnknownCustoms);
             }
+
+            @Override
+            public Metadata readFrom(StreamInput in) throws IOException {
+                return Metadata.readFrom(in);
+            }
         };
     }
 

@@ -56,6 +56,9 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.decider.ClusterRebalanceAllocationDecider;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -306,7 +309,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         private final int invertedFailRate;
         private boolean failRandomly;
 
-        private <T> MetadataStateFormat<T> wrap(MetadataStateFormat<T> format) {
+        private <T extends Writeable> MetadataStateFormat<T> wrap(MetadataStateFormat<T> format) {
             return new MetadataStateFormat<T>(format.getPrefix()) {
                 @Override
                 public void toXContent(XContentBuilder builder, T state) throws IOException {
@@ -316,6 +319,11 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
                 @Override
                 public T fromXContent(XContentParser parser) throws IOException {
                     return format.fromXContent(parser);
+                }
+
+                @Override
+                public T readFrom(StreamInput in) throws IOException {
+                    return format.readFrom(in);
                 }
 
                 @Override
@@ -339,8 +347,8 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             };
         }
 
-        MetaStateServiceWithFailures(int invertedFailRate, NodeEnvironment nodeEnv, NamedXContentRegistry namedXContentRegistry) {
-            super(nodeEnv, namedXContentRegistry);
+        MetaStateServiceWithFailures(int invertedFailRate, NodeEnvironment nodeEnv, NamedWriteableRegistry namedWriteableRegistry, NamedXContentRegistry namedXContentRegistry) {
+            super(nodeEnv, namedWriteableRegistry, namedXContentRegistry);
             METADATA_FORMAT = wrap(Metadata.FORMAT);
             INDEX_METADATA_FORMAT = wrap(IndexMetadata.FORMAT);
             MANIFEST_FORMAT = wrap(Manifest.FORMAT);
@@ -393,10 +401,11 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         return builder.build();
     }
 
+    @Test
     public void testAtomicityWithFailures() throws IOException {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateServiceWithFailures metaStateService =
-                new MetaStateServiceWithFailures(randomIntBetween(100, 1000), env, xContentRegistry());
+                new MetaStateServiceWithFailures(randomIntBetween(100, 1000), env, writableRegistry(), xContentRegistry());
 
             // We only guarantee atomicity of writes, if there is initial Manifest file
             Manifest manifest = Manifest.empty();

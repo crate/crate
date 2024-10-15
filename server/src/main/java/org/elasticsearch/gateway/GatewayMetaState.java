@@ -102,9 +102,13 @@ public class GatewayMetaState implements Closeable {
         return getPersistedState().getLastAcceptedState().metadata();
     }
 
-    public void start(Settings settings, TransportService transportService, ClusterService clusterService,
-                      MetaStateService metaStateService, MetadataIndexUpgradeService metadataIndexUpgradeService,
-                      MetadataUpgrader metadataUpgrader, PersistedClusterStateService persistedClusterStateService) {
+    public void start(Settings settings,
+                      TransportService transportService,
+                      ClusterService clusterService,
+                      MetaStateService metaStateService,
+                      MetadataIndexUpgradeService metadataIndexUpgradeService,
+                      MetadataUpgrader metadataUpgrader,
+                      PersistedClusterStateService persistedClusterStateService) {
         assert persistedState.get() == null : "should only start once, but already have " + persistedState.get();
 
         if (DiscoveryNode.isMasterEligibleNode(settings) || DiscoveryNode.isDataNode(settings)) {
@@ -145,7 +149,10 @@ public class GatewayMetaState implements Closeable {
                         metaStateService.deleteAll(); // delete legacy files
                     }
                     // write legacy node metadata to prevent accidental downgrades from spawning empty cluster state
-                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT), persistedClusterStateService.getDataPaths());
+                    NodeMetadata.FORMAT.writeAndCleanup(
+                        new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT),
+                        persistedClusterStateService.getDataPaths()
+                    );
                     success = true;
                 } finally {
                     if (success == false) {
@@ -172,7 +179,10 @@ public class GatewayMetaState implements Closeable {
                     // delete legacy cluster state files
                     metaStateService.deleteAll();
                     // write legacy node metadata to prevent downgrades from spawning empty cluster state
-                    NodeMetadata.FORMAT.writeAndCleanup(new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT), persistedClusterStateService.getDataPaths());
+                    NodeMetadata.FORMAT.writeAndCleanup(
+                        new NodeMetadata(persistedClusterStateService.getNodeId(), Version.CURRENT),
+                        persistedClusterStateService.getDataPaths()
+                    );
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }

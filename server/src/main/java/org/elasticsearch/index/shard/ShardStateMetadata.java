@@ -19,19 +19,22 @@
 
 package org.elasticsearch.index.shard;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
-import org.jetbrains.annotations.Nullable;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.CorruptStateException;
 import org.elasticsearch.gateway.MetadataStateFormat;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
-public final class ShardStateMetadata {
+public final class ShardStateMetadata implements Writeable {
 
     private static final String SHARD_STATE_FILE_PREFIX = "state-";
     private static final String PRIMARY_KEY = "primary";
@@ -49,6 +52,19 @@ public final class ShardStateMetadata {
         this.primary = primary;
         this.indexUUID = indexUUID;
         this.allocationId = allocationId;
+    }
+
+    public ShardStateMetadata(StreamInput in) throws IOException {
+        this.primary = in.readBoolean();
+        this.indexUUID = in.readString();
+        this.allocationId = in.readOptionalWriteable(AllocationId::new);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(primary);
+        out.writeString(indexUUID);
+        out.writeOptionalWriteable(allocationId);
     }
 
     @Override
@@ -143,6 +159,11 @@ public final class ShardStateMetadata {
                 throw new CorruptStateException("missing value for [primary] in shard state");
             }
             return new ShardStateMetadata(primary, indexUUID, allocationId);
+        }
+
+        @Override
+        public ShardStateMetadata readFrom(StreamInput in) throws IOException {
+            return new ShardStateMetadata(in);
         }
     };
 }

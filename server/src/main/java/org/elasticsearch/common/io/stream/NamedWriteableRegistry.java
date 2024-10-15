@@ -34,6 +34,8 @@ import java.util.Objects;
  */
 public class NamedWriteableRegistry {
 
+    public static final NamedWriteableRegistry EMPTY = new NamedWriteableRegistry(List.of());
+
     /** An entry in the registry, made up of a category class and name, and a reader for that category class. */
     public static class Entry {
 
