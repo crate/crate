@@ -1305,6 +1305,11 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         public IndexMetadata fromXContent(XContentParser parser) throws IOException {
             return Builder.fromXContent(parser);
         }
+
+        @Override
+        public IndexMetadata readFrom(StreamInput in) throws IOException {
+            return IndexMetadata.readFrom(in);
+        }
     };
 
     /**

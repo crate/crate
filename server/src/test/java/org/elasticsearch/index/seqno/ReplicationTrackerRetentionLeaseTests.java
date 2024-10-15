@@ -623,11 +623,11 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         replicationTracker.persistRetentionLeases(path);
 
         final Tuple<RetentionLeases, Long> retentionLeasesWithGeneration =
-                RetentionLeases.FORMAT.loadLatestStateWithGeneration(logger, NamedXContentRegistry.EMPTY, path);
+                RetentionLeases.FORMAT.loadLatestStateWithGeneration(logger, writableRegistry(), NamedXContentRegistry.EMPTY, path);
 
         replicationTracker.persistRetentionLeases(path);
         final Tuple<RetentionLeases, Long> retentionLeasesWithGenerationAfterUnnecessaryPersistence =
-                RetentionLeases.FORMAT.loadLatestStateWithGeneration(logger, NamedXContentRegistry.EMPTY, path);
+                RetentionLeases.FORMAT.loadLatestStateWithGeneration(logger, writableRegistry(), NamedXContentRegistry.EMPTY, path);
 
         assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v1()).isEqualTo(retentionLeasesWithGeneration.v1());
         assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v2()).isEqualTo(retentionLeasesWithGeneration.v2());

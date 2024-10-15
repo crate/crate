@@ -487,7 +487,7 @@ public class Node implements Closeable {
                 ClusterModule.getNamedXWriteables().stream(),
                 MetadataModule.getNamedXContents(nodeContext).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
-            final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
+            final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, namedWriteableRegistry, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService = new PersistedClusterStateService(
                 nodeEnvironment,
                 xContentRegistry,
@@ -1059,8 +1059,12 @@ public class Node implements Closeable {
         if (Assertions.ENABLED) {
             try {
                 assert injector.getInstance(MetaStateService.class).loadFullState().v1().isEmpty();
-                final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
-                                                                                      nodeEnvironment.nodeDataPaths());
+                final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(
+                    logger,
+                    NamedWriteableRegistry.EMPTY,
+                    NamedXContentRegistry.EMPTY,
+                    nodeEnvironment.nodeDataPaths()
+                );
                 assert nodeMetadata != null;
                 assert nodeMetadata.nodeVersion().equals(Version.CURRENT);
                 assert nodeMetadata.nodeId().equals(localNodeFactory.getNode().getId());

@@ -65,6 +65,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -367,7 +368,8 @@ public final class NodeEnvironment implements Closeable {
      * scans the node paths and loads existing metadata file. If not found a new meta data will be generated
      * and persisted into the nodePaths
      */
-    private static NodeMetadata loadNodeMetadata(Settings settings, Logger logger,
+    private static NodeMetadata loadNodeMetadata(Settings settings,
+                                                 Logger logger,
                                                  NodePath... nodePaths) throws IOException {
         final Path[] paths = Arrays.stream(nodePaths).map(np -> np.path).toArray(Path[]::new);
         NodeMetadata metadata = PersistedClusterStateService.nodeMetadata(paths);
@@ -375,7 +377,12 @@ public final class NodeEnvironment implements Closeable {
             // load legacy metadata
             final Set<String> nodeIds = new HashSet<>();
             for (final Path path : paths) {
-                final NodeMetadata oldStyleMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path);
+                final NodeMetadata oldStyleMetadata = NodeMetadata.FORMAT.loadLatestState(
+                    logger,
+                    NamedWriteableRegistry.EMPTY,
+                    NamedXContentRegistry.EMPTY,
+                    path
+                );
                 if (oldStyleMetadata != null) {
                     nodeIds.add(oldStyleMetadata.nodeId());
                 }
@@ -389,7 +396,12 @@ public final class NodeEnvironment implements Closeable {
                     "data paths " + Arrays.toString(paths) + " belong to multiple nodes with IDs " + nodeIds);
             }
             // load legacy metadata
-            final NodeMetadata legacyMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, paths);
+            final NodeMetadata legacyMetadata = NodeMetadata.FORMAT.loadLatestState(
+                logger,
+                NamedWriteableRegistry.EMPTY,
+                NamedXContentRegistry.EMPTY,
+                paths
+            );
             if (legacyMetadata == null) {
                 assert nodeIds.isEmpty() : nodeIds;
                 metadata = new NodeMetadata(generateNodeId(settings), Version.CURRENT);

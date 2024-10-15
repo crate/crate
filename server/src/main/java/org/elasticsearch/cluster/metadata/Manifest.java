@@ -19,6 +19,16 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
@@ -29,13 +39,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 /**
  * This class represents the manifest file, which is the entry point for reading meta data from disk.
  * Metadata consists of global metadata and index metadata.
@@ -43,7 +46,7 @@ import java.util.stream.Collectors;
  * Global metadata generation could be obtained by calling {@link #getGlobalGeneration()}.
  * Index metadata generation could be obtained by calling {@link #getIndexGenerations()}.
  */
-public class Manifest implements ToXContentFragment {
+public class Manifest implements ToXContentFragment, Writeable {
     //TODO revisit missing and unknown constants once Zen2 BWC is ready
     private static final long MISSING_GLOBAL_GENERATION = -1L;
     private static final long MISSING_CURRENT_TERM = 0L;
@@ -65,6 +68,21 @@ public class Manifest implements ToXContentFragment {
 
     public static Manifest unknownCurrentTermAndVersion(long globalGeneration, Map<Index, Long> indexGenerations) {
         return new Manifest(UNKNOWN_CURRENT_TERM, UNKNOWN_CLUSTER_STATE_VERSION, globalGeneration, indexGenerations);
+    }
+
+    public Manifest(StreamInput in) throws IOException {
+        currentTerm = in.readLong();
+        clusterStateVersion = in.readLong();
+        globalGeneration = in.readLong();
+        indexGenerations = in.readMap(Index::new, x -> x.readLong());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(currentTerm);
+        out.writeLong(clusterStateVersion);
+        out.writeLong(globalGeneration);
+        out.writeMap(indexGenerations, (o, v) -> v.writeTo(o), StreamOutput::writeLong);
     }
 
     /**
@@ -128,6 +146,11 @@ public class Manifest implements ToXContentFragment {
         @Override
         public Manifest fromXContent(XContentParser parser) throws IOException {
             return Manifest.fromXContent(parser);
+        }
+
+        @Override
+        public Manifest readFrom(StreamInput in) throws IOException {
+            return new Manifest(in);
         }
     };
 
