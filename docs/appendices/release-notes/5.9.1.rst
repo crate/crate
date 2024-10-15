@@ -47,6 +47,20 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to a ``NullPointerException`` when the same filter
+  expression was used multiple times in an aggregation on an aliased table. For
+  example::
+
+      SELECT
+          alias1.country,
+          MAX(height) FILTER (WHERE height>0) as max_height,
+          MAX(prominence) FILTER (WHERE height>0) as max_prominence
+      FROM
+          sys.summits alias1
+      GROUP BY
+          alias1.country
+      LIMIT 100;
+
 - Fixed an issue that would cause users and roles to loose irrelevant
   privileges, like: ``Administration Language (AL)``, when a table or a view
   is dropped.

@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -1604,4 +1605,30 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.tbl | [substr(o['b'], 0, 1) AS b] | ((substr(substr(o['b'], 0, 1) AS b, 0, 1) = 'y') AND (o['a'] = 'x'))]"
         );
     }
+
+    @Test
+    public void test_duplicate_aggregate_filter_expression_on_top_of_alias() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+        String stmt = """
+             SELECT
+                alias1.country,
+                MAX(height) FILTER (WHERE height>0) as max_height,
+                MAX(prominence) FILTER (WHERE height>0) as max_prominence
+            FROM
+                sys.summits alias1
+            GROUP BY
+                alias1.country
+            LIMIT 100;
+            """;
+
+        LogicalPlan logicalPlan = e.logicalPlan(stmt);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[country, max(height) FILTER (WHERE (height > 0)) AS max_height, max(prominence) FILTER (WHERE (height > 0)) AS max_prominence]",
+            "  └ Limit[100::bigint;0]",
+            "    └ GroupHashAggregate[country | max(height) FILTER (WHERE (height > 0)), max(prominence) FILTER (WHERE (height > 0))]",
+            "      └ Rename[height, (height > 0), prominence, country] AS alias1",
+            "        └ Collect[sys.summits | [height, (height > 0), prominence, country] | true]"
+        );
+    }
+
 }
