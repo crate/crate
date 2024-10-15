@@ -814,19 +814,11 @@ public final class XContentBuilder implements Closeable, Flushable {
         return field(name).value(value);
     }
 
-    public XContentBuilder field(String name, ToXContent value, ToXContent.Params params) throws IOException {
-        return field(name).value(value, params);
-    }
-
     private XContentBuilder value(ToXContent value) throws IOException {
-        return value(value, ToXContent.EMPTY_PARAMS);
-    }
-
-    private XContentBuilder value(ToXContent value, ToXContent.Params params) throws IOException {
         if (value == null) {
             return nullValue();
         }
-        value.toXContent(this, params);
+        value.toXContent(this, ToXContent.EMPTY_PARAMS);
         return this;
     }
 

@@ -488,8 +488,12 @@ public class Node implements Closeable {
                 MetadataModule.getNamedXContents(nodeContext).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
-            final PersistedClusterStateService persistedClusterStateService
-                = new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays, clusterService.getClusterSettings(),
+            final PersistedClusterStateService persistedClusterStateService = new PersistedClusterStateService(
+                nodeEnvironment,
+                xContentRegistry,
+                namedWriteableRegistry,
+                bigArrays,
+                clusterService.getClusterSettings(),
                 threadPool::relativeTimeInMillis);
 
             // collect engine factory providers from server and from plugins
