@@ -190,10 +190,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
                 return thisLength > thatLength;
             }
             if (thisPrecision == null) {
-                return false;
+                return true;
             }
             if (thatPrecision == null) {
-                return true;
+                return false;
             }
             return thisPrecision > thatPrecision;
         }

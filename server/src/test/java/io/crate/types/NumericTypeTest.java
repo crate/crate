@@ -21,6 +21,8 @@
 
 package io.crate.types;
 
+import static io.crate.expression.symbol.Literal.BOOLEAN_FALSE;
+import static io.crate.expression.symbol.Literal.BOOLEAN_TRUE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -32,6 +34,8 @@ import java.util.Map;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+
+import io.crate.testing.SQLExecutor;
 
 public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
 
@@ -228,5 +232,14 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
         int precision = random.nextInt(2, 39);
         int scale = random.nextInt(0, precision - 1);
         return new NumericType(precision, scale);
+    }
+
+    @Test
+    public void test_equals_with_different_precision() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        assertThat(e.asSymbol("1.11::numeric(3, 1) = 1.11::numeric(3, 2)")).isEqualTo(BOOLEAN_FALSE);
+        assertThat(e.asSymbol("1.11::numeric(3, 1) = 1.10::numeric(3, 2)")).isEqualTo(BOOLEAN_TRUE);
+        assertThat(e.asSymbol("1.11::numeric(3, 1) = 1.11::numeric")).isEqualTo(BOOLEAN_FALSE);
+        assertThat(e.asSymbol("1.1::numeric(5,1) = 1.11::numeric(4,2)")).isEqualTo(BOOLEAN_FALSE);
     }
 }
