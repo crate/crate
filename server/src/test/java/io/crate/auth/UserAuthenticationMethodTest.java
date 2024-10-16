@@ -136,7 +136,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -167,7 +172,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -195,7 +205,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -230,7 +245,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -262,7 +282,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -282,7 +307,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction("RS384"),
             () -> "dummy"
         );
@@ -304,7 +334,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         // but during authentication user cannot be found by name (for example, could be dropped in a meantime).
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             List::of,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             null,
             () -> "dummy"
         );
@@ -333,7 +368,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             () -> List.of(JWT_USER),
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             JWTAuthenticationMethod::jwkProvider,
             () -> "dummy"
         );
@@ -362,7 +402,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(userWithModifiedJwtProperty);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            Map.of(),
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
             jwkProviderFunction(null),
             () -> "dummy"
         );
