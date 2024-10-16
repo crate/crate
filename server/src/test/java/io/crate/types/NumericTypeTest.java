@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -31,10 +32,11 @@ import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class NumericTypeTest extends ESTestCase {
+import io.crate.expression.scalar.ScalarTestCase;
+
+public class NumericTypeTest extends ScalarTestCase {
 
     @Test
     public void test_implicit_cast_text_to_unscaled_numeric() {
@@ -199,5 +201,13 @@ public class NumericTypeTest extends ESTestCase {
 
         assertThat(actual.numericPrecision()).isEqualTo(1);
         assertThat(actual.scale()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_equals_with_different_precision() throws Exception {
+        assertNormalize("1.11::numeric(3, 1) = 1.11::numeric(3, 2)", isLiteral(false));
+        assertNormalize("1.11::numeric(3, 1) = 1.10::numeric(3, 2)", isLiteral(true));
+        assertNormalize("1.11::numeric(3, 1) = 1.11::numeric", isLiteral(false));
+        assertNormalize("1.1::numeric(5,1) = 1.11::numeric(4,2)", isLiteral(false));
     }
 }
