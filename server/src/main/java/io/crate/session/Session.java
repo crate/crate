@@ -64,6 +64,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.RowCountAndFailure;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
@@ -693,7 +694,7 @@ public class Session implements AutoCloseable {
         );
 
         var bulkArgs = Lists.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
-        List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
+        List<CompletableFuture<RowCountAndFailure>> rowCounts = plan.executeBulk(
             executor,
             plannerContext,
             bulkArgs,
@@ -704,7 +705,9 @@ public class Session implements AutoCloseable {
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         CompletableFuture<Void> result = allRowCounts
-            .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
+            .exceptionally(t -> {
+                return null;
+            }) // swallow exception - failures are set per item in emitResults
             .thenAccept(ignored -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, rowCounts))
             .runAfterBoth(allResultReceivers, () -> {});
         addStatementTimeout(result);
@@ -714,17 +717,24 @@ public class Session implements AutoCloseable {
     private static void emitRowCountsToResultReceivers(UUID jobId,
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
-                                                       List<CompletableFuture<Long>> completedRowCounts) {
-        Object[] cells = new Object[1];
+                                                       List<CompletableFuture<RowCountAndFailure>> completedRowCounts) {
+        Object[] cells = new Object[2];
         RowN row = new RowN(cells);
         for (int i = 0; i < completedRowCounts.size(); i++) {
-            CompletableFuture<Long> completedRowCount = completedRowCounts.get(i);
+            CompletableFuture<RowCountAndFailure> completedRowCount = completedRowCounts.get(i);
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
             try {
-                Long rowCount = completedRowCount.join();
-                cells[0] = rowCount == null ? Row1.ERROR : rowCount;
+                RowCountAndFailure rowCountAndFailure = completedRowCount.join();
+                if (rowCountAndFailure == null) {
+                    cells[0] = Row1.ERROR;
+                    cells[1] = null;
+                } else {
+                    cells[0] = rowCountAndFailure.rowCount();
+                    cells[1] = rowCountAndFailure.failure();
+                }
             } catch (Throwable t) {
                 cells[0] = Row1.ERROR;
+                cells[1] = t;
             }
             resultReceiver.setNextRow(row);
             resultReceiver.allFinished();

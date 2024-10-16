@@ -1042,7 +1042,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         // a different default port range per JVM unless the incoming settings override it
         // use a non-default base port otherwise some cluster in this JVM might reuse a port
 
-        String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY);
+        String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY, null);
         int startAt = workerId == null ? 0 : Integer.valueOf(workerId);
         assert startAt >= 0 : "Unexpected test worker Id, resulting port range would be negative";
         return 10300 + (startAt * 100);

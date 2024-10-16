@@ -135,6 +135,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
@@ -429,10 +430,12 @@ public class ProjectionToProjectorVisitor
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
+            // TODO: we need the CoordinatorSessionSettings here to filter out sensitive information from the exceptions
             upsertResultContext = UpsertResultContext.forReturnSummary(
                 context.txnCtx,
                 (SourceIndexWriterReturnSummaryProjection) projection,
                 clusterService.localNode(),
+                nodeCtx.roles().getAccessControl(CoordinatorSessionSettings.systemDefaults()),  // <- WARNING: this is a hack
                 inputFactory);
         } else {
             upsertResultContext = UpsertResultContext.forRowCount();

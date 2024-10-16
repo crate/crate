@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,31 +21,39 @@
 
 package io.crate.execution.dml;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import io.crate.data.Row1;
 
-public class ShardResponseTest extends ESTestCase {
+public final class RowCountAndFailure {
 
-    @Test
-    public void testMarkResponseItemsAndFailures() {
-        ShardResponse shardResponse = new ShardResponse();
-        shardResponse.add(0);
-        shardResponse.add(1);
-        shardResponse.add(2, new ShardResponse.Failure("dummyId", new RuntimeException("dummyMessage"), false));
+    private long rowCount = 0L;
+    @Nullable
+    private Throwable failure = null;
 
-        var result = new ShardResponse.CompressedResult();
-        result.update(shardResponse);
+    public RowCountAndFailure() {
+    }
 
-        assertThat(result.successfulWrites(0)).isTrue();
-        assertThat(result.failed(0)).isFalse();
+    public RowCountAndFailure(long rowCount, @Nullable Throwable failure) {
+        this.rowCount = rowCount;
+        this.failure = failure;
+    }
 
-        assertThat(result.successfulWrites(1)).isTrue();
-        assertThat(result.failed(1)).isFalse();
+    public void incrementRowCount() {
+        rowCount++;
+    }
 
-        assertThat(result.successfulWrites(2)).isFalse();
-        assertThat(result.failed(2)).isTrue();
-        assertThat(result.failure(2)).hasMessage("dummyMessage");
+    public void setFailure(Throwable throwable) {
+        rowCount = Row1.ERROR;
+        failure = throwable;
+    }
+
+    public long rowCount() {
+        return rowCount;
+    }
+
+    @Nullable
+    public Throwable failure() {
+        return failure;
     }
 }
