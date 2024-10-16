@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -68,9 +69,11 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
     }
 
     @Override
-    public Map<String, Repository.Factory> getRepositories(
-        Environment environment, NamedXContentRegistry namedXContentRegistry,
-        ClusterService clusterService, RecoverySettings recoverySettings) {
+    public Map<String, Repository.Factory> getRepositories(Environment environment,
+                                                           NamedWriteableRegistry namedWriteableRegistry,
+                                                           NamedXContentRegistry namedXContentRegistry,
+                                                           ClusterService clusterService,
+                                                           RecoverySettings recoverySettings) {
         return Map.of(
             "gcs", new Repository.Factory() {
                 @Override
@@ -100,7 +103,14 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) {
-                    return new GCSRepository(metadata, namedXContentRegistry, clusterService, service, recoverySettings);
+                    return new GCSRepository(
+                        metadata,
+                        namedWriteableRegistry,
+                        namedXContentRegistry,
+                        clusterService,
+                        service,
+                        recoverySettings
+                    );
                 }
             }
         );

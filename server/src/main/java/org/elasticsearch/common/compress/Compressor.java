@@ -19,11 +19,11 @@
 
 package org.elasticsearch.common.compress;
 
-import org.elasticsearch.common.bytes.BytesReference;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import org.elasticsearch.common.bytes.BytesReference;
 
 public interface Compressor {
 

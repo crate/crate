@@ -19,10 +19,19 @@
 
 package org.elasticsearch.index.snapshots.blobstore;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.IntStream;
+
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.ParseField;
@@ -33,21 +42,15 @@ import org.elasticsearch.index.store.StoreFileMetadata;
 
 import io.crate.server.xcontent.XContentParserUtils;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.IntStream;
-
 /**
  * Shard snapshot metadata
  */
-public class BlobStoreIndexShardSnapshot implements ToXContentFragment {
+public class BlobStoreIndexShardSnapshot implements ToXContentFragment, Writeable {
 
     /**
      * Information about snapshotted file
      */
-    public static class FileInfo {
+    public static class FileInfo implements Writeable {
 
         private final String name;
         private final ByteSizeValue partSize;
@@ -85,6 +88,24 @@ public class BlobStoreIndexShardSnapshot implements ToXContentFragment {
             this.partBytes = partBytes;
             assert IntStream.range(0, numberOfParts).mapToLong(this::partBytes).sum() == metadata.length();
         }
+
+        public FileInfo(StreamInput in) throws IOException {
+            this.name = in.readString();
+            this.partSize = new ByteSizeValue(in.readLong());
+            this.partBytes = in.readLong();
+            this.numberOfParts = in.readInt();
+            this.metadata = new StoreFileMetadata(in);
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
+            out.writeLong(partSize.getBytes());
+            out.writeLong(partBytes);
+            out.writeInt(numberOfParts);
+            metadata.writeTo(out);
+        }
+
 
         /**
          * Returns the base file name
@@ -385,6 +406,27 @@ public class BlobStoreIndexShardSnapshot implements ToXContentFragment {
         this.time = time;
         this.incrementalFileCount = incrementalFileCount;
         this.incrementalSize = incrementalSize;
+    }
+
+    public BlobStoreIndexShardSnapshot(StreamInput in) throws IOException {
+        this.snapshot = in.readString();
+        this.indexVersion = in.readLong();
+        this.indexFiles = in.readList(FileInfo::new);
+        this.startTime = in.readLong();
+        this.time = in.readLong();
+        this.incrementalFileCount = in.readInt();
+        this.incrementalSize = in.readLong();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(snapshot);
+        out.writeLong(indexVersion);
+        out.writeList(indexFiles);
+        out.writeLong(startTime);
+        out.writeLong(time);
+        out.writeInt(incrementalFileCount);
+        out.writeLong(incrementalSize);
     }
 
     /**

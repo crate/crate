@@ -19,11 +19,6 @@
 
 package org.elasticsearch.common.compress;
 
-import org.elasticsearch.Assertions;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.lease.Releasable;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -35,6 +30,11 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 import java.util.zip.InflaterOutputStream;
+
+import org.elasticsearch.Assertions;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.lease.Releasable;
 
 /**
  * {@link Compressor} implementation based on the DEFLATE compression algorithm.

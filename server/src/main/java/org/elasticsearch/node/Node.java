@@ -670,6 +670,7 @@ public class Node implements Closeable {
                 logicalReplicationService,
                 remoteClusters,
                 threadPool,
+                namedWriteableRegistry,
                 xContentRegistry,
                 replicationSettings,
                 recoverySettings
