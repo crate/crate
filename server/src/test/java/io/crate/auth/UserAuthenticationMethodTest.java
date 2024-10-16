@@ -21,6 +21,8 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.JWTAuthenticationMethod.AUD_KEY;
+import static io.crate.auth.JWTAuthenticationMethod.ISS_KEY;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
@@ -134,6 +136,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -164,6 +167,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -191,6 +195,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -225,6 +230,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -256,6 +262,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -275,6 +282,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction("RS384"),
             () -> "dummy"
         );
@@ -294,7 +302,12 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     public void test_jwt_authentication_user_not_found_throws_error() throws Exception {
         // Testing a scenario when user is looked up by iss/username, name is set to Credentials
         // but during authentication user cannot be found by name (for example, could be dropped in a meantime).
-        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(List::of, null, () -> "dummy");
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            List::of,
+            Map.of(),
+            null,
+            () -> "dummy"
+        );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
         credentials.setUsername(JWT_USER.name());
@@ -320,6 +333,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             () -> List.of(JWT_USER),
+            Map.of(),
             JWTAuthenticationMethod::jwkProvider,
             () -> "dummy"
         );
@@ -348,6 +362,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(userWithModifiedJwtProperty);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
+            Map.of(),
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -359,6 +374,137 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             () -> jwtAuth.authenticate(credentials, null))
             .isExactlyInstanceOf(RuntimeException.class)
             .hasMessage("jwt authentication failed for user John. Reason: The Claim 'iss' value doesn't match the required issuer.");
+    }
+
+    @Test
+    public void test_jwt_authentication_user_has_no_jwt_properties_default_is_used() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Roles roles = () -> List.of(
+            userOf(
+                tokenUsername,
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("pwd"),
+                // User doesn't have JWT properties
+                null
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            // Defaults
+            Map.of(
+                ISS_KEY, "https://console.cratedb-dev.cloud/api/v2/meta/jwk/", // Matches JWT_TOKEN payload.
+                AUD_KEY, "test_cluster_id" // Matches JWT_TOKEN payload.
+            ),
+            jwkProviderFunction(null),
+            () -> null // ClusterId supplier is not used, aud is taken from defaults
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(tokenUsername);
+
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        assertThat(authenticatedRole.name()).isEqualTo(tokenUsername);
+    }
+
+    @Test
+    public void test_jwt_authentication_user_has_no_jwt_properties_aud_is_not_defined_in_default() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Roles roles = () -> List.of(
+            userOf(
+                tokenUsername,
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("pwd"),
+                // User doesn't have JWT properties
+                null
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            // Default is partially defined
+            Map.of(
+                ISS_KEY, "https://console.cratedb-dev.cloud/api/v2/meta/jwk/", // Matches JWT_TOKEN payload.
+                AUD_KEY, "" // No default value, must use clusterId
+            ),
+            jwkProviderFunction(null),
+            () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(tokenUsername);
+
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        assertThat(authenticatedRole.name()).isEqualTo(tokenUsername);
+    }
+
+    @Test
+    public void test_jwt_authentication_user_has_no_jwt_properties_default_is_not_set() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Roles roles = () -> List.of(
+            userOf(
+                tokenUsername,
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("pwd"),
+                // User doesn't have JWT properties
+                null
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            // No default values.
+            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
+            Map.of(
+                ISS_KEY, "",
+                AUD_KEY, ""
+            ),
+            jwkProviderFunction(null),
+            () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(tokenUsername);
+
+        // Auth fails because empty issuer doesn't match token's issuer.
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("jwt authentication failed for user cloud_user. Reason: The Claim 'iss' value doesn't match the required issuer.");
+    }
+
+    @Test
+    public void test_jwt_authentication_user_has_no_jwt_properties_default_values_dont_match_token_payload() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Roles roles = () -> List.of(
+            userOf(
+                tokenUsername,
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("pwd"),
+                // User doesn't have JWT properties
+                null
+            )
+        );
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            // Defaults doesn't match JWT_TOKEN payload.
+            Map.of(
+                ISS_KEY, "dummy",
+                AUD_KEY, "dummy"
+            ),
+            jwkProviderFunction(null),
+            () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(tokenUsername);
+
+        // Auth fails because default issuer doesn't match token's issuer.
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("jwt authentication failed for user cloud_user. Reason: The Claim 'iss' value doesn't match the required issuer.");
     }
 
     private static Function<String, JwkProvider> jwkProviderFunction(String algorithm) throws Exception {
