@@ -28,8 +28,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Array;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +60,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -77,6 +80,37 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class TestingHelpers {
+
+    private static final boolean HAS_RANDOMIZED_CONTEXT;
+
+    static {
+        boolean maybeHasRandomizedContext;
+        try {
+            Class.forName("com.carrotsearch.randomizedtesting.RandomizedContext");
+            maybeHasRandomizedContext = true;
+        } catch (Exception e) {
+            maybeHasRandomizedContext = false;
+        }
+        HAS_RANDOMIZED_CONTEXT = maybeHasRandomizedContext;
+    }
+
+    /**
+     * Creates an empty, temporary folder using the {@link com.carrotsearch.randomizedtesting.RandomizedContext}
+     * helper if the class is loaded.
+     * Use this method instead of {@link CrateLuceneTestCase#createTempDir()} in components which may not run under
+     * the {@link com.carrotsearch.randomizedtesting.RandomizedRunner} like e.g. JMH benchmarks.
+     *
+     */
+    public static Path createTempDir() {
+        if (HAS_RANDOMIZED_CONTEXT) {
+            return CrateLuceneTestCase.createTempDir();
+        }
+        try {
+            return Files.createTempDirectory(null);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
     /**
      * prints the contents of a result array as a human readable table
