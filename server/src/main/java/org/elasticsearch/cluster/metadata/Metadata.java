@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -1082,15 +1081,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
     }
 
-    private static final ToXContent.Params FORMAT_PARAMS;
-
-    static {
-        Map<String, String> params = new HashMap<>(2);
-        params.put("binary", "true");
-        params.put(Metadata.CONTEXT_MODE_PARAM, Metadata.CONTEXT_MODE_GATEWAY);
-        FORMAT_PARAMS = new MapParams(params);
-    }
-
     /**
      * State format for {@link Metadata} to write to and load from disk
      */
@@ -1104,11 +1094,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
 
     private static MetadataStateFormat<Metadata> createMetadataStateFormat(boolean preserveUnknownCustoms) {
         return new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
-
-            @Override
-            public void toXContent(XContentBuilder builder, Metadata state) throws IOException {
-                Builder.toXContent(state, builder, FORMAT_PARAMS);
-            }
 
             @Override
             public Metadata fromXContent(XContentParser parser) throws IOException {

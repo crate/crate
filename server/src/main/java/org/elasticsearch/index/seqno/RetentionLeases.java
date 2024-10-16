@@ -33,7 +33,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -223,11 +222,6 @@ public class RetentionLeases implements ToXContentFragment, Writeable {
     }
 
     static final MetadataStateFormat<RetentionLeases> FORMAT = new MetadataStateFormat<>("retention-leases-") {
-
-        @Override
-        public void toXContent(final XContentBuilder builder, final RetentionLeases retentionLeases) throws IOException {
-            retentionLeases.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        }
 
         @Override
         public RetentionLeases fromXContent(final XContentParser parser) {

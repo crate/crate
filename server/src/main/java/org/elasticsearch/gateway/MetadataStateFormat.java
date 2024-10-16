@@ -21,7 +21,6 @@ package org.elasticsearch.gateway;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -57,8 +56,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -269,20 +266,13 @@ public abstract class MetadataStateFormat<T extends Writeable> {
         return newGenerationId;
     }
 
-    protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-        return XContentFactory.builder(type, stream);
-    }
-
-    /**
-     * Writes the given state to the given XContentBuilder
-     * Subclasses need to implement this class for theirs specific state.
-     */
-    public abstract void toXContent(XContentBuilder builder, T state) throws IOException;
-
     /**
      * Reads a new instance of the state from the given XContentParser
      * Subclasses need to implement this class for theirs specific state.
+     *
+     * @deprecated used for BWC to read old formats
      */
+    @Deprecated
     public abstract T fromXContent(XContentParser parser) throws IOException;
 
     public abstract T readFrom(StreamInput in) throws IOException;

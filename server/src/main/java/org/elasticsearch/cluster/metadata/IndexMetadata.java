@@ -1289,17 +1289,10 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         }
     }
 
-    private static final ToXContent.Params FORMAT_PARAMS = new MapParams(Collections.singletonMap("binary", "true"));
-
     /**
      * State format for {@link IndexMetadata} to write to and load from disk
      */
     public static final MetadataStateFormat<IndexMetadata> FORMAT = new MetadataStateFormat<IndexMetadata>(INDEX_STATE_FILE_PREFIX) {
-
-        @Override
-        public void toXContent(XContentBuilder builder, IndexMetadata state) throws IOException {
-            Builder.toXContent(state, builder, FORMAT_PARAMS);
-        }
 
         @Override
         public IndexMetadata fromXContent(XContentParser parser) throws IOException {

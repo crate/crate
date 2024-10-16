@@ -20,16 +20,13 @@
 package org.elasticsearch.index.shard;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.CorruptStateException;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.jetbrains.annotations.Nullable;
@@ -105,22 +102,6 @@ public final class ShardStateMetadata implements Writeable {
     }
 
     public static final MetadataStateFormat<ShardStateMetadata> FORMAT = new MetadataStateFormat<ShardStateMetadata>(SHARD_STATE_FILE_PREFIX) {
-
-        @Override
-        protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-            XContentBuilder xContentBuilder = super.newXContentBuilder(type, stream);
-            xContentBuilder.prettyPrint();
-            return xContentBuilder;
-        }
-
-        @Override
-        public void toXContent(XContentBuilder builder, ShardStateMetadata shardStateMetadata) throws IOException {
-            builder.field(PRIMARY_KEY, shardStateMetadata.primary);
-            builder.field(INDEX_UUID_KEY, shardStateMetadata.indexUUID);
-            if (shardStateMetadata.allocationId != null) {
-                builder.field(ALLOCATION_ID_KEY, shardStateMetadata.allocationId);
-            }
-        }
 
         @Override
         public ShardStateMetadata fromXContent(XContentParser parser) throws IOException {
