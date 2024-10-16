@@ -47,6 +47,16 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed behavior of comparing (``=``, ``>``, etc. ) a column of type
+  :ref:`CHAR<type-char>` with string literals, so that any trailing whitespaces
+  are ignored for both sides of the comparison, thus matching PostgreSQL
+  behavior.
+
+- Fixed an issue that could cause comparisons (``=``, ``>``, etc. ) of columns
+  of :ref:`CHAR<type-char>` type to yield different results when in the
+  ``WHERE`` clause, than in any other part of a query, e.g. in the ``SELECT``
+  clause.
+
 - Fixed an issue that led to a ``NullPointerException`` when the same filter
   expression was used multiple times in an aggregation on an aliased table. For
   example::
