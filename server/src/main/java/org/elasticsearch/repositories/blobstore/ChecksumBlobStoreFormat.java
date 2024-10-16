@@ -20,11 +20,8 @@
 package org.elasticsearch.repositories.blobstore;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.index.CorruptIndexException;
@@ -35,22 +32,21 @@ import org.apache.lucene.store.ByteBuffersIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.OutputStreamIndexOutput;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.store.ByteArrayIndexInput;
-import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
+import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.CorruptStateException;
-import org.elasticsearch.snapshots.SnapshotInfo;
 
 import io.crate.common.CheckedFunction;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
@@ -59,23 +55,11 @@ import io.crate.server.xcontent.XContentHelper;
 /**
  * Snapshot metadata file format used in v2.0 and above
  */
-public final class ChecksumBlobStoreFormat<T extends ToXContent> {
-
-    // Serialization parameters to specify correct context for metadata serialization
-    private static final ToXContent.Params SNAPSHOT_ONLY_FORMAT_PARAMS;
-
-    static {
-        Map<String, String> snapshotOnlyParams = new HashMap<>();
-        // when metadata is serialized certain elements of the metadata shouldn't be included into snapshot
-        // exclusion of these elements is done by setting Metadata.CONTEXT_MODE_PARAM to Metadata.CONTEXT_MODE_SNAPSHOT
-        snapshotOnlyParams.put(Metadata.CONTEXT_MODE_PARAM, Metadata.CONTEXT_MODE_SNAPSHOT);
-        // serialize SnapshotInfo using the SNAPSHOT mode
-        snapshotOnlyParams.put(SnapshotInfo.CONTEXT_MODE_PARAM, SnapshotInfo.CONTEXT_MODE_SNAPSHOT);
-        SNAPSHOT_ONLY_FORMAT_PARAMS = new ToXContent.MapParams(snapshotOnlyParams);
-    }
+public final class ChecksumBlobStoreFormat<T extends Writeable> {
 
     // The format version
-    public static final int VERSION = 1;
+    public static final int XCONTENT_VERSION = 1;
+    public static final int VERSION = 2;
 
     private static final int BUFFER_SIZE = 4096;
 
@@ -83,17 +67,22 @@ public final class ChecksumBlobStoreFormat<T extends ToXContent> {
 
     private final String blobNameFormat;
 
-    private final CheckedFunction<XContentParser, T, IOException> reader;
+    private final CheckedFunction<XContentParser, T, IOException> parse;
+    private final Writeable.Reader<T> readFrom;
 
     /**
      * @param codec          codec name
      * @param blobNameFormat format of the blobname in {@link String#format} format
      * @param reader         prototype object that can deserialize T from XContent
      */
-    public ChecksumBlobStoreFormat(String codec, String blobNameFormat, CheckedFunction<XContentParser, T, IOException> reader) {
-        this.reader = reader;
+    public ChecksumBlobStoreFormat(String codec,
+                                   String blobNameFormat,
+                                   CheckedFunction<XContentParser, T, IOException> parse,
+                                   Writeable.Reader<T> readFrom) {
         this.blobNameFormat = blobNameFormat;
         this.codec = codec;
+        this.parse = parse;
+        this.readFrom = readFrom;
     }
 
     /**
@@ -103,28 +92,45 @@ public final class ChecksumBlobStoreFormat<T extends ToXContent> {
      * @param name          name to be translated into
      * @return parsed blob object
      */
-    public T read(BlobContainer blobContainer, String name, NamedXContentRegistry namedXContentRegistry) throws IOException {
+    public T read(BlobContainer blobContainer,
+                  String name,
+                  NamedWriteableRegistry namedWriteableRegistry,
+                  NamedXContentRegistry namedXContentRegistry) throws IOException {
         String blobName = blobName(name);
-        return deserialize(blobName, namedXContentRegistry, Streams.readFully(blobContainer.readBlob(blobName)));
+        return deserialize(blobName, namedWriteableRegistry, namedXContentRegistry, Streams.readFully(blobContainer.readBlob(blobName)));
     }
 
     public String blobName(String name) {
         return String.format(Locale.ROOT, blobNameFormat, name);
     }
 
-    public T deserialize(String blobName, NamedXContentRegistry namedXContentRegistry, BytesReference bytes) throws IOException {
+    public T deserialize(String blobName,
+                         NamedWriteableRegistry namedWritableRegistry,
+                         NamedXContentRegistry namedXContentRegistry,
+                         BytesReference bytes) throws IOException {
         final String resourceDesc = "ChecksumBlobStoreFormat.readBlob(blob=\"" + blobName + "\")";
         try {
             final IndexInput indexInput = bytes.length() > 0 ? new ByteBuffersIndexInput(
                     new ByteBuffersDataInput(Arrays.asList(BytesReference.toByteBuffers(bytes))), resourceDesc)
                     : new ByteArrayIndexInput(resourceDesc, BytesRef.EMPTY_BYTES);
             CodecUtil.checksumEntireFile(indexInput);
-            CodecUtil.checkHeader(indexInput, codec, VERSION, VERSION);
+            int stateVersion = CodecUtil.checkHeader(indexInput, codec, XCONTENT_VERSION, VERSION);
             long filePointer = indexInput.getFilePointer();
             long contentSize = indexInput.length() - CodecUtil.footerLength() - filePointer;
-            try (XContentParser parser = XContentHelper.createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE,
-                                                                     bytes.slice((int) filePointer, (int) contentSize), XContentType.SMILE)) {
-                return reader.apply(parser);
+
+            if (stateVersion == XCONTENT_VERSION) {
+                try (XContentParser parser = XContentHelper.createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE,
+                                                                        bytes.slice((int) filePointer, (int) contentSize), XContentType.SMILE)) {
+                    return parse.apply(parser);
+                }
+            } else {
+                try (var is = new InputStreamIndexInput(indexInput, contentSize)) {
+                    try (var in = new NamedWriteableAwareStreamInput(new InputStreamStreamInput(is), namedWritableRegistry)) {
+                        Version version = Version.readVersion(in);
+                        in.setVersion(version);
+                        return readFrom.read(in);
+                    }
+                }
             }
         } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
             // we trick this into a dedicated exception with the original stacktrace
@@ -153,19 +159,8 @@ public final class ChecksumBlobStoreFormat<T extends ToXContent> {
             try (OutputStreamIndexOutput indexOutput = new OutputStreamIndexOutput(
                     "ChecksumBlobStoreFormat.writeBlob(blob=\"" + blobName + "\")", blobName, outputStream, BUFFER_SIZE)) {
                 CodecUtil.writeHeader(indexOutput, codec, VERSION);
-                try (OutputStream indexOutputOutputStream = new IndexOutputOutputStream(indexOutput) {
-                    @Override
-                    public void close() {
-                        // this is important since some of the XContentBuilders write bytes on close.
-                        // in order to write the footer we need to prevent closing the actual index input.
-                    }
-                }; XContentBuilder builder = XContentFactory.builder(XContentType.SMILE,
-                        compress ? CompressorFactory.COMPRESSOR.threadLocalOutputStream(indexOutputOutputStream)
-                                : indexOutputOutputStream)) {
-                    builder.startObject();
-                    obj.toXContent(builder, SNAPSHOT_ONLY_FORMAT_PARAMS);
-                    builder.endObject();
-                }
+                Version.writeVersion(Version.CURRENT, outputStream);
+                obj.writeTo(outputStream);
                 CodecUtil.writeFooter(indexOutput);
             }
             return outputStream.bytes();

@@ -48,6 +48,7 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
 import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -76,6 +77,7 @@ public class MockRepository extends FsRepository {
 
         @Override
         public Map<String, Repository.Factory> getRepositories(Environment env,
+                                                               NamedWriteableRegistry namedWriteableRegistry,
                                                                NamedXContentRegistry namedXContentRegistry,
                                                                ClusterService clusterService,
                                                                RecoverySettings recoverySettings) {
@@ -86,6 +88,7 @@ public class MockRepository extends FsRepository {
                     return new MockRepository(
                         metadata,
                         env,
+                        namedWriteableRegistry,
                         namedXContentRegistry,
                         clusterService,
                         recoverySettings
@@ -155,10 +158,13 @@ public class MockRepository extends FsRepository {
 
     private volatile boolean blocked = false;
 
-    public MockRepository(RepositoryMetadata metadata, Environment environment,
-                          NamedXContentRegistry namedXContentRegistry, ClusterService clusterService,
+    public MockRepository(RepositoryMetadata metadata,
+                          Environment environment,
+                          NamedWriteableRegistry namedWriteableRegistry,
+                          NamedXContentRegistry namedXContentRegistry,
+                          ClusterService clusterService,
                           RecoverySettings recoverySettings) {
-        super(overrideSettings(metadata, environment), environment, namedXContentRegistry, clusterService, recoverySettings);
+        super(overrideSettings(metadata, environment), environment, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings);
         randomControlIOExceptionRate = metadata.settings().getAsDouble("random_control_io_exception_rate", 0.0);
         randomDataFileIOExceptionRate = metadata.settings().getAsDouble("random_data_file_io_exception_rate", 0.0);
         useLuceneCorruptionException = metadata.settings().getAsBoolean("use_lucene_corruption", false);

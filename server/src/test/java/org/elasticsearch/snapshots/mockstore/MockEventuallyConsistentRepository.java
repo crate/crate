@@ -44,6 +44,7 @@ import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
@@ -66,15 +67,19 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
 
     private final NamedXContentRegistry namedXContentRegistry;
 
+    private final NamedWriteableRegistry namedWriteableRegistry;
+
     public MockEventuallyConsistentRepository(
         final RepositoryMetadata metadata,
+        final NamedWriteableRegistry namedWriteableRegistry,
         final NamedXContentRegistry namedXContentRegistry,
         final ClusterService clusterService,
         final RecoverySettings recoverySettings,
         final Context context,
         final Random random) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
         this.context = context;
+        this.namedWriteableRegistry = namedWriteableRegistry;
         this.namedXContentRegistry = namedXContentRegistry;
         this.random = random;
     }
@@ -324,11 +329,11 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                                 if (basePath().buildAsString().equals(path().buildAsString())) {
                                     try {
                                         final SnapshotInfo updatedInfo = BlobStoreRepository.SNAPSHOT_FORMAT.deserialize(
-                                                blobName, namedXContentRegistry, new BytesArray(data));
+                                                blobName, namedWriteableRegistry, namedXContentRegistry, new BytesArray(data));
                                         // If the existing snapshotInfo differs only in the timestamps it stores, then the overwrite is not
                                         // a problem and could be the result of a correctly handled master failover.
                                         final SnapshotInfo existingInfo = SNAPSHOT_FORMAT.deserialize(
-                                                blobName, namedXContentRegistry, Streams.readFully(readBlob(blobName)));
+                                                blobName, namedWriteableRegistry, namedXContentRegistry, Streams.readFully(readBlob(blobName)));
                                         assertThat(existingInfo.snapshotId()).isEqualTo(updatedInfo.snapshotId());
                                         assertThat(existingInfo.reason()).isEqualTo(updatedInfo.reason());
                                         assertThat(existingInfo.state()).isEqualTo(updatedInfo.state());

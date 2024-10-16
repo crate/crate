@@ -378,7 +378,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         var shardContainer = repository.blobStore()
             .blobContainer(indicesPath.add(indexId.getId()).add(Integer.toString(shardId.id())));
 
-        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), xContentRegistry());
+        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), writableRegistry(), xContentRegistry());
         return IndexShardSnapshotStatus.newDone(snapshot.startTime(), snapshot.time(),
             snapshot.incrementalFileCount(), snapshot.totalFileCount(),
             snapshot.incrementalSize(), snapshot.totalSize(), null); // Not adding a real generation here as it doesn't matter to callers
