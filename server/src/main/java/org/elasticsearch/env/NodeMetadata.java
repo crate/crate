@@ -20,7 +20,6 @@
 package org.elasticsearch.env;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
@@ -29,9 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.MetadataStateFormat;
 
 /**
@@ -151,19 +148,6 @@ public final class NodeMetadata implements Writeable {
             objectParser = new ObjectParser<>("node_meta_data", false, Builder::new);
             objectParser.declareString(Builder::setNodeId, new ParseField(NODE_ID_KEY));
             objectParser.declareInt(Builder::setNodeVersionId, new ParseField(NODE_VERSION_KEY));
-        }
-
-        @Override
-        protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-            XContentBuilder xContentBuilder = super.newXContentBuilder(type, stream);
-            xContentBuilder.prettyPrint();
-            return xContentBuilder;
-        }
-
-        @Override
-        public void toXContent(XContentBuilder builder, NodeMetadata nodeMetadata) throws IOException {
-            builder.field(NODE_ID_KEY, nodeMetadata.nodeId);
-            builder.field(NODE_VERSION_KEY, nodeMetadata.nodeVersion.internalId);
         }
 
         @Override

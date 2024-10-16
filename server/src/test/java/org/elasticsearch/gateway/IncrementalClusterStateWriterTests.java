@@ -63,7 +63,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
@@ -311,10 +310,6 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
         private <T extends Writeable> MetadataStateFormat<T> wrap(MetadataStateFormat<T> format) {
             return new MetadataStateFormat<T>(format.getPrefix()) {
-                @Override
-                public void toXContent(XContentBuilder builder, T state) throws IOException {
-                    format.toXContent(builder, state);
-                }
 
                 @Override
                 public T fromXContent(XContentParser parser) throws IOException {

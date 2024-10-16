@@ -139,11 +139,6 @@ public class Manifest implements ToXContentFragment, Writeable {
     public static final MetadataStateFormat<Manifest> FORMAT = new MetadataStateFormat<Manifest>(MANIFEST_FILE_PREFIX) {
 
         @Override
-        public void toXContent(XContentBuilder builder, Manifest state) throws IOException {
-            state.toXContent(builder, MANIFEST_FORMAT_PARAMS);
-        }
-
-        @Override
         public Manifest fromXContent(XContentParser parser) throws IOException {
             return Manifest.fromXContent(parser);
         }
