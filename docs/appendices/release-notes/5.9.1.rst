@@ -88,3 +88,7 @@ Fixes
   results as the explicit cast was removed. Example:
 
   ``WHERE my_array[1]::timestamptz > 3::timestamptz``
+
+- Fixed an issue that caused ``=`` comparison on
+  :ref:`NUMERIC <type-numeric>` types with unmatched precisions and scales to
+  return invalid results or throw an ``IllegalStateException``.
