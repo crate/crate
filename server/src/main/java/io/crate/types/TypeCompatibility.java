@@ -95,15 +95,7 @@ public final class TypeCompatibility {
         // DataType implementations themselves?
 
         if (fromType.id() == NumericType.ID && toType.id() == NumericType.ID) {
-            var fromPrecision = fromType.numericPrecision();
-            if (fromPrecision == null) {
-                return toType;
-            }
-            var toPrecision = toType.numericPrecision();
-            if (toPrecision == null) {
-                return fromType;
-            }
-            return fromPrecision > toPrecision ? fromType : toType;
+            return NumericType.INSTANCE;
         }
 
         if (fromTypeParameters.size() != toTypeParameters.size()) {
