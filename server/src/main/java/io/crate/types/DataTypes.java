@@ -632,25 +632,26 @@ public final class DataTypes {
     }
 
     public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
-        DataType<?> type;
         if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
-            type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
-        } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
-            type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
-        } else {
-            if (leftType.precedes(rightType)) {
-                if (rightType.isConvertableTo(leftType, false)) {
-                    return leftType;
-                }
-                throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
-            } else {
-                if (leftType.isConvertableTo(rightType, false)) {
-                    return rightType;
-                }
-                throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
-            }
+            return ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
         }
-        return type;
+        if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
+            return new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
+        }
+        if (leftType.id() == NumericType.ID && rightType.id() == NumericType.ID) {
+            return NumericType.INSTANCE;
+        }
+        if (leftType.precedes(rightType)) {
+            if (rightType.isConvertableTo(leftType, false)) {
+                return leftType;
+            }
+            throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
+        } else {
+            if (leftType.isConvertableTo(rightType, false)) {
+                return rightType;
+            }
+            throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
+        }
     }
 
     public static DataType<?> fromId(Integer id) {
