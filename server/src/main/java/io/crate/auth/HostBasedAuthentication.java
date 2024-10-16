@@ -21,6 +21,9 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.JWTAuthenticationMethod.AUD_KEY;
+import static io.crate.auth.JWTAuthenticationMethod.ISS_KEY;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -116,6 +119,7 @@ public class HostBasedAuthentication implements Authentication {
      }
      */
     private SortedMap<String, HBAConf> hbaConf;
+    private final Map<String, String> jwtDefaults;
     private final Roles roles;
     private final DnsResolver dnsResolver;
 
@@ -126,6 +130,7 @@ public class HostBasedAuthentication implements Authentication {
                                    DnsResolver dnsResolver,
                                    Supplier<String> clusterId) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
+        jwtDefaults = getJWTDefaults(settings);
         this.roles = roles;
         this.dnsResolver = dnsResolver;
         this.clusterId = clusterId;
@@ -141,6 +146,19 @@ public class HostBasedAuthentication implements Authentication {
         return Collections.unmodifiableSortedMap(hostBasedConf);
     }
 
+    @VisibleForTesting
+    Map<String, String> getJWTDefaults(Settings settings) {
+        // Returns empty string for absent values.
+        // This is needed for ImmutableMap construction
+        // and also helps to avoid NULL checks on token verification and instead fail on claim mismatch.
+        String iss = AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING.get(settings);
+        String aud = AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING.get(settings);
+        return Map.of(
+            ISS_KEY, iss,
+            AUD_KEY, aud
+        );
+    }
+
     @Nullable
     private AuthenticationMethod methodForName(String method) {
         return switch (method) {
@@ -150,6 +168,7 @@ public class HostBasedAuthentication implements Authentication {
             case (JWTAuthenticationMethod.NAME) ->
                 new JWTAuthenticationMethod(
                     roles,
+                    jwtDefaults,
                     JWTAuthenticationMethod::jwkProvider,
                     clusterId
                 );
