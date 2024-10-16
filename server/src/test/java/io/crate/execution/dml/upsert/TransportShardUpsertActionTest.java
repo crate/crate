@@ -244,7 +244,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures()).satisfiesExactly(
-            f -> assertThat(f.message()).isEqualTo(
+            f -> assertThat(f.error().getMessage()).isEqualTo(
                 "[1]: version conflict, document with id: 1 already exists in 'characters'"));
     }
 

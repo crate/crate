@@ -293,13 +293,15 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                             "Bulk operations for statements that return result sets is not supported"));
             }
         }
+        var sessionSettings = session.sessionSettings();
+        AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
         return session.sync()
             .thenApply(ignored -> {
                 try {
                     return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())
                         .duration(startTimeInNs)
-                        .bulkRows(results)
+                        .bulkRows(results, accessControl)
                         .build();
                 } catch (IOException e) {
                     throw new RuntimeException(e);

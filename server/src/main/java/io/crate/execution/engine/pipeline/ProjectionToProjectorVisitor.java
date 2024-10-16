@@ -429,10 +429,12 @@ public class ProjectionToProjectorVisitor
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
+            var sessionUser = nodeCtx.roles().getUser(context.txnCtx.sessionSettings().userName());
             upsertResultContext = UpsertResultContext.forReturnSummary(
                 context.txnCtx,
                 (SourceIndexWriterReturnSummaryProjection) projection,
                 clusterService.localNode(),
+                nodeCtx.roles().getAccessControl(sessionUser, sessionUser),
                 inputFactory);
         } else {
             upsertResultContext = UpsertResultContext.forRowCount();

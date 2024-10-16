@@ -29,11 +29,12 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.where.DocKeys;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -101,10 +102,10 @@ public final class UpdateById implements Plan {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
-                                                     PlannerContext plannerContext,
-                                                     List<Row> bulkParams,
-                                                     SubQueryResults subQueryResults) {
+    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier dependencies,
+                                                       PlannerContext plannerContext,
+                                                       List<Row> bulkParams,
+                                                       SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
             .executeBulk(bulkParams, subQueryResults);
     }

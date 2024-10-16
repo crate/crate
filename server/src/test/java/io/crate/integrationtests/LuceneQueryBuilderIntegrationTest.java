@@ -360,8 +360,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
 
         Object[][] bulkArgs = $$($(val1), $(val2), new Object[]{null});
-        long[] rowCounts = execute("insert into t1 (c) values (?)", bulkArgs);
-        assertThat(rowCounts).containsExactly(1, 1, 1);
+        var bulkResponse = execute("insert into t1 (c) values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L, 1L, 1L);
         execute("refresh table t1");
 
         execute("select count(*) from t1 where c is null");

@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -141,5 +141,68 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     public void test_interval_is_represented_as_text_via_http() throws Exception {
         var resp = post("{\"stmt\": \"select '5 days'::interval as x\"}");
         assertThat(resp.body()).contains("5 days");
+    }
+
+    @Test
+    public void test_insert_with_failing_bulk_args_response_error_messages() throws Exception {
+        execute("CREATE TABLE doc.insert_test (id INT PRIMARY KEY, val OBJECT(DYNAMIC))");
+
+        var body = """
+            {
+              "stmt": "INSERT INTO doc.insert_test(id, val) VALUES(?, ?)",
+              "bulk_args": [
+                [2, "{ \\"a\\": 2}"],
+                [2, "{ \\"a\\": 22}"],
+                [3, "{ \\"a\\": \\"asdf\\"}"]
+              ]
+            }
+            """;
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+        // Error messages are not deterministic as the bulk args are processed in parallel on multiple nodes.
+        // Variation relates also to the availability of the newly created column, a node may not have processed the
+        // latest schema change yet.
+        assertThat(response.body()).containsAnyOf(
+            "{\"rowcount\":1}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast value `asdf` to type `bigint`]\"}}",
+            "{\"rowcount\":1}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `bigint`. Cannot add same column with type `text`]\"}}",
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
+                "{\"rowcount\":1}"
+        );
+    }
+
+    @Test
+    public void test_failing_upsert_bulk_response_errors_are_truncated() throws Exception {
+        execute("CREATE TABLE doc.insert_test (id INT PRIMARY KEY) CLUSTERED INTO 1 SHARDS");
+        execute("INSERT INTO doc.insert_test (id) VALUES (1)");
+
+        var bulkArgs = "[1],".repeat(BULK_RESPONSE_MAX_ERRORS_PER_SHARD + 1).replaceFirst(",$", "");
+
+        var body = " { \"stmt\": \"INSERT INTO doc.insert_test(id) VALUES(?)\", \"bulk_args\": [" + bulkArgs + "]}";
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        // The last error message must not be available in the response
+        assertThat(response.body()).contains("{\"rowcount\":-2}");
+    }
+
+    @Test
+    public void test_failing_delete_bulk_response_errors_are_truncated() throws Exception {
+        execute("CREATE TABLE doc.insert_test (id INT PRIMARY KEY) CLUSTERED INTO 1 SHARDS");
+
+        var bulkArgs = "[1],".repeat(BULK_RESPONSE_MAX_ERRORS_PER_SHARD + 1).replaceFirst(",$", "");
+
+        var body = " { \"stmt\": \"DELETE FROM doc.insert_test WHERE id = ?\", \"bulk_args\": [" + bulkArgs + "]}";
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        assertThat(response.body()).contains("{\"rowcount\":-2,\"error\":{\"code\":40411,\"message\":\"DocumentMissingException[");
+
+        // The last error message must not be available in the response
+        assertThat(response.body()).contains("{\"rowcount\":-2}");
     }
 }

@@ -93,9 +93,9 @@ public class ThreadPoolsExhaustedIntegrationTest extends IntegTestCase {
         for (int i = 0; i < docCount; i++) {
             bulkArgs[i][0] = i;
         }
-        long[] rowCounts = execute("insert into t (x) values (?)", bulkArgs);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(1L);
+        var bulkResponse = execute("insert into t (x) values (?)", bulkArgs);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(1L);
         }
     }
 }

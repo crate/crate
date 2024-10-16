@@ -82,20 +82,20 @@ public class MaxDocsLimitIT extends IntegTestCase {
         for (int i = 0; i < rows.length; i++) {
             rows[i] = new Object[] { randomInt() };
         }
-        long[] rowCounts = execute("insert into tbl (x) values (?)", rows);
-        assertThat(rowCounts).hasSize(maxDocs.get());
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(1L);
+        var bulkResponse = execute("insert into tbl (x) values (?)", rows);
+        assertThat(bulkResponse.size()).isEqualTo(maxDocs.get());
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(1L);
         }
         int rejectedDocs = between(2, 10);
         rows = new Object[rejectedDocs][];
         for (int i = 0; i < rows.length; i++) {
             rows[i] = new Object[] { randomInt() };
         }
-        rowCounts = execute("insert into tbl (x) values (?)", rows);
-        assertThat(rowCounts).hasSize(rejectedDocs);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(-2L);
+        bulkResponse = execute("insert into tbl (x) values (?)", rows);
+        assertThat(bulkResponse.size()).isEqualTo(rejectedDocs);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(-2L);
         }
 
         execute("refresh table tbl");

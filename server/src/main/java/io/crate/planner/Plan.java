@@ -21,12 +21,13 @@
 
 package io.crate.planner;
 
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.planner.operators.SubQueryResults;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
+import io.crate.planner.operators.SubQueryResults;
 
 /**
  * Representation of a complete top-level plan which can be consumed by an {@link io.crate.execution.MultiPhaseExecutor}.
@@ -76,10 +77,10 @@ public interface Plan {
         }
     }
 
-    default List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                      PlannerContext plannerContext,
-                                                      List<Row> bulkParams,
-                                                      SubQueryResults subQueryResults) {
+    default CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                        PlannerContext plannerContext,
+                                                        List<Row> bulkParams,
+                                                        SubQueryResults subQueryResults) {
         throw new UnsupportedOperationException(
             "Bulk operation not supported for " + this.getClass().getSimpleName());
     }

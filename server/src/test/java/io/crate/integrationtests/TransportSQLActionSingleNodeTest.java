@@ -35,6 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.execution.dml.BulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
@@ -147,13 +148,13 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
     @Test
     public void testInsertBulkDifferentTypesResultsInRemoteFailure() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
-        long[] rowCounts = execute("insert into foo (bar) values (?)",
+        var bulkResponse = execute("insert into foo (bar) values (?)",
             new Object[][] {
                 new Object[] {Map.of("foo", 127)},
                 new Object[] {1},
             });
         // One is inserted, the other fails because of a cast error
-        assertThat(rowCounts[0] + rowCounts[1]).isEqualTo(-1L);
+        assertThat(bulkResponse.rowCounts()).contains(1L, -2L);
     }
 
     @Test
@@ -161,13 +162,12 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
         var listWithNull = new ArrayList<>(1);
         listWithNull.add(null);
-        long[] rowCounts = execute("insert into foo (bar) values (?)",
+        var bulkResponse = execute("insert into foo (bar) values (?)",
             new Object[][]{
                 new Object[]{listWithNull},
                 new Object[]{List.of(1, 2)},
             });
-        assertThat(rowCounts[0]).isEqualTo(1L);
-        assertThat(rowCounts[1]).isEqualTo(1L);
+        assertThat(bulkResponse.rowCounts()).contains(1L, 1L);
 
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         // integer values for unknown columns will be result in a long type for range safety
@@ -255,7 +255,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         for (int i = 0; i < bulkArgs.length; i++) {
             bulkArgs[i] = new Object[]{"event1", "item1"};
         }
-        final CompletableFuture<long[]> res = new CompletableFuture<>();
+        final CompletableFuture<BulkResponse> res = new CompletableFuture<>();
         Thread insertThread = new Thread(new Runnable() {
             @Override
             public void run() {
