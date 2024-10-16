@@ -23,7 +23,6 @@ package io.crate.session;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -52,6 +51,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.RowCountAndFailure;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.planner.DependencyCarrier;
@@ -295,13 +295,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                     }
 
                     @Override
-                    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                                     PlannerContext plannerContext,
-                                                                     List<Row> bulkParams,
-                                                                     SubQueryResults subQueryResults) {
+                    public List<CompletableFuture<RowCountAndFailure>> executeBulk(DependencyCarrier executor,
+                                                                                   PlannerContext plannerContext,
+                                                                                   List<Row> bulkParams,
+                                                                                   SubQueryResults subQueryResults) {
                         // Do another execution to overwrite `mostRecentJobID`
                         session.quickExec("SELECT 1", new BaseResultReceiver(), null);
-                        return List.of(completedFuture(1L), completedFuture(1L));
+                        return List.of(completedFuture(new RowCountAndFailure(1L, null)), completedFuture(new RowCountAndFailure(1L, null)));
                     }
                 }
             );
@@ -341,10 +341,10 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                     }
 
                     @Override
-                    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                                     PlannerContext plannerContext,
-                                                                     List<Row> bulkParams,
-                                                                     SubQueryResults subQueryResults) {
+                    public List<CompletableFuture<RowCountAndFailure>> executeBulk(DependencyCarrier executor,
+                                                                                   PlannerContext plannerContext,
+                                                                                   List<Row> bulkParams,
+                                                                                   SubQueryResults subQueryResults) {
                         return List.of(new CompletableFuture<>());
                     }
                 }

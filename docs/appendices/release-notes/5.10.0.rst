@@ -94,3 +94,10 @@ Administration and Operations
 -----------------------------
 
 None
+
+Client interfaces
+-----------------
+
+- Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
+  issued over the :ref`interface-http` containing details of the error that
+  caused the bulk operation to fail.

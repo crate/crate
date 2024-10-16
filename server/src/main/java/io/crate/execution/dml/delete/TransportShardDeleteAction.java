@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import static io.crate.common.exceptions.Exceptions.userFriendlyMessageInclNested;
+import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,6 +33,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -42,6 +43,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -78,6 +80,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
         boolean debugEnabled = logger.isDebugEnabled();
+        int errorCount = 0;
         for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
@@ -103,21 +106,23 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                             logger.debug("shardId={} failed to execute delete for id={}, doc not found",
                                 request.shardId(), item.id());
                         }
-                        shardResponse.add(location,
-                            new ShardResponse.Failure(
-                                item.id(),
-                                "Document not found while deleting",
-                                false));
+                        errorCount++;
+                        Throwable ex = null;
+                        if (errorCount <= BULK_RESPONSE_MAX_ERRORS_PER_SHARD) {
+                            ex = new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id());
+                        }
+                        shardResponse.add(location, new ShardResponse.Failure(item.id(), ex, false));
                     }
                 } else {
                     if (debugEnabled) {
                         logger.debug("shardId={} failed to execute delete for id={}: {}",
                             request.shardId(), item.id(), failure);
                     }
+                    errorCount++;
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(failure),
+                            errorCount <= BULK_RESPONSE_MAX_ERRORS_PER_SHARD ? failure : null,
                             (failure instanceof VersionConflictEngineException)));
                 }
             } catch (Exception e) {
@@ -128,10 +133,11 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                         logger.debug("shardId={} failed to execute delete for id={}: {}",
                                      request.shardId(), item.id(), e);
                     }
+                    errorCount++;
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(e),
+                            errorCount <= BULK_RESPONSE_MAX_ERRORS_PER_SHARD ? e : null,
                             (e instanceof VersionConflictEngineException)));
                 }
             }

@@ -529,7 +529,9 @@ There are two kinds of error behaviors for bulk requests:
    during execution. For example on duplicate primary key errors or check
    constraint failures. In this case CrateDB continues processing the other
    bulk arguments and reports the results via a ``rowcount`` where ``-2``
-   indicates an error::
+   indicates an error. Additionally, each failing bulk operation result element
+   contains an ``error`` object with the related :ref:`code <http-error-codes>`
+   and ``message``::
 
 
     {
@@ -540,10 +542,21 @@ There are two kinds of error behaviors for bulk requests:
                 "rowcount": 1
             },
             {
-                "rowcount": -2
+                "rowcount": -2,
+                "error": {
+                    "code": 4091,
+                    "message": "DuplicateKeyException[A document with the same primary key exists already]"
+                }
             }
         ]
     }
+
+.. note::
+
+    To avoid too much memory pressure caused by errors, only the first ``10``
+    errors happening on each involved shard will contain an ``error`` payload.
+    Any following error is exposed only by the ``-2`` row count without any
+    details.
 
 .. note::
 

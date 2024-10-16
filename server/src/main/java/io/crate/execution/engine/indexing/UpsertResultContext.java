@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.auth.AccessControl;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
@@ -73,6 +74,7 @@ public class UpsertResultContext {
     public static UpsertResultContext forReturnSummary(TransactionContext txnCtx,
                                                        SourceIndexWriterReturnSummaryProjection projection,
                                                        DiscoveryNode discoveryNode,
+                                                       AccessControl accessControl,
                                                        InputFactory inputFactory) {
         InputFactory.Context<CollectExpression<Row, ?>> ctxSourceInfo = inputFactory.ctxForInputColumns(txnCtx);
         //noinspection unchecked
@@ -92,7 +94,7 @@ public class UpsertResultContext {
             lineNumberInput,
             sourceParsingFailureInput,
             ctxSourceInfo.expressions(),
-            UpsertResultCollectors.newSummaryCollector(discoveryNode)
+            UpsertResultCollectors.newSummaryCollector(discoveryNode, accessControl)
         );
     }
 

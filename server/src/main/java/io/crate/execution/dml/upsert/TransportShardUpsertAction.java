@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml.upsert;
 
+import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +61,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
@@ -201,6 +202,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             );
         }
 
+        int errorCount = 0;
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             int location = item.location();
@@ -247,10 +249,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     shardResponse.failure(e);
                     break;
                 }
+                errorCount++;
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        getExceptionMessage(e),
+                        errorCount > BULK_RESPONSE_MAX_ERRORS_PER_SHARD ? null : e,
                         (e instanceof VersionConflictEngineException)));
             } catch (AssertionError e) {
                 // Shouldn't happen in production but helps during development
@@ -261,14 +264,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
-    }
-
-    private static String getExceptionMessage(Throwable e) {
-        if (SQLExceptions.isDocumentAlreadyExistsException(e)) {
-            return "A document with the same primary key exists already";
-        }
-        var message = e.getMessage();
-        return message != null ? message : e.getClass().getName();
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
