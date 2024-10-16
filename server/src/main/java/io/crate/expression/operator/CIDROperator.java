@@ -111,9 +111,6 @@ public final class CIDROperator {
             assert ref.valueType().id() == DataTypes.IP.id()
                 : "In <ref> << <literal> the ref must have type IP due to function registration";
             EqQuery<? super String> eqQuery = DataTypes.IP.storageSupportSafe().eqQuery();
-            if (eqQuery == null) {
-                return null;
-            }
             return eqQuery.rangeQuery(
                 ref.storageIdent(),
                 bounds[0].getHostAddress(),

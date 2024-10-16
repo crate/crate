@@ -265,11 +265,11 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             }
             DataType<?> innerType = unnest(ref.valueType());
             StorageSupport<?> storageSupport = innerType.storageSupport();
-            //noinspection unchecked
-            EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
-            if (eqQuery == null) {
+            if (storageSupport == null) {
                 return null;
             }
+            //noinspection unchecked
+            EqQuery<Object> eqQuery = (EqQuery<Object>) storageSupport.eqQuery();
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             var preFilterQuery = preFilterQueryBuilder.buildQuery(ref, eqQuery, cmpLiteral.value());
             if (preFilterQuery == null) {

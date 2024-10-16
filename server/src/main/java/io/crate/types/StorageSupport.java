@@ -24,6 +24,7 @@ package io.crate.types;
 
 import java.util.function.Function;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
@@ -37,12 +38,12 @@ public abstract class StorageSupport<T> {
     private final boolean docValuesDefault;
     private final boolean supportsDocValuesOff;
 
-    @Nullable
+    @NotNull
     private final EqQuery<T> eqQuery;
 
     StorageSupport(boolean docValuesDefault,
                    boolean supportsDocValuesOff,
-                   @Nullable EqQuery<T> eqQuery) {
+                   @NotNull EqQuery<T> eqQuery) {
         this.docValuesDefault = docValuesDefault;
         this.supportsDocValuesOff = supportsDocValuesOff;
         this.eqQuery = eqQuery;
@@ -70,7 +71,7 @@ public abstract class StorageSupport<T> {
         return supportsDocValuesOff;
     }
 
-    @Nullable
+    @NotNull
     public EqQuery<T> eqQuery() {
         return eqQuery;
     }

@@ -133,10 +133,10 @@ public class LikeOperator extends Operator<String> {
                 : "LikeOperator is registered for string types. Value must be a string";
             if (((String) value).isEmpty()) {
                 StorageSupport<?> storageSupport = ref.valueType().storageSupport();
-                EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
-                if (eqQuery == null) {
+                if (storageSupport == null) {
                     return null;
                 }
+                EqQuery<?> eqQuery = storageSupport.eqQuery();
                 return ((EqQuery<Object>) eqQuery).termQuery(
                     ref.storageIdent(), value, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
             }
