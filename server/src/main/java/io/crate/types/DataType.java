@@ -65,8 +65,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         NOT_SUPPORTED,
         UNDEFINED,
         LITERAL,
-        CHARACTER,
         STRING,
+        CHARACTER,
         BYTE,
         BOOLEAN,
         SHORT,
@@ -171,7 +171,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     /**
      * Returns true if this DataType precedes the supplied DataType.
-     * @param other The other type to compare against.
+     * @param that The other type to compare against.
      * @return True if the current type precedes, false otherwise.
      */
     public boolean precedes(DataType<?> other) {
