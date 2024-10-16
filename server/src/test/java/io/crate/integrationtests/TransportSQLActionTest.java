@@ -976,39 +976,39 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void testBulkOperations() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas = 0)");
         ensureYellow();
-        long[] rowCounts = execute("insert into test (id, name) values (?, ?), (?, ?)",
+        var bulkResponse = execute("insert into test (id, name) values (?, ?), (?, ?)",
             new Object[][]{
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(rowCounts).hasSize(2);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(2);
+        assertThat(bulkResponse.size()).isEqualTo(2);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(2L);
         }
         execute("refresh table test");
 
-        rowCounts = execute("insert into test (id, name) values (?, ?), (?, ?)",
+        bulkResponse = execute("insert into test (id, name) values (?, ?), (?, ?)",
             new Object[][]{
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(rowCounts).hasSize(2);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(-2L);
+        assertThat(bulkResponse.size()).isEqualTo(2);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(-2L);
         }
 
         execute("select name from test order by id asc");
         assertThat(printedTable(response.rows())).isEqualTo("Earth\nSaturn\nMoon\nMars\n");
 
         // test bulk update-by-id
-        rowCounts = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
+        bulkResponse = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
             new Object[]{2},
             new Object[]{3},
             new Object[]{4},
         });
-        assertThat(rowCounts).hasSize(3);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(1L);
+        assertThat(bulkResponse.size()).isEqualTo(3);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(1L);
         }
         execute("refresh table test");
 
@@ -1016,13 +1016,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("3");
 
         // test bulk of delete-by-id
-        rowCounts = execute("delete from test where id = ?", new Object[][]{
+        bulkResponse = execute("delete from test where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{3}
         });
-        assertThat(rowCounts).hasSize(2);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(1L);
+        assertThat(bulkResponse.size()).isEqualTo(2);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(1L);
         }
         execute("refresh table test");
 
@@ -1030,13 +1030,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("2");
 
         // test bulk of delete-by-query
-        rowCounts = execute("delete from test where name = ?", new Object[][]{
+        bulkResponse = execute("delete from test where name = ?", new Object[][]{
             new Object[]{"Saturn-updated"},
             new Object[]{"Mars-updated"}
         });
-        assertThat(rowCounts).hasSize(2);
-        for (long rowCount : rowCounts) {
-            assertThat(rowCount).isEqualTo(1);
+        assertThat(bulkResponse.size()).isEqualTo(2);
+        for (int i = 0; i < bulkResponse.size(); i++) {
+            assertThat(bulkResponse.rowCount(i)).isEqualTo(1L);
         }
         execute("refresh table test");
 

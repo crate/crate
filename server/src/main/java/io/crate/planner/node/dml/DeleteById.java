@@ -21,9 +21,18 @@
 
 package io.crate.planner.node.dml;
 
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.analyze.where.DocKeys;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
@@ -33,14 +42,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-
-import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
-
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class DeleteById implements Plan {
 
@@ -76,10 +77,10 @@ public class DeleteById implements Plan {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
-                                                     PlannerContext plannerContext,
-                                                     List<Row> bulkParams,
-                                                     SubQueryResults subQueryResults) {
+    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier dependencies,
+                                                       PlannerContext plannerContext,
+                                                       List<Row> bulkParams,
+                                                       SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
             .executeBulk(bulkParams, subQueryResults);
     }

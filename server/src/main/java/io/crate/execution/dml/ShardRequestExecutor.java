@@ -124,7 +124,7 @@ public class ShardRequestExecutor<Req> {
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
+    public CompletableFuture<BulkResponse> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requests = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList(bulkParams.size() * docKeys.size());
         int location = 0;
@@ -142,7 +142,7 @@ public class ShardRequestExecutor<Req> {
         for (Req req : requests.values()) {
             transportAction.accept(req, listener);
         }
-        return listener.rowCountFutures();
+        return listener.bulkResponseFuture();
     }
 
     private int addRequests(int location, Row parameters, Map<ShardId, Req> requests, SubQueryResults subQueryResults) {
@@ -249,8 +249,8 @@ public class ShardRequestExecutor<Req> {
             ShardResponse.Failure failure = response.failures().get(i);
             if (failure == null) {
                 f.accept(acc, response);
-            } else if (!failure.versionConflict() && !(failure.message().contains("Document not found") || failure.message().contains("document missing"))) {
-                throw new RuntimeException(failure.message());
+            } else if (!failure.versionConflict() && !(failure.error().getMessage().contains("Document not found") || failure.error().getMessage().contains("document missing"))) {
+                throw new RuntimeException(failure.error());
             }
         }
     }
