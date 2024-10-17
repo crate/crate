@@ -47,6 +47,13 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause an error to be thrown when using
+  :ref:`PostgreSQL wire protocol<interface-postgresql>` and attempting to
+  insert ``0`` value for a numeric :ref:`NUMERIC<type-numeric>`, or trying to
+  get ``0`` numeric value from a query, e.g.::
+
+      SELECT 0::numeric;
+
 - Fixed behavior of comparing (``=``, ``>``, etc. ) a column of type
   :ref:`CHAR<type-char>` with string literals, so that any trailing whitespaces
   are ignored for both sides of the comparison, thus matching PostgreSQL
