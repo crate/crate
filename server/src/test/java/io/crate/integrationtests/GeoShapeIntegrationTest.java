@@ -32,15 +32,12 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.JsonType;
 
-@Seed("72FCE2ED30CF4137:6C31B7D6C0F04DFE")
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
     private static final Map<String, Object> GEO_SHAPE1 = Map.of(

@@ -27,6 +27,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -41,8 +42,8 @@ import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
@@ -52,7 +53,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
-import io.crate.server.xcontent.XContentHelper;
+import io.crate.types.GeoShapeType;
 
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -90,7 +91,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
         indexableFieldsFactory.create(value, docBuilder::addField);
         if (docBuilder.maybeAddStoredField()) {
-            BytesRef bytes = XContentHelper.toXContent(value, XContentType.JSON).toBytesRef();
+            BytesRef bytes = toBytesRef(value);
             docBuilder.addField(new StoredField(this.name, bytes));
         }
         docBuilder.addField(new Field(
@@ -98,6 +99,15 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
             name,
             SysColumns.FieldNames.FIELD_TYPE));
         docBuilder.translogWriter().writeValue(value);
+    }
+
+    private static BytesRef toBytesRef(Map<String, Object> shape) {
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            GeoShapeType.INSTANCE.writeValueTo(out, shape);
+            return out.bytes().toBytesRef();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
