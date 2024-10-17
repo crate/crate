@@ -21,8 +21,6 @@
 
 package io.crate.execution.dml.delete;
 
-import static io.crate.common.exceptions.Exceptions.userFriendlyMessageInclNested;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,6 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -42,6 +41,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -106,7 +106,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                         shardResponse.add(location,
                             new ShardResponse.Failure(
                                 item.id(),
-                                "Document not found while deleting",
+                                new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id()),
                                 false));
                     }
                 } else {
@@ -117,7 +117,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(failure),
+                            failure,
                             (failure instanceof VersionConflictEngineException)));
                 }
             } catch (Exception e) {
@@ -131,7 +131,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(e),
+                            e,
                             (e instanceof VersionConflictEngineException)));
                 }
             }

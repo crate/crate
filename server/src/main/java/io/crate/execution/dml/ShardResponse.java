@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.common.exceptions.Exceptions.userFriendlyMessageInclNested;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -35,6 +37,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -49,25 +52,33 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     public static class Failure implements Writeable {
 
         private final String id;
-        private final String message;
+        private final Throwable error;
         private final boolean versionConflict;
 
-        public Failure(String id, String message, boolean versionConflict) {
+        public Failure(String id, Throwable error, boolean versionConflict) {
             this.id = id;
-            this.message = message;
+            this.error = error;
             this.versionConflict = versionConflict;
         }
 
         public Failure(StreamInput in) throws IOException {
             id = in.readString();
-            message = in.readString();
+            if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+                error = in.readException();
+            } else {
+                error = new RuntimeException(in.readString());
+            }
             versionConflict = in.readBoolean();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
-            out.writeString(message);
+            if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+                out.writeException(error);
+            } else {
+                out.writeString(userFriendlyMessageInclNested(error));
+            }
             out.writeBoolean(versionConflict);
         }
 
@@ -75,8 +86,8 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             return id;
         }
 
-        public String message() {
-            return this.message;
+        public Throwable error() {
+            return error;
         }
 
         public boolean versionConflict() {
@@ -87,7 +98,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         public String toString() {
             return "Failure{" +
                    "id='" + id + '\'' +
-                   ", message='" + message + '\'' +
+                   ", exception='" + error + '\'' +
                    ", versionConflict=" + versionConflict +
                    '}';
         }
@@ -260,6 +271,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         private final BitSet successfulWrites = new BitSet();
         private final BitSet failureLocations = new BitSet();
         private final ArrayList<Object[]> resultRows = new ArrayList<>();
+        private final IntObjectHashMap<Throwable> failures = new IntObjectHashMap<>();
 
         public void update(ShardResponse response) {
             IntArrayList itemIndices = response.itemIndices();
@@ -271,6 +283,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                     successfulWrites.set(location, true);
                 } else {
                     failureLocations.set(location, true);
+                    this.failures.put(location, failure.error());
                 }
             }
             List<Object[]> resultRows = response.getResultRows();
@@ -285,6 +298,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         public boolean failed(int location) {
             return failureLocations.get(location);
+        }
+
+        public Throwable failure(int location) {
+            return failures.get(location);
         }
 
         public List<Object[]> resultRows() {

@@ -24,6 +24,7 @@ package io.crate.planner.node.dml;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.RowCountAndFailure;
 import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
@@ -76,10 +77,10 @@ public class DeleteById implements Plan {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
-                                                     PlannerContext plannerContext,
-                                                     List<Row> bulkParams,
-                                                     SubQueryResults subQueryResults) {
+    public List<CompletableFuture<RowCountAndFailure>> executeBulk(DependencyCarrier dependencies,
+                                                                   PlannerContext plannerContext,
+                                                                   List<Row> bulkParams,
+                                                                   SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
             .executeBulk(bulkParams, subQueryResults);
     }

@@ -45,6 +45,7 @@ import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.RowCountAndFailure;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -177,7 +178,7 @@ public class JobLauncher {
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk(TransactionContext txnCtx) {
+    public List<CompletableFuture<RowCountAndFailure>> executeBulk(TransactionContext txnCtx) {
         Iterable<NodeOperation> nodeOperations = nodeOperationTrees.stream()
             .flatMap(opTree -> opTree.nodeOperations().stream())
             ::iterator;
@@ -185,12 +186,13 @@ public class JobLauncher {
 
         List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
         List<RowConsumer> handlerConsumers = new ArrayList<>(nodeOperationTrees.size());
-        List<CompletableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
+        List<CompletableFuture<RowCountAndFailure>> results = new ArrayList<>(nodeOperationTrees.size());
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             CollectingRowConsumer<?, Long> consumer = new CollectingRowConsumer<>(
                 Collectors.collectingAndThen(Collectors.summingLong(r -> ((long) r.get(0))), sum -> sum));
             handlerConsumers.add(consumer);
-            results.add(consumer.completionFuture());
+            results.add(consumer.completionFuture().thenCompose(count ->
+                CompletableFuture.completedFuture(new RowCountAndFailure(count, null))));
             handlerPhases.add(nodeOperationTree.leaf());
         }
         try {
