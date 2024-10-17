@@ -23,7 +23,6 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -78,7 +77,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.columns()).hasSize(2);
         assertThat(newTable.droppedColumns()).satisfiesExactly(
             x -> assertThat(x)
-                .hasName("y")
+                .hasName("_dropped_2")
                 .hasPosition(2)
         );
     }

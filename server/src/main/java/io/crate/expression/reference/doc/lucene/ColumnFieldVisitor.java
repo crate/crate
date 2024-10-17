@@ -22,6 +22,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,9 @@ import java.util.stream.Collectors;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.compress.NotXContentException;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Maps;
@@ -74,14 +79,23 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         }
     }
 
-    private record ArrayOfObjectField(DataType<?> dataType, ColumnIdent column, SourceParser sourceParser) implements Field {
+    private record ArrayOfObjectField(DataType<?> dataType, ObjectType objectType, ColumnIdent column, SourceParser sourceParser) implements Field {
         @Override
         public Object sanitize(Object v) {
-            var map = sourceParser.parse(new BytesArray((byte[]) v));
-            if (map.isEmpty()) {
-                return List.of();
+            try {
+                var map = sourceParser.parse(new BytesArray((byte[]) v), Map.of(column.leafName(), objectType.innerTypes()), false);
+                if (map.isEmpty()) {
+                    return List.of();
+                }
+                return map.values().iterator().next();
+            } catch (NotXContentException e) {
+                // may be an array of nulls inserted before the field was upcast to an array of objects
+                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap((byte[]) v))) {
+                    return in.readList(StreamInput::readGenericValue);
+                } catch (IOException io) {
+                    throw new UncheckedIOException(io);
+                }
             }
-            return map.values().iterator().next();
         }
     }
 
@@ -101,8 +115,8 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         var storageName = ref.storageIdentLeafName();
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
-            if (ArrayType.unnest(ref.valueType()) instanceof ObjectType) {
-                fields.put(storageName, new ArrayOfObjectField(ref.valueType(), column, arraySourceParser));
+            if (ArrayType.unnest(ref.valueType()) instanceof ObjectType o) {
+                fields.put(storageName, new ArrayOfObjectField(ref.valueType(), o, column, arraySourceParser));
                 return;
             }
         }

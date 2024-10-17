@@ -41,7 +41,7 @@ import io.crate.testing.UseNewCluster;
 
 public class ObjectColumnTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testInsertIntoDynamicObject() throws Exception {
@@ -387,19 +387,20 @@ public class ObjectColumnTest extends IntegTestCase {
     }
 
     private void execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets() {
+
+        execute("insert into tbl (id, complex) values (3, {os=[{}, null]})");
+        assertThat(response).hasRowCount(1);
+
         execute("insert into tbl (id) values (1)");
         assertThat(response).hasRowCount(1);
 
         execute("insert into tbl (id, os) values (2, [{}, null, {y=10}, {x=1, y=2}])");
         assertThat(response).hasRowCount(1);
 
-        execute("insert into tbl (id, complex) values (3, {os=[{}, null]})");
-        assertThat(response).hasRowCount(1);
-
         execute("refresh table tbl");
         assertThat(execute("select id, o, os, complex from tbl order by 1 asc")).hasRows(
             "1| {key=synth}| NULL| {x=synth}",
-            "2| {key=synth}| [{x=synth}, null, {y=10, x=synth}, {x=1, y=2}]| {x=synth}",
+            "2| {key=synth}| [{x=synth}, null, {x=synth, y=10}, {x=1, y=2}]| {x=synth}",
             "3| {key=synth}| NULL| {os=[{key=synth}, null], x=synth}"
         );
     }

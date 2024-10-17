@@ -110,7 +110,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     protected final String arrayLengthFieldName;
     protected final Reference reference;
 
-    private ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
         this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);

@@ -140,6 +140,4 @@ public class ArrayMapperITest extends IntegTestCase {
 
     }
 
-    // test arrays of objects with deleted and re-added columns
-
 }

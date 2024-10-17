@@ -104,7 +104,7 @@ public final class SourceParser {
         }
     }
 
-    @SuppressWarnings({"unchecked"})
+    @SuppressWarnings({"rawtypes","unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(SysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
@@ -134,7 +134,15 @@ public final class SourceParser {
         }
     }
 
+    public Map<String, Object> parse(BytesReference bytes) {
+        return parse(bytes, false);
+    }
+
     public Map<String, Object> parse(BytesReference bytes, boolean includeUnknownCols) {
+        return parse(bytes, requiredColumns, includeUnknownCols);
+    }
+
+    public Map<String, Object> parse(BytesReference bytes, Map<String, Object> requiredColumns, boolean includeUnknownCols) {
         try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes);
              XContentParser parser = XContentType.JSON.xContent().createParser(
                  NamedXContentRegistry.EMPTY,
@@ -156,10 +164,6 @@ public final class SourceParser {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    public Map<String, Object> parse(BytesReference bytes) {
-        return parse(bytes, false);
     }
 
     private static Object parseArray(XContentParser parser,

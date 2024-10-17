@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
-import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
