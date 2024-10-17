@@ -21,8 +21,6 @@
 
 package io.crate.auth;
 
-import static io.crate.auth.JWTAuthenticationMethod.AUD_KEY;
-import static io.crate.auth.JWTAuthenticationMethod.ISS_KEY;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
@@ -53,6 +51,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -136,12 +135,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -172,12 +166,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -205,12 +194,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> clusterId
         );
@@ -245,12 +229,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -282,12 +261,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -307,12 +281,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction("RS384"),
             () -> "dummy"
         );
@@ -334,12 +303,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         // but during authentication user cannot be found by name (for example, could be dropped in a meantime).
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             List::of,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             null,
             () -> "dummy"
         );
@@ -368,12 +332,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             () -> List.of(JWT_USER),
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             JWTAuthenticationMethod::jwkProvider,
             () -> "dummy"
         );
@@ -402,12 +361,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(userWithModifiedJwtProperty);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> "dummy"
         );
@@ -434,13 +388,15 @@ public class UserAuthenticationMethodTest extends ESTestCase {
                 null
             )
         );
+        var settings = Settings.builder()
+            // Matches JWT_TOKEN payload.
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING.getKey(), "https://console.cratedb-dev.cloud/api/v2/meta/jwk/")
+            // Matches JWT_TOKEN payload.
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING.getKey(), "test_cluster_id")
+            .build();
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // Defaults
-            Map.of(
-                ISS_KEY, "https://console.cratedb-dev.cloud/api/v2/meta/jwk/", // Matches JWT_TOKEN payload.
-                AUD_KEY, "test_cluster_id" // Matches JWT_TOKEN payload.
-            ),
+            settings,
             jwkProviderFunction(null),
             () -> null // ClusterId supplier is not used, aud is taken from defaults
         );
@@ -465,13 +421,14 @@ public class UserAuthenticationMethodTest extends ESTestCase {
                 null
             )
         );
+        var settings = Settings.builder()
+            // issuer Matches JWT_TOKEN payload.
+            // No default value for aud, must use clusterId.
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING.getKey(), "https://console.cratedb-dev.cloud/api/v2/meta/jwk/")
+            .build();
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // Default is partially defined
-            Map.of(
-                ISS_KEY, "https://console.cratedb-dev.cloud/api/v2/meta/jwk/", // Matches JWT_TOKEN payload.
-                AUD_KEY, "" // No default value, must use clusterId
-            ),
+            settings,
             jwkProviderFunction(null),
             () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
         );
@@ -498,12 +455,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // No default values.
-            // Provided empty strings to imitate real behavior of absent Setting<String> resolved to an empty string.
-            Map.of(
-                ISS_KEY, "",
-                AUD_KEY, ""
-            ),
+            Settings.EMPTY,
             jwkProviderFunction(null),
             () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
         );
@@ -531,13 +483,14 @@ public class UserAuthenticationMethodTest extends ESTestCase {
                 null
             )
         );
+        // Defaults doesn't match JWT_TOKEN payload.
+        var settings = Settings.builder()
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING.getKey(), "dummy")
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING.getKey(), "dummy")
+            .build();
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            // Defaults doesn't match JWT_TOKEN payload.
-            Map.of(
-                ISS_KEY, "dummy",
-                AUD_KEY, "dummy"
-            ),
+            settings,
             jwkProviderFunction(null),
             () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
         );
