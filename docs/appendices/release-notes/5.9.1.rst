@@ -118,3 +118,8 @@ Fixes
 - Fixed an issue that caused ``=`` comparison on
   :ref:`NUMERIC <type-numeric>` types with unmatched precisions and scales to
   return invalid results or throw an ``IllegalStateException``.
+
+- Fixed an issue that caused write operations to fail if a table contains a
+  generated ``geo_shape`` column with type ``Polygon``, ``MultiPolygon``,
+  ``LineString`` or ``MultiLineString`` and a user provides a correct value for
+  this generated column.
