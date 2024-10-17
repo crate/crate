@@ -127,18 +127,23 @@ public class Credentials implements Closeable {
     }
 
     /**
-     * Matches only on jwt properites.
+     * @return a Predicate, matching users on jwt properties (if properties are defined).
+     * @return a Predicate, matching users on token's 'username' (if properties are not defined).
      * @return NULL if no lookup is needed (Basic auth).
      */
     @Nullable
     public Predicate<Role> jwtPropertyMatch() {
         if (decodedToken != null) {
             return role -> {
-                var jwtProperties = role.jwtProperties();
-                if (role.isUser() && jwtProperties != null) {
-                    assert jwtProperties.iss() != null && jwtProperties.username() != null :
-                        "If user has jwt properties, 'iss' and 'username' must be not null";
-                    return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
+                if (role.isUser()) {
+                    var jwtProperties = role.jwtProperties();
+                    if (jwtProperties != null) {
+                        assert jwtProperties.iss() != null && jwtProperties.username() != null :
+                            "If user has jwt properties, 'iss' and 'username' must be not null";
+                        return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
+                    } else {
+                        return role.name().equals(decodedToken.getClaim("username").asString());
+                    }
                 }
                 return false;
             };

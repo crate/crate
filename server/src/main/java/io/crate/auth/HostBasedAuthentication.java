@@ -118,6 +118,7 @@ public class HostBasedAuthentication implements Authentication {
     private SortedMap<String, HBAConf> hbaConf;
     private final Roles roles;
     private final DnsResolver dnsResolver;
+    private final Settings settings;
 
     private final Supplier<String> clusterId;
 
@@ -126,6 +127,7 @@ public class HostBasedAuthentication implements Authentication {
                                    DnsResolver dnsResolver,
                                    Supplier<String> clusterId) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
+        this.settings = settings;
         this.roles = roles;
         this.dnsResolver = dnsResolver;
         this.clusterId = clusterId;
@@ -150,6 +152,7 @@ public class HostBasedAuthentication implements Authentication {
             case (JWTAuthenticationMethod.NAME) ->
                 new JWTAuthenticationMethod(
                     roles,
+                    settings,
                     JWTAuthenticationMethod::jwkProvider,
                     clusterId
                 );
