@@ -40,6 +40,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
@@ -1163,11 +1165,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
         assertThat(response).hasLines(
-                "NestedLoopJoin[LEFT | (id = id)]",
+                "HashJoin[LEFT | (id = id)]",
                 "  ├ Eval[id, a, id, b, id, c]",
-                "  │  └ HashJoin[(id = id)]",
+                "  │  └ HashJoin[INNER | (id = id)]",
                 "  │    ├ Collect[doc.t3 | [id, c] | true]",
-                "  │    └ HashJoin[(id = id)]",
+                "  │    └ HashJoin[INNER | (id = id)]",
                 "  │      ├ Collect[doc.t1 | [id, a] | true]",
                 "  │      └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]",
                 "  └ Collect[doc.t4 | [id, d] | true]"
@@ -1242,7 +1244,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasLines(
             "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
             "  └ OrderBy[id ASC id ASC]",
-            "    └ HashJoin[(node['id'] = id)]",
+            "    └ HashJoin[INNER | (node['id'] = id)]",
             "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
             "      └ Rename[id, name] AS nodes",
             "        └ Collect[sys.nodes | [id, name] | true]"
@@ -1278,7 +1280,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
 
         assertThat(response).hasLines(
-                "HashJoin[(name = name)]",
+                "HashJoin[INNER | (name = name)]",
                 "  ├ Rename[name] AS x",
                 "  │  └ GroupHashAggregate[name]",
                 "  │    └ Union[name]",
@@ -1328,9 +1330,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
                 "Eval[id, reference]",
-                "  └ NestedLoopJoin[LEFT | (cluster_id = id)]",
-                "    ├ HashJoin[(cluster_id = id)]",
-                "    │  ├ HashJoin[(subscription_id = id)]",
+                "  └ HashJoin[LEFT | (cluster_id = id)]",
+                "    ├ HashJoin[INNER | (cluster_id = id)]",
+                "    │  ├ HashJoin[INNER | (subscription_id = id)]",
                 "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
                 "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
                 "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
@@ -1350,6 +1352,7 @@ public class JoinIntegrationTest extends IntegTestCase {
      */
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(0)
     @Test
     public void test_nested_loop_join_works_as_the_left_side_of_another_join() {
         execute("CREATE TABLE t1 (x int) CLUSTERED INTO 3 SHARDS");
@@ -1430,8 +1433,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false)" + stmt);
         assertThat(response).hasLines(
                 "OrderBy[x ASC]",
-                "  └ HashJoin[(x = x)]",
-                "    ├ HashJoin[(x = x)]",
+                "  └ HashJoin[INNER | (x = x)]",
+                "    ├ HashJoin[INNER | (x = x)]",
                 "    │  ├ Collect[doc.j1 | [x] | true]",
                 "    │  └ Collect[doc.j2 | [x] | true]",
                 "    └ Collect[doc.j3 | [x] | true]"
@@ -1469,8 +1472,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false)" + stmt);
         assertThat(response).hasLines(
                 "OrderBy[x ASC]",
-                "  └ HashJoin[(x = x)]",
-                "    ├ HashJoin[(x = z)]",
+                "  └ HashJoin[INNER | (x = x)]",
+                "    ├ HashJoin[INNER | (x = z)]",
                 "    │  ├ Collect[doc.j2 | [x] | true]",
                 "    │  └ Collect[doc.j3 | [z] | true]",
                 "    └ Collect[doc.j1 | [x] | true]"
@@ -1539,9 +1542,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(execute("explain " + stmt)).hasLines(
                 "Eval[e] (rows=0)",
                 "  └ Eval[b, a, e, f, c, d] (rows=0)",
-                "    └ HashJoin[((a = c) AND (d = e))] (rows=0)",
+                "    └ HashJoin[INNER | ((a = c) AND (d = e))] (rows=0)",
                 "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
-                "      └ HashJoin[(b = f)] (rows=1)",
+                "      └ HashJoin[INNER | (b = f)] (rows=1)",
                 "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
                 "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
         );
@@ -1564,8 +1567,8 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         assertThat(response).hasLines(
             "Eval[x, y, z]",
-            "  └ HashJoin[(z = y)]",
-            "    ├ HashJoin[(x = z)]",
+            "  └ HashJoin[INNER | (z = y)]",
+            "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
             "    └ Collect[doc.t2 | [y] | true]"
@@ -1586,8 +1589,8 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         assertThat(response).hasLines(
             "Eval[x, y, z]",
-            "  └ HashJoin[(z = y)]",
-            "    ├ HashJoin[(x = z)]",
+            "  └ HashJoin[INNER | (z = y)]",
+            "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
             "    │  └ Collect[doc.t3 | [z] | true]",
             "    └ Collect[doc.t2 | [y] | true]"
@@ -1615,8 +1618,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "HashJoin[((c = a) AND (c = b))]",
-            "  ├ HashJoin[((a = b) AND (x = y))]",
+            "HashJoin[INNER | ((c = a) AND (c = b))]",
+            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
             "  │  ├ Collect[doc.t1 | [a, x] | true]",
             "  │  └ Collect[doc.t2 | [b, y] | true]",
             "  └ Collect[doc.t3 | [c] | true]"
@@ -1669,5 +1672,73 @@ public class JoinIntegrationTest extends IntegTestCase {
             """
         );
         assertThat(response).hasRows("a2| {id=xyz, t_id=1}| {id=d2}| 1| xyz| 1");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_left_outer_hash_join_simple() throws Exception {
+        execute("CREATE TABLE t1 (id text)");
+        execute("CREATE TABLE t2 (id text)");
+        execute("INSERT INTO t1 values ('a'), ('b'), ('c'), ('e'), ('f')");
+        execute("INSERT INTO t2 values ('a'), ('b'), ('c'), ('d'), ('g')");
+        execute("refresh table t1, t2");
+        execute("select * from t1 left outer join t2 on t1.id = t2.id");
+
+        assertThat(response).hasRowsInAnyOrder(
+            "b| b",
+            "c| c",
+            "a| a",
+            "e| NULL",
+            "f| NULL");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_left_outer_hash_join_complex() throws Exception {
+        execute("CREATE TABLE t1 (id varchar, value varchar)");
+        execute("CREATE TABLE t2 (id varchar, value varchar)");
+        execute("INSERT INTO t1 values ('a', 'a'), ('b', 'b'), ('c', 'c'), ('e', 'e'), ('f', 'f')");
+        execute("INSERT INTO t2 values ('a', 'a'), ('b', 'b'), ('c', 'c'), ('d', 'd'), ('g', 'g')");
+        execute("refresh table t1, t2");
+        execute("select * from t1 left outer join t2 on t1.id = t2.id");
+
+        assertThat(response).hasRowsInAnyOrder(
+            "b| b| b| b",
+            "c| c| c| c",
+            "a| a| a| a",
+            "e| e| NULL| NULL",
+            "f| f| NULL| NULL");
+    }
+
+    @Seed("29D0ED1BFDF69B4B")
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_left_outer_block() throws Exception {
+        execute("CREATE TABLE t1 (id integer)");
+        execute("CREATE TABLE t2 (id integer)");
+        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
+        execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
+        execute("refresh table t1, t2");
+        execute("select * from t1 left outer join t2 on t1.id = t2.id");
+
+        assertThat(response).hasRowsInAnyOrder(
+            "0| NULL",
+            "0| NULL",
+            "1| 1",
+            "1| 1",
+            "2| 2",
+            "2| 2",
+            "3| 3",
+            "4| 4",
+            "4| 4",
+            "4| 4",
+            "4| 4"
+        );
     }
 }

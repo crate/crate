@@ -31,6 +31,7 @@ import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
 
 public class RewriteJoinPlan implements Rule<JoinPlan> {
 
@@ -53,11 +54,13 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              Captures captures,
                              Rule.Context context) {
         if (context.txnCtx().sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
+            (join.joinType() == JoinType.INNER || join.joinType() == JoinType.LEFT) &&
+            EquiJoinDetector.isEquiJoinCondition(join.joinCondition())) {
             return new HashJoin(
                 join.lhs(),
                 join.rhs(),
                 join.joinCondition(),
+                join.joinType(),
                 join.lookUpJoin()
             );
         } else {

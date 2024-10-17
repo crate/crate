@@ -122,6 +122,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -933,7 +934,6 @@ public class JobSetup {
                 projectorFactory
             );
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
-
             HashJoinOperation joinOperation = new HashJoinOperation(
                 phase.numLeftOutputs(),
                 phase.numRightOutputs(),
@@ -949,7 +949,8 @@ public class JobSetup {
                 context.transactionContext,
                 inputFactory,
                 breaker(),
-                phase.estimatedRowSizeForLeft()
+                phase.estimatedRowSizeForLeft(),
+                phase.joinType() == JoinType.LEFT
             );
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),

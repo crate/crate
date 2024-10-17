@@ -29,9 +29,11 @@ import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
+import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
@@ -43,6 +45,8 @@ import io.netty.util.collection.IntObjectHashMap;
  *     Build Phase:
  *     for (leftRow in left) {
  *         calculate hash and put in Buffer (HashMap) until the blockSize is reached
+ *         // for left outer set a marker which indicates that a pair was found
+ *         buffer.marker = false
  *     }
  *
  *     Probe Phase:
@@ -57,8 +61,16 @@ import io.netty.util.collection.IntObjectHashMap;
  *                    // Row-lookup-by-hash-code can only work by the EQ operators of a join condition,
  *                    // all other possible operators must be checked afterwards.
  *                    emmit(combinedRow)
+ *                    // for left outer joins mark in the buffer that a match was found
+ *                    matchedBuffer.marker = true
  *                }
  *            }
+ *         }
+ *     }
+ *     // for left outer joins now iterate over the buffer and emit all non-marked values
+ *     for (values in buffer) {
+ *         if (marked == false) {
+ *             emit(value, null)
  *         }
  *     }
  *
@@ -73,10 +85,10 @@ import io.netty.util.collection.IntObjectHashMap;
  * Those functions are called on each row of the left and right side respectively and they return the hash value of
  * the relevant columns of the row.
  * <p>
- * This information is not available for the {@link HashInnerJoinBatchIterator}, so it's the responsibility of the
+ * This information is not available for the {@link HashJoinBatchIterator}, so it's the responsibility of the
  * caller to provide those two functions that operate on the left and right rows accordingly and return the hash values.
  */
-public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
+public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private final RowAccounting<Object[]> leftRowAccounting;
     private final Predicate<Row> joinCondition;
@@ -88,7 +100,8 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private final ToIntFunction<Row> hashBuilderForLeft;
     private final ToIntFunction<Row> hashBuilderForRight;
     private final LongToIntFunction calculateBlockSize;
-    private final IntObjectHashMap<List<Object[]>> buffer;
+    private final IntObjectHashMap<Tuple<List<Object[]>, Boolean>> buffer;
+    private final boolean emitNullValues;
 
     private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
 
@@ -99,15 +112,17 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private int numberOfLeftBatchesForBlock;
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
+    private ArrayList<Integer> nonMatchingValues;
 
-    public HashInnerJoinBatchIterator(BatchIterator<Row> left,
-                                      BatchIterator<Row> right,
-                                      RowAccounting<Object[]> leftRowAccounting,
-                                      CombinedRow combiner,
-                                      Predicate<Row> joinCondition,
-                                      ToIntFunction<Row> hashBuilderForLeft,
-                                      ToIntFunction<Row> hashBuilderForRight,
-                                      LongToIntFunction calculateBlockSize) {
+    public HashJoinBatchIterator(BatchIterator<Row> left,
+                                 BatchIterator<Row> right,
+                                 RowAccounting<Object[]> leftRowAccounting,
+                                 CombinedRow combiner,
+                                 Predicate<Row> joinCondition,
+                                 ToIntFunction<Row> hashBuilderForLeft,
+                                 ToIntFunction<Row> hashBuilderForRight,
+                                 LongToIntFunction calculateBlockSize,
+                                 boolean emitNullValues) {
         super(left, right, combiner);
         this.leftRowAccounting = leftRowAccounting;
         this.joinCondition = joinCondition;
@@ -119,6 +134,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         resetBuffer();
         numberOfLeftBatchesLoadedForBlock = 0;
         this.activeIt = left;
+        this.emitNullValues = emitNullValues;
     }
 
     @Override
@@ -133,6 +149,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         activeIt = left;
         resetBuffer();
         leftMatchingRowsIterator = null;
+        nonMatchingValues = null;
     }
 
     @Override
@@ -148,14 +165,29 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         while (buildBufferAndMatchRight() == false) {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded, we're done here
+                if (emitNullValues) {
+                    extractNonMatchesFromBuffer();
+                    if (!nonMatchingValues.isEmpty()) {
+                        return emitNullValuesPairs();
+                    }
+                }
                 return false;
             } else if (activeIt == left) {
                 // left needs the next batch loaded
                 return false;
             } else if (right.allLoaded()) {
+                if (emitNullValues) {
+                    if (nonMatchingValues == null) {
+                        extractNonMatchesFromBuffer();
+                    }
+                    if (!nonMatchingValues.isEmpty()) {
+                        return emitNullValuesPairs();
+                    }
+                }
                 right.moveToStart();
                 activeIt = left;
                 resetBuffer();
+                nonMatchingValues = null;
             } else {
                 return false;
             }
@@ -163,6 +195,36 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
 
         // match found
         return true;
+    }
+
+    private void extractNonMatchesFromBuffer() {
+        if (nonMatchingValues == null) {
+            nonMatchingValues = new ArrayList<>(buffer.size());
+            for (var values : buffer.entrySet()) {
+                if (values.getValue().v2() == false) {
+                    nonMatchingValues.add(values.getKey());
+                }
+            }
+        }
+    }
+
+    private boolean emitNullValuesPairs() {
+        Integer value = nonMatchingValues.getFirst();
+        Tuple<List<Object[]>, Boolean> values = buffer.remove(value);
+        List<Object[]> objects = values.v1();
+        if (!objects.isEmpty()) {
+            Object[] cells = objects.removeFirst();
+            combiner.setLeft(new RowN(cells));
+            combiner.setRight(new RowN(new Object[cells.length]));
+            if (!objects.isEmpty()) {
+                buffer.put(value, new Tuple<>(objects, false));
+            } else {
+                nonMatchingValues.removeFirst();
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void resetBuffer() {
@@ -212,9 +274,16 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
-            List<Object[]> leftMatchingRows = buffer.get(rightHash);
+            Tuple<List<Object[]>, Boolean> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
-                leftMatchingRowsIterator = leftMatchingRows.iterator();
+                leftMatchingRowsIterator = leftMatchingRows.v1().iterator();
+                if (emitNullValues) {
+                    // Mark the values if null values should be emitted for later postprocessing
+                    if (leftMatchingRows.v2() == false) {
+                        leftMatchingRows = new Tuple<>(leftMatchingRows.v1(), true);
+                        buffer.put(rightHash, leftMatchingRows);
+                    }
+                }
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
                     return true;
@@ -227,12 +296,12 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     }
 
     private void addToBuffer(Object[] currentRow, int hash) {
-        List<Object[]> existingRows = buffer.get(hash);
+        Tuple<List<Object[]>, Boolean> existingRows = buffer.get(hash);
         if (existingRows == null) {
-            existingRows = new ArrayList<>();
+            existingRows = new Tuple<>(new ArrayList<>(), false);
             buffer.put(hash, existingRows);
         }
-        existingRows.add(currentRow);
+        existingRows.v1().add(currentRow);
         numberOfRowsInBuffer++;
     }
 
