@@ -723,7 +723,7 @@ public class DocTableInfoFactory {
                 Integer lengthLimit = (Integer) columnProperties.get("length_limit");
                 var blankPadding = columnProperties.get("blank_padding");
                 if (blankPadding != null && (Boolean) blankPadding) {
-                    yield new CharacterType(lengthLimit);
+                    yield CharacterType.of(lengthLimit);
                 }
                 yield lengthLimit != null
                     ? StringType.of(lengthLimit)

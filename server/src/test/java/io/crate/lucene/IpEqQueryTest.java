@@ -72,14 +72,14 @@ public class IpEqQueryTest extends LuceneQueryBuilderTest {
     public void test_IpEqQuery_termsQuery() {
         Query query = convert("arr1 = ['1.1.1.1']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        BooleanClause clause = ((BooleanQuery) query).clauses().getFirst();
         query = clause.getQuery();
-        assertThat(query.getClass().getName()).endsWith("InetAddressPoint$4"); // the query class is anonymous
+        assertThat(query.getClass().getName()).endsWith("InetAddressPoint$3"); // the query class is anonymous
         assertThat(query).hasToString("arr1:{1.1.1.1}");
 
         query = convert("arr2 = ['1.1.1.1']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        clause = ((BooleanQuery) query).clauses().get(0);
+        clause = ((BooleanQuery) query).clauses().getFirst();
         query = clause.getQuery();
         // SortedSetDocValuesField.newSlowSetQuery is equal to TermInSetQuery + MultiTermQuery.DOC_VALUES_REWRITE
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);

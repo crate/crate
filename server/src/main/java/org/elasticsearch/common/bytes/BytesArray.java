@@ -19,12 +19,13 @@
 
 package org.elasticsearch.common.bytes;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
+import org.elasticsearch.common.io.stream.StreamInput;
 
 
 public final class BytesArray extends AbstractBytesReference {
@@ -107,6 +108,13 @@ public final class BytesArray extends AbstractBytesReference {
     @Override
     public BytesRef toBytesRef() {
         return new BytesRef(bytes, offset, length);
+    }
+
+    @Override
+    public String utf8ToString() {
+        final char[] ref = new char[length];
+        final int len = UnicodeUtil.UTF8toUTF16(bytes, offset, length, ref);
+        return new String(ref, 0, len);
     }
 
     @Override

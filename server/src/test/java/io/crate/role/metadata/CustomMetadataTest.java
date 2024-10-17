@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -81,7 +82,7 @@ public class CustomMetadataTest {
     private String xContentFromMetadata(Metadata metadata) throws IOException {
         XContentBuilder builder = JsonXContent.builder();
         builder.startObject();
-        Metadata.FORMAT.toXContent(builder, metadata);
+        metadata.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
         return Strings.toString(builder);
     }

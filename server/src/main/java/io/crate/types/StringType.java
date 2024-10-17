@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
@@ -79,77 +80,91 @@ public class StringType extends DataType<String> implements Streamer<String> {
         */
     public static final int POSITION_INCREMENT_GAP = 100;
 
+    /**
+     * We cannot use {@code EqQuery<String>} because it's also used in OptimizeQueryForSearchAfter
+     * where the value is {@link BytesRef} and not {@link String}.
+     */
+    protected static final class StringEqQuery implements EqQuery<Object> {
+
+        private final UnaryOperator<Object> preProcess;
+
+        StringEqQuery(UnaryOperator<Object> preprocess) {
+            this.preProcess = preprocess;
+        }
+
+        @Override
+        public Query termQuery(String field, Object value, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermQuery(new Term(field, BytesRefs.toBytesRef(preProcess.apply(value))));
+            }
+            if (hasDocValues) {
+                return SortedSetDocValuesField.newSlowExactQuery(
+                    field, BytesRefs.toBytesRef(preProcess.apply(value)));
+            }
+            return null;
+        }
+
+        @Override
+        public Query rangeQuery(String field,
+                                Object lowerTerm,
+                                Object upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            if (isIndexed) {
+                return new TermRangeQuery(
+                    field,
+                    BytesRefs.toBytesRef(preProcess.apply(lowerTerm)),
+                    BytesRefs.toBytesRef(preProcess.apply(upperTerm)),
+                    includeLower,
+                    includeUpper
+                );
+            }
+            if (hasDocValues) {
+                return SortedSetDocValuesField.newSlowRangeQuery(
+                    field,
+                    BytesRefs.toBytesRef(preProcess.apply(lowerTerm)),
+                    BytesRefs.toBytesRef(preProcess.apply(upperTerm)),
+                    includeLower,
+                    includeUpper
+                );
+            }
+            return null;
+        }
+
+        @Override
+        public Query termsQuery(String field, List<Object> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermInSetQuery(field, nonNullValues.stream().map(
+                    c -> BytesRefs.toBytesRef(preProcess.apply(c))).toList());
+            }
+            if (hasDocValues) {
+                return SortedSetDocValuesField.newSlowSetQuery(
+                    field, Lists.map(nonNullValues, c -> BytesRefs.toBytesRef(preProcess.apply(c))));
+            }
+            return null;
+        }
+    }
+
     private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,
-        new EqQuery<Object>() {
+        new StringEqQuery(UnaryOperator.identity())) {
 
             @Override
-            public Query termQuery(String field, Object value, boolean hasDocValues, boolean isIndexed) {
-                if (isIndexed) {
-                    return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
-                }
-                if (hasDocValues) {
-                    return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
-                }
-                return null;
+            @SuppressWarnings({"rawtypes"})
+            public ValueIndexer<Object> valueIndexer(RelationName table,
+                                                     Reference ref,
+                                                     Function<ColumnIdent, Reference> getRef) {
+                return switch (ref.indexType()) {
+                    case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
+                    case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
+                };
             }
-
-            @Override
-            public Query rangeQuery(String field,
-                                    Object lowerTerm,
-                                    Object upperTerm,
-                                    boolean includeLower,
-                                    boolean includeUpper,
-                                    boolean hasDocValues,
-                                    boolean isIndexed) {
-                if (isIndexed) {
-                    return new TermRangeQuery(
-                        field,
-                        BytesRefs.toBytesRef(lowerTerm),
-                        BytesRefs.toBytesRef(upperTerm),
-                        includeLower,
-                        includeUpper
-                    );
-                }
-                if (hasDocValues) {
-                    return SortedSetDocValuesField.newSlowRangeQuery(
-                        field,
-                        BytesRefs.toBytesRef(lowerTerm),
-                        BytesRefs.toBytesRef(upperTerm),
-                        includeLower,
-                        includeUpper
-                    );
-                }
-                return null;
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> nonNullValues, boolean hasDocValues, boolean isIndexed) {
-                if (isIndexed) {
-                    return new TermInSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
-                }
-                if (hasDocValues) {
-                    return SortedSetDocValuesField.newSlowSetQuery(field, Lists.map(nonNullValues, BytesRefs::toBytesRef));
-                }
-                return null;
-            }
-        }
-    ) {
-
-        @Override
-        @SuppressWarnings({"rawtypes"})
-        public ValueIndexer<Object> valueIndexer(RelationName table,
-                                                 Reference ref,
-                                                 Function<ColumnIdent, Reference> getRef) {
-            return switch (ref.indexType()) {
-                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
-                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
-            };
-        }
     };
 
-    private final int lengthLimit;
+    protected final int lengthLimit;
 
     public static StringType of(List<Integer> parameters) {
         if (parameters.size() != 1) {
@@ -169,7 +184,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         return new StringType(lengthLimit);
     }
 
-    private StringType(int lengthLimit) {
+    protected StringType(int lengthLimit) {
         this.lengthLimit = lengthLimit;
     }
 

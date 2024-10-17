@@ -498,4 +498,26 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
         assertThat(response).hasRows("1abc");
     }
+
+    /*
+     * https://github.com/crate/crate/issues/16793
+     */
+    @Test
+    public void test_correlated_subquery_with_join_on_primary_key() {
+        execute("CREATE TABLE tbl (x INT PRIMARY KEY)");
+        execute("INSERT INTO tbl(x) VALUES(111)");
+        execute("REFRESH TABLE tbl");
+        execute("""
+            SELECT (
+              SELECT x
+              FROM tbl a
+              WHERE a.x = b.x
+              LIMIT 1
+            ) AS t
+            FROM (
+              SELECT x FROM tbl
+            ) as b"""
+        );
+        assertThat(response).hasRows("111");
+    }
 }

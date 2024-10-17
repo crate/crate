@@ -50,7 +50,7 @@ public class NodeMetadataTests extends ESTestCase {
                                                        nodeMetadata -> {
                                                            final long generation = NodeMetadata.FORMAT.writeAndCleanup(nodeMetadata, tempDir);
                                                            final Tuple<NodeMetadata, Long> nodeMetadataLongTuple
-                                                               = NodeMetadata.FORMAT.loadLatestStateWithGeneration(logger, xContentRegistry(), tempDir);
+                                                               = NodeMetadata.FORMAT.loadLatestStateWithGeneration(logger, writableRegistry(), xContentRegistry(), tempDir);
                                                            assertThat(nodeMetadataLongTuple.v2()).isEqualTo(generation);
                                                            return nodeMetadataLongTuple.v1();
                                                        }, nodeMetadata -> {
@@ -74,7 +74,7 @@ public class NodeMetadataTests extends ESTestCase {
         final InputStream resource = this.getClass().getResourceAsStream("testReadsFormatWithoutVersion.binary");
         assertThat(resource).isNotNull();
         Files.copy(resource, stateDir.resolve(NodeMetadata.FORMAT.getStateFileName(between(0, Integer.MAX_VALUE))));
-        final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, xContentRegistry(), tempDir);
+        final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, writableRegistry(), xContentRegistry(), tempDir);
         assertThat(nodeMetadata.nodeId()).isEqualTo("y6VUVMSaStO4Tz-B5BxcOw");
         assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_EMPTY);
     }

@@ -38,7 +38,6 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -134,10 +133,10 @@ public class EqOperatorTest extends ScalarTestCase {
                 "create table \"t_" + type.getName() + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "xs = []");
-                Asserts.assertThat(result)
+                assertThat(result)
                     .as("xs = [] should match 1 row for type " + type)
                     .hasSize(1);
-                Asserts.assertThat(result.get(0)).asList().isEmpty();
+                assertThat((List<?>) result.getFirst()).isEmpty();
             }
         }
     }

@@ -43,7 +43,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockitoAnnotations;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -99,7 +98,6 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     @Before
     public void prepare() {
         nodeCtx = createNodeContext();
-        MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),

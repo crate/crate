@@ -50,6 +50,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -462,7 +463,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     public RetentionLeases loadRetentionLeases(final Path path) throws IOException {
         final RetentionLeases retentionLeases;
         synchronized (retentionLeasePersistenceLock) {
-            retentionLeases = RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path);
+            retentionLeases = RetentionLeases.FORMAT.loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, path);
         }
 
         if (retentionLeases == null) {
@@ -498,7 +499,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     }
 
     public boolean assertRetentionLeasesPersisted(final Path path) throws IOException {
-        assert RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path) != null;
+        assert RetentionLeases.FORMAT.loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, path) != null;
         return true;
     }
 

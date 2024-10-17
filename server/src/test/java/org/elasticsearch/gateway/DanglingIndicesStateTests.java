@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +59,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testCleanupWhenEmpty() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
 
             assertThat(danglingState.getDanglingIndices().isEmpty()).isTrue();
@@ -70,7 +71,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testDanglingIndicesDiscovery() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
             assertThat(danglingState.getDanglingIndices().isEmpty()).isTrue();
             Metadata metadata = Metadata.builder().build();
@@ -87,7 +88,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testInvalidIndexFolder() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
 
             Metadata metadata = Metadata.builder().build();
@@ -111,7 +112,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testDanglingProcessing() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
 
             Metadata metadata = Metadata.builder().build();
@@ -152,7 +153,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testDanglingIndicesNotImportedWhenTombstonePresent() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
 
             final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
@@ -167,7 +168,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testDanglingIndicesAreNotAllocatedWhenDisabled() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             LocalAllocateDangledIndices localAllocateDangledIndices = mock(LocalAllocateDangledIndices.class);
 
             final Settings allocateSettings = Settings.builder().put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), false).build();
@@ -187,7 +188,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
     public void testDanglingIndicesAreAllocatedWhenEnabled() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
-            MetaStateService metaStateService = new MetaStateService(env, xContentRegistry());
+            MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             LocalAllocateDangledIndices localAllocateDangledIndices = mock(LocalAllocateDangledIndices.class);
             final Settings allocateSettings = Settings.builder().put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true).build();
 

@@ -31,7 +31,7 @@ import org.junit.Test;
 public class SysInfoUtilTest extends ESTestCase {
 
     private static final SysInfo.Builder SYSINFO_BUILDER = new SysInfo.Builder();
-    private static final String[] X86_64 = new String[] {"x86_64", "amd64", "x64"};
+    private static final List<String> X86_64 = List.of("x86_64", "amd64", "x64");
 
     private void assertVendorVersionFromGenericLine(String line, String expectedVersionString) {
         SysInfo sysInfo = new SysInfo();

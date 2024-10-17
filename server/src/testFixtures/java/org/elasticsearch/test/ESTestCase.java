@@ -397,7 +397,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     private static final List<StatusData> statusData = new ArrayList<>();
     static {
         // ensure that the status logger is set to the warn level so we do not miss any warnings with our Log4j usage
-        StatusLogger.getLogger().setLevel(Level.WARN);
+        StatusLogger.getLogger().getFallbackListener().setLevel(Level.WARN);
         // Log4j will write out status messages indicating problems with the Log4j usage to the status logger; we hook into this logger and
         // assert that no such messages were written out as these would indicate a problem with our logging configuration
         StatusLogger.getLogger().registerListener(new StatusConsoleListener(Level.WARN) {

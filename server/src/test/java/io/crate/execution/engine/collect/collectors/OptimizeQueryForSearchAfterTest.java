@@ -41,6 +41,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.CharacterType;
 import io.crate.types.DataTypes;
 
 public class OptimizeQueryForSearchAfterTest {
@@ -50,6 +51,18 @@ public class OptimizeQueryForSearchAfterTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
             new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.STRING, 1, null)
+        ));
+        var optimize = new OptimizeQueryForSearchAfter(orderBy);
+        FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
+        Query query = optimize.apply(lastCollected);
+        assertThat(query).hasToString("+x:{* TO foobar}");
+    }
+
+    @Test
+    public void test_char_range_query_can_handle_byte_ref_values() {
+        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
+        OrderBy orderBy = new OrderBy(List.of(
+            new SimpleReference(referenceIdent, RowGranularity.DOC, CharacterType.of(3), 1, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });

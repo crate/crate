@@ -40,7 +40,6 @@ class NumericType extends PGType<BigDecimal> {
     private static final short DEC_DIGITS = 4;
     private static final short NUMERIC_POS = 0x0000;
     private static final short NUMERIC_NEG = 0x4000;
-    private static final short NUMERIC_NAN = (short) 0xC000;
 
     public static final NumericType INSTANCE = new NumericType();
 
@@ -114,11 +113,10 @@ class NumericType extends PGType<BigDecimal> {
         buffer.writeInt(typeLen);
         buffer.writeShort(nDigits);
         buffer.writeShort(weight);
-        switch (value.signum()) {
-            case -1 -> buffer.writeShort(NUMERIC_NEG);
-            case 0 -> buffer.writeShort(NUMERIC_NAN);
-            case 1 -> buffer.writeShort(NUMERIC_POS);
-            default -> buffer.writeShort(NUMERIC_POS);
+        if (value.signum() == -1) {
+            buffer.writeShort(NUMERIC_NEG);
+        } else {
+            buffer.writeShort(NUMERIC_POS);
         }
         buffer.writeShort(value.scale());
 
@@ -147,8 +145,8 @@ class NumericType extends PGType<BigDecimal> {
         short sign = buffer.readShort();
         short scale = buffer.readShort();
 
-        if (sign == NUMERIC_NAN) {
-            throw new IllegalArgumentException("Infinite or NaN values are not supported");
+        if (nDigits == 0) {
+            return BigDecimal.ZERO;
         }
 
         boolean has_dp = scale > 0;

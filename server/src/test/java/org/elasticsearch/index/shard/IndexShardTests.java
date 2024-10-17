@@ -97,6 +97,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
@@ -188,19 +189,19 @@ public class IndexShardTests extends IndexShardTestCase {
             ShardStateMetadata state1 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state1, env.availableShardPaths(id));
             ShardStateMetadata shardStateMetadata = ShardStateMetadata.FORMAT
-                .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
+                .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
             assertThat(shardStateMetadata).isEqualTo(state1);
 
             ShardStateMetadata state2 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state2, env.availableShardPaths(id));
             shardStateMetadata = ShardStateMetadata.FORMAT
-                .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
+                .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
             assertThat(shardStateMetadata).isEqualTo(state1);
 
             ShardStateMetadata state3 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state3, env.availableShardPaths(id));
             shardStateMetadata = ShardStateMetadata.FORMAT
-                .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
+                .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
             assertThat(shardStateMetadata).isEqualTo(state3);
             assertThat("fooUUID").isEqualTo(state3.indexUUID);
         }
@@ -211,13 +212,13 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard();
         Path shardStatePath = shard.shardPath().getShardStatePath();
         ShardStateMetadata shardStateMetadata  = ShardStateMetadata.FORMAT
-            .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
+            .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, shardStatePath);
         assertThat(getShardStateMetadata(shard)).isEqualTo(shardStateMetadata);
         ShardRouting routing = shard.shardRouting;
         IndexShardTestCase.updateRoutingEntry(shard, routing);
 
         shardStateMetadata  = ShardStateMetadata.FORMAT
-            .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
+            .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, shardStatePath);
         assertThat(shardStateMetadata).isEqualTo(getShardStateMetadata(shard));
         assertThat(shardStateMetadata).isEqualTo(
             new ShardStateMetadata(
@@ -229,7 +230,7 @@ public class IndexShardTests extends IndexShardTestCase {
         routing = TestShardRouting.relocate(shard.shardRouting, "some node", 42L);
         IndexShardTestCase.updateRoutingEntry(shard, routing);
         shardStateMetadata  = ShardStateMetadata.FORMAT
-            .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
+            .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, shardStatePath);
         assertThat(shardStateMetadata).isEqualTo(getShardStateMetadata(shard));
         assertThat(shardStateMetadata).isEqualTo(
             new ShardStateMetadata(
@@ -252,7 +253,7 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.store().close();
         // check state file still exists
         ShardStateMetadata shardStateMetadata  = ShardStateMetadata.FORMAT
-            .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardPath.getShardStatePath());
+            .loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, shardPath.getShardStatePath());
 
         assertThat(shardStateMetadata).isEqualTo(getShardStateMetadata(shard));
         // but index can't be opened for a failed shard

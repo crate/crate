@@ -80,7 +80,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 writer.commit();
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     for (int i = 0; i < reader.maxDoc(); i++) {
-                        Document document = reader.document(i);
+                        Document document = reader.storedFields().document(i);
                         assertThat(document.getFields().size()).isEqualTo(1);
                         assertThat(document.getFields().get(0).name()).isEqualTo("source");
                     }
@@ -151,7 +151,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
                     assertThat(extra_source).isNotNull();
                     for (int i = 0; i < reader.maxDoc(); i++) {
-                        Document document = reader.document(i);
+                        Document document = reader.storedFields().document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
                         assertThat(collect.contains("source")).isTrue();
                         assertThat(collect.contains("even")).isTrue();
@@ -192,7 +192,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
                     assertThat(extra_source).isNotNull();
                     for (int i = 0; i < reader.maxDoc(); i++) {
-                        Document document = reader.document(i);
+                        Document document = reader.storedFields().document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
                         assertThat(collect.contains("source")).isTrue();
                         assertThat(collect.contains("extra_source")).isTrue();

@@ -31,11 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,7 +73,10 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.RecyclingBytesStreamOutput;
-import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.Loggers;
@@ -85,13 +87,11 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.index.Index;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -144,6 +144,7 @@ public class PersistedClusterStateService {
 
     private final Path[] dataPaths;
     private final String nodeId;
+    private final NamedWriteableRegistry namedWriteableRegistry;
     private final NamedXContentRegistry namedXContentRegistry;
     private final BigArrays bigArrays;
     private final boolean preserveUnknownCustoms;
@@ -151,18 +152,36 @@ public class PersistedClusterStateService {
 
     private volatile TimeValue slowWriteLoggingThreshold;
 
-    public PersistedClusterStateService(NodeEnvironment nodeEnvironment, NamedXContentRegistry namedXContentRegistry, BigArrays bigArrays,
-                                        ClusterSettings clusterSettings, LongSupplier relativeTimeMillisSupplier) {
-        this(nodeEnvironment.nodeDataPaths(), nodeEnvironment.nodeId(), namedXContentRegistry, bigArrays, clusterSettings,
-            relativeTimeMillisSupplier, false);
+    public PersistedClusterStateService(NodeEnvironment nodeEnvironment,
+                                        NamedXContentRegistry namedXContentRegistry,
+                                        NamedWriteableRegistry namedWriteableRegistry,
+                                        BigArrays bigArrays,
+                                        ClusterSettings clusterSettings,
+                                        LongSupplier relativeTimeMillisSupplier) {
+        this(
+            nodeEnvironment.nodeDataPaths(),
+            nodeEnvironment.nodeId(),
+            namedXContentRegistry,
+            namedWriteableRegistry,
+            bigArrays,
+            clusterSettings,
+            relativeTimeMillisSupplier,
+            false
+        );
     }
 
-    public PersistedClusterStateService(Path[] dataPaths, String nodeId, NamedXContentRegistry namedXContentRegistry, BigArrays bigArrays,
-                                        ClusterSettings clusterSettings, LongSupplier relativeTimeMillisSupplier,
+    public PersistedClusterStateService(Path[] dataPaths,
+                                        String nodeId,
+                                        NamedXContentRegistry namedXContentRegistry,
+                                        NamedWriteableRegistry namedWriteableRegistry,
+                                        BigArrays bigArrays,
+                                        ClusterSettings clusterSettings,
+                                        LongSupplier relativeTimeMillisSupplier,
                                         boolean preserveUnknownCustoms) {
         this.dataPaths = dataPaths;
         this.nodeId = nodeId;
         this.namedXContentRegistry = namedXContentRegistry;
+        this.namedWriteableRegistry = namedWriteableRegistry;
         this.bigArrays = bigArrays;
         this.relativeTimeMillisSupplier = relativeTimeMillisSupplier;
         this.preserveUnknownCustoms = preserveUnknownCustoms;
@@ -383,15 +402,43 @@ public class PersistedClusterStateService {
         return bestOnDiskState;
     }
 
+    private static boolean hasSmileHeader(BytesRef bytesRef) {
+        // header: `:)\n`
+        int offset = bytesRef.offset;
+        return bytesRef.length > 4
+            && bytesRef.bytes[offset] == ':'
+            && bytesRef.bytes[offset + 1] == ')'
+            && bytesRef.bytes[offset + 2] == '\n';
+    }
+
     private OnDiskState loadOnDiskState(Path dataPath, DirectoryReader reader) throws IOException {
         final IndexSearcher searcher = new IndexSearcher(reader);
         searcher.setQueryCache(null);
 
         final SetOnce<Metadata.Builder> builderReference = new SetOnce<>();
+        final AtomicReference<Version> stateVersion = new AtomicReference<>();
         consumeFromType(searcher, GLOBAL_TYPE_NAME, bytes -> {
-            final Metadata metadata = Metadata.Builder.fromXContent(XContentType.SMILE.xContent()
-                                                                        .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, bytes.bytes, bytes.offset, bytes.length),
-                                                                    preserveUnknownCustoms);
+            final Metadata metadata;
+            if (hasSmileHeader(bytes)) {
+                metadata = Metadata.Builder.fromXContent(
+                    XContentType.SMILE.xContent().createParser(
+                        namedXContentRegistry,
+                        LoggingDeprecationHandler.INSTANCE,
+                        bytes.bytes,
+                        bytes.offset,
+                        bytes.length
+                    ),
+                    preserveUnknownCustoms
+                );
+            } else {
+                try (var in = new NamedWriteableAwareStreamInput(
+                            StreamInput.wrap(bytes.bytes, bytes.offset, bytes.length), namedWriteableRegistry)) {
+                    Version version = Version.readVersion(in);
+                    stateVersion.set(version);
+                    in.setVersion(version);
+                    metadata = Metadata.readFrom(in);
+                }
+            }
             LOGGER.trace("found global metadata with last-accepted term [{}]", metadata.coordinationMetadata().term());
             if (builderReference.get() != null) {
                 throw new IllegalStateException("duplicate global metadata found in [" + dataPath + "]");
@@ -408,8 +455,23 @@ public class PersistedClusterStateService {
 
         final Set<String> indexUUIDs = new HashSet<>();
         consumeFromType(searcher, INDEX_TYPE_NAME, bytes -> {
-            final IndexMetadata indexMetadata = IndexMetadata.fromXContent(XContentType.SMILE.xContent()
-                                                                               .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, bytes.bytes, bytes.offset, bytes.length));
+            IndexMetadata indexMetadata;
+            if (hasSmileHeader(bytes)) {
+                indexMetadata = IndexMetadata.fromXContent(
+                    XContentType.SMILE.xContent().createParser(
+                        namedXContentRegistry,
+                        LoggingDeprecationHandler.INSTANCE,
+                        bytes.bytes,
+                        bytes.offset,
+                        bytes.length
+                    )
+                );
+            } else {
+                try (var in = StreamInput.wrap(bytes.bytes, bytes.offset, bytes.length)) {
+                    in.setVersion(stateVersion.get());
+                    indexMetadata = IndexMetadata.readFrom(in);
+                }
+            }
             LOGGER.trace("found index metadata for {}", indexMetadata.getIndex());
             if (indexUUIDs.add(indexMetadata.getIndexUUID()) == false) {
                 throw new IllegalStateException("duplicate metadata found for " + indexMetadata.getIndex() + " in [" + dataPath + "]");
@@ -453,15 +515,6 @@ public class PersistedClusterStateService {
                 }
             }
         }
-    }
-
-    private static final ToXContent.Params FORMAT_PARAMS;
-
-    static {
-        Map<String, String> params = new HashMap<>(2);
-        params.put("binary", "true");
-        params.put(Metadata.CONTEXT_MODE_PARAM, Metadata.CONTEXT_MODE_GATEWAY);
-        FORMAT_PARAMS = new ToXContent.MapParams(params);
     }
 
     /**
@@ -811,7 +864,7 @@ public class PersistedClusterStateService {
         }
 
         private Document makeIndexMetadataDocument(IndexMetadata indexMetadata, DocumentBuffer documentBuffer) throws IOException {
-            final Document indexMetadataDocument = makeDocument(INDEX_TYPE_NAME, indexMetadata, documentBuffer);
+            final Document indexMetadataDocument = makeDocument(INDEX_TYPE_NAME, indexMetadata::writeTo, documentBuffer);
             final String indexUUID = indexMetadata.getIndexUUID();
             assert indexUUID.equals(IndexMetadata.INDEX_UUID_NA_VALUE) == false;
             indexMetadataDocument.add(new StringField(INDEX_UUID_FIELD_NAME, indexUUID, Field.Store.NO));
@@ -819,21 +872,23 @@ public class PersistedClusterStateService {
         }
 
         private Document makeGlobalMetadataDocument(Metadata metadata, DocumentBuffer documentBuffer) throws IOException {
-            return makeDocument(GLOBAL_TYPE_NAME, metadata, documentBuffer);
+            return makeDocument(
+                GLOBAL_TYPE_NAME,
+                out -> {
+                    Version.writeVersion(Version.CURRENT, out);
+                    metadata.writeTo(out);
+                },
+                documentBuffer
+            );
         }
 
-        private Document makeDocument(String typeName, ToXContent metadata, DocumentBuffer documentBuffer) throws IOException {
+        private Document makeDocument(String typeName, CheckedConsumer<StreamOutput, IOException> writeTo, DocumentBuffer documentBuffer) throws IOException {
             final Document document = new Document();
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
-            try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
-                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
-                        Streams.flushOnCloseStream(streamOutput))) {
-                    xContentBuilder.startObject();
-                    metadata.toXContent(xContentBuilder, FORMAT_PARAMS);
-                    xContentBuilder.endObject();
-                }
-                document.add(new StoredField(DATA_FIELD_NAME, streamOutput.toBytesRef()));
+            try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
+                writeTo.accept(out);
+                document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
             }
 
             return document;

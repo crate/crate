@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.test.ESTestCase;
 
@@ -96,7 +97,7 @@ public class RetentionLeasesTests extends ESTestCase {
         final Path path = createTempDir();
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
         RetentionLeases.FORMAT.writeAndCleanup(retentionLeases, path);
-        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path)).isEqualTo(retentionLeases);
+        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, path)).isEqualTo(retentionLeases);
     }
 
     private RetentionLeases randomRetentionLeases(boolean allowEmpty) {

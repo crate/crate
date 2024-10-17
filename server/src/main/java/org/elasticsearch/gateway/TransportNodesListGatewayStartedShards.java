@@ -19,6 +19,10 @@
 
 package org.elasticsearch.gateway;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -34,6 +38,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -47,11 +52,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * This transport action is used to fetch the shard version from each node during primary allocation in {@link GatewayAllocator}.
@@ -70,6 +71,7 @@ public class TransportNodesListGatewayStartedShards extends
     private final NodeEnvironment nodeEnv;
     private final IndicesService indicesService;
     private final NamedXContentRegistry namedXContentRegistry;
+    private final NamedWriteableRegistry namedWriteableRegistry;
 
     @Inject
     public TransportNodesListGatewayStartedShards(Settings settings,
@@ -78,6 +80,7 @@ public class TransportNodesListGatewayStartedShards extends
                                                   TransportService transportService,
                                                   NodeEnvironment env,
                                                   IndicesService indicesService,
+                                                  NamedWriteableRegistry namedWriteableRegistry,
                                                   NamedXContentRegistry namedXContentRegistry) {
         super(
             ACTION_NAME,
@@ -92,6 +95,7 @@ public class TransportNodesListGatewayStartedShards extends
         this.settings = settings;
         this.nodeEnv = env;
         this.indicesService = indicesService;
+        this.namedWriteableRegistry = namedWriteableRegistry;
         this.namedXContentRegistry = namedXContentRegistry;
     }
 
@@ -116,7 +120,10 @@ public class TransportNodesListGatewayStartedShards extends
         try {
             final ShardId shardId = request.getShardId();
             logger.trace("{} loading local shard state info", shardId);
-            ShardStateMetadata shardStateMetadata = ShardStateMetadata.FORMAT.loadLatestState(logger, namedXContentRegistry,
+            ShardStateMetadata shardStateMetadata = ShardStateMetadata.FORMAT.loadLatestState(
+                logger,
+                namedWriteableRegistry,
+                namedXContentRegistry,
                 nodeEnv.availableShardPaths(request.shardId));
             if (shardStateMetadata != null) {
                 if (indicesService.getShardOrNull(shardId) == null) {

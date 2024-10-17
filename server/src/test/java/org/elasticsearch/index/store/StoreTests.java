@@ -333,7 +333,7 @@ public class StoreTests extends ESTestCase {
         metadata = store.getMetadata(null);
         assertThat(metadata.asMap().isEmpty()).isFalse();
         for (StoreFileMetadata meta : metadata) {
-            try (IndexInput input = store.directory().openInput(meta.name(), IOContext.DEFAULT)) {
+            try (IndexInput input = store.directory().openInput(meta.name(), IOContext.READONCE)) {
                 String checksum = Store.digestToString(CodecUtil.retrieveChecksum(input));
                 assertThat(meta.checksum()).as("File: " + meta.name() + " has a different checksum").isEqualTo(checksum);
                 assertThat(meta.writtenBy()).isEqualTo(Version.LATEST);
