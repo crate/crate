@@ -387,6 +387,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
      * Token can match:
      *  1. User with JWT properties (token.username == crateUser.jwt.username)
      *  2. User without JWT properties (token.username = crateUser).
+     * Match by username takes precedence as a safer option (name cannot be altered but jwt properties can).
      */
     @Test
     public void test_user_lookup_matches_multiple_users() throws Exception {
@@ -412,14 +413,14 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
 
-        // User with JWT properties matches first, auth is done with this user.
+        // User with JWT properties matches first, auth is anyway done with the user without JWT properties.
         Roles roles = () -> List.of(JWT_USER, userWithoutJWTProps);
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
         ch.writeInbound(request);
         verify(jwtAuth, times(1))
             .authenticate(
-                argThat(credentials -> JWT_USER.name().equals(credentials.username())),
+                argThat(credentials -> tokenUsername.equals(credentials.username())),
                 any(ConnectionProperties.class)
             );
 

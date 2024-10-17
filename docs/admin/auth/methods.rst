@@ -140,6 +140,12 @@ absent the global configuration.
 ``aud`` defaults to the cluster id if absent from both the user definition
 and the global configuration.
 
+.. NOTE::
+
+   Token's username can match a CrateDB user by name and token's iss/username
+   combination can match another CrateDB by JWT properties.
+   In such case, user without JWT properties (match by name) takes precedence.
+
 See :ref:`create-user-jwt` and :ref:`jwt_defaults` for details.
 
 It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the

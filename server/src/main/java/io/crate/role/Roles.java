@@ -78,17 +78,27 @@ public interface Roles {
     }
 
     /**
-     * Finds a user by given predicate
+     * Finds a user by given predicate.
+     * In case of matching 2 users (by iss/username and one by username),
+     * match by username takes precedence.
      */
     @Nullable
     default Role findUser(Predicate<Role> predicate) {
+        Role matchWithJWT = null;
+        Role matchWithoutJWT = null;
         for (var role : roles()) {
             if (role.isUser() && predicate.test(role)) {
-                return role;
+                if (role.jwtProperties() != null) {
+                    assert matchWithJWT == null : "There can be only one match by jwt properties as iss/username combination is unique.";
+                    matchWithJWT = role;
+                } else {
+                    assert matchWithoutJWT == null : "There can be only one match by CrateDB username.";
+                    matchWithoutJWT = role;
+                }
             }
-
         }
-        return null;
+        // Returns NULL if there are no matches.
+        return matchWithoutJWT != null ? matchWithoutJWT : matchWithJWT;
     }
 
     /**

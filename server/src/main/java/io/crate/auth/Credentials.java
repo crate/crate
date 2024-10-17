@@ -130,9 +130,11 @@ public class Credentials implements Closeable {
      * @return a Predicate, matching users on jwt properties (if properties are defined).
      * @return a Predicate, matching users on token's 'username' (if properties are not defined).
      * @return NULL if no lookup is needed (Basic auth).
+     *
+     * This Predicate can match max 2 users (1 with JWT properties and 1 without).
      */
     @Nullable
-    public Predicate<Role> jwtPropertyMatch() {
+    public Predicate<Role> tokenMatch() {
         if (decodedToken != null) {
             return role -> {
                 if (role.isUser()) {
