@@ -381,8 +381,8 @@ public class TestSqlParser {
 
     @Test
     public void testParsingExceptionPositionInfo() {
-        ParsingException pe = catchThrowableOfType(
-            () -> SqlParser.createStatement("select *\nfrom x\nwhere from"), ParsingException.class);
+        ParsingException pe = catchThrowableOfType(ParsingException.class,
+            () -> SqlParser.createStatement("select *\nfrom x\nwhere from"));
         assertThat(pe.getMessage())
             .isEqualTo("line 3:7: no viable alternative at input 'select *\\nfrom x\\nwhere from'");
         assertThat(pe.getErrorMessage())

@@ -155,7 +155,7 @@ public class SslContextProviderTest extends ESTestCase {
         X509Certificate[] certificates = SslContextProvider.getRootCertificates(keyStore);
         assertThat(certificates.length).isEqualTo(1);
 
-        assertThat(certificates[0].getIssuerDN().getName()).contains("CN=myCA");
+        assertThat(certificates[0].getIssuerX500Principal().getName()).contains("CN=myCA");
         assertThat(certificates[0].getNotAfter().getTime()).isEqualTo(1651658343000L);
     }
 
@@ -166,10 +166,12 @@ public class SslContextProviderTest extends ESTestCase {
         X509Certificate[] certificates = SslContextProvider.getCertificateChain(keyStore);
 
         assertThat(certificates.length).isEqualTo(2);
-        assertThat(certificates[0].getIssuerDN().getName()).contains("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT");
-        assertThat(certificates[0].getSubjectDN().getName()).contains("CN=localhost");
-        assertThat(certificates[1].getIssuerDN().getName()).contains("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT");
-        assertThat(certificates[1].getSubjectDN().getName()).contains("CN=myCA");
+        assertThat(certificates[0].getIssuerX500Principal().getName())
+            .contains("CN=myCA,O=Dummy Company,L=Dummy Country,ST=Dummy State,C=AT");
+        assertThat(certificates[0].getSubjectX500Principal().getName()).contains("CN=localhost");
+        assertThat(certificates[1].getIssuerX500Principal().getName())
+            .contains("CN=myCA,O=Dummy Company,L=Dummy Country,ST=Dummy State,C=AT");
+        assertThat(certificates[1].getSubjectX500Principal().getName()).contains("CN=myCA");
     }
 
     @Test
