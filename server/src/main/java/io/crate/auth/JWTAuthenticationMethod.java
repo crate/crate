@@ -21,17 +21,22 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING;
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,11 +70,13 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
 
 
     public JWTAuthenticationMethod(Roles roles,
-                                   Map<String, String> jwtDefaults,
+                                   Settings settings,
                                    Function<String, JwkProvider> urlToJwkProvider,
                                    Supplier<String> clusterId) {
         this.roles = roles;
-        this.jwtDefaults = jwtDefaults;
+        this.jwtDefaults = new HashMap<>();
+        jwtDefaults.put(ISS_KEY, settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()));
+        jwtDefaults.put(AUD_KEY, settings.get(AUTH_HOST_BASED_JWT_AUD_SETTING.getKey()));
         this.urlToJwkProvider = urlToJwkProvider;
         this.clusterId = clusterId;
     }
@@ -90,8 +97,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
             String issuer;
             String name;
             var defaultAud = jwtDefaults.get(AUD_KEY);
-            assert defaultAud != null : "Absent String Setting is resolved to an empty string";
-            String audience = defaultAud.isEmpty() == false ? defaultAud : clusterId.get();
+            String audience = defaultAud != null ? defaultAud : clusterId.get();
             var jwtProperties = user.jwtProperties();
             if (jwtProperties != null) {
                 issuer = jwtProperties.iss();
@@ -106,7 +112,11 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
                 name = username;
             }
 
-            assert issuer != null : "Must be defined on CREATE USER or taken from default config or be an empty string";
+            if (issuer == null) {
+                issuer = "";
+                // Default is not set, set to empty string to fail on claim check.
+                // Saves an extra round of throw -> catch below -> throw again
+            }
             assert name != null : "Must be defined on CREATE USER or equal to resolved by 'username' claim";
             assert audience != null : "Must be defined on CREATE USER or taken from default or use cluster id";
 

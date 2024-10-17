@@ -25,8 +25,6 @@ import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFile
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
-import static io.crate.auth.JWTAuthenticationMethod.AUD_KEY;
-import static io.crate.auth.JWTAuthenticationMethod.ISS_KEY;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -679,24 +677,5 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             new ConnectionProperties(new Credentials("dummy", null), LOCALHOST, Protocol.HTTP, null)
         );
         assertThat(authMethod).isExactlyInstanceOf(TrustAuthenticationMethod.class);
-    }
-
-    @Test
-    public void test_get_jwt_defaults() throws Exception {
-        Settings settings = Settings.builder()
-            .put("auth.host_based.enabled", true)
-            .put("auth.host_based.jwt.iss", "http://example.com")
-            .put("auth.host_based.jwt.aud", "test_aud")
-            .build();
-
-        HostBasedAuthentication authService = new HostBasedAuthentication(
-            settings,
-            null,
-            DnsResolver.SYSTEM,
-            () -> "dummy"
-        );
-        Map<String, String> jwtSettings = authService.getJWTDefaults(settings);
-        assertThat(jwtSettings.get(ISS_KEY)).isEqualTo("http://example.com");
-        assertThat(jwtSettings.get(AUD_KEY)).isEqualTo("test_aud");
     }
 }
