@@ -1119,7 +1119,7 @@ public abstract class EngineTestCase extends ESTestCase {
                             continue;
                         }
                         final long primaryTerm = primaryTermDocValues.longValue();
-                        Document doc = reader.document(i, Set.of(SysColumns.Names.ID, SysColumns.Source.NAME));
+                        Document doc = reader.storedFields().document(i, Set.of(SysColumns.Names.ID, SysColumns.Source.NAME));
                         BytesRef binaryID = doc.getBinaryValue(SysColumns.Names.ID);
                         String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
                         final BytesRef source = doc.getBinaryValue(SysColumns.Source.NAME);
@@ -1248,7 +1248,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 if (primaryTermDocValues.advanceExact(docId)) {
                     if (seqNos.add(seqNo) == false) {
                         IDVisitor idFieldVisitor = new IDVisitor(SysColumns.Names.ID);
-                        leaf.reader().document(docId, idFieldVisitor);
+                        leaf.reader().storedFields().document(docId, idFieldVisitor);
                         throw new AssertionError("found multiple documents for seq=" + seqNo + " id=" + idFieldVisitor.getId());
                     }
                 }

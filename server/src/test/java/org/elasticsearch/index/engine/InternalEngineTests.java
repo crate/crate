@@ -216,7 +216,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             assertThat(searcher.getIndexReader().numDocs()).isEqualTo(1);
             TopDocs search = searcher.search(new MatchAllDocsQuery(), 1);
-            org.apache.lucene.document.Document luceneDoc = searcher.doc(search.scoreDocs[0].doc);
+            org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[0].doc);
             assertThat(luceneDoc.get("value")).isEqualTo("test");
         }
 
@@ -229,7 +229,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             assertThat(searcher.getIndexReader().numDocs()).isEqualTo(1);
             TopDocs search = searcher.search(new MatchAllDocsQuery(), 1);
-            org.apache.lucene.document.Document luceneDoc = searcher.doc(search.scoreDocs[0].doc);
+            org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[0].doc);
             assertThat(luceneDoc.get("value")).isEqualTo("updated");
         }
 
@@ -2275,7 +2275,7 @@ public class InternalEngineTests extends EngineTestCase {
                 for (int op = 0; op < opsPerThread; op++) {
                     try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), uidTerm), searcherFactory)) {
                         FieldsVisitor visitor = new FieldsVisitor(true);
-                        get.docIdAndVersion().reader.document(get.docIdAndVersion().docId, visitor);
+                        get.docIdAndVersion().reader.storedFields().document(get.docIdAndVersion().docId, visitor);
                         List<String> values = new ArrayList<>(Strings.commaDelimitedListToSet(visitor.source().utf8ToString()));
                         String removed = op % 3 == 0 && values.size() > 0 ? values.remove(0) : null;
                         String added = "v_" + idGenerator.incrementAndGet();
@@ -2317,7 +2317,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), uidTerm), searcherFactory)) {
             FieldsVisitor visitor = new FieldsVisitor(true);
-            get.docIdAndVersion().reader.document(get.docIdAndVersion().docId, visitor);
+            get.docIdAndVersion().reader.storedFields().document(get.docIdAndVersion().docId, visitor);
             List<String> values = Arrays.asList(Strings.commaDelimitedListToStringArray(visitor.source().utf8ToString()));
             assertThat(currentValues).isEqualTo(new HashSet<>(values));
         }
@@ -2358,8 +2358,11 @@ public class InternalEngineTests extends EngineTestCase {
         public boolean sawIndexWriterIFDMessage;
 
         MockAppender(final String name) throws IllegalAccessException {
-            super(name, RegexFilter.createFilter(".*(\n.*)*", new String[0],
-                                                 false, null, null), null);
+            super(name,
+                RegexFilter.createFilter(".*(\n.*)*", new String[0], false, null, null),
+                null,
+                false,
+                null);
         }
 
         @Override
@@ -4993,7 +4996,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             TopDocs search = searcher.search(new MatchAllDocsQuery(), searcher.getIndexReader().numDocs());
             for (int i = 0; i < search.scoreDocs.length; i++) {
-                org.apache.lucene.document.Document luceneDoc = searcher.doc(search.scoreDocs[i].doc);
+                org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[i].doc);
                 assertThat(luceneDoc.get("value")).isEqualTo("updated");
             }
             int totalNumDocs = numDocs - numDeletes.get();
