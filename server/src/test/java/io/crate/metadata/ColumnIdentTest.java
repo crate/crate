@@ -178,4 +178,15 @@ public class ColumnIdentTest {
         assertThat(aaa.replacePrefix(ab)).isEqualTo(aba);
         assertThat(aaa.replacePrefix(aab)).isEqualTo(aab);
     }
+
+    @Test
+    public void testShiftToBase() {
+        ColumnIdent base = ColumnIdent.of("a", List.of("b"));
+        ColumnIdent child = ColumnIdent.of("a", List.of("b", "c"));
+        ColumnIdent grandchild = ColumnIdent.of("a", List.of("b", "c", "d"));
+        ColumnIdent shifted = ColumnIdent.of("b", List.of("c"));
+        assertThat(child.shiftTo(base)).isEqualTo(shifted);
+        assertThat(grandchild.shiftTo(base)).isEqualTo(ColumnIdent.of("b", List.of("c", "d")));
+        assertThat(base.shiftTo(child)).isNull();
+    }
 }

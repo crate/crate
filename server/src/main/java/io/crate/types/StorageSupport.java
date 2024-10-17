@@ -40,6 +40,10 @@ public abstract class StorageSupport<T> {
     @Nullable
     private final EqQuery<T> eqQuery;
 
+    StorageSupport(StorageSupport<T> base) {
+        this(base.docValuesDefault, base.supportsDocValuesOff, base.eqQuery);
+    }
+
     StorageSupport(boolean docValuesDefault,
                    boolean supportsDocValuesOff,
                    @Nullable EqQuery<T> eqQuery) {

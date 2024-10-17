@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
@@ -124,6 +126,11 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
                 ((Number) values.get(0)).doubleValue(),
                 ((Number) values.get(1)).doubleValue(),
                 JtsSpatialContext.GEO);
+            ensurePointsInRange(point.getX(), point.getY());
+            return point;
+        } else if (value instanceof byte[] bytes) {
+            DoubleBuffer db = ByteBuffer.wrap(bytes).asDoubleBuffer();
+            PointImpl point = new PointImpl(db.get(0), db.get(1), JtsSpatialContext.GEO);
             ensurePointsInRange(point.getX(), point.getY());
             return point;
         } else {

@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import org.apache.lucene.util.IORunnable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -48,52 +47,44 @@ public class XContentTranslogWriter implements TranslogWriter {
         }
     }
 
-    private void uncheck(IORunnable runnable) {
-        try {
-            runnable.run();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     @Override
     public void startArray() {
-        uncheck(builder::startArray);
+        TranslogWriter.uncheck(builder::startArray);
     }
 
     @Override
     public void endArray() {
-        uncheck(builder::endArray);
+        TranslogWriter.uncheck(builder::endArray);
     }
 
     @Override
     public void startObject() {
-        uncheck(builder::startObject);
+        TranslogWriter.uncheck(builder::startObject);
     }
 
     @Override
     public void endObject() {
-        uncheck(builder::endObject);
+        TranslogWriter.uncheck(builder::endObject);
     }
 
     @Override
     public void writeNull() {
-        uncheck(builder::nullValue);
+        TranslogWriter.uncheck(builder::nullValue);
     }
 
     @Override
     public void writeFieldName(String fieldName) {
-        uncheck(() -> builder.field(fieldName));
+        TranslogWriter.uncheck(() -> builder.field(fieldName));
     }
 
     @Override
     public void writeValue(Object value) {
-        uncheck(() -> builder.value(value));
+        TranslogWriter.uncheck(() -> builder.value(value));
     }
 
     @Override
     public BytesReference bytes() {
-        uncheck(builder::endObject);
+        TranslogWriter.uncheck(builder::endObject);
         builder.close();
         return output.bytes();
     }

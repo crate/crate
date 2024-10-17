@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -36,6 +37,7 @@ import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.data.Input;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
 
@@ -44,7 +46,7 @@ import io.crate.metadata.doc.SysColumns;
  */
 public class IndexDocumentBuilder {
 
-    private final Document doc = new Document();
+    private final Document doc;
     private final TranslogWriter translogWriter;
     private final ValueIndexer.Synthetics synthetics;
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
@@ -59,6 +61,17 @@ public class IndexDocumentBuilder {
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated
     ) {
+        this(new Document(), translogWriter, synthetics, constraints, tableVersionCreated);
+    }
+
+    private IndexDocumentBuilder(
+        Document doc,
+        TranslogWriter translogWriter,
+        ValueIndexer.Synthetics synthetics,
+        Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
+        Version tableVersionCreated
+    ) {
+        this.doc = doc;
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
         this.constraints = constraints;
@@ -97,6 +110,23 @@ public class IndexDocumentBuilder {
         }
     }
 
+    public boolean maybeAddStoredField() {
+        return tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION);
+    }
+
+    public IndexDocumentBuilder noStoredField() {
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated) {
+            @Override
+            public boolean maybeAddStoredField() {
+                return false;
+            }
+        };
+    }
+
+    public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated);
+    }
+
     /**
      * Constructs a new ParsedDocument with the given id from the indexed values
      */
@@ -105,9 +135,14 @@ public class IndexDocumentBuilder {
         NumericDocValuesField version = new NumericDocValuesField(SysColumns.Names.VERSION, -1L);
         addField(version);
 
-        BytesReference source = translogWriter.bytes();
-        BytesRef sourceRef = source.toBytesRef();
-        addField(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
+        BytesReference translog = translogWriter.bytes();
+        BytesRef translogRef = translog.toBytesRef();
+        if (tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
+            addField(new StoredField(SysColumns.Source.RECOVERY_NAME, translogRef.bytes, translogRef.offset, translogRef.length));
+            addField(new NumericDocValuesField(SysColumns.Source.RECOVERY_NAME, 1));
+        } else {
+            addField(new StoredField(SysColumns.Source.NAME, translogRef.bytes, translogRef.offset, translogRef.length));
+        }
 
         BytesRef idBytes = Uid.encodeId(id);
         addField(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
@@ -118,7 +153,7 @@ public class IndexDocumentBuilder {
         addField(seqID.seqNoDocValue);
         addField(seqID.primaryTerm);
 
-        return new ParsedDocument(version, seqID, id, doc, source);
+        return new ParsedDocument(version, seqID, id, doc, translog);
     }
 
     public Version getTableVersionCreated() {
