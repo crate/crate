@@ -987,15 +987,17 @@ public class RecoverySourceHandler {
                     // With Lucene9_12 a READONCE context will confine the underlying IndexInput (MemorySegmentIndexInput) to a single thread.
                     // Segments* files require IOContext.READONCE
                     // https://github.com/apache/lucene/blob/b2d3a2b37e00f19a74949097736be8fd64745f61/lucene/test-framework/src/java/org/apache/lucene/tests/store/MockDirectoryWrapper.java#L817
+                    IOContext ioContext = IOContext.READONCE;
                     if (md.name().startsWith(IndexFileNames.SEGMENTS) == false) {
-                        final IndexInput indexInput = store.directory().openInput(md.name(), IOContext.READ);
-                        currentInput = new InputStreamIndexInput(indexInput, md.length()) {
-                            @Override
-                            public void close() throws IOException {
-                                IOUtils.close(indexInput, super::close); // InputStreamIndexInput's close is a noop
-                            }
-                        };
+                        ioContext = IOContext.READ;
                     }
+                    final IndexInput indexInput = store.directory().openInput(md.name(), ioContext);
+                    currentInput = new InputStreamIndexInput(indexInput, md.length()) {
+                        @Override
+                        public void close() throws IOException {
+                            IOUtils.close(indexInput, super::close); // InputStreamIndexInput's close is a noop
+                        }
+                    };
                 }
 
                 private byte[] acquireBuffer() {
