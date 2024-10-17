@@ -23,6 +23,7 @@ import static java.util.EnumSet.copyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -42,7 +43,7 @@ public class ClusterBlockTests extends ESTestCase {
         int iterations = randomIntBetween(5, 20);
         for (int i = 0; i < iterations; i++) {
             Version version = randomVersion(random());
-            ClusterBlock clusterBlock = randomClusterBlock(version);
+            ClusterBlock clusterBlock = randomClusterBlock();
 
             BytesStreamOutput out = new BytesStreamOutput();
             out.setVersion(version);
@@ -109,24 +110,21 @@ public class ClusterBlockTests extends ESTestCase {
     @Test
     public void testGetIndexBlockWithId() {
         final int blockId = randomInt();
-        final ClusterBlock[] clusterBlocks = new ClusterBlock[randomIntBetween(1, 5)];
+        final int noClusterBlocks = randomIntBetween(1, 5);
+        final List<ClusterBlock> clusterBlocks = new ArrayList<>(noClusterBlocks);
 
         final ClusterBlocks.Builder builder = ClusterBlocks.builder();
-        for (int i = 0; i < clusterBlocks.length; i++) {
-            clusterBlocks[i] = new ClusterBlock(blockId, "uuid" + i, "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL));
-            builder.addIndexBlock("index", clusterBlocks[i]);
+        for (int i = 0; i < noClusterBlocks; i++) {
+            clusterBlocks.add(new ClusterBlock(blockId, "uuid" + i, "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+            builder.addIndexBlock("index", clusterBlocks.get(i));
         }
 
-        assertThat(builder.build().indices().get("index")).hasSize(clusterBlocks.length);
+        assertThat(builder.build().indices().get("index")).hasSize(noClusterBlocks);
         assertThat(builder.build().getIndexBlockWithId("index", blockId)).isIn(clusterBlocks);
         assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt))).isNull();
     }
 
     private ClusterBlock randomClusterBlock() {
-        return randomClusterBlock(randomVersion(random()));
-    }
-
-    private ClusterBlock randomClusterBlock(final Version version) {
         final String uuid = randomBoolean() ? UUIDs.randomBase64UUID() : null;
         final List<ClusterBlockLevel> levels = Arrays.asList(ClusterBlockLevel.values());
         return new ClusterBlock(randomInt(), uuid, "cluster block #" + randomInt(), randomBoolean(), randomBoolean(), randomBoolean(),
