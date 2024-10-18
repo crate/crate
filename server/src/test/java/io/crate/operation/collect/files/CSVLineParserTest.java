@@ -22,6 +22,7 @@
 package io.crate.operation.collect.files;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,32 +45,42 @@ public class CSVLineParserTest {
         csvParser = new CSVLineParser(CopyFromParserProperties.DEFAULT, List.of("Code", "Country", "City"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parse_givenEmptyHeader_thenThrowsException() throws IOException {
         String header = "\n";
-        csvParser.parseHeader(header);
+        assertThatThrownBy(() -> csvParser.parseHeader(header))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid header: duplicate entries or no entries present");
+        assertThatThrownBy(() -> csvParser.parse("GER,Germany\n", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of values exceeds number of keys in csv file at line 0");
+    }
+
+    @Test
+    public void parse_givenDuplicateKey_thenThrowsException() throws IOException {
+        String header = "Code,Country,Country\n";
+        assertThatThrownBy(() -> csvParser.parseHeader(header))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid header: duplicate entries or no entries present");
+        csvParser.parse("GER,Germany,Another\n", 0);
+    }
+
+    @Test
+    public void parse_givenMissingKey_thenThrowsException() throws IOException {
+        String header = "Code,\n";
+        assertThatThrownBy(() -> csvParser.parseHeader(header))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid header: duplicate entries or no entries present");
         csvParser.parse("GER,Germany\n", 0);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void parse_givenDuplicateKey_thenThrowsException() throws IOException {
-        String header = "Code,Country,Country\n";
-        csvParser.parseHeader(header);
-        result = csvParser.parse("GER,Germany,Another\n", 0);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void parse_givenMissingKey_thenThrowsException() throws IOException {
-        String header = "Code,\n";
-        csvParser.parseHeader(header);
-        result = csvParser.parse("GER,Germany\n", 0);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parse_givenExtraValue_thenIgnoresTheKeyWithoutValue() throws IOException {
         String header = "Code,Country\n";
         csvParser.parseHeader(header);
-        csvParser.parse("GER,Germany,Berlin\n", 0);
+        assertThatThrownBy(() -> csvParser.parse("GER,Germany,Berlin\n", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Number of values exceeds number of keys in csv file at line 0");
     }
 
     @Test
@@ -222,12 +233,14 @@ public class CSVLineParserTest {
         csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void parse_targetColumnsMoreThanCsvValuesNoHeader_thenThrowException() throws IOException {
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country", "City"));
-        csvParser.parseWithoutHeader("GER,Germany\n", 0);
+        assertThatThrownBy(() -> csvParser.parseWithoutHeader("GER,Germany\n", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Expected 3 values, encountered 2 at line 0. This is not allowed when there is no header provided)");
     }
 
     @Test

@@ -80,16 +80,20 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new NumberOfShards(clusterService));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithInvalidProperty() {
         AnalyzedCreateBlobTable blobTable = e.analyze("create blob table screenshots with (foobar=1)");
-        buildSettings(blobTable);
+        assertThatThrownBy(() -> buildSettings(blobTable))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid property \"foobar\" passed to [ALTER | CREATE] TABLE statement");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithMultipleArgsToProperty() {
         AnalyzedCreateBlobTable blobTable = e.analyze("create blob table screenshots with (number_of_replicas=[1, 2])");
-        buildSettings(blobTable);
+        assertThatThrownBy(() -> buildSettings(blobTable))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The \"number_of_replicas\" range \"[1, 2]\" isn't valid");
     }
 
     @Test
@@ -167,9 +171,10 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("Invalid value for argument 'blobs_path'");
     }
 
-    @Test(expected = InvalidRelationName.class)
+    @Test
     public void testCreateBlobTableIllegalTableName() {
-        e.analyze("create blob table \"blob.s\"");
+        assertThatThrownBy(() -> e.analyze("create blob table \"blob.s\""))
+            .isExactlyInstanceOf(InvalidRelationName.class);
     }
 
     @Test
@@ -212,11 +217,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.dropIfExists()).isTrue();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testAlterBlobTableWithInvalidProperty() {
         AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+
+        assertThatThrownBy(() -> getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid property \"foobar\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test

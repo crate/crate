@@ -128,9 +128,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analyzedStatement).isExactlyInstanceOf(AnalyzedUpdateStatement.class);
     }
 
-    @Test(expected = RelationUnknown.class)
+    @Test
     public void testUpdateUnknownTable() throws Exception {
-        analyze("update unknown set name='Prosser'");
+        assertThatThrownBy(() -> analyze("update unknown set name='Prosser'"))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 
     @Test
@@ -149,14 +150,18 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(value).isFunction("add");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testUpdateSameReferenceRepeated() throws Exception {
-        analyze("update users set name='Trillian', name='Ford'");
+        assertThatThrownBy(() -> analyze("update users set name='Trillian', name='Ford'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Target expression repeated: name");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testUpdateSameNestedReferenceRepeated() throws Exception {
-        analyze("update users set details['arms']=3, details['arms']=5");
+        assertThatThrownBy(() -> analyze("update users set details['arms']=3, details['arms']=5"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Target expression repeated: details['arms']");
     }
 
     @Test
@@ -329,9 +334,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("Validation failed for id: Updating a clustered-by column is not supported");
     }
 
-    @Test(expected = ColumnValidationException.class)
+    @Test
     public void testUpdatePartitionedByColumn() throws Exception {
-        analyze("update parted set date = 1395874800000");
+        assertThatThrownBy(() -> analyze("update parted set date = 1395874800000"))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for date: Updating a partitioned-by column is not supported");
     }
 
     @Test

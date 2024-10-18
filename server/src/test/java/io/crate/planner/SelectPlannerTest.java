@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -459,7 +458,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
-    @Test(expected = UnsupportedFunctionException.class)
+    @Test
     public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
@@ -476,15 +475,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             );
 
-        e.plan("select name from parted order by year(date)");
+        assertThatThrownBy(() -> e.plan("select name from parted order by year(date)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class);
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
+    @Test
     public void testQueryRequiresScalar() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService);
 
         // only scalar functions are allowed on system tables because we have no lucene queries
-        e.plan("select * from sys.shards where match(table_name, 'characters')");
+        assertThatThrownBy(() -> e.plan("select * from sys.shards where match(table_name, 'characters')"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Cannot use MATCH on system tables");
     }
 
     @Test

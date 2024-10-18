@@ -138,14 +138,20 @@ public class SumAggregationTest extends AggregationTestCase {
         assertThat(result).isEqualTo(10L);
     }
 
-    @Test(expected = ArithmeticException.class)
+    @Test
     public void testLongOverflow() throws Exception {
-        executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MAX_VALUE}, {1}});
+        assertThatThrownBy(() ->
+            executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MAX_VALUE}, {1}}))
+            .isExactlyInstanceOf(ArithmeticException.class)
+            .hasMessage("long overflow");
     }
 
-    @Test(expected = ArithmeticException.class)
+    @Test
     public void testLongUnderflow() throws Exception {
-        executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {-1}});
+        assertThatThrownBy(() ->
+            executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {-1}}))
+            .isExactlyInstanceOf(ArithmeticException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
