@@ -239,6 +239,10 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
         return new Literal<>(DataTypes.INTEGER, value);
     }
 
+    public static Literal<Short> of(Short value) {
+        return new Literal<>(DataTypes.SHORT, value);
+    }
+
     public static Literal<String> of(String value) {
         return new Literal<>(DataTypes.STRING, value);
     }
