@@ -143,7 +143,7 @@ and the global configuration.
 .. NOTE::
 
    Token's username can match a CrateDB user by name and token's iss/username
-   combination can match another CrateDB by JWT properties.
+   combination can match another CrateDB user by JWT properties.
    In such case, user without JWT properties (match by name) takes precedence.
 
 See :ref:`create-user-jwt` and :ref:`jwt_defaults` for details.
