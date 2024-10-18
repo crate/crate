@@ -54,34 +54,44 @@ public class LogFunctionTest extends ScalarTestCase {
         assertNormalize("log(null, null)", isLiteral(null));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLogZero() throws Exception {
         // -Infinity
-        assertEvaluateNull("log(0.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("log(0.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("log(x): given arguments would result in: '-Infinity'");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLogNegative() throws Exception {
         // NaN
-        assertEvaluateNull("log(-10.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("log(-10.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("log(x): given arguments would result in: 'NaN'");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLnZero() throws Exception {
         // -Infinity
-        assertEvaluateNull("ln(0.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("ln(0.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("ln(x): given arguments would result in: '-Infinity'");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLnNegative() throws Exception {
         // NaN
-        assertEvaluateNull("ln(-10.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("ln(-10.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("ln(x): given arguments would result in: 'NaN'");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testLogDivisionByZero() throws Exception {
         // division by zero
-        assertEvaluateNull("log(10.0, 1.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("log(10.0, 1.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("log(x, b): given 'base' would result in a division by zero.");
     }
 
     @Test
