@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -32,6 +35,8 @@ import io.crate.types.DataTypes;
 public final class FloorFunction {
 
     public static final String NAME = "floor";
+
+    private FloorFunction() {}
 
     public static void register(Functions.Builder module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
@@ -49,9 +54,30 @@ public final class FloorFunction {
                         signature,
                         boundSignature,
                         type,
-                        x -> returnType.sanitizeValue(Math.floor(((Number) x).doubleValue()))
+                        x -> returnType.sanitizeValue(Math.floor(x.doubleValue()))
                     )
             );
         }
+        module.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> {
+                // We want to preserve the scale and precision from the
+                // numeric argument type for the return type. So we use
+                // the incoming numeric type as return type instead of
+                // the return type from the signature `floor(count::numeric(16, 2))`
+                // should return the type `numeric(16, 2)` not `numeric`
+                DataType<?> argType = boundSignature.argTypes().get(0);
+                return new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    argType,
+                    x -> argType.sanitizeValue(((BigDecimal) x).setScale(0, RoundingMode.FLOOR))
+                );
+            }
+        );
     }
 }

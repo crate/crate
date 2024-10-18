@@ -25,6 +25,8 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -39,6 +41,7 @@ public class AbsFunctionTest extends ScalarTestCase {
         assertEvaluate("abs(-2.0)", 2.0);
         assertEvaluate("abs(cast(-2 as bigint))", 2L);
         assertEvaluate("abs(cast(-2.0 as float))", 2.0f);
+        assertEvaluate("abs(cast(-12.23 as numeric(4,2)))", new BigDecimal("12.23"));
         assertEvaluateNull("abs(null)");
     }
 

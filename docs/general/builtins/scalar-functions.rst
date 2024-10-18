@@ -2073,13 +2073,14 @@ For example::
 ``ceil(number)``
 ----------------
 
-Returns the smallest integer or long value that is not less than the argument.
+Returns the smallest integral value that is not less than the argument.
 
-Returns: ``bigint`` or ``integer``
+Returns: ``numeric``, ``bigint`` or ``integer``
 
-Return value will be of type ``integer`` if the input value is an integer or
-float. If the input value is of type ``bigint`` or ``double precision`` the
-return value will be of type ``bigint``::
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of ``integer`` if the input value is an ``integer``` or
+``float```.  If the input value is of type ``bigint`` or ``double precision``
+the return value will be of type ``bigint``::
 
     cr> select ceil(29.9) AS col;
     +-----+
@@ -2124,10 +2125,11 @@ Returns: ``double precision``
 ---------------
 
 Returns Euler's number ``e`` raised to the power of the given numeric value.
-The output will be cast to the given input type and thus may loose precision.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type, and ``double precision`` for any other arithmetic type.
 ::
 
     > select exp(1.0) AS exp;
@@ -2146,14 +2148,14 @@ Returns: ``double precision``
 ``floor(number)``
 -----------------
 
-Returns the largest integer or long value that is not greater than the
-argument.
+Returns the largest integral value that is not less than the argument.
 
-Returns: ``bigint`` or ``integer``
+Returns: ``numeric``, ``bigint`` or ``integer``
 
-Return value will be an integer if the input value is an integer or a float. If
-the input value is of type ``bigint`` or ``double precision`` the return value
-will be of type ``bigint``.
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``integer`` if the input value is an ``integer``` or
+``float```.  If the input value is of type ``bigint`` or ``double precision``
+the return value will be of type ``bigint``.
 
 See below for an example::
 
@@ -2173,7 +2175,11 @@ See below for an example::
 
 Returns the natural logarithm of given ``number``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``double precision`` if the input value is of any other
+arithmetic type.
 
 See below for an example::
 
@@ -2194,6 +2200,36 @@ See below for an example::
 
 .. _scalar-log:
 
+``log(x : number)``
+-------------------
+
+Returns the logarithm of given ``x`` to base ``10``.
+
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``double precision`` if the input value is of any other
+arithmetic type.
+
+See below for an example::
+
+    cr> SELECT log(100) AS log;
+    +-----+
+    | log |
+    +-----+
+    | 2.0 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an error
+    is returned.
+
+
+.. _scalar-log_base:
+
 ``log(x : number, b : number)``
 -------------------------------
 
@@ -2211,21 +2247,11 @@ See below for an example, which essentially is the same as above::
     +-----+
     SELECT 1 row in set (... sec)
 
-The second argument (``b``) is optional. If not present, base 10 is used::
-
-    cr> SELECT log(100) AS log;
-    +-----+
-    | log |
-    +-----+
-    | 2.0 |
-    +-----+
-    SELECT 1 row in set (... sec)
-
 .. NOTE::
 
     An error is returned for arguments which lead to undefined or illegal
-    results. E.g. log(0) results in ``minus infinity``, and therefore, an error
-    is returned.
+    results. E.g. log(0, 10) results in ``minus infinity``, and therefore, an
+    error is returned.
 
     The same is true for arguments which lead to a ``division by zero``, as,
     e.g., log(10, 1) does.
@@ -2339,10 +2365,12 @@ Returns ``number`` rounded to the specified ``precision`` (decimal places).
 When ``precision`` is not specified, the ``round`` function rounds the input
 value to the closest integer for ``real`` and ``integer`` data types with ties
 rounding up, and to the closest ``bigint`` value for ``double precision`` and
-``bigint`` data types with ties rounding up.
+``bigint`` data types with ties rounding up. When the data type of the argument
+is ``numeric``, then it returns the closest ``numeric`` value, with all decimal
+digits zeroed out, and with thies rounding up.
 
 When it is specified, the result's type is ``numeric``. Notice that
-``round(number)`` and ``round(number, 0)`` return different result types.
+``round(number)`` and ``round(number, 0)`` may return different result types.
 
 
 See below for examples::
@@ -2402,7 +2430,8 @@ See below for examples::
 
 Returns the square root of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 

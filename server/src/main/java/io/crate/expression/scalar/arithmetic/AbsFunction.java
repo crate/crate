@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -32,6 +34,8 @@ import io.crate.types.DataTypes;
 public final class AbsFunction {
 
     public static final String NAME = "abs";
+
+    private AbsFunction() {}
 
     public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
@@ -53,5 +57,26 @@ public final class AbsFunction {
                 }
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> {
+                // We want to preserve the scale and precision from the
+                // numeric argument type for the return type. So we use
+                // the incoming numeric type as return type instead of
+                // the return type from the signature `abs(count::numeric(16, 2))`
+                // should return the type `numeric(16, 2)` not `numeric`
+                DataType<?> argType = boundSignature.argTypes().get(0);
+                return new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    argType,
+                    x -> argType.sanitizeValue(((BigDecimal) x).abs())
+                );
+            }
+        );
     }
 }

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import io.crate.expression.scalar.UnaryScalar;
@@ -36,13 +38,15 @@ public final class CeilFunction {
     public static final String CEIL = "ceil";
     public static final String CEILING = "ceiling";
 
-    public static void register(Functions.Builder module) {
+    private CeilFunction() {}
+
+    public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
-                module.add(
+                builder.add(
                     Signature.builder(name, FunctionType.SCALAR)
                         .argumentTypes(typeSignature)
                         .returnType(returnType.getTypeSignature())
@@ -53,10 +57,34 @@ public final class CeilFunction {
                             signature,
                             boundSignature,
                             type,
-                            x -> returnType.sanitizeValue(Math.ceil(((Number) x).doubleValue()))
+                            x -> returnType.sanitizeValue(Math.ceil(x.doubleValue()))
                         )
                 );
             }
+        }
+
+        for (var name : List.of(CEIL, CEILING)) {
+            builder.add(
+                Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .build(),
+                (signature, boundSignature) -> {
+                    // We want to preserve the scale and precision from the
+                    // numeric argument type for the return type. So we use
+                    // the incoming numeric type as return type instead of
+                    // the return type from the signature `ceil(count::numeric(16, 2))`
+                    // should return the type `numeric(16, 2)` not `numeric`
+                    DataType<?> argType = boundSignature.argTypes().get(0);
+                    return new UnaryScalar<>(
+                        signature,
+                        boundSignature,
+                        argType,
+                        x -> argType.sanitizeValue(((BigDecimal) x).setScale(0, RoundingMode.CEILING))
+                    );
+                }
+            );
         }
     }
 }
