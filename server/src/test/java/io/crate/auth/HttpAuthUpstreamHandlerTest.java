@@ -24,8 +24,11 @@ package io.crate.auth;
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -34,8 +37,10 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.net.ssl.SSLSession;
 
@@ -346,4 +351,89 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         verify(jwtAuth, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
+    @Test
+    public void test_user_has_no_jwt_properties_default_is_used() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Role userWithoutJWTProps = userOf(
+            tokenUsername,
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("pwd"),
+            // User doesn't have JWT properties
+            null
+        );
+        Roles roles = () -> List.of(userWithoutJWTProps);
+        Authentication authentication = mock(Authentication.class);
+        AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
+        when(authentication.resolveAuthenticationType(eq(tokenUsername), any(ConnectionProperties.class)))
+            .thenReturn(jwtAuth);
+        when(jwtAuth.authenticate(any(Credentials.class),any(ConnectionProperties.class))).thenReturn(userWithoutJWTProps);
+
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handler.authorized()).isTrue();
+    }
+
+
+    /**
+     * This test demonstrates possibility of the ambiguous user resolution.
+     * Token can match:
+     *  1. User with JWT properties (token.username == crateUser.jwt.username)
+     *  2. User without JWT properties (token.username = crateUser).
+     * Match by username takes precedence as a safer option (name cannot be altered but jwt properties can).
+     */
+    @Test
+    public void test_user_lookup_matches_multiple_users() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Role userWithoutJWTProps = userOf(
+            tokenUsername,
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("pwd"),
+            // User doesn't have JWT properties
+            null
+        );
+
+        Authentication authentication = mock(Authentication.class);
+        AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
+
+        when(authentication.resolveAuthenticationType(eq(tokenUsername), any(ConnectionProperties.class)))
+            .thenReturn(jwtAuth);
+
+        when(authentication.resolveAuthenticationType(eq(JWT_USER.name()), any(ConnectionProperties.class)))
+            .thenReturn(jwtAuth);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
+
+        // User with JWT properties matches first, auth is anyway done with the user without JWT properties.
+        Roles roles = () -> List.of(JWT_USER, userWithoutJWTProps);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        ch.writeInbound(request);
+        verify(jwtAuth, times(1))
+            .authenticate(
+                argThat(credentials -> tokenUsername.equals(credentials.username())),
+                any(ConnectionProperties.class)
+            );
+
+
+        // User without JWT properties matches first, auth is done with this user.
+        roles = () -> List.of(userWithoutJWTProps, JWT_USER);
+        handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        ch = new EmbeddedChannel(handler);
+        ch.writeInbound(request);
+        verify(jwtAuth, times(2)) // was 1 before, increment after authenticate
+            .authenticate(
+                argThat(credentials -> tokenUsername.equals(credentials.username())),
+                any(ConnectionProperties.class)
+            );
+    }
 }

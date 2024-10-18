@@ -21,16 +21,22 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING;
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,8 +57,12 @@ import io.crate.role.Roles;
 public class JWTAuthenticationMethod implements AuthenticationMethod {
 
     public static final String NAME = "jwt";
+    public static final String ISS_KEY = "iss";
+    public static final String AUD_KEY = "aud";
 
     private final Roles roles;
+
+    private final Map<String, String> jwtDefaults;
 
     private final Function<String, JwkProvider> urlToJwkProvider;
 
@@ -60,9 +70,13 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
 
 
     public JWTAuthenticationMethod(Roles roles,
+                                   Settings settings,
                                    Function<String, JwkProvider> urlToJwkProvider,
                                    Supplier<String> clusterId) {
         this.roles = roles;
+        this.jwtDefaults = new HashMap<>();
+        jwtDefaults.put(ISS_KEY, settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()));
+        jwtDefaults.put(AUD_KEY, settings.get(AUTH_HOST_BASED_JWT_AUD_SETTING.getKey()));
         this.urlToJwkProvider = urlToJwkProvider;
         this.clusterId = clusterId;
     }
@@ -80,18 +94,40 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
         }
 
         try {
-            JwkProvider jwkProvider = urlToJwkProvider.apply(decodedJWT.getIssuer());
-            Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
-
+            String issuer;
+            String name;
+            var defaultAud = jwtDefaults.get(AUD_KEY);
+            String audience = defaultAud != null ? defaultAud : clusterId.get();
             var jwtProperties = user.jwtProperties();
-            assert jwtProperties != null : "Resolved user must have jwt properties";
+            if (jwtProperties != null) {
+                issuer = jwtProperties.iss();
+                name = jwtProperties.username();
+                // Audience precedence: user defined -> default -> clusterId.
+                audience = jwtProperties.aud() != null ? jwtProperties.aud() : audience;
+            } else {
+                issuer = jwtDefaults.get(ISS_KEY);
+                // For users without JWT properties, token dictates CrateDB user.
+                // At this point username is resolved from claim, so withClaim("username", name)
+                // compares with "itself" as an extra check.
+                name = username;
+            }
+
+            if (issuer == null) {
+                issuer = "";
+                // Default is not set, set to empty string to fail on claim check.
+                // Saves an extra round of throw -> catch below -> throw again
+            }
+
+            JwkProvider jwkProvider = urlToJwkProvider.apply(decodedJWT.getIssuer());
             // Expiration date is checked by default(if provided in token)
+            Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
             Verification verification = JWT.require(algorithm)
                 // withers below are not needed for payload signature check.
-                // It's an extra step on top of signature verification to double check that user metadata matches token payload.
-                .withIssuer(jwtProperties.iss())
-                .withClaim("username", jwtProperties.username())
-                .withAudience(jwtProperties.aud() == null ? clusterId.get() : jwtProperties.aud());
+                // It's an extra step on top of signature verification to double check
+                // that user metadata (or default values) match token payload.
+                .withIssuer(issuer)
+                .withClaim("username", name)
+                .withAudience(audience);
 
             JWTVerifier verifier = verification.build();
             verifier.verify(decodedJWT);

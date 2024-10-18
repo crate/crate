@@ -127,18 +127,28 @@ public class Credentials implements Closeable {
     }
 
     /**
-     * Matches only on jwt properites.
-     * @return NULL if no lookup is needed (Basic auth).
+     * The returned predicate matching varies based on the user's JWT properties: if they are available, it will compare 
+     * them with token's values. Otherwise the token's username is compared with the Role's name.
+     * 
+     * Thus, this Predicate can match max 2 users (1 with JWT properties and 1 without).
+     * 
+     * @return NULL if no token is available (Basic auth) or a Predicate trying to match the given token.
+     *
+     * This Predicate can match max 2 users (1 with JWT properties and 1 without).
      */
     @Nullable
-    public Predicate<Role> jwtPropertyMatch() {
+    public Predicate<Role> tokenMatch() {
         if (decodedToken != null) {
             return role -> {
-                var jwtProperties = role.jwtProperties();
-                if (role.isUser() && jwtProperties != null) {
-                    assert jwtProperties.iss() != null && jwtProperties.username() != null :
-                        "If user has jwt properties, 'iss' and 'username' must be not null";
-                    return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
+                if (role.isUser()) {
+                    var jwtProperties = role.jwtProperties();
+                    if (jwtProperties != null) {
+                        assert jwtProperties.iss() != null && jwtProperties.username() != null :
+                            "If user has jwt properties, 'iss' and 'username' must be not null";
+                        return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
+                    } else {
+                        return role.name().equals(decodedToken.getClaim("username").asString());
+                    }
                 }
                 return false;
             };

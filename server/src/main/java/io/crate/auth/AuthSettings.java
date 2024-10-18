@@ -44,6 +44,14 @@ public final class AuthSettings {
         "auth.host_based.config.", Setting.Property.NodeScope
     );
 
+    public static final Setting<String> AUTH_HOST_BASED_JWT_ISS_SETTING = Setting.simpleString(
+        "auth.host_based.jwt.iss", Setting.Property.NodeScope
+    );
+
+    public static final Setting<String> AUTH_HOST_BASED_JWT_AUD_SETTING = Setting.simpleString(
+        "auth.host_based.jwt.aud", Setting.Property.NodeScope
+    );
+
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
     public static final Setting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = new Setting<String>(
         "auth.trust.http_default_user",

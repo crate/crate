@@ -101,7 +101,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         SSLSession session = getSession(ctx.channel());
         Credentials credentials = credentialsFromRequest(request, session, settings);
 
-        Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+        Predicate<Role> rolePredicate = credentials.tokenMatch();
         if (rolePredicate != null) {
             Role role = roles.findUser(rolePredicate);
             if (role != null) {

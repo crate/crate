@@ -120,7 +120,7 @@ The external service is responsible for issuing a `JWT`_ access token for the
 user. The user then provides this token, prefixed with ``Bearer`` in the
 ``Authorization`` HTTP header to CrateDB.
 CrateDB will validate the token and match it to a user created with ``CREATE
-USER`` with ``JWT`` properties that match those of the provided ``JWT`` token.
+USER``.
 
 Token must contain the following claims:
 
@@ -132,10 +132,21 @@ Token must contain the following claims:
 
 ``username`` - user name in a third party app.
 
-``iss``, ``username`` and ``aud`` values must match the values created by
-``CREATE USER`` statement. If ``aud`` has not been defined on the
-``CREATE USER`` statement, the cluster id is used and must match the token's
-``aud`` value. See :ref:`create-user-jwt` for details.
+The token's ``iss``, ``username`` and ``aud`` values must match the
+corresponding values within CrateDB.
+CrateDB uses either the values defined on a user level via ``CREATE USER`` or if
+absent the global configuration.
+
+``aud`` defaults to the cluster id if absent from both the user definition
+and the global configuration.
+
+.. NOTE::
+
+   Token's username can match a CrateDB user by name and token's iss/username
+   combination can match another CrateDB user by JWT properties.
+   In such case, user without JWT properties (match by name) takes precedence.
+
+See :ref:`create-user-jwt` and :ref:`jwt_defaults` for details.
 
 It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the
 header. If it's provided, the token's expiration date will be checked against
