@@ -36,7 +36,6 @@ import io.crate.auth.AccessControl;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.ShardResponse.Failure;
 
@@ -132,7 +131,7 @@ final class UpsertResultCollectors {
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
             Failure failure = shardResponse.failures().stream()
-                .filter(x -> x != null && x.error() != null)
+                .filter(x -> x != null && x.errorMessage() != null)
                 .findAny()
                 .orElse(null);
             synchronized (lock) {
@@ -188,11 +187,7 @@ final class UpsertResultCollectors {
                     ShardResponse.Failure failure = failures.get(i);
                     int location = locations.get(i);
                     RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
-                    String msg = null;
-                    if (failure != null) {
-                        var throwable = SQLExceptions.prepareForClientTransmission(accessControl, failure.error());
-                        msg = throwable.getMessage();
-                    }
+                    String msg = failure == null ? null : failure.errorMessage();
                     upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }
             }

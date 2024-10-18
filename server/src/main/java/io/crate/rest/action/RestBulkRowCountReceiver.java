@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.session.BaseResultReceiver;
 
 class RestBulkRowCountReceiver extends BaseResultReceiver {
@@ -33,7 +34,7 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     private final int resultIdx;
     private long rowCount;
     @Nullable
-    private Throwable failure;
+    private ShardResponse.ErrorMessageAndCode failure;
 
     RestBulkRowCountReceiver(Result[] results, int resultIdx) {
         this.results = results;
@@ -43,7 +44,7 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     @Override
     public void setNextRow(Row row) {
         rowCount = (long) row.get(0);
-        failure = (Throwable) row.get(1);
+        failure = (ShardResponse.ErrorMessageAndCode) row.get(1);
     }
 
     @Override
@@ -58,10 +59,10 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@NotNull Throwable t) {
-        results[resultIdx] = new Result(rowCount, t);
+        results[resultIdx] = new Result(rowCount, new ShardResponse.ErrorMessageAndCode(t.getMessage(), -1));
         super.fail(t);
     }
 
-    record Result(long rowCount, @Nullable Throwable error) {
+    record Result(long rowCount, @Nullable ShardResponse.ErrorMessageAndCode error) {
     }
 }

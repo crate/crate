@@ -59,6 +59,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
@@ -246,10 +247,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     shardResponse.failure(e);
                     break;
                 }
+                var role = nodeCtx.roles().findUser(request.sessionSettings().userName());
+                assert role != null : "User '" + request.sessionSettings().userName() + "' not found";
+                var accessControl = nodeCtx.roles().getAccessControl(role, role);
+                var safeException = SQLExceptions.prepareForClientTransmission(accessControl, e);
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        e,
+                        safeException,
+                        SQLExceptions.getId(safeException),
                         (e instanceof VersionConflictEngineException)));
             } catch (AssertionError e) {
                 // Shouldn't happen in production but helps during development

@@ -239,4 +239,11 @@ public class SQLExceptions {
         return e instanceof VersionConflictEngineException
                    && e.getMessage().contains("document already exists");
     }
+
+    public static int getId(Throwable t) {
+        if (t instanceof ElasticsearchException ee) {
+            return ElasticsearchException.getId(ee.getClass());
+        }
+        return -1;
+    }
 }

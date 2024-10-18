@@ -29,12 +29,12 @@ public final class RowCountAndFailure {
 
     private long rowCount = 0L;
     @Nullable
-    private Throwable failure = null;
+    private ShardResponse.ErrorMessageAndCode failure = null;
 
     public RowCountAndFailure() {
     }
 
-    public RowCountAndFailure(long rowCount, @Nullable Throwable failure) {
+    public RowCountAndFailure(long rowCount, ShardResponse.ErrorMessageAndCode failure) {
         this.rowCount = rowCount;
         this.failure = failure;
     }
@@ -43,9 +43,9 @@ public final class RowCountAndFailure {
         rowCount++;
     }
 
-    public void setFailure(Throwable throwable) {
+    public void setFailure(ShardResponse.ErrorMessageAndCode errorMessageAndCode) {
         rowCount = Row1.ERROR;
-        failure = throwable;
+        failure = errorMessageAndCode;
     }
 
     public long rowCount() {
@@ -53,7 +53,7 @@ public final class RowCountAndFailure {
     }
 
     @Nullable
-    public Throwable failure() {
+    public ShardResponse.ErrorMessageAndCode failure() {
         return failure;
     }
 }

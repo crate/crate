@@ -49,12 +49,15 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.CheckedFunction;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.SQLParseException;
 import io.crate.fdw.ServerAlreadyExistsException;
 import io.crate.fdw.UserMappingAlreadyExists;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -96,6 +99,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
     private static final String ROOT_CAUSE = "root_cause";
 
     private static final Map<Integer, CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException>> ID_TO_SUPPLIER;
+    private static final Map<Integer, Class<? extends ElasticsearchException>> ID_TO_CLASS;
     private static final Map<Class<? extends ElasticsearchException>, ElasticsearchExceptionHandle> CLASS_TO_ELASTICSEARCH_EXCEPTION_HANDLE;
     private final Map<String, List<String>> metadata = new HashMap<>();
     private final Map<String, List<String>> headers = new HashMap<>();
@@ -1010,7 +1014,17 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             RoleUnknownException.class,
             RoleUnknownException::new,
             181,
-            Version.V_5_7_0
+            Version.V_5_7_0),
+        SQL_PARSE(
+            SQLParseException.class,
+            SQLParseException::new,
+            182,
+            Version.V_5_10_0),
+        DUPLICATE_KEY(
+            DuplicateKeyException.class,
+            DuplicateKeyException::new,
+            183,
+            Version.V_5_10_0
         );
 
         final Class<? extends ElasticsearchException> exceptionClass;
@@ -1032,8 +1046,15 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
     static {
         ID_TO_SUPPLIER = unmodifiableMap(Arrays
                 .stream(ElasticsearchExceptionHandle.values()).collect(Collectors.toMap(e -> e.id, e -> e.constructor)));
+        ID_TO_CLASS = unmodifiableMap(Arrays
+                .stream(ElasticsearchExceptionHandle.values()).collect(Collectors.toMap(e -> e.id, e -> e.exceptionClass)));
         CLASS_TO_ELASTICSEARCH_EXCEPTION_HANDLE = unmodifiableMap(Arrays
                 .stream(ElasticsearchExceptionHandle.values()).collect(Collectors.toMap(e -> e.exceptionClass, e -> e)));
+    }
+
+    @Nullable
+    public static Class<? extends ElasticsearchException> getClass(int id) {
+        return ID_TO_CLASS.get(id);
     }
 
     public Index getIndex() {

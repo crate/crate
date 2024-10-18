@@ -21,8 +21,6 @@
 
 package io.crate.rest.action;
 
-import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -30,7 +28,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -140,13 +138,12 @@ class ResultToXContentBuilder {
         for (RestBulkRowCountReceiver.Result result : results) {
             builder.startObject();
             builder.field(FIELDS.ROW_COUNT, result.rowCount());
-            Throwable t = result.error();
-            if (t != null) {
+            ShardResponse.ErrorMessageAndCode error = result.error();
+            if (error != null) {
+                var httpError = HttpError.fromThrowableId(error.errorCode());
                 builder.startObject(FIELDS.ERROR);
-                var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
-                HttpError httpError = HttpError.fromThrowable(throwable);
                 builder.field(FIELDS.ERROR_CODE, httpError.errorCode());
-                builder.field(FIELDS.ERROR_MESSAGE, userFriendlyMessage(throwable));
+                builder.field(FIELDS.ERROR_MESSAGE, error.errorMessage());
                 builder.endObject();
             }
             builder.endObject();

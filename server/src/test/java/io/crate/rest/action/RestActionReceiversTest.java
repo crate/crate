@@ -30,8 +30,6 @@ import java.util.List;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -41,6 +39,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -120,8 +119,8 @@ public class RestActionReceiversTest extends ESTestCase {
     public void testRestBulkRowCountReceiver() throws Exception {
         RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[] {
             new RestBulkRowCountReceiver.Result(1, null),
-            new RestBulkRowCountReceiver.Result(-2, new IllegalArgumentException("invalid input")),
-            new RestBulkRowCountReceiver.Result(-2, new VersionConflictEngineException(new ShardId("dummy", "dummy", 1), "document already exists", null)),
+            new RestBulkRowCountReceiver.Result(-2, new ShardResponse.ErrorMessageAndCode("SQLParseException[invalid input]", 182)),
+            new RestBulkRowCountReceiver.Result(-2, new ShardResponse.ErrorMessageAndCode("DuplicateKeyException[A document with the same primary key exists already]", 183)),
         };
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
             .bulkRows(results, AccessControl.DISABLED);

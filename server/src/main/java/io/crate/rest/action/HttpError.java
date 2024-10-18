@@ -158,4 +158,22 @@ public class HttpError {
         // will be handled as UNHANDLED_SERVER_ERROR
         return new HttpError(httpErrorStatus, SQLExceptions.messageOf(throwable), throwable);
     }
+
+    public static HttpError fromThrowableId(int id) {
+        var clazz = ElasticsearchException.getClass(id);
+        var httpErrorStatus = HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+        if (clazz == null) {
+            return new HttpError(httpErrorStatus, "Unknown error", null);
+        }
+        if (clazz.equals(AmbiguousColumnAliasException.class)) {
+            httpErrorStatus = HttpErrorStatus.COLUMN_ALIAS_IS_AMBIGUOUS;
+        } else if (clazz.equals(SQLParseException.class)) {
+            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
+        } else if (clazz.equals(DuplicateKeyException.class)) {
+            httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+        }
+        // Missing GroupByOnArrayUnsupportedException, SchemaScopeException, TaskMissing, UnhandledServerException
+        // will be handled as UNHANDLED_SERVER_ERROR
+        return new HttpError(httpErrorStatus, "Unknown error", null);
+    }
 }

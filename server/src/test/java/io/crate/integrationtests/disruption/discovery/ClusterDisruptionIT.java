@@ -22,7 +22,6 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +65,6 @@ import org.junit.Test;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.DuplicateKeyException;
 import io.crate.metadata.IndexName;
 
 /**
@@ -153,7 +151,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                                              id,
                                              node,
                                              response);
-                            } catch (ElasticsearchException | DuplicateKeyException e) {
+                            } catch (ElasticsearchException e) {
                                 exceptedExceptions.add(e);
                                 final String rowId = id;
                                 logger.trace(() -> new ParameterizedMessage("[{}] failed id [{}] through node [{}]",

@@ -35,7 +35,6 @@ import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 @Singleton
 public class RoleManagerService implements RoleManager {

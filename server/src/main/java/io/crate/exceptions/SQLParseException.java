@@ -21,7 +21,12 @@
 
 package io.crate.exceptions;
 
-public class SQLParseException extends RuntimeException implements UnscopedException {
+import java.io.IOException;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+public class SQLParseException extends ElasticsearchException implements UnscopedException {
 
     public SQLParseException(String msg) {
         super(msg);
@@ -31,4 +36,7 @@ public class SQLParseException extends RuntimeException implements UnscopedExcep
         super(msg, e);
     }
 
+    public SQLParseException(StreamInput in) throws IOException {
+        super(in);
+    }
 }

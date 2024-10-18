@@ -205,7 +205,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         return isRetry;
     }
 
-    @Nullable
     public SessionSettings sessionSettings() {
         return sessionSettings;
     }

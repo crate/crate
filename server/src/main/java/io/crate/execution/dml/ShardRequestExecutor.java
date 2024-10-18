@@ -249,8 +249,8 @@ public class ShardRequestExecutor<Req> {
             ShardResponse.Failure failure = response.failures().get(i);
             if (failure == null) {
                 f.accept(acc, response);
-            } else if (!failure.versionConflict() && !(failure.error().getMessage().contains("Document not found") || failure.error().getMessage().contains("document missing"))) {
-                throw new RuntimeException(failure.error());
+            } else if (!failure.versionConflict() && !(failure.errorMessage().contains("Document not found") || failure.errorMessage().contains("document missing"))) {
+                throw new RuntimeException(failure.errorMessage());
             }
         }
     }
