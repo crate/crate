@@ -430,7 +430,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
         ch = new EmbeddedChannel(handler);
         ch.writeInbound(request);
-        verify(jwtAuth, times(1))
+        verify(jwtAuth, times(2)) // was 1 before, increment after authenticate
             .authenticate(
                 argThat(credentials -> tokenUsername.equals(credentials.username())),
                 any(ConnectionProperties.class)
