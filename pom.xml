@@ -333,6 +333,7 @@
     <versions.opendal>0.46.3</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.17.1</versions.commonscodec>
+    <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>24.0.2</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>

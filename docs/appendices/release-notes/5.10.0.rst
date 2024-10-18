@@ -69,7 +69,10 @@ None
 Data Types
 ----------
 
-None
+- Added support for :ref:`NUMERIC type<type-numeric>` to the following
+  arithmetic scalar functions: :ref:`ABS<scalar-abs>`, :ref:`CEIL<scalar-ceil>`,
+  :ref:`FLOOR<scalar-floor>`, :ref:`EXP<scalar-exp>`, :ref:`SQRT<scalar-sqrt>`
+  and :ref:`ROUND<scalar-round>` (for the variation of only one argument).
 
 Scalar and Aggregation Functions
 --------------------------------

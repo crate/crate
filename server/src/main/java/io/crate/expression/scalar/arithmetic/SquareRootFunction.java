@@ -21,7 +21,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+
+import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.DoubleScalar;
+import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -32,10 +37,12 @@ public final class SquareRootFunction {
 
     public static final String NAME = "sqrt";
 
-    public static void register(Functions.Builder module) {
+    private SquareRootFunction() {}
+
+    public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
-            module.add(
+            builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
@@ -45,6 +52,19 @@ public final class SquareRootFunction {
                     new DoubleScalar(signature, boundSignature, SquareRootFunction::sqrt)
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(
+                signature,
+                boundSignature,
+                DataTypes.NUMERIC,
+                SquareRootFunction::sqrt
+            )
+        );
     }
 
     private static double sqrt(double value) {
@@ -52,5 +72,12 @@ public final class SquareRootFunction {
             throw new IllegalArgumentException("cannot take square root of a negative number");
         }
         return Math.sqrt(value);
+    }
+
+    private static BigDecimal sqrt(BigDecimal value) {
+        if (value.signum() < 0) {
+            throw new IllegalArgumentException("cannot take square root of a negative number");
+        }
+        return BigDecimalMath.sqrt(value, MathContext.DECIMAL128);
     }
 }

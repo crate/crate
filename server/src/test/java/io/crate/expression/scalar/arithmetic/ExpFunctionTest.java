@@ -23,6 +23,8 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isLiteral;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -35,5 +37,7 @@ public class ExpFunctionTest extends ScalarTestCase {
         assertNormalize("exp(1::bigint)", isLiteral(2.718281828459045, 1E-15d));
         assertNormalize("exp(1.0)", isLiteral(2.718281828459045, 1E-15d));
         assertNormalize("exp(1.0::real)", isLiteral(2.718281828459045, 1E-15d));
+        assertNormalize("exp(1.0::numeric)",
+            isLiteral(new BigDecimal("2.718281828459045235360287471352662"), new BigDecimal("1E-15")));
     }
 }
