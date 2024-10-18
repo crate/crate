@@ -42,7 +42,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-public class HashInnerJoinBatchIteratorMemoryTest {
+public class HashJoinBatchIteratorMemoryTest {
 
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
 
@@ -72,7 +72,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         when(circuitBreaker.getUsed()).thenReturn(10L);
 
         RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
-        BatchIterator<Row> it = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> it = new HashJoinBatchIterator(
             leftIterator,
             rightIterator,
             rowAccounting,
@@ -80,7 +80,8 @@ public class HashInnerJoinBatchIteratorMemoryTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 2
+            ignored -> 2,
+            false
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);

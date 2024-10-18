@@ -59,7 +59,8 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> leftJoinConditionInputs,
                          List<Symbol> rightJoinConditionInputs,
                          List<DataType<?>> leftOutputTypes,
-                         long estimatedRowSizeForLeft) {
+                         long estimatedRowSizeForLeft,
+                         JoinType joinType) {
         super(
             jobId,
             executionNodeId,
@@ -70,7 +71,7 @@ public class HashJoinPhase extends JoinPhase {
             numLeftOutputs,
             numRightOutputs,
             executionNodes,
-            JoinType.INNER,
+            joinType,
             joinCondition);
         assert joinCondition != null : "JoinCondition for HashJoin cannot be null";
         this.leftJoinConditionInputs = leftJoinConditionInputs;
