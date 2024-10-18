@@ -148,12 +148,20 @@ public class NumericEqQuery {
                 byte[] lower = new byte[maxBytes];
                 byte[] upper = new byte[maxBytes];
 
-                BigInteger lowerInt = lowerTerm == null
-                    ? type.minValue()
-                    : (lowerTerm.unscaledValue().add(includeLower ? BigInteger.ZERO : BigInteger.ONE));
-                BigInteger upperInt = upperTerm == null
-                    ? type.maxValue()
-                    : (upperTerm.unscaledValue().subtract(includeUpper ? BigInteger.ZERO : BigInteger.ONE));
+                final BigInteger lowerInt;
+                if (lowerTerm == null) {
+                    lowerInt = type.minValue();
+                } else {
+                    lowerTerm = lowerTerm.setScale(Objects.requireNonNull(type.scale()), includeLower ? RoundingMode.UP : RoundingMode.DOWN);
+                    lowerInt = lowerTerm.unscaledValue().add(includeLower ? BigInteger.ZERO : BigInteger.ONE);
+                }
+                final BigInteger upperInt;
+                if (upperTerm == null) {
+                    upperInt = type.maxValue();
+                } else {
+                    upperTerm = upperTerm.setScale(Objects.requireNonNull(type.scale()), includeUpper ? RoundingMode.DOWN : RoundingMode.UP);
+                    upperInt = (upperTerm.unscaledValue().subtract(includeUpper ? BigInteger.ZERO : BigInteger.ONE));
+                }
                 NumericUtils.bigIntToSortableBytes(lowerInt, maxBytes, lower, 0);
                 NumericUtils.bigIntToSortableBytes(upperInt, maxBytes, upper, 0);
                 return new PointRangeQuery(field, lower, upper, 1) {

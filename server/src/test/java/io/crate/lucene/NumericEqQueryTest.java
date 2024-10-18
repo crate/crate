@@ -91,4 +91,27 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).isInstanceOf(PointRangeQuery.class);
         assertThat(query.toString()).isEqualTo("y:[-99999999999999999999999999999999999999 TO 274679983711617676]");
     }
+
+    @Test
+    public void test_large_numeric_with_different_precision() {
+        assertThat(convert("y > '1.111'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.119'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.1100'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y > '1.105'")).isEqualTo(convert("y > '1.10'"));
+
+        assertThat(convert("y >= '1.111'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y >= '1.119'")).isEqualTo(convert("y > '1.11'"));
+        assertThat(convert("y >= '1.1100'")).isEqualTo(convert("y > '1.10'"));
+        assertThat(convert("y >= '1.105'")).isEqualTo(convert("y > '1.10'"));
+
+        assertThat(convert("y < '1.111'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y < '1.119'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y < '1.1100'")).isEqualTo(convert("y < '1.11'"));
+        assertThat(convert("y < '1.105'")).isEqualTo(convert("y < '1.11'"));
+
+        assertThat(convert("y <= '1.111'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.119'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.1100'")).isEqualTo(convert("y < '1.12'"));
+        assertThat(convert("y <= '1.105'")).isEqualTo(convert("y < '1.11'"));
+    }
 }
