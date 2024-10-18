@@ -129,6 +129,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         );
 
         e = SQLExecutor.builder(clusterService)
+            .setRoles(roles)
             .setRoleManager(roleManager)
             .build()
             .addBlobTable("create blob table blobs")

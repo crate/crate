@@ -54,14 +54,14 @@ import io.crate.metadata.Schemas;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.RelationMetadata;
+import io.crate.role.Role;
 import io.crate.role.Roles;
-import io.crate.role.StubRoleManager;
 import io.crate.sql.tree.QualifiedName;
 
 public class TransportCreateSubscriptionActionTest {
 
     private final LogicalReplicationService logicalReplicationService = mock(LogicalReplicationService.class);
-    private final Roles roles = new StubRoleManager();
+    private final Roles roles = () -> List.of(Role.CRATE_USER);
     private final ClusterService clusterService = mock(ClusterService.class);
     private TransportCreateSubscriptionAction transportCreateSubscriptionAction;
 

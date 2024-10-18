@@ -48,7 +48,6 @@ import org.junit.Test;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
-import io.crate.role.StubRoleManager;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -76,7 +75,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         DnsResolver.SYSTEM,
         () -> "dummy"
     );
-    private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
+    private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, () -> List.of(Role.CRATE_USER));
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
@@ -137,7 +136,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testAuthorized() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
-            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)), new StubRoleManager());
+            Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)), () -> List.of(Role.CRATE_USER));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -190,7 +189,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, () -> List.of(Role.CRATE_USER));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -212,7 +211,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, () -> List.of(Role.CRATE_USER));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -258,7 +257,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, () -> List.of(Role.CRATE_USER));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -272,7 +271,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, () -> List.of(Role.CRATE_USER));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
