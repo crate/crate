@@ -127,9 +127,12 @@ public class Credentials implements Closeable {
     }
 
     /**
-     * @return a Predicate, matching users on jwt properties (if properties are defined).
-     * @return a Predicate, matching users on token's 'username' (if properties are not defined).
-     * @return NULL if no lookup is needed (Basic auth).
+     * The returned predicate matching varies based on the user's JWT properties: if they are available, it will compare 
+     * them with token's values. Otherwise the token's username is compared with the Role's name.
+     * 
+     * Thus, this Predicate can match max 2 users (1 with JWT properties and 1 without).
+     * 
+     * @return NULL if no token is available (Basic auth) or a Predicate trying to match the given token.
      *
      * This Predicate can match max 2 users (1 with JWT properties and 1 without).
      */
