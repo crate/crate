@@ -21,6 +21,7 @@
 
 package io.crate.testing;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -200,6 +201,16 @@ public class Asserts extends Assertions {
             assertThat(s).isExactlyInstanceOf(Literal.class);
             assertThat(s).hasDataType(DataTypes.DOUBLE);
             Double value = (Double) ((Input<?>) s).value();
+            assertThat(value).isCloseTo(expectedValue, Offset.offset(precisionError));
+        };
+    }
+
+    public static Consumer<Symbol> isLiteral(BigDecimal expectedValue, BigDecimal precisionError) {
+        return s -> {
+            assertThat(s).isNotNull();
+            assertThat(s).isExactlyInstanceOf(Literal.class);
+            assertThat(s).hasDataType(DataTypes.NUMERIC);
+            BigDecimal value = (BigDecimal) ((Input<?>) s).value();
             assertThat(value).isCloseTo(expectedValue, Offset.offset(precisionError));
         };
     }
