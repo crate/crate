@@ -2175,7 +2175,11 @@ See below for an example::
 
 Returns the natural logarithm of given ``number``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``double precision`` if the input value is of any other
+arithmetic type.
 
 See below for an example::
 
@@ -2196,6 +2200,36 @@ See below for an example::
 
 .. _scalar-log:
 
+``log(x : number)``
+-------------------
+
+Returns the logarithm of given ``x`` to base ``10``.
+
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``double precision`` if the input value is of any other
+arithmetic type.
+
+See below for an example::
+
+    cr> SELECT log(100) AS log;
+    +-----+
+    | log |
+    +-----+
+    | 2.0 |
+    +-----+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    An error is returned for arguments which lead to undefined or illegal
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an error
+    is returned.
+
+
+.. _scalar-log_base:
+
 ``log(x : number, b : number)``
 -------------------------------
 
@@ -2213,21 +2247,11 @@ See below for an example, which essentially is the same as above::
     +-----+
     SELECT 1 row in set (... sec)
 
-The second argument (``b``) is optional. If not present, base 10 is used::
-
-    cr> SELECT log(100) AS log;
-    +-----+
-    | log |
-    +-----+
-    | 2.0 |
-    +-----+
-    SELECT 1 row in set (... sec)
-
 .. NOTE::
 
     An error is returned for arguments which lead to undefined or illegal
-    results. E.g. log(0) results in ``minus infinity``, and therefore, an error
-    is returned.
+    results. E.g. log(0, 10) results in ``minus infinity``, and therefore, an
+    error is returned.
 
     The same is true for arguments which lead to a ``division by zero``, as,
     e.g., log(10, 1) does.
