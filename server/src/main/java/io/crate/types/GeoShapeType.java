@@ -23,11 +23,14 @@ package io.crate.types;
 
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -117,6 +120,14 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         } else if (value instanceof Map<?, ?> map) {
             GeoJSONUtils.validateGeoJson(map);
             return (Map<String, Object>) value;
+        } else if (value instanceof byte[] bytes) {
+            try {
+                var map = readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(bytes)));
+                GeoJSONUtils.validateGeoJson(map);
+                return map;
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         } else {
             return GeoJSONUtils.shape2Map((Shape) value);
         }

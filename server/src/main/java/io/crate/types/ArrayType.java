@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -49,6 +51,7 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
+import io.crate.execution.dml.ArrayOfObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -89,12 +92,17 @@ public class ArrayType<T> extends DataType<List<T>> {
         StorageSupport innerStorage = innerType.storageSupport();
         if (innerStorage == null) {
             this.storageSupport = null;
+        } else if (ArrayType.unnest(this) instanceof ObjectType) {
+            this.storageSupport = new StorageSupport<T>(innerStorage) {
+                @Override
+                public ValueIndexer<? super T> valueIndexer(RelationName table,
+                                                            Reference ref,
+                                                            Function<ColumnIdent, Reference> getRef) {
+                    return new ArrayOfObjectIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                }
+            };
         } else {
-            this.storageSupport = new StorageSupport<T>(
-                    innerStorage.docValuesDefault(),
-                    innerStorage.supportsDocValuesOff(),
-                    innerStorage.eqQuery()) {
-
+            this.storageSupport = new StorageSupport<T>(innerStorage) {
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table,
                                                     Reference ref,
@@ -173,7 +181,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public List<T> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings), sessionSettings);
+        return convert(value, innerType, val -> val == null ? null : innerType.explicitCast(val, sessionSettings), sessionSettings);
     }
 
     @Override
@@ -233,7 +241,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> List<T> convert(@Nullable Object value,
+    private List<T> convert(@Nullable Object value,
                                        DataType<T> innerType,
                                        Function<Object, T> convertInner,
                                        SessionSettings sessionSettings) {
@@ -242,6 +250,12 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
+        } else if (value instanceof byte[] b) {
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(b))) {
+                return in.readList(input -> (T) input.readGenericValue());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         } else if (value instanceof Map<?,?> map && map.isEmpty()) {
             return List.of();
         } else if (value instanceof String string) {
@@ -280,7 +294,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> value == null ? null : innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

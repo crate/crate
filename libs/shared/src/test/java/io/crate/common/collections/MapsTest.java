@@ -23,9 +23,11 @@ package io.crate.common.collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,6 +84,26 @@ class MapsTest {
         m2 = Map.of(1, Set.of(), 2, Set.of(0));
 
         assertThat(Maps.merge(m1, m2, Sets::union)).isEqualTo(Map.of(1, Set.of(0), 2, Set.of(0)));
+
+    }
+
+    @Test
+    void drop_by_path_into_arrays() {
+        // {oo=[{a=11, b=22},{a=33, b=44}]}
+        Map<String, Object> root = new HashMap<>();
+        Map<String, Object> m1 = new HashMap<>();
+        m1.put("a", "11");
+        m1.put("b", "22");
+        Map<String, Object> m2 = new HashMap<>();
+        m2.put("a", "33");
+        m2.put("b", "44");
+        List<Map<String, Object>> l = new ArrayList<>();
+        l.add(m1);
+        l.add(m2);
+        root.put("oo", l);
+
+        Maps.removeByPath(root, List.of("oo", "a"));
+        assertThat(root.toString()).isEqualTo("{oo=[{b=22}, {b=44}]}");
 
     }
 }
