@@ -33,11 +33,13 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.auth.AccessControl;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -116,13 +118,17 @@ public class RestActionReceiversTest extends ESTestCase {
     @Test
     public void testRestBulkRowCountReceiver() throws Exception {
         RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[] {
-            new RestBulkRowCountReceiver.Result(null, 1),
-            new RestBulkRowCountReceiver.Result(null, 2),
-            new RestBulkRowCountReceiver.Result(null, 3)
+            new RestBulkRowCountReceiver.Result(1, null),
+            new RestBulkRowCountReceiver.Result(-2, new ShardResponse.ErrorMessageAndCode("SQLParseException[invalid input]", 182)),
+            new RestBulkRowCountReceiver.Result(-2, new ShardResponse.ErrorMessageAndCode("DuplicateKeyException[A document with the same primary key exists already]", 183)),
         };
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
-            .bulkRows(results);
+            .bulkRows(results, AccessControl.DISABLED);
         String s = Strings.toString(builder.build());
-        assertThat("{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}").isEqualTo(s);
+        assertThat("{\"results\":[" +
+            "{\"rowcount\":1}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[invalid input]\"}}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}" +
+            "]}").isEqualTo(s);
     }
 }

@@ -21,8 +21,6 @@
 
 package io.crate.execution.dml.delete;
 
-import static io.crate.common.exceptions.Exceptions.userFriendlyMessageInclNested;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,6 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -42,7 +41,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.jobs.TasksService;
@@ -103,10 +104,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                             logger.debug("shardId={} failed to execute delete for id={}, doc not found",
                                 request.shardId(), item.id());
                         }
+                        var e = new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id());
                         shardResponse.add(location,
                             new ShardResponse.Failure(
                                 item.id(),
-                                "Document not found while deleting",
+                                e,
+                                SQLExceptions.getId(e),
                                 false));
                     }
                 } else {
@@ -117,7 +120,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(failure),
+                            failure,
+                            SQLExceptions.getId(failure),
                             (failure instanceof VersionConflictEngineException)));
                 }
             } catch (Exception e) {
@@ -131,7 +135,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            userFriendlyMessageInclNested(e),
+                            e,
+                            SQLExceptions.getId(e),
                             (e instanceof VersionConflictEngineException)));
                 }
             }

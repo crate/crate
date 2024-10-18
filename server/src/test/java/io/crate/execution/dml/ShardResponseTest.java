@@ -33,7 +33,7 @@ public class ShardResponseTest extends ESTestCase {
         ShardResponse shardResponse = new ShardResponse();
         shardResponse.add(0);
         shardResponse.add(1);
-        shardResponse.add(2, new ShardResponse.Failure("dummyId", "dummyMessage", false));
+        shardResponse.add(2, new ShardResponse.Failure("dummyId", new RuntimeException("dummyMessage"), -1, false));
 
         var result = new ShardResponse.CompressedResult();
         result.update(shardResponse);
@@ -46,5 +46,7 @@ public class ShardResponseTest extends ESTestCase {
 
         assertThat(result.successfulWrites(2)).isFalse();
         assertThat(result.failed(2)).isTrue();
+        assertThat(result.failure(2).errorMessage()).isEqualTo("RuntimeException[dummyMessage]");
+        assertThat(result.failure(2).errorCode()).isEqualTo(-1);
     }
 }

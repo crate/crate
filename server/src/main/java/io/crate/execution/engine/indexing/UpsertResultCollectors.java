@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.auth.AccessControl;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -48,11 +49,11 @@ final class UpsertResultCollectors {
         return new RowCountCollector();
     }
 
-    static UpsertResultCollector newSummaryCollector(DiscoveryNode localNode) {
+    static UpsertResultCollector newSummaryCollector(DiscoveryNode localNode, AccessControl accessControl) {
         return new SummaryCollector(Map.of(
             "id", localNode.getId(),
             "name", localNode.getName()
-        ));
+        ), accessControl);
     }
 
     private static class ResultRowCollector implements UpsertResultCollector {
@@ -130,7 +131,7 @@ final class UpsertResultCollectors {
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
             Failure failure = shardResponse.failures().stream()
-                .filter(x -> x != null && x.message() != null)
+                .filter(x -> x != null && x.errorMessage() != null)
                 .findAny()
                 .orElse(null);
             synchronized (lock) {
@@ -142,11 +143,13 @@ final class UpsertResultCollectors {
     private static class SummaryCollector implements UpsertResultCollector {
 
         private final Map<String, String> nodeInfo;
+        private final AccessControl accessControl;
 
         private final Object lock = new Object();
 
-        SummaryCollector(Map<String, String> nodeInfo) {
+        SummaryCollector(Map<String, String> nodeInfo, AccessControl accessControl) {
             this.nodeInfo = nodeInfo;
+            this.accessControl = accessControl;
         }
 
         @Override
@@ -184,7 +187,7 @@ final class UpsertResultCollectors {
                     ShardResponse.Failure failure = failures.get(i);
                     int location = locations.get(i);
                     RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
-                    String msg = failure == null ? null : failure.message();
+                    String msg = failure == null ? null : failure.errorMessage();
                     upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }
             }

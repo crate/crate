@@ -247,10 +247,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     shardResponse.failure(e);
                     break;
                 }
+                var role = nodeCtx.roles().findUser(request.sessionSettings().userName());
+                assert role != null : "User '" + request.sessionSettings().userName() + "' not found";
+                var accessControl = nodeCtx.roles().getAccessControl(role, role);
+                var safeException = SQLExceptions.prepareForClientTransmission(accessControl, e);
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        getExceptionMessage(e),
+                        safeException,
+                        SQLExceptions.getId(safeException),
                         (e instanceof VersionConflictEngineException)));
             } catch (AssertionError e) {
                 // Shouldn't happen in production but helps during development
@@ -261,14 +266,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
-    }
-
-    private static String getExceptionMessage(Throwable e) {
-        if (SQLExceptions.isDocumentAlreadyExistsException(e)) {
-            return "A document with the same primary key exists already";
-        }
-        var message = e.getMessage();
-        return message != null ? message : e.getClass().getName();
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,24 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.common.collections;
 
-import java.io.IOException;
+import java.util.function.Supplier;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
+public final class Arrays {
 
-public class SQLParseException extends ElasticsearchException implements UnscopedException {
-
-    public SQLParseException(String msg) {
-        super(msg);
-    }
-
-    public SQLParseException(String msg, Exception e) {
-        super(msg, e);
-    }
-
-    public SQLParseException(StreamInput in) throws IOException {
-        super(in);
+    public static <T> void fill(T[] array, Supplier<T> supplier) {
+        for (int i = 0; i < array.length; i++) {
+            array[i] = supplier.get();
+        }
     }
 }
