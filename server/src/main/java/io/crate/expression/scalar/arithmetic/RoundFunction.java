@@ -40,12 +40,14 @@ public final class RoundFunction {
 
     public static final String NAME = "round";
 
-    public static void register(Functions.Builder module) {
+    private RoundFunction() {}
+
+    public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
-            module.add(
+            builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(returnType.getTypeSignature())
@@ -57,31 +59,35 @@ public final class RoundFunction {
                             signature,
                             boundSignature,
                             type,
-                            x -> Math.round(((Number) x).floatValue())
+                            x -> Math.round(x.floatValue())
                         );
                     } else {
                         return new UnaryScalar<>(
                             signature,
                             boundSignature,
                             type,
-                            x -> Math.round(((Number) x).doubleValue())
+                            x -> Math.round(x.doubleValue())
                         );
                     }
                 }
             );
-
-            module.add(
-                Signature.builder(NAME, FunctionType.SCALAR)
-                    .argumentTypes(typeSignature,
-                        DataTypes.INTEGER.getTypeSignature())
-                    .returnType(DataTypes.NUMERIC.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
-                    .build(),
-                RoundFunction::roundWithPrecision
-            );
         }
 
-        module.add(
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(
+                signature,
+                boundSignature,
+                DataTypes.NUMERIC,
+                x -> x.setScale(0, RoundingMode.HALF_UP)
+            )
+        );
+
+        builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())

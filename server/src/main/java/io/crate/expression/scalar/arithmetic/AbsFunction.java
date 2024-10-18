@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.MathContext;
+
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -32,6 +34,8 @@ import io.crate.types.DataTypes;
 public final class AbsFunction {
 
     public static final String NAME = "abs";
+
+    private AbsFunction() {}
 
     public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
@@ -53,5 +57,18 @@ public final class AbsFunction {
                 }
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(
+                signature,
+                boundSignature,
+                DataTypes.NUMERIC,
+                x -> x.abs(MathContext.DECIMAL128)
+            )
+        );
     }
 }

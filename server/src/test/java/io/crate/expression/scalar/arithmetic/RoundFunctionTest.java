@@ -39,7 +39,10 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluate("round(42.2)", 42L);
         assertEvaluate("round(42)", 42);
         assertEvaluate("round(42::bigint)", 42L);
-        assertEvaluate("round(cast(42.2 as float))", 42);
+        assertEvaluate("round(cast(42.5 as float))", 43);
+        assertEvaluate("round(cast(-42.5 as float))", -42);
+        assertEvaluate("round(cast(12.545 as numeric(5, 2)))", new BigDecimal(13));
+        assertEvaluate("round(cast(-12.545 as numeric(5, 2)))", new BigDecimal(-13));
         assertEvaluateNull("round(null)");
 
         assertNormalize("round(id)", isFunction("round"));
@@ -69,6 +72,8 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluate("round(2147483647, -1)", new BigDecimal("2147483650"));
         assertEvaluate("round(9223372036854775807, -1)", new BigDecimal("9223372036854775810"));
         assertEvaluate("round('92233720368547758070.123'::NUMERIC, 1)", new BigDecimal("92233720368547758070.1"));
+        assertEvaluate("round('12.345'::NUMERIC, 2)", new BigDecimal("12.35"));
+        assertEvaluate("round('-12.345'::NUMERIC, 2)", new BigDecimal("-12.35"));
 
         assertEvaluateNull("round(1,null)");
         assertEvaluateNull("round(null,null)");
