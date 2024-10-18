@@ -24,6 +24,8 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.testing.Asserts.isFunction;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -39,11 +41,15 @@ public class SquareRootFunctionTest extends ScalarTestCase {
         assertEvaluateNull("sqrt(null)");
         assertEvaluate("sqrt(cast(25 as integer))", 5.0);
         assertEvaluate("sqrt(cast(25.0 as float))", 5.0);
+        assertEvaluate("sqrt(cast(123.4 as numeric(6, 1)))",
+            new BigDecimal("11.10855526159905278255972911272118"));
     }
 
     @Test
     public void testSmallerThanZero() {
         assertThatThrownBy(() -> assertEvaluateNull("sqrt(-25.0)"))
+            .hasMessage("cannot take square root of a negative number");
+        assertThatThrownBy(() -> assertEvaluateNull("sqrt(-25.123::numeric(5,3))"))
             .hasMessage("cannot take square root of a negative number");
     }
 
