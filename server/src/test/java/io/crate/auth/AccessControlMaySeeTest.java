@@ -42,7 +42,6 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -69,7 +68,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(roles, new CoordinatorSessionSettings(user));
+        accessControl = new AccessControlImpl(roles, user, user);
     }
 
     private void assertAskedAnyForCluster() {

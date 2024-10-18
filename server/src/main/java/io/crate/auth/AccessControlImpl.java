@@ -110,7 +110,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
@@ -134,16 +133,10 @@ public final class AccessControlImpl implements AccessControl {
     private final Roles roles;
     private final MaskSensitiveExceptions maskSensitiveExceptions;
 
-    /**
-     * @param sessionSettings for user and defaultSchema information.
-     *                       The `sessionSettings` (instead of user and schema) is required to
-     *                       observe updates to the default schema.
-     *                       (Which can change at runtime within the life-time of a session)
-     */
-    public AccessControlImpl(Roles roles, CoordinatorSessionSettings sessionSettings) {
+    public AccessControlImpl(Roles roles, Role authenticatedUser, Role sessionUser) {
         this.roles = roles;
-        this.sessionUser = sessionSettings.sessionUser();
-        this.authenticatedUser = sessionSettings.authenticatedUser();
+        this.sessionUser = sessionUser;
+        this.authenticatedUser = authenticatedUser;
         this.maskSensitiveExceptions = new MaskSensitiveExceptions(roles);
     }
 
