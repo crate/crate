@@ -492,7 +492,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             roles,
             settings,
             jwkProviderFunction(null),
-            () -> "test_cluster_id" // Default aud is not set, fallback to value from the token payload.
+            () -> "test_cluster_id" 
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
