@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
@@ -85,9 +84,9 @@ public class StubRoleManager implements RoleManager {
     }
 
     @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
+    public AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
         if (accessControl) {
-            return new AccessControlImpl(this, sessionSettings);
+            return new AccessControlImpl(this, authenticatedUser, sessionUser);
         }
         return AccessControl.DISABLED;
     }

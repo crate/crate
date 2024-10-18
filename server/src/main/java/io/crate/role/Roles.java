@@ -37,7 +37,6 @@ import io.crate.auth.AccessControlImpl;
 import io.crate.common.FourFunction;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.pgcatalog.OidHash;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public interface Roles {
 
@@ -142,8 +141,8 @@ public interface Roles {
             || hasPrivilege(user, null, securable, ident, (r, p, s, o) -> r.privileges().matchPrivilegeOfAnyType(s, (String) o)) == GRANT;
     }
 
-    default AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(this, sessionSettings);
+    default AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
+        return new AccessControlImpl(this, authenticatedUser, sessionUser);
     }
 
     Collection<Role> roles();

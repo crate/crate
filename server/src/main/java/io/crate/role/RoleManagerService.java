@@ -136,8 +136,8 @@ public class RoleManagerService implements RoleManager {
 
 
     @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(roles, sessionSettings);
+    public AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
+        return new AccessControlImpl(roles, authenticatedUser, sessionUser);
     }
 
     public Collection<Role> roles() {
