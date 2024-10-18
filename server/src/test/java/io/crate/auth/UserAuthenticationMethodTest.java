@@ -449,7 +449,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
                 Set.of(),
                 new HashSet<>(),
                 getSecureHash("pwd"),
-                // User doesn't have JWT properties
                 null
             )
         );
