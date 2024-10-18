@@ -49,8 +49,6 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -58,7 +56,8 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.role.Role;
-import io.crate.role.StubRoleManager;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
@@ -131,7 +130,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),
             sqlOperations,
-            new StubRoleManager(),
+            () -> List.of(Role.CRATE_USER),
             networkService,
             authentication,
             nettyBootstrap,

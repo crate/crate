@@ -521,7 +521,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.");
             return NoopPlan.INSTANCE;
         } else {
-            return new SetSessionAuthorizationPlan(analysis, roleManager);
+            return new SetSessionAuthorizationPlan(analysis, nodeCtx.roles());
         }
     }
 

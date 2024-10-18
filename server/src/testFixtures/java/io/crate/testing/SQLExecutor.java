@@ -95,9 +95,6 @@ import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.Constants;
-import io.crate.session.Cursors;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -179,7 +176,11 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
+import io.crate.role.Roles;
 import io.crate.role.StubRoleManager;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateForeignTable;
@@ -286,7 +287,8 @@ public class SQLExecutor {
 
         private int numNodes = 1;
         private Planner planner;
-        private RoleManager roleManager = new StubRoleManager();
+        private RoleManager roleManager = StubRoleManager.INSTANCE;
+        private Roles roles = StubRoleManager.INSTANCE.roles();
         private List<AnalysisPlugin> analysisPlugins = List.of();
 
         private Builder(ClusterService clusterService) {
@@ -300,6 +302,11 @@ public class SQLExecutor {
 
         public Builder setPlanner(Planner planner) {
             this.planner = planner;
+            return this;
+        }
+
+        public Builder setRoles(Roles roles) {
+            this.roles = roles;
             return this;
         }
 
@@ -331,7 +338,7 @@ public class SQLExecutor {
                 environment,
                 clusterService,
                 Functions.load(settings, sessionSettingRegistry),
-                roleManager,
+                roles,
                 tableStats
             );
             var udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
@@ -385,7 +392,7 @@ public class SQLExecutor {
                     clusterService,
                     analysisRegistry,
                     new RepositoryService(clusterService, client),
-                    roleManager,
+                    roles,
                     sessionSettingRegistry,
                     logicalReplicationService
                 ),

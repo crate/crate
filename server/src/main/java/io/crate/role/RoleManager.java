@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * responsible for creating and deleting roles (and users)
  */
-public interface RoleManager extends Roles {
+public interface RoleManager {
 
     /**
      * Create a role.

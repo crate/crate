@@ -46,13 +46,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.session.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.role.Role;
-import io.crate.role.StubRoleManager;
+import io.crate.role.Roles;
+import io.crate.session.Sessions;
 
 public class PostgresNettyPublishPortTest extends ESTestCase {
 
@@ -103,14 +103,14 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
     public void testBindAndPublishAddressDefault() {
         // First check if binding to a local works
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubRoleManager userManager = new StubRoleManager();
+        Roles roles = () -> List.of(Role.CRATE_USER);
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
             new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
-            userManager,
+            roles,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(roles),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -128,14 +128,14 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.host
         Settings settingsWithCustomHost = Settings.builder().put("network.host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubRoleManager userManager = new StubRoleManager();
+        Roles roles = () -> List.of(Role.CRATE_USER);
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
             new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
-            userManager,
+            roles,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(roles),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -157,14 +157,14 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.bind_host
         Settings settingsWithCustomBind = Settings.builder().put("network.bind_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubRoleManager userManager = new StubRoleManager();
+        Roles roles = () -> List.of(Role.CRATE_USER);
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
             new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
-            userManager,
+            roles,
             networkService,
-            new AlwaysOKAuthentication(userManager),
+            new AlwaysOKAuthentication(roles),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,
@@ -186,14 +186,14 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         // Check override for network.publish_host
         Settings settingsWithCustomPublish = Settings.builder().put("network.publish_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        StubRoleManager userManager = new StubRoleManager();
+        Roles roles = () -> List.of(Role.CRATE_USER);
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
             new SessionSettingRegistry(Set.of()),
             mock(Sessions.class),
-            userManager,
+            roles,
             networkService,
-            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            new AlwaysOKAuthentication(roles),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,

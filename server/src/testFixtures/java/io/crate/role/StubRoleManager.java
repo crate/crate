@@ -35,17 +35,29 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
-    private final Collection<Role> roles;
-    private final boolean accessControl;
+    public static final StubRoleManager INSTANCE = new StubRoleManager();
+
+    private final Roles roles;
 
     public StubRoleManager() {
-        this.roles = List.of(Role.CRATE_USER);
-        this.accessControl = false;
+        this(List.of(Role.CRATE_USER), false);
     }
 
-    public StubRoleManager(Collection<Role> roles, boolean accessControl) {
-        this.roles = roles;
-        this.accessControl = accessControl;
+    public StubRoleManager(Collection<Role> roleList, boolean accessControl) {
+        this.roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return roleList;
+            }
+
+            @Override
+            public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
+                if (accessControl) {
+                    return new AccessControlImpl(this, sessionSettings);
+                }
+                return AccessControl.DISABLED;
+            }
+        };
     }
 
     @Override
@@ -79,16 +91,7 @@ public class StubRoleManager implements RoleManager {
             new UnsupportedFeatureException("applyPrivileges is not implemented in StubRoleManager"));
     }
 
-    @Override
-    public Collection<Role> roles() {
+    public Roles roles() {
         return roles;
-    }
-
-    @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        if (accessControl) {
-            return new AccessControlImpl(this, sessionSettings);
-        }
-        return AccessControl.DISABLED;
     }
 }
