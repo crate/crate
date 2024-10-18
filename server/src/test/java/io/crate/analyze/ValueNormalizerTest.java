@@ -115,12 +115,13 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
         assertThat((Boolean) normalized.value().get("false")).isTrue();
     }
 
-    @Test(expected = ColumnValidationException.class)
+    @Test
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
         Reference objRef = userTableInfo.getReference(ColumnIdent.of("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
-        normalizeInputForReference(Literal.of(map), objRef);
+        assertThatThrownBy(() -> normalizeInputForReference(Literal.of(map), objRef))
+            .isExactlyInstanceOf(ColumnValidationException.class);
     }
 
     @Test
@@ -166,26 +167,28 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     }
 
 
-    @Test(expected = ColumnUnknownException.class)
+    @Test
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(ColumnIdent.of("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
         map.put("half", "1.45");
-        normalizeInputForReference(Literal.of(map), objInfo);
+        assertThatThrownBy(() -> normalizeInputForReference(Literal.of(map), objInfo))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
-    @Test(expected = ColumnUnknownException.class)
+    @Test
     public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(ColumnIdent.of("strict"));
         Map<String, Object> map = Map.of(
             "inner_d", 2.9d,
             "inner_map", Map.of(
                 "much_inner", "yaw"));
-        normalizeInputForReference(Literal.of(map), objInfo);
+        assertThatThrownBy(() -> normalizeInputForReference(Literal.of(map), objInfo))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
-    @Test(expected = ColumnUnknownException.class)
+    @Test
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(ColumnIdent.of("dyn"));
 
@@ -194,7 +197,8 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
                     "double", 2.9d,
                     "half", "1.45"),
             "half", "1.45");
-        normalizeInputForReference(Literal.of(map), objInfo);
+        assertThatThrownBy(() -> normalizeInputForReference(Literal.of(map), objInfo))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test

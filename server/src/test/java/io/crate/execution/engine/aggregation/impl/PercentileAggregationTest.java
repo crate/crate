@@ -140,37 +140,45 @@ public class PercentileAggregationTest extends AggregationTestCase {
         assertThat(result).isNull();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyPercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, List.of()},
-            {10, List.of()}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, List.of()},
+                {10, List.of()}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("no fraction value specified");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNullMultiplePercentiles() throws Exception {
         List<Double> fractions = Arrays.asList(0.25, null);
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, fractions},
-            {10, fractions}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, fractions},
+                {10, fractions}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("no fraction value specified");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNegativePercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, -1.2},
-            {10, -1.2}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, -1.2},
+                {10, -1.2}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("q should be in [0,1], got -1.2");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testTooLargePercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, 1.5},
-            {10, 1.5}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, 1.5},
+                {10, 1.5}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("q should be in [0,1], got 1.5");
     }
 
     @Test
