@@ -117,7 +117,6 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
                 // Default is not set, set to empty string to fail on claim check.
                 // Saves an extra round of throw -> catch below -> throw again
             }
-            assert audience != null : "Must be defined on CREATE USER or taken from default or use cluster id";
 
             JwkProvider jwkProvider = urlToJwkProvider.apply(decodedJWT.getIssuer());
             // Expiration date is checked by default(if provided in token)
