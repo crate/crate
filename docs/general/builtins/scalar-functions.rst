@@ -2438,7 +2438,8 @@ See below for an example::
 
 Returns the sine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2458,7 +2459,8 @@ See below for an example::
 
 Returns the arcsine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2478,7 +2480,8 @@ See below for an example::
 
 Returns the cosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2498,7 +2501,8 @@ See below for an example::
 
 Returns the arccosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2518,7 +2522,8 @@ See below for an example::
 
 Returns the tangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2540,7 +2545,8 @@ Returns the cotangent of the argument that represents the angle expressed in
 radians. The range of the argument is all real numbers. The cotangent of zero
 is undefined and returns ``Infinity``.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2560,7 +2566,8 @@ See below for an example::
 
 Returns the arctangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2580,7 +2587,8 @@ See below for an example::
 
 Returns the arctangent of ``y/x``.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of types ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 ::
 
