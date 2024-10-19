@@ -49,6 +49,7 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
+import io.crate.expression.roles.AdministrableRoleAuthorization;
 import io.crate.expression.roles.ApplicableRole;
 import io.crate.expression.roles.RoleTableGrant;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -473,6 +474,22 @@ public class InformationSchemaIterables implements ClusterStateListener {
         });
 
         return roleTableGrants;
+    }
+
+    public Iterable<AdministrableRoleAuthorization> administrableRoleAuthorizations(Role role, Roles roles) {
+        List<AdministrableRoleAuthorization> authorizations = new ArrayList<>();
+        for (GrantedRole grantedRole: role.grantedRoles()) {
+            if (roles.hasPrivilege(Objects.requireNonNull(roles.findRole(grantedRole.roleName())),
+                Permission.AL, Securable.CLUSTER, null)
+            ) {
+                AdministrableRoleAuthorization authorization = new AdministrableRoleAuthorization();
+                authorization.setGrantable(true);
+                authorization.setGrantee(role.name());
+                authorization.setRoleName(grantedRole.roleName());
+                authorizations.add(authorization);
+            }
+        }
+        return authorizations;
     }
 
     /**

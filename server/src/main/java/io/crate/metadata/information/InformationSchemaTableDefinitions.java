@@ -164,6 +164,14 @@ public class InformationSchemaTableDefinitions {
                 )
             ),
             Map.entry(
+                InformationAdministrableRoleAuthorizationsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.administrableRoleAuthorizations(role, roles)),
+                    InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
                 ForeignServerTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     informationSchemaIterables::servers,

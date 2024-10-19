@@ -53,6 +53,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationEnabledRolesTableInfo.NAME, InformationEnabledRolesTableInfo.INSTANCE)
             .put(InformationApplicableRolesTableInfo.NAME, InformationApplicableRolesTableInfo.INSTANCE)
             .put(InformationRoleTableGrantsTableInfo.NAME, InformationRoleTableGrantsTableInfo.INSTANCE)
+            .put(InformationAdministrableRoleAuthorizationsTableInfo.NAME, InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE)
             .put(ForeignServerTableInfo.NAME, ForeignServerTableInfo.INSTANCE)
             .put(ForeignServerOptionsTableInfo.NAME, ForeignServerOptionsTableInfo.INSTANCE)
             .put(ForeignTableTableInfo.NAME, ForeignTableTableInfo.INSTANCE)
