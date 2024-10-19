@@ -73,8 +73,12 @@ Data Types
   arithmetic scalar functions: :ref:`ABS<scalar-abs>`, :ref:`CEIL<scalar-ceil>`,
   :ref:`FLOOR<scalar-floor>`, :ref:`ROUND<scalar-round>` (for the variation of
   only one argument), :ref:`EXP<scalar-exp>`, :ref:`SQRT<scalar-sqrt>`,
-  :ref:`LN<scalar-ln>` and :ref:`LOG<scalar-log>` (for the variation of only one
-  argument).
+  :ref:`LN<scalar-ln>`, :ref:`LOG<scalar-log>` (for the variation of only one
+  argument), :ref:`SIN`<scalar-sin>`, :ref:`SIN`<scalar-asin>`,
+  :ref:`COS`<scalar-cos>`, :ref:`ACOS`<scalar-acos>`, :ref:`tan`<scalar-tan>`,
+  :ref:`ATAN`<scalar-atan>`, :ref:`ATAN2`<scalar-atan2>`,
+  :ref:`COT`<scalar-cot>`, :ref:`LN<scalar-ln>` and :ref:`LOG<scalar-log>` (for
+  the variation of only one arguement).
 
 Scalar and Aggregation Functions
 --------------------------------
