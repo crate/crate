@@ -113,6 +113,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
     private ArrayList<Integer> nonMatchingKeys;
+    private List<Object[]> currentValues;
 
     public HashJoinBatchIterator(BatchIterator<Row> left,
                                  BatchIterator<Row> right,
@@ -135,6 +136,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         numberOfLeftBatchesLoadedForBlock = 0;
         this.activeIt = left;
         this.emitNullValues = emitNullValues;
+        this.currentValues = List.of();
     }
 
     @Override
@@ -167,7 +169,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 // both sides are fully loaded
                 if (emitNullValues) {
                     fetchKeysFromBuffer();
-                    if (!nonMatchingKeys.isEmpty()) {
+                    fetchCurrentValues();
+                    if (!nonMatchingKeys.isEmpty() || !currentValues.isEmpty()) {
                         return emitNullValuesPairs();
                     }
                 }
@@ -180,7 +183,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 // one batch completed
                 if (emitNullValues) {
                     fetchKeysFromBuffer();
-                    if (!nonMatchingKeys.isEmpty()) {
+                    fetchCurrentValues();
+                    if (!nonMatchingKeys.isEmpty() || !currentValues.isEmpty()) {
                         return emitNullValuesPairs();
                     }
                 }
@@ -209,23 +213,25 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
     }
 
-    private boolean emitNullValuesPairs() {
-        Integer key = nonMatchingKeys.getFirst();
-        List<Object[]> values = buffer.remove(key).v1();
-        Object[] nonMatches = values.removeFirst();
-
-        combiner.setLeft(new RowN(nonMatches));
-        combiner.setRight(new RowN(new Object[nonMatches.length]));
-
-        // This requires rehashing and we might be better off with
-        // storing the current nonMatches in an array
-        // and consume it from there
-        if (!values.isEmpty()) {
-            buffer.put(key, new Tuple<>(values, false));
-        } else {
-            nonMatchingKeys.removeFirst();
+    private void fetchCurrentValues() {
+        if (currentValues.isEmpty()) {
+            if (!nonMatchingKeys.isEmpty()) {
+                Integer key = nonMatchingKeys.removeFirst();
+                currentValues = buffer.remove(key).v1();
+            } else {
+                currentValues = List.of();
+            }
         }
-        return true;
+    }
+
+    private boolean emitNullValuesPairs() {
+        if (!currentValues.isEmpty()) {
+            Object[] nonMatches = currentValues.removeFirst();
+            combiner.setLeft(new RowN(nonMatches));
+            combiner.setRight(new RowN(new Object[nonMatches.length]));
+            return true;
+        }
+        return false;
     }
 
     private void resetBuffer() {
