@@ -214,8 +214,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         List<Object[]> values = buffer.remove(key).v1();
         Object[] nonMatches = values.removeFirst();
 
-        combiner.setLeft(new RowN(nonMatches));
-        combiner.setRight(new RowN(new Object[nonMatches.length]));
+        combiner.setLeft(unsafeArrayRow.cells(nonMatches));
+        combiner.nullRight();
 
         // This requires rehashing and we might be better off with
         // storing the current nonMatches in an array
