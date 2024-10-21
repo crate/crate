@@ -19,15 +19,14 @@
 
 package org.elasticsearch.common;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentLocation;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
-
-import java.io.IOException;
 
 /**
  * Exception that can be used when parsing queries with a given {@link
@@ -93,14 +92,6 @@ public class ParsingException extends ElasticsearchException {
     @Override
     public RestStatus status() {
         return RestStatus.BAD_REQUEST;
-    }
-
-    @Override
-    protected void metadataToXContent(XContentBuilder builder, Params params) throws IOException {
-        if (lineNumber != UNKNOWN_POSITION) {
-            builder.field("line", lineNumber);
-            builder.field("col", columnNumber);
-        }
     }
 
     @Override

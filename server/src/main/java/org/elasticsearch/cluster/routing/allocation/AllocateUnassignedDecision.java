@@ -19,22 +19,22 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * Represents the allocation decision by an allocator for an unassigned shard.
@@ -253,29 +253,6 @@ public class AllocateUnassignedDecision extends AbstractAllocationDecision {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        checkDecisionState();
-        builder.field("can_allocate", getAllocationDecision());
-        builder.field("allocate_explanation", getExplanation());
-        if (targetNode != null) {
-            builder.startObject("target_node");
-            discoveryNodeToXContent(targetNode, true, builder);
-            builder.endObject();
-        }
-        if (allocationId != null) {
-            builder.field("allocation_id", allocationId);
-        }
-        if (allocationStatus == AllocationStatus.DELAYED_ALLOCATION) {
-            builder.humanReadableField("configured_delay_in_millis", "configured_delay",
-                TimeValue.timeValueMillis(configuredDelayInMillis));
-            builder.humanReadableField("remaining_delay_in_millis", "remaining_delay",
-                TimeValue.timeValueMillis(remainingDelayInMillis));
-        }
-        nodeDecisionsToXContent(nodeDecisions, builder, params);
-        return builder;
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeOptionalWriteable(allocationStatus);
@@ -293,7 +270,7 @@ public class AllocateUnassignedDecision extends AbstractAllocationDecision {
         if (other instanceof AllocateUnassignedDecision == false) {
             return false;
         }
-        @SuppressWarnings("unchecked") AllocateUnassignedDecision that = (AllocateUnassignedDecision) other;
+        AllocateUnassignedDecision that = (AllocateUnassignedDecision) other;
         return Objects.equals(allocationStatus, that.allocationStatus)
                    && Objects.equals(allocationId, that.allocationId)
                    && reuseStore == that.reuseStore
