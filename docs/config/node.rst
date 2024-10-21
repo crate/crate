@@ -551,6 +551,27 @@ nodes may have different authentication settings.
   Setting to enable or disable Host Based Authentication (HBA). It is disabled
   by default.
 
+.. _jwt_defaults:
+
+JWT Based Authentication
+........................
+
+Default settings for the :ref:`JWT authentication <auth_jwt>`.
+
+.. _auth.host_based.jwt.iss:
+
+**auth.host_based.jwt.iss**
+  | *Runtime:* ``no``
+
+  Default value for the ``iss`` :ref:`JWT property <create-user-jwt>`.
+
+.. _auth.host_based.jwt.aud:
+
+**auth.host_based.jwt.aud**
+  | *Runtime:* ``no``
+
+  Default value for the ``aud`` :ref:`JWT property <create-user-jwt>`.
+
 HBA entries
 ...........
 

@@ -97,6 +97,9 @@ The following ``user_parameter`` are supported to define a new user account:
 
   Combination of ``iss`` and ``username`` must be unique.
 
+  You can also configure JWT settings globally at the :ref:`Node Level <jwt_defaults>`.
+  If both global and per-user JWT properties are set, the user-specific configuration takes precedence.
+
 .. SEEALSO::
 
   :ref:`auth_jwt`

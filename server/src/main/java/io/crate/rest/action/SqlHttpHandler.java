@@ -311,7 +311,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
         try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+            Predicate<Role> rolePredicate = credentials.tokenMatch();
             if (rolePredicate != null) {
                 Role role = roles.findUser(rolePredicate);
                 if (role != null) {

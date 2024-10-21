@@ -453,6 +453,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         PostgresNetty.PSQL_ENABLED_SETTING,
         PostgresNetty.PSQL_PORT_SETTING,
         AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,
+        AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING,
+        AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING,
         AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING,
         AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER,
         AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP,
