@@ -21,15 +21,10 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
-
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.metadata.ColumnIdent;
 
@@ -37,28 +32,11 @@ public interface StoredRow {
 
     Map<String, Object> asMap();
 
-    String asString();
+    // TODO turn this into something more useful
+    String asRaw();
 
     default Object get(List<String> path) {
         return extractValue(asMap(), path, 0);
-    }
-
-    static StoredRow wrap(Map<String, Object> map) {
-        return new StoredRow() {
-            @Override
-            public Map<String, Object> asMap() {
-                return map;
-            }
-
-            @Override
-            public String asString() {
-                try {
-                    return Strings.toString(JsonXContent.builder().map(map));
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-        };
     }
 
     static Object extractValue(final Map<?, ?> map, ColumnIdent columnIdent) {

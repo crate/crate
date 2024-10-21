@@ -246,7 +246,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         // Old 'a' with OID 1 is gone in the second entry (we don't write NULL values to the source)
         // Instead, we have new 'a' with new oid having text value "some-text".
         String rawRows = """
-            {"1": 1, "2": 11, "3": {"5": {"6": 1111}, "4": 111}}
+            {"2": 11, "4": 111, "6": 1111}
             {"%d": "some-text", "2": 222," 3": {"5": {"6": 2222}, "4": 222}}
             """;
         assertThat(TestingHelpers.jsonMap(TestingHelpers.printedTable(response.rows())))
@@ -269,12 +269,12 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         // Root column 'o' and it's unaffected child o['a'] retained their OID-s (3 and 4).
         // Dropped children column got updated OID-s.
         rawRows = """
-            {"%d": "another-text", "2": 333,"3": {"%d": {"%d": "hello"}, "4": 333}}
+            {"%d": "another-text", "2": 333, "%d": "hello", "4": 333}
             """;
         assertThat(
             TestingHelpers.jsonMap(TestingHelpers.printedTable(response.rows()))
         ).isEqualTo(
-            TestingHelpers.jsonMap(String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 1, newColumnOid + 2))
+            TestingHelpers.jsonMap(String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 2))
         );
     }
 

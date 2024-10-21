@@ -47,7 +47,7 @@ import io.crate.types.ObjectType;
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
-    private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
+    private final String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
 
     public ColumnPolicyIntegrationTest() throws URISyntaxException {
     }

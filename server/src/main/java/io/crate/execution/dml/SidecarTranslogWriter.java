@@ -21,71 +21,67 @@
 
 package io.crate.execution.dml;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
 /**
- * A TranslogWriter implementation that writes the transaction log entry as
- * a json map
+ * Wraps a TranslogWriter and makes any entries written after wrapping available
+ * as a separate BytesReference
  */
-public class XContentTranslogWriter implements TranslogWriter {
+class SidecarTranslogWriter implements TranslogWriter {
 
-    private final XContentBuilder builder;
-    private final BytesStreamOutput output = new BytesStreamOutput();
+    private final TranslogWriter inner;
+    private final TranslogWriter sidecar;
 
-    public XContentTranslogWriter() {
-        try {
-            this.builder = XContentFactory.json(output);
-            this.builder.startObject();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    SidecarTranslogWriter(TranslogWriter inner, String oid) {
+        this.inner = inner;
+        this.sidecar = new XContentTranslogWriter();
+        this.sidecar.writeFieldName(oid);
     }
 
     @Override
     public void startArray() {
-        TranslogWriter.uncheck(builder::startArray);
+        inner.startArray();
+        sidecar.startArray();
     }
 
     @Override
     public void endArray() {
-        TranslogWriter.uncheck(builder::endArray);
+        inner.endArray();
+        sidecar.endArray();
     }
 
     @Override
     public void startObject() {
-        TranslogWriter.uncheck(builder::startObject);
+        inner.startObject();
+        sidecar.startObject();
     }
 
     @Override
     public void endObject() {
-        TranslogWriter.uncheck(builder::endObject);
-    }
-
-    @Override
-    public void writeNull() {
-        TranslogWriter.uncheck(builder::nullValue);
+        inner.endObject();
+        sidecar.endObject();
     }
 
     @Override
     public void writeFieldName(String fieldName) {
-        TranslogWriter.uncheck(() -> builder.field(fieldName));
+        inner.writeFieldName(fieldName);
+        sidecar.writeFieldName(fieldName);
+    }
+
+    @Override
+    public void writeNull() {
+        inner.writeNull();
+        sidecar.writeNull();
     }
 
     @Override
     public void writeValue(Object value) {
-        TranslogWriter.uncheck(() -> builder.value(value));
+        inner.writeValue(value);
+        sidecar.writeValue(value);
     }
 
     @Override
     public BytesReference bytes() {
-        TranslogWriter.uncheck(builder::endObject);
-        builder.close();
-        return output.bytes();
+        return sidecar.bytes();
     }
 }

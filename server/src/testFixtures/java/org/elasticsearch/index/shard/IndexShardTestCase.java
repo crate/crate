@@ -71,7 +71,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
-import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
+import org.elasticsearch.index.engine.DocIdAndSeqNo;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.EngineTestCase;
@@ -888,10 +888,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     public static Set<String> getShardDocUIDs(final IndexShard shard) throws IOException {
-        return getDocIdAndSeqNos(shard).stream().map(DocIdSeqNoAndSource::getId).collect(Collectors.toSet());
+        return getDocIdAndSeqNos(shard).stream().map(DocIdAndSeqNo::id).collect(Collectors.toSet());
     }
 
-    public static List<DocIdSeqNoAndSource> getDocIdAndSeqNos(final IndexShard shard) throws IOException {
+    public static List<DocIdAndSeqNo> getDocIdAndSeqNos(final IndexShard shard) throws IOException {
         return EngineTestCase.getDocIds(shard.getEngine(), true);
     }
 

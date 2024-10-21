@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -62,4 +63,81 @@ public class ArrayMapperITest extends IntegTestCase {
         execute("select xs from t");
         assertThat(response).hasRows(new Object[]{List.of()});
     }
+
+    @Test
+    public void testArrayOfObjects() {
+        execute("create table t (id int, xs array(object as (x text, y int)))");
+        execute("insert into t (id, xs) values (1, [{x='hello',y=1},{x='goodbye',y=2}])");
+        execute("insert into t (id, xs) values (2, null)");
+        execute("insert into t (id, xs) values (3, [])");
+        execute("refresh table t");
+        execute("select xs from t order by id");
+
+        var xs1 = List.of(Map.of("x", "hello", "y", 1), Map.of("x", "goodbye", "y", 2));
+
+        assertThat(response).hasRows(
+            new Object[] { xs1 },
+            new Object[] { null },
+            new Object[] { List.of() }
+        );
+
+        execute("select _doc from t where id=1");
+        assertThat(response).hasRows(new Object[] {
+            Map.of("id", 1, "xs", xs1)
+        });
+    }
+
+    @Test
+    public void testArrayOfArrayOfObjects() {
+        execute("create table t (id int, xs array(array(object as (x text, y int))))");
+        execute("insert into t (id, xs) values (1, [[{x='hello',y=1},{x='goodbye',y=2}],[{x='back again',y=3}]])");
+        execute("insert into t (id, xs) values (2, null)");
+        execute("insert into t (id, xs) values (3, [[],[]])");
+        execute("refresh table t");
+        execute("select xs from t order by id");
+
+        var xs1 = List.of(
+            List.of(Map.of("x", "hello", "y", 1), Map.of("x", "goodbye", "y", 2)),
+            List.of(Map.of("x", "back again", "y", 3))
+        );
+
+        assertThat(response).hasRows(
+            new Object[] { xs1 },
+            new Object[] { null },
+            new Object[] { List.of(List.of(), List.of()) }
+        );
+
+        execute("select _doc from t where id=1");
+        assertThat(response).hasRows(new Object[] {
+            Map.of("id", 1, "xs", xs1)
+        });
+    }
+
+    @Test
+    public void testDroppedColumnsWithinArraysOfObjects() {
+        execute("create table t (id int, xs array(object as (x text, y int)))");
+        execute("insert into t values (1, [{x='hello',y=1},{x='goodbye',y=2}])");
+        execute("insert into t values (2, [{x='hola',y=1},{x='adios',y=2}])");
+        execute("refresh table t");
+        execute("alter table t drop column xs['y']");
+
+        execute("select xs from t order by id");
+        assertThat(response).hasRows(
+            new Object[]{List.of(Map.of("x", "hello"), Map.of("x", "goodbye"))},
+            new Object[]{List.of(Map.of("x", "hola"), Map.of("x", "adios"))}
+        );
+
+        execute("alter table t add column xs['y'] text");
+        execute("insert into t values (3, [{x='dag',y='1'},{x='hi',y='2'}])");
+        execute("refresh table t");
+
+        execute("select xs from t order by id");
+        assertThat(response).hasRows(
+            new Object[]{List.of(Map.of("x", "hello"), Map.of("x", "goodbye"))},
+            new Object[]{List.of(Map.of("x", "hola"), Map.of("x", "adios"))},
+            new Object[]{List.of(Map.of("x", "dag", "y", "1"), Map.of("x", "hi", "y", "2"))}
+        );
+
+    }
+
 }
