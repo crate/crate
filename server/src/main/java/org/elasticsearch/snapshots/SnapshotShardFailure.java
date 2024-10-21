@@ -19,23 +19,21 @@
 
 package org.elasticsearch.snapshots;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotFailedException;
 import org.elasticsearch.rest.RestStatus;
-
-import java.io.IOException;
-import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Stores information about failures that occurred during shard snapshotting process
@@ -108,19 +106,6 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
             '}';
     }
 
-    /**
-     * Serializes snapshot failure information into JSON
-     *
-     * @param snapshotShardFailure snapshot failure information
-     * @param builder              XContent builder
-     * @param params               additional parameters
-     */
-    public static void toXContent(SnapshotShardFailure snapshotShardFailure, XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject();
-        snapshotShardFailure.toXContent(builder, params);
-        builder.endObject();
-    }
-
     static final ConstructingObjectParser<SnapshotShardFailure, Void> SNAPSHOT_SHARD_FAILURE_PARSER =
         new ConstructingObjectParser<>("shard_failure", true, SnapshotShardFailure::constructSnapshotShardFailure);
 
@@ -180,21 +165,6 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
      */
     public static SnapshotShardFailure fromXContent(XContentParser parser) throws IOException {
         return SNAPSHOT_SHARD_FAILURE_PARSER.parse(parser, null);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("index", shardId.getIndexName());
-        builder.field("index_uuid", shardId.getIndexName());
-        builder.field("shard_id", shardId.id());
-        builder.field("reason", reason);
-        if (nodeId != null) {
-            builder.field("node_id", nodeId);
-        }
-        builder.field("status", status.name());
-        builder.endObject();
-        return builder;
     }
 
     @Override
