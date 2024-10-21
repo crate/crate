@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -90,19 +89,6 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
         }
         parser.nextToken();
         return new ForeignTablesMetadata(tables);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var entry : tables.entrySet()) {
-            RelationName tableName = entry.getKey();
-            ForeignTable table = entry.getValue();
-            builder.startObject(tableName.indexNameOrAlias());
-            table.toXContent(builder, params);
-            builder.endObject();
-        }
-        return builder.endObject();
     }
 
     @Override
