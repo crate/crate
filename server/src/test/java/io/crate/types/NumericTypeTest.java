@@ -210,4 +210,11 @@ public class NumericTypeTest extends ScalarTestCase {
         assertNormalize("1.11::numeric(3, 1) = 1.11::numeric", isLiteral(false));
         assertNormalize("1.1::numeric(5,1) = 1.11::numeric(4,2)", isLiteral(false));
     }
+
+    @Test
+    public void test_comparisons_operators_with_different_precision_and_negative_values() {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        assertThat(e.asSymbol("1.11::numeric(3, 1) >= 1.10::numeric(3, 2)")).isEqualTo(BOOLEAN_TRUE);
+        assertThat(e.asSymbol("-2.1::numeric(5, 1) > -3.1::numeric(4, 2)")).isEqualTo(BOOLEAN_TRUE);
+    }
 }
