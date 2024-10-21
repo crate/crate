@@ -25,6 +25,7 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -287,7 +288,7 @@ public abstract class StoredRowLookup implements StoredRow {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            return output.toString();
+            return output.toString(StandardCharsets.UTF_8);
         }
 
         private Map<String, Object> buildDocMap() throws IOException {
