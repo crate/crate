@@ -178,4 +178,5 @@ public class ColumnIdentTest {
         assertThat(aaa.replacePrefix(ab)).isEqualTo(aba);
         assertThat(aaa.replacePrefix(aab)).isEqualTo(aab);
     }
+
 }
