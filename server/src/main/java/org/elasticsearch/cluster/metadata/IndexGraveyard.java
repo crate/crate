@@ -130,15 +130,6 @@ public final class IndexGraveyard implements Metadata.Custom {
         return false;
     }
 
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        builder.startArray(TOMBSTONES_FIELD.getPreferredName());
-        for (Tombstone tombstone : tombstones) {
-            tombstone.toXContent(builder, params);
-        }
-        return builder.endArray();
-    }
-
     public static IndexGraveyard fromXContent(final XContentParser parser) throws IOException {
         return new IndexGraveyard(GRAVEYARD_PARSER.parse(parser, null));
     }

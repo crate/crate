@@ -21,16 +21,6 @@
 
 package io.crate.expression.udf;
 
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +28,16 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.VisibleForTesting;
+
+import io.crate.types.DataType;
 
 public class UserDefinedFunctionsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
@@ -106,16 +106,6 @@ public class UserDefinedFunctionsMetadata extends AbstractNamedDiffable<Metadata
             functions.add(new UserDefinedFunctionMetadata(in));
         }
         this.functionsMetadata = functions;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray("functions");
-        for (UserDefinedFunctionMetadata function : functionsMetadata) {
-            function.toXContent(builder, params);
-        }
-        builder.endArray();
-        return builder;
     }
 
     public static UserDefinedFunctionsMetadata fromXContent(XContentParser parser) throws IOException {
