@@ -30,12 +30,9 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.auth.AccessControl;
-import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 @Singleton
 public class RoleManagerService implements RoleManager {
@@ -132,15 +129,5 @@ public class RoleManagerService implements RoleManager {
             }
             return r.affectedRows();
         });
-    }
-
-
-    @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(roles, sessionSettings);
-    }
-
-    public Collection<Role> roles() {
-        return roles.roles();
     }
 }

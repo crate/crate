@@ -78,6 +78,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private Role ddlOnlyUser;
     private SQLExecutor e;
     private RoleManager roleManager;
+    private Roles roles;
     private final Role superUser = Role.CRATE_USER;
 
     @Before
@@ -106,7 +107,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                        null);
         ddlOnlyUser = userOf("ddlOnly");
 
-        Roles roles = new Roles() {
+        roles = new Roles() {
             @Override
             public Collection<Role> roles() {
                 return List.of(superUser, normalUser, ddlOnlyUser);
@@ -129,6 +130,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         );
 
         e = SQLExecutor.builder(clusterService)
+            .setRoles(roles)
             .setRoleManager(roleManager)
             .build()
             .addBlobTable("create blob table blobs")
@@ -714,6 +716,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_drop_publication_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
             .setRoleManager(roleManager)
+            .setRoles(roles)
             .build()
             .setUser(normalUser)
             .addPublication("pub1", true);
@@ -725,6 +728,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_alter_publication_asks_cluster_AL() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .setRoleManager(roleManager)
+            .setRoles(roles)
             .build()
             .setUser(normalUser)
             .addPublication("pub1", false, new RelationName("doc", "t1"));
@@ -745,6 +749,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_drop_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
             .setRoleManager(roleManager)
+            .setRoles(roles)
             .build()
             .setUser(normalUser)
             .addSubscription("sub1", "pub1");
@@ -756,6 +761,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_alter_subscription_asks_cluster_AL() {
         e = SQLExecutor.builder(clusterService)
             .setRoleManager(roleManager)
+            .setRoles(roles)
             .build()
             .setUser(normalUser)
             .addSubscription("sub1", "pub1");
@@ -831,9 +837,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_checks_user_existence() {
+        var roleManager = new StubRoleManager(List.of(Role.CRATE_USER), true);
         var e = SQLExecutor.builder(clusterService)
             // Make sure normalUser won't be found and AC is enabled
-            .setRoleManager(new StubRoleManager(List.of(Role.CRATE_USER), true))
+            .setRoleManager(roleManager)
+            .setRoles(roleManager.roles())
             .build();
         e.setUser(normalUser);
 

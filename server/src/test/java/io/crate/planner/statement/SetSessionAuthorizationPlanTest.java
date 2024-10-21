@@ -51,6 +51,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
         var user = RolesHelper.userOf("test");
         var e = SQLExecutor.builder(clusterService)
             .setRoleManager(new StubRoleManager(List.of(user, Role.CRATE_USER), false))
+            .setRoles(() -> List.of(user, Role.CRATE_USER))
             .build();
         var sessionSettings = e.getSessionSettings();
         sessionSettings.setSessionUser(Role.CRATE_USER);
@@ -62,10 +63,13 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_set_session_auth_to_default_sets_session_user_to_authenticated_user() throws Exception {
-        var e = SQLExecutor.builder(clusterService).build();
+        var testUser = RolesHelper.userOf("test");
+        var e = SQLExecutor.builder(clusterService)
+            .setRoles(() -> List.of(testUser, Role.CRATE_USER))
+            .build();
 
         var sessionSettings = e.getSessionSettings();
-        sessionSettings.setSessionUser(RolesHelper.userOf("test"));
+        sessionSettings.setSessionUser(testUser);
         assertThat(sessionSettings.sessionUser()).isNotEqualTo(sessionSettings.authenticatedUser());
 
         e.execute("SET SESSION AUTHORIZATION DEFAULT");
