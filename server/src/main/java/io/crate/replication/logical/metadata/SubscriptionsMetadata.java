@@ -29,8 +29,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -38,8 +36,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
 
@@ -134,46 +132,6 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
      *     <li>value of "tables" contains a list of all tables which are part of this publication</li>
      * </ul>
      */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var entry : subscriptionByName.entrySet()) {
-            var subscription = entry.getValue();
-            builder.startObject(entry.getKey());
-            {
-                builder.field("owner", subscription.owner());
-
-                builder.startObject("connection_info");
-                {
-                    builder.field("hosts", subscription.connectionInfo().hosts().toArray(new String[0]));
-                    builder.startObject("settings");
-                    subscription.connectionInfo().settings().toXContent(builder, params);
-                    builder.endObject();
-                }
-                builder.endObject();
-
-                builder.array("publications", subscription.publications().toArray(new String[0]));
-                builder.startObject("settings");
-                subscription.settings().toXContent(builder, params);
-                builder.endObject();
-                builder.startObject("relations");
-                for (var relationEntry : subscription.relations().entrySet()) {
-                    builder.startObject(relationEntry.getKey().fqn());
-                    var state = relationEntry.getValue();
-                    {
-                        builder.field("state", state.state().toString().toLowerCase(Locale.ENGLISH));
-                        builder.field("state_reason", state.reason());
-                    }
-                    builder.endObject();
-                }
-                builder.endObject();
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
     public static SubscriptionsMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, Subscription> subscriptions = new HashMap<>();
 

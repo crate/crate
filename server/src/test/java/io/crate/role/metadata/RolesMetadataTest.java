@@ -28,7 +28,7 @@ import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.roleOf;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -43,7 +43,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -98,52 +97,6 @@ public class RolesMetadataTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         RolesMetadata roles2 = new RolesMetadata(in);
         assertThat(roles2).isEqualTo(roles);
-    }
-
-    @Test
-    public void test_roles_metadata_to_x_content() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        RolesMetadata roles = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
-        assertThat(roles2).isEqualTo(roles);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
-    @Test
-    public void test_roles_metadata_without_attributes_to_xcontent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        RolesMetadata roles = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
-        assertThat(roles2).isEqualTo(roles);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
     }
 
     @Test

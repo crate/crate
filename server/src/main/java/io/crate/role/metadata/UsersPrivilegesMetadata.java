@@ -34,11 +34,10 @@ import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.role.Privilege;
 
 @Deprecated(since = "5.6.0")
@@ -105,19 +104,6 @@ public class UsersPrivilegesMetadata extends AbstractNamedDiffable<Metadata.Cust
                 privilege.writeTo(out);
             }
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        for (Map.Entry<String, Set<Privilege>> entry : usersPrivileges.entrySet()) {
-            builder.startArray(entry.getKey());
-            for (Privilege privilege : entry.getValue()) {
-                privilege.toXContent(builder, params);
-            }
-            builder.endArray();
-        }
-
-        return builder;
     }
 
     /**

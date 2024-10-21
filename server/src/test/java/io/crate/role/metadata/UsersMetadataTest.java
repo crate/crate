@@ -21,22 +21,15 @@
 
 package io.crate.role.metadata;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -54,52 +47,6 @@ public class UsersMetadataTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         UsersMetadata users2 = new UsersMetadata(in);
         assertThat(users2).isEqualTo(users);
-    }
-
-    @Test
-    public void testUsersMetadataToXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        UsersMetadata users = of(RolesHelper.DUMMY_USERS_WITHOUT_PASSWORD);
-        users.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertThat(users2).isEqualTo(users);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
-    @Test
-    public void testUsersMetadataWithoutAttributesToXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        UsersMetadata users = of(RolesHelper.SINGLE_USER_ONLY);
-        users.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        UsersMetadata users2 = UsersMetadata.fromXContent(parser);
-        assertThat(users2).isEqualTo(users);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
     }
 
     @Test

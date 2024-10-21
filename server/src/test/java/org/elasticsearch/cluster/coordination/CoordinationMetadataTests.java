@@ -179,19 +179,4 @@ public class CoordinationMetadataTests extends ESTestCase {
                 return builder.build();
             });
     }
-
-    public void testXContent() throws IOException {
-        CoordinationMetadata originalMeta = new CoordinationMetadata(randomNonNegativeLong(), randomVotingConfig(), randomVotingConfig(),
-                randomVotingTombstones());
-
-        final XContentBuilder builder = JsonXContent.builder();
-        builder.startObject();
-        originalMeta.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
-            final CoordinationMetadata fromXContentMeta = CoordinationMetadata.fromXContent(parser);
-            assertThat(originalMeta).isEqualTo(fromXContentMeta);
-        }
-    }
 }

@@ -19,26 +19,23 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.NamedDiff;
-import org.elasticsearch.cluster.metadata.Metadata.Custom;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.repositories.RepositoryData;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.Metadata.Custom;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.repositories.RepositoryData;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Contains metadata about registered snapshot repositories
@@ -227,44 +224,9 @@ public class RepositoriesMetadata extends AbstractNamedDiffable<Custom> implemen
         return new RepositoriesMetadata(repository);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        for (RepositoryMetadata repository : repositories) {
-            toXContent(repository, builder, params);
-        }
-        return builder;
-    }
 
     @Override
     public EnumSet<Metadata.XContentContext> context() {
         return Metadata.API_AND_GATEWAY;
-    }
-
-    /**
-     * Serializes information about a single repository
-     *
-     * @param repository repository metadata
-     * @param builder    XContent builder
-     * @param params     serialization parameters
-     */
-    public static void toXContent(RepositoryMetadata repository, XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject(repository.name());
-        builder.field("type", repository.type());
-
-        builder.startObject("settings");
-        repository.settings().toXContent(builder, params);
-        builder.endObject();
-
-        builder.field("generation", repository.generation());
-        builder.field("pending_generation", repository.pendingGeneration());
-        builder.endObject();
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this);
     }
 }

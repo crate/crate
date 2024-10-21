@@ -32,7 +32,6 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,11 +55,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
@@ -77,7 +72,7 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
 
-public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragment {
+public class IndexMetadata implements Diffable<IndexMetadata> {
 
     public static final ClusterBlock INDEX_CLOSED_BLOCK = new ClusterBlock(4, "index closed", false, false, false, RestStatus.FORBIDDEN, ClusterBlockLevel.READ_WRITE);
     public static final ClusterBlock INDEX_READ_ONLY_BLOCK = new ClusterBlock(5, "index read-only (api)", false, false, false, RestStatus.FORBIDDEN, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
@@ -581,12 +576,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
 
     public static IndexMetadata fromXContent(XContentParser parser) throws IOException {
         return Builder.fromXContent(parser);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        Builder.toXContent(this, builder, params);
-        return builder;
     }
 
     private static class IndexMetadataDiff implements Diff<IndexMetadata> {
@@ -1112,57 +1101,6 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                 routingPartitionSize,
                 waitForActiveShards
             );
-        }
-
-        public static void toXContent(IndexMetadata indexMetadata, XContentBuilder builder, ToXContent.Params params) throws IOException {
-            builder.startObject(indexMetadata.getIndex().getName());
-
-            builder.field(KEY_VERSION, indexMetadata.getVersion());
-            builder.field(KEY_MAPPING_VERSION, indexMetadata.getMappingVersion());
-            builder.field(KEY_SETTINGS_VERSION, indexMetadata.getSettingsVersion());
-            builder.field(KEY_ROUTING_NUM_SHARDS, indexMetadata.getRoutingNumShards());
-            builder.field(KEY_STATE, indexMetadata.getState().toString().toLowerCase(Locale.ENGLISH));
-
-            boolean binary = params.paramAsBoolean("binary", false);
-
-            builder.startObject(KEY_SETTINGS);
-            indexMetadata.getSettings().toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
-            builder.endObject();
-
-            builder.startArray(KEY_MAPPINGS);
-            MappingMetadata mmd = indexMetadata.mapping();
-            if (mmd != null) {
-                if (binary) {
-                    builder.value(mmd.source().compressed());
-                } else {
-                    builder.map(XContentHelper.convertToMap(mmd.source().uncompressed(), true, XContentType.JSON).map());
-                }
-            }
-            builder.endArray();
-
-            builder.startObject(KEY_ALIASES);
-            for (ObjectCursor<AliasMetadata> cursor : indexMetadata.getAliases().values()) {
-                AliasMetadata.Builder.toXContent(cursor.value, builder, params);
-            }
-            builder.endObject();
-
-            builder.startArray(KEY_PRIMARY_TERMS);
-            for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
-                builder.value(indexMetadata.primaryTerm(i));
-            }
-            builder.endArray();
-
-            builder.startObject(KEY_IN_SYNC_ALLOCATIONS);
-            for (IntObjectCursor<Set<String>> cursor : indexMetadata.inSyncAllocationIds) {
-                builder.startArray(String.valueOf(cursor.key));
-                for (String allocationId : cursor.value) {
-                    builder.value(allocationId);
-                }
-                builder.endArray();
-            }
-            builder.endObject();
-
-            builder.endObject();
         }
 
         public static IndexMetadata fromXContent(XContentParser parser) throws IOException {

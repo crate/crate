@@ -19,6 +19,9 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -28,17 +31,13 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.RerouteExplanation;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract base class for allocating an unassigned shard to a node
@@ -216,16 +215,6 @@ public abstract class AbstractAllocateAllocationCommand implements AllocationCom
             return;
         }
         assert false : "shard to initialize not found in list of unassigned shards";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject();
-        builder.field(INDEX_FIELD, index());
-        builder.field(SHARD_FIELD, shardId());
-        builder.field(NODE_FIELD, node());
-        extraXContent(builder);
-        return builder.endObject();
     }
 
     protected void extraXContent(XContentBuilder builder) throws IOException {

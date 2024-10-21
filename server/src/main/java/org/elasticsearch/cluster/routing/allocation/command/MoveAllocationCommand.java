@@ -19,6 +19,9 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -30,11 +33,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * A command that moves a shard from a specific node to another node.<br>
@@ -159,16 +158,6 @@ public class MoveAllocationCommand implements AllocationCommand {
             throw new IllegalArgumentException("[move_allocation] can't move " + shardId + ", failed to find it on node " + fromDiscoNode);
         }
         return new RerouteExplanation(this, decision);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("index", index());
-        builder.field("shard", shardId());
-        builder.field("from_node", fromNode());
-        builder.field("to_node", toNode());
-        return builder.endObject();
     }
 
     public static MoveAllocationCommand fromXContent(XContentParser parser) throws IOException {

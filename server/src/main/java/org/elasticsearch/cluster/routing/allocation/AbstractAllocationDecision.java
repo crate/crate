@@ -19,26 +19,23 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An abstract class for representing various types of allocation decisions.
  */
-public abstract class AbstractAllocationDecision implements ToXContentFragment, Writeable {
+public abstract class AbstractAllocationDecision implements Writeable {
 
     @Nullable
     protected final DiscoveryNode targetNode;
@@ -108,48 +105,10 @@ public abstract class AbstractAllocationDecision implements ToXContentFragment, 
     }
 
     /**
-     * Generates X-Content for a {@link DiscoveryNode} that leaves off some of the non-critical fields.
-     */
-    public static XContentBuilder discoveryNodeToXContent(DiscoveryNode node, boolean outerObjectWritten, XContentBuilder builder)
-        throws IOException {
-
-        builder.field(outerObjectWritten ? "id" : "node_id", node.getId());
-        builder.field(outerObjectWritten ? "name" : "node_name", node.getName());
-        builder.field("transport_address", node.getAddress().toString());
-        if (node.getAttributes().isEmpty() == false) {
-            builder.startObject(outerObjectWritten ? "attributes" : "node_attributes");
-            for (Map.Entry<String, String> entry : node.getAttributes().entrySet()) {
-                builder.field(entry.getKey(), entry.getValue());
-            }
-            builder.endObject();
-        }
-        return builder;
-    }
-
-    /**
      * Sorts a list of node level decisions by the decision type, then by weight ranking, and finally by node id.
      */
     public List<NodeAllocationResult> sortNodeDecisions(List<NodeAllocationResult> nodeDecisions) {
         return Collections.unmodifiableList(nodeDecisions.stream().sorted().collect(Collectors.toList()));
-    }
-
-    /**
-     * Generates X-Content for the node-level decisions, creating the outer "node_decisions" object
-     * in which they are serialized.
-     */
-    public XContentBuilder nodeDecisionsToXContent(List<NodeAllocationResult> nodeDecisions, XContentBuilder builder, Params params)
-        throws IOException {
-
-        if (nodeDecisions != null && nodeDecisions.isEmpty() == false) {
-            builder.startArray("node_allocation_decisions");
-            {
-                for (NodeAllocationResult explanation : nodeDecisions) {
-                    explanation.toXContent(builder, params);
-                }
-            }
-            builder.endArray();
-        }
-        return builder;
     }
 
     /**
@@ -175,7 +134,7 @@ public abstract class AbstractAllocationDecision implements ToXContentFragment, 
         if (other == null || other instanceof AbstractAllocationDecision == false) {
             return false;
         }
-        @SuppressWarnings("unchecked") AbstractAllocationDecision that = (AbstractAllocationDecision) other;
+        AbstractAllocationDecision that = (AbstractAllocationDecision) other;
         return Objects.equals(targetNode, that.targetNode) && Objects.equals(nodeDecisions, that.nodeDecisions);
     }
 
