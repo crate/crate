@@ -117,7 +117,6 @@ public abstract class MetadataStateFormat<T extends Writeable> {
             deleteFileIfExists(stateLocation, stateDir, tmpFileName);
             try (IndexOutput out = EndiannessReverserUtil.createOutput(stateDir, tmpFileName, IOContext.DEFAULT)) {
                 CodecUtil.writeHeader(out, STATE_FILE_CODEC, STATE_FILE_VERSION);
-                out.writeInt(FORMAT.index());
                 var streamOutput = new OutputStreamStreamOutput(new IndexOutputOutputStream(out));
                 Version.writeVersion(Version.CURRENT, streamOutput);
                 state.writeTo(streamOutput);
@@ -287,9 +286,11 @@ public abstract class MetadataStateFormat<T extends Writeable> {
                 // We checksum the entire file before we even go and parse it. If it's corrupted we barf right here.
                 CodecUtil.checksumEntireFile(indexInput);
                 int stateVersion = CodecUtil.checkHeader(indexInput, STATE_FILE_CODEC, MIN_COMPATIBLE_STATE_FILE_VERSION, STATE_FILE_VERSION);
-                final XContentType xContentType = XContentType.values()[indexInput.readInt()];
-                if (xContentType != FORMAT) {
-                    throw new IllegalStateException("expected state in " + file + " to be " + FORMAT + " format but was " + xContentType);
+                if (stateVersion == XCONTENT_STATE_VERSION) {
+                    final XContentType xContentType = XContentType.values()[indexInput.readInt()];
+                    if (xContentType != FORMAT) {
+                        throw new IllegalStateException("expected state in " + file + " to be " + FORMAT + " format but was " + xContentType);
+                    }
                 }
                 long filePointer = indexInput.getFilePointer();
                 long contentSize = indexInput.length() - CodecUtil.footerLength() - filePointer;
