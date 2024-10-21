@@ -23,6 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -41,7 +42,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     final Map<String, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
     final Map<String, String> sourceUrisWithFailure = new HashMap<>();
     final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
-    final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
+    final Map<ShardLocation, TReq> itemsByShard = new LinkedHashMap<>();
 
     private final Function<ShardId, TReq> requestFactory;
     private final RamAccounting ramAccounting;

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,24 +19,41 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.execution.dml;
 
-import java.io.IOException;
+import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.data.Row1;
 
-public class SQLParseException extends ElasticsearchException implements UnscopedException {
+public final class RowCountAndFailure {
 
-    public SQLParseException(String msg) {
-        super(msg);
+    private long rowCount = 0L;
+    @Nullable
+    private ShardResponse.ErrorMessageAndCode failure = null;
+
+    public RowCountAndFailure() {
     }
 
-    public SQLParseException(String msg, Exception e) {
-        super(msg, e);
+    public RowCountAndFailure(long rowCount, ShardResponse.ErrorMessageAndCode failure) {
+        this.rowCount = rowCount;
+        this.failure = failure;
     }
 
-    public SQLParseException(StreamInput in) throws IOException {
-        super(in);
+    public void incrementRowCount() {
+        rowCount++;
+    }
+
+    public void setFailure(ShardResponse.ErrorMessageAndCode errorMessageAndCode) {
+        rowCount = Row1.ERROR;
+        failure = errorMessageAndCode;
+    }
+
+    public long rowCount() {
+        return rowCount;
+    }
+
+    @Nullable
+    public ShardResponse.ErrorMessageAndCode failure() {
+        return failure;
     }
 }

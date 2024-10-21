@@ -27,7 +27,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -792,7 +791,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute(
                         "update generated_column set ts=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("\"gen_col\" must not be null");
 
     }

@@ -21,11 +21,16 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
-
+import java.io.IOException;
 import java.util.Collections;
 
-public class DuplicateKeyException extends RuntimeException implements ConflictException, TableScopeException {
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.metadata.RelationName;
+
+public class DuplicateKeyException extends ElasticsearchException implements ConflictException, TableScopeException {
 
     private final RelationName relationName;
 
@@ -34,8 +39,19 @@ public class DuplicateKeyException extends RuntimeException implements ConflictE
         relationName = RelationName.fromIndexName(indexName);
     }
 
+    public DuplicateKeyException(StreamInput in) throws IOException {
+        super(in);
+        this.relationName = new RelationName(in);
+    }
+
     @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        relationName.writeTo(out);
     }
 }

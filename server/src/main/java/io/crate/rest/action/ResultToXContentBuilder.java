@@ -26,7 +26,9 @@ import java.util.List;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -41,7 +43,9 @@ class ResultToXContentBuilder {
         static final String ROWS = "rows";
         static final String ROW_COUNT = "rowcount";
         static final String DURATION = "duration";
-        static final String ERROR_MESSAGE = "error_message";
+        static final String ERROR = "error";
+        static final String ERROR_CODE = "code";
+        static final String ERROR_MESSAGE = "message";
     }
 
     private final XContentBuilder builder;
@@ -129,13 +133,18 @@ class ResultToXContentBuilder {
         return this;
     }
 
-    ResultToXContentBuilder bulkRows(RestBulkRowCountReceiver.Result[] results) throws IOException {
+    ResultToXContentBuilder bulkRows(RestBulkRowCountReceiver.Result[] results, AccessControl accessControl) throws IOException {
         builder.startArray(FIELDS.RESULTS);
         for (RestBulkRowCountReceiver.Result result : results) {
             builder.startObject();
             builder.field(FIELDS.ROW_COUNT, result.rowCount());
-            if (result.errorMessage() != null) {
-                builder.field(FIELDS.ERROR_MESSAGE, result.errorMessage());
+            ShardResponse.ErrorMessageAndCode error = result.error();
+            if (error != null) {
+                var httpError = HttpError.fromThrowableId(error.errorCode());
+                builder.startObject(FIELDS.ERROR);
+                builder.field(FIELDS.ERROR_CODE, httpError.errorCode());
+                builder.field(FIELDS.ERROR_MESSAGE, error.errorMessage());
+                builder.endObject();
             }
             builder.endObject();
         }
