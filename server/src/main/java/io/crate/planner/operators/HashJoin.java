@@ -61,15 +61,17 @@ public class HashJoin extends AbstractJoinPlan {
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
-        super(lhs, rhs, joinCondition, JoinType.INNER, LookUpJoin.NONE);
+                    Symbol joinCondition,
+                    JoinType joinType) {
+        super(lhs, rhs, joinCondition, joinType, LookUpJoin.NONE);
     }
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition,
+                    JoinType joinType,
                     LookUpJoin lookUpJoin) {
-        super(lhs, rhs, joinCondition, JoinType.INNER, lookUpJoin);
+        super(lhs, rhs, joinCondition, joinType, lookUpJoin);
     }
 
     @Override
@@ -156,7 +158,8 @@ public class HashJoin extends AbstractJoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            lhStats.estimateSizeForColumns(leftOutputs)
+            lhStats.estimateSizeForColumns(leftOutputs),
+            joinType
         );
         return new Join(
             joinPhase,
@@ -175,6 +178,7 @@ public class HashJoin extends AbstractJoinPlan {
             sources.get(0),
             sources.get(1),
             joinCondition,
+            joinType,
             lookupJoin
         );
     }
@@ -207,6 +211,7 @@ public class HashJoin extends AbstractJoinPlan {
                 newLhs,
                 newRhs,
                 joinCondition,
+                joinType,
                 lookupJoin
             );
         }
@@ -237,6 +242,7 @@ public class HashJoin extends AbstractJoinPlan {
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinCondition,
+                joinType,
                 lookupJoin
             )
         );
@@ -251,6 +257,8 @@ public class HashJoin extends AbstractJoinPlan {
     public void print(PrintContext printContext) {
         printContext
             .text("HashJoin[")
+            .text(joinType.toString())
+            .text(" | ")
             .text(joinCondition.toString())
             .text("]");
         printStats(printContext);

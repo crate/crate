@@ -1313,7 +1313,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             """
             Eval[name]
-              └ HashJoin[(name = (name || $1))]
+              └ HashJoin[INNER | (name = (name || $1))]
                 ├ Rename[name] AS u1
                 │  └ Collect[doc.users | [name] | true]
                 └ Rename[name] AS u2
@@ -1367,7 +1367,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
             """
-            HashJoin[(a = b)]
+            HashJoin[INNER | (a = b)]
               ├ Rename[a] AS v1
               │  └ Rename[a] AS a1
               │    └ Collect[doc.t1 | [a] | true]

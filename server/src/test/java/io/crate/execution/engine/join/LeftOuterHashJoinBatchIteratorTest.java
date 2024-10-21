@@ -52,7 +52,7 @@ import io.crate.data.testing.TestingBatchIterators;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class HashInnerJoinBatchIteratorTest {
+public class LeftOuterHashJoinBatchIteratorTest {
 
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
     private final List<Object[]> expectedResult;
@@ -75,61 +75,46 @@ public class HashInnerJoinBatchIteratorTest {
         return row -> (Integer) row.get(0) % 3;
     }
 
-    public HashInnerJoinBatchIteratorTest(@SuppressWarnings("unused") @Name("dataSetName") String testName,
-                                          @Name("dataForLeft") Supplier<BatchIterator<Row>> leftIterator,
-                                          @Name("dataForRight") Supplier<BatchIterator<Row>> rightIterator,
-                                          @Name("expectedResult") List<Object[]> expectedResult) {
+    public LeftOuterHashJoinBatchIteratorTest(@SuppressWarnings("unused") @Name("dataSetName") String testName,
+                                              @Name("dataForLeft") Supplier<BatchIterator<Row>> leftIterator,
+                                              @Name("dataForRight") Supplier<BatchIterator<Row>> rightIterator,
+                                              @Name("expectedResulWithoutNulls") List<Object[]> expectedResulWithoutNulls) {
         this.leftIterator = leftIterator;
         this.rightIterator = rightIterator;
-        this.expectedResult = expectedResult;
+        this.expectedResult = expectedResulWithoutNulls;
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
     }
 
     @ParametersFactory
     public static Iterable<Object[]> testParameters() {
-        List<Object[]> resultForUniqueValues = Arrays.asList(
-            new Object[] { 2, 2 }, new Object[] { 3, 3 }, new Object[] { 4, 4 });
-        List<Object[]> resultForDuplicateValues = Arrays.asList(
-            new Object[] { 1, 1 }, new Object[] { 1, 1 },
-            new Object[] { 2, 2 }, new Object[] { 2, 2 },
-            new Object[] { 3, 3 },
-            new Object[] { 4, 4 }, new Object[] { 4, 4 }, new Object[] { 4, 4 }, new Object[] { 4, 4 }
-        );
 
-        return Arrays.asList(
+        return List.of(
             $("UniqueValues-plain",
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(0, 5),
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(2, 6),
-              resultForUniqueValues),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(0, 5),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(2, 6),
+                List.of($(0, null), $(1, null), $(2, 2), $(3, 3), $(4, 4))),
             $("UniqueValues-batchedSource",
-              (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
-              (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
-              resultForUniqueValues),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+                List.of($(0, null), $(1, null), $(2, 2), $(3, 3), $(4, 4))),
             $("DuplicateValues-plain",
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
-              (Supplier<BatchIterator<Row>>) () ->
-                  TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)),
-              resultForDuplicateValues),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(List.of(0, 0, 1, 2, 2, 3, 4, 4)),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(List.of(1, 1, 2, 3, 4, 4, 5, 5, 6)),
+                List.of($(0, null), $(0, null), $(1, 1), $(1, 1), $(2, 2), $(2, 2), $(3, 3), $(4, 4), $(4, 4), $(4, 4), $(4, 4))),
             $("DuplicateValues-batchedSource",
-              (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(
-                      TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
-              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-                TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
-              resultForDuplicateValues),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
+                List.of($(0, null), $(0, null), $(1, 1), $(1, 1), $(2, 2), $(2, 2), $(3, 3), $(4, 4), $(4, 4), $(4, 4), $(4, 4))),
             $("DuplicateValues-leftLoadedRightBatched",
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
-              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-              TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
-              resultForDuplicateValues));
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
+                List.of($(0, null), $(0, null), $(1, 1), $(1, 1), $(2, 2), $(2, 2), $(3, 3), $(4, 4), $(4, 4), $(4, 4), $(4, 4))));
     }
 
     @Test
-    public void testInnerHashJoin() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+    public void test_left_outer_join() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -137,31 +122,16 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 5
+            ignored -> 5,
+            true
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
-    public void testInnerHashJoinWithHashCollisions() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
-            leftIterator.get(),
-            rightIterator.get(),
-            mock(RowAccounting.class),
-            new CombinedRow(1, 1),
-            getCol0EqCol1JoinCondition(),
-            getHashWithCollisions(),
-            getHashWithCollisions(),
-            ignored -> 5
-        );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
-    }
-
-    @Test
-    public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+    public void test_left_outer_join_with_blocksize_smaller_than_dataset() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -169,15 +139,16 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 1
+            ignored -> 1,
+            true
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
-    public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+    public void test_left_outer_join_with_blocksize_bigger_than_tterator_batchsize() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -185,9 +156,10 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 3
+            ignored -> 3,
+            true
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }
