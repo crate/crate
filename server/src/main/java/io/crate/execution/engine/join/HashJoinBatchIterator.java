@@ -152,6 +152,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         resetBuffer();
         leftMatchingRowsIterator = null;
         nonMatchingKeys = null;
+        currentValues = List.of();
     }
 
     @Override
