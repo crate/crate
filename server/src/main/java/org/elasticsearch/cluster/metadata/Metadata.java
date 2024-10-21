@@ -55,9 +55,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedObjectNotFoundException;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
@@ -74,7 +71,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 
-public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
+public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
     public static long COLUMN_OID_UNASSIGNED = 0L;
@@ -116,7 +113,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
      */
     public static EnumSet<XContentContext> ALL_CONTEXTS = EnumSet.allOf(XContentContext.class);
 
-    public interface Custom extends NamedDiffable<Custom>, ToXContentFragment {
+    public interface Custom extends NamedDiffable<Custom> {
 
         EnumSet<XContentContext> context();
     }
@@ -445,12 +442,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
 
     public static Metadata fromXContent(XContentParser parser) throws IOException {
         return Builder.fromXContent(parser, false);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        Builder.toXContent(this, builder, params);
-        return builder;
     }
 
     private static class MetadataDiff implements Diff<Metadata> {
@@ -913,56 +904,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             return aliasAndIndexLookup;
         }
 
-        public static void toXContent(Metadata metadata, XContentBuilder builder, ToXContent.Params params) throws IOException {
-
-            builder.startObject("meta-data");
-
-            builder.field("version", metadata.version());
-            builder.field("column_oid", metadata.columnOID());
-            builder.field("cluster_uuid", metadata.clusterUUID);
-            builder.field("cluster_uuid_committed", metadata.clusterUUIDCommitted);
-
-            builder.startObject("cluster_coordination");
-            metadata.coordinationMetadata().toXContent(builder, params);
-            builder.endObject();
-
-            if (!metadata.persistentSettings().isEmpty()) {
-                builder.startObject("settings");
-                metadata.persistentSettings().toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
-                builder.endObject();
-            }
-
-            XContentContext context = XContentContext.valueOf(params.param(CONTEXT_MODE_PARAM, "API"));
-            if (context == XContentContext.API && !metadata.transientSettings().isEmpty()) {
-                builder.startObject("transient_settings");
-                metadata.transientSettings().toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
-                builder.endObject();
-            }
-
-            builder.startObject("templates");
-            for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
-                IndexTemplateMetadata.Builder.toXContent(cursor.value, builder, params);
-            }
-            builder.endObject();
-
-            if (context == XContentContext.API && !metadata.indices().isEmpty()) {
-                builder.startObject("indices");
-                for (IndexMetadata indexMetadata : metadata) {
-                    IndexMetadata.Builder.toXContent(indexMetadata, builder, params);
-                }
-                builder.endObject();
-            }
-
-            for (ObjectObjectCursor<String, Custom> cursor : metadata.customs()) {
-                if (cursor.value.context().contains(context)) {
-                    builder.startObject(cursor.key);
-                    cursor.value.toXContent(builder, params);
-                    builder.endObject();
-                }
-            }
-            builder.endObject();
-        }
-
         public static Metadata fromXContent(XContentParser parser, boolean preserveUnknownCustoms) throws IOException {
             Builder builder = new Builder();
 
@@ -1073,11 +1014,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            return builder.mapContents(contents);
         }
     }
 

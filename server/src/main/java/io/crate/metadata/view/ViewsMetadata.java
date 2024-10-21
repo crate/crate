@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.jetbrains.annotations.Nullable;
@@ -106,27 +105,6 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
      *     <li>value of "owner" is the name of the user who created the view</li>
      * </ul>
      */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (Map.Entry<String, ViewMetadata> entry : viewByName.entrySet()) {
-            ViewMetadata view = entry.getValue();
-            builder.startObject(entry.getKey());
-            {
-                builder.field("stmt", view.stmt());
-                builder.field("owner", view.owner());
-                builder.startArray("searchpath");
-                for (String schema : view.searchPath().showPath()) {
-                    builder.value(schema);
-                }
-                builder.endArray();
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
     public static ViewsMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, ViewMetadata> views = new HashMap<>();
 

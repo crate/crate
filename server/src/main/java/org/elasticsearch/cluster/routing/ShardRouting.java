@@ -19,27 +19,25 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySource;
-import org.elasticsearch.cluster.routing.RecoverySource.PeerRecoverySource;
-import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+
+import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySource;
+import org.elasticsearch.cluster.routing.RecoverySource.PeerRecoverySource;
+import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@link ShardRouting} immutably encapsulates information about shard
  * indexRoutings like id, state, version, etc.
  */
-public final class ShardRouting implements Writeable, ToXContentObject {
+public final class ShardRouting implements Writeable {
 
     /**
      * Used if shard size is not available
@@ -609,31 +607,6 @@ public final class ShardRouting implements Writeable, ToXContentObject {
             sb.append(", expected_shard_size[").append(expectedShardSize).append("]");
         }
         return sb.toString();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject()
-            .field("state", state())
-            .field("primary", primary())
-            .field("node", currentNodeId())
-            .field("relocating_node", relocatingNodeId())
-            .field("shard", id())
-            .field("index", getIndexName());
-        if (expectedShardSize != UNAVAILABLE_EXPECTED_SHARD_SIZE) {
-            builder.field("expected_shard_size_in_bytes", expectedShardSize);
-        }
-        if (recoverySource != null) {
-            builder.field("recovery_source", recoverySource);
-        }
-        if (allocationId != null) {
-            builder.field("allocation_id");
-            allocationId.toXContent(builder, params);
-        }
-        if (unassignedInfo != null) {
-            unassignedInfo.toXContent(builder, params);
-        }
-        return builder.endObject();
     }
 
     /**

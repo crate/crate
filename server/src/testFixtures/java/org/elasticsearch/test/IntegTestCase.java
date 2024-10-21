@@ -28,8 +28,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.elasticsearch.test.XContentTestUtils.convertToMap;
-import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgnoringArrayOrder;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 
@@ -143,9 +141,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.session.Cursors;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.auth.Protocol;
@@ -191,6 +186,9 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.statistics.TableStats;
@@ -854,7 +852,6 @@ public abstract class IntegTestCase extends ESTestCase {
             byte[] masterClusterStateBytes = ClusterState.Builder.toBytes(masterClusterState);
             // remove local node reference
             masterClusterState = ClusterState.Builder.fromBytes(masterClusterStateBytes, null, namedWriteableRegistry);
-            Map<String, Object> masterStateMap = convertToMap(masterClusterState);
             int masterClusterStateSize = ClusterState.Builder.toBytes(masterClusterState).length;
             String masterId = masterClusterState.nodes().getMasterNodeId();
             for (Client client : cluster().getClients()) {
@@ -866,7 +863,6 @@ public abstract class IntegTestCase extends ESTestCase {
                 localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes,
                                                                    null,
                                                                    namedWriteableRegistry);
-                Map<String, Object> localStateMap = convertToMap(localClusterState);
                 int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
                 // Check that the non-master node has the same version of the cluster state as the master and
                 // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
@@ -877,10 +873,6 @@ public abstract class IntegTestCase extends ESTestCase {
                         // We cannot compare serialization bytes since serialization order of maps is not guaranteed
                         // but we can compare serialization sizes - they should be the same
                         assertThat(localClusterStateSize).as("cluster state size does not match").isEqualTo(masterClusterStateSize);
-                        // Compare JSON serialization
-                        assertThat(differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap))
-                            .as("cluster state JSON serialization does not match")
-                            .isNull();
                     } catch (AssertionError error) {
                         logger.error(
                             "Cluster state from master:\n{}\nLocal cluster state:\n{}",

@@ -28,14 +28,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.Map;
 
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -65,30 +59,6 @@ public class ViewsMetadataTest extends ESTestCase {
         ViewsMetadata views2 = new ViewsMetadata(in);
         assertThat(views).isEqualTo(views2);
     }
-
-    @Test
-    public void testViewsMetadataToXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        ViewsMetadata views = createMetadata();
-        views.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            BytesReference.toBytes(BytesReference.bytes(builder)));
-        parser.nextToken(); // start object
-        ViewsMetadata views2 = ViewsMetadata.fromXContent(parser);
-        assertThat(views).isEqualTo(views2);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
 
     @Test
     public void test_raises_error_on_rename_if_source_is_missing() throws Exception {

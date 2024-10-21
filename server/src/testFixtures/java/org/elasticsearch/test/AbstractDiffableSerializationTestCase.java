@@ -19,12 +19,11 @@
 
 package org.elasticsearch.test;
 
+import java.io.IOException;
+
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.common.io.stream.Writeable.Reader;
-import org.elasticsearch.common.xcontent.ToXContent;
-
-import java.io.IOException;
 
 /**
  * An abstract test case to ensure correct behavior of Diffable.
@@ -32,7 +31,7 @@ import java.io.IOException;
  * This class can be used as a based class for tests of Metadata.Custom classes and other classes that support,
  * Writable serialization, XContent-based serialization and is diffable.
  */
-public abstract class AbstractDiffableSerializationTestCase<T extends Diffable<T> & ToXContent> extends AbstractSerializingTestCase<T> {
+public abstract class AbstractDiffableSerializationTestCase<T extends Diffable<T>> extends AbstractSerializingTestCase<T> {
 
     /**
      *  Introduces random changes into the test object
