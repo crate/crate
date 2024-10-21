@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -42,11 +43,11 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.RetryPolicy;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.types.DataTypes;
 
@@ -176,10 +177,11 @@ public class AzureRepository extends BlobStoreRepository {
     private final boolean readonly;
 
     public AzureRepository(RepositoryMetadata metadata,
+                           NamedWriteableRegistry namedWriteableRegistry,
                            NamedXContentRegistry namedXContentRegistry,
                            ClusterService clusterService,
                            RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
 
         // If the user explicitly did not define a readonly value, we set it by ourselves depending on the location mode setting.

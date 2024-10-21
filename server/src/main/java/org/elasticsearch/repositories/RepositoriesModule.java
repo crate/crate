@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.recovery.RecoverySettings;
@@ -56,6 +57,7 @@ public class RepositoriesModule extends AbstractModule {
                               LogicalReplicationService logicalReplicationService,
                               RemoteClusters remoteClusters,
                               ThreadPool threadPool,
+                              NamedWriteableRegistry namedWriteableRegistry,
                               NamedXContentRegistry namedXContentRegistry,
                               LogicalReplicationSettings replicationSettings,
                               RecoverySettings recoverySettings) {
@@ -69,7 +71,7 @@ public class RepositoriesModule extends AbstractModule {
 
             @Override
             public Repository create(RepositoryMetadata metadata) throws Exception {
-                return new FsRepository(metadata, env, namedXContentRegistry, clusterService, recoverySettings);
+                return new FsRepository(metadata, env, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings);
             }
         });
         factories.put(
@@ -94,7 +96,11 @@ public class RepositoriesModule extends AbstractModule {
         );
 
         for (RepositoryPlugin repoPlugin : repoPlugins) {
-            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService,
+            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(
+                env,
+                namedWriteableRegistry,
+                namedXContentRegistry,
+                clusterService,
                 recoverySettings);
             for (Map.Entry<String, Repository.Factory> entry : newRepoTypes.entrySet()) {
                 if (factories.put(entry.getKey(), entry.getValue()) != null) {

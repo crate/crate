@@ -2175,7 +2175,11 @@ See below for an example::
 
 Returns the natural logarithm of given ``number``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type. It will be of type ``double precision`` if the input value is of any other
+arithmetic type.
 
 See below for an example::
 
@@ -2196,14 +2200,21 @@ See below for an example::
 
 .. _scalar-log:
 
-``log(x : number, b : number)``
--------------------------------
+``log(x : number[, b : number])``
+---------------------------------
 
 Returns the logarithm of given ``x`` to base ``b``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example, which essentially is the same as above::
+When the second argument (``b``) is provided it returns a value of type
+``double precision``, even if ``x`` is of type ``numeric``, as it's implicitly
+casted to ``double pricision`` (thus, possibly loosing precision). When it's not
+provided, then the return value will be of type ``numeric`` if the input value
+is of ``numeric`` type and of type ``double precision`` if the input value is of
+any other arithmetic type.
+
+See below for an example::
 
     cr> SELECT log(100, 10) AS log;
     +-----+
@@ -2427,7 +2438,8 @@ See below for an example::
 
 Returns the sine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2447,7 +2459,8 @@ See below for an example::
 
 Returns the arcsine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2467,7 +2480,8 @@ See below for an example::
 
 Returns the cosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2487,7 +2501,8 @@ See below for an example::
 
 Returns the arccosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2507,7 +2522,8 @@ See below for an example::
 
 Returns the tangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2529,7 +2545,8 @@ Returns the cotangent of the argument that represents the angle expressed in
 radians. The range of the argument is all real numbers. The cotangent of zero
 is undefined and returns ``Infinity``.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2549,7 +2566,8 @@ See below for an example::
 
 Returns the arctangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 See below for an example::
 
@@ -2569,7 +2587,8 @@ See below for an example::
 
 Returns the arctangent of ``y/x``.
 
-Returns: ``double precision``
+Returns: ``numeric`` for argument of types ``numeric`` and ``double precision``
+for any other arithmetic type.
 
 ::
 
