@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -34,7 +35,9 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         return """
             create table n (
                 x numeric(18, 2),
-                y numeric(38, 2)
+                y numeric(38, 2),
+                xarr numeric(18, 2)[],
+                yarr numeric(38, 2)[]
             )
             """;
     }
@@ -113,6 +116,39 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(convert(col + " <= -1.105")).isEqualTo(convert(col + " < -1.10"));
         assertThat(convert(col + " <= -1.1")).isEqualTo(convert(col + " < -1.09"));
         assertThat(convert(col + " <= -1")).isEqualTo(convert(col + " < -0.99"));
+    }
+
+    @Test
+    public void test_equals_with_different_precision() {
+        String col = randomBoolean() ? "x" : "y";
+        assertThat(convert(col + " = 1")).isEqualTo(convert(col + " = 1.00"));
+        assertThat(convert(col + " = 1.1")).isEqualTo(convert(col + " = 1.10"));
+        // TODO the cast is required to preserve the precision/scale until NumericEqQuery
+        assertThat(convert(col + " = 1.111::numeric")).isExactlyInstanceOf(MatchNoDocsQuery.class);
+        assertThat(convert(col + " = 1.110::numeric")).isEqualTo(convert(col + " = 1.11"));
+    }
+
+    @Test
+    public void test_incomparable_numeric_values_are_filtered_from_numeric_array_literal() {
+        // TODO the cast is required to preserve the precision/scale until NumericEqQuery
+        assertThat(convert("xarr = [1, 1.1, 1.110, 1.111]::numeric[]").toString())
+            .isEqualTo("+xarr:{100 110 111} +(xarr = [1.0, 1.1, 1.11, 1.111])"); // generic query still includes 1.111
+        assertThat(convert("yarr = [1, 1.1, 1.110, 1.111]::numeric[]").toString())
+            .isEqualTo("+yarr:{100 110 111} +(yarr = [1.0, 1.1, 1.11, 1.111])");
+        assertThat(convert("xarr = [1.111]::numeric[]").toString())
+            .isEqualTo("+MatchNoDocsQuery(\"The given values are out of bounds\") +(xarr = [1.111])");
+        assertThat(convert("yarr = [1.111]::numeric[]").toString())
+            .isEqualTo("+MatchNoDocsQuery(\"The given values are out of bounds\") +(yarr = [1.111])");
+    }
+
+    @Test
+    public void test_same_significant_digits() {
+        String col = randomBoolean() ? "x" : "y";
+        assertThat(convert(col + " = 1.11::numeric").toString()).isEqualTo(col + ":[111 TO 111]");
+        assertThat(convert(col + " = 11.1::numeric").toString()).isEqualTo(col + ":[1110 TO 1110]");
+        assertThat(convert(col + " = 111::numeric").toString()).isEqualTo(col + ":[11100 TO 11100]");
+        assertThat(convert(col + "arr = [1.11, 11.1, 111]::numeric[]").toString())
+            .isEqualTo(String.format("+%sarr:{111 1110 11100} +(%sarr = [1.11, 11.1, 111.0])", col, col));
     }
 
     @Test

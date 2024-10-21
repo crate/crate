@@ -37,7 +37,9 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 
 public class SwapCastsInComparisonOperators implements Rule<Function> {
@@ -72,6 +74,10 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
+        // TODO to be removed, see https://github.com/crate/crate/pull/16829#discussion_r1809553120
+        if (ArrayType.unnest(targetType).id() == DataTypes.NUMERIC.id()) {
+            targetType = castFunction.valueType();
+        }
         CastMode castMode = castFunction.castMode();
         assert castMode != null : "Pattern matched, function must be a cast";
         Symbol castedLiteral = literalOrParam.cast(targetType, castMode);

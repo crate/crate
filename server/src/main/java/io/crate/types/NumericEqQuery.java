@@ -29,6 +29,7 @@ import java.util.Objects;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
@@ -62,12 +63,16 @@ public class NumericEqQuery {
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            BigDecimal scaledDown = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaledDown.compareTo(value) != 0) {
+                return new MatchNoDocsQuery("The given value holds extra non-zero scales");
+            }
             if (isIndexed) {
-                long longValue = value.unscaledValue().longValueExact();
+                long longValue = scaledDown.unscaledValue().longValueExact();
                 return LongPoint.newExactQuery(field, longValue);
             }
             if (hasDocValues) {
-                long longValue = value.unscaledValue().longValueExact();
+                long longValue = scaledDown.unscaledValue().longValueExact();
                 return SortedNumericDocValuesField.newSlowExactQuery(field, longValue);
             }
             return null;
@@ -105,6 +110,10 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            nonNullValues = filterOutOfBoundsAndSetScale(nonNullValues, Objects.requireNonNull(type.scale()));
+            if (nonNullValues.isEmpty()) {
+                return new MatchNoDocsQuery("The given values are out of bounds");
+            }
             if (isIndexed) {
                 return LongPoint.newSetQuery(
                     field,
@@ -131,7 +140,11 @@ public class NumericEqQuery {
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
-            return rangeQuery(field, value, value, true, true, hasDocValues, isIndexed);
+            BigDecimal scaledDown = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaledDown.compareTo(value) != 0) {
+                return new MatchNoDocsQuery("The given value holds extra non-zero scales");
+            }
+            return rangeQuery(field, scaledDown, scaledDown, true, true, hasDocValues, isIndexed);
         }
 
         @Override
@@ -181,6 +194,10 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            var scaledDownValues = filterOutOfBoundsAndSetScale(nonNullValues, Objects.requireNonNull(type.scale()));
+            if (scaledDownValues.isEmpty()) {
+                return new MatchNoDocsQuery("The given values are out of bounds");
+            }
             if (isIndexed) {
                 int maxBytes = type.maxBytes();
                 BytesRef encoded = new BytesRef(new byte[maxBytes]);
@@ -194,10 +211,10 @@ public class NumericEqQuery {
 
                         @Override
                         public BytesRef next() {
-                            if (idx == nonNullValues.size()) {
+                            if (idx == scaledDownValues.size()) {
                                 return null;
                             }
-                            BigDecimal bigDecimal = nonNullValues.get(idx);
+                            BigDecimal bigDecimal = scaledDownValues.get(idx);
                             idx++;
                             NumericUtils.bigIntToSortableBytes(bigDecimal.unscaledValue(), maxBytes, encoded.bytes, 0);
                             return encoded;
@@ -243,5 +260,12 @@ public class NumericEqQuery {
                                 boolean isIndexed) {
             return null;
         }
+    }
+
+    private static List<BigDecimal> filterOutOfBoundsAndSetScale(List<BigDecimal> values, int scale) {
+        return values.stream().map(val -> {
+            var scaledDown = val.setScale(scale, RoundingMode.DOWN);
+            return scaledDown.compareTo(val) == 0 ? scaledDown : null;
+        }).filter(Objects::nonNull).toList();
     }
 }
