@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -34,7 +35,9 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         return """
             create table n (
                 x numeric(18, 2),
-                y numeric(38, 2)
+                y numeric(38, 2),
+                xarr numeric(18, 2)[],
+                yarr numeric(38, 2)[]
             )
             """;
     }
@@ -67,5 +70,20 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("y <= '2746799837116176.76'");
         assertThat(query).isInstanceOf(PointRangeQuery.class);
         assertThat(query.toString()).isEqualTo("y:[-99999999999999999999999999999999999999 TO 274679983711617676]");
+    }
+
+    @Test
+    public void test_equals_with_different_precision() {
+        assertThat(convert("x = 1")).isEqualTo(convert("x = 1.00"));
+        assertThat(convert("x = 1.1")).isEqualTo(convert("x = 1.10"));
+        // TODO numeric cast should be able to be dropped
+        assertThat(convert("x = 1.111::numeric")).isExactlyInstanceOf(MatchNoDocsQuery.class);
+        assertThat(convert("x = 1.110::numeric")).isEqualTo(convert("x = 1.11"));
+
+        assertThat(convert("y = 1")).isEqualTo(convert("y = 1.00"));
+        assertThat(convert("y = 1.1")).isEqualTo(convert("y = 1.10"));
+        // TODO numeric cast should be able to be dropped
+        assertThat(convert("y = 1.111::numeric")).isExactlyInstanceOf(MatchNoDocsQuery.class);
+        assertThat(convert("y = 1.110::numeric")).isEqualTo(convert("y = 1.11"));
     }
 }

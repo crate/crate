@@ -23,10 +23,13 @@ package io.crate.types;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
@@ -43,7 +46,7 @@ public class NumericEqQuery {
         if (precision == null) {
             return new Unoptimized();
         } else if (precision <= NumericStorage.COMPACT_PRECISION) {
-            return new Compact();
+            return new Compact(type);
         } else {
             return new Large(type);
         }
@@ -51,9 +54,19 @@ public class NumericEqQuery {
 
     static class Compact implements EqQuery<BigDecimal> {
 
+        private final NumericType type;
+
+        private Compact(NumericType type) {
+            this.type = type;
+        }
+
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            BigDecimal scaledDown = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaledDown.equals(value) == false) {
+                return new MatchNoDocsQuery("The value's scale exceeds the field's scale and are non-zeroes");
+            }
             if (isIndexed) {
                 long longValue = value.unscaledValue().longValueExact();
                 return LongPoint.newExactQuery(field, longValue);
@@ -89,6 +102,12 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            nonNullValues = nonNullValues.stream().filter(
+                val -> val.equals(val.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN))
+            ).toList();
+            if (nonNullValues.isEmpty()) {
+                return null;
+            }
             if (isIndexed) {
                 return LongPoint.newSetQuery(
                     field,
@@ -115,6 +134,10 @@ public class NumericEqQuery {
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            BigDecimal scaledDown = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaledDown.equals(value) == false) {
+                return new MatchNoDocsQuery("The value's scale exceeds the field's scale and are non-zeroes");
+            }
             return rangeQuery(field, value, value, true, true, hasDocValues, isIndexed);
         }
 
@@ -157,6 +180,12 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            final List<BigDecimal> validNonNullValues = nonNullValues.stream().filter(
+                val -> val.equals(val.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN))
+            ).toList();
+            if (validNonNullValues.isEmpty()) {
+                return null;
+            }
             if (isIndexed) {
                 int maxBytes = type.maxBytes();
                 BytesRef encoded = new BytesRef(new byte[maxBytes]);
@@ -170,10 +199,10 @@ public class NumericEqQuery {
 
                         @Override
                         public BytesRef next() {
-                            if (idx == nonNullValues.size()) {
+                            if (idx == validNonNullValues.size()) {
                                 return null;
                             }
-                            BigDecimal bigDecimal = nonNullValues.get(idx);
+                            BigDecimal bigDecimal = validNonNullValues.get(idx);
                             idx++;
                             NumericUtils.bigIntToSortableBytes(bigDecimal.unscaledValue(), maxBytes, encoded.bytes, 0);
                             return encoded;
