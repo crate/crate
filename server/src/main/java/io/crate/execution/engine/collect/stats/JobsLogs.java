@@ -31,6 +31,8 @@ import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.annotations.ThreadSafe;
@@ -63,6 +65,8 @@ import io.crate.role.Role;
  */
 @ThreadSafe
 public class JobsLogs {
+
+    private static final Logger LOGGER = LogManager.getLogger(JobsLogs.class);
 
     record OperationId(int operationId, UUID jobId) {}
 
@@ -102,6 +106,9 @@ public class JobsLogs {
         if (!isEnabled()) {
             return;
         }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Adding job log entry with UUID: {}", jobId);
+        }
         jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis(), user, classification));
     }
 
@@ -112,6 +119,9 @@ public class JobsLogs {
      */
     public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
         activeRequests.decrement();
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Removing job log entry with UUID: {}", jobId);
+        }
         JobContext jobContext = jobsTable.remove(jobId);
         if (!isEnabled() || jobContext == null) {
             return;
