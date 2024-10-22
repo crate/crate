@@ -95,5 +95,10 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
             // correct type detection is ensured by the source parser
             return source.get(ref.column().path());
         }
+
+        @Override
+        public String toString() {
+            return "ChildDoc:" + storedRowLookup.rawSource();
+        }
     }
 }

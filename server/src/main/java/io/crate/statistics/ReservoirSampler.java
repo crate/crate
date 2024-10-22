@@ -28,13 +28,13 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -57,6 +57,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.Searcher;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -85,6 +86,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
+import io.netty.util.collection.IntObjectHashMap;
 
 public final class ReservoirSampler {
 
@@ -177,12 +179,11 @@ public final class ReservoirSampler {
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
-        List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
+        ArrayList<ColumnExpression<?>> columnExpressions = new ArrayList<>(columns.size());
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(ramAccounting, columns.get(i).valueType()));
+            columnExpressions.add(new ColumnExpression<>(ramAccounting, columns.get(i)));
         }
-
-        List<ShardExpressions> searchersToRelease = new ArrayList<>();
+        IntObjectHashMap<ShardExpressions> searchersToRelease = new IntObjectHashMap<>();
 
         try {
 
@@ -206,7 +207,7 @@ public final class ReservoirSampler {
                     }
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
-                        searchersToRelease.add(new ShardExpressions(searcher, expressions));
+                        searchersToRelease.put(indexShard.shardId().id(), new ShardExpressions(searcher, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                         // We do the sampling in 2 phases. First we get the docIds;
@@ -219,18 +220,17 @@ public final class ReservoirSampler {
                 }
             }
 
-            var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
+            var sampler = new ColumnSampler(columnExpressions, searchersToRelease::get);
             sampler.iterate(fetchIdSamples.samples());
 
-            List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
-            for (var collector : columnCollectors) {
+            List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>(columnExpressions.size());
+            for (var collector : columnExpressions) {
                 statsBuilders.add(collector.statsBuilder);
             }
-
             return new Samples(statsBuilders, totalNumDocs, totalSizeInBytes);
         } finally {
-            for (var shard : searchersToRelease) {
-                shard.searcher.close();
+            for (var cursor : searchersToRelease.entries()) {
+                cursor.value().searcher.close();
             }
         }
     }
@@ -269,121 +269,116 @@ public final class ReservoirSampler {
         return expressions;
     }
 
-    private static class ColumnCollector<T> {
+    private static class ColumnExpression<T> {
 
-        LuceneCollectorExpression<?> expression;
         final ColumnSketchBuilder<T> statsBuilder;
         final SketchRamAccounting ramAccounting;
         final DataType<T> dataType;
+        private final Reference column;
+        LuceneCollectorExpression<?> expression;
 
-        private ColumnCollector(SketchRamAccounting ramAccounting, DataType<T> dataType) {
+        private ColumnExpression(SketchRamAccounting ramAccounting, Reference column) {
+            this.dataType = (DataType<T>) column.valueType();
+            this.column = column;
             this.statsBuilder = dataType.columnStatsSupport().sketchBuilder();
-            this.dataType = dataType;
             this.ramAccounting = ramAccounting;
         }
 
-        void setShard(LuceneCollectorExpression<?> collector) {
+        void setShardExpression(LuceneCollectorExpression<?> collector) {
             this.expression = collector;
         }
 
         void collect(int docId) {
             expression.setNextDocId(docId);
-            T value = dataType.sanitizeValue(expression.value());
-            ramAccounting.addBytes(dataType.valueBytes(value));
-            statsBuilder.add(value);
+            Object rawValue = expression.value();
+            try {
+                T value = dataType.sanitizeValue(rawValue);
+                ramAccounting.addBytes(dataType.valueBytes(value));
+                statsBuilder.add(value);
+            } catch (ClassCastException ex) {
+                System.out.println(String.format(
+                    Locale.ENGLISH,
+                    "Value %s doesn't match type for column %s",
+                    rawValue,
+                    column
+                ));
+                throw ex;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "ColumnCollector{" + column.column() + '}';
         }
     }
 
     private record ShardExpressions(Engine.Searcher searcher,
                                     List<? extends LuceneCollectorExpression<?>> expressions) {
 
-        void updateColumnCollectors(List<ColumnCollector<?>> collectors) {
-            assert collectors.size() == expressions.size();
-            for (int i = 0; i < collectors.size(); i++) {
-                collectors.get(i).setShard(expressions.get(i));
+        void setShardExpressions(List<ColumnExpression<?>> columnExpressions) {
+            assert columnExpressions.size() == expressions.size();
+            for (int i = 0; i < columnExpressions.size(); i++) {
+                columnExpressions.get(i).setShardExpression(expressions.get(i));
             }
         }
     }
 
     private static class ColumnSampler {
 
-        final List<ColumnCollector<?>> collectors;
-        final IntFunction<ShardExpressions> shardSupplier;
+        final List<ColumnExpression<?>> columnExpressions;
+        final IntFunction<ShardExpressions> getShardExpressions;
 
-        ShardExpressions currentShard;
-        ReaderContext currentLeafContext;
-        int rowsCollected;
-        long idCount;
-
-        private ColumnSampler(
-            List<ColumnCollector<?>> collectors,
-            IntFunction<ShardExpressions> shardSupplier
-        ) {
-            this.collectors = collectors;
-            this.shardSupplier = shardSupplier;
+        private ColumnSampler(List<ColumnExpression<?>> columnExpressions,
+                              IntFunction<ShardExpressions> getShardExpressions) {
+            this.columnExpressions = columnExpressions;
+            this.getShardExpressions = getShardExpressions;
         }
 
         public final void iterate(LongArrayList ids) throws IOException {
-
-            this.idCount = ids.size();
-
             int currentShardId = -1;
-            IndexReaderContext currentShardContext = null;
+            ShardExpressions currentShardExpressions = null;
             int currentReaderCeiling = -1;
             int currentReaderDocBase = -1;
-
+            long rowsCollected = 0;
             for (LongCursor cursor : ids) {
-                int shardId = FetchId.decodeReaderId(cursor.value);
+                long fetchId = cursor.value;
+                int shardId = FetchId.decodeReaderId(fetchId);
                 if (shardId != currentShardId) {
                     currentShardId = shardId;
-                    currentShardContext = nextShard(shardId);
+                    currentShardExpressions = getShardExpressions.apply(shardId);
+                    currentShardExpressions.setShardExpressions(columnExpressions);
                     currentReaderCeiling = -1;
                 }
-                int docId = FetchId.decodeDocId(cursor.value);
+                int docId = FetchId.decodeDocId(fetchId);
                 if (docId >= currentReaderCeiling) {
-                    assert currentShardContext != null;
-                    int contextOrd = ReaderUtil.subIndex(docId, currentShardContext.leaves());
-                    var leafContext = nextReaderContext(contextOrd);
+                    assert currentShardExpressions != null;
+                    Searcher searcher = currentShardExpressions.searcher;
+                    List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();
+                    int leafIdx = ReaderUtil.subIndex(docId, leaves);
+                    LeafReaderContext leafContext = leaves.get(leafIdx);
+                    ReaderContext readerContext = new ReaderContext(leafContext);
+                    for (var columnExpression : columnExpressions) {
+                        columnExpression.expression.setNextReader(readerContext);
+                    }
                     currentReaderDocBase = leafContext.docBase;
                     currentReaderCeiling = currentReaderDocBase + leafContext.reader().maxDoc();
                 }
 
-                if (collect(docId - currentReaderDocBase) == false) {
+                int doc = docId - currentReaderDocBase;
+                try {
+                    for (var collector : columnExpressions) {
+                        collector.collect(doc);
+                    }
+                    rowsCollected++;
+                } catch (CircuitBreakingException ex) {
+                    LOGGER.info(
+                        "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
+                            + "Generating statistics with {} instead of {} records",
+                        rowsCollected,
+                        ids.size()
+                    );
                     break;
                 }
-            }
-        }
-
-        protected IndexReaderContext nextShard(int shardId) {
-            currentShard = shardSupplier.apply(shardId);
-            currentShard.updateColumnCollectors(collectors);
-            return currentShard.searcher.getTopReaderContext();
-        }
-
-        protected LeafReaderContext nextReaderContext(int contextOrd) throws IOException {
-            var ctx = currentShard.searcher.getLeafContexts().get(contextOrd);
-            currentLeafContext = new ReaderContext(ctx);
-            for (var collector : collectors) {
-                collector.expression.setNextReader(currentLeafContext);
-            }
-            return ctx;
-        }
-
-        protected boolean collect(int doc) {
-            try {
-                for (var collector : collectors) {
-                    collector.collect(doc);
-                }
-                rowsCollected++;
-                return true;
-            } catch (CircuitBreakingException e) {
-                LOGGER.info(
-                    "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
-                        + "Generating statistics with {} instead of {} records",
-                    rowsCollected,
-                    idCount
-                );
-                return false;
             }
         }
     }

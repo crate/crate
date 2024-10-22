@@ -114,4 +114,8 @@ public final class StoredRowLookup {
     private Map<String, Object> parseSource() {
         return sourceParser.parse(fieldsVisitor.source());
     }
+
+    public String rawSource() {
+        return fieldsVisitor.source().utf8ToString();
+    }
 }

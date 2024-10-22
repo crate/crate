@@ -332,7 +332,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
         } else if (value instanceof BytesRef bytesRef) {
             return bytesRef.utf8ToString();
         } else {
-            return (String) value;
+            try {
+                return (String) value;
+            } catch (ClassCastException ex) {
+                ex.printStackTrace();
+                throw ex;
+            }
         }
     }
 
