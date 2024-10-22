@@ -40,9 +40,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.translog.BufferedChecksumStreamOutput;
 import org.elasticsearch.repositories.blobstore.ChecksumBlobStoreFormat;
@@ -52,7 +49,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
 
     public static final String BLOB_CODEC = "blob";
 
-    private static class BlobObj implements ToXContentFragment, Writeable {
+    private static class BlobObj implements Writeable {
 
         private final String text;
 
@@ -101,12 +98,6 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
                 throw new ElasticsearchParseException("missing mandatory parameter text");
             }
             return new BlobObj(text);
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-            builder.field("text", getText());
-            return builder;
         }
     }
 

@@ -26,11 +26,9 @@ import java.util.List;
 import org.elasticsearch.cluster.service.PendingClusterTask;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.transport.TransportResponse;
 
-public class PendingClusterTasksResponse extends TransportResponse implements Iterable<PendingClusterTask>, ToXContentObject {
+public class PendingClusterTasksResponse extends TransportResponse implements Iterable<PendingClusterTask> {
 
     private final List<PendingClusterTask> pendingTasks;
 
@@ -62,37 +60,6 @@ public class PendingClusterTasksResponse extends TransportResponse implements It
                 .append("\n");
         }
         return sb.toString();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.startArray(Fields.TASKS);
-        for (PendingClusterTask pendingClusterTask : this) {
-            builder.startObject();
-            builder.field(Fields.INSERT_ORDER, pendingClusterTask.getInsertOrder());
-            builder.field(Fields.PRIORITY, pendingClusterTask.getPriority());
-            builder.field(Fields.SOURCE, pendingClusterTask.getSource());
-            builder.field(Fields.EXECUTING, pendingClusterTask.isExecuting());
-            builder.field(Fields.TIME_IN_QUEUE_MILLIS, pendingClusterTask.getTimeInQueueInMillis());
-            builder.field(Fields.TIME_IN_QUEUE, pendingClusterTask.getTimeInQueue());
-            builder.endObject();
-        }
-        builder.endArray();
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-
-        static final String TASKS = "tasks";
-        static final String EXECUTING = "executing";
-        static final String INSERT_ORDER = "insert_order";
-        static final String PRIORITY = "priority";
-        static final String SOURCE = "source";
-        static final String TIME_IN_QUEUE_MILLIS = "time_in_queue_millis";
-        static final String TIME_IN_QUEUE = "time_in_queue";
-
     }
 
     public PendingClusterTasksResponse(StreamInput in) throws IOException {

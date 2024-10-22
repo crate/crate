@@ -19,15 +19,6 @@
 
 package org.elasticsearch.cluster.routing.allocation.decider;
 
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,13 +26,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * This abstract class defining basic {@link Decision} used during shard
  * allocation process.
  *
  * @see AllocationDecider
  */
-public abstract class Decision implements ToXContent, Writeable {
+public abstract class Decision implements Writeable {
 
     public static final Decision ALWAYS = new Single(Type.YES);
     public static final Decision YES = new Single(Type.YES);
@@ -156,7 +152,7 @@ public abstract class Decision implements ToXContent, Writeable {
     /**
      * Simple class representing a single decision
      */
-    public static class Single extends Decision implements ToXContentObject {
+    public static class Single extends Decision {
         private Type type;
         private String label;
         private String explanation;
@@ -251,17 +247,6 @@ public abstract class Decision implements ToXContent, Writeable {
         }
 
         @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            builder.field("decider", label);
-            builder.field("decision", type);
-            String explanation = getExplanation();
-            builder.field("explanation", explanation != null ? explanation : "none");
-            builder.endObject();
-            return builder;
-        }
-
-        @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeBoolean(false); // flag specifying its a single decision
             type.writeTo(out);
@@ -275,7 +260,7 @@ public abstract class Decision implements ToXContent, Writeable {
     /**
      * Simple class representing a list of decisions
      */
-    public static class Multi extends Decision implements ToXContentFragment {
+    public static class Multi extends Decision {
 
         private final List<Decision> decisions = new ArrayList<>();
 
@@ -348,14 +333,6 @@ public abstract class Decision implements ToXContent, Writeable {
                 sb.append("[").append(decision.toString()).append("]");
             }
             return sb.toString();
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            for (Decision d : decisions) {
-                d.toXContent(builder, params);
-            }
-            return builder;
         }
 
         @Override

@@ -24,8 +24,6 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 public abstract class AbstractSerializingTestCase<T extends Writeable> extends AbstractWireSerializingTestCase<T> {
@@ -56,22 +54,4 @@ public abstract class AbstractSerializingTestCase<T extends Writeable> extends A
     protected String[] getShuffleFieldsExceptions() {
         return Strings.EMPTY_ARRAY;
     }
-
-    /**
-     * Params that have to be provided when calling calling {@link ToXContent#toXContent(XContentBuilder, ToXContent.Params)}
-     */
-    protected ToXContent.Params getToXContentParams() {
-        return ToXContent.EMPTY_PARAMS;
-    }
-
-    /**
-     * Whether or not to assert equivalence of the {@link org.elasticsearch.common.xcontent.XContent} of the test instance and the instance
-     * parsed from the {@link org.elasticsearch.common.xcontent.XContent} of the test instance.
-     *
-     * @return true if equivalence should be asserted, otherwise false
-     */
-    protected boolean assertToXContentEquivalence() {
-        return true;
-    }
-
 }

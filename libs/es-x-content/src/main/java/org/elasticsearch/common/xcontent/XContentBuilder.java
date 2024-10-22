@@ -818,7 +818,7 @@ public final class XContentBuilder implements Closeable, Flushable {
         if (value == null) {
             return nullValue();
         }
-        value.toXContent(this, ToXContent.EMPTY_PARAMS);
+        value.toXContent(this);
         return this;
     }
 

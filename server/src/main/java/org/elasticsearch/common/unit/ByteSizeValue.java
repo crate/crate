@@ -19,16 +19,13 @@
 
 package org.elasticsearch.common.unit;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
-public final class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragment {
+public final class ByteSizeValue implements Comparable<ByteSizeValue> {
 
     public static final ByteSizeValue ZERO = new ByteSizeValue(0, ByteSizeUnit.BYTES);
 
@@ -201,10 +198,5 @@ public final class ByteSizeValue implements Comparable<ByteSizeValue>, ToXConten
         long thisValue = size * unit.toBytes(1);
         long otherValue = other.size * other.unit.toBytes(1);
         return Long.compare(thisValue, otherValue);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.value(toString());
     }
 }

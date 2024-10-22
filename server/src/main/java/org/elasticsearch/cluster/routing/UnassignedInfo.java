@@ -41,8 +41,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.time.DateFormatter;
 import org.elasticsearch.common.time.DateFormatters;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
@@ -51,7 +49,7 @@ import io.crate.common.unit.TimeValue;
 /**
  * Holds additional information as to why the shard is in unassigned state.
  */
-public final class UnassignedInfo implements ToXContentFragment, Writeable {
+public final class UnassignedInfo implements Writeable {
 
     public static final DateFormatter DATE_TIME_FORMATTER = DateFormatters.forPattern("dateOptionalTime").withZone(ZoneOffset.UTC);
 
@@ -460,27 +458,6 @@ public final class UnassignedInfo implements ToXContentFragment, Writeable {
     @Override
     public String toString() {
         return "unassigned_info[" + shortSummary() + "]";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("unassigned_info");
-        builder.field("reason", reason);
-        builder.field("at", DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(unassignedTimeMillis)));
-        if (failedAllocations > 0) {
-            builder.field("failed_attempts", failedAllocations);
-        }
-        if (failedNodeIds.isEmpty() == false) {
-            builder.field("failed_nodes", failedNodeIds);
-        }
-        builder.field("delayed", delayed);
-        String details = getDetails();
-        if (details != null) {
-            builder.field("details", details);
-        }
-        builder.field("allocation_status", lastAllocationStatus.value());
-        builder.endObject();
-        return builder;
     }
 
     @Override

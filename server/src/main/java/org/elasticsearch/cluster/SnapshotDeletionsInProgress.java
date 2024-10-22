@@ -19,20 +19,6 @@
 
 package org.elasticsearch.cluster;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState.Custom;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.repositories.RepositoryOperation;
-import org.elasticsearch.snapshots.Snapshot;
-import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.snapshots.SnapshotsService;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +27,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState.Custom;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.repositories.RepositoryOperation;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotsService;
 
 /**
  * A class that represents the snapshot deletions that are in progress in the cluster.
@@ -169,27 +167,6 @@ public class SnapshotDeletionsInProgress extends AbstractNamedDiffable<Custom> i
     @Override
     public Version getMinimalSupportedVersion() {
         return VERSION_INTRODUCED;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray(TYPE);
-        for (Entry entry : entries) {
-            builder.startObject();
-            {
-                builder.field("repository", entry.repository());
-                builder.startArray("snapshots");
-                for (SnapshotId snapshot : entry.snapshots) {
-                    builder.value(snapshot.getName());
-                }
-                builder.endArray();
-                builder.humanReadableField("start_time_millis", "start_time", new TimeValue(entry.startTime));
-                builder.field("repository_state_id", entry.repositoryStateId);
-            }
-            builder.endObject();
-        }
-        builder.endArray();
-        return builder;
     }
 
     @Override

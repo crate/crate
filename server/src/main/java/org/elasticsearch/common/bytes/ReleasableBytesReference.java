@@ -19,15 +19,14 @@
 
 package org.elasticsearch.common.bytes;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * An extension to {@link BytesReference} that requires releasing its content. This
@@ -130,16 +129,6 @@ public final class ReleasableBytesReference implements Releasable, BytesReferenc
     @Override
     public int compareTo(BytesReference o) {
         return delegate.compareTo(o);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return delegate.toXContent(builder, params);
-    }
-
-    @Override
-    public boolean isFragment() {
-        return delegate.isFragment();
     }
 
     @Override

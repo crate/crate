@@ -22,12 +22,12 @@
 package org.elasticsearch.common.settings;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -38,7 +38,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -494,8 +493,7 @@ public class SettingsTests extends ESTestCase {
         final boolean flatSettings = randomBoolean();
         XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
-        settings.toXContent(builder,
-                            new ToXContent.MapParams(Collections.singletonMap("flat_settings", "" + flatSettings)));
+        settings.toXContent(builder, flatSettings);
         builder.endObject();
         XContentParser parser = createParser(builder);
         Settings build = Settings.fromXContent(parser);
@@ -532,20 +530,20 @@ public class SettingsTests extends ESTestCase {
         Settings test = Settings.builder().putList("foo.bar", "1", "2", "3").put("foo.bar.baz", "test").build();
         XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
-        test.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
+        test.toXContent(builder, false);
         builder.endObject();
         assertThat(Strings.toString(builder)).isEqualTo("{\"foo\":{\"bar.baz\":\"test\",\"bar\":[\"1\",\"2\",\"3\"]}}");
 
         test = Settings.builder().putList("foo.bar", "1", "2", "3").build();
         builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
-        test.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
+        test.toXContent(builder, false);
         builder.endObject();
         assertThat(Strings.toString(builder)).isEqualTo("{\"foo\":{\"bar\":[\"1\",\"2\",\"3\"]}}");
 
         builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
-        test.toXContent(builder, new ToXContent.MapParams(Collections.singletonMap("flat_settings", "true")));
+        test.toXContent(builder, true);
         builder.endObject();
         assertThat(Strings.toString(builder)).isEqualTo("{\"foo.bar\":[\"1\",\"2\",\"3\"]}");
     }
