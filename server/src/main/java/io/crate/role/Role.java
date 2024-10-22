@@ -40,8 +40,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,7 +51,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
-public class Role implements Writeable, ToXContent {
+public class Role implements Writeable {
 
     public static final Role CRATE_USER = new Role(
         "crate",
@@ -73,7 +71,7 @@ public class Role implements Writeable, ToXContent {
     public record Properties(boolean login,
                              @Nullable SecureHash password,
                              @Nullable JwtProperties jwtProperties,
-                             Map<String, Object> sessionSettings) implements Writeable, ToXContent {
+                             Map<String, Object> sessionSettings) implements Writeable {
 
         public static final String PASSWORD_KEY = "password";
         public static final String JWT_KEY = "jwt";
@@ -150,21 +148,6 @@ public class Role implements Writeable, ToXContent {
                  in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null,
                  in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : Map.of()
             );
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.field("login", login);
-            if (password != null) {
-                password.toXContent(builder, params);
-            }
-            if (jwtProperties != null) {
-                jwtProperties.toXContent(builder, params);
-            }
-            if (sessionSettings != null) {
-                builder.field("session_settings", sessionSettings);
-            }
-            return builder;
         }
 
         @Override
@@ -355,30 +338,6 @@ public class Role implements Writeable, ToXContent {
         }
         out.writeCollection(grantedRoles);
         properties.writeTo(out);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(name);
-
-        builder.startArray("privileges");
-        for (Privilege privilege : privileges) {
-            privilege.toXContent(builder, params);
-        }
-        builder.endArray();
-
-        builder.startArray("granted_roles");
-        for (var grantedRole : grantedRoles) {
-            grantedRole.toXContent(builder, params);
-        }
-        builder.endArray();
-
-        builder.startObject("properties");
-        properties.toXContent(builder, params);
-        builder.endObject();
-
-        builder.endObject();
-        return builder;
     }
 
     /**

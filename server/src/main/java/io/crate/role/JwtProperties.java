@@ -29,8 +29,6 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,7 +40,7 @@ import io.crate.common.collections.Maps;
  * @param username is username on the third party app. Not necessarily same as CrateDB user.
  * @param aud https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3. Optional field.
  */
-public record JwtProperties(String iss, String username, @Nullable String aud) implements Writeable, ToXContent {
+public record JwtProperties(String iss, String username, @Nullable String aud) implements Writeable {
 
     public static JwtProperties readFrom(StreamInput in) throws IOException {
         return new JwtProperties(in.readString(), in.readString(), in.readOptionalString());
@@ -80,18 +78,6 @@ public record JwtProperties(String iss, String username, @Nullable String aud) i
         out.writeString(iss);
         out.writeString(username);
         out.writeOptionalString(aud);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("jwt")
-            .field("iss", iss)
-            .field("username", username);
-        if (aud != null) {
-            builder.field("aud", aud);
-        }
-        builder.endObject();
-        return builder;
     }
 
     public static JwtProperties fromXContent(XContentParser parser) throws IOException {
