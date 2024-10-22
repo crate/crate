@@ -119,7 +119,3 @@ Fixes
   generated ``geo_shape`` column with type ``Polygon``, ``MultiPolygon``,
   ``LineString`` or ``MultiLineString`` and a user provides a correct value for
   this generated column.
-
-- Fixed an issue that caused ``>``, ``<``, ``>=`` or ``<=`` on
-  :ref:`NUMERIC <type-numeric>` types with unmatched precisions and scales or
-  negative values to return invalid results.
