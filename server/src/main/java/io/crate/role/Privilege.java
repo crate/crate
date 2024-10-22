@@ -28,12 +28,10 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
-public class Privilege implements Writeable, ToXContent {
+public class Privilege implements Writeable {
 
     /**
      * A Privilege is stored in the form of:
@@ -161,16 +159,5 @@ public class Privilege implements Writeable, ToXContent {
         out.writeInt(policy.ordinal());
         subject.writeTo(out);
         out.writeString(grantor);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.startObject()
-            .field("policy", policy.ordinal())
-            .field("permission", subject.permission().ordinal())
-            .field("securable", subject.securable().ordinal())
-            .field("ident", subject.ident())
-            .field("grantor", grantor)
-            .endObject();
     }
 }

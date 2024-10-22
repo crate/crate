@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -137,16 +136,6 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         for (var role : roles.values()) {
             role.writeTo(out);
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var role : roles.values()) {
-            role.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
     }
 
     /**

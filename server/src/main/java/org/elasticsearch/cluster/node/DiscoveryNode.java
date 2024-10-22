@@ -19,17 +19,6 @@
 
 package org.elasticsearch.cluster.node;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.node.Node;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,11 +30,20 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.node.Node;
+
 
 /**
  * A discovery node represents a node that is part of the cluster.
  */
-public class DiscoveryNode implements Writeable, ToXContentFragment {
+public class DiscoveryNode implements Writeable {
 
     static final String COORDINATING_ONLY = "coordinating_only";
 
@@ -405,23 +403,6 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
             sb.append(attributes);
         }
         return sb.toString();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(getId());
-        builder.field("name", getName());
-        builder.field("ephemeral_id", getEphemeralId());
-        builder.field("transport_address", getAddress().toString());
-
-        builder.startObject("attributes");
-        for (Map.Entry<String, String> entry : attributes.entrySet()) {
-            builder.field(entry.getKey(), entry.getValue());
-        }
-        builder.endObject();
-
-        builder.endObject();
-        return builder;
     }
 
     // This is initialized to the proper value via #setPossibleRoles in the Node constructor.

@@ -22,13 +22,10 @@ package org.elasticsearch.action.support.replication;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
@@ -65,12 +62,7 @@ public class ReplicationResponse extends TransportResponse {
         this.shardInfo = shardInfo;
     }
 
-    public static class ShardInfo implements Writeable, ToXContentObject {
-
-        private static final String TOTAL = "total";
-        private static final String SUCCESSFUL = "successful";
-        private static final String FAILED = "failed";
-        private static final String FAILURES = "failures";
+    public static class ShardInfo implements Writeable {
 
         private final int total;
         private final int successful;
@@ -144,23 +136,6 @@ public class ReplicationResponse extends TransportResponse {
         }
 
         @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            builder.field(TOTAL, total);
-            builder.field(SUCCESSFUL, successful);
-            builder.field(FAILED, getFailed());
-            if (failures.length > 0) {
-                builder.startArray(FAILURES);
-                for (Failure failure : failures) {
-                    failure.toXContent(builder, params);
-                }
-                builder.endArray();
-            }
-            builder.endObject();
-            return builder;
-        }
-
-        @Override
         public String toString() {
             return "ShardInfo{" +
                 "total=" + total +
@@ -170,13 +145,6 @@ public class ReplicationResponse extends TransportResponse {
         }
 
         public static class Failure extends ShardOperationFailedException {
-
-            private static final String INDEX = "_index";
-            private static final String SHARD = "_shard";
-            private static final String NODE = "_node";
-            private static final String REASON = "reason";
-            private static final String STATUS = "status";
-            private static final String PRIMARY = "primary";
 
             private final ShardId shardId;
             private final String nodeId;
@@ -230,22 +198,6 @@ public class ReplicationResponse extends TransportResponse {
                 out.writeException(cause);
                 RestStatus.writeTo(out, status);
                 out.writeBoolean(primary);
-            }
-
-            @Override
-            public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-                builder.startObject();
-                builder.field(INDEX, shardId.getIndexName());
-                builder.field(SHARD, shardId.id());
-                builder.field(NODE, nodeId);
-                builder.field(REASON);
-                builder.startObject();
-                ElasticsearchException.generateThrowableXContent(builder, params, cause);
-                builder.endObject();
-                builder.field(STATUS, status);
-                builder.field(PRIMARY, primary);
-                builder.endObject();
-                return builder;
             }
         }
     }

@@ -28,25 +28,13 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.NotNull;
 
-public record GrantedRole(String roleName, String grantor) implements ToXContent, Writeable, Comparable<GrantedRole> {
+public record GrantedRole(String roleName, String grantor) implements Writeable, Comparable<GrantedRole> {
 
     public GrantedRole(StreamInput in) throws IOException {
         this(in.readString(), in.readString());
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("role", roleName);
-        builder.field("grantor", grantor);
-        builder.endObject();
-
-        return builder;
     }
 
     public static GrantedRole fromXContent(XContentParser parser) throws IOException {

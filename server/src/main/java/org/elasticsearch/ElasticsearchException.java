@@ -19,15 +19,11 @@
 
 package org.elasticsearch;
 
-import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,17 +37,14 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
-import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
@@ -63,16 +56,10 @@ import io.crate.rest.action.HttpErrorStatus;
 /**
  * A base class for all elasticsearch exceptions.
  */
-public class ElasticsearchException extends RuntimeException implements ToXContentFragment, Writeable {
+public class ElasticsearchException extends RuntimeException implements Writeable {
 
     private static final Version UNKNOWN_VERSION_ADDED = Version.fromId(0);
 
-    /**
-     * Passed in the {@link Params} of {@link #generateThrowableXContent(XContentBuilder, Params, Throwable)}
-     * to control if the {@code caused_by} element should render. Unlike most parameters to {@code toXContent} methods this parameter is
-     * internal only and not available as a URL parameter.
-     */
-    private static final String REST_EXCEPTION_SKIP_CAUSE = "rest.exception.cause.skip";
     /**
      * Passed in the {@link Params} of {@link #generateThrowableXContent(XContentBuilder, Params, Throwable)}
      * to control if the {@code stack_trace} element should render. Unlike most parameters to {@code toXContent} methods this parameter is
@@ -80,20 +67,11 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
      */
     public static final String REST_EXCEPTION_SKIP_STACK_TRACE = "rest.exception.stacktrace.skip";
     public static final boolean REST_EXCEPTION_SKIP_STACK_TRACE_DEFAULT = true;
-    private static final boolean REST_EXCEPTION_SKIP_CAUSE_DEFAULT = false;
     private static final String INDEX_METADATA_KEY = "es.index";
     private static final String INDEX_METADATA_KEY_UUID = "es.index_uuid";
     private static final String SHARD_METADATA_KEY = "es.shard";
     private static final String RESOURCE_METADATA_TYPE_KEY = "es.resource.type";
     private static final String RESOURCE_METADATA_ID_KEY = "es.resource.id";
-
-    private static final String TYPE = "type";
-    private static final String REASON = "reason";
-    private static final String CAUSED_BY = "caused_by";
-    private static final ParseField SUPPRESSED = new ParseField("suppressed");
-    private static final String STACK_TRACE = "stack_trace";
-    private static final String HEADER = "header";
-    private static final String ROOT_CAUSE = "root_cause";
 
     private static final Map<Integer, CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException>> ID_TO_SUPPLIER;
     private static final Map<Class<? extends ElasticsearchException>, ElasticsearchExceptionHandle> CLASS_TO_ELASTICSEARCH_EXCEPTION_HANDLE;
@@ -309,227 +287,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         return CLASS_TO_ELASTICSEARCH_EXCEPTION_HANDLE.get(exception).id;
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        Throwable ex = SQLExceptions.unwrap(this);
-        if (ex != this) {
-            generateThrowableXContent(builder, params, this);
-        } else {
-            innerToXContent(builder, params, this, getExceptionName(), getMessage(), headers, metadata, getCause());
-        }
-        return builder;
-    }
-
-    protected static void innerToXContent(XContentBuilder builder, Params params,
-                                          Throwable throwable, String type, String message, Map<String, List<String>> headers,
-                                          Map<String, List<String>> metadata, Throwable cause) throws IOException {
-        builder.field(TYPE, type);
-        builder.field(REASON, message);
-
-        for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
-            headerToXContent(builder, entry.getKey().substring("es.".length()), entry.getValue());
-        }
-
-        if (throwable instanceof ElasticsearchException) {
-            ElasticsearchException exception = (ElasticsearchException) throwable;
-            exception.metadataToXContent(builder, params);
-        }
-
-        if (params.paramAsBoolean(REST_EXCEPTION_SKIP_CAUSE, REST_EXCEPTION_SKIP_CAUSE_DEFAULT) == false) {
-            if (cause != null) {
-                builder.field(CAUSED_BY);
-                builder.startObject();
-                generateThrowableXContent(builder, params, cause);
-                builder.endObject();
-            }
-        }
-
-        if (headers.isEmpty() == false) {
-            builder.startObject(HEADER);
-            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-                headerToXContent(builder, entry.getKey(), entry.getValue());
-            }
-            builder.endObject();
-        }
-
-        if (params.paramAsBoolean(REST_EXCEPTION_SKIP_STACK_TRACE, REST_EXCEPTION_SKIP_STACK_TRACE_DEFAULT) == false) {
-            builder.field(STACK_TRACE, Exceptions.stackTrace(throwable));
-        }
-
-        Throwable[] allSuppressed = throwable.getSuppressed();
-        if (allSuppressed.length > 0) {
-            builder.startArray(SUPPRESSED.getPreferredName());
-            for (Throwable suppressed : allSuppressed) {
-                builder.startObject();
-                generateThrowableXContent(builder, params, suppressed);
-                builder.endObject();
-            }
-            builder.endArray();
-        }
-    }
-
-    private static void headerToXContent(XContentBuilder builder, String key, List<String> values) throws IOException {
-        if (values != null && values.isEmpty() == false) {
-            if (values.size() == 1) {
-                builder.field(key, values.get(0));
-            } else {
-                builder.startArray(key);
-                for (String value : values) {
-                    builder.value(value);
-                }
-                builder.endArray();
-            }
-        }
-    }
-
-    /**
-     * Renders additional per exception information into the XContent
-     */
-    protected void metadataToXContent(XContentBuilder builder, Params params) throws IOException {
-    }
-
-    /**
-     * Generate a {@link ElasticsearchException} from a {@link XContentParser}. This does not
-     * return the original exception type (ie NodeClosedException for example) but just wraps
-     * the type, the reason and the cause of the exception. It also recursively parses the
-     * tree structure of the cause, returning it as a tree structure of {@link ElasticsearchException}
-     * instances.
-     */
-    public static ElasticsearchException fromXContent(XContentParser parser) throws IOException {
-        XContentParser.Token token = parser.nextToken();
-        ensureExpectedToken(XContentParser.Token.FIELD_NAME, token, parser);
-        return innerFromXContent(parser, false);
-    }
-
-    public static ElasticsearchException innerFromXContent(XContentParser parser, boolean parseRootCauses) throws IOException {
-        XContentParser.Token token = parser.currentToken();
-        ensureExpectedToken(XContentParser.Token.FIELD_NAME, token, parser);
-
-        String type = null, reason = null, stack = null;
-        ElasticsearchException cause = null;
-        Map<String, List<String>> metadata = new HashMap<>();
-        Map<String, List<String>> headers = new HashMap<>();
-        List<ElasticsearchException> rootCauses = new ArrayList<>();
-        List<ElasticsearchException> suppressed = new ArrayList<>();
-
-        for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
-            String currentFieldName = parser.currentName();
-            token = parser.nextToken();
-
-            if (token.isValue()) {
-                if (TYPE.equals(currentFieldName)) {
-                    type = parser.text();
-                } else if (REASON.equals(currentFieldName)) {
-                    reason = parser.text();
-                } else if (STACK_TRACE.equals(currentFieldName)) {
-                    stack = parser.text();
-                } else if (token == XContentParser.Token.VALUE_STRING) {
-                    metadata.put(currentFieldName, Collections.singletonList(parser.text()));
-                }
-            } else if (token == XContentParser.Token.START_OBJECT) {
-                if (CAUSED_BY.equals(currentFieldName)) {
-                    cause = fromXContent(parser);
-                } else if (HEADER.equals(currentFieldName)) {
-                    while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                        if (token == XContentParser.Token.FIELD_NAME) {
-                            currentFieldName = parser.currentName();
-                        } else {
-                            List<String> values = headers.getOrDefault(currentFieldName, new ArrayList<>());
-                            if (token == XContentParser.Token.VALUE_STRING) {
-                                values.add(parser.text());
-                            } else if (token == XContentParser.Token.START_ARRAY) {
-                                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                                    if (token == XContentParser.Token.VALUE_STRING) {
-                                        values.add(parser.text());
-                                    } else {
-                                        parser.skipChildren();
-                                    }
-                                }
-                            } else if (token == XContentParser.Token.START_OBJECT) {
-                                parser.skipChildren();
-                            }
-                            headers.put(currentFieldName, values);
-                        }
-                    }
-                } else {
-                    // Any additional metadata object added by the metadataToXContent method is ignored
-                    // and skipped, so that the parser does not fail on unknown fields. The parser only
-                    // support metadata key-pairs and metadata arrays of values.
-                    parser.skipChildren();
-                }
-            } else if (token == XContentParser.Token.START_ARRAY) {
-                if (parseRootCauses && ROOT_CAUSE.equals(currentFieldName)) {
-                    while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                        rootCauses.add(fromXContent(parser));
-                    }
-                } else if (SUPPRESSED.match(currentFieldName, parser.getDeprecationHandler())) {
-                    while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                        suppressed.add(fromXContent(parser));
-                    }
-                } else {
-                    // Parse the array and add each item to the corresponding list of metadata.
-                    // Arrays of objects are not supported yet and just ignored and skipped.
-                    List<String> values = new ArrayList<>();
-                    while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                        if (token == XContentParser.Token.VALUE_STRING) {
-                            values.add(parser.text());
-                        } else {
-                            parser.skipChildren();
-                        }
-                    }
-                    if (values.size() > 0) {
-                        if (metadata.containsKey(currentFieldName)) {
-                            values.addAll(metadata.get(currentFieldName));
-                        }
-                        metadata.put(currentFieldName, values);
-                    }
-                }
-            }
-        }
-
-        ElasticsearchException e = new ElasticsearchException(buildMessage(type, reason, stack), cause);
-        for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
-            //subclasses can print out additional metadata through the metadataToXContent method. Simple key-value pairs will be
-            //parsed back and become part of this metadata set, while objects and arrays are not supported when parsing back.
-            //Those key-value pairs become part of the metadata set and inherit the "es." prefix as that is currently required
-            //by addMetadata. The prefix will get stripped out when printing metadata out so it will be effectively invisible.
-            //TODO move subclasses that print out simple metadata to using addMetadata directly and support also numbers and booleans.
-            //TODO rename metadataToXContent and have only SearchPhaseExecutionException use it, which prints out complex objects
-            e.addMetadata("es." + entry.getKey(), entry.getValue());
-        }
-        for (Map.Entry<String, List<String>> header : headers.entrySet()) {
-            e.addHeader(header.getKey(), header.getValue());
-        }
-
-        // Adds root causes as suppressed exception. This way they are not lost
-        // after parsing and can be retrieved using getSuppressed() method.
-        for (ElasticsearchException rootCause : rootCauses) {
-            e.addSuppressed(rootCause);
-        }
-        for (ElasticsearchException s : suppressed) {
-            e.addSuppressed(s);
-        }
-        return e;
-    }
-
-    /**
-     * Static toXContent helper method that renders {@link org.elasticsearch.ElasticsearchException} or {@link Throwable} instances
-     * as XContent, delegating the rendering to {@link #toXContent(XContentBuilder, Params)}
-     * or {@link #innerToXContent(XContentBuilder, Params, Throwable, String, String, Map, Map, Throwable)}.
-     *
-     * This method is usually used when the {@link Throwable} is rendered as a part of another XContent object, and its result can
-     * be parsed back using the {@link #fromXContent(XContentParser)} method.
-     */
-    public static void generateThrowableXContent(XContentBuilder builder, Params params, Throwable t) throws IOException {
-        t = SQLExceptions.unwrap(t);
-
-        if (t instanceof ElasticsearchException) {
-            ((ElasticsearchException) t).toXContent(builder, params);
-        } else {
-            innerToXContent(builder, params, t, getExceptionName(t), t.getMessage(), emptyMap(), emptyMap(), t.getCause());
-        }
-    }
-
     protected String getExceptionName() {
         return getExceptionName(this);
     }
@@ -544,17 +301,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         }
         // TODO: do we really need to make the exception name in underscore casing?
         return toUnderscoreCase(simpleName);
-    }
-
-    static String buildMessage(String type, String reason, String stack) {
-        StringBuilder message = new StringBuilder("Elasticsearch exception [");
-        message.append(TYPE).append('=').append(type).append(", ");
-        message.append(REASON).append('=').append(reason);
-        if (stack != null) {
-            message.append(", ").append(STACK_TRACE).append('=').append(stack);
-        }
-        message.append(']');
-        return message.toString();
     }
 
     @Override

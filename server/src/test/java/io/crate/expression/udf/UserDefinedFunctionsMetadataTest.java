@@ -84,39 +84,6 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
     }
 
     @Test
-    public void testUserDefinedFunctionToXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-        DUMMY_UDF_METADATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
-        parser.nextToken(); // start object
-        UserDefinedFunctionsMetadata functions = UserDefinedFunctionsMetadata.fromXContent(parser);
-        assertThat(functions).isEqualTo(DUMMY_UDF_METADATA);
-    }
-
-    @Test
-    public void testUserDefinedFunctionToXContentWithEmptyMetadata() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-        UserDefinedFunctionsMetadata functions = UserDefinedFunctionsMetadata.of();
-        functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
-        parser.nextToken(); // enter START_OBJECT
-        UserDefinedFunctionsMetadata functions2 = UserDefinedFunctionsMetadata.fromXContent(parser);
-        assertThat(functions2).isEqualTo(functions);
-    }
-
-    @Test
     public void testDataTypeStreaming() throws Exception {
         XContentBuilder builder = JsonXContent.builder();
 
