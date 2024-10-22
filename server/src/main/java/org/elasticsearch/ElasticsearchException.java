@@ -37,7 +37,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
@@ -59,13 +58,6 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
 
     private static final Version UNKNOWN_VERSION_ADDED = Version.fromId(0);
 
-    /**
-     * Passed in the {@link Params} of {@link #generateThrowableXContent(XContentBuilder, Params, Throwable)}
-     * to control if the {@code stack_trace} element should render. Unlike most parameters to {@code toXContent} methods this parameter is
-     * internal only and not available as a URL parameter. Use the {@code error_trace} parameter instead.
-     */
-    public static final String REST_EXCEPTION_SKIP_STACK_TRACE = "rest.exception.stacktrace.skip";
-    public static final boolean REST_EXCEPTION_SKIP_STACK_TRACE_DEFAULT = true;
     private static final String INDEX_METADATA_KEY = "es.index";
     private static final String INDEX_METADATA_KEY_UUID = "es.index_uuid";
     private static final String SHARD_METADATA_KEY = "es.shard";

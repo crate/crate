@@ -796,30 +796,12 @@ public final class XContentBuilder implements Closeable, Flushable {
             value((Iterable<?>) value, writerOverrides);
         } else if (value instanceof Object[]) {
             values((Object[]) value, writerOverrides);
-        } else if (value instanceof ToXContent) {
-            value((ToXContent) value);
         } else if (value instanceof Enum<?>) {
             // Write out the Enum toString
             value(Objects.toString(value));
         } else {
             throw new IllegalArgumentException("cannot write xcontent for unknown value of type " + value.getClass());
         }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // ToXContent
-    //////////////////////////////////
-
-    public XContentBuilder field(String name, ToXContent value) throws IOException {
-        return field(name).value(value);
-    }
-
-    private XContentBuilder value(ToXContent value) throws IOException {
-        if (value == null) {
-            return nullValue();
-        }
-        value.toXContent(this);
-        return this;
     }
 
     ////////////////////////////////////////////////////////////////////////////
