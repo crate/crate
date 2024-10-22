@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -706,7 +705,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         execute("refresh table t");
         execute("select attributes from t");
-        assertThat(response).hasRows("[{name=Trillian, is_nice=true}]");
+        assertThat(response).hasRows("[{is_nice=true, name=Trillian}]");
     }
 
     @Test

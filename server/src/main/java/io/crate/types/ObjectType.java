@@ -169,13 +169,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (value instanceof String str) {
             value = mapFromJSON(str);
         }
-        if (value instanceof byte[] bytes) {
-            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
-                value = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
         Map<String, Object> map = (Map<String, Object>) value;
         if (map == null || innerTypes == null) {
             return map;
@@ -390,6 +383,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                                                   Reference ref,
                                                                   Function<ColumnIdent, Reference> getRef) {
                 return new ObjectIndexer(table, ref, getRef);
+            }
+
+            @Override
+            public Object decodeFromBytes(byte[] bytes) {
+                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                    return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
             }
         };
     }

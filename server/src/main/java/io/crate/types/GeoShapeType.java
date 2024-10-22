@@ -23,14 +23,13 @@ package io.crate.types;
 
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -41,6 +40,7 @@ import org.locationtech.spatial4j.shape.Shape;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -62,11 +62,19 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
+        final SourceParser sourceParser = new SourceParser(Set.of(), v -> v);
+
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
                                                               Function<ColumnIdent, Reference> getRef) {
             return new GeoShapeIndexer(ref);
+        }
+
+        @Override
+        public Object decodeFromBytes(byte[] bytes) {
+            var map = sourceParser.parse(new BytesArray(bytes), true);
+            return map.values().iterator().next();
         }
     };
 
@@ -120,14 +128,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         } else if (value instanceof Map<?, ?> map) {
             GeoJSONUtils.validateGeoJson(map);
             return (Map<String, Object>) value;
-        } else if (value instanceof byte[] bytes) {
-            try {
-                var map = readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(bytes)));
-                GeoJSONUtils.validateGeoJson(map);
-                return map;
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
         } else {
             return GeoJSONUtils.shape2Map((Shape) value);
         }

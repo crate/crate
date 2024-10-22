@@ -51,6 +51,11 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
                                                  Function<ColumnIdent, Reference> getRef) {
             return new IntIndexer(ref);
         }
+
+        @Override
+        public Object decodeFromInt(int input) {
+            return input;
+        }
     };
 
     private IntegerType() {

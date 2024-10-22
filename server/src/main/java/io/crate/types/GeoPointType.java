@@ -23,7 +23,6 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
@@ -48,13 +47,19 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
-    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
+    private static final StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
 
         @Override
         public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
                                                 Function<ColumnIdent, Reference> getRef) {
             return new GeoPointIndexer(ref);
+        }
+
+        @Override
+        public Object decodeFromBytes(byte[] bytes) {
+            var doubles = ByteBuffer.wrap(bytes).asDoubleBuffer();
+            return new PointImpl(doubles.get(0), doubles.get(1), JtsSpatialContext.GEO);
         }
     };
 
@@ -126,11 +131,6 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
                 ((Number) values.get(0)).doubleValue(),
                 ((Number) values.get(1)).doubleValue(),
                 JtsSpatialContext.GEO);
-            ensurePointsInRange(point.getX(), point.getY());
-            return point;
-        } else if (value instanceof byte[] bytes) {
-            DoubleBuffer db = ByteBuffer.wrap(bytes).asDoubleBuffer();
-            PointImpl point = new PointImpl(db.get(0), db.get(1), JtsSpatialContext.GEO);
             ensurePointsInRange(point.getX(), point.getY());
             return point;
         } else {

@@ -52,6 +52,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
                                                  Function<ColumnIdent, Reference> getRef) {
             return new IntIndexer(ref);
         }
+
+        @Override
+        public Object decodeFromInt(int input) {
+            return (byte) input;
+        }
     };
 
     private ByteType() {

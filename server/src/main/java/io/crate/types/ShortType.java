@@ -51,6 +51,11 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
                                                  Function<ColumnIdent, Reference> getRef) {
             return new IntIndexer(ref);
         }
+
+        @Override
+        public Object decodeFromInt(int input) {
+            return (short) input;
+        }
     };
 
     private ShortType() {

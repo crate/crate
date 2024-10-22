@@ -47,7 +47,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 
 /**
@@ -70,7 +69,15 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
 
     private interface Field extends Comparable<Field> {
 
-        Object sanitize(Object v);
+        Object decode(byte[] v);
+
+        default Object decode(long v) {
+            throw new UnsupportedOperationException();
+        }
+
+        default Object decode(int v) {
+            throw new UnsupportedOperationException();
+        }
 
         ColumnIdent column();
 
@@ -80,37 +87,40 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     }
 
     private record ValueField(DataType<?> dataType, ColumnIdent column) implements Field {
+
         @Override
-        public Object sanitize(Object v) {
-            return dataType.sanitizeValue(v);
+        public Object decode(byte[] v) {
+            return dataType.storageSupportSafe().decodeFromBytes(v);
+        }
+
+        @Override
+        public Object decode(long v) {
+            return dataType.storageSupportSafe().decodeFromLong(v);
+        }
+
+        @Override
+        public Object decode(int v) {
+            return dataType.storageSupportSafe().decodeFromInt(v);
         }
     }
 
     private record ArrayOfObjectField(DataType<?> dataType, ObjectType objectType, ColumnIdent column, SourceParser sourceParser) implements Field {
         @Override
-        public Object sanitize(Object v) {
+        public Object decode(byte[] v) {
             try {
-                var map = sourceParser.parse(new BytesArray((byte[]) v), Map.of(column.leafName(), objectType.innerTypes()), false);
+                var map = sourceParser.parse(new BytesArray(v), Map.of(column.leafName(), objectType.innerTypes()), false);
                 if (map.isEmpty()) {
                     return List.of();
                 }
                 return map.values().iterator().next();
             } catch (NotXContentException e) {
                 // may be an array of nulls inserted before the field was upcast to an array of objects
-                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap((byte[]) v))) {
-                    return in.readList(StreamInput::readGenericValue);
+                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(v))) {
+                    return ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
                 } catch (IOException io) {
                     throw new UncheckedIOException(io);
                 }
             }
-        }
-    }
-
-    private record GeoShapeField(DataType<?> dataType, ColumnIdent column, SourceParser sourceParser) implements Field {
-        @Override
-        public Object sanitize(Object v) {
-            var map = sourceParser.parse(new BytesArray((byte[]) v), true);
-            return map.values().iterator().next();
         }
     }
 
@@ -137,14 +147,6 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
                 fields.put(storageName, new ArrayOfObjectField(ref.valueType(), o, column, storedSourceParser));
                 return;
             }
-            if (ArrayType.unnest(ref.valueType()) instanceof GeoShapeType) {
-                fields.put(storageName, new GeoShapeField(ref.valueType(), column, storedSourceParser));
-                return;
-            }
-        }
-        if (ref.valueType() instanceof GeoShapeType) {
-            fields.put(storageName, new GeoShapeField(ref.valueType(), column, storedSourceParser));
-            return;
         }
         fields.put(storageName, new ValueField(ref.valueType(), column));
     }
@@ -171,38 +173,38 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        var v = field.sanitize(value);
+        var v = field.decode(value);
         this.doc.put(field, v);
     }
 
     @Override
     public void stringField(FieldInfo fieldInfo, String value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.sanitize(value));
+        this.doc.put(field, value);
     }
 
     @Override
     public void intField(FieldInfo fieldInfo, int value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.sanitize(value));
+        this.doc.put(field, field.decode(value));
     }
 
     @Override
     public void longField(FieldInfo fieldInfo, long value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.sanitize(value));
+        this.doc.put(field, field.decode(value));
     }
 
     @Override
     public void floatField(FieldInfo fieldInfo, float value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.sanitize(value));
+        this.doc.put(field, value);
     }
 
     @Override
     public void doubleField(FieldInfo fieldInfo, double value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.sanitize(value));
+        this.doc.put(field, value);
     }
 
     /**

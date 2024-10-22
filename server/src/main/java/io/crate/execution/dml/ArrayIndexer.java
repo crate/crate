@@ -37,10 +37,10 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.Streamer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
@@ -107,11 +107,13 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
     protected final ValueIndexer<T> innerIndexer;
+    protected final Streamer<List<T>> innerStreamer;
     protected final String arrayLengthFieldName;
     protected final Reference reference;
 
     protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
+        this.innerStreamer = (Streamer<List<T>>) reference.valueType().streamer();
         this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
     }
@@ -145,13 +147,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     private BytesReference arrayToBytes(List<T> values) {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
-            // We can't use the inner type to do streaming here, because that won't
-            // handle the case where we have an ObjectType with dropped columns.  If
-            // an array of objects is written into a stored field, and then one of the
-            // object fields is dropped, at read time we need to be able to filter
-            // out the dropped columns, but the ObjectType won't know anything about them
-            // and will throw an error as it is presented with unknown data.
-            output.writeCollection(values, StreamOutput::writeGenericValue);
+            innerStreamer.writeValueTo(output, values);
             return output.bytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

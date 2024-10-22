@@ -68,8 +68,11 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
     public static long COMPACT_MIN_VALUE = -999999999999999999L;
     public static long COMPACT_MAX_VALUE = 999999999999999999L;
 
+    private final NumericType type;
+
     public NumericStorage(NumericType numericType) {
         super(true, true, NumericEqQuery.of(numericType));
+        this.type = numericType;
     }
 
     @Override
@@ -89,6 +92,20 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         } else {
             return new LargeNumericIndexer(ref, numericType, precision);
         }
+    }
+
+    @Override
+    public Object decodeFromBytes(byte[] bytes) {
+        var bigInt = NumericUtils.sortableBytesToBigInt(bytes, 0, bytes.length);
+        Integer scale = type.scale();
+        return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());
+    }
+
+    @Override
+    public Object decodeFromLong(long input) {
+        BigInteger bigInt = BigInteger.valueOf(input);
+        Integer scale = type.scale();
+        return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());
     }
 
     private abstract static class BaseNumericIndexer implements ValueIndexer<BigDecimal> {
@@ -124,7 +141,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
             } else {
-                docBuilder.addField(new StoredField(name, longValue));
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, longValue));
+                }
                 docBuilder.addField(new Field(
                     SysColumns.FieldNames.NAME,
                     name,
@@ -159,7 +178,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(bytes)));
             } else {
-                docBuilder.addField(new StoredField(name, new BytesRef(bytes)));
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, new BytesRef(bytes)));
+                }
                 docBuilder.addField(new Field(
                     SysColumns.FieldNames.NAME,
                     name,

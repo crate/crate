@@ -72,6 +72,8 @@ import io.crate.statistics.ColumnStatsSupport;
  */
 public class ArrayType<T> extends DataType<List<T>> {
 
+    public static final ArrayType<Object> ARRAY_OF_UNDEFINED = new ArrayType<>(UndefinedType.INSTANCE);
+
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayType.class);
 
     public static final String NAME = "array";
@@ -92,7 +94,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         StorageSupport innerStorage = innerType.storageSupport();
         if (innerStorage == null) {
             this.storageSupport = null;
-        } else if (ArrayType.unnest(this) instanceof ObjectType || ArrayType.unnest(this) instanceof GeoShapeType) {
+        } else if (ArrayType.unnest(this) instanceof ObjectType) {
             this.storageSupport = new StorageSupport<T>(innerStorage) {
                 @Override
                 public ValueIndexer<? super T> valueIndexer(RelationName table,
@@ -111,6 +113,21 @@ public class ArrayType<T> extends DataType<List<T>> {
                     assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
                         "Must not retrieve value indexer of the child array of a multi dimensional array";
                     return ArrayIndexer.of(ref, getRef);
+                }
+
+                @Override
+                public List<T> decodeFromBytes(byte[] bytes) {
+                    try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                        return ArrayType.this.streamer().readValueFrom(in);
+                    } catch (Exception e) {
+                        // Might be an array of nulls inserted before the column was upcast to an
+                        // array of defined type
+                        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
+                        } catch (IOException ee) {
+                            throw new UncheckedIOException(ee);
+                        }
+                    }
                 }
             };
         }
@@ -250,12 +267,6 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
-        } else if (value instanceof byte[] b) {
-            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(b))) {
-                return in.readList(input -> (T) input.readGenericValue());
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
         } else if (value instanceof Map<?,?> map && map.isEmpty()) {
             return List.of();
         } else if (value instanceof String string) {
