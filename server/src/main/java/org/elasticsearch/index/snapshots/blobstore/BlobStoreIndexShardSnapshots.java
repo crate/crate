@@ -34,8 +34,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo;
 
@@ -47,7 +45,7 @@ import io.crate.server.xcontent.XContentParserUtils;
  * This class is used to find files that were already snapshotted and clear out files that no longer referenced by any
  * snapshots.
  */
-public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, ToXContentFragment, Writeable {
+public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Writeable {
 
     public static final BlobStoreIndexShardSnapshots EMPTY = new BlobStoreIndexShardSnapshots(Collections.emptyList());
 
@@ -209,32 +207,6 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, To
      * </code>
      * </pre>
      */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        // First we list all blobs with their file infos:
-        builder.startArray(Fields.FILES);
-        for (Map.Entry<String, FileInfo> entry : files.entrySet()) {
-            FileInfo.toXContent(entry.getValue(), builder);
-        }
-        builder.endArray();
-        // Then we list all snapshots with list of all blobs that are used by the snapshot
-        builder.startObject(Fields.SNAPSHOTS);
-        for (SnapshotFiles snapshot : shardSnapshots) {
-            builder.startObject(snapshot.snapshot());
-            builder.startArray(Fields.FILES);
-            for (FileInfo fileInfo : snapshot.indexFiles()) {
-                builder.value(fileInfo.name());
-            }
-            builder.endArray();
-            if (snapshot.shardStateIdentifier() != null) {
-                builder.field(ParseFields.SHARD_STATE_ID.getPreferredName(), snapshot.shardStateIdentifier());
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
     public static BlobStoreIndexShardSnapshots fromXContent(XContentParser parser) throws IOException {
         XContentParser.Token token = parser.currentToken();
         if (token == null) { // New parser

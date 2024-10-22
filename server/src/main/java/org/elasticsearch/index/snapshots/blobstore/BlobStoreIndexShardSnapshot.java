@@ -35,7 +35,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.store.StoreFileMetadata;
@@ -45,7 +44,7 @@ import io.crate.server.xcontent.XContentParserUtils;
 /**
  * Shard snapshot metadata
  */
-public class BlobStoreIndexShardSnapshot implements ToXContentFragment, Writeable {
+public class BlobStoreIndexShardSnapshot implements Writeable {
 
     /**
      * Information about snapshotted file
@@ -507,28 +506,6 @@ public class BlobStoreIndexShardSnapshot implements ToXContentFragment, Writeabl
     private static final ParseField PARSE_INCREMENTAL_FILE_COUNT = new ParseField(INCREMENTAL_FILE_COUNT);
     private static final ParseField PARSE_INCREMENTAL_SIZE = new ParseField(INCREMENTAL_SIZE);
     private static final ParseField PARSE_FILES = new ParseField(FILES);
-
-    /**
-     * Serializes shard snapshot metadata info into JSON
-     *
-     * @param builder  XContent builder
-     * @param params   parameters
-     */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(NAME, snapshot);
-        builder.field(INDEX_VERSION, indexVersion);
-        builder.field(START_TIME, startTime);
-        builder.field(TIME, time);
-        builder.field(INCREMENTAL_FILE_COUNT, incrementalFileCount);
-        builder.field(INCREMENTAL_SIZE, incrementalSize);
-        builder.startArray(FILES);
-        for (FileInfo fileInfo : indexFiles) {
-            FileInfo.toXContent(fileInfo, builder);
-        }
-        builder.endArray();
-        return builder;
-    }
 
     /**
      * Parses shard snapshot metadata

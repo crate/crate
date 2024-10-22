@@ -39,8 +39,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ContextParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.Index;
 
@@ -335,7 +333,7 @@ public final class IndexGraveyard implements Metadata.Custom {
     /**
      * An individual tombstone entry for representing a deleted index.
      */
-    public static final class Tombstone implements ToXContentObject, Writeable {
+    public static final class Tombstone implements Writeable {
 
         private static final String INDEX_KEY = "index";
         private static final String DELETE_DATE_IN_MILLIS_KEY = "delete_date_in_millis";
@@ -414,15 +412,6 @@ public final class IndexGraveyard implements Metadata.Custom {
         @Override
         public String toString() {
             return "[index=" + index + ", deleteDate=" + Joda.getStrictStandardDateFormatter().printer().print(deleteDateInMillis) + "]";
-        }
-
-        @Override
-        public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-            builder.startObject();
-            builder.field(INDEX_KEY);
-            index.toXContent(builder, params);
-            builder.timeField(DELETE_DATE_IN_MILLIS_KEY, DELETE_DATE_KEY, deleteDateInMillis);
-            return builder.endObject();
         }
 
         public static Tombstone fromXContent(final XContentParser parser) throws IOException {
