@@ -22,6 +22,7 @@
 package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -113,6 +114,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
     private ArrayList<Integer> nonMatchingKeys;
+    private HashSet<Integer> matchedHashes;
 
     public HashJoinBatchIterator(BatchIterator<Row> left,
                                  BatchIterator<Row> right,
@@ -135,6 +137,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         numberOfLeftBatchesLoadedForBlock = 0;
         this.activeIt = left;
         this.emitNullValues = emitNullValues;
+        this.matchedHashes = new HashSet<>();
     }
 
     @Override
@@ -150,6 +153,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         resetBuffer();
         leftMatchingRowsIterator = null;
         nonMatchingKeys = null;
+        matchedHashes = new HashSet<>();
     }
 
     @Override
@@ -202,7 +206,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         if (nonMatchingKeys == null) {
             nonMatchingKeys = new ArrayList<>(buffer.size());
             for (var values : buffer.entrySet()) {
-                if (values.getValue().v2() == false) {
+                if (!matchedHashes.contains(values.getKey())) {
                     nonMatchingKeys.add(values.getKey());
                 }
             }
@@ -216,6 +220,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
         combiner.setLeft(unsafeArrayRow.cells(nonMatches));
         combiner.nullRight();
+        System.out.println("---------   combiner = " + combiner);
 
         // This requires rehashing and we might be better off with
         // storing the current nonMatches in an array
@@ -278,15 +283,9 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             Tuple<List<Object[]>, Boolean> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
                 leftMatchingRowsIterator = leftMatchingRows.v1().iterator();
-                if (emitNullValues) {
-                    // Mark the values if null values should be emitted for later postprocessing
-                    if (leftMatchingRows.v2() == false) {
-                        leftMatchingRows = new Tuple<>(leftMatchingRows.v1(), true);
-                        buffer.put(rightHash, leftMatchingRows);
-                    }
-                }
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
+                    matchedHashes.add(rightHash);
                     return true;
                 }
             }
@@ -311,6 +310,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             leftRow.cells(leftMatchingRowsIterator.next());
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
+                System.out.println("---------   combiner = " + combiner);
                 return true;
             }
         }
@@ -319,14 +319,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean mustSwitchToRight() {
         return left.allLoaded()
-               || numberOfRowsInBuffer == blockSize
-               || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
+            || numberOfRowsInBuffer == blockSize
+            || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
     }
 
     private boolean mustLoadLeftNextBatch() {
         return leftBatchHasItems == false
-               && left.allLoaded() == false
-               && numberOfRowsInBuffer < blockSize
-               && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
+            && left.allLoaded() == false
+            && numberOfRowsInBuffer < blockSize
+            && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
     }
 }
