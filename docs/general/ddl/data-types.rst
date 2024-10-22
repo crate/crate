@@ -1050,6 +1050,12 @@ represented by an unscaled value of the unlimited precision::
 
     NUMERIC
 
+.. NOTE::
+
+    ``NUMERIC`` values returned as results of an SQL query might loose precision
+     when using the :ref:`HTTP interface<interface-http>`, because of limitation
+     of `JSON Data Types`_ for numbers with higher than 53-bits precision.
+
 The ``NUMERIC`` type is internally backed by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
 
@@ -3719,3 +3725,4 @@ However, you cannot use it with any :ref:`scalar functions
 .. _UTC: `Coordinated Universal Time`_
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
 .. _Year.parse Javadoc: https://docs.oracle.com/javase/8/docs/api/java/time/Year.html#parse-java.lang.CharSequence-
+.. _JSON Data Types: https://en.wikipedia.org/wiki/JSON#Data_types
