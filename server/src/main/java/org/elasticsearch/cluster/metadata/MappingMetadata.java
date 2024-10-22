@@ -47,7 +47,7 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
     }
 
     public MappingMetadata(Map<String, Object> mapping) throws IOException {
-        this.source = new CompressedXContent(builder -> builder.mapContents(mapping), XContentType.JSON);
+        this.source = new CompressedXContent(mapping);
     }
 
     public CompressedXContent source() {
