@@ -1754,7 +1754,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
         execute("refresh table t1, t2");
         execute("explain select * from t1 left outer join t2 on t1.id = t2.id and t2.id < 3");
-        assertThat(response).hasRows("");
         execute("select * from t1 left outer join t2 on t1.id = t2.id and t2.id < 3");
 
         assertThat(response).hasRowsInAnyOrder(
@@ -1795,6 +1794,32 @@ public class JoinIntegrationTest extends IntegTestCase {
             "1| 1",
             "2| 2",
             "3| NULL"
+        );
+    }
+
+    @Test
+    @UseJdbc(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_left_outer_block_with_comparision() throws Exception {
+        execute("CREATE TABLE t1 (id integer)");
+        execute("CREATE TABLE t2 (id integer)");
+        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
+        execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
+        execute("refresh table t1, t2");
+
+        execute("select * from t1 left outer join t2 on t1.id = t2.id and t1.id < t2.id");
+
+        assertThat(response).hasRowsInAnyOrder(
+            "0| NULL",
+            "0| NULL",
+            "1| NULL",
+            "2| NULL",
+            "2| NULL",
+            "3| NULL",
+            "4| NULL",
+            "4| NULL"
         );
     }
 }

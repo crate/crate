@@ -30,11 +30,9 @@ import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
-import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
@@ -101,7 +99,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private final ToIntFunction<Row> hashBuilderForLeft;
     private final ToIntFunction<Row> hashBuilderForRight;
     private final LongToIntFunction calculateBlockSize;
-    private final IntObjectHashMap<Tuple<List<Object[]>, Boolean>> buffer;
+    private final IntObjectHashMap<List<Object[]>> buffer;
     private final boolean emitNullValues;
 
     private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
@@ -215,18 +213,17 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean emitNullValuesPairs() {
         Integer key = nonMatchingKeys.getFirst();
-        List<Object[]> values = buffer.remove(key).v1();
+        List<Object[]> values = buffer.remove(key);
         Object[] nonMatches = values.removeFirst();
 
         combiner.setLeft(unsafeArrayRow.cells(nonMatches));
         combiner.nullRight();
-        System.out.println("---------   combiner = " + combiner);
 
         // This requires rehashing and we might be better off with
         // storing the current nonMatches in an array
         // and consume it from there
         if (!values.isEmpty()) {
-            buffer.put(key, new Tuple<>(values, false));
+            buffer.put(key, values);
         } else {
             nonMatchingKeys.removeFirst();
         }
@@ -280,12 +277,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
-            Tuple<List<Object[]>, Boolean> leftMatchingRows = buffer.get(rightHash);
+            List<Object[]> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
-                leftMatchingRowsIterator = leftMatchingRows.v1().iterator();
+                leftMatchingRowsIterator = leftMatchingRows.iterator();
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
-                    matchedHashes.add(rightHash);
+                    if (emitNullValues) {
+                        matchedHashes.add(rightHash);
+                    }
                     return true;
                 }
             }
@@ -296,12 +295,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private void addToBuffer(Object[] currentRow, int hash) {
-        Tuple<List<Object[]>, Boolean> existingRows = buffer.get(hash);
+        List<Object[]> existingRows = buffer.get(hash);
         if (existingRows == null) {
-            existingRows = new Tuple<>(new ArrayList<>(), false);
-            buffer.put(hash, existingRows);
+            existingRows = new ArrayList<>();
+        } else {
+            existingRows = new ArrayList<>(existingRows);
         }
-        existingRows.v1().add(currentRow);
+        existingRows.add(currentRow);
+        buffer.put(hash, existingRows);
         numberOfRowsInBuffer++;
     }
 
@@ -310,7 +311,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             leftRow.cells(leftMatchingRowsIterator.next());
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
-                System.out.println("---------   combiner = " + combiner);
                 return true;
             }
         }
