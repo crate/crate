@@ -1435,11 +1435,11 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("refresh table tbl");
         execute("select arr, count(*) cnt from tbl group by arr order by cnt, arr[1]");
         assertThat(response).hasRows(
-            "[1, 2, null]| 1",
+            "[1, 2, NULL]| 1",
             "[2, 1]| 1",
             "[1, 2]| 2",
             "[]| 3",
-            "[null]| 4",
+            "[NULL]| 4",
             "NULL| 5"
         );
     }

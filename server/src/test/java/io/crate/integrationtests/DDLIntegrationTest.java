@@ -706,7 +706,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         execute("refresh table t");
         execute("select attributes from t");
-        assertThat(response).hasRows("[{name=Trillian, is_nice=true}]");
+        assertThat(response).hasRows("[{is_nice=true, name=Trillian}]");
     }
 
     @Test
