@@ -69,14 +69,14 @@ public final class CompressedXContent {
     /**
      * Create a {@link CompressedXContent} out of a {@link ToXContent} instance.
      */
-    public CompressedXContent(ToXContent xcontent, XContentType type, ToXContent.Params params) throws IOException {
+    public CompressedXContent(ToXContent xcontent, XContentType type) throws IOException {
         BytesStreamOutput bStream = new BytesStreamOutput();
         OutputStream compressedStream = CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream);
         CRC32 crc32 = new CRC32();
         try (OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
             try (XContentBuilder builder = XContentFactory.builder(type, checkedStream)) {
                 builder.startObject();
-                xcontent.toXContent(builder, params);
+                xcontent.toXContent(builder);
                 builder.endObject();
             }
         }

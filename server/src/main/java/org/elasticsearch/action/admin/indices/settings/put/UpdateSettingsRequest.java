@@ -29,19 +29,16 @@ import java.util.Objects;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 
 /**
  * Request for an update index settings action
  */
 public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsRequest>
-        implements IndicesRequest, ToXContentObject {
+        implements IndicesRequest {
 
     private String[] indices;
     private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, false, true, true);
@@ -101,19 +98,6 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         indicesOptions.writeIndicesOptions(out);
         writeSettingsToStream(out, settings);
         out.writeBoolean(preserveExisting);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        settings.toXContent(builder, params);
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
-    public String toString() {
-        return "indices : " + Arrays.toString(indices) + "," + Strings.toString(this);
     }
 
     @Override

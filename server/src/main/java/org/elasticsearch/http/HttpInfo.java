@@ -21,12 +21,8 @@ package org.elasticsearch.http;
 
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import java.io.IOException;
-
-public class HttpInfo implements ToXContentFragment {
+public class HttpInfo {
 
     private final BoundTransportAddress address;
     private final long maxContentLength;
@@ -34,24 +30,6 @@ public class HttpInfo implements ToXContentFragment {
     public HttpInfo(BoundTransportAddress address, long maxContentLength) {
         this.address = address;
         this.maxContentLength = maxContentLength;
-    }
-
-    static final class Fields {
-        static final String HTTP = "http";
-        static final String BOUND_ADDRESS = "bound_address";
-        static final String PUBLISH_ADDRESS = "publish_address";
-        static final String MAX_CONTENT_LENGTH = "max_content_length";
-        static final String MAX_CONTENT_LENGTH_IN_BYTES = "max_content_length_in_bytes";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.HTTP);
-        builder.array(Fields.BOUND_ADDRESS, (Object[]) address.boundAddresses());
-        builder.field(Fields.PUBLISH_ADDRESS, address.publishAddress().toString());
-        builder.humanReadableField(Fields.MAX_CONTENT_LENGTH_IN_BYTES, Fields.MAX_CONTENT_LENGTH, maxContentLength());
-        builder.endObject();
-        return builder;
     }
 
     public BoundTransportAddress address() {

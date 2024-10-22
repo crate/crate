@@ -27,7 +27,6 @@ import java.util.function.ToIntBiFunction;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 public abstract class AbstractBytesReference implements BytesReference {
 
@@ -179,12 +178,6 @@ public abstract class AbstractBytesReference implements BytesReference {
             : "offset: " + ref.offset + " ref.bytes.length: " + ref.bytes.length + " length: " + length + " ref.length: " + ref.length;
         ref.length -= length;
         ref.offset += length;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        BytesRef bytes = toBytesRef();
-        return builder.value(bytes.bytes, bytes.offset, bytes.length);
     }
 
     /**

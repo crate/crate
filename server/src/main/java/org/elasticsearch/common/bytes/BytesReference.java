@@ -19,25 +19,24 @@
 
 package org.elasticsearch.common.bytes;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefIterator;
-import org.elasticsearch.common.io.stream.BytesStream;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.util.ByteArray;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefIterator;
+import org.elasticsearch.common.io.stream.BytesStream;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.util.ByteArray;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+
 
 /**
  * A reference to bytes.
  */
-public interface BytesReference extends Comparable<BytesReference>, ToXContentFragment {
+public interface BytesReference extends Comparable<BytesReference> {
 
     /**
      * Convert an {@link XContentBuilder} into a BytesReference. This method closes the builder,

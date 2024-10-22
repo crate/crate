@@ -62,7 +62,6 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -78,7 +77,7 @@ import io.crate.sql.tree.GenericProperties;
 /**
  * An immutable settings implementation.
  */
-public final class Settings implements ToXContentFragment {
+public final class Settings {
 
     public static final Settings EMPTY = new Builder().build();
 
@@ -545,14 +544,13 @@ public final class Settings implements ToXContentFragment {
         return new Builder();
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        if (!params.paramAsBoolean("flat_settings", false)) {
-            for (Map.Entry<String, Object> entry : getAsStructuredMap().entrySet()) {
+    public XContentBuilder toXContent(XContentBuilder builder, boolean flat) throws IOException {
+        if (flat) {
+            for (Map.Entry<String, Object> entry : settings.entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         } else {
-            for (Map.Entry<String, Object> entry : settings.entrySet()) {
+            for (Map.Entry<String, Object> entry : getAsStructuredMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         }
@@ -1318,7 +1316,7 @@ public final class Settings implements ToXContentFragment {
     public String toString() {
         try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
             builder.startObject();
-            toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
+            toXContent(builder, true);
             builder.endObject();
             return Strings.toString(builder);
         } catch (IOException e) {

@@ -72,7 +72,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -1351,7 +1350,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                         .indexServiceSafe(resolveIndex(indexName))
                         .getShard(0).getRetentionLeases();
                     throw new AssertionError("expect an operation-based recovery:" +
-                                             "retention leases" + Strings.toString(retentionLeases) + "]");
+                                             "retention leases" + retentionLeases + "]");
                 }
                 connection.sendRequest(requestId, action, request, options);
             });

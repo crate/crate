@@ -19,19 +19,17 @@
 
 package org.elasticsearch.action.admin.cluster.configuration;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
 
 /**
  * A response to {@link AddVotingConfigExclusionsRequest} indicating that voting config exclusions have been added for the requested nodes
  * and these nodes have been removed from the voting configuration.
  */
-public class AddVotingConfigExclusionsResponse extends TransportResponse implements ToXContentObject {
+public class AddVotingConfigExclusionsResponse extends TransportResponse {
 
     public AddVotingConfigExclusionsResponse() {
     }
@@ -41,10 +39,5 @@ public class AddVotingConfigExclusionsResponse extends TransportResponse impleme
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-    }
-
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        return builder;
     }
 }

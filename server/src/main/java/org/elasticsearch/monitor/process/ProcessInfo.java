@@ -19,16 +19,13 @@
 
 package org.elasticsearch.monitor.process;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import java.io.IOException;
-
-public class ProcessInfo implements Writeable, ToXContentFragment {
+public class ProcessInfo implements Writeable {
 
     private final long refreshInterval;
     private final long id;
@@ -70,23 +67,5 @@ public class ProcessInfo implements Writeable, ToXContentFragment {
 
     public boolean isMlockall() {
         return mlockall;
-    }
-
-    static final class Fields {
-        static final String PROCESS = "process";
-        static final String REFRESH_INTERVAL = "refresh_interval";
-        static final String REFRESH_INTERVAL_IN_MILLIS = "refresh_interval_in_millis";
-        static final String ID = "id";
-        static final String MLOCKALL = "mlockall";
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.PROCESS);
-        builder.humanReadableField(Fields.REFRESH_INTERVAL_IN_MILLIS, Fields.REFRESH_INTERVAL, new TimeValue(refreshInterval));
-        builder.field(Fields.ID, id);
-        builder.field(Fields.MLOCKALL, mlockall);
-        builder.endObject();
-        return builder;
     }
 }

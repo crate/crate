@@ -28,8 +28,6 @@ import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 public class AliasMetadata extends AbstractDiffable<AliasMetadata> {
@@ -113,11 +111,6 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> {
 
         public AliasMetadata build() {
             return new AliasMetadata(alias);
-        }
-
-        public static void toXContent(AliasMetadata aliasMetadata, XContentBuilder builder, ToXContent.Params params) throws IOException {
-            builder.startObject(aliasMetadata.alias());
-            builder.endObject();
         }
 
         public static AliasMetadata fromXContent(XContentParser parser) throws IOException {
