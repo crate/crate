@@ -56,7 +56,7 @@ public class ScalarIntegrationTest extends IntegTestCase {
             // This is documenting a bug. If this fails, it is a breaking change.
             var response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                             session);
-            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[null]\n");
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[NULL]\n");
         }
 
         try (var session2 = sqlExecutor.newSession()) {
@@ -66,7 +66,7 @@ public class ScalarIntegrationTest extends IntegTestCase {
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1\nNULL\n");
             response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                             session2);
-            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[null]\n");
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[NULL]\n");
         }
     }
 }

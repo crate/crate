@@ -87,9 +87,9 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
     public void test_matches_null_group() throws Exception {
         assertExecute("regexp_matches('gcc -Wall --std=c99 -o source source.c', '\\w+( --?\\w+)*( \\w+)*', 'g')",
             """
-                [ --std, null]
+                [ --std, NULL]
                 [ -o,  source]
-                [null, null]
+                [NULL, NULL]
                 """);
     }
 }

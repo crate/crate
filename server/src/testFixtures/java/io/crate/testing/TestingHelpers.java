@@ -132,16 +132,25 @@ public class TestingHelpers {
                 }
             }
             out.print("]");
+        } else if (o instanceof List<?> list) {
+            out.print("[");
+            for (int i = 0; i < list.size(); i++) {
+                printObject(out, true, list.get(i));
+                if (i < list.size() - 1) {
+                    out.print(", ");
+                }
+            }
+            out.print("]");
         } else if (o.getClass().isArray()) {
             out.print("[");
             boolean arrayFirst = true;
             for (int i = 0, length = Array.getLength(o); i < length; i++) {
                 if (!arrayFirst) {
-                    out.print(",v");
+                    out.print(", ");
                 } else {
                     arrayFirst = false;
                 }
-                printObject(out, first, Array.get(o, i));
+                printObject(out, true, Array.get(o, i));
             }
             out.print("]");
         } else if (o instanceof Map) {
@@ -158,7 +167,7 @@ public class TestingHelpers {
             }
             out.print("}");
         } else {
-            out.print(o.toString());
+            out.print(o);
         }
         return first;
     }
