@@ -40,7 +40,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
 
 /**
  * Loads column values from stored fields and presents them as a java Map
@@ -99,10 +98,6 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         var storageName = ref.storageIdentLeafName();
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
-            if (ArrayType.unnest(ref.valueType()) instanceof ObjectType o) {
-                fields.put(storageName, new Field(ref.valueType(), column));
-                return;
-            }
         }
         fields.put(storageName, new Field(ref.valueType(), column));
     }

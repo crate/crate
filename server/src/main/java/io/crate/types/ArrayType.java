@@ -477,6 +477,11 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
+    public boolean retrieveFromStoredFields() {
+        return true;
+    }
+
+    @Override
     public long valueBytes(List<T> values) {
         if (values == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;

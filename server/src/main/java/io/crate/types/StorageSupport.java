@@ -66,14 +66,23 @@ public abstract class StorageSupport<T> {
         Reference ref,
         Function<ColumnIdent, Reference> getRef);
 
+    /**
+     * Decode a value from bytes in a stored field
+     */
     public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
         throw new UnsupportedOperationException("decodeFromBytes not supported");
     }
 
+    /**
+     * Decode a value from a long in a stored field
+     */
     public Object decodeFromLong(long input) {
         throw new UnsupportedOperationException("decodeFromLong not supported");
     }
 
+    /**
+     * Decode a value from an int in a stored field
+     */
     public Object decodeFromInt(int input) {
         throw new UnsupportedOperationException("decodeFromInt not supported");
     }

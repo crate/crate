@@ -151,6 +151,11 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
+    public boolean retrieveFromStoredFields() {
+        return true;
+    }
+
+    @Override
     public StorageSupport<Map<String, Object>> storageSupport() {
         return STORAGE;
     }

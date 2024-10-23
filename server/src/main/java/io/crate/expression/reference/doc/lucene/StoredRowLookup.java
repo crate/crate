@@ -50,7 +50,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
-import io.crate.types.GeoPointType;
 import io.crate.types.ObjectType;
 
 /**
@@ -220,28 +219,21 @@ public abstract class StoredRowLookup implements StoredRow {
             if (ref.hasColumn(SysColumns.DOC) || ref.hasColumn(SysColumns.RAW)) {
                 // top-level _doc - we register all table columns
                 registerAll();
-            } else if (ref.valueType() instanceof GeoPointType) {
-                // geopoint always retrieved from stored fields
-                this.fieldsVisitor.registerRef(ref);
-            } else if (ref.valueType() instanceof ArrayType<?>) {
-                // arrays always retrieved from stored fields
-                this.fieldsVisitor.registerRef(ref);
             } else if (ref.valueType() instanceof ObjectType) {
                 this.fieldsVisitor.registerRef(ref);
                 for (var leaf : table.getChildReferences(ref)) {
                     registerRef(leaf, true);
                 }
+            } else if (ref.valueType().retrieveFromStoredFields() || ref.hasDocValues() == false) {
+                this.fieldsVisitor.registerRef(ref);
             } else {
                 LuceneCollectorExpression<?> expr = LuceneReferenceResolver.typeSpecializedExpression(ref);
-                if (expr instanceof DocCollectorExpression<?>) {
-                    this.fieldsVisitor.registerRef(ref);
-                } else {
-                    var column = ref.toColumn();
-                    if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
-                        column = column.shiftRight();
-                    }
-                    expressions.add(new ColumnExpression(expr, column, ref.storageIdent()));
+                assert expr instanceof DocCollectorExpression<?> == false;
+                var column = ref.toColumn();
+                if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
+                    column = column.shiftRight();
                 }
+                expressions.add(new ColumnExpression(expr, column, ref.storageIdent()));
             }
         }
 

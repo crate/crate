@@ -267,6 +267,13 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
     /**
+     * @return {@code true} if values should always be loaded from stored fields
+     */
+    public boolean retrieveFromStoredFields() {
+        return false;
+    }
+
+    /**
      * Returns a ValueIndexer for this type
      */
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
