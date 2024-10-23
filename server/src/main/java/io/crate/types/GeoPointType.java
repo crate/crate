@@ -224,6 +224,14 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
+    public boolean retrieveFromStoredFields() {
+        // there's a difference in precision between the stored value and the dv value
+        // so when we're retrieving for display or exact comparisons, go to the stored
+        // value
+        return true;
+    }
+
+    @Override
     public StorageSupport<Point> storageSupport() {
         return STORAGE;
     }
