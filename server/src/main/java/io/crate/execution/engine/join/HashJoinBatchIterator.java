@@ -165,10 +165,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded
                 if (emitNullValues) {
-                    fetchKeysFromBuffer();
-                    if (!nonMatchingKeys.isEmpty()) {
-                        return emitNullValuesPairs();
-                    }
+                    return emitNullValuesPairs();
                 }
                 // we are fully done
                 return false;
@@ -178,10 +175,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             } else if (right.allLoaded()) {
                 // one batch completed
                 if (emitNullValues) {
-                    fetchKeysFromBuffer();
-                    if (!nonMatchingKeys.isEmpty()) {
-                        return emitNullValuesPairs();
-                    }
+                    return emitNullValuesPairs();
                 }
                 // get ready for the next batch
                 right.moveToStart();
@@ -197,7 +191,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         return true;
     }
 
-    private void fetchKeysFromBuffer() {
+    private boolean emitNullValuesPairs() {
         if (nonMatchingKeys == null) {
             nonMatchingKeys = new ArrayList<>(buffer.size());
             for (var values : buffer.entrySet()) {
@@ -206,9 +200,11 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 }
             }
         }
-    }
 
-    private boolean emitNullValuesPairs() {
+        if (nonMatchingKeys.isEmpty()) {
+            return false;
+        }
+
         if (nonMatchValuesIterator == null) {
             var key = nonMatchingKeys.getFirst();
             nonMatchValuesIterator = buffer.get(key).items.iterator();

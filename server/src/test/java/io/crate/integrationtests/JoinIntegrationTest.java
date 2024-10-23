@@ -40,9 +40,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
@@ -1795,7 +1792,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
     }
 
-    @Repeat(iterations = 100)
     @Test
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
