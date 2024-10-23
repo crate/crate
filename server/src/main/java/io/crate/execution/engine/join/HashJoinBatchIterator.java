@@ -23,7 +23,6 @@ package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
@@ -276,12 +275,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
             Values leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
-                // we need to detach the iterator from the items
-                leftMatchingRowsIterator = List.copyOf(leftMatchingRows.items).iterator();
+                leftMatchingRowsIterator = leftMatchingRows.items.iterator();
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
                     if (emitNullValues) {
-                        // Mark the values if null values should be emitted for later postprocessing
+                        // We found matching rows, therefore we mark the values to emit
+                        // non-matching values later with null value pairs
                         if (leftMatchingRows.marked == false) {
                             leftMatchingRows.marked = true;
                         }
@@ -296,12 +295,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private void addToBuffer(Object[] currentRow, int hash) {
-        Values values = buffer.get(hash);
-        if (values == null) {
-            values = new Values(new ArrayList<>(), false);
+        Values existingRows = buffer.get(hash);
+        if (existingRows == null) {
+            existingRows = new Values(new ArrayList<>(), false);
+            buffer.put(hash, existingRows);
         }
-        values.items.add(currentRow);
-        buffer.put(hash, values);
+        existingRows.items.add(currentRow);
         numberOfRowsInBuffer++;
     }
 
