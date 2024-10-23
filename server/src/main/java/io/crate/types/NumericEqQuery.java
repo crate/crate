@@ -23,7 +23,9 @@ package io.crate.types;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -43,13 +45,19 @@ public class NumericEqQuery {
         if (precision == null) {
             return new Unoptimized();
         } else if (precision <= NumericStorage.COMPACT_PRECISION) {
-            return new Compact();
+            return new Compact(type);
         } else {
             return new Large(type);
         }
     }
 
     static class Compact implements EqQuery<BigDecimal> {
+
+        private final NumericType type;
+
+        private Compact(NumericType type) {
+            this.type = type;
+        }
 
         @Override
         @Nullable
@@ -74,12 +82,20 @@ public class NumericEqQuery {
                                 boolean includeUpper,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
-            long lower = lowerTerm == null
-                ? NumericStorage.COMPACT_MIN_VALUE
-                : lowerTerm.unscaledValue().longValueExact() + (includeLower ? 0 : + 1);
-            long upper = upperTerm == null
-                ? NumericStorage.COMPACT_MAX_VALUE
-                : upperTerm.unscaledValue().longValueExact() + (includeUpper ? 0 : - 1);
+            final long lower;
+            if (lowerTerm == null) {
+                lower = NumericStorage.COMPACT_MIN_VALUE;
+            } else {
+                lowerTerm = lowerTerm.setScale(Objects.requireNonNull(type.scale()), includeLower ? RoundingMode.CEILING : RoundingMode.FLOOR);
+                lower = lowerTerm.unscaledValue().longValueExact() + (includeLower ? 0 : + 1);
+            }
+            final long upper;
+            if (upperTerm == null) {
+                upper = NumericStorage.COMPACT_MAX_VALUE;
+            } else {
+                upperTerm = upperTerm.setScale(Objects.requireNonNull(type.scale()), includeUpper ? RoundingMode.FLOOR : RoundingMode.CEILING);
+                upper = upperTerm.unscaledValue().longValueExact() + (includeUpper ? 0 : - 1);
+            }
             return LongPoint.newRangeQuery(field, lower, upper);
         }
 
@@ -132,12 +148,20 @@ public class NumericEqQuery {
                 byte[] lower = new byte[maxBytes];
                 byte[] upper = new byte[maxBytes];
 
-                BigInteger lowerInt = lowerTerm == null
-                    ? type.minValue()
-                    : (lowerTerm.unscaledValue().add(includeLower ? BigInteger.ZERO : BigInteger.ONE));
-                BigInteger upperInt = upperTerm == null
-                    ? type.maxValue()
-                    : (upperTerm.unscaledValue().subtract(includeUpper ? BigInteger.ZERO : BigInteger.ONE));
+                final BigInteger lowerInt;
+                if (lowerTerm == null) {
+                    lowerInt = type.minValue();
+                } else {
+                    lowerTerm = lowerTerm.setScale(Objects.requireNonNull(type.scale()), includeLower ? RoundingMode.CEILING : RoundingMode.FLOOR);
+                    lowerInt = lowerTerm.unscaledValue().add(includeLower ? BigInteger.ZERO : BigInteger.ONE);
+                }
+                final BigInteger upperInt;
+                if (upperTerm == null) {
+                    upperInt = type.maxValue();
+                } else {
+                    upperTerm = upperTerm.setScale(Objects.requireNonNull(type.scale()), includeUpper ? RoundingMode.FLOOR : RoundingMode.CEILING);
+                    upperInt = (upperTerm.unscaledValue().subtract(includeUpper ? BigInteger.ZERO : BigInteger.ONE));
+                }
                 NumericUtils.bigIntToSortableBytes(lowerInt, maxBytes, lower, 0);
                 NumericUtils.bigIntToSortableBytes(upperInt, maxBytes, upper, 0);
                 return new PointRangeQuery(field, lower, upper, 1) {

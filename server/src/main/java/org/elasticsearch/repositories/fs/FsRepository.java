@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobStore;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -89,9 +90,13 @@ public class FsRepository extends BlobStoreRepository {
     /**
      * Constructs a shared file system repository.
      */
-    public FsRepository(RepositoryMetadata metadata, Environment environment, NamedXContentRegistry namedXContentRegistry,
-                        ClusterService clusterService, RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
+    public FsRepository(RepositoryMetadata metadata,
+                        Environment environment,
+                        NamedWriteableRegistry namedWriteableRegistry,
+                        NamedXContentRegistry namedXContentRegistry,
+                        ClusterService clusterService,
+                        RecoverySettings recoverySettings) {
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
         this.environment = environment;
         String location = REPOSITORIES_LOCATION_SETTING.get(metadata.settings());
         if (location.isEmpty()) {

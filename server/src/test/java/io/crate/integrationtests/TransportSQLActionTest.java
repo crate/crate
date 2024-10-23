@@ -531,7 +531,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select id, strings from t1");
         assertThat(response).hasRows(
-            "1| [foo, null, bar]"
+            "1| [foo, NULL, bar]"
         );
     }
 
@@ -555,7 +555,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select objects from t1");
         assertThat(response).hasRows(
-            "[{name=foo, age=1}, {name=bar, age=2}]"
+            "[{age=1, name=foo}, {age=2, name=bar}]"
         );
         execute("select objects['name'] from t1");
         assertThat(response).hasRows("[foo, bar]");

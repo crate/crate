@@ -19,22 +19,20 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
-import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Create snapshot response
  */
-public class CreateSnapshotResponse extends TransportResponse implements ToXContentObject {
+public class CreateSnapshotResponse extends TransportResponse {
 
     @Nullable
     private SnapshotInfo snapshotInfo;
@@ -77,19 +75,6 @@ public class CreateSnapshotResponse extends TransportResponse implements ToXCont
             return RestStatus.ACCEPTED;
         }
         return snapshotInfo.status();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        if (snapshotInfo != null) {
-            builder.field("snapshot");
-            snapshotInfo.toXContent(builder, params);
-        } else {
-            builder.field("accepted", true);
-        }
-        builder.endObject();
-        return builder;
     }
 
     @Override

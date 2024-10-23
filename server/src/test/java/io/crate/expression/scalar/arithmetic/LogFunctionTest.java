@@ -25,6 +25,8 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -36,10 +38,14 @@ public class LogFunctionTest extends ScalarTestCase {
     @Test
     public void testNormalizeValueSymbol() throws Exception {
         // test log(x) ... implicit base of 10
+        assertNormalize("log(12.345::numeric(5, 3))",
+            isLiteral(new BigDecimal("1.091491094267951081848996765130174")));
         assertNormalize("log(10.0)", isLiteral(1.0));
         assertNormalize("log(10)", isLiteral(1.0));
         assertNormalize("log(null)", isLiteral(null));
 
+        assertNormalize("ln(12.345::numeric(5, 3))",
+            isLiteral(new BigDecimal("2.513251122797142825851903171540999")));
         assertNormalize("ln(1.0)", isLiteral(0.0));
         assertNormalize("ln(1)", isLiteral(0.0));
         assertNormalize("ln(null)", isLiteral(null));
@@ -56,24 +62,36 @@ public class LogFunctionTest extends ScalarTestCase {
 
     @Test
     public void testLogZero() throws Exception {
-        // -Infinity
+        // -Infinity Double
         assertThatThrownBy(() -> assertEvaluateNull("log(0.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("log(x): given arguments would result in: '-Infinity'");
+        // -Infinity Numeric
+        assertThatThrownBy(() -> assertEvaluateNull("log(0.0::numeric)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("log(x): given arguments would result in: '-Infinity'");
     }
 
     @Test
     public void testLogNegative() throws Exception {
-        // NaN
+        // NaN Double
         assertThatThrownBy(() -> assertEvaluateNull("log(-10.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("log(x): given arguments would result in: 'NaN'");
+        // NaN Numeric
+        assertThatThrownBy(() -> assertEvaluateNull("log(-10.0::numeric)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("log(x): given arguments would result in: 'NaN'");
     }
 
     @Test
     public void testLnZero() throws Exception {
-        // -Infinity
+        // -Infinity Double
         assertThatThrownBy(() -> assertEvaluateNull("ln(0.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("ln(x): given arguments would result in: '-Infinity'");
+        // -Infinity Numeric
+        assertThatThrownBy(() -> assertEvaluateNull("ln(0.0::numeric)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("ln(x): given arguments would result in: '-Infinity'");
     }
@@ -82,6 +100,10 @@ public class LogFunctionTest extends ScalarTestCase {
     public void testLnNegative() throws Exception {
         // NaN
         assertThatThrownBy(() -> assertEvaluateNull("ln(-10.0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("ln(x): given arguments would result in: 'NaN'");
+        // NaN
+        assertThatThrownBy(() -> assertEvaluateNull("ln(-10.0::numeric)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("ln(x): given arguments would result in: 'NaN'");
     }
@@ -108,6 +130,8 @@ public class LogFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateLog10() throws Exception {
+        assertEvaluate("log(123.45::numeric(5, 2))",
+            new BigDecimal("2.091491094267951081848996765130174"));
         assertEvaluate("log(100)", 2.0);
         assertEvaluate("log(100.0)", 2.0);
         assertEvaluateNull("log(null)");
@@ -125,6 +149,8 @@ public class LogFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateLn() throws Exception {
+        assertEvaluate("ln(123.45::numeric(5, 2))",
+            new BigDecimal("4.815836215791188509869894626225363"));
         assertEvaluate("ln(1)", 0.0);
         assertEvaluate("ln(1.0)", 0.0);
         assertEvaluateNull("ln(null)");

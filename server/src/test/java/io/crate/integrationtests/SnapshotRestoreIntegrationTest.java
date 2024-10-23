@@ -592,6 +592,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             .hasMessageContaining("cannot create snapshot in a readonly repository");
     }
 
+    @Test
     public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
         execute("CREATE TABLE t1 (x int)");
         int numberOfDocs = randomIntBetween(0, 10);

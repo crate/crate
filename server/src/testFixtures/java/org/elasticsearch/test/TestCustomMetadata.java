@@ -19,17 +19,16 @@
 
 package org.elasticsearch.test;
 
+import java.io.IOException;
+import java.util.function.Function;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.function.Function;
 
 public abstract class TestCustomMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
     private final String data;
@@ -96,12 +95,6 @@ public abstract class TestCustomMetadata extends AbstractNamedDiffable<Metadata.
             throw new ElasticsearchParseException("failed to parse snapshottable metadata, data not found");
         }
         return (T) supplier.apply(data);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field("data", getData());
-        return builder;
     }
 
     @Override

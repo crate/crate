@@ -611,9 +611,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
         if (bytesToSend > 0) {
             exchange.getResponseBody().write(bytes, rangeStart, bytesToSend);
         }
-        if (randomBoolean()) {
-            exchange.getResponseBody().flush();
-        }
+        exchange.getResponseBody().flush(); // Required after JDK 23, see https://bugs.openjdk.org/browse/JDK-8331847
     }
 
     private String httpServerUrl() {

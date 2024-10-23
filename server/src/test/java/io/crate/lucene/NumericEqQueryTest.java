@@ -55,6 +55,67 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_numeric_comparisions_with_different_precision() {
+        String col = randomBoolean() ? "x" : "y";
+        assertThat(convert(col + " > 1.111")).isEqualTo(convert(col + " > 1.11"));
+        assertThat(convert(col + " > 1.119")).isEqualTo(convert(col + " > 1.11"));
+        assertThat(convert(col + " > 1.1100")).isEqualTo(convert(col + " > 1.11"));
+        assertThat(convert(col + " > 1.105")).isEqualTo(convert(col + " > 1.10"));
+        assertThat(convert(col + " > 1.1")).isEqualTo(convert(col + " > 1.10"));
+        assertThat(convert(col + " > 1")).isEqualTo(convert(col + " > 1.00"));
+
+        assertThat(convert(col + " >= 1.111")).isEqualTo(convert(col + " > 1.11"));
+        assertThat(convert(col + " >= 1.119")).isEqualTo(convert(col + " > 1.11"));
+        assertThat(convert(col + " >= 1.1100")).isEqualTo(convert(col + " > 1.10"));
+        assertThat(convert(col + " >= 1.105")).isEqualTo(convert(col + " > 1.10"));
+        assertThat(convert(col + " >= 1.1")).isEqualTo(convert(col + " > 1.09"));
+        assertThat(convert(col + " >= 1")).isEqualTo(convert(col + " > 0.99"));
+
+        assertThat(convert(col + " < 1.111")).isEqualTo(convert(col + " < 1.12"));
+        assertThat(convert(col + " < 1.119")).isEqualTo(convert(col + " < 1.12"));
+        assertThat(convert(col + " < 1.1100")).isEqualTo(convert(col + " < 1.11"));
+        assertThat(convert(col + " < 1.105")).isEqualTo(convert(col + " < 1.11"));
+        assertThat(convert(col + " < 1.1")).isEqualTo(convert(col + " < 1.10"));
+        assertThat(convert(col + " < 1")).isEqualTo(convert(col + " < 1.00"));
+
+        assertThat(convert(col + " <= 1.111")).isEqualTo(convert(col + " < 1.12"));
+        assertThat(convert(col + " <= 1.119")).isEqualTo(convert(col + " < 1.12"));
+        assertThat(convert(col + " <= 1.1100")).isEqualTo(convert(col + " < 1.12"));
+        assertThat(convert(col + " <= 1.105")).isEqualTo(convert(col + " < 1.11"));
+        assertThat(convert(col + " <= 1.1")).isEqualTo(convert(col + " < 1.11"));
+        assertThat(convert(col + " <= 1")).isEqualTo(convert(col + " < 1.01"));
+
+        // negative values
+        assertThat(convert(col + " > -1.111")).isEqualTo(convert(col + " > -1.12"));
+        assertThat(convert(col + " > -1.119")).isEqualTo(convert(col + " > -1.12"));
+        assertThat(convert(col + " > -1.1100")).isEqualTo(convert(col + " > -1.11"));
+        assertThat(convert(col + " > -1.105")).isEqualTo(convert(col + " > -1.11"));
+        assertThat(convert(col + " > -1.1")).isEqualTo(convert(col + " > -1.10"));
+        assertThat(convert(col + " > -1")).isEqualTo(convert(col + " > -1.00"));
+
+        assertThat(convert(col + " >= -1.111")).isEqualTo(convert(col + " > -1.12"));
+        assertThat(convert(col + " >= -1.119")).isEqualTo(convert(col + " > -1.12"));
+        assertThat(convert(col + " >= -1.1100")).isEqualTo(convert(col + " > -1.12"));
+        assertThat(convert(col + " >= -1.105")).isEqualTo(convert(col + " > -1.11"));
+        assertThat(convert(col + " >= -1.1")).isEqualTo(convert(col + " > -1.11"));
+        assertThat(convert(col + " >= -1")).isEqualTo(convert(col + " > -1.01"));
+
+        assertThat(convert(col + " < -1.111")).isEqualTo(convert(col + " < -1.11"));
+        assertThat(convert(col + " < -1.119")).isEqualTo(convert(col + " < -1.11"));
+        assertThat(convert(col + " < -1.1100")).isEqualTo(convert(col + " < -1.11"));
+        assertThat(convert(col + " < -1.105")).isEqualTo(convert(col + " < -1.10"));
+        assertThat(convert(col + " < -1.1")).isEqualTo(convert(col + " < -1.10"));
+        assertThat(convert(col + " < -1")).isEqualTo(convert(col + " < -1.00"));
+
+        assertThat(convert(col + " <= -1.111")).isEqualTo(convert(col + " < -1.11"));
+        assertThat(convert(col + " <= -1.119")).isEqualTo(convert(col + " < -1.11"));
+        assertThat(convert(col + " <= -1.1100")).isEqualTo(convert(col + " < -1.10"));
+        assertThat(convert(col + " <= -1.105")).isEqualTo(convert(col + " < -1.10"));
+        assertThat(convert(col + " <= -1.1")).isEqualTo(convert(col + " < -1.09"));
+        assertThat(convert(col + " <= -1")).isEqualTo(convert(col + " < -0.99"));
+    }
+
+    @Test
     public void test_uses_binary_encoded_range_queries_for_large_numeric() throws Exception {
         Query query = convert("y = '2746799837116176.76'");
         assertThat(query).isInstanceOf(PointRangeQuery.class);

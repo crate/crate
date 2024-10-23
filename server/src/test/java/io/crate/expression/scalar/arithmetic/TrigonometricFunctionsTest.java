@@ -26,6 +26,8 @@ import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.assertj.core.data.Offset;
 import org.assertj.core.data.Percentage;
 import org.junit.Test;
@@ -39,6 +41,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
     @Test
     public void testEvaluate() throws Exception {
         // Sin
+        assertEvaluate("sin(numeric_val)", new BigDecimal("0.8414709848078965066525023216302990"),
+            Literal.of(new BigDecimal("1.0")));
         assertEvaluate("sin(double_val)", 0.8414709848078965, Literal.of(1.0));
         assertEvaluate("sin(float_val)", 0.9092974268256817, Literal.of(2.0F));
         assertEvaluate("sin(x)", 0.1411200080598672, Literal.of(3L));
@@ -46,6 +50,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("sin(short_val)", -0.9589242746631385, Literal.of(DataTypes.SHORT, (short) 5));
 
         // Asin
+        assertEvaluate("asin(numeric_val)", new BigDecimal("0.1237153458425509815245634716292003"),
+            Literal.of(new BigDecimal("0.1234")));
         assertEvaluate("asin(double_val)", 0.12371534584255098, Literal.of(0.1234));
         assertEvaluate("asin(float_val)", 0.44682008883801516, Literal.of(0.4321F));
         assertEvaluate("asin(x)", 0.0, Literal.of(0L));
@@ -53,6 +59,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("asin(short_val)", -1.5707963267948966, Literal.of(DataTypes.SHORT, (short) -1));
 
         // Cos
+        assertEvaluate("cos(numeric_val)", new BigDecimal("0.8414709848078965066525023216302990"),
+            Literal.of(new BigDecimal("1.0")));
         assertEvaluate("cos(double_val)", 0.5403023058681398, Literal.of(1.0));
         assertEvaluate("cos(float_val)", -0.4161468365471424, Literal.of(2.0F));
         assertEvaluate("cos(x)", -0.9899924966004454, Literal.of(3L));
@@ -60,6 +68,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("cos(short_val)", 0.28366218546322625, Literal.of(DataTypes.SHORT, (short) 5));
 
         // Acos
+        assertEvaluate("acos(numeric_val)", new BigDecimal("1.447080980952345637706758220010551"),
+            Literal.of(new BigDecimal("0.1234")));
         assertEvaluate("acos(double_val)", 1.4470809809523457, Literal.of(0.1234));
         assertEvaluate("acos(float_val)", 1.1239762379568814, Literal.of(0.4321F));
         assertEvaluate("acos(x)", 1.5707963267948966, Literal.of(0L));
@@ -67,6 +77,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("acos(short_val)", 3.141592653589793, Literal.of(DataTypes.SHORT, (short) -1));
 
         // Tan
+        assertEvaluate("tan(numeric_val)", new BigDecimal("1.557407724654902230506974807458360"),
+            Literal.of(new BigDecimal("1.0")));
         assertEvaluate("tan(double_val)", 1.5574077246549023, Literal.of(1.0));
         assertEvaluate("tan(float_val)", -2.185039863261519, Literal.of(2.0F));
         assertEvaluate("tan(x)", -0.1425465430742778, Literal.of(3L));
@@ -76,6 +88,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("tan(short_val)", -3.380515006246586, Literal.of(DataTypes.SHORT, (short) 5));
 
         // Atan
+        assertEvaluate("atan(numeric_val)", new BigDecimal("0.1227793009447383679940057208784330"),
+            Literal.of(new BigDecimal("0.1234")));
         assertEvaluate("atan(double_val)", 0.12277930094473836, Literal.of(0.1234));
         assertEvaluate("atan(float_val)", 0.4078690066146179, Literal.of(0.4321F));
         assertEvaluate("atan(x)", 0.0, Literal.of(0L));
@@ -83,6 +97,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("atan(short_val)", -0.7853981633974483, Literal.of(DataTypes.SHORT, (short) -1));
 
         // Atan2
+        assertEvaluate("atan2(numeric_val, 1.0::numeric)", new BigDecimal("0.1227793009447383679940057208784330"),
+            Literal.of(new BigDecimal("0.1234")));
         assertEvaluate("atan2(double_val, 1)", 1.1071487177940904, Literal.of(2.0d));
         assertEvaluate("atan2(float_val, -1.0)", -2.356194490192345, Literal.of(-1.0f));
         assertEvaluate("atan2(x, 1::short)", 0.7853981633974483, Literal.of(1L));
@@ -90,6 +106,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("atan2(short_val, 1::real)", 0.7853981633974483, Literal.of((short) 1));
 
         // Cot
+        assertEvaluate("cot(numeric_val)", new BigDecimal("8.062552563411327942750523551571959"),
+            Literal.of(new BigDecimal("0.1234")));
         assertEvaluate("cot(double_val)", -0.6166933379738136, Literal.of(2.1234));
         assertEvaluate("cot(float_val)", 0.33894928708120026, Literal.of(1.244F));
         assertEvaluate("cot(x)", -0.45765755436028577, Literal.of(2L));
@@ -122,11 +140,17 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluate("asin(2.0)", 0))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
+        assertThatThrownBy(() -> assertEvaluate("asin(2.0::numeric)", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
     }
 
     @Test
     public void testEvaluateAcosOnIllegalArgument() {
         assertThatThrownBy(() -> assertEvaluate("acos(2.0)", 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
+        assertThatThrownBy(() -> assertEvaluate("acos(2.0::numeric)", 0))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
     }
@@ -146,6 +170,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
     @Test
     public void testNormalize() throws Exception {
         // Sin
+        assertNormalize("sin(1.0::numeric)",
+            isLiteral(new BigDecimal("0.8414709848078965066525023216302990"), DataTypes.NUMERIC));
         assertNormalize("sin(1.0)", isLiteral(0.8414709848078965, DataTypes.DOUBLE));
         assertNormalize("sin(cast (2.0 as float))", isLiteral(0.9092974268256817, DataTypes.DOUBLE));
         assertNormalize("sin(3)", isLiteral(0.1411200080598672, DataTypes.DOUBLE));
@@ -153,6 +179,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("sin(cast (5 as short))", isLiteral(-0.9589242746631385, DataTypes.DOUBLE));
 
         // Asin
+        assertNormalize("asin(0.1234::numeric)",
+            isLiteral(new BigDecimal("0.1237153458425509815245634716292003"), DataTypes.NUMERIC));
         assertNormalize("asin(0.1234)", isLiteral(0.12371534584255098, DataTypes.DOUBLE));
         assertNormalize("asin(cast (0.4321 as float))", isLiteral(0.44682008883801516, DataTypes.DOUBLE));
         assertNormalize("asin(0)", isLiteral(0.0, DataTypes.DOUBLE));
@@ -160,6 +188,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("asin(cast (-1 as short))", isLiteral(-1.5707963267948966, DataTypes.DOUBLE));
 
         // Cos
+        assertNormalize("cos(1.0::numeric)",
+            isLiteral(new BigDecimal("0.8414709848078965066525023216302990"), DataTypes.NUMERIC));
         assertNormalize("cos(1.0)", isLiteral(0.5403023058681398, DataTypes.DOUBLE));
         assertNormalize("cos(cast (2.0 as float))", isLiteral(-0.4161468365471424, DataTypes.DOUBLE));
         assertNormalize("cos(3)", isLiteral(-0.9899924966004454, DataTypes.DOUBLE));
@@ -167,6 +197,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("cos(cast (5 as short))", isLiteral(0.28366218546322625, DataTypes.DOUBLE));
 
         // Acos
+        assertNormalize("acos(0.1234::numeric)",
+            isLiteral(new BigDecimal("1.447080980952345637706758220010551"), DataTypes.NUMERIC));
         assertNormalize("acos(0.1234)", isLiteral(1.4470809809523457, DataTypes.DOUBLE));
         assertNormalize("acos(cast (0.4321 as float))", isLiteral(1.1239762379568814, DataTypes.DOUBLE));
         assertNormalize("acos(0)", isLiteral(1.5707963267948966, DataTypes.DOUBLE));
@@ -174,6 +206,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("acos(cast (-1 as short))", isLiteral(3.141592653589793, DataTypes.DOUBLE));
 
         // Tan
+        assertNormalize("tan(1.0::numeric)",
+            isLiteral(new BigDecimal("1.557407724654902230506974807458360"), DataTypes.NUMERIC));
         assertNormalize("tan(1.0)", isLiteral(1.5574077246549023, DataTypes.DOUBLE));
         assertNormalize("tan(cast (2.0 as float))", isLiteral(-2.185039863261519, DataTypes.DOUBLE));
         assertNormalize("tan(3)", isLiteral(-0.1425465430742778, DataTypes.DOUBLE));
@@ -181,6 +215,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("tan(cast (5 as short))", isLiteral(-3.380515006246586, DataTypes.DOUBLE));
 
         // Atan
+        assertNormalize("atan(0.1234::numeric)",
+            isLiteral(new BigDecimal("0.1227793009447383679940057208784330"), DataTypes.NUMERIC));
         assertNormalize("atan(0.1234)", isLiteral(0.12277930094473836, DataTypes.DOUBLE));
         assertNormalize("atan(cast (0.4321 as float))", isLiteral(0.4078690066146179, DataTypes.DOUBLE));
         assertNormalize("atan(0)", isLiteral(0.0, DataTypes.DOUBLE));
@@ -188,6 +224,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("atan(cast (-1 as short))", isLiteral(-0.7853981633974483, DataTypes.DOUBLE));
 
         // Atan2
+        assertNormalize("atan2(2.0::numeric, 1.0::numeric)",
+            isLiteral(new BigDecimal("1.107148717794090503017065460178537"), DataTypes.NUMERIC));
         assertNormalize("atan2(2, 1)", isLiteral(1.1071487177940904));
         assertNormalize("atan2(-1, -1.0)", isLiteral(-2.356194490192345));
         assertNormalize("atan2(1, 1::short)", isLiteral(0.7853981633974483));
@@ -195,6 +233,8 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("atan2(1, 1::real)", isLiteral(0.7853981633974483));
 
         // Cot
+        assertNormalize("cot(2.1324::numeric)",
+            isLiteral(new BigDecimal("-0.6291858075350035748711197695663503"), DataTypes.NUMERIC));
         assertNormalize("cot(2.1234::double)", isLiteral(-0.6166933379738136, DataTypes.DOUBLE));
         assertNormalize("cot(1.245::real)", isLiteral(0.33783472578914325, DataTypes.DOUBLE));
         assertNormalize("cot(2::bigint)", isLiteral(-0.45765755436028577, DataTypes.DOUBLE));
@@ -205,6 +245,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
     @Test
     public void testNormalizeOnNull() throws Exception {
         // Sin
+        assertNormalize("sin(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("sin(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("sin(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("sin(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -212,6 +253,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("sin(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Asin
+        assertNormalize("asin(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("asin(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("asin(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("asin(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -219,6 +261,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("asin(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Cos
+        assertNormalize("cos(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("cos(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("cos(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("cos(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -226,6 +269,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("cos(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Acos
+        assertNormalize("acos(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("acos(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("acos(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("acos(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -233,6 +277,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("acos(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Tan
+        assertNormalize("tan(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("tan(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("tan(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("tan(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -240,6 +285,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("tan(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Atan
+        assertNormalize("atan(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("atan(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
@@ -247,6 +293,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("atan(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
 
         // Atan2
+        assertNormalize("atan2(null::numeric, null)", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("atan2(null, null)", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan2(1, null::double)", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan2(null::float, 1)", isLiteral(null, DataTypes.DOUBLE));
@@ -255,6 +302,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("atan2(null::short, 1)", isLiteral(null, DataTypes.DOUBLE));
 
         // Cot
+        assertNormalize("cot(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
         assertNormalize("cot(cast(null as double))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("cot(cast(null as float))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("cot(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));

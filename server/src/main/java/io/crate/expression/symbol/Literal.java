@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -252,6 +253,10 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
             return new Literal<>(DataTypes.BOOLEAN, null);
         }
         return value ? BOOLEAN_TRUE : BOOLEAN_FALSE;
+    }
+
+    public static Literal<BigDecimal> of(BigDecimal value) {
+        return new Literal<>(DataTypes.NUMERIC, value);
     }
 
     public static Literal<Double> of(Double value) {

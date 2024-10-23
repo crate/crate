@@ -19,16 +19,6 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ConstructingObjectParser;
-import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,7 +29,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CoordinationMetadata implements Writeable, ToXContentFragment {
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.ConstructingObjectParser;
+import org.elasticsearch.common.xcontent.ParseField;
+import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+
+public class CoordinationMetadata implements Writeable {
 
     public static final CoordinationMetadata EMPTY_METADATA = builder().build();
 
@@ -124,15 +124,6 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
         lastCommittedConfiguration.writeTo(out);
         lastAcceptedConfiguration.writeTo(out);
         out.writeCollection(votingConfigExclusions);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder
-            .field(TERM_PARSE_FIELD.getPreferredName(), term)
-            .field(LAST_COMMITTED_CONFIGURATION_FIELD.getPreferredName(), lastCommittedConfiguration)
-            .field(LAST_ACCEPTED_CONFIGURATION_FIELD.getPreferredName(), lastAcceptedConfiguration)
-            .field(VOTING_CONFIG_EXCLUSIONS_FIELD.getPreferredName(), votingConfigExclusions);
     }
 
     public static CoordinationMetadata fromXContent(XContentParser parser) throws IOException {

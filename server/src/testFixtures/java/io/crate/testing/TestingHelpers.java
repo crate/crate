@@ -133,14 +133,14 @@ public class TestingHelpers {
             }
             out.print("]");
         } else if (o instanceof List<?> list) {
-                out.print("[");
-                for (int i = 0; i < list.size(); i++) {
-                    printObject(out, true, list.get(i));
-                    if (i < list.size() - 1) {
-                        out.print(", ");
-                    }
+            out.print("[");
+            for (int i = 0; i < list.size(); i++) {
+                printObject(out, true, list.get(i));
+                if (i < list.size() - 1) {
+                    out.print(", ");
                 }
-                out.print("]");
+            }
+            out.print("]");
         } else if (o.getClass().isArray()) {
             out.print("[");
             boolean arrayFirst = true;

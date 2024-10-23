@@ -19,27 +19,20 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.Comparator;
 
-import static org.elasticsearch.cluster.routing.allocation.AbstractAllocationDecision.discoveryNodeToXContent;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This class represents the shard allocation decision and its explanation for a single node.
  */
-public class NodeAllocationResult implements ToXContentObject, Writeable, Comparable<NodeAllocationResult> {
+public class NodeAllocationResult implements Writeable, Comparable<NodeAllocationResult> {
 
     private static final Comparator<NodeAllocationResult> NODE_RESULT_COMPARATOR =
         Comparator.comparing(NodeAllocationResult::getNodeDecision)
@@ -148,34 +141,12 @@ public class NodeAllocationResult implements ToXContentObject, Writeable, Compar
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        {
-            discoveryNodeToXContent(node, false, builder);
-            builder.field("node_decision", nodeDecision);
-            if (shardStoreInfo != null) {
-                shardStoreInfo.toXContent(builder, params);
-            }
-            if (isWeightRanked()) {
-                builder.field("weight_ranking", getWeightRanking());
-            }
-            if (canAllocateDecision != null && canAllocateDecision.getDecisions().isEmpty() == false) {
-                builder.startArray("deciders");
-                canAllocateDecision.toXContent(builder, params);
-                builder.endArray();
-            }
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
     public int compareTo(NodeAllocationResult other) {
         return NODE_RESULT_COMPARATOR.compare(this, other);
     }
 
     /** A class that captures metadata about a shard store on a node. */
-    public static final class ShardStoreInfo implements ToXContentFragment, Writeable {
+    public static final class ShardStoreInfo implements Writeable {
         private final boolean inSync;
         @Nullable
         private final String allocationId;
@@ -256,39 +227,5 @@ public class NodeAllocationResult implements ToXContentObject, Writeable, Compar
             out.writeLong(matchingBytes);
             out.writeException(storeException);
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject("store");
-            {
-                if (matchingBytes < 0) {
-                    // dealing with a primary shard
-                    if (allocationId == null && storeException == null) {
-                        // there was no information we could obtain of any shard data on the node
-                        builder.field("found", false);
-                    } else {
-                        builder.field("in_sync", inSync);
-                    }
-                }
-                if (allocationId != null) {
-                    builder.field("allocation_id", allocationId);
-                }
-                if (matchingBytes >= 0) {
-                    if (hasMatchingSyncId()) {
-                        builder.field("matching_sync_id", true);
-                    } else {
-                        builder.humanReadableField("matching_size_in_bytes", "matching_size", new ByteSizeValue(matchingBytes));
-                    }
-                }
-                if (storeException != null) {
-                    builder.startObject("store_exception");
-                    ElasticsearchException.generateThrowableXContent(builder, params, storeException);
-                    builder.endObject();
-                }
-            }
-            builder.endObject();
-            return builder;
-        }
     }
-
 }

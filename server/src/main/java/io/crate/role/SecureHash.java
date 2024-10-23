@@ -36,15 +36,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
  * Secure Password Hashing that uses the PBKDF2 Algorithm
  * @see <a href="https://tools.ietf.org/html/rfc2898">PBKDF2 Algorithm</a>
  */
-public final class SecureHash implements Writeable, ToXContent {
+public final class SecureHash implements Writeable {
 
     private static final String X_CONTENT_KEY_ITERATIONS = "iterations";
     private static final String X_CONTENT_KEY_SALT = "salt";
@@ -142,16 +140,6 @@ public final class SecureHash implements Writeable, ToXContent {
         out.writeInt(iterations);
         out.writeByteArray(hash);
         out.writeByteArray(salt);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("secure_hash")
-            .field(X_CONTENT_KEY_ITERATIONS, iterations)
-            .field(X_CONTENT_KEY_HASH, hash)
-            .field(X_CONTENT_KEY_SALT, salt)
-            .endObject();
-        return builder;
     }
 
     public static SecureHash fromXContent(XContentParser parser) throws IOException {

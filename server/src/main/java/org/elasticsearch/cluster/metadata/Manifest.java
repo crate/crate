@@ -32,9 +32,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
@@ -46,7 +43,7 @@ import org.elasticsearch.index.Index;
  * Global metadata generation could be obtained by calling {@link #getGlobalGeneration()}.
  * Index metadata generation could be obtained by calling {@link #getIndexGenerations()}.
  */
-public class Manifest implements ToXContentFragment, Writeable {
+public class Manifest implements Writeable {
     //TODO revisit missing and unknown constants once Zen2 BWC is ready
     private static final long MISSING_GLOBAL_GENERATION = -1L;
     private static final long MISSING_CURRENT_TERM = 0L;
@@ -134,7 +131,6 @@ public class Manifest implements ToXContentFragment, Writeable {
     }
 
     private static final String MANIFEST_FILE_PREFIX = "manifest-";
-    private static final ToXContent.Params MANIFEST_FORMAT_PARAMS = new ToXContent.MapParams(Collections.singletonMap("binary", "true"));
 
     public static final MetadataStateFormat<Manifest> FORMAT = new MetadataStateFormat<Manifest>(MANIFEST_FILE_PREFIX) {
 
@@ -159,23 +155,8 @@ public class Manifest implements ToXContentFragment, Writeable {
     private static final ParseField GENERATION_PARSE_FIELD = new ParseField("generation");
     private static final ParseField INDEX_GENERATIONS_PARSE_FIELD = new ParseField("index_generations");
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field(CURRENT_TERM_PARSE_FIELD.getPreferredName(), currentTerm);
-        builder.field(CLUSTER_STATE_VERSION_PARSE_FIELD.getPreferredName(), clusterStateVersion);
-        builder.field(GENERATION_PARSE_FIELD.getPreferredName(), globalGeneration);
-        builder.array(INDEX_GENERATIONS_PARSE_FIELD.getPreferredName(), indexEntryList().toArray());
-        return builder;
-    }
-
     private static long requireNonNullElseDefault(Long value, long defaultValue) {
         return value != null ? value : defaultValue;
-    }
-
-    private List<IndexEntry> indexEntryList() {
-        return indexGenerations.entrySet().stream()
-            .map(entry -> new IndexEntry(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
     }
 
     private static long currentTerm(Object[] manifestFields) {
@@ -230,7 +211,7 @@ public class Manifest implements ToXContentFragment, Writeable {
         return globalGeneration == MISSING_GLOBAL_GENERATION;
     }
 
-    private static final class IndexEntry implements ToXContentFragment {
+    private static final class IndexEntry {
         private static final ParseField INDEX_GENERATION_PARSE_FIELD = new ParseField("generation");
         private static final ParseField INDEX_PARSE_FIELD = new ParseField("index");
 
@@ -259,15 +240,6 @@ public class Manifest implements ToXContentFragment, Writeable {
 
         public Index getIndex() {
             return index;
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            builder.field(INDEX_PARSE_FIELD.getPreferredName(), index);
-            builder.field(GENERATION_PARSE_FIELD.getPreferredName(), generation);
-            builder.endObject();
-            return builder;
         }
     }
 }

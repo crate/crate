@@ -22,27 +22,19 @@ package org.elasticsearch.cluster;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
@@ -56,15 +48,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.VersionedNamedWriteable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.Constants;
-import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Represents the current state of the cluster.
@@ -88,7 +74,7 @@ import io.crate.server.xcontent.XContentHelper;
  * throws the {@link IncompatibleClusterStateVersionException}, which causes the publishing mechanism to send
  * a full version of the cluster state to the node on which this exception was thrown.
  */
-public class ClusterState implements ToXContentFragment, Diffable<ClusterState> {
+public class ClusterState implements Diffable<ClusterState> {
 
     public static final ClusterState EMPTY_STATE = builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY)).build();
 
@@ -342,208 +328,6 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
         public String toString() {
             return value;
         }
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        EnumSet<Metric> metrics = Metric.parseString(params.param("metric", "_all"), true);
-
-        // always provide the cluster_uuid as part of the top-level response (also part of the metadata response)
-        builder.field("cluster_uuid", metadata().clusterUUID());
-
-        if (metrics.contains(Metric.VERSION)) {
-            builder.field("version", version);
-            builder.field("state_uuid", stateUUID);
-        }
-
-        if (metrics.contains(Metric.MASTER_NODE)) {
-            builder.field("master_node", nodes().getMasterNodeId());
-        }
-
-        if (metrics.contains(Metric.BLOCKS)) {
-            builder.startObject("blocks");
-
-            if (!blocks().global().isEmpty()) {
-                builder.startObject("global");
-                for (ClusterBlock block : blocks().global()) {
-                    block.toXContent(builder, params);
-                }
-                builder.endObject();
-            }
-
-            if (!blocks().indices().isEmpty()) {
-                builder.startObject("indices");
-                for (ObjectObjectCursor<String, Set<ClusterBlock>> entry : blocks().indices()) {
-                    builder.startObject(entry.key);
-                    for (ClusterBlock block : entry.value) {
-                        block.toXContent(builder, params);
-                    }
-                    builder.endObject();
-                }
-                builder.endObject();
-            }
-
-            builder.endObject();
-        }
-
-        // nodes
-        if (metrics.contains(Metric.NODES)) {
-            builder.startObject("nodes");
-            for (DiscoveryNode node : nodes) {
-                node.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-
-        // meta data
-        if (metrics.contains(Metric.METADATA)) {
-            builder.startObject("metadata");
-            builder.field("cluster_uuid", metadata().clusterUUID());
-
-            builder.startObject("cluster_coordination");
-            coordinationMetadata().toXContent(builder, params);
-            builder.endObject();
-
-            builder.startObject("templates");
-            for (ObjectCursor<IndexTemplateMetadata> cursor : metadata().templates().values()) {
-                IndexTemplateMetadata templateMetadata = cursor.value;
-                builder.startObject(templateMetadata.name());
-
-                builder.field("index_patterns", templateMetadata.patterns());
-
-                builder.startObject("settings");
-                Settings settings = templateMetadata.settings();
-                settings.toXContent(builder, params);
-                builder.endObject();
-
-                builder.startObject("mappings");
-                Map<String, Object> mapping = XContentHelper.convertToMap(templateMetadata.mapping().uncompressed(), false, XContentType.JSON).map();
-                if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
-                    // the type name is the root value, reduce it
-                    mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-                }
-                builder.field(Constants.DEFAULT_MAPPING_TYPE);
-                builder.map(mapping);
-                builder.endObject();
-
-
-                builder.endObject();
-            }
-            builder.endObject();
-
-            builder.startObject("indices");
-            for (IndexMetadata indexMetadata : metadata()) {
-                builder.startObject(indexMetadata.getIndex().getName());
-
-                builder.field("state", indexMetadata.getState().toString().toLowerCase(Locale.ENGLISH));
-
-                builder.startObject("settings");
-                Settings settings = indexMetadata.getSettings();
-                settings.toXContent(builder, params);
-                builder.endObject();
-
-                builder.startObject("mappings");
-                MappingMetadata mmd = indexMetadata.mapping();
-                if (mmd != null) {
-                    Map<String, Object> mapping = XContentHelper
-                            .convertToMap(mmd.source().uncompressed(), false, XContentType.JSON).map();
-                    if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
-                        // the type name is the root value, reduce it
-                        mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-                    }
-                    builder.field(Constants.DEFAULT_MAPPING_TYPE);
-                    builder.map(mapping);
-                }
-                builder.endObject();
-
-                builder.startArray("aliases");
-                for (ObjectCursor<String> cursor : indexMetadata.getAliases().keys()) {
-                    builder.value(cursor.value);
-                }
-                builder.endArray();
-
-                builder.startObject(IndexMetadata.KEY_PRIMARY_TERMS);
-                for (int shard = 0; shard < indexMetadata.getNumberOfShards(); shard++) {
-                    builder.field(Integer.toString(shard), indexMetadata.primaryTerm(shard));
-                }
-                builder.endObject();
-
-                builder.startObject(IndexMetadata.KEY_IN_SYNC_ALLOCATIONS);
-                for (IntObjectCursor<Set<String>> cursor : indexMetadata.getInSyncAllocationIds()) {
-                    builder.startArray(String.valueOf(cursor.key));
-                    for (String allocationId : cursor.value) {
-                        builder.value(allocationId);
-                    }
-                    builder.endArray();
-                }
-                builder.endObject();
-
-                // index metadata
-                builder.endObject();
-            }
-            builder.endObject();
-
-            for (ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
-                builder.startObject(cursor.key);
-                cursor.value.toXContent(builder, params);
-                builder.endObject();
-            }
-
-            builder.endObject();
-        }
-
-        // routing table
-        if (metrics.contains(Metric.ROUTING_TABLE)) {
-            builder.startObject("routing_table");
-            builder.startObject("indices");
-            for (IndexRoutingTable indexRoutingTable : routingTable()) {
-                builder.startObject(indexRoutingTable.getIndex().getName());
-                builder.startObject("shards");
-                for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
-                    builder.startArray(Integer.toString(indexShardRoutingTable.shardId().id()));
-                    for (ShardRouting shardRouting : indexShardRoutingTable) {
-                        shardRouting.toXContent(builder, params);
-                    }
-                    builder.endArray();
-                }
-                builder.endObject();
-                builder.endObject();
-            }
-            builder.endObject();
-            builder.endObject();
-        }
-
-        // routing nodes
-        if (metrics.contains(Metric.ROUTING_NODES)) {
-            builder.startObject("routing_nodes");
-            builder.startArray("unassigned");
-            for (ShardRouting shardRouting : getRoutingNodes().unassigned()) {
-                shardRouting.toXContent(builder, params);
-            }
-            builder.endArray();
-
-            builder.startObject("nodes");
-            for (RoutingNode routingNode : getRoutingNodes()) {
-                builder.startArray(routingNode.nodeId() == null ? "null" : routingNode.nodeId());
-                for (ShardRouting shardRouting : routingNode) {
-                    shardRouting.toXContent(builder, params);
-                }
-                builder.endArray();
-            }
-            builder.endObject();
-
-            builder.endObject();
-        }
-        if (metrics.contains(Metric.CUSTOMS)) {
-            for (ObjectObjectCursor<String, Custom> cursor : customs) {
-                builder.startObject(cursor.key);
-                cursor.value.toXContent(builder, params);
-                builder.endObject();
-            }
-        }
-
-        return builder;
     }
 
     public static Builder builder(ClusterName clusterName) {

@@ -19,16 +19,17 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.zip.DeflaterOutputStream;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.DeflaterOutputStream;
+import io.crate.common.io.IOUtils;
 
 /**
  * This class exists to provide a stream with optional compression. This is useful as using compression

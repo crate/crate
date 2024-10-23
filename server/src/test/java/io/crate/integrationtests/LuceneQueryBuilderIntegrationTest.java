@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -398,7 +397,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo("[1, 2, 3]\n");
         execute("select * from t1 where not ignore3vl(5 = any(a))");
         assertThat(printedTable(response.rows()).split("\n")).containsExactlyInAnyOrder(
-            "[1, 2, 3, null]",
+            "[1, 2, 3, NULL]",
             "[1, 2, 3]"
         );
     }

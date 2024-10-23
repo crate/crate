@@ -36,6 +36,7 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.url.URLBlobStore;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.URIPattern;
@@ -98,10 +99,11 @@ public class URLRepository extends BlobStoreRepository {
      */
     public URLRepository(RepositoryMetadata metadata,
                          Environment environment,
+                         NamedWriteableRegistry namedWriteableRegistry,
                          NamedXContentRegistry namedXContentRegistry,
                          ClusterService clusterService,
                          RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, BlobPath.cleanPath());
 
         if (URL_SETTING.exists(metadata.settings()) == false && REPOSITORIES_URL_SETTING.exists(environment.settings()) == false) {
             throw new RepositoryException(metadata.name(), "missing url");

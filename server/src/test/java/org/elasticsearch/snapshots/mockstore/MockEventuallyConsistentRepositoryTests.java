@@ -63,7 +63,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
             new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY),
-            xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
+            writableRegistry(), xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
             repository.start();
             final BlobContainer blobContainer = repository.blobStore().blobContainer(repository.basePath());
             final String blobName = randomAlphaOfLength(10);
@@ -84,7 +84,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
             new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY),
-            xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
+            writableRegistry(), xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
             repository.start();
             final BlobContainer blobContainer = repository.blobStore().blobContainer(repository.basePath());
             final String blobName = randomAlphaOfLength(10);
@@ -102,7 +102,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
             new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY),
-            xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
+            writableRegistry(), xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
             repository.start();
             final BlobContainer blobContainer = repository.blobStore().blobContainer(repository.basePath());
             final String blobName = randomAlphaOfLength(10);
@@ -122,7 +122,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
             new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY),
-            xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
+            writableRegistry(), xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
             repository.start();
             final BlobContainer container = repository.blobStore().blobContainer(repository.basePath());
             final String blobName = randomAlphaOfLength(10);
@@ -140,7 +140,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         MockEventuallyConsistentRepository.Context blobStoreContext = new MockEventuallyConsistentRepository.Context();
         try (BlobStoreRepository repository = new MockEventuallyConsistentRepository(
             new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY),
-            xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
+            writableRegistry(), xContentRegistry(), BlobStoreTestUtil.mockClusterService(), recoverySettings, blobStoreContext, random())) {
             repository.start();
             final BlobContainer container =
                 repository.blobStore().blobContainer(repository.basePath().add("indices").add("someindex").add("0"));
@@ -160,7 +160,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
         final RepositoryMetadata metaData = new RepositoryMetadata("testRepo", "mockEventuallyConsistent", Settings.EMPTY);
         final ClusterService clusterService = BlobStoreTestUtil.mockClusterService(metaData);
         try (BlobStoreRepository repository =
-                 new MockEventuallyConsistentRepository(metaData, xContentRegistry(), clusterService, recoverySettings, blobStoreContext, random())) {
+                 new MockEventuallyConsistentRepository(metaData, writableRegistry(), xContentRegistry(), clusterService, recoverySettings, blobStoreContext, random())) {
             clusterService.addStateApplier(event -> repository.updateState(event.state()));
             // Apply state once to initialize repo properly like RepositoriesService would
             repository.updateState(clusterService.state());

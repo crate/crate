@@ -65,8 +65,8 @@ import io.crate.metadata.doc.SysColumns;
 public final class NumericStorage extends StorageSupport<BigDecimal> {
 
     public static final int COMPACT_PRECISION = 18;
-    public static long COMPACT_MIN_VALUE = -999999999999999999L;
-    public static long COMPACT_MAX_VALUE = 999999999999999999L;
+    public static final long COMPACT_MIN_VALUE = -999999999999999999L;
+    public static final long COMPACT_MAX_VALUE = 999999999999999999L;
 
     private final NumericType type;
 

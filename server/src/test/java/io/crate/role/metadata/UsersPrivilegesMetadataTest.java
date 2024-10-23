@@ -34,7 +34,7 @@ import static io.crate.role.PrivilegesModifierTest.USERNAMES;
 import static io.crate.role.PrivilegesModifierTest.USER_WITHOUT_PRIVILEGES;
 import static io.crate.role.PrivilegesModifierTest.USER_WITH_DENIED_DQL;
 import static io.crate.role.PrivilegesModifierTest.USER_WITH_TABLE_VIEW_SCHEMA_AL_PRIVS;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -44,14 +44,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,28 +88,4 @@ public class UsersPrivilegesMetadataTest extends ESTestCase {
         UsersPrivilegesMetadata usersPrivilegesMetadata2 = new UsersPrivilegesMetadata(in);
         assertThat(usersPrivilegesMetadata2).isEqualTo(usersPrivilegesMetadata);
     }
-
-    @Test
-    public void testXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        usersPrivilegesMetadata.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder)
-        );
-        parser.nextToken(); // start object
-        UsersPrivilegesMetadata usersPrivilegesMetadata2 = UsersPrivilegesMetadata.fromXContent(parser);
-        assertThat(usersPrivilegesMetadata2).isEqualTo(usersPrivilegesMetadata);
-
-        // a metadata custom must consume its surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
 }

@@ -427,7 +427,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             "tags| text_array"
         );
         assertThat(execute("select _doc from arr")).hasRows(
-            "{2=[], id=2, new=[null], tags=[wow, much, wow]}"
+            "{2=[], id=2, new=[NULL], tags=[wow, much, wow]}"
         );
     }
 
@@ -470,12 +470,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("refresh table tbl");
         execute("select _doc from tbl");
         assertThat(response).hasRows("""
-            {a=1, n1=[], n2=[null, null], o={x=[], y=[null]}}""");
+            {a=1, n1=[], n2=[NULL, NULL], o={x=[], y=[NULL]}}""");
         execute("insert into tbl (a, o, n1, n2) values (2, {x=[1],y=[1]}, [1], [2])");
         execute("refresh table tbl");
         execute("select _doc from tbl order by a");
         assertThat(response).hasRows("""
-                {a=1, n1=[], n2=[null, null], o={x=[], y=[null]}}""",
+                {a=1, n1=[], n2=[NULL, NULL], o={x=[], y=[NULL]}}""",
             """
                 {a=2, n1=[1], n2=[2], o={x=[1], y=[1]}}""");
     }

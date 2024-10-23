@@ -21,16 +21,16 @@
 
 package io.crate.gcs;
 
-import static org.elasticsearch.common.settings.Setting.Property;
 import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
 import static org.elasticsearch.common.settings.Setting.simpleString;
-
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -71,11 +71,12 @@ public class GCSRepository extends BlobStoreRepository {
 
     public GCSRepository(
         final RepositoryMetadata metadata,
+        final NamedWriteableRegistry namedWriteableRegistry,
         final NamedXContentRegistry namedXContentRegistry,
         final ClusterService clusterService,
         final GCSService service,
         final RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.service = service;
         this.chunkSize = CHUNK_SIZE_SETTING.get(metadata.settings());
         this.bucket = BUCKET_SETTING.get(metadata.settings());

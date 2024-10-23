@@ -25,16 +25,14 @@ import java.util.Objects;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
-public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements ToXContentFragment {
+public class AliasMetadata extends AbstractDiffable<AliasMetadata> {
 
     private final String alias;
 
@@ -95,17 +93,6 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
 
     public static Diff<AliasMetadata> readDiffFrom(StreamInput in) throws IOException {
         return readDiffFrom(AliasMetadata::new, in);
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this, true, true);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        AliasMetadata.Builder.toXContent(this, builder, params);
-        return builder;
     }
 
     public static class Builder {

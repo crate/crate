@@ -252,44 +252,6 @@ public class RepositoryDataTests extends ESTestCase {
         }
     }
 
-    @Test
-    public void testIndexThatReferenceANullSnapshot() throws IOException {
-        final XContentBuilder builder = XContentBuilder.builder(randomFrom(XContentType.JSON).xContent());
-        builder.startObject();
-        {
-            builder.startArray("snapshots");
-            builder.value(new SnapshotId("_name", "_uuid"));
-            builder.endArray();
-
-            builder.startObject("indices");
-            {
-                builder.startObject("docs");
-                {
-                    builder.field("id", "_id");
-                    builder.startArray("snapshots");
-                    {
-                        builder.startObject();
-                        if (randomBoolean()) {
-                            builder.field("name", "_name");
-                        }
-                        builder.endObject();
-                    }
-                    builder.endArray();
-                }
-                builder.endObject();
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-
-        try (XContentParser xParser = createParser(builder)) {
-            assertThatThrownBy(() -> RepositoryData.snapshotsFromXContent(xParser, randomNonNegativeLong(), randomBoolean()))
-                .isExactlyInstanceOf(ElasticsearchParseException.class)
-                .hasMessage(
-                    "Detected a corrupted repository, index [docs/_id] references an unknown snapshot uuid [null]");
-        }
-    }
-
     // Test removing snapshot from random data where no two snapshots share any index metadata blobs
     @Test
     public void testIndexMetaDataToRemoveAfterRemovingSnapshotNoSharing() {

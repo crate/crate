@@ -116,7 +116,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             "WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
         assertThat(response).hasRows(
-            "arthur| [{role=a_role, grantor=the_grantor}]| {enable_hashjoin=false}| NULL| false",
+            "arthur| [{grantor=the_grantor, role=a_role}]| {enable_hashjoin=false}| NULL| false",
             "ford| []| {}| ********| false",
             "normal| []| {}| NULL| false",
             "the_grantor| []| {}| NULL| false"
@@ -148,7 +148,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         executeAs("GRANT role3, role2 TO role1", GRANTOR_USER);
         executeAsSuperuser("SELECT name, granted_roles FROM sys.roles ORDER BY name");
         assertThat(response).hasRows(
-            "role1| [{role=role2, grantor=the_grantor}, {role=role3, grantor=the_grantor}]",
+            "role1| [{grantor=the_grantor, role=role2}, {grantor=the_grantor, role=role3}]",
             "role2| []",
             "role3| []"
         );
