@@ -230,7 +230,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public List<T> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, val -> val == null ? null : innerType.explicitCast(val, sessionSettings), sessionSettings);
+        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings), sessionSettings);
     }
 
     @Override
@@ -291,15 +291,15 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Nullable
     @SuppressWarnings("unchecked")
     private List<T> convert(@Nullable Object value,
-                                       DataType<T> innerType,
-                                       Function<Object, T> convertInner,
-                                       SessionSettings sessionSettings) {
+                            DataType<T> innerType,
+                            Function<Object, T> convertInner,
+                            SessionSettings sessionSettings) {
         if (value == null) {
             return null;
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
-        } else if (value instanceof Map<?,?> map && map.isEmpty()) {
+        } else if (value instanceof Map<?, ?> map && map.isEmpty()) {
             return List.of();
         } else if (value instanceof String string) {
             try {
@@ -337,7 +337,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists.map(parser.list(), value -> value == null ? null : innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

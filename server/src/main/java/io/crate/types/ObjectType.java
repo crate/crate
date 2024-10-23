@@ -73,6 +73,24 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType(Map.of());
     public static final int ID = 12;
     public static final String NAME = "object";
+    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
+
+        @Override
+        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                              Reference ref,
+                                                              Function<ColumnIdent, Reference> getRef) {
+            return new ObjectIndexer(table, ref, getRef);
+        }
+
+        @Override
+        public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    };
 
     public static class Builder {
 
@@ -377,24 +395,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public StorageSupport<Map<String, Object>> storageSupport() {
-        return new StorageSupport<>(false, false, null) {
-
-            @Override
-            public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                                  Reference ref,
-                                                                  Function<ColumnIdent, Reference> getRef) {
-                return new ObjectIndexer(table, ref, getRef);
-            }
-
-            @Override
-            public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
-                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
-                    return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-        };
+        return STORAGE;
     }
 
     @Override
