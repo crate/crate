@@ -127,7 +127,7 @@ It can be created using the :ref:`sql-create-table` statement using the
     CREATE OK, 1 row affected (... sec)
 
 This creates an empty partitioned table which is not yet backed by real
-partitions. Nonetheless does it behave like a *normal* table.
+partitions. Nonetheless it does behave like a *normal* table.
 
 When the value to partition by references one or more
 :ref:`sql-create-table-base-columns`, their values must be supplied upon
