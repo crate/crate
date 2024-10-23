@@ -388,13 +388,13 @@ public class ObjectColumnTest extends IntegTestCase {
 
     private void execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets() {
 
-        execute("insert into tbl (id, complex) values (3, {os=[{}, null]})");
-        assertThat(response).hasRowCount(1);
-
         execute("insert into tbl (id) values (1)");
         assertThat(response).hasRowCount(1);
 
         execute("insert into tbl (id, os) values (2, [{}, null, {y=10}, {x=1, y=2}])");
+        assertThat(response).hasRowCount(1);
+
+        execute("insert into tbl (id, complex) values (3, {os=[{}, null]})");
         assertThat(response).hasRowCount(1);
 
         execute("refresh table tbl");

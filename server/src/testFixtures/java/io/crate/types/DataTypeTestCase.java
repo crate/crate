@@ -73,21 +73,25 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
+    @Test
     public void test_reference_resolver() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition, dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_index_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF", dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_docvalues_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " STORAGE WITH (columnstore=false)", dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_index_and_docvalues_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF STORAGE WITH (columnstore=false)", dataDef.data.get());
@@ -97,6 +101,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         return true;
     }
 
+    @Test
     public void test_reference_resolver_with_list() throws Exception {
         DataDef<T> dataDef = getDataDef();
         assumeTrue("Data type " + dataDef.type + " cannot be stored in an array", supportsArrays());

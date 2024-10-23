@@ -113,7 +113,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
      * Prepare to load a new row by clearing the doc state
      */
     public void reset() {
-        this.doc = new HashMap<>();
+        this.doc = new TreeMap<>();
     }
 
     @Override

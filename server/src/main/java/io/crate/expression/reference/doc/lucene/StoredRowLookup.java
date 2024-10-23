@@ -57,7 +57,7 @@ import io.crate.types.ObjectType;
  */
 public abstract class StoredRowLookup implements StoredRow {
 
-    public static final Version PARTIAL_STORED_SOURCE_VERSION = Version.V_5_9_0;
+    public static final Version PARTIAL_STORED_SOURCE_VERSION = Version.V_5_10_0;
 
     protected final PartitionValueInjector partitionValueInjector;
     protected final DocTableInfo table;
