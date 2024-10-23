@@ -28,6 +28,7 @@ import java.io.IOException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.jetbrains.annotations.Nullable;
 
@@ -151,6 +152,8 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof UnavailableShardsException) {
             httpErrorStatus = HttpErrorStatus.ONE_OR_MORE_SHARDS_NOT_AVAILABLE;
+        } else if (throwable instanceof DocumentMissingException) {
+            httpErrorStatus = HttpErrorStatus.DOCUMENT_NOT_FOUND;
         } else if (throwable instanceof ElasticsearchException ex) {
             httpErrorStatus = ex.httpErrorStatus();
         }
