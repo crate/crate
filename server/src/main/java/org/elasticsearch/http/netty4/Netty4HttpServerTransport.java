@@ -83,7 +83,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.BindHttpException;
-import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
@@ -101,7 +100,6 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
@@ -115,6 +113,7 @@ import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.rest.action.SqlHttpHandler;
 import io.crate.role.Roles;
+import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -516,15 +515,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     @Override
     public BoundTransportAddress boundAddress() {
         return this.boundAddress;
-    }
-
-    @Override
-    public HttpInfo info() {
-        BoundTransportAddress boundTransportAddress = boundAddress();
-        if (boundTransportAddress == null) {
-            return null;
-        }
-        return new HttpInfo(boundTransportAddress, maxContentLength.getBytes());
     }
 
     @Override

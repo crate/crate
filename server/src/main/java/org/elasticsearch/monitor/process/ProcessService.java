@@ -24,15 +24,15 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
+
+import io.crate.common.unit.TimeValue;
 
 public final class ProcessService {
 
     private static final Logger LOGGER = LogManager.getLogger(ProcessService.class);
 
     private final ProcessProbe probe;
-    private final ProcessInfo info;
     private final SingleObjectCache<ProcessStats> processStatsCache;
 
     public static final Setting<TimeValue> REFRESH_INTERVAL_SETTING =
@@ -43,12 +43,7 @@ public final class ProcessService {
         this.probe = ProcessProbe.getInstance();
         final TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
         processStatsCache = new ProcessStatsCache(refreshInterval, probe.processStats());
-        this.info = probe.processInfo(refreshInterval.millis());
         LOGGER.debug("using refresh_interval [{}]", refreshInterval);
-    }
-
-    public ProcessInfo info() {
-        return this.info;
     }
 
     public ProcessStats stats() {

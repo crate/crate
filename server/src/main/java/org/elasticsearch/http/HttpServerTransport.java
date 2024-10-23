@@ -28,7 +28,5 @@ public interface HttpServerTransport extends LifecycleComponent {
 
     BoundTransportAddress boundAddress();
 
-    HttpInfo info();
-
     ConnectionStats stats();
 }

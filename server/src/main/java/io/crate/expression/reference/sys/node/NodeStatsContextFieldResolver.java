@@ -93,7 +93,7 @@ public class NodeStatsContextFieldResolver {
         this(
             clusterService::localNode,
             nodeService.getMonitorService(),
-            () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
+            () -> httpServerTransport == null ? null : httpServerTransport.boundAddress().publishAddress(),
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
             threadPool,
             extendedNodeInfo,
