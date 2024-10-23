@@ -19,14 +19,11 @@
 
 package org.elasticsearch.monitor.process;
 
-import org.elasticsearch.bootstrap.BootstrapInfo;
-import org.elasticsearch.monitor.Probes;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 
-import static org.elasticsearch.monitor.jvm.JvmInfo.jvmInfo;
+import org.elasticsearch.monitor.Probes;
 
 public class ProcessProbe {
 
@@ -124,10 +121,6 @@ public class ProcessProbe {
             }
         }
         return -1;
-    }
-
-    public ProcessInfo processInfo(long refreshInterval) {
-        return new ProcessInfo(jvmInfo().pid(), BootstrapInfo.isMemoryLocked(), refreshInterval);
     }
 
     public ProcessStats processStats() {
