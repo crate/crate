@@ -72,6 +72,9 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
+        if (targetType.precedes(castFunction.valueType()) == false) {
+            return operator;
+        }
         CastMode castMode = castFunction.castMode();
         assert castMode != null : "Pattern matched, function must be a cast";
         Symbol castedLiteral = literalOrParam.cast(targetType, castMode);
