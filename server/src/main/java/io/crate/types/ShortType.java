@@ -53,7 +53,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
         }
 
         @Override
-        public Object decodeFromInt(int input) {
+        public Short decode(int input) {
             return (short) input;
         }
     };

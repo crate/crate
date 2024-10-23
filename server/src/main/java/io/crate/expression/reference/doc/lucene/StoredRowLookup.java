@@ -224,7 +224,7 @@ public abstract class StoredRowLookup implements StoredRow {
                 for (var leaf : table.getChildReferences(ref)) {
                     registerRef(leaf, true);
                 }
-            } else if (ref.valueType().retrieveFromStoredFields() || ref.hasDocValues() == false) {
+            } else if (ref.valueType().storageSupportSafe().retrieveFromStoredFields() || ref.hasDocValues() == false) {
                 this.fieldsVisitor.registerRef(ref);
             } else {
                 LuceneCollectorExpression<?> expr = LuceneReferenceResolver.typeSpecializedExpression(ref);

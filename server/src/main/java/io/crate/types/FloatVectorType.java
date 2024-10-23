@@ -93,7 +93,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         }
 
         @Override
-        public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+        public float[] decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
             float[] floats = new float[bytes.length / Float.BYTES];
             ByteBuffer.wrap(bytes).asFloatBuffer().get(floats);
             return floats;

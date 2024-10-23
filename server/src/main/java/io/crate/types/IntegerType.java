@@ -53,7 +53,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         }
 
         @Override
-        public Object decodeFromInt(int input) {
+        public Integer decode(int input) {
             return input;
         }
     };

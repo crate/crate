@@ -128,7 +128,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
 
         DataType<?> type = ref.valueType();
         var bytes = doc.doc().getBinaryValue(ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + ref.storageIdentLeafName()).bytes;
-        assertThat(type.storageSupportSafe().decodeFromBytes(null, null, bytes)).isEqualTo(insertValues[0]);
+        assertThat(type.storageSupportSafe().decode(null, null, bytes)).isEqualTo(insertValues[0]);
 
         // Source stores the original nested array structure
         assertThat(doc.source().utf8ToString()).isEqualTo("{\"" + resolvedField + "\":[[1,2],[3,4]]}");

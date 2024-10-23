@@ -96,14 +96,14 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
     }
 
     @Override
-    public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+    public BigDecimal decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
         var bigInt = NumericUtils.sortableBytesToBigInt(bytes, 0, bytes.length);
         Integer scale = type.scale();
         return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());
     }
 
     @Override
-    public Object decodeFromLong(long input) {
+    public BigDecimal decode(long input) {
         BigInteger bigInt = BigInteger.valueOf(input);
         Integer scale = type.scale();
         return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());

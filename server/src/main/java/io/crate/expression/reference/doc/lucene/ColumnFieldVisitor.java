@@ -39,7 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
+import io.crate.types.StorageSupport;
 
 /**
  * Loads column values from stored fields and presents them as a java Map
@@ -59,18 +59,18 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         this.storedSourceParser = new SourceParser(table);
     }
 
-    private record Field(DataType<?> dataType, ColumnIdent column) implements Comparable<Field> {
+    private record Field(StorageSupport<?> storageSupport, ColumnIdent column) implements Comparable<Field> {
 
         public Object decode(SourceParser sourceParser, byte[] v) {
-            return dataType.storageSupportSafe().decodeFromBytes(column, sourceParser, v);
+            return storageSupport.decode(column, sourceParser, v);
         }
 
         public Object decode(long v) {
-            return dataType.storageSupportSafe().decodeFromLong(v);
+            return storageSupport.decode(v);
         }
 
         public Object decode(int v) {
-            return dataType.storageSupportSafe().decodeFromInt(v);
+            return storageSupport.decode(v);
         }
 
         @Override
@@ -99,7 +99,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
         }
-        fields.put(storageName, new Field(ref.valueType(), column));
+        fields.put(storageName, new Field(ref.valueType().storageSupportSafe(), column));
     }
 
     /**

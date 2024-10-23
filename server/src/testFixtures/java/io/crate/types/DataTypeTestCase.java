@@ -56,6 +56,8 @@ import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
@@ -190,20 +192,11 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         }
     }
 
-    private static String toTypeSignature(DataType<?> dataType) {
-        if (dataType instanceof ObjectType o) {
-            assert o.innerTypes().size() == 1;
-            return "object as (x " + o.innerType("x").getTypeSignature().toString() + ")";
-        } else {
-            return dataType.getTypeSignature().toString();
-        }
-    }
-
     @Test
     public void test_translog_streaming_roundtrip() throws Exception {
         DataType<T> type = getType();
         assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
-        String columnType = toTypeSignature(type);
+        String columnType = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
         var sqlExecutor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, x " + columnType + ")");
 

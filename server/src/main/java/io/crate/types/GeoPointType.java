@@ -58,9 +58,17 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         }
 
         @Override
-        public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+        public Point decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
             var doubles = ByteBuffer.wrap(bytes).asDoubleBuffer();
             return new PointImpl(doubles.get(0), doubles.get(1), JtsSpatialContext.GEO);
+        }
+
+        @Override
+        public boolean retrieveFromStoredFields() {
+            // there's a difference in precision between the stored value and the dv value
+            // so when we're retrieving for display or exact comparisons, go to the stored
+            // value
+            return true;
         }
     };
 
@@ -221,14 +229,6 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return true;
         }
         return super.isConvertableTo(other, explicitCast);
-    }
-
-    @Override
-    public boolean retrieveFromStoredFields() {
-        // there's a difference in precision between the stored value and the dv value
-        // so when we're retrieving for display or exact comparisons, go to the stored
-        // value
-        return true;
     }
 
     @Override

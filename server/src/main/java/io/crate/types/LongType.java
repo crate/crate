@@ -57,7 +57,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
         }
 
         @Override
-        public Object decodeFromLong(long input) {
+        public Long decode(long input) {
             return input;
         }
     };

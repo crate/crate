@@ -85,7 +85,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     private final DataType<T> innerType;
     private Streamer<List<T>> streamer;
 
-    private final StorageSupport<? super T> storageSupport;
+    private final StorageSupport<List<T>> storageSupport;
 
     /**
      * Construct a new Collection type
@@ -98,37 +98,42 @@ public class ArrayType<T> extends DataType<List<T>> {
         if (innerStorage == null) {
             this.storageSupport = null;
         } else if (ArrayType.unnest(this) instanceof ObjectType objectType) {
-            this.storageSupport = new StorageSupport<T>(innerStorage) {
+            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
                 @Override
-                public ValueIndexer<? super T> valueIndexer(RelationName table,
+                public ValueIndexer<List<? super T>> valueIndexer(RelationName table,
                                                             Reference ref,
                                                             Function<ColumnIdent, Reference> getRef) {
                     return new ArrayOfObjectIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
                 }
 
                 @Override
-                public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+                public List<T> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
                     try {
                         var col = column.leafName();
                         var map = sourceParser.parse(new BytesArray(bytes), Map.of(col, objectType.innerTypes()), false);
                         if (map.isEmpty()) {
                             return List.of();
                         }
-                        return map.values().iterator().next();
+                        return (List<T>) map.values().iterator().next();
                     } catch (NotXContentException e) {
                         // may be an array of nulls inserted before the field was upcast to an array of objects
                         try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
-                            return ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
+                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
                         } catch (IOException io) {
                             throw new UncheckedIOException(io);
                         }
                     }
                 }
+
+                @Override
+                public boolean retrieveFromStoredFields() {
+                    return true;
+                }
             };
         } else {
-            this.storageSupport = new StorageSupport<T>(innerStorage) {
+            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
                 @Override
-                public ValueIndexer<T> valueIndexer(RelationName table,
+                public ValueIndexer<List<T>> valueIndexer(RelationName table,
                                                     Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
                     int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
@@ -138,7 +143,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 }
 
                 @Override
-                public List<T> decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+                public List<T> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
                     try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
                         return ArrayType.this.streamer().readValueFrom(in);
                     } catch (Exception e) {
@@ -150,6 +155,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                             throw new UncheckedIOException(ee);
                         }
                     }
+                }
+
+                @Override
+                public boolean retrieveFromStoredFields() {
+                    return true;
                 }
             };
         }
@@ -474,11 +484,6 @@ public class ArrayType<T> extends DataType<List<T>> {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public StorageSupport storageSupport() {
         return storageSupport;
-    }
-
-    @Override
-    public boolean retrieveFromStoredFields() {
-        return true;
     }
 
     @Override

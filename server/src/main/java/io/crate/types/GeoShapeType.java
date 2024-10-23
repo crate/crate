@@ -71,12 +71,17 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         }
 
         @Override
-        public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+        public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
             try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
                 return GeoShapeType.INSTANCE.streamer().readValueFrom(in);
             } catch (IOException ee) {
                 throw new UncheckedIOException(ee);
             }
+        }
+
+        @Override
+        public boolean retrieveFromStoredFields() {
+            return true;
         }
     };
 
@@ -148,11 +153,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     @Override
     public void writeValueTo(StreamOutput out, Map<String, Object> v) throws IOException {
         out.writeMap(v);
-    }
-
-    @Override
-    public boolean retrieveFromStoredFields() {
-        return true;
     }
 
     @Override

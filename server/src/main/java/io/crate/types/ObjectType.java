@@ -387,7 +387,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             }
 
             @Override
-            public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+            public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
                 try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
                     return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
                 } catch (IOException e) {
@@ -398,7 +398,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public long valueBytes(Map<String, Object> map) {
         if (map == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;

@@ -69,22 +69,29 @@ public abstract class StorageSupport<T> {
     /**
      * Decode a value from bytes in a stored field
      */
-    public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+    public T decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
         throw new UnsupportedOperationException("decodeFromBytes not supported");
     }
 
     /**
      * Decode a value from a long in a stored field
      */
-    public Object decodeFromLong(long input) {
+    public T decode(long input) {
         throw new UnsupportedOperationException("decodeFromLong not supported");
     }
 
     /**
      * Decode a value from an int in a stored field
      */
-    public Object decodeFromInt(int input) {
+    public T decode(int input) {
         throw new UnsupportedOperationException("decodeFromInt not supported");
+    }
+
+    /**
+     * @return {@code true} if values should always be loaded from stored fields
+     */
+    public boolean retrieveFromStoredFields() {
+        return false;
     }
 
     public boolean docValuesDefault() {

@@ -54,7 +54,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         }
 
         @Override
-        public Object decodeFromInt(int input) {
+        public Byte decode(int input) {
             return (byte) input;
         }
     };
