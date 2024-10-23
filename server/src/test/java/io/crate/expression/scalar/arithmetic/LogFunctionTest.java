@@ -32,6 +32,7 @@ import org.junit.Test;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class LogFunctionTest extends ScalarTestCase {
 
@@ -58,6 +59,12 @@ public class LogFunctionTest extends ScalarTestCase {
         assertNormalize("log(null, 10)", isLiteral(null));
         assertNormalize("log(10, null)", isLiteral(null));
         assertNormalize("log(null, null)", isLiteral(null));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("log(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("ln(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
     }
 
     @Test
