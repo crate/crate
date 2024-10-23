@@ -1325,7 +1325,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
         Indexer indexer = getIndexer(sqlExecutor, "tbl", "o");
 
-        Map<String, Object> obj = LinkedHashMap.newLinkedHashMap(2);
+        Map<String, Object> obj = new HashMap<>();
         obj.put("coordinates", List.of(50, 50));
         obj.put("type", "Point");
         ParsedDocument doc = indexer.index(item(obj));
