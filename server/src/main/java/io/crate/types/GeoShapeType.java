@@ -72,7 +72,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         }
 
         @Override
-        public Object decodeFromBytes(byte[] bytes) {
+        public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
             var map = sourceParser.parse(new BytesArray(bytes), true);
             return map.values().iterator().next();
         }

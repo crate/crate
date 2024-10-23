@@ -43,6 +43,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.BinaryColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.NumericColumnReference;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -95,7 +96,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
     }
 
     @Override
-    public Object decodeFromBytes(byte[] bytes) {
+    public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
         var bigInt = NumericUtils.sortableBytesToBigInt(bytes, 0, bytes.length);
         Integer scale = type.scale();
         return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());

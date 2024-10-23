@@ -57,6 +57,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -386,7 +387,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             }
 
             @Override
-            public Object decodeFromBytes(byte[] bytes) {
+            public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
                 try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
                     return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
                 } catch (IOException e) {

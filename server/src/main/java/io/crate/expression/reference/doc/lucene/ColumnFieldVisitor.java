@@ -22,10 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -33,10 +30,6 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Maps;
@@ -67,60 +60,23 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         this.storedSourceParser = new SourceParser(table);
     }
 
-    private interface Field extends Comparable<Field> {
+    private record Field(DataType<?> dataType, ColumnIdent column) implements Comparable<Field> {
 
-        Object decode(byte[] v);
-
-        default Object decode(long v) {
-            throw new UnsupportedOperationException();
+        public Object decode(SourceParser sourceParser, byte[] v) {
+            return dataType.storageSupportSafe().decodeFromBytes(column, sourceParser, v);
         }
 
-        default Object decode(int v) {
-            throw new UnsupportedOperationException();
-        }
-
-        ColumnIdent column();
-
-        default int compareTo(@NotNull ColumnFieldVisitor.Field o) {
-            return column().compareTo(o.column());
-        }
-    }
-
-    private record ValueField(DataType<?> dataType, ColumnIdent column) implements Field {
-
-        @Override
-        public Object decode(byte[] v) {
-            return dataType.storageSupportSafe().decodeFromBytes(v);
-        }
-
-        @Override
         public Object decode(long v) {
             return dataType.storageSupportSafe().decodeFromLong(v);
         }
 
-        @Override
         public Object decode(int v) {
             return dataType.storageSupportSafe().decodeFromInt(v);
         }
-    }
 
-    private record ArrayOfObjectField(DataType<?> dataType, ObjectType objectType, ColumnIdent column, SourceParser sourceParser) implements Field {
         @Override
-        public Object decode(byte[] v) {
-            try {
-                var map = sourceParser.parse(new BytesArray(v), Map.of(column.leafName(), objectType.innerTypes()), false);
-                if (map.isEmpty()) {
-                    return List.of();
-                }
-                return map.values().iterator().next();
-            } catch (NotXContentException e) {
-                // may be an array of nulls inserted before the field was upcast to an array of objects
-                try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(v))) {
-                    return ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
-                } catch (IOException io) {
-                    throw new UncheckedIOException(io);
-                }
-            }
+        public int compareTo(@NotNull ColumnFieldVisitor.Field o) {
+            return this.column.compareTo(o.column);
         }
     }
 
@@ -144,11 +100,11 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
             if (ArrayType.unnest(ref.valueType()) instanceof ObjectType o) {
-                fields.put(storageName, new ArrayOfObjectField(ref.valueType(), o, column, storedSourceParser));
+                fields.put(storageName, new Field(ref.valueType(), column));
                 return;
             }
         }
-        fields.put(storageName, new ValueField(ref.valueType(), column));
+        fields.put(storageName, new Field(ref.valueType(), column));
     }
 
     /**
@@ -173,7 +129,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        var v = field.decode(value);
+        var v = field.decode(storedSourceParser, value);
         this.doc.put(field, v);
     }
 

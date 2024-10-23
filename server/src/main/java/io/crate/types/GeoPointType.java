@@ -39,6 +39,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoPointIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -57,7 +58,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
         }
 
         @Override
-        public Object decodeFromBytes(byte[] bytes) {
+        public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
             var doubles = ByteBuffer.wrap(bytes).asDoubleBuffer();
             return new PointImpl(doubles.get(0), doubles.get(1), JtsSpatialContext.GEO);
         }

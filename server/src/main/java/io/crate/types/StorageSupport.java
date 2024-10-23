@@ -27,6 +27,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -65,7 +66,7 @@ public abstract class StorageSupport<T> {
         Reference ref,
         Function<ColumnIdent, Reference> getRef);
 
-    public Object decodeFromBytes(byte[] bytes) {
+    public Object decodeFromBytes(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
         throw new UnsupportedOperationException("decodeFromBytes not supported");
     }
 
