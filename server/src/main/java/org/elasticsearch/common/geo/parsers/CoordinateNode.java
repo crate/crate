@@ -19,13 +19,10 @@
 
 package org.elasticsearch.common.geo.parsers;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
 import java.util.List;
+
+import org.elasticsearch.ElasticsearchException;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Node used to represent a tree of coordinates.
@@ -33,7 +30,7 @@ import java.util.List;
  * Can either be a leaf node consisting of a Coordinate, or a parent with
  * children
  */
-public class CoordinateNode implements ToXContentObject {
+public class CoordinateNode {
     public final Coordinate coordinate;
     public final List<CoordinateNode> children;
 
@@ -71,19 +68,5 @@ public class CoordinateNode implements ToXContentObject {
             return Double.isNaN(coordinate.z) ? 2 : 3;
         }
         return children.get(0).numDimensions();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        if (children == null) {
-            builder.startArray().value(coordinate.x).value(coordinate.y).endArray();
-        } else {
-            builder.startArray();
-            for (CoordinateNode child : children) {
-                child.toXContent(builder, params);
-            }
-            builder.endArray();
-        }
-        return builder;
     }
 }

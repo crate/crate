@@ -19,17 +19,15 @@
 
 package org.elasticsearch.discovery;
 
+import java.io.IOException;
+
+import org.elasticsearch.cluster.coordination.PendingClusterStateStats;
+import org.elasticsearch.cluster.coordination.PublishClusterStateStats;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.cluster.coordination.PendingClusterStateStats;
-import org.elasticsearch.cluster.coordination.PublishClusterStateStats;
 
-import java.io.IOException;
-
-public class DiscoveryStats implements Writeable, ToXContentFragment {
+public class DiscoveryStats implements Writeable {
 
     private final PendingClusterStateStats queueStats;
     private final PublishClusterStateStats publishStats;
@@ -48,23 +46,6 @@ public class DiscoveryStats implements Writeable, ToXContentFragment {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeOptionalWriteable(queueStats);
         out.writeOptionalWriteable(publishStats);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.DISCOVERY);
-        if (queueStats != null) {
-            queueStats.toXContent(builder, params);
-        }
-        if (publishStats != null) {
-            publishStats.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String DISCOVERY = "discovery";
     }
 
     public PendingClusterStateStats getQueueStats() {

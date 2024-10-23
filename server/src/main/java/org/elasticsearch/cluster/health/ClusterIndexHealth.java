@@ -19,6 +19,18 @@
 
 package org.elasticsearch.cluster.health;
 
+import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
+import static java.util.Collections.emptyMap;
+import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
+import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optionalConstructorArg;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -28,24 +40,9 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-
-import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
-import static java.util.Collections.emptyMap;
-import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
-import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optionalConstructorArg;
-
-public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, Writeable, ToXContentFragment {
+public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, Writeable {
     private static final String STATUS = "status";
     private static final String NUMBER_OF_SHARDS = "number_of_shards";
     private static final String NUMBER_OF_REPLICAS = "number_of_replicas";
@@ -264,28 +261,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
         out.writeCollection(shards.values());
     }
 
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        builder.startObject(getIndex());
-        builder.field(STATUS, getStatus().name().toLowerCase(Locale.ROOT));
-        builder.field(NUMBER_OF_SHARDS, getNumberOfShards());
-        builder.field(NUMBER_OF_REPLICAS, getNumberOfReplicas());
-        builder.field(ACTIVE_PRIMARY_SHARDS, getActivePrimaryShards());
-        builder.field(ACTIVE_SHARDS, getActiveShards());
-        builder.field(RELOCATING_SHARDS, getRelocatingShards());
-        builder.field(INITIALIZING_SHARDS, getInitializingShards());
-        builder.field(UNASSIGNED_SHARDS, getUnassignedShards());
 
-        if ("shards".equals(params.param("level", "indices"))) {
-            builder.startObject(SHARDS);
-            for (ClusterShardHealth shardHealth : shards.values()) {
-                shardHealth.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
 
     public static ClusterIndexHealth innerFromXContent(XContentParser parser, String index) {
         return PARSER.apply(parser, index);

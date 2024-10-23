@@ -25,15 +25,12 @@ import java.util.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.Index;
 
 /**
  * Represents a single snapshotted index in the repository.
  */
-public final class IndexId implements Writeable, ToXContentObject {
+public final class IndexId implements Writeable {
     protected static final String NAME = "name";
     protected static final String ID = "id";
 
@@ -106,14 +103,5 @@ public final class IndexId implements Writeable, ToXContentObject {
     public void writeTo(final StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(id);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject();
-        builder.field(NAME, name);
-        builder.field(ID, id);
-        builder.endObject();
-        return builder;
     }
 }

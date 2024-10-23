@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
@@ -37,7 +36,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
  * otherwise merge away operations that have been soft deleted). Each retention lease contains a unique identifier, the retaining sequence
  * number, the timestamp of when the lease was created or renewed, and the source of the retention lease (e.g., "ccr").
  */
-public final class RetentionLease implements ToXContentObject, Writeable {
+public final class RetentionLease implements Writeable {
 
     private final String id;
 
@@ -155,24 +154,6 @@ public final class RetentionLease implements ToXContentObject, Writeable {
         PARSER.declareLong(ConstructingObjectParser.constructorArg(), RETAINING_SEQUENCE_NUMBER_FIELD);
         PARSER.declareLong(ConstructingObjectParser.constructorArg(), TIMESTAMP_FIELD);
         PARSER.declareString(ConstructingObjectParser.constructorArg(), SOURCE_FIELD);
-    }
-
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        builder.startObject();
-        {
-            builder.field(ID_FIELD.getPreferredName(), id);
-            builder.field(RETAINING_SEQUENCE_NUMBER_FIELD.getPreferredName(), retainingSequenceNumber);
-            builder.field(TIMESTAMP_FIELD.getPreferredName(), timestamp);
-            builder.field(SOURCE_FIELD.getPreferredName(), source);
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
-    public boolean isFragment() {
-        return false;
     }
 
     /**

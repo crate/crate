@@ -32,13 +32,10 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 /**
  * Meta data about restore processes that are currently executing
@@ -464,52 +461,5 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
             out.writeStringCollection(entry.indices);
             out.writeMap(entry.shards);
         }
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startArray("snapshots");
-        for (ObjectCursor<Entry> entry : entries.values()) {
-            toXContent(entry.value, builder);
-        }
-        builder.endArray();
-        return builder;
-    }
-
-    /**
-     * Serializes single restore operation
-     *
-     * @param entry   restore operation metadata
-     * @param builder XContent builder
-     */
-    public void toXContent(Entry entry, XContentBuilder builder) throws IOException {
-        builder.startObject();
-        builder.field("snapshot", entry.snapshot().getSnapshotId().getName());
-        builder.field("repository", entry.snapshot().getRepository());
-        builder.field("state", entry.state());
-        builder.startArray("indices");
-        {
-            for (String index : entry.indices()) {
-                builder.value(index);
-            }
-        }
-        builder.endArray();
-        builder.startArray("shards");
-        {
-            for (ObjectObjectCursor<ShardId, ShardRestoreStatus> shardEntry : entry.shards) {
-                ShardId shardId = shardEntry.key;
-                ShardRestoreStatus status = shardEntry.value;
-                builder.startObject();
-                {
-                    builder.field("index", shardId.getIndex());
-                    builder.field("shard", shardId.id());
-                    builder.field("state", status.state());
-                }
-                builder.endObject();
-            }
-        }
-
-        builder.endArray();
-        builder.endObject();
     }
 }

@@ -19,18 +19,16 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
 
 /**
  * Class encapsulating stats about the PendingClusterStatsQueue
  */
-public class PendingClusterStateStats implements Writeable, ToXContentFragment {
+public class PendingClusterStateStats implements Writeable {
 
     private final int total;
     private final int pending;
@@ -65,23 +63,6 @@ public class PendingClusterStateStats implements Writeable, ToXContentFragment {
 
     public int getTotal() {
         return total;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.QUEUE);
-        builder.field(Fields.TOTAL, total);
-        builder.field(Fields.PENDING, pending);
-        builder.field(Fields.COMMITTED, committed);
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String QUEUE = "cluster_state_queue";
-        static final String TOTAL = "total";
-        static final String PENDING = "pending";
-        static final String COMMITTED = "committed";
     }
 
     @Override

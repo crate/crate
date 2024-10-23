@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedOutputStream;
 
@@ -32,7 +33,6 @@ import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -69,14 +69,14 @@ public final class CompressedXContent {
     /**
      * Create a {@link CompressedXContent} out of a {@link ToXContent} instance.
      */
-    public CompressedXContent(ToXContent xcontent, XContentType type, ToXContent.Params params) throws IOException {
+    public CompressedXContent(Map<String, Object> mapping) throws IOException {
         BytesStreamOutput bStream = new BytesStreamOutput();
         OutputStream compressedStream = CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream);
         CRC32 crc32 = new CRC32();
         try (OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
-            try (XContentBuilder builder = XContentFactory.builder(type, checkedStream)) {
+            try (XContentBuilder builder = XContentFactory.builder(XContentType.JSON, checkedStream)) {
                 builder.startObject();
-                xcontent.toXContent(builder, params);
+                builder.mapContents(mapping);
                 builder.endObject();
             }
         }

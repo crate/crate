@@ -54,7 +54,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -91,7 +90,7 @@ import io.crate.types.DataTypes;
  * }
  * </pre>
  */
-public class Setting<T> implements ToXContentObject {
+public class Setting<T> {
 
     public enum Property {
         /**
@@ -550,8 +549,7 @@ public class Setting<T> implements ToXContentObject {
         return key.match(toTest);
     }
 
-    @Override
-    public final XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+    public final XContentBuilder toXContent(XContentBuilder builder) throws IOException {
         builder.startObject();
         builder.field("key", key.toString());
         builder.field("properties", properties);
@@ -559,11 +557,6 @@ public class Setting<T> implements ToXContentObject {
         builder.field("default", defaultValue.apply(Settings.EMPTY));
         builder.endObject();
         return builder;
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this, true, true);
     }
 
     /**
@@ -988,7 +981,7 @@ public class Setting<T> implements ToXContentObject {
             try {
                 XContentBuilder builder = JsonXContent.builder();
                 builder.startObject();
-                subSettings.toXContent(builder, EMPTY_PARAMS);
+                subSettings.toXContent(builder, false);
                 builder.endObject();
                 return Strings.toString(builder);
             } catch (IOException e) {

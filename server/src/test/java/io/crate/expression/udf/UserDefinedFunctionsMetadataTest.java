@@ -28,14 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -81,19 +75,6 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
         assertThat(udfMeta2.returnType()).isEqualTo(DataTypes.FLOAT);
         assertThat(udfMeta2.language()).isEqualTo("dummy_lang");
         assertThat(udfMeta2.definition()).isEqualTo(DEFINITION);
-    }
-
-    @Test
-    public void testDataTypeStreaming() throws Exception {
-        XContentBuilder builder = JsonXContent.builder();
-
-        var type = new ArrayType<>(new ArrayType<>(DataTypes.STRING));
-        UserDefinedFunctionMetadata.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
-        parser.nextToken();  // enter START_OBJECT
-        ArrayType<?> type2 = (ArrayType<?>) UserDefinedFunctionMetadata.DataTypeXContent.fromXContent(parser);
-        assertThat(type.equals(type2)).isTrue();
     }
 
     @Test

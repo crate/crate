@@ -19,20 +19,18 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
+import java.io.IOException;
+
 import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
 
 /**
  * Class encapsulating the explanation for a single {@link AllocationCommand}
  * taken from the Deciders
  */
-public class RerouteExplanation implements ToXContentObject {
+public class RerouteExplanation {
 
     private AllocationCommand command;
     private Decision decisions;
@@ -59,17 +57,5 @@ public class RerouteExplanation implements ToXContentObject {
     public static void writeTo(RerouteExplanation explanation, StreamOutput out) throws IOException {
         out.writeNamedWriteable(explanation.command);
         explanation.decisions.writeTo(out);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("command", command.name());
-        builder.field("parameters", command);
-        builder.startArray("decisions");
-        decisions.toXContent(builder, params);
-        builder.endArray();
-        builder.endObject();
-        return builder;
     }
 }

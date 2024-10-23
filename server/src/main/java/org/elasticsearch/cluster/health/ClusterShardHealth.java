@@ -19,29 +19,25 @@
 
 package org.elasticsearch.cluster.health;
 
+import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
+
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
-import java.io.IOException;
-import java.util.Locale;
-import java.util.Objects;
-
-import static io.crate.server.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
-
-public final class ClusterShardHealth implements Writeable, ToXContentFragment {
+public final class ClusterShardHealth implements Writeable {
     private static final String STATUS = "status";
     private static final String ACTIVE_SHARDS = "active_shards";
     private static final String RELOCATING_SHARDS = "relocating_shards";
@@ -220,19 +216,6 @@ public final class ClusterShardHealth implements Writeable, ToXContentFragment {
         }
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Integer.toString(getShardId()));
-        builder.field(STATUS, getStatus().name().toLowerCase(Locale.ROOT));
-        builder.field(PRIMARY_ACTIVE, isPrimaryActive());
-        builder.field(ACTIVE_SHARDS, getActiveShards());
-        builder.field(RELOCATING_SHARDS, getRelocatingShards());
-        builder.field(INITIALIZING_SHARDS, getInitializingShards());
-        builder.field(UNASSIGNED_SHARDS, getUnassignedShards());
-        builder.endObject();
-        return builder;
-    }
-
     static ClusterShardHealth innerFromXContent(XContentParser parser, Integer shardId) {
         return PARSER.apply(parser, shardId);
     }
@@ -245,11 +228,6 @@ public final class ClusterShardHealth implements Writeable, ToXContentFragment {
         ClusterShardHealth parsed = innerFromXContent(parser, Integer.valueOf(shardIdStr));
         ensureExpectedToken(XContentParser.Token.END_OBJECT, parser.nextToken(), parser);
         return parsed;
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this);
     }
 
     @Override

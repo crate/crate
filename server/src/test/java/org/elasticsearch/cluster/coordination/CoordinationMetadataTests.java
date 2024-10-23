@@ -20,19 +20,13 @@ package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
 import org.elasticsearch.test.EqualsHashCodeTestUtils.CopyFunction;
@@ -102,18 +96,6 @@ public class CoordinationMetadataTests extends ESTestCase {
             tombstone,
             orig -> ESTestCase.copyWriteable(orig, new NamedWriteableRegistry(Collections.emptyList()), VotingConfigExclusion::new),
             orig -> randomlyChangeVotingTombstone(orig));
-    }
-
-    public void testVotingTombstoneXContent() throws IOException {
-        VotingConfigExclusion originalTombstone = new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10));
-
-        final XContentBuilder builder = JsonXContent.builder();
-        originalTombstone.toXContent(builder, ToXContent.EMPTY_PARAMS);
-
-        try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
-            final VotingConfigExclusion fromXContentTombstone = VotingConfigExclusion.fromXContent(parser);
-            assertThat(originalTombstone).isEqualTo(fromXContentTombstone);
-        }
     }
 
     private VotingConfigExclusion randomlyChangeVotingTombstone(VotingConfigExclusion tombstone) {

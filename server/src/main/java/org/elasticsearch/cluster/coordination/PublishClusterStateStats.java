@@ -19,18 +19,16 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
 
 /**
  * Class encapsulating stats about the PublishClusterStateAction
  */
-public class PublishClusterStateStats implements Writeable, ToXContentObject {
+public class PublishClusterStateStats implements Writeable {
 
     private final long fullClusterStateReceivedCount;
     private final long incompatibleClusterStateDiffReceivedCount;
@@ -60,18 +58,6 @@ public class PublishClusterStateStats implements Writeable, ToXContentObject {
         out.writeVLong(fullClusterStateReceivedCount);
         out.writeVLong(incompatibleClusterStateDiffReceivedCount);
         out.writeVLong(compatibleClusterStateDiffReceivedCount);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("published_cluster_states");
-        {
-            builder.field("full_states", fullClusterStateReceivedCount);
-            builder.field("incompatible_diffs", incompatibleClusterStateDiffReceivedCount);
-            builder.field("compatible_diffs", compatibleClusterStateDiffReceivedCount);
-        }
-        builder.endObject();
-        return builder;
     }
 
     public long getFullClusterStateReceivedCount() {

@@ -19,23 +19,21 @@
 
 package org.elasticsearch.index;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * A value class representing the basic required properties of an Elasticsearch index.
  */
-public class Index implements Writeable, ToXContentObject {
+public class Index implements Writeable {
 
     public static final Index[] EMPTY_ARRAY = new Index[0];
     private static final String INDEX_UUID_KEY = "index_uuid";
@@ -106,14 +104,6 @@ public class Index implements Writeable, ToXContentObject {
     public void writeTo(final StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(uuid);
-    }
-
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        builder.startObject();
-        builder.field(INDEX_NAME_KEY, name);
-        builder.field(INDEX_UUID_KEY, uuid);
-        return builder.endObject();
     }
 
     public static Index fromXContent(final XContentParser parser) throws IOException {
