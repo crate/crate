@@ -19,7 +19,6 @@
 
 package io.crate.server.xcontent;
 
-import java.io.IOException;
 import java.util.Locale;
 
 import org.elasticsearch.common.ParsingException;
@@ -34,19 +33,6 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 public final class XContentParserUtils {
 
     private XContentParserUtils() {
-    }
-
-    /**
-     * Makes sure that current token is of type {@link Token#FIELD_NAME} and the field name is equal to the provided one
-     * @throws ParsingException if the token is not of type {@link Token#FIELD_NAME} or is not equal to the given field name
-     */
-    public static void ensureFieldName(XContentParser parser, Token token, String fieldName) throws IOException {
-        ensureExpectedToken(Token.FIELD_NAME, token, parser);
-        String currentName = parser.currentName();
-        if (currentName.equals(fieldName) == false) {
-            String message = "Failed to parse object: expecting field with name [%s] but found [%s]";
-            throw new ParsingException(parser.getTokenLocation(), String.format(Locale.ROOT, message, fieldName, currentName));
-        }
     }
 
     /**

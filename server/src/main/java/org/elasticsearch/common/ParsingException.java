@@ -40,11 +40,7 @@ public class ParsingException extends ElasticsearchException {
     private final int columnNumber;
 
     public ParsingException(XContentLocation contentLocation, String msg, Object... args) {
-        this(contentLocation, msg, null, args);
-    }
-
-    public ParsingException(XContentLocation contentLocation, String msg, Throwable cause, Object... args) {
-        super(msg, cause, args);
+        super(msg, null, args);
         int lineNumber = UNKNOWN_POSITION;
         int columnNumber = UNKNOWN_POSITION;
         if (contentLocation != null) {
@@ -55,15 +51,6 @@ public class ParsingException extends ElasticsearchException {
         this.lineNumber = lineNumber;
     }
 
-    /**
-     * This constructor is provided for use in unit tests where a
-     * {@link XContentParser} may not be available
-     */
-    public ParsingException(int line, int col, String msg, Throwable cause) {
-        super(msg, cause);
-        this.lineNumber = line;
-        this.columnNumber = col;
-    }
 
     public ParsingException(StreamInput in) throws IOException {
         super(in);
