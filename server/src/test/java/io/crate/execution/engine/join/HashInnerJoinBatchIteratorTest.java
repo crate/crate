@@ -52,7 +52,7 @@ import io.crate.data.testing.TestingBatchIterators;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class HashJoinBatchIteratorTest {
+public class HashInnerJoinBatchIteratorTest {
 
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
     private final List<Object[]> expectedResult;
@@ -75,10 +75,10 @@ public class HashJoinBatchIteratorTest {
         return row -> (Integer) row.get(0) % 3;
     }
 
-    public HashJoinBatchIteratorTest(@SuppressWarnings("unused") @Name("dataSetName") String testName,
-                                     @Name("dataForLeft") Supplier<BatchIterator<Row>> leftIterator,
-                                     @Name("dataForRight") Supplier<BatchIterator<Row>> rightIterator,
-                                     @Name("expectedResult") List<Object[]> expectedResult) {
+    public HashInnerJoinBatchIteratorTest(@SuppressWarnings("unused") @Name("dataSetName") String testName,
+                                          @Name("dataForLeft") Supplier<BatchIterator<Row>> leftIterator,
+                                          @Name("dataForRight") Supplier<BatchIterator<Row>> rightIterator,
+                                          @Name("expectedResult") List<Object[]> expectedResult) {
         this.leftIterator = leftIterator;
         this.rightIterator = rightIterator;
         this.expectedResult = expectedResult;
