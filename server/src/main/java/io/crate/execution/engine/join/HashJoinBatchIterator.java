@@ -32,7 +32,6 @@ import java.util.function.ToIntFunction;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
@@ -112,6 +111,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
     private ArrayList<Integer> nonMatchingKeys;
+    private Iterator<Object[]> nonMatchValuesIterator;
 
     public HashJoinBatchIterator(BatchIterator<Row> left,
                                  BatchIterator<Row> right,
@@ -149,6 +149,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         resetBuffer();
         leftMatchingRowsIterator = null;
         nonMatchingKeys = null;
+        nonMatchValuesIterator = null;
     }
 
     @Override
@@ -209,21 +210,19 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private boolean emitNullValuesPairs() {
-        Integer key = nonMatchingKeys.getFirst();
-        Values values = buffer.remove(key);
-        Object[] nonMatches = values.items.removeFirst();
-
-        combiner.setLeft(new RowN(nonMatches));
-        combiner.setRight(new RowN(new Object[nonMatches.length]));
-
-        // This requires rehashing and we might be better off with
-        // storing the current nonMatches in an array
-        // and consume it from there
-        if (!values.items.isEmpty()) {
-            buffer.put(key, values);
-        } else {
-            nonMatchingKeys.removeFirst();
+        if (nonMatchValuesIterator == null) {
+            var key = nonMatchingKeys.getFirst();
+            nonMatchValuesIterator = buffer.get(key).items.iterator();
         }
+
+        combiner.setLeft(unsafeArrayRow.cells(nonMatchValuesIterator.next()));
+        combiner.nullRight();
+
+        if (nonMatchValuesIterator.hasNext() == false) {
+            nonMatchingKeys.removeFirst();
+            nonMatchValuesIterator = null;
+        }
+
         return true;
     }
 
@@ -331,12 +330,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
     }
 
-    static final class Values {
+    private static final class Values {
 
-        List<Object[]> items;
+        ArrayList<Object[]> items;
         boolean marked;
 
-        public Values(List<Object[]> items, boolean marked) {
+        public Values(ArrayList<Object[]> items, boolean marked) {
             this.items = items;
             this.marked = marked;
         }
