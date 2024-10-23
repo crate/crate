@@ -1035,7 +1035,7 @@ public class Node implements Closeable {
         HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
         httpServerTransport.start();
         // CRATE_PATCH: add http publish address to the discovery node
-        TransportAddress publishAddress = httpServerTransport.info().address().publishAddress();
+        TransportAddress publishAddress = httpServerTransport.boundAddress().publishAddress();
         localNodeFactory.httpPublishAddress = publishAddress.getAddress() + ':' + publishAddress.getPort();
 
         // Start the transport service now so the publish address will be added to the local disco node in ClusterService
