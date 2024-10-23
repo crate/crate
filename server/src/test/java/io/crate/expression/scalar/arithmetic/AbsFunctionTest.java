@@ -26,11 +26,13 @@ import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.types.NumericType;
 
 
 public class AbsFunctionTest extends ScalarTestCase {
@@ -60,5 +62,10 @@ public class AbsFunctionTest extends ScalarTestCase {
     @Test
     public void testNormalizeNull() throws Exception {
         assertNormalize("abs(null)", isLiteral(null));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("abs(cast(null as numeric(10, 5)))", isLiteral(null, NumericType.of(List.of(10, 5))));
     }
 }

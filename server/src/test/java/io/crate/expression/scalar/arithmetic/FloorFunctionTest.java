@@ -25,11 +25,13 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 public class FloorFunctionTest extends ScalarTestCase {
 
@@ -38,6 +40,11 @@ public class FloorFunctionTest extends ScalarTestCase {
         assertNormalize("floor(cast(123.456789 as numeric(9, 6)))", isLiteral(new BigDecimal(123)));
         assertNormalize("floor(cast(-123.456789 as numeric(9, 6)))", isLiteral(new BigDecimal(-124)));
         assertNormalize("floor(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("floor(cast(null as numeric(10, 5)))", isLiteral(null, NumericType.of(List.of(10, 5))));
     }
 
     @Test

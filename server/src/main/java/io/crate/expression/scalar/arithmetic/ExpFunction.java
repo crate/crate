@@ -28,6 +28,7 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -60,9 +61,9 @@ public class ExpFunction {
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
-            (declaredSignature, boundSignature) -> new UnaryScalar<>(
+            (declaredSignature, ignoredBoundSignature) -> new UnaryScalar<>(
                 declaredSignature,
-                boundSignature,
+                BoundSignature.sameAsUnbound(declaredSignature),
                 DataTypes.NUMERIC,
                 x -> BigDecimalMath.exp(x, MathContext.DECIMAL128))
         );
