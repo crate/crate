@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -370,15 +369,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testMixedHashJoinNestedLoop() {
         QueriedSelectRelation mss = e.analyze("select * " +
                                               "from t1 inner join t2 on t1.a = t2.b " +
-                                              "left join t3 on t3.c = t2.b");
+                                              "left join t3 on t3.c > t2.b");
 
         LogicalPlan operator = buildLogicalPlan(mss);
-        assertThat(operator).isExactlyInstanceOf(HashJoin.class);
-        LogicalPlan leftPlan = ((HashJoin) operator).lhs;
+        assertThat(operator).isExactlyInstanceOf(NestedLoopJoin.class);
+        LogicalPlan leftPlan = ((NestedLoopJoin) operator).lhs;
         assertThat(leftPlan).isExactlyInstanceOf(HashJoin.class);
 
         Join join = buildJoin(operator);
-        assertThat(join.joinPhase()).isExactlyInstanceOf(HashJoinPhase.class);
+        assertThat(join.joinPhase()).isExactlyInstanceOf(NestedLoopPhase.class);
         assertThat(join.left()).isExactlyInstanceOf(Join.class);
         assertThat(((Join)join.left()).joinPhase()).isExactlyInstanceOf(HashJoinPhase.class);
     }
