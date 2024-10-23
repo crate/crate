@@ -81,7 +81,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.DiscoveryStats;
 import org.elasticsearch.discovery.HandshakingTransportAddressConnector;
 import org.elasticsearch.discovery.PeerFinder;
 import org.elasticsearch.discovery.SeedHostsProvider;
@@ -690,10 +689,6 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
             applierState = initialState;
             clusterApplier.setInitialState(initialState);
         }
-    }
-
-    public DiscoveryStats stats() {
-        return new DiscoveryStats(new PendingClusterStateStats(0, 0, 0), publicationHandler.stats());
     }
 
     public void startInitialJoin() {
