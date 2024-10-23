@@ -22,7 +22,6 @@ package org.elasticsearch.test;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.plugins.Plugin;
 
@@ -43,7 +42,6 @@ public class MockHttpTransport extends AbstractLifecycleComponent implements Htt
     private static final TransportAddress DUMMY_TRANSPORT_ADDRESS = new TransportAddress(TransportAddress.META_ADDRESS, 0);
     private static final BoundTransportAddress DUMMY_BOUND_ADDRESS = new BoundTransportAddress(
         new TransportAddress[] { DUMMY_TRANSPORT_ADDRESS }, DUMMY_TRANSPORT_ADDRESS);
-    private static final HttpInfo DUMMY_HTTP_INFO = new HttpInfo(DUMMY_BOUND_ADDRESS, 0);
 
     @Override
     protected void doStart() {}
@@ -57,11 +55,6 @@ public class MockHttpTransport extends AbstractLifecycleComponent implements Htt
     @Override
     public BoundTransportAddress boundAddress() {
         return DUMMY_BOUND_ADDRESS;
-    }
-
-    @Override
-    public HttpInfo info() {
-        return DUMMY_HTTP_INFO;
     }
 
     @Override
