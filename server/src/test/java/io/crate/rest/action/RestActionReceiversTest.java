@@ -30,9 +30,12 @@ import java.util.List;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.auth.AccessControl;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -116,13 +119,17 @@ public class RestActionReceiversTest extends ESTestCase {
     @Test
     public void testRestBulkRowCountReceiver() throws Exception {
         RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[] {
-            new RestBulkRowCountReceiver.Result(null, 1),
-            new RestBulkRowCountReceiver.Result(null, 2),
-            new RestBulkRowCountReceiver.Result(null, 3)
+            new RestBulkRowCountReceiver.Result(1, null),
+            new RestBulkRowCountReceiver.Result(-2, new IllegalArgumentException("invalid input")),
+            new RestBulkRowCountReceiver.Result(-2, new VersionConflictEngineException(new ShardId("dummy", "dummy", 1), "document already exists", null)),
         };
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
-            .bulkRows(results);
+            .bulkRows(results, AccessControl.DISABLED);
         String s = Strings.toString(builder.build());
-        assertThat("{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}").isEqualTo(s);
+        assertThat("{\"results\":[" +
+            "{\"rowcount\":1}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[invalid input]\"}}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}" +
+            "]}").isEqualTo(s);
     }
 }

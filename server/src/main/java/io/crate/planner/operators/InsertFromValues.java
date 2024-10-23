@@ -26,7 +26,6 @@ import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_REQ
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,6 +43,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -65,6 +66,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.common.collections.Arrays;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -78,6 +80,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
+import io.crate.execution.dml.RowCountAndFailure;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -113,6 +116,8 @@ import io.crate.types.DataType;
 
 
 public class InsertFromValues implements LogicalPlan {
+
+    private static final Logger LOGGER = LogManager.getLogger(InsertFromValues.class);
 
     private final TableFunctionRelation tableFunctionRelation;
     private final ColumnIndexWriterProjection writerProjection;
@@ -306,10 +311,10 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
-                                                     PlannerContext plannerContext,
-                                                     List<Row> bulkParams,
-                                                     SubQueryResults subQueryResults) {
+    public List<CompletableFuture<RowCountAndFailure>> executeBulk(DependencyCarrier dependencies,
+                                                                   PlannerContext plannerContext,
+                                                                   List<Row> bulkParams,
+                                                                   SubQueryResults subQueryResults) {
         final DocTableInfo tableInfo = dependencies
             .schemas()
             .getTableInfo(writerProjection.tableIdent());
@@ -383,10 +388,9 @@ public class InsertFromValues implements LogicalPlan {
 
 
         IntArrayList bulkIndices = new IntArrayList();
-        List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
+        List<CompletableFuture<RowCountAndFailure>> results = createUnsetFutures(bulkParams.size());
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
             Row param = bulkParams.get(bulkIdx);
-
             final Symbol[] assignmentSources;
             if (assignments != null) {
                 assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
@@ -425,7 +429,7 @@ public class InsertFromValues implements LogicalPlan {
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {
-                for (CompletableFuture<Long> result : results) {
+                for (CompletableFuture<RowCountAndFailure> result : results) {
                     result.completeExceptionally(t);
                 }
                 return results;
@@ -449,12 +453,12 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
-                long[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
+                RowCountAndFailure[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
                 for (int i = 0; i < bulkParams.size(); i++) {
                     results.get(i).complete(resultRowCount[i]);
                 }
             } else {
-                for (CompletableFuture<Long> result : results) {
+                for (CompletableFuture<RowCountAndFailure> result : results) {
                     result.completeExceptionally(t);
                 }
             }
@@ -778,17 +782,17 @@ public class InsertFromValues implements LogicalPlan {
      *      [1, 1, 1, 1]
      * </pre>
      */
-    private static long[] createBulkResponse(ShardResponse.CompressedResult result,
-                                             int bulkResponseSize,
-                                             IntArrayList bulkIndices) {
-        long[] resultRowCount = new long[bulkResponseSize];
-        Arrays.fill(resultRowCount, 0L);
+    private static RowCountAndFailure[] createBulkResponse(ShardResponse.CompressedResult result,
+                                                           int bulkResponseSize,
+                                                           IntArrayList bulkIndices) {
+        RowCountAndFailure[] resultRowCount = new RowCountAndFailure[bulkResponseSize];
+        Arrays.fill(resultRowCount, RowCountAndFailure::new);
         for (int i = 0; i < bulkIndices.size(); i++) {
             int resultIdx = bulkIndices.get(i);
             if (result.successfulWrites(i)) {
-                resultRowCount[resultIdx]++;
+                resultRowCount[resultIdx].incrementRowCount();
             } else if (result.failed(i)) {
-                resultRowCount[resultIdx] = Row1.ERROR;
+                resultRowCount[resultIdx].setFailure(result.failure(i));
             }
         }
         return resultRowCount;
