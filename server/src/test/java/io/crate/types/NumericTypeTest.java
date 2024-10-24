@@ -35,8 +35,12 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 
 public class NumericTypeTest extends ScalarTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_implicit_cast_text_to_unscaled_numeric() {
@@ -95,9 +99,10 @@ public class NumericTypeTest extends ScalarTestCase {
 
     @Test
     public void test_implicit_cast_floating_point_to_numeric_with_precision_and_scale() {
-        assertThat(NumericType.of(6, 0).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10));
-        assertThat(NumericType.of(6, 2).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.12));
-        assertThat(NumericType.of(6, 3).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.124));
+        assertThat(new NumericType(6, 0).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10));
+        assertThat(new NumericType(6, 2).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.12));
+        assertThat(new NumericType(6, 3).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.124));
+        assertThat(new NumericType(6, 3).implicitCast(123.4567d)).isEqualTo(BigDecimal.valueOf(123.457));
     }
 
     @Test
@@ -118,28 +123,28 @@ public class NumericTypeTest extends ScalarTestCase {
     public void test_cast_boolean_to_smallint_throws_exception() {
         assertThatThrownBy(() -> NumericType.INSTANCE.implicitCast(true))
             .isExactlyInstanceOf(ClassCastException.class)
-            .hasMessage("Can't cast 'true' to numeric");
+            .hasMessage("Cannot cast 'true' to numeric");
     }
 
     @Test
     public void test_cast_array_to_numeric_throws_exception() {
         assertThatThrownBy(() -> NumericType.INSTANCE.implicitCast(List.of()))
             .isExactlyInstanceOf(ClassCastException.class)
-            .hasMessage("Can't cast '[]' to numeric");
+            .hasMessage("Cannot cast '[]' to numeric");
     }
 
     @Test
     public void test_cast_row_to_numeric_throws_exception() {
         assertThatThrownBy(() -> NumericType.INSTANCE.implicitCast(RowType.EMPTY))
             .isExactlyInstanceOf(ClassCastException.class)
-            .hasMessage("Can't cast 'record' to numeric");
+            .hasMessage("Cannot cast 'record' to numeric");
     }
 
     @Test
     public void test_cast_object_to_smallint_throws_exception() {
         assertThatThrownBy(() -> NumericType.INSTANCE.implicitCast(Map.of()))
             .isExactlyInstanceOf(ClassCastException.class)
-            .hasMessage("Can't cast '{}' to numeric");
+            .hasMessage("Cannot cast '{}' to numeric");
     }
 
     @Test
@@ -209,5 +214,12 @@ public class NumericTypeTest extends ScalarTestCase {
         assertNormalize("1.11::numeric(3, 1) = 1.10::numeric(3, 2)", isLiteral(true));
         assertNormalize("1.11::numeric(3, 1) = 1.11::numeric", isLiteral(false));
         assertNormalize("1.1::numeric(5,1) = 1.11::numeric(4,2)", isLiteral(false));
+    }
+
+    @Test
+    public void test_cast_number_if_precision_is_lost_throws_exception() {
+        assertThatThrownBy(() -> new NumericType(6, 3).explicitCast(1234.567d, SESSION_SETTINGS))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Cannot cast '1234.567' to numeric(6,3) as it looses precision");
     }
 }

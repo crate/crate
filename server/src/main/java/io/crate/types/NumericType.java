@@ -126,12 +126,18 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
                 mathContext
             );
         } else {
-            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+            throw new ClassCastException("Cannot cast '" + value + "' to " + getName());
         }
-        if (scale != null) {
-            bd = bd.setScale(scale, mathContext.getRoundingMode());
+        if (scale == null) {
+            return bd;
         }
-        return bd;
+
+        int sourceNumIntegralDigits = bd.precision() - bd.scale();
+        int targetNumIntegralDigits = precision - scale; // since scale != null, precision is also != null
+        if (sourceNumIntegralDigits - targetNumIntegralDigits > 0) {
+            throw new ClassCastException("Cannot cast '" + value + "' to " + this + " as it looses precision");
+        }
+        return bd.setScale(scale, mathContext.getRoundingMode());
     }
 
     @Override
@@ -293,7 +299,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Override
     public String toString() {
         if (getTypeParameters().isEmpty()) {
-            return super.toString();
+            return "numeric";
         }
         if (scale == null) {
             return "numeric(" + precision + ")";
