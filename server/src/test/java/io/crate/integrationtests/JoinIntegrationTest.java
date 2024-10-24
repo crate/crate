@@ -457,7 +457,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table test");
 
         execute("select t1.id, t2.id from test as t1 inner join test as t2 on t1.num = t2.num " +
-            "where t1.txt = '1111' and t2.txt='2222'");
+                "where t1.txt = '1111' and t2.txt='2222'");
         assertThat(response).hasRows("1| 3");
     }
 
@@ -472,7 +472,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         // which employee fits in which office?
         execute("select employees.name, offices.name from employees inner join offices on size < height " +
-            "where size < height order by height - size limit 3");
+                "where size < height order by height - size limit 3");
         assertThat(response).hasRows(
             "Douglas Adams| Chief Office",
             "Trillian| Entresol",
@@ -1381,18 +1381,18 @@ public class JoinIntegrationTest extends IntegTestCase {
         // This should prevent the test case from becoming invalid
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
-            "OrderBy[z ASC x ASC]",
-            "  └ NestedLoopJoin[LEFT | (z = x)]",
-            "    ├ Rename[z] AS d",
-            "    │  └ Rename[z] AS generated",
-            "    │    └ Rename[z] AS z",
-            "    │      └ TableFunction[unnest | [unnest] | true]",
-            "    └ Rename[x] AS c",
-            "      └ Rename[x] AS combined",
-            "        └ Eval[x]",
-            "          └ NestedLoopJoin[LEFT | (x = y)]",
-            "            ├ Collect[doc.t1 | [x] | true]",
-            "            └ Collect[doc.t2 | [y] | true]"
+                   "OrderBy[z ASC x ASC]",
+                   "  └ NestedLoopJoin[LEFT | (z = x)]",
+                   "    ├ Rename[z] AS d",
+                   "    │  └ Rename[z] AS generated",
+                   "    │    └ Rename[z] AS z",
+                   "    │      └ TableFunction[unnest | [unnest] | true]",
+                   "    └ Rename[x] AS c",
+                   "      └ Rename[x] AS combined",
+                   "        └ Eval[x]",
+                   "          └ NestedLoopJoin[LEFT | (x = y)]",
+                   "            ├ Collect[doc.t1 | [x] | true]",
+                   "            └ Collect[doc.t2 | [y] | true]"
         );
 
         execute(stmt);
