@@ -110,15 +110,19 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            var scaleMatched = filterOutOfBoundsAndSetScale(nonNullValues, Objects.requireNonNull(type.scale()));
+            if (scaleMatched.isEmpty()) {
+                return new MatchNoDocsQuery("The given values are out of bounds");
+            }
             if (isIndexed) {
                 return LongPoint.newSetQuery(
                     field,
-                    Lists.mapLazy(nonNullValues, x -> x.unscaledValue().longValueExact()));
+                    Lists.mapLazy(scaleMatched, x -> x.unscaledValue().longValueExact()));
             }
             if (hasDocValues) {
                 return SortedNumericDocValuesField.newSlowSetQuery(
                     field,
-                    nonNullValues.stream().mapToLong(x -> x.unscaledValue().longValueExact()).toArray()
+                    scaleMatched.stream().mapToLong(x -> x.unscaledValue().longValueExact()).toArray()
                 );
             }
             return null;
@@ -190,6 +194,10 @@ public class NumericEqQuery {
                                 List<BigDecimal> nonNullValues,
                                 boolean hasDocValues,
                                 boolean isIndexed) {
+            var scaleMatched = filterOutOfBoundsAndSetScale(nonNullValues, Objects.requireNonNull(type.scale()));
+            if (scaleMatched.isEmpty()) {
+                return new MatchNoDocsQuery("The given values are out of bounds");
+            }
             if (isIndexed) {
                 int maxBytes = type.maxBytes();
                 BytesRef encoded = new BytesRef(new byte[maxBytes]);
@@ -203,10 +211,10 @@ public class NumericEqQuery {
 
                         @Override
                         public BytesRef next() {
-                            if (idx == nonNullValues.size()) {
+                            if (idx == scaleMatched.size()) {
                                 return null;
                             }
-                            BigDecimal bigDecimal = nonNullValues.get(idx);
+                            BigDecimal bigDecimal = scaleMatched.get(idx);
                             idx++;
                             NumericUtils.bigIntToSortableBytes(bigDecimal.unscaledValue(), maxBytes, encoded.bytes, 0);
                             return encoded;
@@ -252,5 +260,12 @@ public class NumericEqQuery {
                                 boolean isIndexed) {
             return null;
         }
+    }
+
+    private static List<BigDecimal> filterOutOfBoundsAndSetScale(List<BigDecimal> values, int scale) {
+        return values.stream().map(val -> {
+            var scaledDown = val.setScale(scale, RoundingMode.DOWN);
+            return scaledDown.compareTo(val) == 0 ? scaledDown : null;
+        }).filter(Objects::nonNull).toList();
     }
 }
