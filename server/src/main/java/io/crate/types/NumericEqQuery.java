@@ -29,6 +29,7 @@ import java.util.Objects;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
@@ -62,12 +63,16 @@ public class NumericEqQuery {
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            BigDecimal scaleMatched = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaleMatched.compareTo(value) != 0) {
+                return new MatchNoDocsQuery("The given value holds extra non-zero scales");
+            }
             if (isIndexed) {
-                long longValue = value.unscaledValue().longValueExact();
+                long longValue = scaleMatched.unscaledValue().longValueExact();
                 return LongPoint.newExactQuery(field, longValue);
             }
             if (hasDocValues) {
-                long longValue = value.unscaledValue().longValueExact();
+                long longValue = scaleMatched.unscaledValue().longValueExact();
                 return SortedNumericDocValuesField.newSlowExactQuery(field, longValue);
             }
             return null;
@@ -131,7 +136,11 @@ public class NumericEqQuery {
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
-            return rangeQuery(field, value, value, true, true, hasDocValues, isIndexed);
+            BigDecimal scaleMatched = value.setScale(Objects.requireNonNull(type.scale()), RoundingMode.DOWN);
+            if (scaleMatched.compareTo(value) != 0) {
+                return new MatchNoDocsQuery("The given value holds extra non-zero scales");
+            }
+            return rangeQuery(field, scaleMatched, scaleMatched, true, true, hasDocValues, isIndexed);
         }
 
         @Override

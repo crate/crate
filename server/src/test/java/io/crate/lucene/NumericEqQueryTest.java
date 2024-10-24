@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -113,6 +114,20 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(convert(col + " <= -1.105")).isEqualTo(convert(col + " < -1.10"));
         assertThat(convert(col + " <= -1.1")).isEqualTo(convert(col + " < -1.09"));
         assertThat(convert(col + " <= -1")).isEqualTo(convert(col + " < -0.99"));
+    }
+
+    @Test
+    public void test_equals_unbounded_numeric_with_larger_scale() {
+        assertThat(convert("x = 1.111::numeric")).isExactlyInstanceOf(MatchNoDocsQuery.class);
+        assertThat(convert("y = 1.111::numeric")).isExactlyInstanceOf(MatchNoDocsQuery.class);
+    }
+
+    @Test
+    public void test_same_significant_digits_produce_distinct_lucene_queries() {
+        String col = randomBoolean() ? "x" : "y";
+        assertThat(convert(col + " = 1.11::numeric").toString()).isEqualTo(col + ":[111 TO 111]");
+        assertThat(convert(col + " = 11.1::numeric").toString()).isEqualTo(col + ":[1110 TO 1110]");
+        assertThat(convert(col + " = 111::numeric").toString()).isEqualTo(col + ":[11100 TO 11100]");
     }
 
     @Test
