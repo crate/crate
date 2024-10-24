@@ -30,7 +30,6 @@ import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
-@UseJdbc(1)
 public class OuterJoinIntegrationTest extends IntegTestCase {
 
     @Before

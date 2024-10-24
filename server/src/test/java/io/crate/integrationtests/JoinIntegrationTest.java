@@ -1816,4 +1816,5 @@ public class JoinIntegrationTest extends IntegTestCase {
             "4| NULL"
         );
     }
+
 }

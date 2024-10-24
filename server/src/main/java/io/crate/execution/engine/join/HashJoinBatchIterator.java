@@ -165,7 +165,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded
                 if (emitNullValues) {
-                    fetchKeysFromBuffer();
+                    extractNonMatchingKeys();
                     if (!nonMatchingKeys.isEmpty()) {
                         return emitNullValuesPairs();
                     }
@@ -178,7 +178,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             } else if (right.allLoaded()) {
                 // one batch completed
                 if (emitNullValues) {
-                    fetchKeysFromBuffer();
+                    extractNonMatchingKeys();
                     if (!nonMatchingKeys.isEmpty()) {
                         return emitNullValuesPairs();
                     }
@@ -197,9 +197,9 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         return true;
     }
 
-    private void fetchKeysFromBuffer() {
+    private void extractNonMatchingKeys() {
         if (nonMatchingKeys == null) {
-            nonMatchingKeys = new ArrayList<>(buffer.size());
+            nonMatchingKeys = new ArrayList<>();
             for (var values : buffer.entrySet()) {
                 if (values.getValue().marked == false) {
                     nonMatchingKeys.add(values.getKey());
@@ -297,7 +297,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private void addToBuffer(Object[] currentRow, int hash) {
         Values existingRows = buffer.get(hash);
         if (existingRows == null) {
-            existingRows = new Values(new ArrayList<>(), false);
+            existingRows = new Values();
             buffer.put(hash, existingRows);
         }
         existingRows.items.add(currentRow);
@@ -331,12 +331,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private static final class Values {
 
-        ArrayList<Object[]> items;
-        boolean marked;
+        ArrayList<Object[]> items = new ArrayList<>();
+        boolean marked = false;
 
-        public Values(ArrayList<Object[]> items, boolean marked) {
-            this.items = items;
-            this.marked = marked;
-        }
     }
 }
