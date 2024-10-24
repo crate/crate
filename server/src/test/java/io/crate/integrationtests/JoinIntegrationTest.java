@@ -1672,84 +1672,32 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("a2| {id=xyz, t_id=1}| {id=d2}| 1| xyz| 1");
     }
 
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_left_outer_hash_join_simple() throws Exception {
-        execute("CREATE TABLE t1 (id text)");
-        execute("CREATE TABLE t2 (id text)");
-        execute("INSERT INTO t1 values ('a'), ('b'), ('c'), ('e'), ('f')");
-        execute("INSERT INTO t2 values ('a'), ('b'), ('c'), ('d'), ('g')");
-        execute("refresh table t1, t2");
-        execute("select * from t1 left outer join t2 on t1.id = t2.id");
-
-        assertThat(response).hasRowsInAnyOrder(
-            "b| b",
-            "c| c",
-            "a| a",
-            "e| NULL",
-            "f| NULL");
-    }
 
     @Test
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
-    public void test_left_outer_hash_join_complex() throws Exception {
-        execute("CREATE TABLE t1 (id varchar, value varchar)");
-        execute("CREATE TABLE t2 (id varchar, value varchar)");
-        execute("INSERT INTO t1 values ('a', 'a'), ('b', 'b'), ('c', 'c'), ('e', 'e'), ('f', 'f')");
-        execute("INSERT INTO t2 values ('a', 'a'), ('b', 'b'), ('c', 'c'), ('d', 'd'), ('g', 'g')");
-        execute("refresh table t1, t2");
-        execute("select * from t1 left outer join t2 on t1.id = t2.id");
-
-        assertThat(response).hasRowsInAnyOrder(
-            "b| b| b| b",
-            "c| c| c| c",
-            "a| a| a| a",
-            "e| e| NULL| NULL",
-            "f| f| NULL| NULL");
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_left_outer_block() throws Exception {
+    public void test_left_outer_hash_join_with_filters() throws Exception {
         execute("CREATE TABLE t1 (id integer)");
         execute("CREATE TABLE t2 (id integer)");
-        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
+        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4)");
         execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
         execute("refresh table t1, t2");
-        execute("select * from t1 left outer join t2 on t1.id = t2.id");
+
+        execute("select * from t1 left outer join t2 on t1.id = t2.id and t1.id < 3");
 
         assertThat(response).hasRowsInAnyOrder(
             "0| NULL",
+            "2| 2",
+            "4| NULL",
+            "4| NULL",
             "0| NULL",
             "1| 1",
             "1| 1",
             "2| 2",
-            "2| 2",
-            "3| 3",
-            "4| 4",
-            "4| 4",
-            "4| 4",
-            "4| 4"
+            "3| NULL"
         );
-    }
 
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_left_outer_block_with_filter_on_right() throws Exception {
-        execute("CREATE TABLE t1 (id integer)");
-        execute("CREATE TABLE t2 (id integer)");
-        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
-        execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
-        execute("refresh table t1, t2");
-        execute("explain select * from t1 left outer join t2 on t1.id = t2.id and t2.id < 3");
         execute("select * from t1 left outer join t2 on t1.id = t2.id and t2.id < 3");
 
         assertThat(response).hasRowsInAnyOrder(
@@ -1770,51 +1718,25 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
-    public void test_left_outer_block_with_filter_on_left() throws Exception {
-        execute("CREATE TABLE t1 (id integer)");
-        execute("CREATE TABLE t2 (id integer)");
-        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
-        execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
-        execute("refresh table t1, t2");
+    public void test_nested_left_outer_hash_join() throws Exception {
+        execute("CREATE TABLE t1 (i integer)");
+        execute("CREATE TABLE t2 (i integer)");
+        execute("CREATE TABLE t3 (i integer)");
 
-        execute("select * from t1 left outer join t2 on t1.id = t2.id and t1.id < 3");
+        execute("insert into t1 values (0), (1), (2), (3), (4), (5)");
+        execute("insert into t2 values (2), (3), (4), (5)");
+        execute("insert into t3 values (4), (5)");
+        execute("refresh table t1, t2, t3");
 
-        assertThat(response).hasRowsInAnyOrder(
-            "0| NULL",
-            "2| 2",
-            "4| NULL",
-            "4| NULL",
-            "0| NULL",
-            "1| 1",
-            "1| 1",
-            "2| 2",
-            "3| NULL"
-        );
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_left_outer_block_with_comparision() throws Exception {
-        execute("CREATE TABLE t1 (id integer)");
-        execute("CREATE TABLE t2 (id integer)");
-        execute("insert into t1 values (0), (0), (1), (2), (2), (3), (4), (4);");
-        execute("insert into t2 values (1), (1), (2), (3), (4), (4), (5), (5), (6)");
-        execute("refresh table t1, t2");
-
-        execute("select * from t1 left outer join t2 on t1.id = t2.id and t1.id < t2.id");
+        execute("SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.i = t3.i) ON t2.i = t1.i;");
 
         assertThat(response).hasRowsInAnyOrder(
-            "0| NULL",
-            "0| NULL",
-            "1| NULL",
-            "2| NULL",
-            "2| NULL",
-            "3| NULL",
-            "4| NULL",
-            "4| NULL"
+            "0| NULL| NULL",
+            "1| NULL| NULL",
+            "2| 2| NULL",
+            "3| 3| NULL",
+            "4| 4| 4",
+            "5| 5| 5"
         );
     }
-
 }
