@@ -35,7 +35,7 @@ public class ConversionException extends IllegalArgumentException {
             "Cannot cast `%s` of type `%s` to %s",
             source,
             source.valueType(),
-            "type `" + targetType.getName() + "`"
+            "type `" + targetType + "`"
         ));
     }
 
@@ -43,8 +43,8 @@ public class ConversionException extends IllegalArgumentException {
         super(String.format(
             Locale.ENGLISH,
             "Cannot cast expressions from type `%s` to type `%s`",
-            sourceType.getName(),
-            targetType.getName()
+            sourceType,
+            targetType
         ));
     }
 
@@ -53,7 +53,7 @@ public class ConversionException extends IllegalArgumentException {
             Locale.ENGLISH,
             "Cannot cast value `%s` to type `%s`",
             sourceValue.getClass().isArray() ? Arrays.deepToString((Object[]) sourceValue) : sourceValue,
-            targetType.getName()
+            targetType
         ));
     }
 
