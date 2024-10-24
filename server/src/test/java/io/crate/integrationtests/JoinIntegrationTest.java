@@ -1672,7 +1672,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("a2| {id=xyz, t_id=1}| {id=d2}| 1| xyz| 1");
     }
 
-
     @Test
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
@@ -1713,22 +1712,21 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
     }
 
-
     @Test
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(1)
     public void test_nested_left_outer_hash_join() throws Exception {
-        execute("CREATE TABLE t1 (i integer)");
-        execute("CREATE TABLE t2 (i integer)");
-        execute("CREATE TABLE t3 (i integer)");
+        execute("CREATE TABLE t1 (id integer)");
+        execute("CREATE TABLE t2 (id integer)");
+        execute("CREATE TABLE t3 (id integer)");
 
         execute("insert into t1 values (0), (1), (2), (3), (4), (5)");
         execute("insert into t2 values (2), (3), (4), (5)");
         execute("insert into t3 values (4), (5)");
         execute("refresh table t1, t2, t3");
 
-        execute("SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.i = t3.i) ON t2.i = t1.i;");
+        execute("SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.id = t3.id) ON t2.id = t1.id;");
 
         assertThat(response).hasRowsInAnyOrder(
             "0| NULL| NULL",
