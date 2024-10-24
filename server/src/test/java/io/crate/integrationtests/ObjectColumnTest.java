@@ -387,6 +387,7 @@ public class ObjectColumnTest extends IntegTestCase {
     }
 
     private void execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets() {
+
         execute("insert into tbl (id) values (1)");
         assertThat(response).hasRowCount(1);
 
@@ -428,13 +429,12 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("create table t (o object(ignored) as (a int))");
 
         // Dynamically adding column with name "2" which will be indexed "as is" and could clash with "o.a" column's oid.
-        // Ensure that numeric name of the new ignored sub-column is prefixed
-        // and doesn't clash with assigned OID of the known column in the source.
+        // Ensure that numeric name of the new ignored sub-column doesn't clash with assigned OID of the known column in the source.
         execute("insert into t (o) values(?)", new Object[]{Map.of("a", 1, "2", 2)});
         execute("refresh table t");
         execute("SELECT _raw FROM t");
         assertThat(response).hasRows(
-            "{\"1\":{\"2\":1,\"_u_2\":2}}"
+            "{\"1\":\"[1 1 32 1 0 0 0 2]\",\"2\":1}"
         );
 
         execute("SELECT * FROM t");

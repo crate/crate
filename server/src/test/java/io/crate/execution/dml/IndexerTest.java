@@ -162,7 +162,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer.updateTargets(actualTable::getReference);
         ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(8);
+            .hasSize(9);
 
         assertThat(newColumns)
             .hasSize(1);
@@ -206,7 +206,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer.updateTargets(actualTable::getReference);
         ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(9);
+            .hasSize(10);
 
         assertThat(newColumns)
             .satisfiesExactly(
@@ -237,7 +237,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.doc().getFields("o.y")).isEmpty();
         assertThat(doc.doc().getFields())
             .as("source, seqNo, id...")
-            .hasSize(6);
+            .hasSize(8);
 
         assertTranslogParses(doc, table);
     }
@@ -277,7 +277,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(11);
+            .hasSize(13);
 
         assertTranslogParses(parsedDoc, actualTable);
     }
@@ -303,7 +303,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .as("If explicit null value is provided, the default expression is not applied")
             .isEqualTo("{}");
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(6);
+            .hasSize(7);
 
         indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -318,7 +318,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"x\":10,\"y\":0}"
         );
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(8);
+            .hasSize(9);
     }
 
     @Test
@@ -639,7 +639,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var indexer = getIndexer(e, "tbl", "x");
         ParsedDocument doc = indexer.index(item("Hello World"));
         IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
-        assertThat(fields).satisfiesExactly(
+        assertThat(fields).hasSize(2);
+        assertThat(fields).anySatisfy(
             x -> assertThat(x)
                 .isExactlyInstanceOf(Field.class)
                 .extracting("fieldsData")
@@ -1324,7 +1325,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
         Indexer indexer = getIndexer(sqlExecutor, "tbl", "o");
 
-        Map<String, Object> obj = LinkedHashMap.newLinkedHashMap(2);
+        Map<String, Object> obj = new HashMap<>();
         obj.put("coordinates", List.of(50, 50));
         obj.put("type", "Point");
         ParsedDocument doc = indexer.index(item(obj));

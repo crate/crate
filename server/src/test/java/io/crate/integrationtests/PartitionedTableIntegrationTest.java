@@ -2220,16 +2220,16 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
         execute("select _raw, pk, pk['id'], pk['part'] from tbl order by pk['id'] asc");
         assertThat(response).hasRows(
-            "{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x",
-            "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x");
+            "{\"2\":\"1\"}| {id=1, part=x}| 1| x",
+            "{\"2\":\"2\"}| {id=2, part=x}| 2| x");
 
         execute("SELECT _raw, pk, pk['id'], pk['part'] FROM tbl " +
                 " WHERE (pk['id'] = 1 AND pk['part'] = 'x') " +
                 " OR    (pk['id'] = 2 AND pk['part'] = 'x') " +
                 " ORDER BY pk['id'] ASC");
         assertThat(response).hasRows(
-            "{\"1\":{\"2\":\"1\"}}| {id=1, part=x}| 1| x",
-            "{\"1\":{\"2\":\"2\"}}| {id=2, part=x}| 2| x");
+            "{\"2\":\"1\"}| {id=1, part=x}| 1| x",
+            "{\"2\":\"2\"}| {id=2, part=x}| 2| x");
     }
 
     @UseRandomizedOptimizerRules(0)

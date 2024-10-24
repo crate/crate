@@ -96,10 +96,10 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
         return new Sort(sortFields);
     }
 
-    static record SortSymbolContext(TransactionContext txnCtx,
-                                    CollectorContext context,
-                                    boolean reverseFlag,
-                                    boolean nullFirst){
+    record SortSymbolContext(TransactionContext txnCtx,
+                             CollectorContext context,
+                             boolean reverseFlag,
+                             boolean nullFirst) {
     }
 
     private final DocInputFactory docInputFactory;

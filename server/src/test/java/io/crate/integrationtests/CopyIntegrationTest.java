@@ -76,7 +76,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     private final String nestedArrayCopyFilePath =
         Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -923,9 +923,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 new Object[] { file.toPath().toUri().toString() }
             );
             execute("refresh table tbl2");
-            execute("SELECT _raw, * FROM tbl2");
+            execute("SELECT _doc, * FROM tbl2");
             assertThat(response).hasRows(
-                "{\"3\":10,\"4\":{}}| 10| {p=1}"
+                "{o={p=1}, x=10}| 10| {p=1}"
             );
         }
     }

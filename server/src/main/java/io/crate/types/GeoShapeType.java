@@ -23,11 +23,14 @@ package io.crate.types;
 
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -38,6 +41,7 @@ import org.locationtech.spatial4j.shape.Shape;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -64,6 +68,20 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
                                                               Reference ref,
                                                               Function<ColumnIdent, Reference> getRef) {
             return new GeoShapeIndexer(ref);
+        }
+
+        @Override
+        public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                return GeoShapeType.INSTANCE.streamer().readValueFrom(in);
+            } catch (IOException ee) {
+                throw new UncheckedIOException(ee);
+            }
+        }
+
+        @Override
+        public boolean retrieveFromStoredFields() {
+            return true;
         }
     };
 

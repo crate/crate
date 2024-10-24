@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatVectorIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -88,6 +90,13 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                                                           Reference ref,
                                                           Function<ColumnIdent, Reference> getRef) {
             return new FloatVectorIndexer(ref);
+        }
+
+        @Override
+        public float[] decode(ColumnIdent column, SourceParser sourceParser, byte[] bytes) {
+            float[] floats = new float[bytes.length / Float.BYTES];
+            ByteBuffer.wrap(bytes).asFloatBuffer().get(floats);
+            return floats;
         }
     };
 
