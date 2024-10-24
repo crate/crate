@@ -28,8 +28,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.testing.UseJdbc;
-
 public class OuterJoinIntegrationTest extends IntegTestCase {
 
     @Before
