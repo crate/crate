@@ -214,7 +214,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             OrderBy[a ASC]
-              └ HashJoin[(a = b)]
+              └ HashJoin[INNER | (a = b)]
                 ├ Collect[doc.t1 | [a] | true]
                 └ Collect[doc.t2 | [b] | true]
             """
@@ -265,7 +265,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Rename[a, x, i, b, y, i] AS tjoin
-              └ HashJoin[(x = y)]
+              └ HashJoin[INNER | (x = y)]
                 ├ Collect[doc.t1 | [a, x, i] | (x = 10)]
                 └ Collect[doc.t2 | [b, y, i] | true]
             """;
@@ -305,7 +305,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[a, x, i, b, y, i] AS tjoin
               └ Filter[((a || b) = '')]
-                └ HashJoin[(x = y)]
+                └ HashJoin[INNER | (x = y)]
                   ├ Collect[doc.t1 | [a, x, i] | (x = 10)]
                   └ Collect[doc.t2 | [b, y, i] | (y = 20)]
             """;

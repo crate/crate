@@ -50,7 +50,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             """
-            HashJoin[(x = x)]
+            HashJoin[INNER | (x = x)]
               ├ Collect[doc.t1 | [x] | true]
               └ Collect[doc.t2 | [x] | (x = 10)]
             """;
@@ -66,7 +66,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Filter[(coalesce(x, 10) = 10)]
-              └ NestedLoopJoin[LEFT | (x = x)]
+              └ HashJoin[LEFT | (x = x)]
                 ├ Collect[doc.t1 | [x] | true]
                 └ Collect[doc.t2 | [x] | true]
             """;
@@ -82,7 +82,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Filter[(coalesce(x, 10) = 10)]
-              └ NestedLoopJoin[LEFT | (x = x)]
+              └ HashJoin[LEFT | (x = x)]
                 ├ Collect[doc.t1 | [x] | (x > 5)]
                 └ Collect[doc.t2 | [x] | true]
             """;

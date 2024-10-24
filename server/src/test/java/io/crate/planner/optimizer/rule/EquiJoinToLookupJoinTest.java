@@ -225,7 +225,7 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_skip_non_equi_joins() throws Exception {
         var joinCondition = e.asSymbol("lhs.x = 2");
-        Assertions.assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
+        Assertions.assertThat(EquiJoinDetector.isEquiJoinCondition(joinCondition)).isFalse();
         var join = new JoinPlan(lhs, rhs, JoinType.INNER, joinCondition);
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();

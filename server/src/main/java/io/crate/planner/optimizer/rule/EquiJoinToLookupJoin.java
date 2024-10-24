@@ -75,7 +75,7 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             // only inner-equi-joins
             j.joinType() == JoinType.INNER &&
             j.joinCondition() != null &&
-            EquiJoinDetector.isEquiJoin(j.joinCondition()) &&
+            EquiJoinDetector.isEquiJoinCondition(j.joinCondition()) &&
             // no nested subqueries
             j.lhs().relationNames().size() == 1 &&
             j.rhs().relationNames().size() == 1

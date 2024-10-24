@@ -260,8 +260,8 @@ available memory, only a certain block size of a relation is loaded at
 once. The whole operation will be repeated with the next block of the first
 relation once scanning the second relation has finished.
 
-This optimisation cannot be applied unless the join is an ``INNER`` join and
-the join condition satisfies the following rules:
+This optimisation can be applied if the join is an ``INNER`` or ``LEFT OUTER``
+join and the join condition satisfies the following rules:
 
 - Contains at least one ``EQUAL`` :ref:`operator <gloss-operator>`
 

@@ -61,16 +61,16 @@ optimizer. An example output looks like this::
     |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
     |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
     | optimizer_rewrite_join_plan        | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
     |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
     |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
     |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
     | optimizer_merge_filter_and_collect | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
     |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
     |                                    |     └ Collect[doc.departments | [id, name] | (name = 'IT')] (rows=1) |
     | Final logical plan                 | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[(dept_id = id)] (rows=3)                                |
+    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
     |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
     |                                    |     └ Collect[doc.departments | [id] | (name = 'IT')] (rows=1)       |
     +------------------------------------+----------------------------------------------------------------------+

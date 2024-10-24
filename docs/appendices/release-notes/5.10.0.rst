@@ -88,7 +88,17 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Added hash-join execution for left-outer-equi-joins. This improves performance
+  for left-outer-join with an equi-join condition significantly with the cost of
+  higher memory consumption e.g.::
+
+    SELECT * FROM t1 LEFT JOIN t2 OM t1.id = t2.id;
+
+  This optimization can be disabled, with the session setting::
+
+    SET rewrite_left_outer_join_to_hash_join = false
+
+  Note that this setting is experimental, and may change in the future.
 
 Administration and Operations
 -----------------------------

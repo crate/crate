@@ -57,7 +57,8 @@ public class HashJoinOperation implements CompletionListenable {
                              TransactionContext txnCtx,
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
-                             long estimatedRowSizeForLeft) {
+                             long estimatedRowSizeForLeft,
+                             boolean emitNullValues) {
 
         this.resultConsumer = nlResultConsumer;
         this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
@@ -80,7 +81,8 @@ public class HashJoinOperation implements CompletionListenable {
                                 Paging.PAGE_SIZE,
                                 circuitBreaker,
                                 estimatedRowSizeForLeft
-                            )
+                            ),
+                            emitNullValues
                         );
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
@@ -132,9 +134,10 @@ public class HashJoinOperation implements CompletionListenable {
                                                              ToIntFunction<Row> hashBuilderForLeft,
                                                              ToIntFunction<Row> hashBuilderForRight,
                                                              RowAccounting<Object[]> rowAccounting,
-                                                             RamBlockSizeCalculator blockSizeCalculator) {
+                                                             RamBlockSizeCalculator blockSizeCalculator,
+                                                             boolean emitNullValues) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
-        return new HashInnerJoinBatchIterator(
+        return new HashJoinBatchIterator(
             left,
             right,
             rowAccounting,
@@ -142,6 +145,7 @@ public class HashJoinOperation implements CompletionListenable {
             joinCondition,
             hashBuilderForLeft,
             hashBuilderForRight,
-            blockSizeCalculator);
+            blockSizeCalculator,
+            emitNullValues);
     }
 }
