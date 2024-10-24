@@ -40,6 +40,9 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${versions.plugin.compiler}</version>
         <configuration>
+          <compilerArgs>
+            <arg>-proc:full</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
