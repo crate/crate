@@ -30,6 +30,7 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -58,9 +59,9 @@ public final class SquareRootFunction {
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) -> new UnaryScalar<>(
+            (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                 signature,
-                boundSignature,
+                BoundSignature.sameAsUnbound(signature),
                 DataTypes.NUMERIC,
                 SquareRootFunction::sqrt
             )

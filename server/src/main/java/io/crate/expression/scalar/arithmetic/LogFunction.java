@@ -147,9 +147,9 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     .returnType(DataTypes.NUMERIC.getTypeSignature())
                     .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
-                (signature, boundSignature) -> new UnaryScalar<>(
+                (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                     signature,
-                    boundSignature,
+                    BoundSignature.sameAsUnbound(signature),
                     DataTypes.NUMERIC,
                     x -> BigDecimalMath.log10(validateArgument(x, "log(x)"), MathContext.DECIMAL128)
                 )
@@ -194,9 +194,9 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     .returnType(DataTypes.NUMERIC.getTypeSignature())
                     .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
-                (signature, boundSignature) -> new UnaryScalar<>(
+                (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                     signature,
-                    boundSignature,
+                    BoundSignature.sameAsUnbound(signature),
                     DataTypes.NUMERIC,
                     x -> BigDecimalMath.log(validateArgument(x, "ln(x)"), MathContext.DECIMAL128)
                 )

@@ -283,15 +283,14 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
     }
 
     /**
-     * Returns a underscore case name for the given exception. This method strips {@code Elasticsearch} prefixes from exception names.
+     * Returns a name for the given exception. This method strips {@code Elasticsearch} prefixes from exception names.
      */
     public static String getExceptionName(Throwable ex) {
         String simpleName = ex.getClass().getSimpleName();
         if (simpleName.startsWith("Elasticsearch")) {
             simpleName = simpleName.substring("Elasticsearch".length());
         }
-        // TODO: do we really need to make the exception name in underscore casing?
-        return toUnderscoreCase(simpleName);
+        return simpleName;
     }
 
     @Override
@@ -816,40 +815,4 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
         addMetadata(RESOURCE_METADATA_ID_KEY, id);
         addMetadata(RESOURCE_METADATA_TYPE_KEY, type);
     }
-
-    // lower cases and adds underscores to transitions in a name
-    private static String toUnderscoreCase(String value) {
-        StringBuilder sb = new StringBuilder();
-        boolean changed = false;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (Character.isUpperCase(c)) {
-                if (!changed) {
-                    // copy it over here
-                    for (int j = 0; j < i; j++) {
-                        sb.append(value.charAt(j));
-                    }
-                    changed = true;
-                    if (i == 0) {
-                        sb.append(Character.toLowerCase(c));
-                    } else {
-                        sb.append('_');
-                        sb.append(Character.toLowerCase(c));
-                    }
-                } else {
-                    sb.append('_');
-                    sb.append(Character.toLowerCase(c));
-                }
-            } else {
-                if (changed) {
-                    sb.append(c);
-                }
-            }
-        }
-        if (!changed) {
-            return value;
-        }
-        return sb.toString();
-    }
-
 }

@@ -22,14 +22,18 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 
 public class RoundFunctionTest extends ScalarTestCase {
@@ -46,6 +50,11 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluateNull("round(null)");
 
         assertNormalize("round(id)", isFunction("round"));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("round(cast(null as numeric(10, 5)))", isLiteral(null, NumericType.of(List.of(10, 5))));
     }
 
     @Test
@@ -78,6 +87,12 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluateNull("round(1,null)");
         assertEvaluateNull("round(null,null)");
         assertEvaluateNull("round(null,1)");
+    }
+
+    @Test
+    public void test_numeric_return_type_with_precision_param() {
+        assertNormalize("round(cast(null as numeric(10, 5)), 1)", isLiteral(null, NumericType.of(List.of(10, 5))));
+        assertNormalize("round(cast(null as double), 1)", isLiteral(null, DataTypes.NUMERIC));
     }
 
     @Test

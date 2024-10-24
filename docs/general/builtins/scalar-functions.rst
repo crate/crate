@@ -2030,7 +2030,9 @@ clauses.
 ---------------
 
 Returns the absolute value of the given number in the datatype of the given
-number::
+number.
+
+Example::
 
     cr> select abs(214748.0998) AS a, abs(0) AS b, abs(-214748) AS c;
     +-------------+---+--------+
@@ -2078,9 +2080,12 @@ Returns the smallest integral value that is not less than the argument.
 Returns: ``numeric``, ``bigint`` or ``integer``
 
 Return value will be of type ``numeric`` if the input value is of ``numeric``
-type. It will be of ``integer`` if the input value is an ``integer``` or
-``float```.  If the input value is of type ``bigint`` or ``double precision``
-the return value will be of type ``bigint``::
+type, with the same precision and scale as the input type. It will be of
+``integer`` if the input value is an ``integer``` or ``float```.  If the input
+value is of type ``bigint`` or ``double precision`` the return value will be of
+type ``bigint``.
+
+Example::
 
     cr> select ceil(29.9) AS col;
     +-----+
@@ -2128,9 +2133,11 @@ Returns Euler's number ``e`` raised to the power of the given numeric value.
 
 Returns: ``numeric`` or ``double precision``
 
-Return value will be of type ``numeric`` if the input value is of ``numeric``
-type, and ``double precision`` for any other arithmetic type.
-::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     > select exp(1.0) AS exp;
     +-------------------+
@@ -2153,11 +2160,12 @@ Returns the largest integral value that is not less than the argument.
 Returns: ``numeric``, ``bigint`` or ``integer``
 
 Return value will be of type ``numeric`` if the input value is of ``numeric``
-type. It will be of type ``integer`` if the input value is an ``integer``` or
-``float```.  If the input value is of type ``bigint`` or ``double precision``
-the return value will be of type ``bigint``.
+type, with the same precision and scale as the input type. It will be of
+``integer`` if the input value is an ``integer``` or ``float```.  If the input
+value is of type ``bigint`` or ``double precision`` the return value will be of
+type ``bigint``.
 
-See below for an example::
+Example::
 
     cr> select floor(29.9) AS floor;
     +-------+
@@ -2177,11 +2185,11 @@ Returns the natural logarithm of given ``number``.
 
 Returns: ``numeric`` or ``double precision``
 
-Return value will be of type ``numeric`` if the input value is of ``numeric``
-type. It will be of type ``double precision`` if the input value is of any other
-arithmetic type.
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
 
-See below for an example::
+Example::
 
     cr> SELECT ln(1) AS ln;
     +-----+
@@ -2209,12 +2217,12 @@ Returns: ``numeric`` or ``double precision``
 
 When the second argument (``b``) is provided it returns a value of type
 ``double precision``, even if ``x`` is of type ``numeric``, as it's implicitly
-casted to ``double pricision`` (thus, possibly loosing precision). When it's not
-provided, then the return value will be of type ``numeric`` if the input value
-is of ``numeric`` type and of type ``double precision`` if the input value is of
-any other arithmetic type.
+casted to ``double precision`` (thus, possibly loosing precision). When it's not
+provided, then the return value will be of type ``numeric`` with unspecified
+precision and scale, if the input value is of ``numeric`` type and of
+`double precision`` for any other arithmetic type.
 
-See below for an example::
+Examples::
 
     cr> SELECT log(100, 10) AS log;
     +-----+
@@ -2353,14 +2361,20 @@ When ``precision`` is not specified, the ``round`` function rounds the input
 value to the closest integer for ``real`` and ``integer`` data types with ties
 rounding up, and to the closest ``bigint`` value for ``double precision`` and
 ``bigint`` data types with ties rounding up. When the data type of the argument
-is ``numeric``, then it returns the closest ``numeric`` value, with all decimal
-digits zeroed out, and with thies rounding up.
+is ``numeric``, then it returns the closest ``numeric`` value with the same
+precision and scale as the input type, with all decimal digits zeroed out, and
+with ties rounding up.
 
-When it is specified, the result's type is ``numeric``. Notice that
-``round(number)`` and ``round(number, 0)`` may return different result types.
+When it is specified, the result's type is ``numeric``. If ``number`` is of
+``numeric`` datatype, then the ``numeric`` type of the result has the same
+precision and scale with the input. If it's of any other arithmetic type, the
+``numeric`` datatype of the result has unspecified precision and scale.
+
+Notice that ``round(number)`` and ``round(number, 0)`` may return different
+result types.
 
 
-See below for examples::
+Examples::
 
     cr> select round(42.2) AS round;
     +-------+
@@ -2417,10 +2431,13 @@ See below for examples::
 
 Returns the square root of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> select sqrt(25.0) AS sqrt;
     +------+
@@ -2438,10 +2455,13 @@ See below for an example::
 
 Returns the sine of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT sin(1) AS sin;
     +--------------------+
@@ -2459,10 +2479,13 @@ See below for an example::
 
 Returns the arcsine of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT asin(1) AS asin;
     +--------------------+
@@ -2480,10 +2503,13 @@ See below for an example::
 
 Returns the cosine of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT cos(1) AS cos;
     +--------------------+
@@ -2501,10 +2527,13 @@ See below for an example::
 
 Returns the arccosine of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT acos(-1) AS acos;
     +-------------------+
@@ -2522,10 +2551,13 @@ See below for an example::
 
 Returns the tangent of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT tan(1) AS tan;
     +--------------------+
@@ -2545,10 +2577,13 @@ Returns the cotangent of the argument that represents the angle expressed in
 radians. The range of the argument is all real numbers. The cotangent of zero
 is undefined and returns ``Infinity``.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> select cot(1) AS cot;
     +--------------------+
@@ -2566,10 +2601,13 @@ See below for an example::
 
 Returns the arctangent of the argument.
 
-Returns: ``numeric`` for argument of type ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT atan(1) AS atan;
     +--------------------+
@@ -2587,10 +2625,13 @@ See below for an example::
 
 Returns the arctangent of ``y/x``.
 
-Returns: ``numeric`` for argument of types ``numeric`` and ``double precision``
-for any other arithmetic type.
+Returns: ``numeric`` or ``double precision``
 
-::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value ``y`` or ``x`` is of ``numeric`` type, and
+``double precision`` for any other arithmetic type.
+
+Example::
 
     cr> SELECT atan2(2, 1) AS atan2;
     +--------------------+
