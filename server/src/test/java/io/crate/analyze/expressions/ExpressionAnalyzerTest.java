@@ -563,4 +563,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         symbol = executor.asSymbol("t1.a not ilike all(['a', 'b', 'c'])");
         assertThat(symbol).isSQL("(doc.t1.a NOT ILIKE ALL(['a', 'b', 'c']))");
     }
+
+    @Test
+    public void test_float_ref_to_double_literal_comparison() {
+
+    }
 }

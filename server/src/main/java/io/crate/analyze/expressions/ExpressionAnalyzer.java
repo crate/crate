@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
@@ -1351,8 +1352,23 @@ public class ExpressionAnalyzer {
 
         Comparison normalize(ExpressionAnalysisContext context) {
             swapIfNecessary();
+            castLiteralToRefTypeIfPossible();
             rewriteNegatingOperators(context);
             return this;
+        }
+
+        private void castLiteralToRefTypeIfPossible() {
+            if (left instanceof Reference && right instanceof Literal<?> literal) {
+                var refType = left.valueType();
+                try {
+                    var castedToRefType = refType.implicitCast(literal.value());
+                    var castReverted = literal.valueType().implicitCast(castedToRefType);
+                    if (Objects.equals(literal.value(), castReverted)) {
+                        right = Literal.ofUnchecked(refType, castedToRefType);
+                    }
+                } catch (ClassCastException | IllegalArgumentException ignored) {
+                }
+            }
         }
 
         /**
