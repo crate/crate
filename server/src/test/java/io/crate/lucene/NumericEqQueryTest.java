@@ -35,7 +35,9 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         return """
             create table n (
                 x numeric(18, 2),
-                y numeric(38, 2)
+                y numeric(38, 2),
+                xarr numeric(18, 2)[],
+                yarr numeric(38, 2)[]
             )
             """;
     }
@@ -123,11 +125,19 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_same_significant_digits_produce_distinct_lucene_queries() {
+    public void test_term_query_with_same_significant_digits() {
         String col = randomBoolean() ? "x" : "y";
         assertThat(convert(col + " = 1.11::numeric").toString()).isEqualTo(col + ":[111 TO 111]");
         assertThat(convert(col + " = 11.1::numeric").toString()).isEqualTo(col + ":[1110 TO 1110]");
         assertThat(convert(col + " = 111::numeric").toString()).isEqualTo(col + ":[11100 TO 11100]");
+    }
+
+    @Test
+    public void test_terms_query_with_same_significant_digits() {
+        assertThat(convert("xarr = [1.11, 11.1, 111]::numeric[]").toString())
+            .isEqualTo("+xarr:{111 1110 11100} +(xarr = [1.11, 11.1, 111.0])");
+        assertThat(convert("yarr = [1.11, 11.1, 111]::numeric[]").toString())
+            .isEqualTo("+yarr:{111 1110 11100} +(yarr = [1.11, 11.1, 111.0])");
     }
 
     @Test
@@ -143,5 +153,20 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("y <= '2746799837116176.76'");
         assertThat(query).isInstanceOf(PointRangeQuery.class);
         assertThat(query.toString()).isEqualTo("y:[-99999999999999999999999999999999999999 TO 274679983711617676]");
+    }
+
+    @Test
+    public void test_out_of_bounds_numeric_values_are_filtered_from_numeric_array_literal() {
+        // removing 1.111 because it will never match numeric values with scale = 2; 1.110 is kept since it is equivalent to 1.11
+        assertThat(convert("xarr = [1, 1.1, 1.110, 1.111]::numeric[]").toString())
+            .isEqualTo("+xarr:{100 110 111} +(xarr = [1.0, 1.1, 1.11, 1.111])"); // generic query still contains 1.111
+        assertThat(convert("yarr = [1, 1.1, 1.110, 1.111]::numeric[]").toString())
+            .isEqualTo("+yarr:{100 110 111} +(yarr = [1.0, 1.1, 1.11, 1.111])");
+
+        // after removing out of bound values, if the array becomes empty, return MatchNoDocsQuery
+        assertThat(convert("xarr = [1.111]::numeric[]").toString())
+            .isEqualTo("+MatchNoDocsQuery(\"The given values are out of bounds\") +(xarr = [1.111])");
+        assertThat(convert("yarr = [1.111]::numeric[]").toString())
+            .isEqualTo("+MatchNoDocsQuery(\"The given values are out of bounds\") +(yarr = [1.111])");
     }
 }
