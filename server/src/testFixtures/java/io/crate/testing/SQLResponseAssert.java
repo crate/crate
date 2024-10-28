@@ -66,6 +66,16 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         return this;
     }
 
+    public SQLResponseAssert hasRowsInAnyOrder(String ... rows) {
+        String[] resultRows = new String[actual.rows().length];
+        for (int i = 0; i < actual.rows().length; i++) {
+            Object[] row = actual.rows()[i];
+            resultRows[i] = TestingHelpers.printRow(row);
+        }
+        assertThat(resultRows).containsExactlyInAnyOrder(rows);
+        return this;
+    }
+
     public SQLResponseAssert hasRows(Object[] ... rows) {
         assertThat(List.of(actual.rows())).containsExactly(rows);
         return this;

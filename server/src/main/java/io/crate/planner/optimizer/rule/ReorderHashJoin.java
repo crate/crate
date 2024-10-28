@@ -29,10 +29,11 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
 
 public class ReorderHashJoin implements Rule<HashJoin> {
 
-    private final Pattern<HashJoin> pattern = typeOf(HashJoin.class);
+    private final Pattern<HashJoin> pattern = typeOf(HashJoin.class).with(j -> j.joinType() == JoinType.INNER);
 
     @Override
     public Pattern<HashJoin> pattern() {
@@ -57,6 +58,7 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                     plan.rhs(),
                     plan.lhs(),
                     plan.joinCondition(),
+                    plan.joinType(),
                     plan.lookUpJoin().invert()
                 ),
                 plan.outputs()

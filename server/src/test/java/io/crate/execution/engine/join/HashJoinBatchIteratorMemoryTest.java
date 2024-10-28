@@ -42,7 +42,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 
-public class HashInnerJoinBatchIteratorMemoryTest {
+public class HashJoinBatchIteratorMemoryTest {
 
     private final CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
 
@@ -59,7 +59,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
     }
 
     @Test
-    public void testReleaseAccountingRows() throws Exception {
+    public void test_release_accounting_rows_inner_join() throws Exception {
         BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.range(0, 12),
             3,
@@ -72,7 +72,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         when(circuitBreaker.getUsed()).thenReturn(10L);
 
         RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
-        BatchIterator<Row> it = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> it = new HashJoinBatchIterator(
             leftIterator,
             rightIterator,
             rowAccounting,
@@ -80,7 +80,40 @@ public class HashInnerJoinBatchIteratorMemoryTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 2
+            ignored -> 2,
+            false
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(it, null);
+        consumer.getResult();
+        verify(rowAccounting, times(8)).release();
+        verify(rowAccounting, times(12)).accountForAndMaybeBreak(Mockito.any(Object[].class));
+    }
+
+    @Test
+    public void test_release_accounting_rows_left_outer_join() throws Exception {
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.range(0, 12),
+            3,
+            3,
+            null
+        );
+        BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 4, null);
+
+        when(circuitBreaker.getLimit()).thenReturn(110L);
+        when(circuitBreaker.getUsed()).thenReturn(10L);
+
+        RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
+        BatchIterator<Row> it = new HashJoinBatchIterator(
+            leftIterator,
+            rightIterator,
+            rowAccounting,
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashForLeft(),
+            getHashForRight(),
+            ignored -> 2,
+            true
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
