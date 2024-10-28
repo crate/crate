@@ -86,7 +86,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         } else if (precision <= COMPACT_PRECISION) {
             return new CompactNumericIndexer(ref);
         } else {
-            return new LargeNumericIndexer(ref, numericType, precision);
+            return new LargeNumericIndexer(ref, numericType);
         }
     }
 
@@ -138,7 +138,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         private final FieldType fieldType;
         private final int maxBytes;
 
-        private LargeNumericIndexer(Reference ref, NumericType type, int precision) {
+        private LargeNumericIndexer(Reference ref, NumericType type) {
             super(ref);
             this.maxBytes = type.maxBytes();
             this.fieldType = new FieldType();

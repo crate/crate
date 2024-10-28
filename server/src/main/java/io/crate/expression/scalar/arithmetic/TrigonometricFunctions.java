@@ -34,8 +34,8 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Scalar.Feature;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
@@ -88,11 +88,11 @@ public final class TrigonometricFunctions {
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) ->
+            (signature, ignoredBoundSignature) ->
                 new BinaryScalar<>(
                     (y, x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
                     signature,
-                    boundSignature,
+                    BoundSignature.sameAsUnbound(signature),
                     DataTypes.NUMERIC
             )
         );
@@ -117,15 +117,13 @@ public final class TrigonometricFunctions {
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) -> {
-                DataType<?> argType = boundSignature.argTypes().get(0);
-                return new UnaryScalar<>(
+            (signature, ignoredBoundSignature) ->
+                new UnaryScalar<>(
                     signature,
-                    boundSignature,
-                    argType,
-                    x -> argType.sanitizeValue(func.apply((BigDecimal) x))
-                );
-            }
+                    BoundSignature.sameAsUnbound(signature),
+                    DataTypes.NUMERIC,
+                    func
+                )
         );
     }
 

@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.types.DataTypes;
 
 
 public class SquareRootFunctionTest extends ScalarTestCase {
@@ -43,6 +45,11 @@ public class SquareRootFunctionTest extends ScalarTestCase {
         assertEvaluate("sqrt(cast(25.0 as float))", 5.0);
         assertEvaluate("sqrt(cast(123.4 as numeric(6, 1)))",
             new BigDecimal("11.10855526159905278255972911272118"));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("sqrt(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
     }
 
     @Test

@@ -321,4 +321,16 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("atan2(age, age)", isFunction("atan2"));
         assertNormalize("cot(age)", isFunction("cot"));
     }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("sin(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("asin(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("cos(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("acos(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("tan(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("atan(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("atan2(cast(null as numeric(10, 5)), 1)", isLiteral(null, DataTypes.NUMERIC));
+        assertNormalize("cot(cast(null as numeric(10, 5)))", isLiteral(null, DataTypes.NUMERIC));
+    }
 }

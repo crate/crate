@@ -21,6 +21,7 @@
 
 package io.crate.rest.action;
 
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.http.Headers.isCloseConnection;
@@ -93,6 +94,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
     private final Netty4CorsConfig corsConfig;
+    private final boolean checkJwtProperties;
 
     private Session session;
 
@@ -107,6 +109,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
         this.corsConfig = corsConfig;
+        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
     }
 
     @Override
@@ -311,7 +314,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
         try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+            Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
             if (rolePredicate != null) {
                 Role role = roles.findUser(rolePredicate);
                 if (role != null) {

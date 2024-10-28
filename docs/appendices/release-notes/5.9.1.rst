@@ -47,6 +47,20 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue which would allow to cast a number to a
+  :ref:`NUMERIC<type-numeric>`, even if the ``NUMERIC``'s' precision and scale
+  would not be sufficient to fit the number without loosing precision, instead
+  of throwing an error, e.g.::
+
+      SELECT CAST(123.45 as NUMERIC(4, 2))
+
+  This fix also changes the behavior, to throw an error when attempting to insert
+  such values to a ``NUMERIC`` table column, instead of successfully inserting
+  them and loose their precision, e.g.::
+
+      CREATE TABLE tbl (a NUMERIC(4,2));
+      INSERT INTO tbl(a) VALUES(123.456);
+
 - Fixed and issue that would cause error to be thrown when using correlated
   subquery with join on a primary key column, e.g.::
 
