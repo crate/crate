@@ -820,4 +820,15 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         query = convert("(['hello', 'world'] in (string_array))");
         assertThat(query).hasToString("(['hello', 'world'] = ANY([string_array]))");
     }
+
+    @Test
+    public void test_comparisons_between_different_types_do_not_cause_precision_loss() {
+        Query query = convert("byte_col < 128"); // byte to int comparison
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(byte_col < 128)");
+
+        query = convert("f = 0.99999999"); // float to double conparison
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(f = 0.99999999)");
+    }
 }
