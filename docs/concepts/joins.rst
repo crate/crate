@@ -26,8 +26,7 @@ Join types
 ==========
 
 A join is a relational operation that merges two data sets based on certain
-properties. :ref:`joins_figure_1` (Inspired by `this article`_) shows which
-elements appear in which join.
+properties. :ref:`joins_figure_1` shows which elements appear in which join.
 
 .. _joins_figure_1:
 
@@ -384,4 +383,3 @@ Note that this setting is experimental, and may change in the future.
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
 .. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
 .. _system tables: https://crate.io/docs/reference/sql/system.html
-.. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
