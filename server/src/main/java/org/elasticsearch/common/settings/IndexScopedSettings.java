@@ -89,7 +89,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.MAX_NGRAM_DIFF_SETTING,
         IndexSettings.MAX_SHINGLE_DIFF_SETTING,
         IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
-        IndexSettings.INDEX_CHECK_ON_STARTUP,
         IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD,
         ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
         IndexSettings.INDEX_GC_DELETES_SETTING,
