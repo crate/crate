@@ -50,3 +50,18 @@ Fixes
 - Fixed an issue that prevented to cast an array of :ref:`TEXT <type-text>`
   containing JSON text representation values to an array of
   :ref:`OBJECT <type-object>`.
+
+- Fixed an issue that caused ``ClassCastExceptions`` or invalid results when
+  the ``WHERE`` clause contained comparisons of different data types. For
+  example::
+
+      SELECT * FROM t WHERE a < 128;
+      SQLParseException[Cannot cast `128` of type `integer` to type `byte`]
+
+      SELECT * FROM t WHERE float_col = 0.99999999;
+      +-----------+
+      | float_col |
+      +-----------+
+      |       1.0 |
+      +-----------+
+
