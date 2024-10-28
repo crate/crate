@@ -35,8 +35,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
@@ -48,7 +46,6 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.annotations.Immutable;
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.common.collections.MapBuilder;
-import io.crate.common.unit.TimeValue;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.settings.Validators;
@@ -151,8 +148,6 @@ public class TableParameters {
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NumberOfReplicas.SETTING);
-
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
             .put(
@@ -235,43 +230,5 @@ public class TableParameters {
             return key.substring(0, key.length() - 1);
         }
         return key;
-    }
-
-    public static Map<String, Object> tableParametersFromIndexMetadata(Settings settings) {
-        MapBuilder<String, Object> builder = MapBuilder.newMapBuilder();
-        for (Setting<?> setting : SUPPORTED_SETTINGS) {
-            boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
-            if (shouldBeExcluded == false) {
-                if (setting instanceof Setting.AffixSetting) {
-                    flattenAffixSetting(builder, settings, (Setting.AffixSetting<?>) setting);
-                } else if (settings.hasValue(setting.getKey())) {
-                    builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
-                }
-            }
-        }
-        return builder.immutableMap();
-    }
-
-    private static void flattenAffixSetting(MapBuilder<String, Object> builder,
-                                            Settings settings,
-                                            Setting.AffixSetting<?> setting) {
-        String prefix = setting.getKey();
-        setting.getNamespaces(settings)
-            .forEach(s -> builder.put(prefix + s, setting.getConcreteSetting(prefix + s).get(settings)));
-    }
-
-    private static Object convertEsSettingType(Object value) {
-        if (value instanceof Number || value instanceof Boolean) {
-            return value;
-        }
-        if (value instanceof ByteSizeValue) {
-            // return bytes as long so it can be compared correctly
-            return ((ByteSizeValue) value).getBytes();
-        }
-        if (value instanceof TimeValue) {
-            // return time as long (epoch) in MS so it can be compared correctly
-            return ((TimeValue) value).millis();
-        }
-        return value.toString();
     }
 }
