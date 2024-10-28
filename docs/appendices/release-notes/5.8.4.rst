@@ -13,7 +13,12 @@ Released on 2024-10-07.
     We recommend that you upgrade to the latest 5.7 release before moving to
     5.8.4.
 
-    A rolling upgrade from 5.7.x to 5.8.4 is supported.
+.. WARNING::
+    Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.7.x to
+    5.8.4 can lead to problems when writing into a column of the
+    ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
+    types.
+    Please do a rolling upgrade from 5.7.x to 5.8.5 or higher instead.
 
     Before upgrading, you should `back up your data`_.
 
