@@ -1113,12 +1113,33 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 RIGHT JOIN t2 ON t1.a = t2.b AND t1.a > 1");
 
         var plannerCtx = executor.getPlannerContext();
-        NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        var result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(
             "NestedLoopJoin[RIGHT | (a = b)]",
             "  ├ Collect[doc.t1 | [a] | (a > 1)]",
             "  └ Collect[doc.t2 | [b] | true]"
+        );
+    }
+
+    @Test
+    public void test_right_outer_join_rewrite_to_left_outer_join() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .build()
+            .addTable("CREATE TABLE doc.t1 (a INT)")
+            .addTable("CREATE TABLE doc.t2 (b INT)");
+
+        QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 RIGHT JOIN t2 ON t1.a = t2.b");
+
+        var plannerCtx = executor.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[a, b]",
+            "  └ HashJoin[LEFT | (a = b)]",
+            "    ├ Collect[doc.t2 | [b] | true]",
+            "    └ Collect[doc.t1 | [a] | true]"
         );
     }
 }
