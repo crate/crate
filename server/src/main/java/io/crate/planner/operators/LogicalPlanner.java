@@ -122,6 +122,7 @@ import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteLeftOuterJoinToHashJoin;
+import io.crate.planner.optimizer.rule.RewriteRightOuterJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.role.Role;
@@ -171,6 +172,7 @@ public class LogicalPlanner {
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
         new RewriteLeftOuterJoinToHashJoin(),
+        new RewriteRightOuterJoinToHashJoin(),
         new RewriteJoinPlan()
     );
 
