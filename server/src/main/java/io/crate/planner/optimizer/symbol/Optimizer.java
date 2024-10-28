@@ -41,6 +41,7 @@ import io.crate.planner.optimizer.symbol.rule.MoveArrayLengthOnReferenceCastToLi
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveReferenceCastToLiteralCastOnArrayOperatorsWhenRightIsReference;
 import io.crate.planner.optimizer.symbol.rule.MoveSubscriptOnReferenceCastToLiteralCastInsideOperators;
+import io.crate.planner.optimizer.symbol.rule.RemoveRedundantImplicitCastOverReferences;
 import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdenticalReferences;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInComparisonOperators;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
@@ -55,7 +56,8 @@ public class Optimizer {
         new MoveReferenceCastToLiteralCastOnArrayOperatorsWhenLeftIsReference(),
         new MoveSubscriptOnReferenceCastToLiteralCastInsideOperators(),
         new MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators(),
-        new SimplifyEqualsOperationOnIdenticalReferences()
+        new SimplifyEqualsOperationOnIdenticalReferences(),
+        new RemoveRedundantImplicitCastOverReferences()
     );
 
     public static Symbol optimizeCasts(Symbol query, PlannerContext plannerCtx) {
