@@ -387,6 +387,10 @@ public final class DataTypes {
         return new ArrayType<>(highest);
     }
 
+    public static boolean isSafeConversion(DataType<?> source, DataType<?> target) {
+        return SAFE_CONVERSIONS.getOrDefault(source.id(), Set.of()).contains(target);
+    }
+
     private static boolean safeConversionPossible(DataType<?> type1, DataType<?> type2) {
         final DataType<?> source;
         final DataType<?> target;
@@ -558,6 +562,10 @@ public final class DataTypes {
      */
     public static boolean isNumericPrimitive(DataType<?> type) {
         return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id());
+    }
+
+    public static boolean isNumeric(DataType<?> type) {
+        return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id()) || NUMERIC.id() == type.id();
     }
 
     /**

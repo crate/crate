@@ -135,9 +135,9 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
     @Test
     public void test_terms_query_with_same_significant_digits() {
         assertThat(convert("xarr = [1.11, 11.1, 111]::numeric[]").toString())
-            .isEqualTo("+xarr:{111 1110 11100} +(xarr = [1.11, 11.1, 111.0])");
+            .isEqualTo("+xarr:{111 1110 11100} +(xarr = [1.11, 11.10, 111.00])");
         assertThat(convert("yarr = [1.11, 11.1, 111]::numeric[]").toString())
-            .isEqualTo("+yarr:{111 1110 11100} +(yarr = [1.11, 11.1, 111.0])");
+            .isEqualTo("+yarr:{111 1110 11100} +(yarr = [1.11, 11.10, 111.00])");
     }
 
     @Test

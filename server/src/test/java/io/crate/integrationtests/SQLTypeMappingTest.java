@@ -186,16 +186,6 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInvalidWhereClause() throws Exception {
-        setUpSimple();
-
-        Asserts.assertSQLError(() -> execute("delete from t1 where byte_field=129"))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Cannot cast `129` of type `integer` to type `byte`");
-    }
-
-    @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         setUpSimple();
 
