@@ -45,6 +45,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     static class Context {
         private final ArrayList<Function> aggregates = new ArrayList<>();
         private final ArrayList<Function> tableFunctions = new ArrayList<>();
+        private final ArrayList<Function> scalarsContainingTableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
         private final ArrayList<WindowFunction> windowFunctions = new ArrayList<>();
         private final ArrayList<SelectSymbol> correlatedQueries = new ArrayList<>();
@@ -66,7 +67,17 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
         boolean foundAggregateOrTableFunction = false;
 
+        // Used specifically to catch table functions inside scalars.
+        // Aggregations and window functions cannot be used inside scalars.
+        boolean foundTableFunction = false;
+
         Context() {
+        }
+
+        void allocateScalar(Function scalarFunction) {
+            if (scalarsContainingTableFunctions.contains(scalarFunction) == false) {
+                scalarsContainingTableFunctions.add(scalarFunction);
+            }
         }
 
         void allocateTableFunction(Function tableFunction) {
@@ -122,6 +133,9 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         Symbol where = relation.where();
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
+        for (Function scalarFunction : context.scalarsContainingTableFunctions) {
+            toCollect.addAll(extractColumns(scalarFunction.arguments()));
+        }
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
         }
@@ -186,6 +200,9 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         switch (type) {
             case SCALAR:
                 super.visitFunction(function, context);
+                if (context.foundTableFunction == true) {
+                    context.allocateScalar(function);
+                }
                 return null;
 
             case AGGREGATE:
@@ -201,6 +218,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                     throw new UnsupportedOperationException("Cannot use table functions inside aggregates");
                 }
                 context.foundAggregateOrTableFunction = true;
+                context.foundTableFunction = true;
                 if (context.tableFunctionLevel == 0) {
                     context.allocateTableFunction(function);
                 }
