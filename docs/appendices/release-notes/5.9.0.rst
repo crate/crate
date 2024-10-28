@@ -15,8 +15,22 @@ Released on 2024-10-09.
     We recommend that you upgrade to the latest 5.8 release before moving to
     5.9.0.
 
-    A rolling upgrade from 5.8.x to 5.9.0 is supported.
     Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.0 can lead
+    to problems with queries on ``sys.users`` table.
+
+    Inserting ``0`` value into a column of a :ref:`NUMERIC<type-numeric>`
+    type via PG wire leads to an error in 5.9.0.
+
+    Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.8.x to
+    5.9.0 can lead to problems when writing into a column of the
+    ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
+    types.
+
+    Please do a rolling upgrade from 5.8.x to 5.9.1 or higher instead.
 
 .. WARNING::
 
