@@ -24,9 +24,11 @@ package io.crate.types;
 
 import java.util.function.Function;
 
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -39,6 +41,10 @@ public abstract class StorageSupport<T> {
 
     @Nullable
     private final EqQuery<T> eqQuery;
+
+    StorageSupport(StorageSupport<T> base) {
+        this(base.docValuesDefault, base.supportsDocValuesOff, base.eqQuery);
+    }
 
     StorageSupport(boolean docValuesDefault,
                    boolean supportsDocValuesOff,
@@ -61,6 +67,33 @@ public abstract class StorageSupport<T> {
         Reference ref,
         Function<ColumnIdent, Reference> getRef);
 
+    /**
+     * Decode a value from bytes in a stored field
+     */
+    public T decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+        throw new UnsupportedOperationException("decodeFromBytes not supported");
+    }
+
+    /**
+     * Decode a value from a long in a stored field
+     */
+    public T decode(long input) {
+        throw new UnsupportedOperationException("decodeFromLong not supported");
+    }
+
+    /**
+     * Decode a value from an int in a stored field
+     */
+    public T decode(int input) {
+        throw new UnsupportedOperationException("decodeFromInt not supported");
+    }
+
+    /**
+     * @return {@code true} if values should always be loaded from stored fields
+     */
+    public boolean retrieveFromStoredFields() {
+        return false;
+    }
 
     public boolean docValuesDefault() {
         return docValuesDefault;

@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -31,6 +32,11 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.lucene.document.StoredField;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,12 +101,15 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
-            Object innerValue = null;
             if (value.containsKey(innerName) == false) {
-                innerValue = docBuilder.getSyntheticValue(child.ident());
-            } else {
-                innerValue = value.get(innerName);
+                var synth = docBuilder.getSyntheticValue(child.ident());
+                if (synth != null) {
+                    // directly modify the map so that containing types will see the value
+                    // if they need to write stored fields
+                    value.put(innerName, synth);
+                }
             }
+            var innerValue = value.get(innerName);
             docBuilder.checkColumnConstraint(child.ident(), innerValue);
             if (innerValue == null) {
                 continue;
@@ -108,20 +117,52 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
+                innerValue = child.reference.valueType().sanitizeValue(innerValue);
                 docBuilder.translogWriter().writeFieldName(child.reference.storageIdentLeafName());
-                valueIndexer.indexValue(
-                    child.reference.valueType().sanitizeValue(innerValue),
-                    docBuilder
-                );
+                valueIndexer.indexValue(innerValue, docBuilder);
+                value.put(innerName, innerValue);
             }
         }
+        Map<String, Object> columnsToStore = new HashMap<>();
         value.forEach((k, v) -> {
             if (children.containsKey(k) == false) {
                 translogWriter.writeFieldName(this.unknownColumnPrefix + k);
                 translogWriter.writeValue(v);
+                columnsToStore.put(k, v);
+            }
+            if (v == null) {
+                columnsToStore.put(k, null);
             }
         });
+        if (docBuilder.maybeAddStoredField()) {
+            if (columnsToStore.isEmpty() == false) {
+                // We have unknown or null values that can't be reconstructed from doc values
+                // at read time, so we need to store them explicitly
+                docBuilder.addField(new StoredField(
+                    ref.storageIdentLeafName(),
+                    toBytes(columnsToStore, docBuilder.getTableVersionCreated()).toBytesRef()
+                ));
+            } else if (value.isEmpty()) {
+                // A completely empty object doesn't store anything in doc values, so we need to
+                // store a marker here to reconstruct it at read time and distinguish it from a
+                // null value
+                docBuilder.addField(new StoredField(
+                    ref.storageIdentLeafName(),
+                    toBytes(value, docBuilder.getTableVersionCreated()).toBytesRef()
+                ));
+            }
+        }
         translogWriter.endObject();
+    }
+
+    private BytesReference toBytes(Map<String, Object> v, Version version) {
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            out.setVersion(version);
+            out.writeMap(v, StreamOutput::writeString, StreamOutput::writeGenericValue);
+            return out.bytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

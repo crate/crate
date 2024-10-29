@@ -22,11 +22,13 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -38,6 +40,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoPointIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -46,13 +49,27 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
-    private static StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
+    private static final StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
 
         @Override
         public ValueIndexer<Point> valueIndexer(RelationName table,
                                                 Reference ref,
                                                 Function<ColumnIdent, Reference> getRef) {
             return new GeoPointIndexer(ref);
+        }
+
+        @Override
+        public Point decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+            var doubles = ByteBuffer.wrap(bytes).asDoubleBuffer();
+            return new PointImpl(doubles.get(0), doubles.get(1), JtsSpatialContext.GEO);
+        }
+
+        @Override
+        public boolean retrieveFromStoredFields() {
+            // there's a difference in precision between the stored value and the dv value
+            // so when we're retrieving for display or exact comparisons, go to the stored
+            // value
+            return true;
         }
     };
 

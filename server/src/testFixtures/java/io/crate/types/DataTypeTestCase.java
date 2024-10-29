@@ -26,6 +26,7 @@ import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -55,6 +56,8 @@ import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
@@ -72,29 +75,50 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
+    @Test
     public void test_reference_resolver() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition, dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_index_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF", dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_docvalues_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " STORAGE WITH (columnstore=false)", dataDef.data.get());
     }
 
+    @Test
     public void test_reference_resolver_index_and_docvalues_off() throws Exception {
         DataDef<T> dataDef = getDataDef();
         doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF STORAGE WITH (columnstore=false)", dataDef.data.get());
     }
 
-    protected void doReferenceResolveTest(DataType<T> type, String definition, T data) throws Exception {
+    protected boolean supportsArrays() {
+        return true;
+    }
 
-        StorageSupport<? super T> storageSupport = type.storageSupport();
+    @Test
+    public void test_reference_resolver_with_list() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        assumeTrue("Data type " + dataDef.type + " cannot be stored in an array", supportsArrays());
+        DataType<List<T>> arrayType = new ArrayType<>(dataDef.type);
+        int valueCount = randomIntBetween(1, 6);
+        List<T> values = new ArrayList<>();
+        for (int i = 0; i < valueCount; i++) {
+            values.add(dataDef.data.get());
+        }
+        doReferenceResolveTest(arrayType, "array(" + dataDef.definition + ")", values);
+    }
+
+    protected <D> void doReferenceResolveTest(DataType<D> type, String definition, D data) throws Exception {
+
+        StorageSupport<? super D> storageSupport = type.storageSupport();
         assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
 
         var sqlExecutor = SQLExecutor.of(clusterService)
@@ -147,7 +171,13 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.startCollect(collectorContext);
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
-            assertEquals((T) docValueImpl.value(), data);
+
+            var value = docValueImpl.value();
+            if (value instanceof List<?> l) {
+                assertListEquals((List<T>) l, (List<T>) data);
+            } else {
+                assertEquals((T) docValueImpl.value(), (T) data);
+            }
         }
     }
 
@@ -155,12 +185,20 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         assertThat(actual).isEqualTo(expected);
     }
 
+    protected void assertListEquals(List<T> actual, List<T> expected) {
+        assertThat(actual).hasSize(expected.size());
+        for (int i = 0; i < actual.size(); i++) {
+            assertEquals(actual.get(i), expected.get(i));
+        }
+    }
+
     @Test
     public void test_translog_streaming_roundtrip() throws Exception {
         DataType<T> type = getType();
         assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
+        String columnType = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
         var sqlExecutor = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")");
+            .addTable("create table tbl (id int, x " + columnType + ")");
 
         Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");

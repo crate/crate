@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
@@ -68,6 +69,10 @@ public class StringIndexer implements ValueIndexer<String> {
         }
         if (ref.hasDocValues()) {
             docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
+        } else {
+            if (docBuilder.maybeAddStoredField()) {
+                docBuilder.addField(new StoredField(name, value));
+            }
         }
         docBuilder.translogWriter().writeValue(value);
     }

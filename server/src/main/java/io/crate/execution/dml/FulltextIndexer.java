@@ -26,6 +26,7 @@ import java.io.IOException;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,6 +59,9 @@ public class FulltextIndexer implements ValueIndexer<String> {
             docBuilder.addField(new Field(name, value, FIELD_TYPE));
         }
         docBuilder.translogWriter().writeValue(value);
+        if (docBuilder.maybeAddStoredField()) {
+            docBuilder.addField(new StoredField(name, value));
+        }
     }
 
     @Override

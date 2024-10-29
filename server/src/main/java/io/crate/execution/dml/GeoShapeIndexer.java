@@ -27,19 +27,22 @@ import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
-import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
@@ -50,7 +53,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
-import io.crate.types.GeoShapeType.Names;
+import io.crate.types.GeoShapeType;
 
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -63,10 +66,8 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         private Defaults() {
         }
 
-        public static final String TREE = Names.TREE_GEOHASH;
         public static final int GEOHASH_LEVELS = GeoUtils.geoHashLevelsForPrecision("50m");
         public static final int QUADTREE_LEVELS = GeoUtils.quadTreeLevelsForPrecision("50m");
-        public static final Orientation ORIENTATION = Orientation.RIGHT;
         public static final double LEGACY_DISTANCE_ERROR_PCT = 0.025d;
         public static final double DISTANCE_ERROR_PCT = 0.0;
     }
@@ -94,6 +95,19 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
             name,
             SysColumns.FieldNames.FIELD_TYPE));
         docBuilder.translogWriter().writeValue(value);
+        if (docBuilder.maybeAddStoredField()) {
+            var bytes = toBytes(value).toBytesRef();
+            docBuilder.addField(new StoredField(this.name, bytes));
+        }
+    }
+
+    private static BytesReference toBytes(Map<String, Object> shape) {
+        try (var out = new BytesStreamOutput()) {
+            GeoShapeType.INSTANCE.streamer().writeValueTo(out, shape);
+            return out.bytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

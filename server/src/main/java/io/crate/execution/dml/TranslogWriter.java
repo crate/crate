@@ -21,10 +21,14 @@
 
 package io.crate.execution.dml;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
+import org.apache.lucene.util.IORunnable;
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
- * Builds a transaction log entry for an indexed document
+ * Builds a translog entry for an indexed row
  */
 public interface TranslogWriter {
 
@@ -49,15 +53,6 @@ public interface TranslogWriter {
     /** Write a non-null field value */
     void writeValue(Object value);
 
-    /** Write an array of null values */
-    default void writeNullArray(int size) {
-        startArray();
-        for (int i = 0; i < size; i++) {
-            writeNull();
-        }
-        endArray();
-    }
-
     /**
      * Return a byte array representation of the transaction log entry
      * <p/>
@@ -65,4 +60,63 @@ public interface TranslogWriter {
      * on the TranslogWriter
      */
     BytesReference bytes();
+
+    /**
+     * Create a TranslogWriter that will ignore any write methods, and return
+     * the given source as its final BytesReference
+     */
+    static TranslogWriter wrapBytes(BytesReference source) {
+        return new TranslogWriter() {
+            @Override
+            public void startArray() {
+
+            }
+
+            @Override
+            public void endArray() {
+
+            }
+
+            @Override
+            public void startObject() {
+
+            }
+
+            @Override
+            public void endObject() {
+
+            }
+
+            @Override
+            public void writeFieldName(String fieldName) {
+
+            }
+
+            @Override
+            public void writeNull() {
+
+            }
+
+            @Override
+            public void writeValue(Object value) {
+
+            }
+
+            @Override
+            public BytesReference bytes() {
+                return source;
+            }
+        };
+    }
+
+    /**
+     * Wrap code that throws an IOException to rethrow an UncheckedIOException
+     */
+    static void uncheck(IORunnable runnable) {
+        try {
+            runnable.run();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

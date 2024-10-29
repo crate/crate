@@ -2216,7 +2216,7 @@ For example::
     ...     '127.0.0.1'
     ... ), (
     ...     'router.local',
-    ...     '0:0:0:0:0:ffff:c0a8:64'
+    ...     'ff:0:ff:ff:0:ffff:c0a8:64'
     ... );
     INSERT OK, 2 rows affected (... sec)
 
@@ -2228,12 +2228,12 @@ For example::
 ::
 
     cr> SELECT fqdn, ip_addr FROM my_table ORDER BY fqdn;
-    +--------------+------------------------+
-    | fqdn         | ip_addr                |
-    +--------------+------------------------+
-    | localhost    | 127.0.0.1              |
-    | router.local | 0:0:0:0:0:ffff:c0a8:64 |
-    +--------------+------------------------+
+    +--------------+---------------------------+
+    | fqdn         | ip_addr                   |
+    +--------------+---------------------------+
+    | localhost    | 127.0.0.1                 |
+    | router.local | ff:0:ff:ff:0:ffff:c0a8:64 |
+    +--------------+---------------------------+
     SELECT 2 rows in set (... sec)
 
 The ``fqdn`` column (see `Fully Qualified Domain Name`_) will accept any value

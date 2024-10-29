@@ -49,8 +49,8 @@ public class DocRefResolverTest extends ESTestCase {
         }
 
         @Override
-        public String asString() {
-            return "{\"x\":1}";
+        public String asRaw() {
+            return "{\"1\":\"1\"}";
         }
     };
 
@@ -86,7 +86,6 @@ public class DocRefResolverTest extends ESTestCase {
         assertThat(collectExpressions.get(0).value()).isEqualTo("abc");
         assertThat(collectExpressions.get(1).value()).isEqualTo(1L);
         assertThat(collectExpressions.get(2).value()).isEqualTo(SOURCE.asMap());
-        assertThat(collectExpressions.get(3).value()).isEqualTo(SOURCE.asString());
         assertThat(collectExpressions.get(4).value()).isEqualTo(2);
         assertThat(collectExpressions.get(5).value()).isEqualTo(1L);
         assertThat(collectExpressions.get(6).value()).isEqualTo(1L);

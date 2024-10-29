@@ -34,6 +34,11 @@ public class FloatVectorTypeTest extends DataTypeTestCase<float[]> {
         return new FloatVectorType(4);
     }
 
+    @Override
+    protected boolean supportsArrays() {
+        return false;
+    }
+
     @Test
     public void test_cannot_insert_nulls_into_float_vector() {
         var floatVectorType = new FloatVectorType(3);
