@@ -13,9 +13,15 @@ Released on 2024-10-28.
     We recommend that you upgrade to the latest 5.8 release before moving to
     5.9.1.
 
-    A rolling upgrade from 5.8.x to 5.9.1 is supported.
-
     Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.1 can lead
+    to problems when running queries as a user created on an older version
+    during a rolling upgrade.
+
+    Please do a rolling upgrade from 5.8.x to 5.9.2 or higher instead.
 
 .. WARNING::
 
