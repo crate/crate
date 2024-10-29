@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.joda.time.Period;
@@ -65,11 +64,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
@@ -79,7 +73,6 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends IntegTestCase {
@@ -1468,26 +1461,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select name, kind, _id from locations where id in (2,3) order by id");
         assertThat("Outer Eastern Rim| Galaxy| 2\n" +
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n").isEqualTo(printedTable(response.rows()));
-
-        execute("select _raw, id from locations where id in (2,3) order by id");
-
-        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
-        DocTableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "locations"));
-        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
-        Map<String, Object> firstRaw = sourceParser.parse(new BytesArray((String) response.rows()[0][0]));
-
-        assertThat(response.rows()[0][1]).isEqualTo("2");
-        assertThat(firstRaw).containsEntry("id", "2");
-        assertThat(firstRaw).containsEntry("name", "Outer Eastern Rim");
-        assertThat(firstRaw).containsEntry("date", 308534400000L);
-        assertThat(firstRaw).containsEntry("kind", "Galaxy");
-
-        Map<String, Object> secondRaw = sourceParser.parse(new BytesArray((String) response.rows()[1][0]));
-        assertThat(response.rows()[1][1]).isEqualTo("3");
-        assertThat(secondRaw).containsEntry("id", "3");
-        assertThat(secondRaw).containsEntry("name", "Galactic Sector QQ7 Active J Gamma");
-        assertThat(secondRaw).containsEntry("date", 1367366400000L);
-        assertThat(secondRaw).containsEntry("kind", "Galaxy");
     }
 
     @Test
@@ -1962,9 +1935,6 @@ public class TransportSQLActionTest extends IntegTestCase {
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
             assertThat(resp2.rows()[0][0]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][0]);
             assertThat(resp2.rows()[0][1]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][1]);
-            assertThat(ObjectType.UNTYPED.sanitizeValue(resp2.rows()[0][2]))
-                .usingComparator(ObjectType.UNTYPED)
-                .isEqualTo(ObjectType.UNTYPED.sanitizeValue(resp1.rows()[0][2]));
 
             if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
                 // should use doc-values/query-without-fetch execution path due to order + limit

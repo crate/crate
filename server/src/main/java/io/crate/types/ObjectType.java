@@ -25,6 +25,8 @@ import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
 import static io.crate.types.DataTypes.UNDEFINED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +43,8 @@ import java.util.function.Supplier;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -54,6 +58,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -76,6 +81,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                                               Reference ref,
                                                               Function<ColumnIdent, Reference> getRef) {
             return new ObjectIndexer(table, ref, getRef);
+        }
+
+        @Override
+        public Map<String, Object> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                in.setVersion(tableVersion);
+                return in.readMap(StreamInput::readString, StreamInput::readGenericValue);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
     };
 
@@ -386,7 +401,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public long valueBytes(Map<String, Object> map) {
         if (map == null) {
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;

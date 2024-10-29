@@ -55,6 +55,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
                                                Function<ColumnIdent, Reference> getRef) {
             return new LongIndexer(ref);
         }
+
+        @Override
+        public Long decode(long input) {
+            return input;
+        }
     };
 
     @Override

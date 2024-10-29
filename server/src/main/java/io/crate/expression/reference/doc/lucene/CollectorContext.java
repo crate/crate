@@ -49,6 +49,7 @@ public class CollectorContext {
         if (storedRowLookup == null) {
             storedRowLookup = storedRowLookupSupplier.get();
         }
+        storedRowLookup.registerAll();
         return storedRowLookup;
     }
 
@@ -56,6 +57,7 @@ public class CollectorContext {
         if (storedRowLookup == null) {
             storedRowLookup = storedRowLookupSupplier.get();
         }
-        return storedRowLookup.registerRef(ref);
+        storedRowLookup.registerRef(ref);
+        return storedRowLookup;
     }
 }

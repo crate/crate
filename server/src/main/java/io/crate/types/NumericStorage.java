@@ -32,9 +32,11 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.IndexDocumentBuilder;
@@ -42,6 +44,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.BinaryColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.NumericColumnReference;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -67,8 +70,11 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
     public static final long COMPACT_MIN_VALUE = -999999999999999999L;
     public static final long COMPACT_MAX_VALUE = 999999999999999999L;
 
+    private final NumericType type;
+
     public NumericStorage(NumericType numericType) {
         super(true, true, NumericEqQuery.of(numericType));
+        this.type = numericType;
     }
 
     @Override
@@ -88,6 +94,20 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         } else {
             return new LargeNumericIndexer(ref, numericType);
         }
+    }
+
+    @Override
+    public BigDecimal decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+        var bigInt = NumericUtils.sortableBytesToBigInt(bytes, 0, bytes.length);
+        Integer scale = type.scale();
+        return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());
+    }
+
+    @Override
+    public BigDecimal decode(long input) {
+        BigInteger bigInt = BigInteger.valueOf(input);
+        Integer scale = type.scale();
+        return new BigDecimal(bigInt, scale == null ? 0 : scale, type.mathContext());
     }
 
     private abstract static class BaseNumericIndexer implements ValueIndexer<BigDecimal> {
@@ -123,6 +143,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, longValue));
+                }
                 docBuilder.addField(new Field(
                     SysColumns.FieldNames.NAME,
                     name,
@@ -157,6 +180,9 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(bytes)));
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, new BytesRef(bytes)));
+                }
                 docBuilder.addField(new Field(
                     SysColumns.FieldNames.NAME,
                     name,
