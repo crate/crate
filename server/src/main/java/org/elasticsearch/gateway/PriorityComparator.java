@@ -28,12 +28,8 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.settings.Settings;
 
 /**
- * A comparator that compares ShardRouting based on it's indexes priority (index.priority),
- * it's creation date (index.creation_date), or eventually by it's index name in reverse order.
- * We try to recover first shards from an index with the highest priority, if that's the same
- * we try to compare the timestamp the index is created and pick the newer first (time-based indices,
- * here the newer indices matter more). If even that is the same, we compare the index name which is useful
- * if the date is baked into the index name. ie logstash-2015.05.03.
+ * A comparator that compares ShardRouting based on its creation date (index.creation_date),
+ * We try to recover shards that are newer first.
  */
 public final class PriorityComparator implements Comparator<ShardRouting> {
 
@@ -47,24 +43,16 @@ public final class PriorityComparator implements Comparator<ShardRouting> {
     public final int compare(ShardRouting o1, ShardRouting o2) {
         final String o1Index = o1.getIndexName();
         final String o2Index = o2.getIndexName();
-        int cmp = 0;
         if (o1Index.equals(o2Index) == false) {
             Metadata metadata = allocation.metadata();
             final Settings settingsO1 = metadata.getIndexSafe(o1.index()).getSettings();
             final Settings settingsO2 = metadata.getIndexSafe(o2.index()).getSettings();
-            cmp = Long.compare(priority(settingsO2), priority(settingsO1));
+            int cmp = Long.compare(timeCreated(settingsO2), timeCreated(settingsO1));
             if (cmp == 0) {
-                cmp = Long.compare(timeCreated(settingsO2), timeCreated(settingsO1));
-                if (cmp == 0) {
-                    cmp = o2Index.compareTo(o1Index);
-                }
+                return o2Index.compareTo(o1Index);
             }
         }
-        return cmp;
-    }
-
-    private static int priority(Settings settings) {
-        return IndexMetadata.INDEX_PRIORITY_SETTING.get(settings);
+        return 0;
     }
 
     private static long timeCreated(Settings settings) {
