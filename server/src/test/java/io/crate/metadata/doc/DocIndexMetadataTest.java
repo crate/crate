@@ -1192,7 +1192,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
             .put("index.version.created", org.elasticsearch.Version.CURRENT)
-            .put(boundCreateTable.tableParameter().settings());
+            .put(boundCreateTable.settings());
 
         IndexMetadata indexMetadata = IndexMetadata.builder(boundCreateTable.tableName().name())
             .settings(settingsBuilder)

@@ -30,6 +30,7 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -71,7 +72,7 @@ public class AlterTableClusterStateExecutorTest {
             AlterTableClusterStateExecutor.updateTemplate(initialState,
                                                           relationName,
                                                           settings,
-                                                          Collections.emptyMap(),
+                                                          Map.of(),
                                                           (_, _) -> { },
                                                           indexScopedSettings);
 

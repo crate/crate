@@ -23,6 +23,7 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.metadata.table.Operation.isReplicated;
 
+import java.util.Locale;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -33,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
@@ -118,12 +118,24 @@ public class AlterTablePlan implements Plan {
             assert tableInfo.ident().schema().equals(BlobSchemaInfo.NAME) : "If tableInfo is not a DocTableInfo, the schema must be `blob`";
             tableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
         }
-        TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
-        maybeRaiseBlockedException(tableInfo, tableParameter.settings());
+        Settings.Builder settingsBuilder = getTableParameter(alterTable, tableParameters);
+        Settings settings = settingsBuilder.build();
+        if (partitionName != null) {
+            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
+                if (tableOnlySetting.exists(settings)) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Changing \"%s\" on partition level is not supported",
+                        tableOnlySetting.getKey()
+                    ));
+                }
+            }
+        }
+        maybeRaiseBlockedException(tableInfo, settings);
         return new BoundAlterTable(
             tableInfo,
             partitionName,
-            tableParameter,
+            settings,
             table.excludePartitions(),
             isPartitioned
         );
@@ -140,14 +152,14 @@ public class AlterTablePlan implements Plan {
         return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
-        TableParameter tableParameter = new TableParameter();
+    public static Settings.Builder getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
+        Settings.Builder settingsBuilder = Settings.builder();
         if (!node.genericProperties().isEmpty()) {
-            TableProperties.analyze(tableParameter, tableParameters, node.genericProperties(), false);
+            TableProperties.analyze(settingsBuilder, tableParameters, node.genericProperties(), false);
         } else if (!node.resetProperties().isEmpty()) {
-            TableProperties.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
+            TableProperties.analyzeResetProperties(settingsBuilder, tableParameters, node.resetProperties());
         }
-        return tableParameter;
+        return settingsBuilder;
     }
 
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.

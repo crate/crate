@@ -30,11 +30,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.BoundCreateTable;
+import io.crate.analyze.TableParameters;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
@@ -58,9 +60,10 @@ public class TableCreator {
 
         Map<ColumnIdent, Reference> references = createTable.columns();
         IntArrayList pKeysIndices = createTable.primaryKeysIndices();
-        var policy = createTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
-        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
-
+        ColumnPolicy tableColumnPolicy = TableParameters.COLUMN_POLICY.get(createTable.settings());
+        Settings.Builder settingsBuilder = Settings.builder()
+            .put(createTable.settings());
+        settingsBuilder.remove(TableParameters.COLUMN_POLICY.getKey());
         ColumnIdent routingColumn = createTable.routingColumn().equals(SysColumns.ID.COLUMN) ? null : createTable.routingColumn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
@@ -69,7 +72,7 @@ public class TableCreator {
                 new ArrayList<>(references.values()),
                 pKeysIndices,
                 createTable.getCheckConstraints(),
-                createTable.tableParameter().settings(),
+                settingsBuilder.build(),
                 routingColumn,
                 tableColumnPolicy,
                 createTable.partitionedBy()

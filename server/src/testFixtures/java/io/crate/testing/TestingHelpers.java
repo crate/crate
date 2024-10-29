@@ -56,6 +56,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.BoundCreateTable;
+import io.crate.analyze.TableParameters;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.ColumnIdent;
@@ -72,7 +73,6 @@ import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -356,9 +356,7 @@ public class TestingHelpers {
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
-        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
-        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
-
+        var tableColumnPolicy = TableParameters.COLUMN_POLICY.get(boundCreateTable.settings());
         List<Reference> references;
         if (columnOidSupplier != null) {
             references = DocReferences.applyOid(

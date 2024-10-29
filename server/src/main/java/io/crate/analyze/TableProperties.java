@@ -24,7 +24,6 @@ package io.crate.analyze;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
@@ -41,27 +40,16 @@ public final class TableProperties {
     private TableProperties() {
     }
 
-    public static void analyze(TableParameter tableParameter,
+    public static void analyze(Settings.Builder settingsBuilder,
                                TableParameters tableParameters,
                                GenericProperties<Object> properties,
                                boolean withDefaults) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
-
         settingsFromProperties(
-            tableParameter.settingsBuilder(),
+            settingsBuilder,
             properties,
             settingMap,
             withDefaults,
-            mappingsMap::containsKey,
-            INVALID_MESSAGE);
-
-        settingsFromProperties(
-            tableParameter.mappingsBuilder(),
-            properties,
-            mappingsMap,
-            withDefaults,
-            settingMap::containsKey,
             INVALID_MESSAGE);
     }
 
@@ -69,20 +57,12 @@ public final class TableProperties {
                                                GenericProperties<Object> properties,
                                                Map<String, Setting<?>> supportedSettings,
                                                boolean setDefaults,
-                                               Predicate<String> ignoreProperty,
                                                String invalidMessage) {
         if (setDefaults) {
             setDefaults(builder, supportedSettings);
         }
         for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
-            if (ignoreProperty.test(settingName)) {
-                continue;
-            }
-            String groupName = getPossibleGroup(settingName);
-            if (groupName != null && ignoreProperty.test(groupName)) {
-                continue;
-            }
             SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
             if (settingHolder == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
@@ -105,45 +85,16 @@ public final class TableProperties {
      * Processes the property names which should be reset and updates the settings or mappings with the related
      * default value.
      */
-    public static void analyzeResetProperties(TableParameter tableParameter,
+    public static void analyzeResetProperties(Settings.Builder settingsBuilder,
                                               TableParameters tableParameters,
                                               List<String> properties) {
-        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
-
-        resetSettingsFromProperties(
-            tableParameter.settingsBuilder(),
-            properties,
-            settingMap,
-            mappingsMap::containsKey,
-            INVALID_MESSAGE);
-
-        resetSettingsFromProperties(
-            tableParameter.mappingsBuilder(),
-            properties,
-            mappingsMap,
-            settingMap::containsKey,
-            INVALID_MESSAGE);
-    }
-
-    private static void resetSettingsFromProperties(Settings.Builder builder,
-                                                    List<String> properties,
-                                                    Map<String, Setting<?>> supportedSettings,
-                                                    Predicate<String> ignoreProperty,
-                                                    String invalidMessage) {
+        Map<String, Setting<?>> supportedSettings = tableParameters.supportedSettings();
         for (String name : properties) {
-            if (ignoreProperty.test(name)) {
-                continue;
-            }
-            String groupName = getPossibleGroup(name);
-            if (groupName != null && ignoreProperty.test(groupName)) {
-                continue;
-            }
             SettingHolder settingHolder = getSupportedSetting(supportedSettings, name);
             if (settingHolder == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, name));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, name));
             }
-            settingHolder.reset(builder);
+            settingHolder.reset(settingsBuilder);
         }
     }
 

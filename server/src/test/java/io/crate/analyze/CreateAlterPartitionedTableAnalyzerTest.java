@@ -362,19 +362,18 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTable() {
         BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName()).isNotPresent();
+        assertThat(analysis.partitionName()).isNull();
         assertThat(analysis.isPartitioned()).isTrue();
-        assertThat(analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
+        assertThat(analysis.settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
     }
 
     @Test
     public void testAlterPartitionedTablePartition() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName()).isPresent();
-        assertThat(analysis.partitionName().get()).isEqualTo(new PartitionName(
+        assertThat(analysis.partitionName()).isEqualTo(new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")));
-        assertThat(analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
+        assertThat(analysis.settings().get(AutoExpandReplicas.SETTING.getKey())).isEqualTo("0-all");
     }
 
     @Test
@@ -406,34 +405,34 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTableShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_shards=10)");
-        assertThat(analysis.partitionName()).isNotPresent();
+        assertThat(analysis.partitionName()).isNull();
         assertThat(analysis.isPartitioned()).isTrue();
-        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("10");
+        assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("10");
     }
 
     @Test
     public void testAlterTablePartitionWithNumberOfShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
-        assertThat(analysis.partitionName()).isPresent();
+        assertThat(analysis.partitionName()).isNotNull();
         assertThat(analysis.isPartitioned()).isTrue();
-        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("1");
+        assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("1");
     }
 
     @Test
     public void testAlterTablePartitionResetShards() {
         BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
-        assertThat(analysis.partitionName()).isPresent();
+        assertThat(analysis.partitionName()).isNotNull();
         assertThat(analysis.isPartitioned()).isTrue();
-        assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("5");
+        assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("5");
     }
 
     @Test
     public void testAlterPartitionedTablePartitionColumnPolicy() {
         assertThatThrownBy(() -> analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid property \"column_policy\" passed to [ALTER | CREATE] TABLE statement");
+            .hasMessage("Changing \"column_policy\" on partition level is not supported");
     }
 
     @Test
@@ -453,11 +452,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterTableWithWaitForActiveShards() {
         BoundAlterTable analyzedStatement = analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
-        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
+        assertThat(analyzedStatement.settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
             .isEqualTo("ALL");
 
         analyzedStatement = analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
-        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
+        assertThat(analyzedStatement.settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
             .isEqualTo("1");
     }
 }

@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -46,7 +47,7 @@ public record BoundCreateTable(
          * In order of definition
          */
         Map<ColumnIdent, Reference> columns,
-        TableParameter tableParameter,
+        Settings settings,
         List<Reference> primaryKeys,
         /**
          * By constraint name; In order of definition
