@@ -47,4 +47,5 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a BWC issue resulting in an exception when using custom user/roles
+  created on a CrateDB version < :ref:`version_5.9.0`.

@@ -24,13 +24,20 @@ package io.crate.role;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -116,5 +123,22 @@ public class RolePropertiesTest {
         assertThat(actual.password()).isEqualTo(properties.password());
         assertThat(actual.jwtProperties()).isNull();
         assertThat(actual.sessionSettings()).isEqualTo(Map.of());
+    }
+
+    @Test
+    public void test_can_read_empty_role_properties_from_x_content() throws IOException {
+        XContentBuilder xContentBuilder = JsonXContent.builder();
+        xContentBuilder.startObject();
+        xContentBuilder.endObject();
+
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            Strings.toString(xContentBuilder));
+        Role.Properties properties = Role.Properties.fromXContent(parser);
+
+        assertThat(properties.jwtProperties()).isNull();
+        assertThat(properties.password()).isNull();
+        assertThat(properties.sessionSettings()).isEqualTo(Map.of()); 
     }
 }
