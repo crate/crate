@@ -194,15 +194,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
         final Settings closedSettings = settingsForClosedIndices.build();
         final Settings openSettings = settingsForOpenIndices.build();
-
-        boolean preserveExisting = false;
         return updateSettingsService.updateState(
             currentState,
             concreteIndices,
             skippedSettings,
             closedSettings,
-            openSettings,
-            preserveExisting
+            openSettings
         );
     }
 
