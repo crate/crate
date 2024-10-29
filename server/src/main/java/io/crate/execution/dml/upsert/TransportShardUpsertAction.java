@@ -59,7 +59,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
@@ -247,11 +246,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     shardResponse.failure(e);
                     break;
                 }
-                shardResponse.add(location,
-                    new ShardResponse.Failure(
-                        item.id(),
-                        getExceptionMessage(e),
-                        (e instanceof VersionConflictEngineException)));
+                shardResponse.add(
+                    location,
+                    item.id(),
+                    e,
+                    (e instanceof VersionConflictEngineException)
+                );
             } catch (AssertionError e) {
                 // Shouldn't happen in production but helps during development
                 // where bugs may trigger assertions
@@ -261,14 +261,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
-    }
-
-    private static String getExceptionMessage(Throwable e) {
-        if (SQLExceptions.isDocumentAlreadyExistsException(e)) {
-            return "A document with the same primary key exists already";
-        }
-        var message = e.getMessage();
-        return message != null ? message : e.getClass().getName();
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {

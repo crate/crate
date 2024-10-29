@@ -21,9 +21,6 @@
 
 package io.crate.execution.dml;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionListener;
@@ -31,9 +28,8 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
-import io.crate.data.Row1;
+import io.crate.action.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 
@@ -43,28 +39,26 @@ import io.crate.execution.support.MultiActionListener;
 final class BulkShardResponseListener implements ActionListener<ShardResponse> {
 
     private final ShardResponse.CompressedResult compressedResult;
-    private final ArrayList<CompletableFuture<Long>> results;
-    private final MultiActionListener<ShardResponse, ?, long[]> listener;
+    private final FutureActionListener<BulkResponse> results;
+    private final MultiActionListener<ShardResponse, ShardResponse.CompressedResult, BulkResponse> listener;
 
     /**
      * @param resultIndices a list containing one element per shardRequest-item across all shardRequests being made.
      *                      the values must contain the resultIdx;
-     *                      (See {@link #toRowCounts(io.crate.execution.dml.ShardResponse.CompressedResult, IntCollection, int)})
+     *                      (See {@link BulkResponse#update(int, long, Throwable)} )
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
                               IntCollection resultIndices) {
-        this.results = new ArrayList<>();
-        for (int i = 0; i < numBulkParams; i++) {
-            results.add(new CompletableFuture<>());
-        }
+        var bulkResponse = new BulkResponse(numBulkParams);
+        this.results = new FutureActionListener<>();
         this.compressedResult = new ShardResponse.CompressedResult();
         listener = new MultiActionListener<>(
             numCallbacks,
             () -> compressedResult,
             BulkShardResponseListener::onResponse,
-            responses -> toRowCounts(responses, resultIndices, numBulkParams),
-            new SetResultFutures(results)
+            responses -> bulkResponse.update(responses, resultIndices),
+            results
         );
     }
 
@@ -80,7 +74,7 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
         }
     }
 
-    public List<CompletableFuture<Long>> rowCountFutures() {
+    public CompletableFuture<BulkResponse> bulkResponseFuture() {
         return results;
     }
 
@@ -92,72 +86,5 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
     @Override
     public void onFailure(Exception e) {
         listener.onFailure(e);
-    }
-
-    /**
-     * This calculates & returns the correct rowCount specific to the bulk individual bulk-params.
-     *
-     * Example:
-     *
-     * <pre>
-     * where id = ? or id = ?
-     * bulkParams: [ [1, 2], [3, 4] ]
-     *
-     * ->
-     *  3 requests (per shard) (they can span across *all* parameters)
-     *
-     *   shard0: [0, 2]      // item locations
-     *   shard1: [1]
-     *   shard2: [3]
-     *
-     *  numBulkParams: 2 -> 2 items in the result
-     *
-     *  items:
-     *     idx  value
-     *      0 -> 0
-     *      1 -> 0
-     *      2 -> 1
-     *      3 -> 1
-     *
-     *   result:
-     *      long[] {2, 2}
-     * </pre>
-     */
-    private static long[] toRowCounts(ShardResponse.CompressedResult result, IntCollection items, int numBulkParams) {
-        long[] rowCounts = new long[numBulkParams];
-        Arrays.fill(rowCounts, 0L);
-        for (IntCursor c : items) {
-            int itemLocation = c.index;
-            int resultIdx = c.value;
-            if (result.successfulWrites(itemLocation)) {
-                rowCounts[resultIdx]++;
-            } else if (result.failed(itemLocation)) {
-                rowCounts[resultIdx] = Row1.ERROR;
-            }
-        }
-        return rowCounts;
-    }
-
-    private static class SetResultFutures implements ActionListener<long[]> {
-
-        private final ArrayList<CompletableFuture<Long>> results;
-
-        SetResultFutures(ArrayList<CompletableFuture<Long>> results) {
-            this.results = results;
-        }
-
-        @Override
-        public void onResponse(long[] rowCounts) {
-            for (int i = 0; i < rowCounts.length; i++) {
-                results.get(i).complete(rowCounts[i]);
-            }
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            for (CompletableFuture<Long> result : results) {
-                result.completeExceptionally(e);
-            }
-        }
     }
 }

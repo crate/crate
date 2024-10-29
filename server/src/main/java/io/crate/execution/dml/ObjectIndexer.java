@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -141,8 +142,15 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
             // valueIndexer is null for partitioned columns
             if (child.indexer != null) {
+                var type = child.reference.valueType();
+                try {
+                    innerValue = type.sanitizeValue(innerValue);
+                } catch (ClassCastException | IllegalArgumentException e) {
+                    throw new ConversionException(innerValue, type);
+                }
+
                 child.indexer.collectSchemaUpdates(
-                    child.reference.valueType().sanitizeValue(innerValue),
+                    innerValue,
                     onDynamicColumn,
                     synthetics
                 );

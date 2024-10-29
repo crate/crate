@@ -60,6 +60,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
+import io.crate.execution.dml.BulkResponse;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -183,7 +184,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         return publisherSqlExecutor.executeAs(sql, user);
     }
 
-    long[] executeBulkOnPublisher(String sql, @Nullable Object[][] bulkArgs) {
+    BulkResponse executeBulkOnPublisher(String sql, @Nullable Object[][] bulkArgs) {
         return publisherSqlExecutor.execBulk(sql, bulkArgs);
     }
 

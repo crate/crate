@@ -245,7 +245,8 @@ public class Analyzer {
                 paramTypeHints,
                 cursors
             ));
-        roles.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
+        roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser())
+            .ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
 

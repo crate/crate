@@ -105,3 +105,10 @@ Administration and Operations
 
 - Added node settings for the :ref:`jwt_defaults` allowing to provide global
   values for the :ref:`JWT properties <create-user-jwt>`.
+
+Client interfaces
+-----------------
+
+- Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
+  issued over the :ref`interface-http` containing details of the error that
+  caused the bulk operation to fail.
