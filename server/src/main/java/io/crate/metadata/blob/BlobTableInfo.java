@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -61,7 +60,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
-    private final TableParameters supportedTableParameters;
     private final Settings tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
@@ -85,7 +83,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
-        this.supportedTableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
         this.tableParameters = tableParameters;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
@@ -165,10 +162,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public String blobsPath() {
         return blobsPath;
-    }
-
-    public TableParameters tableParameters() {
-        return supportedTableParameters;
     }
 
     public Settings parameters() {
