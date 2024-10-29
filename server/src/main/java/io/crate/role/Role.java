@@ -116,7 +116,7 @@ public class Role implements Writeable {
             boolean login = false;
             SecureHash secureHash = null;
             JwtProperties jwtProperties = null;
-            Map<String, Object> sessionSettings = null;
+            Map<String, Object> sessionSettings = new HashMap<>();
             while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                 switch (parser.currentName()) {
                     case "login":
