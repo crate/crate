@@ -215,12 +215,12 @@ public class DeleteIntegrationTest extends IntegTestCase {
         execute("insert into test(pk_col) values (1), (2), (3)");
         execute("refresh table test");
 
-        long[] rowCounts = execute("delete from test where pk_col=?",
+        var bulkResponse = execute("delete from test where pk_col=?",
             new Object[][]{{2}, {null}, {3}});
-        assertThat(rowCounts).containsExactly(1L, 0L, 1L);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L, 0L, 1L);
 
-        rowCounts = execute("delete from test where pk_col=?", new Object[][]{{null}});
-        assertThat(rowCounts).containsExactly(0L);
+        bulkResponse = execute("delete from test where pk_col=?", new Object[][]{{null}});
+        assertThat(bulkResponse.rowCounts()).containsExactly(0L);
 
         execute("refresh table test");
         execute("select pk_col FROM test");

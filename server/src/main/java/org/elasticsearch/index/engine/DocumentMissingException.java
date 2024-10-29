@@ -19,11 +19,13 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class DocumentMissingException extends EngineException {
 
@@ -38,5 +40,10 @@ public class DocumentMissingException extends EngineException {
     @Override
     public RestStatus status() {
         return RestStatus.NOT_FOUND;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.DOCUMENT_NOT_FOUND;
     }
 }

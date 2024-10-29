@@ -27,7 +27,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -670,12 +669,12 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
         execute("refresh table test");
 
-        long[] rowCounts = execute("update test set a = ? where b = ?",
+        var bulkResponse = execute("update test set a = ? where b = ?",
             new Object[][]{
                 new Object[]{"bar", 1},
                 new Object[]{"baz", 1},
                 new Object[]{"foobar", 1}});
-        assertThat(rowCounts).isEqualTo(new long[] { 1L, 1L, 1L });
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L, 1L, 1L });
         execute("refresh table test");
 
         // document was changed 4 times (including initial creation), so version must be 4
@@ -715,8 +714,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("create table t (name string) with (number_of_replicas = 0)");
         // regression test, used to throw a ClassCastException because the JobLauncher created a
         // QueryResult instead of RowCountResult
-        long[] rowCounts = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
-        assertThat(rowCounts.length).isEqualTo(1);
+        var bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
+        assertThat(bulkResponse.size()).isEqualTo(1);
     }
 
     @Test
@@ -725,8 +724,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into t values (?, ?)", $$($(1, "foo"), $(2, "bar"), $(3, "hoschi"), $(4, "crate")));
         execute("refresh table t");
 
-        long[] rowCounts = execute("update t set name = 'updated' where id = ? or id = ?", $$($(1, 2), $(3, 4)));
-        assertThat(rowCounts).isEqualTo(new long[] { 2L, 2L });
+        var bulkResponse = execute("update t set name = 'updated' where id = ? or id = ?", $$($(1, 2), $(3, 4)));
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 2L, 2L });
     }
 
     @Test
@@ -792,7 +791,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute(
                         "update generated_column set ts=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("\"gen_col\" must not be null");
 
     }
@@ -871,8 +870,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
             new Object[] { 1, "+123" },
             new Object[] { 2, "+123" },
         };
-        long[] rowCounts = execute("update t set x = ? where x ~* ?", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { -2L, -2L });
+        var bulkResponse = execute("update t set x = ? where x ~* ?", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { -2L, -2L });
     }
 
     @Test

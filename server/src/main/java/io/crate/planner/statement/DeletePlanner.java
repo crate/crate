@@ -41,6 +41,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.DeleteProjection;
@@ -156,10 +157,10 @@ public final class DeletePlanner {
         }
 
         @Override
-        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                         PlannerContext plannerContext,
-                                                         List<Row> bulkParams,
-                                                         SubQueryResults subQueryResults) {
+        public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                           PlannerContext plannerContext,
+                                                           List<Row> bulkParams,
+                                                           SubQueryResults subQueryResults) {
             ArrayList<NodeOperationTree> nodeOperationTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
                 WhereClause where = detailedQuery.toBoundWhereClause(

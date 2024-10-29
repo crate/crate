@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.client.Client;
@@ -76,12 +74,12 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
         execute("create table test (id integer primary key) " +
                 "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
-        List<Long> rowCounts = Arrays.stream(
+        var bulkResponse =
             execute("insert into test (id, value) values (?, ?)",
                 new Object[][]{
                     new Object[]{1, 1},                                 // use id 1 to ensure shard 0
                     new Object[] {3, Map.of("foo", 127)}         // use id 3 to ensure shard 1
-                })).boxed().toList();
-        assertThat(rowCounts).containsExactlyInAnyOrder(1L, -2L);
+                });
+        assertThat(bulkResponse.rowCounts()).containsExactlyInAnyOrder(1L, -2L);
     }
 }

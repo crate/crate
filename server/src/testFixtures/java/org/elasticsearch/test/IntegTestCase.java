@@ -151,6 +151,7 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
@@ -1752,7 +1753,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
-    public long[] execute(String stmt, Object[][] bulkArgs) {
+    public BulkResponse execute(String stmt, Object[][] bulkArgs) {
         return sqlExecutor.execBulk(stmt, bulkArgs);
     }
 
@@ -1763,7 +1764,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
-    public long[] execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    public BulkResponse execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         return sqlExecutor.execBulk(stmt, bulkArgs, timeout);
     }
 

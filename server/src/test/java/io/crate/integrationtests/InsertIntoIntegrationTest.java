@@ -939,16 +939,16 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (x int)");
 
         Object[][] bulkArgs = new Object[][]{new Object[]{null}};
-        long[] rowCounts = execute("insert into t values (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 1L });
+        var bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L });
 
         bulkArgs = new Object[][]{
             new Object[]{10},
             new Object[]{null},
             new Object[]{20}
         };
-        rowCounts = execute("insert into t values (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 1L, 1L, 1L });
+        bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L, 1L, 1L });
 
         execute("refresh table t");
         execute("select * from t");
@@ -963,8 +963,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             new Object[]{20, 21},
             new Object[]{30, 31}
         };
-        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 2L, 2L, 2L });
+        var bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 2L, 2L, 2L });
     }
 
     @Test
@@ -974,15 +974,15 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             new Object[]{10, 11},
             new Object[]{20, 21},
         };
-        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 2L, 2L });
+        var bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 2L, 2L });
 
         bulkArgs = new Object[][]{
             new Object[]{20, 21},
             new Object[]{30, 31},
         };
-        rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { -2L, 2L });
+        bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { -2L, 2L });
     }
 
     @Test
@@ -999,8 +999,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{System.currentTimeMillis() +
                                        i, new String[]{randomAsciiLettersOfLength(5), randomAsciiLettersOfLength(2)}, (short) i};
         }
-        long[] rowCounts = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
-        assertThat(rowCounts.length).isEqualTo(bulkSize);
+        var rowCounts = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
+        assertThat(rowCounts.size()).isEqualTo(bulkSize);
         execute("refresh table giveittome");
         // assert that bulk insert has inserted everything it said it has
         execute("select sum(lashes), date from giveittome group by date");
@@ -1010,8 +1010,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     public void testBulkInsertWithFailing() throws Exception {
         execute("create table locations (id integer primary key, name string) with (number_of_replicas=0)");
-        long[] rowCounts = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
-        assertThat(rowCounts).isEqualTo(new long[] { 1L, -2L });
+        var bulkResponse = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L, -2L });
     }
 
     @Test
@@ -1775,7 +1775,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "xyz"
             },
         };
-        long[] counts = execute("""
+        var bulkResponse = execute("""
             insert into tbl
                 (company_id, enabled, options, system)
                 values
@@ -1784,7 +1784,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """,
             bulkArgs
         );
-        assertThat(counts).containsExactly(1);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L);
         execute("refresh table tbl");
         execute("select company_id, enabled, options, system from tbl");
         assertThat(response).hasRows(
@@ -1792,7 +1792,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
 
         bulkArgs[0][1] = false;
-        counts = execute("""
+        bulkResponse = execute("""
             insert into tbl
                 (company_id, enabled, options, system)
                 values
@@ -1801,7 +1801,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """,
             bulkArgs
         );
-        assertThat(counts).containsExactly(1);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L);
         execute("refresh table tbl");
         execute("select company_id, enabled, options, system from tbl");
         assertThat(response).hasRows(

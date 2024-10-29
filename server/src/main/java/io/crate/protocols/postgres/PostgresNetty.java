@@ -179,7 +179,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
                     sqlOperations,
                     sessionSettingRegistry,
-                    roles::getAccessControl,
+                    coordinatorSessionSettings ->
+                        roles.getAccessControl(
+                            coordinatorSessionSettings.authenticatedUser(),
+                            coordinatorSessionSettings.sessionUser()
+                        ),
                     chPipeline -> {
                         var nettyTcpChannel = new CloseableChannel(ch, true);
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);

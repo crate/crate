@@ -141,7 +141,7 @@ class UpsertResults {
             }
         }
         if (results.failure != null) {
-            sb.append(results.failure.message());
+            sb.append(results.failure.error().getMessage());
         }
         var it = results.resultsByUri.entrySet().iterator();
         while (it.hasNext()) {

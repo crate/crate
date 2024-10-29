@@ -43,6 +43,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -187,10 +188,10 @@ public final class UpdatePlanner {
         }
 
         @Override
-        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                         PlannerContext plannerContext,
-                                                         List<Row> bulkParams,
-                                                         SubQueryResults subQueryResults) {
+        public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                           PlannerContext plannerContext,
+                                                           List<Row> bulkParams,
+                                                           SubQueryResults subQueryResults) {
             List<NodeOperationTree> nodeOpTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
                 ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, subQueryResults);

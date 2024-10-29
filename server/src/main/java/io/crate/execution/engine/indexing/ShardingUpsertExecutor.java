@@ -80,6 +80,8 @@ public class ShardingUpsertExecutor
         Property.Exposed
     );
 
+    public static final int BULK_RESPONSE_MAX_ERRORS_PER_SHARD = 10;
+
     static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
     static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
