@@ -30,7 +30,11 @@ Released on 2024-10-09.
     ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
     types.
 
-    Please do a rolling upgrade from 5.8.x to 5.9.1 or higher instead.
+    Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.1 can lead
+    to problems when running queries as a user created on an older version
+    during a rolling upgrade.
+
+    Please do a rolling upgrade from 5.8.x to 5.9.2 or higher instead.
 
 .. WARNING::
 
