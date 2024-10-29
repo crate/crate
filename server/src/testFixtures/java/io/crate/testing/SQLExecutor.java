@@ -95,9 +95,6 @@ import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.Constants;
-import io.crate.session.Cursors;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -180,6 +177,9 @@ import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateForeignTable;
@@ -723,7 +723,7 @@ public class SQLExecutor {
         }
         ClusterState prevState = clusterService.state();
         var combinedSettings = Settings.builder()
-            .put(boundCreateTable.tableParameter().settings())
+            .put(boundCreateTable.settings())
             .put(customSettings)
             .build();
 
@@ -791,7 +791,7 @@ public class SQLExecutor {
         }
 
         var combinedSettings = Settings.builder()
-            .put(boundCreateTable.tableParameter().settings())
+            .put(boundCreateTable.settings())
             .put(settings)
             .build();
 

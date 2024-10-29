@@ -45,6 +45,7 @@ import org.elasticsearch.index.store.Store;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.annotations.Immutable;
 import io.crate.common.annotations.ThreadSafe;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
@@ -62,12 +63,12 @@ import io.crate.types.DataTypes;
 public class TableParameters {
 
     // all available table settings
-    static final Setting<String> COLUMN_POLICY = new Setting<>(
-        new Setting.SimpleKey(ColumnPolicy.MAPPING_KEY),
-        s -> ColumnPolicy.STRICT.lowerCaseName(),
-        s -> ColumnPolicy.of(s).toMappingValue(),
+    public static final Setting<ColumnPolicy> COLUMN_POLICY = new Setting<>(
+        new Setting.SimpleKey("column_policy"),
+        _ -> ColumnPolicy.STRICT.lowerCaseName(),
+        s -> ColumnPolicy.of(s),
         o -> {
-            if (ColumnPolicy.IGNORED.toMappingValue().equals(o)) {
+            if (ColumnPolicy.IGNORED.equals(o)) {
                 throw new IllegalArgumentException("Invalid value for argument 'column_policy'");
             }
         },
@@ -75,9 +76,26 @@ public class TableParameters {
         Setting.Property.IndexScope
     );
 
-    // all available table mapping keys
 
-    private static final List<Setting<?>> SUPPORTED_SETTINGS =
+    /**
+     * Settings that are only applicable on a table level and can't be changed for a
+     * single partition.
+     *
+     * These are typically schema/mapping related.
+     **/
+    public static final List<Setting<?>> TABLE_ONLY_SETTINGS = List.of(
+        COLUMN_POLICY
+    );
+
+    /**
+     * These settings are applied on index/partition level but their default value
+     * Is inherited: Cluster -> Table -> Partition
+     *
+     * These settings can be changed either:
+     *  - on table level:       ALTER TABLE
+     *  - on partition level:   ALTER TABLE <name> PARTITION (...)
+     **/
+    private static final List<Setting<?>> PARTITION_SETTINGS =
         List.of(
             NumberOfReplicas.SETTING,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
@@ -138,12 +156,12 @@ public class TableParameters {
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
-        = SUPPORTED_SETTINGS
+        = Lists.concat(PARTITION_SETTINGS, TABLE_ONLY_SETTINGS)
         .stream()
         .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     private static final Map<String, Setting<?>> SUPPORTED_NON_FINAL_SETTINGS_DEFAULT
-        = SUPPORTED_SETTINGS
+        = Lists.concat(PARTITION_SETTINGS, TABLE_ONLY_SETTINGS)
             .stream()
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
@@ -155,36 +173,32 @@ public class TableParameters {
                 IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING
             ).immutableMap();
 
-    private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
-
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = SUPPORTED_SETTINGS
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = PARTITION_SETTINGS
         .stream()
         .filter(Setting::isReplicatedIndexScope)
         .filter(s -> s.isFinal() == false)
         .collect(Collectors.toMap(s -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     public static final TableParameters TABLE_CREATE_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
+        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT);
 
     public static final TableParameters REPLICATED_TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES, Map.of());
+        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES);
 
     public static final TableParameters TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
+        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS);
 
     public static final TableParameters PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-        = new TableParameters(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT, Map.of());
+        = new TableParameters(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT);
 
-    public static final TableParameters PARTITION_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
+    public static final TableParameters PARTITION_PARAMETER_INFO = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS);
 
     public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
             stripIndexPrefix(NumberOfReplicas.SETTING.getKey()), NumberOfReplicas.SETTING,
             "blobs_path", Setting.simpleString(
                 BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path"))
-        ),
-        Map.of()
+        )
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
@@ -192,16 +206,12 @@ public class TableParameters {
                NumberOfReplicas.SETTING,
                stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
                INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
-        ),
-        Map.of()
-        );
+        ));
 
     private final Map<String, Setting<?>> supportedSettings;
-    private final Map<String, Setting<?>> supportedMappings;
 
-    protected TableParameters(Map<String, Setting<?>> supportedSettings, Map<String, Setting<?>> supportedMappings) {
+    protected TableParameters(Map<String, Setting<?>> supportedSettings) {
         this.supportedSettings = supportedSettings;
-        this.supportedMappings = supportedMappings;
     }
 
     /**
@@ -209,13 +219,6 @@ public class TableParameters {
      */
     public Map<String, Setting<?>> supportedSettings() {
         return supportedSettings;
-    }
-
-    /**
-     * Returns a list of mapping names supported by this table
-     */
-    public Map<String, Setting<?>> supportedMappings() {
-        return supportedMappings;
     }
 
     public static String stripIndexPrefix(String key) {

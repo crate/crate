@@ -33,7 +33,7 @@ public enum ColumnPolicy {
     DYNAMIC {
         @Override
         public String toMappingValue() {
-            return String.valueOf(true);
+            return "true";
         }
     },
     STRICT {
@@ -45,7 +45,7 @@ public enum ColumnPolicy {
     IGNORED {
         @Override
         public String toMappingValue() {
-            return String.valueOf(false);
+            return "false";
         }
     };
 
@@ -90,5 +90,10 @@ public enum ColumnPolicy {
                 throw new IllegalArgumentException(
                     "Invalid column policy: " + value + " use one of [dynamic, strict, ignored]");
         }
+    }
+
+    @Override
+    public String toString() {
+        return lowerCaseName();
     }
 }

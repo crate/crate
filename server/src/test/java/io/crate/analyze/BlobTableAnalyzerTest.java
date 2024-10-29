@@ -232,8 +232,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
-        assertThat(parameter.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)).isEqualTo(2);
+        Settings.Builder builder = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        assertThat(builder.build().getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)).isEqualTo(2);
     }
 
     @Test
@@ -241,8 +241,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
-        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
-        assertThat(parameter.settings().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false)).isTrue();
+        Settings.Builder builder = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        assertThat(builder.build().getAsBoolean(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, false)).isTrue();
     }
 
     @Test

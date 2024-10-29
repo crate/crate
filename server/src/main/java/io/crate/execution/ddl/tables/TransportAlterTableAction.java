@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -76,6 +78,16 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
     @Override
     public ClusterStateTaskExecutor<AlterTableRequest> clusterStateTaskExecutor(AlterTableRequest request) {
         return executor;
+    }
+
+    @Override
+    protected void masterOperation(AlterTableRequest request,
+                                   ClusterState state,
+                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
+        if (state.nodes().getMinNodeVersion().before(Version.V_5_10_0)) {
+            throw new IllegalStateException("Cannot alter table settings until all nodes are upgraded to 5.10");
+        }
+        super.masterOperation(request, state, listener);
     }
 
     @Override

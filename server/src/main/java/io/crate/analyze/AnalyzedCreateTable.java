@@ -104,8 +104,8 @@ public record AnalyzedCreateTable(
             .map(numberOfShards::fromNumberOfShards)
             .orElseGet(numberOfShards::defaultNumberOfShards);
 
-        TableParameter tableParameter = new TableParameter();
-        tableParameter.settingsBuilder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
+        Settings.Builder builder = Settings.builder();
+        builder.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
 
         Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
@@ -123,7 +123,7 @@ public record AnalyzedCreateTable(
                 String analyzer = indexRef.analyzer();
                 if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
                     Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
-                    tableParameter.settingsBuilder().put(settings);
+                    builder.put(settings);
                 }
             }
         }
@@ -143,7 +143,7 @@ public record AnalyzedCreateTable(
         }
 
         TableProperties.analyze(
-            tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
+            builder, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)
@@ -165,7 +165,7 @@ public record AnalyzedCreateTable(
             pkConstraintName,
             ifNotExists,
             references,
-            tableParameter,
+            builder.build(),
             List.copyOf(primaryKeys),
             checks,
             routingColumn,

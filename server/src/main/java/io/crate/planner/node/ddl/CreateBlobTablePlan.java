@@ -36,7 +36,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
@@ -111,15 +110,13 @@ public class CreateBlobTablePlan implements Plan {
 
         // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
-        TableParameter tableParameter = new TableParameter();
+        Settings.Builder builder = Settings.builder();
         TableProperties.analyze(
-            tableParameter,
+            builder,
             TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
             properties,
             true
         );
-        Settings.Builder builder = Settings.builder();
-        builder.put(tableParameter.settings());
         builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 
         int numShards;

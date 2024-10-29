@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -53,8 +52,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
-import io.crate.session.CollectingResultReceiver;
-import io.crate.session.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
@@ -68,6 +65,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.session.CollectingResultReceiver;
+import io.crate.session.Sessions;
 
 @Singleton
 public class AlterTableOperation {
@@ -134,15 +133,15 @@ public class AlterTableOperation {
                 if (rowCount > 0) {
                     throw new UnsupportedOperationException("Cannot add a " + finalSubject + " column to a table that isn't empty");
                 } else {
-                    return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
+                    return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
                 }
             });
         }
-        return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
+        return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
     }
 
     public CompletableFuture<Long> dropColumn(DropColumnRequest dropColumnRequest) {
-        return transportDropColumnAction.execute(dropColumnRequest).thenApply(resp -> -1L);
+        return transportDropColumnAction.execute(dropColumnRequest).thenApply(_ -> -1L);
     }
 
     private CompletableFuture<Long> getRowCount(RelationName ident) {
@@ -170,25 +169,25 @@ public class AlterTableOperation {
         if (openTable || clusterService.state().nodes().getMinNodeVersion().before(Version.V_4_3_0)) {
             OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
                 relationName, partitionIndexName, openTable);
-            return transportOpenCloseTableOrPartitionAction.execute(request, r -> -1L);
+            return transportOpenCloseTableOrPartitionAction.execute(request, _ -> -1L);
         } else {
             return transportCloseTable.execute(
                 new CloseTableRequest(relationName, partitionIndexName),
-                r -> -1L
+                _ -> -1L
             );
         }
     }
 
     public CompletableFuture<Long> setSettingsOrResize(BoundAlterTable analysis) {
         validateSettingsForPublishedTables(analysis.table().ident(),
-                                           analysis.tableParameter().settings(),
+                                           analysis.settings(),
                                            logicalReplicationService.publications(),
                                            indexScopedSettings);
 
-        final Settings settings = analysis.tableParameter().settings();
+        final Settings settings = analysis.settings();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
-                                                  (!analysis.isPartitioned() || analysis.partitionName().isPresent());
+                                                  (!analysis.isPartitioned() || analysis.partitionName() != null);
 
         if (isResizeOperationRequired) {
             if (settings.size() > 1) {
@@ -201,15 +200,15 @@ public class AlterTableOperation {
 
     private CompletableFuture<Long> setSettings(BoundAlterTable analysis) {
         try {
+            PartitionName partitionName = analysis.partitionName();
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
-                analysis.partitionName().map(PartitionName::asIndexName).orElse(null),
+                partitionName == null ? null : partitionName.asIndexName(),
                 analysis.isPartitioned(),
                 analysis.excludePartitions(),
-                analysis.tableParameter().settings(),
-                analysis.tableParameter().mappings()
+                analysis.settings()
             );
-            return transportAlterTableAction.execute(request, r -> -1L);
+            return transportAlterTableAction.execute(request, _ -> -1L);
         } catch (IOException e) {
             return FutureActionListener.failedFuture(e);
         }
@@ -221,10 +220,10 @@ public class AlterTableOperation {
         String sourceIndexName;
         String sourceIndexAlias;
         if (isPartitioned) {
-            Optional<PartitionName> partitionName = analysis.partitionName();
-            assert partitionName.isPresent() : "Resizing operations for partitioned tables " +
-                                               "are only supported at partition level";
-            sourceIndexName = partitionName.get().asIndexName();
+            PartitionName partitionName = analysis.partitionName();
+            assert partitionName != null
+                : "Resizing operations for partitioned tables are only supported at partition level";
+            sourceIndexName = partitionName.asIndexName();
             sourceIndexAlias = table.ident().indexNameOrAlias();
         } else {
             sourceIndexName = table.ident().indexNameOrAlias();
@@ -233,7 +232,7 @@ public class AlterTableOperation {
 
         final ClusterState currentState = clusterService.state();
         final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
-        final int targetNumberOfShards = getNumberOfShards(analysis.tableParameter().settings());
+        final int targetNumberOfShards = getNumberOfShards(analysis.settings());
         validateForResizeRequest(sourceIndexMetadata, targetNumberOfShards);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
@@ -369,7 +368,7 @@ public class AlterTableOperation {
 
     private CompletableFuture<Long> deleteIndex(String... indexNames) {
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
-        return transportDeleteIndexAction.execute(request, r -> 0L);
+        return transportDeleteIndexAction.execute(request, _ -> 0L);
     }
 
     private CompletableFuture<Long> swapAndDropIndex(String source, String target) {
@@ -385,11 +384,11 @@ public class AlterTableOperation {
 
     public CompletableFuture<Long> rename(AnalyzedAlterTableRenameTable renameTable) {
         var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
-        return transportRenameTableAction.execute(request, r -> -1L);
+        return transportRenameTableAction.execute(request, _ -> -1L);
     }
 
     public CompletableFuture<Long> dropConstraint(DropConstraintRequest request) {
-        return transportDropConstraintAction.execute(request).thenApply(resp -> -1L);
+        return transportDropConstraintAction.execute(request).thenApply(_ -> -1L);
     }
 
 }
