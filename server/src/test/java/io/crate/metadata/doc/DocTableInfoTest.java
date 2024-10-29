@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -627,7 +626,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     c2 text,
                     c3 array(int),
                     c4 object as (d1 int, d2 object as (e1 int, e2 int)),
-                    c5 array(object as (d1 int, d2 object as (e1 int, e2 int, e3 int)))
+                    c5 array(object as (d1 int, d2 object as (e1 int, e2 int, e3 int))),
+                    x object as (x object as (x int))
                 )
                 """);
 
@@ -650,5 +650,11 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(table.getLeafReferences(table.getReference("c1")))
             .hasSize(1);
+
+        var x = table.getReference("x");
+        var x_children = table.getChildReferences(x);
+        var x_x = table.getReference("x.x");
+        var x_x_children = table.getChildReferences(x_x);
+        assertThat(x_children).isNotEqualTo(x_x_children);
     }
 }

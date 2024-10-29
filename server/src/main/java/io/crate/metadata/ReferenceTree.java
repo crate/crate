@@ -166,15 +166,11 @@ public class ReferenceTree {
     private static Node findRef(Node root, ColumnIdent columnIdent) {
         switch (root) {
             case Composite c -> {
-                if (columnIdent.isRoot() && Objects.equals(c.name, columnIdent.name())) {
-                    return c;
+                var child = c.children.get(columnIdent.name());
+                if (child == null) {
+                    return null;
                 }
-                if (c.children.containsKey(columnIdent.name())) {
-                    return columnIdent.isRoot()
-                        ? c.children.get(columnIdent.name())
-                        : findRef(c.children.get(columnIdent.name()), columnIdent.shiftRight());
-                }
-                return null;
+                return columnIdent.isRoot() ? child : findRef(child, columnIdent.shiftRight());
             }
             case Leaf l -> {
                 return l;
@@ -182,4 +178,8 @@ public class ReferenceTree {
         }
     }
 
+    @Override
+    public String toString() {
+        return root.toString();
+    }
 }
