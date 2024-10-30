@@ -47,4 +47,6 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that prevented to cast an array of :ref:`TEXT <type-text>`
+  containing JSON text representation values to an array of
+  :ref:`OBJECT <type-object>`.
