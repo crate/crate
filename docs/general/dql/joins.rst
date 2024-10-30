@@ -280,14 +280,15 @@ setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 Limitations
 -----------
 
-Joining more than 2 tables can result in poor execution plans.
+CrateDB does not reorder joins involving more than 2 tables. To archive optimal
+performance make sure that the tables are joined in an order to reduce the size
+of intermediate results.
 
 Internally the relations are joined in pairs. So for example in a 3 table join,
-we'd join `(r1 ⋈ r2) ⋈ r3` (r1 with r2 first, then with r3). The poor execution
-plan could happen as there is no optimization in place which improves the join
-ordering. Ideally we'd join those relations first which narrow the intermediate
-result set to a large degree, so that later joins have less work to do. In the
-example before, joining `r1 ⋈ (r2 ⋈ r3)` might be the better order.
+we'd join `(r1 ⋈ r2) ⋈ r3` (r1 with r2 first, then with r3). Ideally we'd join
+those relations first which narrow the intermediate result set to a large degree,
+so that later joins have less work to do. In the example before, joining
+`r1 ⋈ (r2 ⋈ r3)` might be the better order.
 
 
 .. _Cartesian Product: https://en.wikipedia.org/wiki/Cartesian_product
