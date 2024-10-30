@@ -197,14 +197,20 @@ public interface Symbol extends Writeable, Accountable {
             return this;
         } else if (targetType.equals(valueType())) {
             return this;
-        } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
-                   && valueType().id() == targetType.id()) {
-            return this;
-        } else if (ArrayType.unnest(targetType).equals(DataTypes.NUMERIC)
-                   && valueType().id() == DataTypes.NUMERIC.id()) {
-            // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
-            return this;
+        } else {
+            DataType<?> innerTargetType = ArrayType.unnest(targetType);
+            DataType<?> innerValueType = ArrayType.unnest(valueType());
+            if (innerTargetType.equals(DataTypes.UNTYPED_OBJECT) &&
+                innerTargetType.id() == innerValueType.id() &&
+                valueType().id() == targetType.id()) {
+                return this;
+            } else if (innerTargetType.equals(DataTypes.NUMERIC) &&
+                valueType().id() == DataTypes.NUMERIC.id()) {
+                // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
+                return this;
+            }
         }
+
         return generateCastFunction(this, targetType, modes);
     }
 
