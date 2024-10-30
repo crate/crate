@@ -330,4 +330,16 @@ public class CastFunctionTest extends ScalarTestCase {
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `i-am-not-json` to type `object`");
     }
+
+    @Test
+    public void test_cast_text_array_to_object_array() {
+        assertEvaluate("tags::ARRAY(OBJECT)",
+            List.of(Map.of("x", "foo", "y", 2), Map.of("y", 2, "z", "bar")),
+            Literal.of(List.of("{\"x\":\"foo\",\"y\":2}", "{\"y\":2,\"z\":\"bar\"}"), new ArrayType<>(DataTypes.STRING)));
+
+        assertEvaluate("tags::ARRAY(JSON)::ARRAY(OBJECT)",
+            List.of(Map.of("x", "foo", "y", 2), Map.of("y", 2, "z", "bar")),
+            Literal.of(List.of("{\"x\":\"foo\",\"y\":2}", "{\"y\":2,\"z\":\"bar\"}"), new ArrayType<>(DataTypes.STRING)));
+    }
+
 }
