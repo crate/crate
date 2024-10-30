@@ -22,7 +22,6 @@ package org.elasticsearch.cluster.metadata;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -314,9 +313,6 @@ public class MetadataCreateIndexService {
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
-            if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
-                throw new IllegalArgumentException("Number of shards must be supplied");
-            }
             if (request.resizeType() == null && request.copySettings() == false) {
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
                     indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
@@ -678,10 +674,6 @@ public class MetadataCreateIndexService {
             .put(settings)
             .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
-
-        if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
-            throw new IllegalArgumentException("Number of shards must be supplied");
-        }
 
         final Settings idxSettings = indexSettingsBuilder.build();
         final int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(idxSettings)
