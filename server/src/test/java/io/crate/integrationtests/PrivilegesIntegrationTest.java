@@ -509,9 +509,12 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
         }
         assertThat(response).hasRows(
+            "administrable_role_authorizations",
+            "applicable_roles",
             "character_sets",
             "columns",
             "columns_pkey",
+            "enabled_roles",
             "foreign_server_options",
             "foreign_servers",
             "foreign_table_options",
@@ -550,6 +553,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             "pg_views",
             "referential_constraints",
             "referential_constraints_pkey",
+            "role_table_grants",
             "routines",
             "schemata",
             "schemata_pkey",

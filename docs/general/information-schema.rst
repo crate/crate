@@ -63,82 +63,86 @@ number of replicas.
     cr> SELECT table_schema, table_name, table_type, number_of_shards, number_of_replicas
     ... FROM information_schema.tables
     ... ORDER BY table_schema ASC, table_name ASC;
-    +--------------------+-------------------------+------------+------------------+--------------------+
-    | table_schema       | table_name              | table_type | number_of_shards | number_of_replicas |
-    +--------------------+-------------------------+------------+------------------+--------------------+
-    | doc                | galaxies                | VIEW       |             NULL | NULL               |
-    | doc                | locations               | BASE TABLE |                2 | 0                  |
-    | doc                | partitioned_table       | BASE TABLE |                4 | 0-1                |
-    | doc                | quotes                  | BASE TABLE |                2 | 0                  |
-    | information_schema | character_sets          | BASE TABLE |             NULL | NULL               |
-    | information_schema | columns                 | BASE TABLE |             NULL | NULL               |
-    | information_schema | foreign_server_options  | BASE TABLE |             NULL | NULL               |
-    | information_schema | foreign_servers         | BASE TABLE |             NULL | NULL               |
-    | information_schema | foreign_table_options   | BASE TABLE |             NULL | NULL               |
-    | information_schema | foreign_tables          | BASE TABLE |             NULL | NULL               |
-    | information_schema | key_column_usage        | BASE TABLE |             NULL | NULL               |
-    | information_schema | referential_constraints | BASE TABLE |             NULL | NULL               |
-    | information_schema | routines                | BASE TABLE |             NULL | NULL               |
-    | information_schema | schemata                | BASE TABLE |             NULL | NULL               |
-    | information_schema | sql_features            | BASE TABLE |             NULL | NULL               |
-    | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
-    | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
-    | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
-    | information_schema | user_mapping_options    | BASE TABLE |             NULL | NULL               |
-    | information_schema | user_mappings           | BASE TABLE |             NULL | NULL               |
-    | information_schema | views                   | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_am                   | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_attrdef              | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_attribute            | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_class                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_constraint           | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_cursors              | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_database             | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_depend               | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_description          | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_enum                 | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_event_trigger        | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_index                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_indexes              | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_locks                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_matviews             | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_namespace            | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_proc                 | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_publication          | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_publication_tables   | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_range                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_roles                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_settings             | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_shdescription        | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_stats                | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_subscription         | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_subscription_rel     | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_tables               | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_tablespace           | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_type                 | BASE TABLE |             NULL | NULL               |
-    | pg_catalog         | pg_views                | BASE TABLE |             NULL | NULL               |
-    | sys                | allocations             | BASE TABLE |             NULL | NULL               |
-    | sys                | checks                  | BASE TABLE |             NULL | NULL               |
-    | sys                | cluster                 | BASE TABLE |             NULL | NULL               |
-    | sys                | health                  | BASE TABLE |             NULL | NULL               |
-    | sys                | jobs                    | BASE TABLE |             NULL | NULL               |
-    | sys                | jobs_log                | BASE TABLE |             NULL | NULL               |
-    | sys                | jobs_metrics            | BASE TABLE |             NULL | NULL               |
-    | sys                | node_checks             | BASE TABLE |             NULL | NULL               |
-    | sys                | nodes                   | BASE TABLE |             NULL | NULL               |
-    | sys                | operations              | BASE TABLE |             NULL | NULL               |
-    | sys                | operations_log          | BASE TABLE |             NULL | NULL               |
-    | sys                | privileges              | BASE TABLE |             NULL | NULL               |
-    | sys                | repositories            | BASE TABLE |             NULL | NULL               |
-    | sys                | roles                   | BASE TABLE |             NULL | NULL               |
-    | sys                | segments                | BASE TABLE |             NULL | NULL               |
-    | sys                | sessions                | BASE TABLE |             NULL | NULL               |
-    | sys                | shards                  | BASE TABLE |             NULL | NULL               |
-    | sys                | snapshot_restore        | BASE TABLE |             NULL | NULL               |
-    | sys                | snapshots               | BASE TABLE |             NULL | NULL               |
-    | sys                | summits                 | BASE TABLE |             NULL | NULL               |
-    | sys                | users                   | BASE TABLE |             NULL | NULL               |
-    +--------------------+-------------------------+------------+------------------+--------------------+
+    +--------------------+-----------------------------------+------------+------------------+--------------------+
+    | table_schema       | table_name                        | table_type | number_of_shards | number_of_replicas |
+    +--------------------+-----------------------------------+------------+------------------+--------------------+
+    | doc                | galaxies                          | VIEW       |             NULL | NULL               |
+    | doc                | locations                         | BASE TABLE |                2 | 0                  |
+    | doc                | partitioned_table                 | BASE TABLE |                4 | 0-1                |
+    | doc                | quotes                            | BASE TABLE |                2 | 0                  |
+    | information_schema | administrable_role_authorizations | BASE TABLE |             NULL | NULL               |
+    | information_schema | applicable_roles                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | character_sets                    | BASE TABLE |             NULL | NULL               |
+    | information_schema | columns                           | BASE TABLE |             NULL | NULL               |
+    | information_schema | enabled_roles                     | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_server_options            | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_servers                   | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_table_options             | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_tables                    | BASE TABLE |             NULL | NULL               |
+    | information_schema | key_column_usage                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | referential_constraints           | BASE TABLE |             NULL | NULL               |
+    | information_schema | role_table_grants                 | BASE TABLE |             NULL | NULL               |
+    | information_schema | routines                          | BASE TABLE |             NULL | NULL               |
+    | information_schema | schemata                          | BASE TABLE |             NULL | NULL               |
+    | information_schema | sql_features                      | BASE TABLE |             NULL | NULL               |
+    | information_schema | table_constraints                 | BASE TABLE |             NULL | NULL               |
+    | information_schema | table_partitions                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | tables                            | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mapping_options              | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mappings                     | BASE TABLE |             NULL | NULL               |
+    | information_schema | views                             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_am                             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_attrdef                        | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_attribute                      | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_class                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_constraint                     | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_cursors                        | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_database                       | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_depend                         | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_description                    | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_enum                           | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_event_trigger                  | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_index                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_indexes                        | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_locks                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_matviews                       | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_namespace                      | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_proc                           | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_publication                    | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_publication_tables             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_range                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_roles                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_settings                       | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_shdescription                  | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_stats                          | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_subscription                   | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_subscription_rel               | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_tables                         | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_tablespace                     | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_type                           | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_views                          | BASE TABLE |             NULL | NULL               |
+    | sys                | allocations                       | BASE TABLE |             NULL | NULL               |
+    | sys                | checks                            | BASE TABLE |             NULL | NULL               |
+    | sys                | cluster                           | BASE TABLE |             NULL | NULL               |
+    | sys                | health                            | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs                              | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs_log                          | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs_metrics                      | BASE TABLE |             NULL | NULL               |
+    | sys                | node_checks                       | BASE TABLE |             NULL | NULL               |
+    | sys                | nodes                             | BASE TABLE |             NULL | NULL               |
+    | sys                | operations                        | BASE TABLE |             NULL | NULL               |
+    | sys                | operations_log                    | BASE TABLE |             NULL | NULL               |
+    | sys                | privileges                        | BASE TABLE |             NULL | NULL               |
+    | sys                | repositories                      | BASE TABLE |             NULL | NULL               |
+    | sys                | roles                             | BASE TABLE |             NULL | NULL               |
+    | sys                | segments                          | BASE TABLE |             NULL | NULL               |
+    | sys                | sessions                          | BASE TABLE |             NULL | NULL               |
+    | sys                | shards                            | BASE TABLE |             NULL | NULL               |
+    | sys                | snapshot_restore                  | BASE TABLE |             NULL | NULL               |
+    | sys                | snapshots                         | BASE TABLE |             NULL | NULL               |
+    | sys                | summits                           | BASE TABLE |             NULL | NULL               |
+    | sys                | users                             | BASE TABLE |             NULL | NULL               |
+    +--------------------+-----------------------------------+------------+------------------+--------------------+
     SELECT 72 rows in set (... sec)
 
 
