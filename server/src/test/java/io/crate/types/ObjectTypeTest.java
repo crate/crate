@@ -44,7 +44,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Override
     public DataType<Map<String, Object>> getType() {
-        return new ObjectType.Builder().setInnerType("x", DataTypeTesting.randomType()).build();
+        return new ObjectType.Builder().setInnerType("x", DataTypeTesting.randomTypeExcluding(Set.of(ObjectType.UNTYPED))).build();
     }
 
     @Override
