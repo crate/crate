@@ -464,7 +464,7 @@ public class MetadataCreateIndexService {
             for (final String key : settings.keySet()) {
                 final Setting<?> setting = indexScopedSettings.get(key);
                 if (setting == null) {
-                    assert indexScopedSettings.isPrivateSetting(key);
+                    assert indexScopedSettings.isPrivateSetting(key) : key + " must be a private setting if it is missing";
                 } else if (setting.isPrivateIndex()) {
                     validationErrors.add("private index setting [" + key + "] can not be set explicitly");
                 }
