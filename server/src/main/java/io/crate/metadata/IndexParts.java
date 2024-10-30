@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.execution.ddl.tables.AlterTableOperation;
+import io.crate.execution.ddl.tables.AlterTableClient;
 
 /**
  * Parts of an encoded index: Schema, table and partitionIdent.
@@ -34,7 +34,7 @@ import io.crate.execution.ddl.tables.AlterTableOperation;
 public record IndexParts(String schema, String table, @Nullable String partitionIdent) {
 
     public static final List<String> DANGLING_INDICES_PREFIX_PATTERNS = List.of(
-        AlterTableOperation.RESIZE_PREFIX + "*"
+        AlterTableClient.RESIZE_PREFIX + "*"
     );
 
     public String partitionIdent() {

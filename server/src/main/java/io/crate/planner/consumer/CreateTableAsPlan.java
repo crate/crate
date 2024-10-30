@@ -31,7 +31,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
-import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -43,12 +43,12 @@ public final class CreateTableAsPlan implements Plan {
 
     private final AnalyzedCreateTable analyzedCreateTable;
     private final Supplier<LogicalPlan> postponedInsertPlan;
-    private final TableCreator tableCreator;
+    private final CreateTableClient createTableClient;
     private final NumberOfShards numberOfShards;
 
     public static CreateTableAsPlan of(AnalyzedCreateTableAs analyzedCreateTableAs,
                                        NumberOfShards numberOfShards,
-                                       TableCreator tableCreator,
+                                       CreateTableClient tableCreator,
                                        PlannerContext context,
                                        LogicalPlanner logicalPlanner) {
         Supplier<LogicalPlan> postponedInsertPlan =
@@ -62,12 +62,12 @@ public final class CreateTableAsPlan implements Plan {
     }
 
     public CreateTableAsPlan(AnalyzedCreateTable analyzedCreateTable,
-                                Supplier<LogicalPlan> postponedInsertPlan,
-                                TableCreator tableCreator,
-                                NumberOfShards numberOfShards) {
+                             Supplier<LogicalPlan> postponedInsertPlan,
+                             CreateTableClient createTableClient,
+                             NumberOfShards numberOfShards) {
         this.analyzedCreateTable = analyzedCreateTable;
         this.postponedInsertPlan = postponedInsertPlan;
-        this.tableCreator = tableCreator;
+        this.createTableClient = createTableClient;
         this.numberOfShards = numberOfShards;
     }
 
@@ -90,7 +90,7 @@ public final class CreateTableAsPlan implements Plan {
             params,
             subQueryResults
         );
-        tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
+        createTableClient.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
             .whenComplete((rowCount, err) -> {
                 if (err == null) {
                     postponedInsertPlan.get().execute(
@@ -100,7 +100,7 @@ public final class CreateTableAsPlan implements Plan {
                         params,
                         subQueryResults
                     );
-                } else if (boundCreateTable.ifNotExists() && TableCreator.isTableExistsError(err, boundCreateTable.templateName())) {
+                } else if (boundCreateTable.ifNotExists() && CreateTableClient.isTableExistsError(err, boundCreateTable.templateName())) {
                     consumer.accept(InMemoryBatchIterator.empty(SentinelRow.SENTINEL), null);
                 } else {
                     consumer.accept(null, err);

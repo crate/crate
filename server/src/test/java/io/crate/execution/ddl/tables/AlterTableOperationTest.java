@@ -61,7 +61,7 @@ public class AlterTableOperationTest extends ESTestCase {
             .build();
 
 
-        assertThatThrownBy(() -> AlterTableOperation.validateReadOnlyIndexForResize(indexMetadata))
+        assertThatThrownBy(() -> AlterTableClient.validateReadOnlyIndexForResize(indexMetadata))
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageStartingWith("Table/Partition needs to be at a read-only state");
     }
@@ -75,14 +75,14 @@ public class AlterTableOperationTest extends ESTestCase {
         RelationName t1 = new RelationName("doc", "t1");
         var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(t1)));
 
-        assertThatThrownBy(() -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS))
+        assertThatThrownBy(() -> AlterTableClient.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining(
                     "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
 
         var allTablesPublished = Map.of("pub1", new Publication("owner", true, List.of()));
 
-        assertThatThrownBy(() -> AlterTableOperation.validateSettingsForPublishedTables(t1, settings, allTablesPublished, DEFAULT_SCOPED_SETTINGS))
+        assertThatThrownBy(() -> AlterTableClient.validateSettingsForPublishedTables(t1, settings, allTablesPublished, DEFAULT_SCOPED_SETTINGS))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining(
                     "Setting [index.number_of_shards] cannot be applied to table 'doc.t1' because it is included in a logical replication publication 'pub1'");
@@ -94,7 +94,7 @@ public class AlterTableOperationTest extends ESTestCase {
             .settings(baseIndexSettings())
             .build();
 
-        assertThatThrownBy(() -> AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 5))
+        assertThatThrownBy(() -> AlterTableClient.validateNumberOfShardsForResize(indexMetadata, 5))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Table/partition is already allocated <5> shards");
     }
@@ -104,7 +104,7 @@ public class AlterTableOperationTest extends ESTestCase {
         IndexMetadata indexMetadata = IndexMetadata.builder("t1")
             .settings(baseIndexSettings())
             .build();
-        AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 10);
+        AlterTableClient.validateNumberOfShardsForResize(indexMetadata, 10);
     }
 
     @Test
@@ -113,14 +113,14 @@ public class AlterTableOperationTest extends ESTestCase {
             .settings(baseIndexSettings())
             .build();
 
-        assertThatThrownBy(() -> AlterTableOperation.validateNumberOfShardsForResize(indexMetadata, 3))
+        assertThatThrownBy(() -> AlterTableClient.validateNumberOfShardsForResize(indexMetadata, 3))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Requested number of shards: <3> needs to be a factor of the current one: <5>");
     }
 
     @Test
     public void testNullNumberOfShardsRequestedIsNotPermitted() {
-        assertThatThrownBy(() -> AlterTableOperation.getNumberOfShards(Settings.EMPTY))
+        assertThatThrownBy(() -> AlterTableClient.getNumberOfShards(Settings.EMPTY))
             .isExactlyInstanceOf(NullPointerException.class)
             .hasMessage("Setting 'number_of_shards' is missing");
     }

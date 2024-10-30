@@ -29,7 +29,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.execution.ddl.tables.AlterTableOperation;
+import io.crate.execution.ddl.tables.AlterTableClient;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class DanglingIndicesIntegrationTest extends IntegTestCase {
@@ -48,8 +48,8 @@ public class DanglingIndicesIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("create blob table blobs clustered into 3 shards with (number_of_replicas=0)");
 
-        final String dangling1 = AlterTableOperation.RESIZE_PREFIX + "t1";
-        final String dangling2 = AlterTableOperation.RESIZE_PREFIX + ".partitioned.t2.ident";
+        final String dangling1 = AlterTableClient.RESIZE_PREFIX + "t1";
+        final String dangling2 = AlterTableClient.RESIZE_PREFIX + ".partitioned.t2.ident";
 
         createIndex(dangling1, dangling2);
 

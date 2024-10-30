@@ -181,7 +181,7 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
@@ -748,7 +748,7 @@ public class Node implements Closeable {
                 nodeContext,
                 tableStats,
                 new NumberOfShards(clusterService),
-                new TableCreator(client),
+                new CreateTableClient(client),
                 rolesManager,
                 new ForeignDataWrappers(settings, clusterService, nodeContext),
                 sessionSettingRegistry

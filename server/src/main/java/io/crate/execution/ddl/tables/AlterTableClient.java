@@ -69,7 +69,7 @@ import io.crate.session.CollectingResultReceiver;
 import io.crate.session.Sessions;
 
 @Singleton
-public class AlterTableOperation {
+public class AlterTableClient {
 
     public static final String RESIZE_PREFIX = ".resized.";
 
@@ -89,20 +89,20 @@ public class AlterTableOperation {
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
-    public AlterTableOperation(ClusterService clusterService,
-                               TransportRenameTableAction transportRenameTableAction,
-                               TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
-                               TransportCloseTable transportCloseTable,
-                               TransportResizeAction transportResizeAction,
-                               TransportDeleteIndexAction transportDeleteIndexAction,
-                               TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
-                               TransportAlterTableAction transportAlterTableAction,
-                               TransportDropConstraintAction transportDropConstraintAction,
-                               TransportAddColumnAction transportAddColumnAction,
-                               TransportDropColumnAction transportDropColumnAction,
-                               Sessions sessions,
-                               IndexScopedSettings indexScopedSettings,
-                               LogicalReplicationService logicalReplicationService) {
+    public AlterTableClient(ClusterService clusterService,
+                            TransportRenameTableAction transportRenameTableAction,
+                            TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
+                            TransportCloseTable transportCloseTable,
+                            TransportResizeAction transportResizeAction,
+                            TransportDeleteIndexAction transportDeleteIndexAction,
+                            TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
+                            TransportAlterTableAction transportAlterTableAction,
+                            TransportDropConstraintAction transportDropConstraintAction,
+                            TransportAddColumnAction transportAddColumnAction,
+                            TransportDropColumnAction transportDropColumnAction,
+                            Sessions sessions,
+                            IndexScopedSettings indexScopedSettings,
+                            LogicalReplicationService logicalReplicationService) {
 
         this.clusterService = clusterService;
         this.transportRenameTableAction = transportRenameTableAction;

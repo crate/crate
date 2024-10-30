@@ -35,7 +35,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.Cursors;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -103,7 +102,7 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.data.Row;
-import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -165,6 +164,7 @@ import io.crate.replication.logical.plan.CreateSubscriptionPlan;
 import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
 import io.crate.role.RoleManager;
+import io.crate.session.Cursors;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
 
@@ -177,7 +177,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
-    private final TableCreator tableCreator;
+    private final CreateTableClient tableCreator;
     private final RoleManager roleManager;
     private final ForeignDataWrappers foreignDataWrappers;
     private final SessionSettingRegistry sessionSettingRegistry;
@@ -191,7 +191,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    NodeContext nodeCtx,
                    TableStats tableStats,
                    NumberOfShards numberOfShards,
-                   TableCreator tableCreator,
+                   CreateTableClient tableCreator,
                    RoleManager roleManager,
                    ForeignDataWrappers foreignDataWrappers,
                    SessionSettingRegistry sessionSettingRegistry) {

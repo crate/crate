@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
-import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -39,12 +39,14 @@ public class CreateTablePlan implements Plan {
 
     private final AnalyzedCreateTable createTable;
     private final NumberOfShards numberOfShards;
-    private final TableCreator tableCreator;
+    private final CreateTableClient createTableClient;
 
-    public CreateTablePlan(AnalyzedCreateTable createTable, NumberOfShards numberOfShards, TableCreator tableCreator) {
+    public CreateTablePlan(AnalyzedCreateTable createTable,
+                           NumberOfShards numberOfShards,
+                           CreateTableClient createTableClient) {
         this.createTable = createTable;
         this.numberOfShards = numberOfShards;
-        this.tableCreator = tableCreator;
+        this.createTableClient = createTableClient;
     }
 
     @Override
@@ -66,11 +68,11 @@ public class CreateTablePlan implements Plan {
             params,
             subQueryResults
         );
-        tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
+        createTableClient.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
             .whenComplete((rowCount, err) -> {
                 if (err == null) {
                     consumer.accept(InMemoryBatchIterator.of(new Row1(rowCount == null ? -1 : rowCount), null), null);
-                } else if (boundCreateTable.ifNotExists() && TableCreator.isTableExistsError(err, boundCreateTable.templateName())) {
+                } else if (boundCreateTable.ifNotExists() && CreateTableClient.isTableExistsError(err, boundCreateTable.templateName())) {
                     consumer.accept(InMemoryBatchIterator.empty(SentinelRow.SENTINEL), null);
                 } else {
                     consumer.accept(null, err);
