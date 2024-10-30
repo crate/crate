@@ -34,11 +34,10 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.session.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
-import io.crate.execution.ddl.tables.AlterTableOperation;
+import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
@@ -55,6 +54,7 @@ import io.crate.replication.logical.action.TransportAlterPublicationAction;
 import io.crate.replication.logical.action.TransportCreatePublicationAction;
 import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
+import io.crate.session.DCLStatementDispatcher;
 import io.crate.statistics.TransportAnalyzeAction;
 
 /**
@@ -78,7 +78,7 @@ public class DependencyCarrier {
     private final TransportCreateUserDefinedFunctionAction createFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropFunctionAction;
     private final Provider<TransportAnalyzeAction> analyzeAction;
-    private final AlterTableOperation alterTableOperation;
+    private final AlterTableClient alterTableClient;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
@@ -108,7 +108,7 @@ public class DependencyCarrier {
                              TransportCreateUserDefinedFunctionAction createFunctionAction,
                              TransportDropUserDefinedFunctionAction dropFunctionAction,
                              Provider<TransportAnalyzeAction> analyzeAction,
-                             AlterTableOperation alterTableOperation,
+                             AlterTableClient alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
                              RepositoryParamValidator repositoryParamValidator,
@@ -135,7 +135,7 @@ public class DependencyCarrier {
         this.createFunctionAction = createFunctionAction;
         this.dropFunctionAction = dropFunctionAction;
         this.analyzeAction = analyzeAction;
-        this.alterTableOperation = alterTableOperation;
+        this.alterTableClient = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
@@ -214,8 +214,8 @@ public class DependencyCarrier {
         return fulltextAnalyzerResolver;
     }
 
-    public AlterTableOperation alterTableOperation() {
-        return alterTableOperation;
+    public AlterTableClient alterTableClient() {
+        return alterTableClient;
     }
 
     public RepositoryParamValidator repositoryParamValidator() {

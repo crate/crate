@@ -57,7 +57,7 @@ public class AlterTableAddColumnPlan implements Plan {
             params,
             subQueryResults
         );
-        dependencies.alterTableOperation().addColumn(request)
+        dependencies.alterTableClient().addColumn(request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

@@ -45,12 +45,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 
-public class TableCreator {
+public class CreateTableClient {
 
-    protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
+    protected static final Logger LOGGER = LogManager.getLogger(CreateTableClient.class);
     private final NodeClient client;
 
-    public TableCreator(NodeClient client) {
+    public CreateTableClient(NodeClient client) {
         this.client = client;
     }
 
