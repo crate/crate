@@ -27,7 +27,6 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.AffixSetting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,25 +41,19 @@ public final class TableProperties {
 
     public static void analyze(Settings.Builder settingsBuilder,
                                TableParameters tableParameters,
-                               GenericProperties<Object> properties,
-                               boolean withDefaults) {
+                               GenericProperties<Object> properties) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
         settingsFromProperties(
             settingsBuilder,
             properties,
             settingMap,
-            withDefaults,
             INVALID_MESSAGE);
     }
 
     private static void settingsFromProperties(Settings.Builder builder,
                                                GenericProperties<Object> properties,
                                                Map<String, Setting<?>> supportedSettings,
-                                               boolean setDefaults,
                                                String invalidMessage) {
-        if (setDefaults) {
-            setDefaults(builder, supportedSettings);
-        }
         for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
             SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
@@ -95,25 +88,6 @@ public final class TableProperties {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, name));
             }
             settingHolder.reset(settingsBuilder);
-        }
-    }
-
-    private static void setDefaults(Settings.Builder builder, Map<String, Setting<?>> supportedSettings) {
-        for (Map.Entry<String, Setting<?>> entry : supportedSettings.entrySet()) {
-            Setting<?> setting = entry.getValue();
-            // We'd set the "wrong" default for settings that base their default on other settings
-            if (TableParameters.SETTINGS_NOT_INCLUDED_IN_DEFAULT.contains(setting)) {
-                continue;
-            }
-            if (setting instanceof AffixSetting) {
-                continue;
-            }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
         }
     }
 
