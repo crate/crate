@@ -327,9 +327,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "allocations| table_schema\n" +
-            "allocations| table_name\n" +
-            "allocations| shard_id\n"
+            "administrable_role_authorizations| role_name\n" +
+            "administrable_role_authorizations| is_grantable\n" +
+            "administrable_role_authorizations| grantee\n"
         );
 
     }
@@ -385,9 +385,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "allocations| table_schema\n" +
-            "allocations| table_name\n" +
-            "allocations| shard_id\n"
+            "administrable_role_authorizations| role_name\n" +
+            "administrable_role_authorizations| is_grantable\n" +
+            "administrable_role_authorizations| grantee\n"
         );
     }
 
