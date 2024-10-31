@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -78,6 +79,7 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
     @Override
     protected void shardOperation(ForceMergeRequest request, ShardRouting shardRouting, ActionListener<EmptyResult> listener) throws IOException {
         IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
+        indexShard.flush(new FlushRequest());
         indexShard.forceMerge(request);
         listener.onResponse(EmptyResult.INSTANCE);
     }
