@@ -1072,3 +1072,105 @@ See :ref:`administration-fdw`.
      - ``TEXT``
      - Value of the option. The value is visible only to the user being mapped
        and to superusers otherwise it will show as a ``NULL``.
+
+.. _administrable_role_authorizations:
+
+``administrable_role_authorizations``
+-------------------------------------
+
+Lists all the roles that the current user has ``AL`` privileges for.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``grantee``
+     - ``sql_identifier``
+     - Name of the role to which this role was granted (Can be either the current user or a different role in case of nested memberships)
+   * - ``role_name``
+     - ``sql_identifier``
+     - Name of the role
+   * - ``is_grantable``
+     - ``BOOLEAN``
+     - Always ``YES``
+
+.. _applicable_roles:
+
+``applicable_roles``
+--------------------
+
+Lists all the roles that are applicable for the current user.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``grantee``
+     - ``sql_identifier``
+     - Name of the role to which this role was granted to
+   * - ``role_name``
+     - ``sql_identifier``
+     - Name of the role
+   * - ``is_grantable``
+     - ``BOOLEAN``
+     - ``YES`` if the grantee has ``AL`` privilege, else ``NO``
+
+.. _enabled_roles:
+
+``enabled_roles``
+-----------------
+
+Lists all the roles the current user has, directly or indirectly
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``role_name``
+     - ``sql_identifier``
+     - Name of the role
+
+.. _role_table_grants:
+
+``role_table_grants``
+---------------------
+
+Lists all the privileges granted on tables or views where the grantor
+or grantee is a currently enabled role.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``grantor``
+     - ``sql_identifier``
+     - Name of the role that granted this privilege
+   * - ``grantee``
+     - ``sql_identifier``
+     - Name of the role that this privilege was granted to
+   * - ``table_catalog``
+     - ``sql_identifier``
+     - Name of the database that contains the table. As of now, it is hardcoded as ``doc``
+   * - ``table_schema``
+     - ``sql_identifier``
+     - Name of the schema that contains the table
+   * - ``table_name``
+     - ``sql_identifier``
+     - Name of the table
+   * - ``privilege_type``
+     - ``sql_identifier``
+     - Type of the privilege that was granted. Either of ``SELECT``, ``INSERT``, ``UPDATE``, ``DELETE``, ``TRUNCATE``, ``REFERENCES``, or ``TRIGGER``
+   * - ``is_grantable``
+     - ``BOOLEAN``
+     - Whether this privilege can be granted to another user or not. ``YES`` if the current role has ``AL`` privilege
+   * - ``with_hierarchy``
+     - ``BOOLEAN``
+     - Name of the role
