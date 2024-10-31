@@ -2157,26 +2157,19 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     /**
      * Syncs the current retention leases to all replicas.
      */
-    public void syncRetentionLeases() {
+    public void syncRetentionLeases(boolean force, ActionListener<ReplicationResponse> listener) {
         assert assertPrimaryMode();
         verifyNotClosed();
         replicationTracker.renewPeerRecoveryRetentionLeases();
         final Tuple<Boolean, RetentionLeases> retentionLeases = getRetentionLeases(true);
-        if (retentionLeases.v1()) {
+        if (retentionLeases.v1() || force) {
             logger.trace("syncing retention leases [{}] after expiration check", retentionLeases.v2());
             retentionLeaseSyncer.sync(
                 shardId,
                 shardRouting.allocationId().getId(),
                 getPendingPrimaryTerm(),
                 retentionLeases.v2(),
-                ActionListener.wrap(
-                    r -> {},
-                    e -> logger.warn(
-                        new ParameterizedMessage(
-                            "failed to sync retention leases [{}] after expiration check", retentionLeases),
-                        e
-                    )
-                )
+                listener
             );
         } else {
             logger.trace("background syncing retention leases [{}] after expiration check", retentionLeases.v2());
