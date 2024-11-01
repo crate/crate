@@ -210,9 +210,15 @@ public class SubscriptFunction extends Scalar<Object, Object> {
 
     static Object lookupByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
         if (!(base instanceof Map<?, ?> map)) {
+            if (base instanceof List<?> list) {
+                List<Object> result = new ArrayList<>(list.size());
+                for (Object item : list) {
+                    result.add(lookupByName(argTypes, item, name, errorOnUnknownObjectKey));
+                }
+                return result;
+            }
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
-        }
-        if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+        } else if (errorOnUnknownObjectKey && !map.containsKey(name)) {
             DataType<?> objectArgType = argTypes.get(0);
             // Type could also be "undefined"
             if (objectArgType instanceof ObjectType objType) {
@@ -221,8 +227,9 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 }
             }
             throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+        } else {
+            return map.get(name);
         }
-        return map.get(name);
     }
 
     private interface PreFilterQueryBuilder {
