@@ -83,7 +83,7 @@ import io.crate.sql.tree.JoinType;
  * |                                                      |   └ Filter[(x > 1)] (rows=0)                         |
  * |                                                      |     └ Collect[doc.t2 | [x] | true] (rows=unknown)    |
  * <p>
- * See {@link MoveFilterBeneathJoinTest} for more examples.
+ * See {@code MoveFilterBeneathJoinTest} for more examples.
  */
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 

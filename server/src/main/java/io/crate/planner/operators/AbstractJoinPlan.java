@@ -100,7 +100,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
         Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
+        HashMap<LogicalPlan, SelectSymbol> deps = HashMap.newHashMap(leftDeps.size() + rightDeps.size());
         deps.putAll(leftDeps);
         deps.putAll(rightDeps);
         return deps;

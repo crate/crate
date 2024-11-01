@@ -80,17 +80,14 @@ import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public final class CopyToPlan implements Plan {
 
     private final AnalyzedCopyTo copyTo;
-    private final TableStats tableStats;
 
-    public CopyToPlan(AnalyzedCopyTo copyTo, TableStats tableStats) {
+    public CopyToPlan(AnalyzedCopyTo copyTo) {
         this.copyTo = copyTo;
-        this.tableStats = tableStats;
     }
 
     @VisibleForTesting

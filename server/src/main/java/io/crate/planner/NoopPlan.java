@@ -21,12 +21,12 @@
 
 package io.crate.planner;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.planner.operators.SubQueryResults;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * A plan with an empty result
@@ -35,8 +35,7 @@ public final class NoopPlan implements Plan {
 
     public static final Plan INSTANCE = new NoopPlan();
 
-    private NoopPlan() {
-    }
+    private NoopPlan() {}
 
     @Override
     public StatementType type() {

@@ -27,8 +27,7 @@ import io.crate.planner.operators.LogicalPlan;
 
 public final class Patterns {
 
-    private Patterns() {
-    }
+    private Patterns() {}
 
     public static Function<LogicalPlan, LogicalPlan> source() {
         return plan -> plan.sources().size() == 1

@@ -71,9 +71,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
             analysis,
             boundCopyFrom,
             clusterService.state().nodes(),
-            plannerContext,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
+            plannerContext
         );
     }
 

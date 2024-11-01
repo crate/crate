@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,8 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -70,11 +70,10 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
-
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class JoinHelper {
 
@@ -99,7 +98,7 @@ public class JoinHelper {
 
     private final Set<Tuple<DiscoveryNode, JoinRequest>> pendingOutgoingJoins = Collections.synchronizedSet(new HashSet<>());
 
-    private AtomicReference<FailedJoinAttempt> lastFailedJoinAttempt = new AtomicReference<>();
+    private final AtomicReference<FailedJoinAttempt> lastFailedJoinAttempt = new AtomicReference<>();
 
     private final Supplier<JoinTaskExecutor> joinTaskExecutorGenerator;
 

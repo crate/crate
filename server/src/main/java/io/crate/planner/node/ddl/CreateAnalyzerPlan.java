@@ -21,11 +21,11 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.metadata.FulltextAnalyzerResolver.encodeSettings;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.encodeSettings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -217,7 +217,7 @@ public class CreateAnalyzerPlan implements Plan {
                                                           String analyzerIdent,
                                                           Function<? super Symbol, Object> eval,
                                                           FulltextAnalyzerResolver ftResolver) {
-        HashMap<String, Settings> boundTokenFilters = new HashMap<>(tokenFilters.size());
+        HashMap<String, Settings> boundTokenFilters = HashMap.newHashMap(tokenFilters.size());
 
         for (Map.Entry<String, GenericProperties<Symbol>> tokenFilter : tokenFilters.entrySet()) {
             var name = tokenFilter.getKey();
@@ -268,7 +268,7 @@ public class CreateAnalyzerPlan implements Plan {
                                                          String analyzerIdent,
                                                          Function<? super Symbol, Object> eval,
                                                          FulltextAnalyzerResolver ftResolver) {
-        HashMap<String, Settings> boundedCharFilters = new HashMap<>(charFilters.size());
+        HashMap<String, Settings> boundedCharFilters = HashMap.newHashMap(charFilters.size());
 
         for (Map.Entry<String, GenericProperties<Symbol>> charFilter : charFilters.entrySet()) {
             var name = charFilter.getKey();
@@ -324,7 +324,7 @@ public class CreateAnalyzerPlan implements Plan {
         return (String) eval.apply(type);
     }
 
-    private static void validateCharFilterProperties(String type, GenericProperties properties) {
+    private static void validateCharFilterProperties(String type, GenericProperties<?> properties) {
         if (properties.isEmpty() && !type.equals("html_strip")) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH, "CHAR_FILTER of type '%s' needs additional parameters", type));
@@ -443,14 +443,14 @@ public class CreateAnalyzerPlan implements Plan {
         } else if (!extendsBuiltInAnalyzer(extendedAnalyzerName, extendedCustomAnalyzerSettings)) {
             throw new UnsupportedOperationException("Tokenizer missing from non-extended analyzer");
         }
-        if (charFilters.size() > 0) {
+        if (!charFilters.isEmpty()) {
             String[] charFilterNames = charFilters.keySet().toArray(new String[0]);
             builder.putList(
                 ANALYZER.buildSettingChildName(analyzerIdent, CHAR_FILTER.getName()),
                 charFilterNames
             );
         }
-        if (tokenFilters.size() > 0) {
+        if (!tokenFilters.isEmpty()) {
             String[] tokenFilterNames = tokenFilters.keySet().toArray(new String[0]);
             builder.putList(
                 ANALYZER.buildSettingChildName(analyzerIdent, TOKEN_FILTER.getName()),

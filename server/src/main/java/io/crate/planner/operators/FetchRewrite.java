@@ -54,8 +54,8 @@ public final class FetchRewrite {
     public List<Reference> extractFetchRefs() {
         ArrayList<Reference> allFetchReferences = new ArrayList<>();
         for (Symbol output : plan.outputs()) {
-            if (output instanceof FetchMarker) {
-                allFetchReferences.addAll(((FetchMarker) output).fetchRefs());
+            if (output instanceof FetchMarker fetchMarker) {
+                allFetchReferences.addAll(fetchMarker.fetchRefs());
             }
         }
         return allFetchReferences;
@@ -66,8 +66,7 @@ public final class FetchRewrite {
         List<Symbol> outputs = plan.outputs();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (output instanceof FetchMarker) {
-                FetchMarker fetchMarker = (FetchMarker) output;
+            if (output instanceof FetchMarker fetchMarker) {
                 RelationName tableName = fetchMarker.fetchId().ident().tableIdent();
                 FetchSource fetchSource = fetchSources.get(tableName);
                 if (fetchSource == null) {

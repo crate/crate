@@ -114,7 +114,7 @@ public class OptimizeTablePlan implements Plan {
                 .whenComplete(
                     new OneRowActionListener<>(
                         consumer,
-                        response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
+                        ignoredResponse -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
                     )
                 );
         }

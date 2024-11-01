@@ -81,11 +81,10 @@ import io.crate.sql.tree.JoinType;
  * b -> Edge[a, a.x, b.y]
  * </pre>
  */
-public record JoinGraph(
-    List<LogicalPlan> nodes,
-    Map<LogicalPlan, Set<Edge>> edges,
-    List<Symbol> filters,
-    boolean hasCrossJoin) {
+public record JoinGraph(List<LogicalPlan> nodes,
+                        Map<LogicalPlan, Set<Edge>> edges,
+                        List<Symbol> filters,
+                        boolean hasCrossJoin) {
 
     public record Edge(LogicalPlan to, Symbol left, Symbol right) {}
 
@@ -120,8 +119,8 @@ public record JoinGraph(
         return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
     }
 
-    JoinGraph withCrossJoin(boolean hasCrossJoin) {
-        return new JoinGraph(this.nodes, edges, filters, hasCrossJoin);
+    JoinGraph withCrossJoin() {
+        return new JoinGraph(this.nodes, edges, filters, true);
     }
 
     public int size() {
@@ -174,7 +173,7 @@ public record JoinGraph(
             var right = joinPlan.rhs().accept(this, context);
 
             if (joinPlan.joinType() == JoinType.CROSS) {
-                return left.joinWith(right).withCrossJoin(true);
+                return left.joinWith(right).withCrossJoin();
             }
 
             if (joinPlan.joinType() != JoinType.INNER) {

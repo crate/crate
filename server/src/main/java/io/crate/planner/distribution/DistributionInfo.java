@@ -21,11 +21,11 @@
 
 package io.crate.planner.distribution;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
 
 public class DistributionInfo implements Writeable {
 
@@ -33,8 +33,8 @@ public class DistributionInfo implements Writeable {
     public static final DistributionInfo DEFAULT_SAME_NODE = new DistributionInfo(DistributionType.SAME_NODE);
     public static final DistributionInfo DEFAULT_MODULO = new DistributionInfo(DistributionType.MODULO);
 
-    private DistributionType distributionType;
-    private int distributeByColumn;
+    private final DistributionType distributionType;
+    private final int distributeByColumn;
 
     public DistributionInfo(DistributionType distributionType, int distributeByColumn) {
         this.distributionType = distributionType;

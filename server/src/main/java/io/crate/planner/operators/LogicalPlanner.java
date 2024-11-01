@@ -255,8 +255,7 @@ public class LogicalPlanner {
             foreignDataWrappers,
             plannerContext.planStats(),
             plannerContext.clusterState(),
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext()
+            plannerContext.transactionContext()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
@@ -320,8 +319,7 @@ public class LogicalPlanner {
             foreignDataWrappers,
             planStats,
             plannerContext.clusterState(),
-            coordinatorTxnCtx,
-            plannerContext.nodeContext()
+            coordinatorTxnCtx
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimize(logicalPlan, plannerContext);
@@ -354,20 +352,17 @@ public class LogicalPlanner {
         private final ForeignDataWrappers foreignDataWrappers;
         private final ClusterState clusterState;
         private final CoordinatorTxnCtx coordinatorTxnCtx;
-        private final NodeContext nodeContext;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             ForeignDataWrappers foreignDataWrappers,
                             PlanStats planStats,
                             ClusterState clusterState,
-                            CoordinatorTxnCtx coordinatorTxnCtx,
-                            NodeContext nodeContext) {
+                            CoordinatorTxnCtx coordinatorTxnCtx) {
             this.subqueryPlanner = subqueryPlanner;
             this.foreignDataWrappers = foreignDataWrappers;
             this.planStats = planStats;
             this.clusterState = clusterState;
             this.coordinatorTxnCtx = coordinatorTxnCtx;
-            this.nodeContext = nodeContext;
         }
 
         @Override
@@ -471,7 +466,7 @@ public class LogicalPlanner {
                         // a) introduce a column pruning
                         // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
 
-                        var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
+                        Set<Symbol> toCollect = LinkedHashSet.newLinkedHashSet(splitPoints.toCollect().size());
                         RelationName relationName = rel.relationName();
                         Predicate<Symbol> addFiltered = node -> {
                             if ((node instanceof Reference ref && ref.ident().tableIdent().equals(relationName)) ||
@@ -513,8 +508,7 @@ public class LogicalPlanner {
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
                                                 relation.groupBy(),
-                                                splitPoints.aggregates(),
-                                                planStats
+                                                splitPoints.aggregates()
                                             ),
                                             having
                                         ),
@@ -537,9 +531,8 @@ public class LogicalPlanner {
     }
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,
-                                           List<Symbol> groupKeys,
-                                           List<Function> aggregates,
-                                           PlanStats planStats) {
+                                                  List<Symbol> groupKeys,
+                                                  List<Function> aggregates) {
         if (!groupKeys.isEmpty()) {
             return new GroupHashAggregate(source, groupKeys, aggregates);
         }

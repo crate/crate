@@ -87,7 +87,7 @@ public class CreateBlobTablePlan implements Plan {
         CreateIndexRequest createIndexRequest = new CreateIndexRequest(fullIndexName(relationName.name()), settings);
 
         OneRowActionListener<CreateIndexResponse> listener =
-            new OneRowActionListener<>(consumer, r -> new Row1(1L));
+            new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
         dependencies.client().execute(CreateIndexAction.INSTANCE, createIndexRequest).whenComplete(listener);
     }
 
