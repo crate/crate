@@ -21,6 +21,10 @@
 
 package io.crate.planner.node.ddl;
 
+import java.util.function.Function;
+
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
@@ -35,9 +39,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.StringType;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
-import java.util.function.Function;
 
 public class CreateFunctionPlan implements Plan {
 
@@ -75,8 +76,7 @@ public class CreateFunctionPlan implements Plan {
             StringType.INSTANCE.sanitizeValue(eval.apply(createFunction.definition()))
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metadata, createFunction.replace());
-        OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, r -> new Row1(1L));
+        OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
         dependencies.createFunctionAction().execute(request).whenComplete(listener);
-
     }
 }

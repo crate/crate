@@ -21,15 +21,17 @@
 
 package io.crate.planner.consumer;
 
+import java.util.Collection;
+import java.util.List;
+
+import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.Nullable;
+
 import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import org.elasticsearch.common.inject.Singleton;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Extract 0-based integer positions for order by symbols.
@@ -60,8 +62,7 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
         }
     }
 
-    private OrderByPositionVisitor() {
-    }
+    private OrderByPositionVisitor() {}
 
     @Nullable
     public static int[] orderByPositionsOrNull(Collection<? extends Symbol> orderBySymbols,

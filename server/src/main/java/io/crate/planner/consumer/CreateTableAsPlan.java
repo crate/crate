@@ -107,7 +107,4 @@ public final class CreateTableAsPlan implements Plan {
                 }
             });
     }
-
-
 }
-

@@ -73,10 +73,10 @@ public class DropTablePlan implements Plan {
         dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
             if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
-                    if (LOGGER.isWarnEnabled()) {
-                        LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", dropTable.tableName());
-                    }
+                    LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.",
+                        dropTable.tableName());
                 }
+
                 consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
             } else {
                 err = SQLExceptions.unwrap(err);

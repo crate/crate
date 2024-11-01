@@ -21,8 +21,17 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.AnalyzedDropAnalyzer;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
+
+import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -32,14 +41,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.common.settings.Settings;
-
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 
 public class DropAnalyzerPlan implements Plan {
 
@@ -65,7 +66,7 @@ public class DropAnalyzerPlan implements Plan {
             dependencies.fulltextAnalyzerResolver());
 
         dependencies.client().execute(ClusterUpdateSettingsAction.INSTANCE, request)
-            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(1L)));
+            .whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L)));
     }
 
     @VisibleForTesting

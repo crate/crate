@@ -73,7 +73,6 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
             context.nodeCtx()
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
-        //noinspection OptionalIsPresent no capturing lambda allocation
         if (docKeys.isPresent()) {
             return new Get(
                 relation,

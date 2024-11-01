@@ -59,7 +59,7 @@ final class RoutingBuilder {
      *
      * <p>
      * This ensures all following
-     * {@link #allocateRouting(TableInfo, WhereClause, io.crate.metadata.RoutingProvider.ShardSelection, SessionContext)}
+     * {@link #allocateRouting(TableInfo, WhereClause, RoutingProvider.ShardSelection, CoordinatorSessionSettings)}
      * calls get stored in a unique context.
      * </p>
      *
@@ -152,7 +152,7 @@ final class RoutingBuilder {
 
                 Map<Integer, String> shardsOnIndex = shardNodes.get(index);
                 if (shardsOnIndex == null) {
-                    shardsOnIndex = new HashMap<>(shards.size());
+                    shardsOnIndex = HashMap.newHashMap(shards.size());
                     shardNodes.put(index, shardsOnIndex);
                     for (IntCursor id : shards) {
                         shardsOnIndex.put(id.value, nodeId);

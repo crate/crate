@@ -31,8 +31,7 @@ public final class EnsureNoMatchPredicate extends SymbolVisitor<String, Void> {
 
     private static final EnsureNoMatchPredicate NO_PREDICATE_VISITOR = new EnsureNoMatchPredicate();
 
-    private EnsureNoMatchPredicate() {
-    }
+    private EnsureNoMatchPredicate() {}
 
     public static void ensureNoMatchPredicate(Symbol symbolTree, String errorMsg) {
         symbolTree.accept(NO_PREDICATE_VISITOR, errorMsg);

@@ -93,7 +93,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
      **/
     @Nullable
     static List<LogicalPlan> eliminateCrossJoin(JoinGraph joinGraph) {
-        if (joinGraph.edges().size() == 0) {
+        if (joinGraph.edges().isEmpty()) {
             return null;
         }
         // This is the minimum number of edges which we need to have to be able to visit each node in the graph

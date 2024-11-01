@@ -22,5 +22,5 @@
 package io.crate.planner.operators;
 
 public enum PlanHint {
-    PREFER_SOURCE_LOOKUP,
+    PREFER_SOURCE_LOOKUP
 }

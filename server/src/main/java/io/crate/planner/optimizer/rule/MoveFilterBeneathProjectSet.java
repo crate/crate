@@ -86,7 +86,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     }
 
     private static boolean isTableFunction(Symbol s) {
-        return s instanceof io.crate.expression.symbol.Function &&
-               ((io.crate.expression.symbol.Function) s).signature().getType() == FunctionType.TABLE;
+        return s instanceof io.crate.expression.symbol.Function function &&
+            function.signature().getType() == FunctionType.TABLE;
     }
 }

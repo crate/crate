@@ -152,8 +152,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         LogicalPlan newSource = fetchRewrite.newPlan();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol output : newSource.outputs()) {
-            if (output instanceof FetchMarker) {
-                FetchMarker marker = (FetchMarker) output;
+            if (output instanceof FetchMarker marker) {
                 FetchMarker newMarker = new FetchMarker(name, marker.fetchRefs(), marker.fetchId());
                 newOutputs.add(newMarker);
                 childToParentMap.put(marker, newMarker);

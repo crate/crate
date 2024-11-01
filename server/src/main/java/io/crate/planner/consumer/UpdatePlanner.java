@@ -85,8 +85,7 @@ public final class UpdatePlanner {
     public static final String RETURNING_VERSION_ERROR_MSG =
         "Returning clause for Update is only supported when all nodes in the cluster running at least version 4.2.0";
 
-    private UpdatePlanner() {
-    }
+    private UpdatePlanner() {}
 
     public static Plan plan(AnalyzedUpdateStatement update,
                             PlannerContext plannerCtx,
@@ -100,8 +99,7 @@ public final class UpdatePlanner {
         AbstractTableRelation<?> table = update.table();
 
         Plan plan;
-        if (table instanceof DocTableRelation) {
-            DocTableRelation docTable = (DocTableRelation) table;
+        if (table instanceof DocTableRelation docTable) {
             plan = plan(docTable,
                         update.assignmentByTargetCol(),
                         update.query(),

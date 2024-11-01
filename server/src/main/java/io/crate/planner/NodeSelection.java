@@ -21,15 +21,14 @@
 
 package io.crate.planner;
 
+import java.util.Locale;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 
-import java.util.Locale;
-
 public final class NodeSelection {
 
-    private NodeSelection() {
-    }
+    private NodeSelection() {}
 
     public static String resolveNodeId(DiscoveryNodes nodes, String nodeIdOrName) {
         if (nodes.nodeExists(nodeIdOrName)) {
