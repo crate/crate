@@ -340,4 +340,26 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("select column_name from information_schema.columns where table_name = 't'");
         assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
     }
+
+    @Test
+    public void test_cannot_add_sub_column_to_ignored_parent_if_table_is_not_empty() {
+        execute("CREATE TABLE t1 (obj object(ignored))");
+        execute("INSERT INTO t1 (obj) VALUES ({a={b=21, c=22}})");
+        execute("refresh table t1");
+
+        Asserts.assertSQLError(() -> execute("ALTER TABLE t1 ADD COLUMN obj['a'] text"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot add a sub column to an OBJECT(IGNORED) parent column to a table that isn't empty");
+    }
+
+    @Test
+    public void test_can_add_sub_column_to_ignored_parent_if_table_is_empty() {
+        execute("CREATE TABLE t1 (obj object(ignored))");
+        execute("ALTER TABLE t1 ADD COLUMN obj['a'] text");
+        execute("INSERT INTO t1 (obj) VALUES ({a='bar'})");
+        execute("refresh table t1");
+        execute("SELECT obj['a'] FROM t1");
+        assertThat(response).hasRows("bar");
+    }
 }

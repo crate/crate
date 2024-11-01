@@ -71,3 +71,14 @@ Fixes
       |       1.0 |
       +-----------+
 
+- Fixed an issue which can cause the data of a table to not be queried anymore and the
+  :ref:`analyze` to fail, if a sub column is added to an object column with
+  column policy ``IGNORED`` when the table is not empty and the new column's
+  data type is different from the existing column's values.
+  This is not allowed anymore and results in an error. For example::
+
+    CREATE TABLE t (o OBJECT(IGNORED));
+    INSERT INTO t (o) VALUES ({x=1});
+    ALTER TABLE t ADD COLUMN o['x'] AS TEXT; <--- this is not allowed anymore
+    INSERT INTO t (o) VALUES ({x='foo'});
+    ANALYZE; <--- this will fail without the fix
