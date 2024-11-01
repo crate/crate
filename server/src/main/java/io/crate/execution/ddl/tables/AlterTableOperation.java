@@ -53,8 +53,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
-import io.crate.session.CollectingResultReceiver;
-import io.crate.session.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
@@ -64,10 +62,14 @@ import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
+import io.crate.session.CollectingResultReceiver;
+import io.crate.session.Sessions;
+import io.crate.sql.tree.ColumnPolicy;
 
 @Singleton
 public class AlterTableOperation {
@@ -122,11 +124,20 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> addColumn(AddColumnRequest addColumnRequest) {
+        var newReferences = addColumnRequest.references();
         String subject = null;
         if (addColumnRequest.pKeyIndices().isEmpty() == false) {
             subject = "primary key";
         } else if (addColumnRequest.references().stream().anyMatch(ref -> ref instanceof GeneratedReference)) {
             subject = "generated";
+        } else {
+            for (Reference newRef : newReferences) {
+                if (newReferences.stream().anyMatch(r -> r.column().isChildOf(newRef.column()))
+                    && newRef.columnPolicy().equals(ColumnPolicy.IGNORED)) {
+                    subject = "sub column to an OBJECT(IGNORED) parent";
+                    break;
+                }
+            }
         }
         if (subject != null) {
             String finalSubject = subject;
