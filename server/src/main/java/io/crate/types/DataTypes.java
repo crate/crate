@@ -640,26 +640,16 @@ public final class DataTypes {
     }
 
     public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
-        if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
-            return ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
-        }
-        if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
-            return new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
-        }
-        if (leftType.id() == NumericType.ID && rightType.id() == NumericType.ID) {
-            return NumericType.INSTANCE;
-        }
+        final DataType<?> higher;
+        final DataType<?> lower;
         if (leftType.precedes(rightType)) {
-            if (rightType.isConvertableTo(leftType, false)) {
-                return leftType;
-            }
-            throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
+            higher = leftType;
+            lower = rightType;
         } else {
-            if (leftType.isConvertableTo(rightType, false)) {
-                return rightType;
-            }
-            throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
+            higher = rightType;
+            lower = leftType;
         }
+        return higher.merge(lower);
     }
 
     public static DataType<?> fromId(Integer id) {

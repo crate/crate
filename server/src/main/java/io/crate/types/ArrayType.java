@@ -328,6 +328,15 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
+    DataType<?> merge(DataType<?> other) {
+        if (other instanceof ArrayType<?> o) {
+            return new ArrayType<>(DataTypes.merge(this.innerType, o.innerType));
+        } else {
+            return super.merge(other);
+        }
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
