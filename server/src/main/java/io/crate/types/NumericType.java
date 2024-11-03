@@ -167,6 +167,15 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
+    DataType<?> merge(DataType<?> other) {
+        if (other instanceof NumericType o) {
+            return NumericType.INSTANCE;
+        } else {
+            return super.merge(other);
+        }
+    }
+
+    @Override
     public BigDecimal valueForInsert(BigDecimal value) {
         return value;
     }
