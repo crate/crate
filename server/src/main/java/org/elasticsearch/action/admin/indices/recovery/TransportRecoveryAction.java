@@ -19,6 +19,13 @@
 
 package org.elasticsearch.action.admin.indices.recovery;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,12 +42,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Transport action for shard recovery operation. This transport action does not actually
@@ -98,10 +99,10 @@ public class TransportRecoveryAction extends TransportBroadcastByNodeAction<Reco
     }
 
     @Override
-    protected RecoveryState shardOperation(RecoveryRequest request, ShardRouting shardRouting) {
+    protected void shardOperation(RecoveryRequest request, ShardRouting shardRouting, ActionListener<RecoveryState> listener) {
         IndexService indexService = indicesService.indexServiceSafe(shardRouting.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
-        return indexShard.recoveryState();
+        listener.onResponse(indexShard.recoveryState());
     }
 
     @Override
