@@ -19,12 +19,14 @@
 
 package org.elasticsearch.common.unit;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
+
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.xcontent.XContentParser;
+
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 
 /**
  * A unit class that encapsulates all in-exact search
@@ -148,7 +150,7 @@ public final class Fuzziness {
         if (this.equals(AUTO) || isAutoWithCustomValues()) {
             return 1f;
         }
-        return Float.parseFloat(fuzziness.toString());
+        return JavaFloatParser.parseFloat(fuzziness.toString());
     }
 
     private int termLen(String text) {

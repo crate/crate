@@ -19,12 +19,14 @@
 
 package org.elasticsearch.common.unit;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.monitor.jvm.JvmInfo;
+import static org.elasticsearch.common.unit.ByteSizeValue.parseBytesSizeValue;
 
 import java.util.Objects;
 
-import static org.elasticsearch.common.unit.ByteSizeValue.parseBytesSizeValue;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 
 /** Utility methods to get memory sizes. */
 public enum MemorySizeValue {
@@ -38,7 +40,7 @@ public enum MemorySizeValue {
         if (sValue != null && sValue.endsWith("%")) {
             final String percentAsString = sValue.substring(0, sValue.length() - 1);
             try {
-                final double percent = Double.parseDouble(percentAsString);
+                final double percent = JavaDoubleParser.parseDouble(percentAsString);
                 if (percent < 0 || percent > 100) {
                     throw new ElasticsearchParseException("percentage should be in [0-100], got [{}]", percentAsString);
                 }

@@ -67,6 +67,8 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.common.Booleans;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -249,7 +251,7 @@ public final class Settings {
             return defaultValue;
         }
         try {
-            return Float.parseFloat(sValue);
+            return JavaFloatParser.parseFloat(sValue);
         } catch (NumberFormatException e) {
             throw new SettingsException("Failed to parse float setting [" + setting + "] with value [" + sValue + "]", e);
         }
@@ -265,7 +267,7 @@ public final class Settings {
             return defaultValue;
         }
         try {
-            return Double.parseDouble(sValue);
+            return JavaDoubleParser.parseDouble(sValue);
         } catch (NumberFormatException e) {
             throw new SettingsException("Failed to parse double setting [" + setting + "] with value [" + sValue + "]", e);
         }

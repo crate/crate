@@ -25,11 +25,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -97,12 +97,12 @@ public final class PointType extends PGType<Point> {
         double x;
         double y;
         if (tokenizer.hasMoreTokens()) {
-            x = Double.parseDouble(tokenizer.nextToken());
+            x = JavaDoubleParser.parseDouble(tokenizer.nextToken());
         } else {
             throw new IllegalArgumentException("Cannot parse input as point: " + value + " expected a point in format: (x, y)");
         }
         if (tokenizer.hasMoreTokens()) {
-            y = Double.parseDouble(tokenizer.nextToken());
+            y = JavaDoubleParser.parseDouble(tokenizer.nextToken());
         } else {
             throw new IllegalArgumentException("Cannot parse input as point: " + value + " expected a point in format: (x, y)");
         }
