@@ -25,6 +25,8 @@ import java.util.Objects;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+
 public final class ByteSizeValue implements Comparable<ByteSizeValue> {
 
     public static final ByteSizeValue ZERO = new ByteSizeValue(0, ByteSizeUnit.BYTES);
@@ -170,7 +172,7 @@ public final class ByteSizeValue implements Comparable<ByteSizeValue> {
                 return new ByteSizeValue(Long.parseLong(s), unit);
             } catch (final NumberFormatException e) {
                 try {
-                    final double doubleValue = Double.parseDouble(s);
+                    final double doubleValue = JavaDoubleParser.parseDouble(s);
                     return new ByteSizeValue((long) (doubleValue * unit.toBytes(1)));
                 } catch (final NumberFormatException ignored) {
                     throw new ElasticsearchParseException("failed to parse setting [{}] with value [{}] as a size in bytes", e, settingName,

@@ -72,7 +72,7 @@ public final class DeleteAllPartitions implements Plan {
             DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(partitions().toArray(new String[0]))
                 .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
             executor.client().execute(DeleteIndexAction.INSTANCE, deleteIndexRequest)
-                .whenComplete(new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
+                .whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
         }
     }
 }

@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -87,7 +88,7 @@ public class CreateBlobTablePlan implements Plan {
         CreateIndexRequest createIndexRequest = new CreateIndexRequest(fullIndexName(relationName.name()), settings);
 
         OneRowActionListener<CreateIndexResponse> listener =
-            new OneRowActionListener<>(consumer, r -> new Row1(1L));
+            new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
         dependencies.client().execute(CreateIndexAction.INSTANCE, createIndexRequest).whenComplete(listener);
     }
 
@@ -108,14 +109,12 @@ public class CreateBlobTablePlan implements Plan {
         CreateBlobTable<Object> blobTable = createBlobTable.map(eval);
         GenericProperties<Object> properties = blobTable.genericProperties();
 
-        // apply default in case it is not specified in the properties,
-        // if it is it will get overwritten afterwards.
         Settings.Builder builder = Settings.builder();
+        builder.put(NumberOfReplicas.SETTING.getDefault(Settings.EMPTY));
         TableProperties.analyze(
             builder,
             TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
-            properties,
-            true
+            properties
         );
         builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 

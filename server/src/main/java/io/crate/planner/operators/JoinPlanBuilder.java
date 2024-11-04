@@ -220,7 +220,7 @@ public class JoinPlanBuilder {
      * @return the new list of {@link JoinPair}
      */
     static List<JoinPair> convertImplicitJoinConditionsToJoinPairs(List<JoinPair> explicitJoinPairs,
-                                                                          Map<Set<RelationName>, Symbol> splitQueries) {
+                                                                   Map<Set<RelationName>, Symbol> splitQueries) {
         Iterator<Map.Entry<Set<RelationName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
         ArrayList<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
         newJoinPairs.addAll(explicitJoinPairs);

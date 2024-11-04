@@ -122,7 +122,7 @@
           <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
-            <version>9.7</version>
+            <version>9.7.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -311,13 +311,15 @@
     <skipRunTests>false</skipRunTests>
 
     <versions.jdk>23.0.1</versions.jdk>
-    <versions.annotations>24.1.0</versions.annotations>
-    <versions.log4j>2.23.1</versions.log4j>
+    <versions.annotations>26.0.1</versions.annotations>
+    <versions.log4j>2.24.1</versions.log4j>
     <versions.assertj>3.26.3</versions.assertj>
-    <versions.junit5>5.10.3</versions.junit5>
+    <versions.junit5>5.11.3</versions.junit5>
+    <versions.junit-platform-commons>1.11.3</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
-    <versions.jackson>2.17.2</versions.jackson>
+    <versions.jackson>2.18.1</versions.jackson>
+    <versions.fastdoubleparser>2.0.0</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
@@ -325,8 +327,8 @@
     <versions.netty>4.1.114.Final</versions.netty>
     <versions.lucene>9.12.0</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
-    <versions.jts>1.19.0</versions.jts>
-    <versions.jna>5.14.0</versions.jna>
+    <versions.jts>1.20.0</versions.jts>
+    <versions.jna>5.15.0</versions.jna>
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
@@ -338,7 +340,7 @@
     <versions.commonscodec>1.17.1</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.0.2</versions.graalvm>
+    <versions.graalvm>24.1.1</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
@@ -353,11 +355,11 @@
     <versions.google.gson>1.43.1</versions.google.gson>
     <versions.google.errorprone>2.19.1</versions.google.errorprone>
     <versions.google.j2objc>2.8</versions.google.j2objc>
-    <versions.checkerframework>3.35.0</versions.checkerframework>
-    <versions.grpc>1.55.1</versions.grpc>
+    <versions.checkerframework>3.48.2</versions.checkerframework>
+    <versions.grpc>1.68.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.13.0</versions.mockito>
+    <versions.mockito>5.14.2</versions.mockito>
     <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
@@ -367,7 +369,7 @@
 
     <versions.min_maven>3.6.3</versions.min_maven>
     <!-- Maven Plugins -->
-    <versions.plugin.dependency>3.8.0</versions.plugin.dependency>
+    <versions.plugin.dependency>3.8.1</versions.plugin.dependency>
     <versions.plugin.versions>2.17.1</versions.plugin.versions>
     <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
     <versions.plugin.clean>3.4.0</versions.plugin.clean>
@@ -375,15 +377,15 @@
     <versions.plugin.install>3.1.3</versions.plugin.install>
     <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
-    <versions.plugin.surefire>3.5.0</versions.plugin.surefire>
-    <versions.plugin.checkstyle>3.5.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.18.0</versions.plugin.puppycrawl>
+    <versions.plugin.surefire>3.5.1</versions.plugin.surefire>
+    <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
+    <versions.plugin.puppycrawl>10.20.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.8</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
-    <versions.plugin.download>1.9.0</versions.plugin.download>
+    <versions.plugin.download>1.11.2</versions.plugin.download>
     <versions.plugin.git-commit>9.0.1</versions.plugin.git-commit>
     <versions.plugin.shade>3.6.0</versions.plugin.shade>
     <versions.plugin.jar>3.4.2</versions.plugin.jar>

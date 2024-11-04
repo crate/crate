@@ -27,7 +27,6 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -41,7 +40,6 @@ import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
@@ -149,12 +147,6 @@ public class Limit extends ForwardingLogicalPlan {
             new Limit(fetchRewrite.newPlan(), this.limit, this.offset)
         );
     }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
 
     @Override
     public String toString() {

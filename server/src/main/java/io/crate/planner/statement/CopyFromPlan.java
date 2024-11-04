@@ -37,7 +37,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -128,9 +127,7 @@ public final class CopyFromPlan implements Plan {
             copyFrom,
             boundedCopyFrom,
             dependencies.clusterService().state().nodes(),
-            plannerContext,
-            params,
-            subQueryResults);
+            plannerContext);
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(plan, dependencies.localNodeId());
@@ -199,9 +196,7 @@ public final class CopyFromPlan implements Plan {
     public static ExecutionPlan planCopyFromExecution(AnalyzedCopyFrom copyFrom,
                                                       BoundCopyFrom boundedCopyFrom,
                                                       DiscoveryNodes allNodes,
-                                                      PlannerContext context,
-                                                      Row params,
-                                                      SubQueryResults subQueryResults) {
+                                                      PlannerContext context) {
 
         /*
          * Create a plan that reads json-objects-lines from a file
@@ -229,7 +224,7 @@ public final class CopyFromPlan implements Plan {
         List<Reference> primaryKeyRefs = table.primaryKey().stream()
             .filter(r -> !r.equals(SysColumns.ID.COLUMN))
             .map(table::getReference)
-            .collect(Collectors.toList());
+            .toList();
 
         List<Symbol> toCollect = getSymbolsRequiredForShardIdCalc(
             primaryKeyRefs,
@@ -240,7 +235,7 @@ public final class CopyFromPlan implements Plan {
         final int rawOrDocIdx = toCollect.size();
         toCollect.add(rawOrDoc);
 
-        String[] excludes = partitionedByNames.size() > 0
+        String[] excludes = !partitionedByNames.isEmpty()
             ? partitionedByNames.toArray(new String[0]) : null;
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
@@ -384,8 +379,8 @@ public final class CopyFromPlan implements Plan {
     }
 
     private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, Reference ref) {
-        if (ref instanceof GeneratedReference) {
-            toCollectUnique.add(((GeneratedReference) ref).generatedExpression());
+        if (ref instanceof GeneratedReference generatedReference) {
+            toCollectUnique.add(generatedReference.generatedExpression());
         } else {
             toCollectUnique.add(ref);
         }
@@ -454,7 +449,7 @@ public final class CopyFromPlan implements Plan {
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(@Nullable Object nodeFilter) {
         if (nodeFilter == null) {
-            return discoveryNode -> true;
+            return ignoredDiscoveryNode -> true;
         }
         try {
             return NodeFilters.fromMap((Map<?, ?>) nodeFilter);

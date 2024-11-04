@@ -303,6 +303,11 @@
       <version>${versions.jackson}</version>
     </dependency>
     <dependency>
+      <groupId>ch.randelshofer</groupId>
+      <artifactId>fastdoubleparser</artifactId>
+      <version>${versions.fastdoubleparser}</version>
+    </dependency>
+    <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>${versions.jdbc}</version>
@@ -318,6 +323,12 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${versions.junit5}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-commons</artifactId>
+      <version>${versions.junit-platform-commons}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

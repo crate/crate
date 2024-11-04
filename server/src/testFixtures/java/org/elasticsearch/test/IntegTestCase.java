@@ -66,7 +66,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -192,7 +191,6 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -386,13 +384,11 @@ public abstract class IntegTestCase extends ESTestCase {
             builder.put(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING.getKey(),
                 (random.nextBoolean() ? random.nextDouble() : random.nextBoolean()).toString());
         }
-        switch (random.nextInt(4)) {
-            case 3:
-                int maxThreadCount = RandomNumbers.randomIntBetween(random, 1, 4);
-                int maxMergeCount = RandomNumbers.randomIntBetween(random, maxThreadCount, maxThreadCount + 4);
-                builder.put(MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING.getKey(), maxMergeCount);
-                builder.put(MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING.getKey(), maxThreadCount);
-                break;
+        if (random.nextInt(4) == 3) {
+            int maxThreadCount = RandomNumbers.randomIntBetween(random, 1, 4);
+            int maxMergeCount = RandomNumbers.randomIntBetween(random, maxThreadCount, maxThreadCount + 4);
+            builder.put(MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING.getKey(), maxMergeCount);
+            builder.put(MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING.getKey(), maxThreadCount);
         }
 
         return builder;
@@ -873,8 +869,8 @@ public abstract class IntegTestCase extends ESTestCase {
                     } catch (AssertionError error) {
                         logger.error(
                             "Cluster state from master:\n{}\nLocal cluster state:\n{}",
-                            masterClusterState.toString(),
-                            localClusterState.toString());
+                            masterClusterState,
+                            localClusterState);
                         throw error;
                     }
                 }
@@ -1049,12 +1045,12 @@ public abstract class IntegTestCase extends ESTestCase {
 
     private boolean getSupportsDedicatedMasters() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        return annotation == null ? true : annotation.supportsDedicatedMasters();
+        return annotation == null || annotation.supportsDedicatedMasters();
     }
 
     private boolean getAutoManageMasterNodes() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        return annotation == null ? true : annotation.autoManageMasterNodes();
+        return annotation == null || annotation.autoManageMasterNodes();
     }
 
     private int getNumDataNodes() {
@@ -1122,18 +1118,10 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     protected TestCluster buildTestCluster(Scope scope, long seed) {
-        String nodePrefix;
-        switch (scope) {
-            case TEST:
-                nodePrefix = TEST_CLUSTER_NODE_PREFIX;
-                break;
-            case SUITE:
-                nodePrefix = SUITE_CLUSTER_NODE_PREFIX;
-                break;
-            default:
-                throw new ElasticsearchException("Scope not supported: " + scope);
-        }
-
+        String nodePrefix = switch (scope) {
+            case TEST -> TEST_CLUSTER_NODE_PREFIX;
+            case SUITE -> SUITE_CLUSTER_NODE_PREFIX;
+        };
 
         boolean supportsDedicatedMasters = getSupportsDedicatedMasters();
         int numDataNodes = getNumDataNodes();
@@ -1635,8 +1623,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args) {
         try {
-            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
-            this.response = response;
+            this.response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
@@ -1655,8 +1642,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
         try {
-            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
-            this.response = response;
+            response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
@@ -1697,8 +1683,6 @@ public abstract class IntegTestCase extends ESTestCase {
 
         Analyzer analyzer = cluster().getInstance(Analyzer.class, nodeName);
         Planner planner = cluster().getInstance(Planner.class, nodeName);
-        NodeContext nodeCtx = cluster().getInstance(NodeContext.class, nodeName);
-        TableStats tableStats = cluster().getInstance(TableStats.class, nodeName);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             Role.CRATE_USER,
@@ -1811,8 +1795,7 @@ public abstract class IntegTestCase extends ESTestCase {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         try (Session session = sqlOperations.newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null), sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
-            SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
-            this.response = response;
+            this.response = sqlExecutor.exec(stmt, args, session, timeout);
             return response;
         }
     }

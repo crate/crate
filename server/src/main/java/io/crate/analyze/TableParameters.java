@@ -26,7 +26,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_READ_ONLY
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -136,24 +135,6 @@ public class TableParameters {
             // this setting is needed for tests and is not documented. see IndexRecoveryIT for usages.
             Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
         );
-
-    /**
-     * Settings which are not included in table default settings
-     */
-    static final Set<Setting<?>> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
-        IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
-        IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
-        MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,
-        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
-
-        // We want IndexSettings#isExplicitRefresh and it's usages to work
-        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
-
-        IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING,
-        Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
-    );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
         = Lists.concat(PARTITION_SETTINGS, TABLE_ONLY_SETTINGS)

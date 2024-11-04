@@ -28,6 +28,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.types.DataTypes;
 
 /**
@@ -243,7 +244,7 @@ public final class MergePolicyConfig {
             return 0.0;
         } else {
             try {
-                double value = Double.parseDouble(noCFSRatio);
+                double value = JavaDoubleParser.parseDouble(noCFSRatio);
                 if (value < 0.0 || value > 1.0) {
                     throw new IllegalArgumentException("NoCFSRatio must be in the interval [0..1] but was: [" + value + "]");
                 }

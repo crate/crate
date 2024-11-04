@@ -29,7 +29,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 
-public class GroupByConsumer {
+public final class GroupByConsumer {
+
+    private GroupByConsumer() {}
 
     public static boolean groupedByClusteredColumnOrPrimaryKeys(DocTableInfo tableInfo,
                                                                 WhereClause whereClause,
@@ -38,7 +40,7 @@ public class GroupByConsumer {
             return groupedByPrimaryKeys(tableInfo.primaryKey(), groupBySymbols);
         }
 
-        /**
+        /*
          * if the table has more than one partition there are multiple shards which might even be on different nodes
          * so one shard doesn't contain all "clustered by" values
          * -> need to use a distributed group by.

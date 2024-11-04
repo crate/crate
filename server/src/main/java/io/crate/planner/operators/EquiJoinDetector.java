@@ -47,7 +47,9 @@ import io.crate.sql.tree.JoinType;
  * <li>at least one argument of the {@link EqOperator} must NOT contain fields to multiple tables</li>
  * </ul>
  */
-public class EquiJoinDetector {
+public final class EquiJoinDetector {
+
+    private EquiJoinDetector() {}
 
     private static final Visitor VISITOR = new Visitor();
 

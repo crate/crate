@@ -71,7 +71,7 @@ public class Optimizer {
 
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
-    private FunctionLookup functionLookup;
+    private final FunctionLookup functionLookup;
 
     public Optimizer(TransactionContext txnCtx, NodeContext nodeCtx) {
         functionLookup = (f, args) -> {
@@ -131,7 +131,7 @@ public class Optimizer {
     }
 
     private class Visitor extends FunctionCopyVisitor<Void> {
-        private Deque<io.crate.expression.symbol.Function> visitedFunctions = new ArrayDeque<>();
+        private final Deque<io.crate.expression.symbol.Function> visitedFunctions = new ArrayDeque<>();
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {

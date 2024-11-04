@@ -44,8 +44,6 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.session.BaseResultReceiver;
-import io.crate.session.RowConsumerToResultReceiver;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.collections.MapBuilder;
@@ -84,6 +82,8 @@ import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.RowConsumerToResultReceiver;
 import io.crate.types.DataTypes;
 
 public class ExplainPlan implements Plan {
@@ -170,20 +170,18 @@ public class ExplainPlan implements Plan {
                     var planAsString = printLogicalPlan(logicalPlan, plannerContext, showCosts);
                     consumer.accept(InMemoryBatchIterator.of(new Row1(planAsString), SENTINEL), null);
                 }
-            } else if (subPlan instanceof CopyFromPlan && !verbose) {
+            } else if (subPlan instanceof CopyFromPlan copyFromPlan && !verbose) {
                 BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
-                    ((CopyFromPlan) subPlan).copyFrom(),
+                    copyFromPlan.copyFrom(),
                     plannerContext.transactionContext(),
                     plannerContext.nodeContext(),
                     params,
                     subQueryResults);
                 ExecutionPlan executionPlan = CopyFromPlan.planCopyFromExecution(
-                    ((CopyFromPlan) subPlan).copyFrom(),
+                    copyFromPlan.copyFrom(),
                     boundCopyFrom,
                     dependencies.clusterService().state().nodes(),
-                    plannerContext,
-                    params,
-                    subQueryResults);
+                    plannerContext);
                 String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
             } else if (verbose) {
@@ -525,7 +523,7 @@ public class ExplainPlan implements Plan {
 
     private static Map<String, Map<String, Object>> getNodeTimingsWithoutPhases(Set<String> phasesNames,
                                                                                 Map<String, Map<String, Object>> timingsByNodeId) {
-        Map<String, Map<String, Object>> nodeTimingsWithoutPhases = new HashMap<>(timingsByNodeId.size());
+        Map<String, Map<String, Object>> nodeTimingsWithoutPhases = HashMap.newHashMap(timingsByNodeId.size());
         for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
             nodeTimingsWithoutPhases.put(nodeToTimingsEntry.getKey(), new HashMap<>(nodeToTimingsEntry.getValue()));
         }

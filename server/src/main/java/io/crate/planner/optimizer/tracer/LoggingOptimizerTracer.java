@@ -35,8 +35,7 @@ public class LoggingOptimizerTracer implements OptimizerTracer {
 
     private static final LoggingOptimizerTracer INSTANCE = new LoggingOptimizerTracer();
 
-    private LoggingOptimizerTracer() {
-    }
+    private LoggingOptimizerTracer() {}
 
     public static OptimizerTracer getInstance() {
         if (LOGGER.isTraceEnabled()) {

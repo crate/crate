@@ -42,9 +42,19 @@ package io.crate.planner.node.ddl;
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -55,15 +65,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.function.Function;
 
 public final class ResetSettingsPlan implements Plan {
 
@@ -108,7 +109,7 @@ public final class ResetSettingsPlan implements Plan {
         for (Symbol symbol : settings) {
             String settingsName = eval.apply(symbol).toString();
             List<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
-            if (settingNames.size() == 0) {
+            if (settingNames.isEmpty()) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "Setting '%s' is not supported",
                                                                  settingsName));

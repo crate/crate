@@ -158,7 +158,7 @@ public class CreateSnapshotPlan implements Plan {
             }
             snapshotIndices = new HashSet<>(AnalyzedCreateSnapshot.ALL_INDICES);
         } else {
-            snapshotIndices = new HashSet<>(createSnapshot.tables().size());
+            snapshotIndices = HashSet.newHashSet(createSnapshot.tables().size());
             for (Table<Symbol> table : createSnapshot.tables()) {
                 DocTableInfo docTableInfo;
                 try {

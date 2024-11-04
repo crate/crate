@@ -331,7 +331,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
-        return new CopyToPlan(analysis, tableStats);
+        return new CopyToPlan(analysis);
     }
 
     @Override

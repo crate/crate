@@ -95,7 +95,7 @@ public class RefreshTablePlan implements Plan {
             .whenComplete(
                 new OneRowActionListener<>(
                     consumer,
-                    response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
+                    ignoredResponse -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
                 ));
     }
 

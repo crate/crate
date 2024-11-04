@@ -83,7 +83,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
                 remainingFilterSymbols.add(part);
             }
         }
-        assert remainingFilterSymbols.size() > 0 || windowPartitionedBasedFilters.size() > 0 :
+        assert !remainingFilterSymbols.isEmpty() || !windowPartitionedBasedFilters.isEmpty() :
             "Splitting the filter symbol must result in at least one group";
 
         /* SELECT ROW_NUMBER() OVER(PARTITION BY id)

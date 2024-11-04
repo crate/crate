@@ -31,7 +31,6 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
@@ -67,8 +66,6 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 
 public class RestoreSnapshotPlan implements Plan {
-
-    private static final String ALL_TEMPLATES = "_all";
 
     private final AnalyzedRestoreSnapshot restoreSnapshot;
 
@@ -117,7 +114,7 @@ public class RestoreSnapshotPlan implements Plan {
                 }
                 return new RestoreSnapshotRequest.TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
             })
-            .collect(Collectors.toList());
+            .toList();
 
         String tableRenamePattern = TABLE_RENAME_PATTERN.get(settings);
         String tableRenameReplacement = TABLE_RENAME_REPLACEMENT.get(settings);
@@ -165,7 +162,7 @@ public class RestoreSnapshotPlan implements Plan {
             .map(eval);
         Settings settings = Settings.builder().put(properties).build();
 
-        HashSet<BoundRestoreSnapshot.RestoreTableInfo> restoreTables = new HashSet<>(restoreSnapshot.tables().size());
+        HashSet<BoundRestoreSnapshot.RestoreTableInfo> restoreTables = HashSet.newHashSet(restoreSnapshot.tables().size());
         for (Table<Symbol> table : restoreSnapshot.tables()) {
             var relationName = RelationName.of(
                 table.getName(),

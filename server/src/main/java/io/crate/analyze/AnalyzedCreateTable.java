@@ -46,6 +46,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.ClusteredBy;
@@ -104,8 +105,9 @@ public record AnalyzedCreateTable(
             .map(numberOfShards::fromNumberOfShards)
             .orElseGet(numberOfShards::defaultNumberOfShards);
 
-        Settings.Builder builder = Settings.builder();
-        builder.put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
+        Settings.Builder builder = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards)
+            .put(NumberOfReplicas.SETTING.getDefault(Settings.EMPTY));
 
         Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
@@ -143,7 +145,7 @@ public record AnalyzedCreateTable(
         }
 
         TableProperties.analyze(
-            builder, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
+            builder, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue));
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)

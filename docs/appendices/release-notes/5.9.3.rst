@@ -47,6 +47,12 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused error to be thrown when attempting to access a
+  nested field of an :ref:`OBJECT <type-object>`, which contains also arrays of
+  :ref:`OBJECT <type-object>`, e.g.::
+
+      SELECT {"o"=[{"oo"={"x"= 10}}, {"oo"={"x"= 20}}]}['o']['oo']['x']
+
 - Fixed an issue that prevented to cast an array of :ref:`TEXT <type-text>`
   containing JSON text representation values to an array of
   :ref:`OBJECT <type-object>`.
@@ -65,3 +71,14 @@ Fixes
       |       1.0 |
       +-----------+
 
+- Fixed an issue which can cause the data of a table to not be queried anymore and the
+  :ref:`analyze` to fail, if a sub column is added to an object column with
+  column policy ``IGNORED`` when the table is not empty and the new column's
+  data type is different from the existing column's values.
+  This is not allowed anymore and results in an error. For example::
+
+    CREATE TABLE t (o OBJECT(IGNORED));
+    INSERT INTO t (o) VALUES ({x=1});
+    ALTER TABLE t ADD COLUMN o['x'] AS TEXT; <--- this is not allowed anymore
+    INSERT INTO t (o) VALUES ({x='foo'});
+    ANALYZE; <--- this will fail without the fix

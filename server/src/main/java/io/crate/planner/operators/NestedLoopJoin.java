@@ -201,11 +201,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     }
 
     @Override
-    public List<LogicalPlan> sources() {
-        return List.of(lhs, rhs);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new NestedLoopJoin(
             sources.get(0),

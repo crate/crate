@@ -21,10 +21,6 @@
 
 package io.crate.monitor;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.Constants;
-import org.apache.logging.log4j.LogManager;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +38,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.Constants;
+
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 
 /**
  * A class that provides system information as similarly as possible as it was returned by Sigar.
@@ -506,7 +508,7 @@ public class SysInfo {
                     if (!lines.isEmpty()) {
                         String[] parts = lines.get(0).split(" ");
                         if (parts.length == 2) {
-                            double uptimeMillis = Float.parseFloat(parts[1]) * 1000.0;
+                            double uptimeMillis = JavaFloatParser.parseFloat(parts[1]) * 1000.0;
                             return (long) uptimeMillis;
                         }
                     }

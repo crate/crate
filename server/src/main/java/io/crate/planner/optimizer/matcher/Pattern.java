@@ -50,5 +50,4 @@ public abstract class Pattern<T> {
     public Match<T> accept(Object object, Captures captures) {
         return accept(object, captures, UnaryOperator.identity());
     }
-
 }

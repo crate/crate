@@ -34,8 +34,7 @@ public class FetchSource {
     private final LinkedHashSet<InputColumn> fetchIdCols = new LinkedHashSet<>();
     private final ArrayList<Reference> references = new ArrayList<>();
 
-    public FetchSource() {
-    }
+    public FetchSource() {}
 
     public void addFetchIdColumn(InputColumn fetchIdColumn) {
         fetchIdCols.add(fetchIdColumn);
