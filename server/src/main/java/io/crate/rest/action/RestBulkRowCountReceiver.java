@@ -43,7 +43,10 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     @Override
     public void setNextRow(Row row) {
         rowCount = (long) row.get(0);
-        failure = (Throwable) row.get(1);
+        // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
+        if (results.length > 1) {
+            failure = (Throwable) row.get(1);
+        }
     }
 
     @Override

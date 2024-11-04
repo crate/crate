@@ -663,10 +663,9 @@ public class SQLTransportExecutor {
         public void setNextRow(Row row) {
             long rowCount = (long) row.get(0);
             Throwable failure = null;
-            try {
+            // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
+            if (bulkResponse.size() > 1) {
                 failure = (Throwable) row.get(1);
-            } catch (IndexOutOfBoundsException e) {
-                // ignore, must be an optimized bulk request with only 1 bulk arg/operation
             }
             bulkResponse.update(resultIdx, rowCount, failure);
         }
