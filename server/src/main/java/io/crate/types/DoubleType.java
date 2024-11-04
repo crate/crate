@@ -35,6 +35,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -157,7 +158,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         } else if (value instanceof Double d) {
             return d;
         } else if (value instanceof String s) {
-            return Double.valueOf(s);
+            return JavaDoubleParser.parseDouble(s);
         } else if (value instanceof BigDecimal bigDecimalValue) {
             if (DOUBLE_MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
                 || DOUBLE_MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {

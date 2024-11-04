@@ -22,10 +22,12 @@
 package io.crate.protocols.postgres.types;
 
 
-import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
 
 import org.jetbrains.annotations.NotNull;
-import java.nio.charset.StandardCharsets;
+
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
+import io.netty.buffer.ByteBuf;
 
 class RealType extends PGType<Float> {
 
@@ -75,6 +77,6 @@ class RealType extends PGType<Float> {
 
     @Override
     Float decodeUTF8Text(byte[] bytes) {
-        return Float.parseFloat(new String(bytes, StandardCharsets.UTF_8));
+        return JavaFloatParser.parseFloat(bytes);
     }
 }

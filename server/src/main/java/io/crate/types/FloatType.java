@@ -35,6 +35,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -157,7 +158,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         } else if (value instanceof Float f) {
             return f;
         } else if (value instanceof String s) {
-            return Float.parseFloat(s);
+            return JavaFloatParser.parseFloat(s);
         } else if (value instanceof BigDecimal bigDecimalValue) {
             if (MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
                 || MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {

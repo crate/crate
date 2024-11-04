@@ -21,6 +21,8 @@ package org.elasticsearch.common.unit;
 
 import org.elasticsearch.common.geo.GeoUtils;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+
 /**
  * The DistanceUnit enumerates several units for measuring distances. These units
  * provide methods for converting strings and methods to convert units among each
@@ -201,11 +203,11 @@ public enum DistanceUnit {
             for (DistanceUnit unit : values()) {
                 for (String name : unit.names) {
                     if (distance.endsWith(name)) {
-                        return new Distance(Double.parseDouble(distance.substring(0, distance.length() - name.length())), unit);
+                        return new Distance(JavaDoubleParser.parseDouble(distance.substring(0, distance.length() - name.length())), unit);
                     }
                 }
             }
-            return new Distance(Double.parseDouble(distance), defaultUnit);
+            return new Distance(JavaDoubleParser.parseDouble(distance), defaultUnit);
         }
     }
 }
