@@ -132,4 +132,15 @@ public class RestActionReceiversTest extends ESTestCase {
             "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}" +
             "]}").isEqualTo(s);
     }
+
+    @Test
+    public void test_rest_bulk_row_count_receiver_supports_single_column_row_on_single_bulk_arg() throws Exception {
+        var results = new RestBulkRowCountReceiver.Result[1];
+        var bulkRowCountReceiver = new RestBulkRowCountReceiver(results, 0);
+        // A row with a single column must not throw an exception on reading a possible second column
+        bulkRowCountReceiver.setNextRow(new Row1(1L));
+        bulkRowCountReceiver.allFinished();
+        assertThat(results[0].rowCount()).isEqualTo(1L);
+        assertThat(results[0].error()).isNull();
+    }
 }
