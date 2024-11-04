@@ -36,18 +36,13 @@ public final class TypeCompatibility {
         if (type2.equals(UndefinedType.INSTANCE)) {
             return type1;
         }
-        String type1Base = type1.getTypeSignature().getBaseTypeName();
-        String type2Base = type2.getTypeSignature().getBaseTypeName();
-        if (type1Base.equals(type2Base)) {
-            // If given types share the same base, e.g. arrays, parameter types must be compatible.
-            if (type1.getTypeParameters().isEmpty() == false || type2.getTypeParameters().isEmpty() == false) {
-                try {
-                    return DataTypes.merge(type1, type2);
-                } catch (IllegalArgumentException ex) {
-                    return null;
-                }
+        // If given types share the same base, e.g. arrays, parameter types must be compatible.
+        if (type1.getTypeParameters().isEmpty() == false || type2.getTypeParameters().isEmpty() == false) {
+            try {
+                return DataTypes.merge(type1, type2);
+            } catch (IllegalArgumentException ex) {
+                return null;
             }
-            return type1;
         }
         return convertTypeByPrecedence(type1, type2);
     }

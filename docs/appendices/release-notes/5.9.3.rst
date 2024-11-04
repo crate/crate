@@ -73,6 +73,11 @@ Fixes
       |       1.0 |
       +-----------+
 
+- Fixed an issue that caused ``=`` on a :ref:`NUMERIC type<type-numeric>` and a
+  number type such as :ref:`DOUBLE PRECISION <type-double-precision>` or
+  :ref:`INTEGER <type-integer>` to throw a ``ClassCastException`` or to return
+  invalid results.
+
 - Fixed an issue which can cause the data of a table to not be queried anymore and the
   :ref:`analyze` to fail, if a sub column is added to an object column with
   column policy ``IGNORED`` when the table is not empty and the new column's

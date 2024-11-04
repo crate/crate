@@ -26,7 +26,6 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -102,7 +101,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
                       "\"myObj\" object as (x object as (\"AbC\" int))" +
-                      ")");
+                      ")")
+            .addTable("create table num (a numeric(4,2), b double)");
         expressions = new SqlExpressions(Collections.emptyMap());
     }
 
@@ -562,5 +562,18 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         symbol = executor.asSymbol("t1.a not ilike all(['a', 'b', 'c'])");
         assertThat(symbol).isSQL("(doc.t1.a NOT ILIKE ALL(['a', 'b', 'c']))");
+    }
+
+    @Test
+    public void test_eq_operator_on_numeric_and_number_types() {
+        assertThat(executor.asSymbol("num.a = num.b")).isFunction(
+            EqOperator.NAME,
+            x -> assertThat(x).isReference().hasName("a"),
+            x -> assertThat(x).isFunction(
+                ImplicitCastFunction.NAME,
+                y -> assertThat(y).isReference().hasName("b"),
+                y -> assertThat(y).isLiteral("numeric") // implicit cast to 'numeric' NOT 'numeric(4,2)'
+            )
+        );
     }
 }
