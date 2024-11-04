@@ -44,6 +44,7 @@ import org.elasticsearch.monitor.Probes;
 import org.elasticsearch.monitor.os.OsStats.Cgroup;
 import org.elasticsearch.monitor.os.OsStats.Cgroup.CpuStat;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.common.SuppressForbidden;
 
 
@@ -160,7 +161,11 @@ public class OsProbe {
                 final String procLoadAvg = readProcLoadavg();
                 assert procLoadAvg.matches("(\\d+\\.\\d+\\s+){3}\\d+/\\d+\\s+\\d+");
                 final String[] fields = procLoadAvg.split("\\s+");
-                return new double[]{Double.parseDouble(fields[0]), Double.parseDouble(fields[1]), Double.parseDouble(fields[2])};
+                return new double[]{
+                    JavaDoubleParser.parseDouble(fields[0]),
+                    JavaDoubleParser.parseDouble(fields[1]),
+                    JavaDoubleParser.parseDouble(fields[2])
+                };
             } catch (final IOException e) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("error reading /proc/loadavg", e);

@@ -303,6 +303,11 @@
       <version>${versions.jackson}</version>
     </dependency>
     <dependency>
+      <groupId>ch.randelshofer</groupId>
+      <artifactId>fastdoubleparser</artifactId>
+      <version>${versions.fastdoubleparser}</version>
+    </dependency>
+    <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>${versions.jdbc}</version>

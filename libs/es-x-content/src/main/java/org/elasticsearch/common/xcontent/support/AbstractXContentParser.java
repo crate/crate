@@ -34,6 +34,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParseException;
 import org.elasticsearch.common.xcontent.XContentParser;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.common.Booleans;
 import io.crate.common.CheckedFunction;
 
@@ -108,7 +110,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         if (token == Token.VALUE_STRING) {
             checkCoerceString(coerce, Short.class);
 
-            double doubleValue = Double.parseDouble(text());
+            double doubleValue = JavaDoubleParser.parseDouble(text());
 
             if (doubleValue < Short.MIN_VALUE || doubleValue > Short.MAX_VALUE) {
                 throw new IllegalArgumentException("Value [" + text() + "] is out of range for a short");
@@ -133,7 +135,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         Token token = currentToken();
         if (token == Token.VALUE_STRING) {
             checkCoerceString(coerce, Integer.class);
-            double doubleValue = Double.parseDouble(text());
+            double doubleValue = JavaDoubleParser.parseDouble(text());
 
             if (doubleValue < Integer.MIN_VALUE || doubleValue > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Value [" + text() + "] is out of range for an integer");
@@ -205,7 +207,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         Token token = currentToken();
         if (token == Token.VALUE_STRING) {
             checkCoerceString(coerce, Float.class);
-            return Float.parseFloat(text());
+            return JavaFloatParser.parseFloat(text());
         }
         return doFloatValue();
     }
@@ -223,7 +225,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         Token token = currentToken();
         if (token == Token.VALUE_STRING) {
             checkCoerceString(coerce, Double.class);
-            return Double.parseDouble(text());
+            return JavaDoubleParser.parseDouble(text());
         }
         return doDoubleValue();
     }

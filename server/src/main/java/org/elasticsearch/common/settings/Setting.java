@@ -60,6 +60,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.common.Booleans;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Tuple;
@@ -1118,7 +1120,7 @@ public class Setting<T> {
             key,
             (s) -> Float.toString(defaultValue),
             (s) -> {
-                float value = Float.parseFloat(s);
+                float value = JavaFloatParser.parseFloat(s);
                 if (value < minValue) {
                     throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be >= " + minValue);
                 }
@@ -1573,7 +1575,7 @@ public class Setting<T> {
 
     public static Setting<Double> doubleSetting(String key, double defaultValue, double minValue, double maxValue, Property... properties) {
         return new Setting<>(key, (s) -> Double.toString(defaultValue), (s) -> {
-            final double d = Double.parseDouble(s);
+            final double d = JavaDoubleParser.parseDouble(s);
             if (d < minValue) {
                 throw new IllegalArgumentException("Failed to parse value [" + s + "] for setting [" + key + "] must be >= " + minValue);
             }
