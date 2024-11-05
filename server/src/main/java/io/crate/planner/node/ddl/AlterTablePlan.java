@@ -152,7 +152,7 @@ public class AlterTablePlan implements Plan {
         return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    public static Settings.Builder getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
+    private static Settings.Builder getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
         Settings.Builder settingsBuilder = Settings.builder();
         if (!node.genericProperties().isEmpty()) {
             TableProperties.analyze(settingsBuilder, tableParameters, node.genericProperties());
