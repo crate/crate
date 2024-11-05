@@ -32,8 +32,8 @@ import org.junit.Test;
 public class ByteTypeTest extends DataTypeTestCase<Byte> {
 
     @Override
-    public DataType<Byte> getType() {
-        return ByteType.INSTANCE;
+    protected DataDef<Byte> getDataDef() {
+        return DataDef.fromType(ByteType.INSTANCE);
     }
 
     @Test

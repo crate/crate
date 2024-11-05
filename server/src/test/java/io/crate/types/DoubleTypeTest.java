@@ -33,8 +33,8 @@ import org.junit.Test;
 public class DoubleTypeTest extends DataTypeTestCase<Double> {
 
     @Override
-    public DataType<Double> getType() {
-        return DoubleType.INSTANCE;
+    protected DataDef<Double> getDataDef() {
+        return DataDef.fromType(DoubleType.INSTANCE);
     }
 
     @Test

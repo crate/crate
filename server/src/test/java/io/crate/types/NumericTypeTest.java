@@ -231,11 +231,11 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
     }
 
     @Override
-    public DataType<BigDecimal> getType() {
+    protected DataDef<BigDecimal> getDataDef() {
         var random = random();
         int precision = random.nextInt(2, 39);
         int scale = random.nextInt(0, precision - 1);
-        return new NumericType(precision, scale);
+        return DataDef.fromType(new NumericType(precision, scale));
     }
 
     @Test

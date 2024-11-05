@@ -28,10 +28,10 @@ import java.util.ArrayList;
 import org.junit.Test;
 
 public class FloatVectorTypeTest extends DataTypeTestCase<float[]> {
-
+    
     @Override
-    public DataType<float[]> getType() {
-        return new FloatVectorType(4);
+    protected DataDef<float[]> getDataDef() {
+        return DataDef.fromType(new FloatVectorType(4));
     }
 
     @Override

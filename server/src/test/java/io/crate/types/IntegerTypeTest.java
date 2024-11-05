@@ -32,8 +32,8 @@ import org.junit.Test;
 public class IntegerTypeTest extends DataTypeTestCase<Integer> {
 
     @Override
-    public DataType<Integer> getType() {
-        return IntegerType.INSTANCE;
+    protected DataDef<Integer> getDataDef() {
+        return DataDef.fromType(IntegerType.INSTANCE);
     }
 
     @Test

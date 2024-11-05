@@ -39,8 +39,8 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Override
-    public DataType<String> getType() {
-        return StringType.of(randomIntBetween(1, 40));
+    protected DataDef<String> getDataDef() {
+        return DataDef.fromType(StringType.of(randomIntBetween(1, 40)));
     }
 
     @Test
