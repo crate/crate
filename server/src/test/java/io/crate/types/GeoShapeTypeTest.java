@@ -55,11 +55,11 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         "multipoint (10 10, 20 20)"
     );
 
-    private GeoShapeType type = GeoShapeType.INSTANCE;
+    private final GeoShapeType type = GeoShapeType.INSTANCE;
 
     @Override
-    public DataType<Map<String, Object>> getType() {
-        return type;
+    protected DataDef<Map<String, Object>> getDataDef() {
+        return DataDef.fromType(type);
     }
 
     private static Map<String, Object> parse(String json) {

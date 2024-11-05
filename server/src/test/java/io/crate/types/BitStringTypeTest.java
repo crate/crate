@@ -39,8 +39,8 @@ import io.crate.testing.DataTypeTesting;
 public class BitStringTypeTest extends DataTypeTestCase<BitString> {
 
     @Override
-    public DataType<BitString> getType() {
-        return BitStringType.INSTANCE_ONE;
+    protected DataDef<BitString> getDataDef() {
+        return DataDef.fromType(BitStringType.INSTANCE_ONE);
     }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();

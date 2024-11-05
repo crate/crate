@@ -33,8 +33,8 @@ import org.junit.Test;
 public class ShortTypeTest extends DataTypeTestCase<Short> {
 
     @Override
-    public DataType<Short> getType() {
-        return ShortType.INSTANCE;
+    protected DataDef<Short> getDataDef() {
+        return DataDef.fromType(ShortType.INSTANCE);
     }
 
     @Test

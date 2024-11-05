@@ -38,21 +38,11 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public DataType<List<Object>> getType() {
-        // we don't support arrays of float vectors
-        // TODO: maybe make this a property of the DataType itself rather than a check in DataTypeAnalyzer?
-        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
-            Set.of(FloatVectorType.INSTANCE_ONE)
-        );
-        return new ArrayType<>(randomType);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
     protected DataDef<List<Object>> getDataDef() {
         // Exclude float vectors and objects - we don't support arrays of float vector,
         // and arrays of objects aren't currently handled by data generation code; these
         // are tested in ObjectTypeTest instead.
+        // TODO: maybe make this a property of the DataType itself rather than a check in DataTypeAnalyzer?
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED)
         );

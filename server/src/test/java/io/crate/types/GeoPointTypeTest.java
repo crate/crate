@@ -38,8 +38,8 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 public class GeoPointTypeTest extends DataTypeTestCase<Point> {
 
     @Override
-    public DataType<Point> getType() {
-        return GeoPointType.INSTANCE;
+    protected DataDef<Point> getDataDef() {
+        return DataDef.fromType(GeoPointType.INSTANCE);
     }
 
     @Override

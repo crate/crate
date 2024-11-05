@@ -30,8 +30,8 @@ import org.junit.Test;
 public class IpTypeTest extends DataTypeTestCase<String> {
 
     @Override
-    public DataType<String> getType() {
-        return IpType.INSTANCE;
+    protected DataDef<String> getDataDef() {
+        return DataDef.fromType(IpType.INSTANCE);
     }
 
     @Test

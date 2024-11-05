@@ -34,8 +34,8 @@ import io.crate.testing.SqlExpressions;
 public class CharacterTypeTest extends DataTypeTestCase<String> {
 
     @Override
-    public DataType<String> getType() {
-        return CharacterType.INSTANCE;
+    protected DataDef<String> getDataDef() {
+        return DataDef.fromType(CharacterType.INSTANCE);
     }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();

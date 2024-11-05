@@ -56,8 +56,6 @@ import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
@@ -66,14 +64,13 @@ import io.crate.testing.SQLExecutor;
 
 public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTest {
 
-    public abstract DataType<T> getType();
-
-    protected record DataDef<T>(DataType<T> type, String definition, Supplier<T> data) {}
-
-    protected DataDef<T> getDataDef() {
-        DataType<T> type = getType();
-        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
+    protected record DataDef<T>(DataType<T> type, String definition, Supplier<T> data) {
+        static <S> DataDef<S> fromType(DataType<S> type) {
+            return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
+        }
     }
+
+    protected abstract DataDef<T> getDataDef();
 
     @Test
     public void test_reference_resolver() throws Exception {
@@ -194,26 +191,23 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_translog_streaming_roundtrip() throws Exception {
-        DataType<T> type = getType();
-        assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
-        String columnType = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+        DataDef<T> dataDef = getDataDef();
+        assumeTrue("Data type " + dataDef.type + " does not support storage", dataDef.type.storageSupport() != null);
         var sqlExecutor = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (id int, x " + columnType + ")");
+            .addTable("create table tbl (id int, x " + dataDef.definition + ")");
 
-        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
         Reference reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
-        T value = dataGenerator.get();
         Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
-        ParsedDocument doc = indexer.index(item(value));
+        ParsedDocument doc = indexer.index(item(dataDef.data.get()));
         IndexerTest.assertTranslogParses(doc, table);
     }
 
     @Test
     public void test_type_streaming_roundtrip() throws Exception {
-        DataType<T> type = getType();
+        DataType<T> type = getDataDef().type();
         BytesStreamOutput out = new BytesStreamOutput();
         DataTypes.toStream(type, out);
 
@@ -226,7 +220,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_value_streaming_roundtrip() throws Exception {
-        DataType<T> type = getType();
+        DataType<T> type = getDataDef().type();
         Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         T value = dataGenerator.get();
 
