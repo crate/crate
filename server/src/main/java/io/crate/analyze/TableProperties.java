@@ -30,6 +30,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.settings.NumberOfReplicas;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 
 public final class TableProperties {
@@ -101,7 +103,7 @@ public final class TableProperties {
                 setting = supportedSettings.get(groupKey);
                 if (setting instanceof Setting.AffixSetting<?> affixSetting) {
                     setting = affixSetting.getConcreteSetting(IndexMetadata.INDEX_SETTING_PREFIX + settingName);
-                    return new SettingHolder(setting, true);
+                    return new SettingHolder(setting);
                 }
             }
         }
@@ -125,16 +127,10 @@ public final class TableProperties {
 
         private final Setting<?> setting;
         private final boolean isAffixSetting;
-        private final boolean isChildOfAffixSetting;
 
         SettingHolder(Setting<?> setting) {
-            this(setting, false);
-        }
-
-        SettingHolder(Setting<?> setting, boolean isChildOfAffixSetting) {
             this.setting = setting;
             this.isAffixSetting = setting instanceof Setting.AffixSetting;
-            this.isChildOfAffixSetting = isChildOfAffixSetting;
         }
 
         void apply(Settings.Builder builder, Object valueSymbol) {
@@ -160,14 +156,11 @@ public final class TableProperties {
                 throw new IllegalArgumentException(
                     "Cannot change a dynamic group setting, only concrete settings allowed.");
             }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (isChildOfAffixSetting) {
-                // affix settings should be removed on reset, they don't have a default value
-                builder.putNull(setting.getKey());
-            } else if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
+            builder.putNull(setting.getKey());
+            if (setting instanceof NumberOfReplicas numberOfReplicas) {
+                builder.put(numberOfReplicas.getDefault(Settings.EMPTY));
+            } else if (setting.equals(TableParameters.COLUMN_POLICY)) {
+                builder.put(setting.getKey(), ColumnPolicy.STRICT);
             }
         }
     }

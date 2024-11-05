@@ -425,7 +425,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName()).isNotNull();
         assertThat(analysis.isPartitioned()).isTrue();
-        assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isEqualTo("5");
+        assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())).isNull();
     }
 
     @Test
@@ -457,6 +457,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
         analyzedStatement = analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
         assertThat(analyzedStatement.settings().get(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
-            .isEqualTo("1");
+            .isNull();
     }
 }

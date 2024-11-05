@@ -133,7 +133,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
     public static final Setting<Integer> INDEX_NUMBER_OF_SHARDS_SETTING = buildNumberOfShardsSetting();
     public static final String SETTING_NUMBER_OF_REPLICAS = "index.number_of_replicas";
     public static final Setting<Integer> INDEX_NUMBER_OF_REPLICAS_SETTING =
-        Setting.intSetting(SETTING_NUMBER_OF_REPLICAS, 1, 0, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
+        Setting.intSetting(SETTING_NUMBER_OF_REPLICAS, 0, 0, Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
     public static final String SETTING_ROUTING_PARTITION_SIZE = "index.routing_partition_size";
     public static final Setting<Integer> INDEX_ROUTING_PARTITION_SIZE_SETTING =
