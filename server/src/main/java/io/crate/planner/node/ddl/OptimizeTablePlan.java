@@ -32,11 +32,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesAction;
+import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -109,15 +113,26 @@ public class OptimizeTablePlan implements Plan {
             request.flush(FLUSH.get(settings));
             request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
-            dependencies.client()
-                .execute(ForceMergeAction.INSTANCE, request)
-                .whenComplete(
-                    new OneRowActionListener<>(
-                        consumer,
-                        ignoredResponse -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
-                    )
-                );
+            trySyncRetentionLeases(dependencies, toOptimize)
+                .handle((_, _) -> null)     // ignore errors, sync is a best-effort
+                .thenRun(() -> dependencies.client()
+                    .execute(ForceMergeAction.INSTANCE, request)
+                    .whenComplete(
+                        new OneRowActionListener<>(
+                            consumer,
+                            _ -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
+                        )
+                    ));
         }
+    }
+
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<String> indexNames) {
+        var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
+        if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
+            return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
+        }
+        return dependencies.client()
+            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(indexNames.toArray(String[]::new)));
     }
 
     @VisibleForTesting

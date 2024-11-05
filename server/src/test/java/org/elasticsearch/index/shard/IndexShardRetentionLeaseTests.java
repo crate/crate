@@ -331,7 +331,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         assertThatThrownBy(() -> shard.removeRetentionLease(randomAlphaOfLength(10), ActionListener.wrap(() -> {})))
             .isExactlyInstanceOf(AssertionError.class)
             .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
-        shard.syncRetentionLeases();
+        shard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
         closeShards(shard);
     }
 

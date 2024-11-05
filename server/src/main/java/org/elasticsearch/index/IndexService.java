@@ -49,6 +49,7 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -681,7 +682,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     }
 
     private void syncRetentionLeases() {
-        sync(IndexShard::syncRetentionLeases, "retention lease");
+        sync(s -> s.syncRetentionLeases(false, ActionListener.wrap(
+            _ -> {},
+            e -> logger.warn(new ParameterizedMessage("failed to sync retention leases after expiration check"), e)
+        )), "retention lease");
     }
 
     private void sync(final Consumer<IndexShard> sync, final String source) {
