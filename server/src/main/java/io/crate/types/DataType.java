@@ -218,6 +218,14 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return possibleConversions.contains(other.id());
     }
 
+    DataType<?> merge(DataType<?> other) {
+        assert this.id() == other.id() || this.precedes(other) : "'this' precedes 'other' or they must be the same type";
+        if (other.isConvertableTo(this, false)) {
+            return this;
+        }
+        throw new IllegalArgumentException("'" + other + "' is not convertible to '" + this + "'");
+    }
+
     @Override
     public int hashCode() {
         return id();

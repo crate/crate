@@ -276,7 +276,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return true;
     }
 
-    public static ObjectType merge(ObjectType left, ObjectType right) {
+    @Override
+    DataType<?> merge(DataType<?> other) {
+        if (other instanceof ObjectType o) {
+            return merge(this, o);
+        } else {
+            return super.merge(other);
+        }
+    }
+
+    private static ObjectType merge(ObjectType left, ObjectType right) {
         ObjectType.Builder mergedObjectBuilder = ObjectType.builder();
         for (var e : left.innerTypes().entrySet()) {
             mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());

@@ -59,7 +59,13 @@ Changes
 SQL Statements
 --------------
 
-None
+- ``CREATE TABLE`` no longer persists default values for all available table
+  options but instead only stores the explicitly defined options. As a result,
+  ``SHOW CREATE TABLE`` will only show the explicitly defined options in the
+  ``WITH`` clause. An exception are the ``column_policy`` and
+  ``number_of_replicas`` options, which always show up. To get a complete view
+  of the effective options you can query the ``information_schema.tables``
+  table.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

@@ -102,27 +102,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -152,27 +134,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -204,27 +168,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED BY ("col_a") INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -253,26 +199,8 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -298,27 +226,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             CLUSTERED BY ("cluster_column") INTO 5 SHARDS
             PARTITIONED BY ("partition_column")
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -372,27 +282,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -420,27 +312,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 5 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-all',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-all'
             )""");
     }
 
@@ -466,27 +340,9 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
             )
             CLUSTERED INTO 4 SHARDS
             WITH (
-               "allocation.max_retries" = 5,
-               "blocks.metadata" = false,
-               "blocks.read" = false,
-               "blocks.read_only" = false,
-               "blocks.read_only_allow_delete" = false,
-               "blocks.write" = false,
-               codec = 'default',
                column_policy = 'strict',
-               "mapping.total_fields.limit" = 1000,
-               max_ngram_diff = 1,
-               max_shingle_diff = 3,
                "merge.scheduler.max_thread_count" = 1,
-               number_of_replicas = '0-1',
-               "routing.allocation.enable" = 'all',
-               "routing.allocation.total_shards_per_node" = -1,
-               "store.type" = 'fs',
-               "translog.durability" = 'REQUEST',
-               "translog.flush_threshold_size" = 536870912,
-               "translog.sync_interval" = 5000,
-               "unassigned.node_left.delayed_timeout" = 60000,
-               "write.wait_for_active_shards" = '1'
+               number_of_replicas = '0-1'
             )""");
     }
 

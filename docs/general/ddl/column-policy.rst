@@ -76,16 +76,21 @@ Now, you can do inserts that add columns::
 Which will update the table schema::
 
     cr> show create table my_table;
-    +-----------------------------------------------------+
-    | SHOW CREATE TABLE doc.my_table                      |
-    +-----------------------------------------------------+
-    | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
-    |    "title" TEXT,                                    |
-    |    "author" TEXT,                                   |
-    |    "new_col" BIGINT                                 |
-    | )                                                   |
-    | CLUSTERED INTO 4 SHARDS                             |
-    ...
+    +-----------------------------------------------+
+    | SHOW CREATE TABLE doc.my_table                |
+    +-----------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "doc"."my_table" ( |
+    |    "title" TEXT,                              |
+    |    "author" TEXT,                             |
+    |    "new_col" BIGINT                           |
+    | )                                             |
+    | CLUSTERED INTO 4 SHARDS                       |
+    | WITH (                                        |
+    |    column_policy = 'dynamic',                 |
+    |    number_of_replicas = '0-1'                 |
+    | )                                             |
+    +-----------------------------------------------+
+    SHOW 1 row in set (... sec)
 
 New columns added to dynamic tables are identical to regular columns. You can
 retrieve them, sort by them and use them in where clauses.
