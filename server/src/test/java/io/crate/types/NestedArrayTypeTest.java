@@ -62,7 +62,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
     @SuppressWarnings("unchecked")
     public DataType<List<List<Object>>> getType() {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
-            Set.of(FloatVectorType.INSTANCE_ONE)
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED)
         );
         return new ArrayType<>(new ArrayType<>(randomType));
     }
