@@ -6,48 +6,27 @@ Version 5.9.0
 
 Released on 2024-10-09.
 
+.. WARNING::
+
+    5.9.0 was a testing release not promoted to stable due to `Known
+    issues`_.
+    The first stable version for the 5.9 line is :ref:`version_5.9.2`. Please
+    upgrade to 5.9.2 directly.
+
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
     before you upgrade to 5.9.0.
 
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
     We recommend that you upgrade to the latest 5.8 release before moving to
     5.9.0.
 
     Before upgrading, you should `back up your data`_.
 
-.. WARNING::
-
-    Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.0 can lead
-    to problems with queries on ``sys.users`` table.
-
-    Inserting ``0`` value into a column of a :ref:`NUMERIC<type-numeric>`
-    type via PG wire leads to an error in 5.9.0.
-
-    Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.8.x to
-    5.9.0 can lead to problems when writing into a column of the
-    ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
-    types.
-
-    Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.1 can lead
-    to problems when running queries as a user created on an older version
-    during a rolling upgrade.
-
-    Please do a rolling upgrade from 5.8.x to 5.9.2 or higher instead.
-
-.. WARNING::
-
-    Tables that were created before CrateDB 4.x will not function with 5.x
-    and must be recreated before moving to 5.x.x.
-
-    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
-    `inserting the data into a new table`_.
-
-    The output of ``COPY TO``, when exporting data to a file, from shards on 5.9
-    nodes, now includes partition values. We recommend waiting until the entire
-    cluster is upgraded before running ``COPY TO`` with file output to ensure
-    that the output across different shards is consistent.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
@@ -109,6 +88,9 @@ Breaking Changes
 
 - Changed the output of ``COPY TO``, executed on a partitioned table, to now
   include partition columns.
+  We recommend waiting until the entire cluster is upgraded before running
+  ``COPY TO`` with file output to ensure that the output across different shards
+  is consistent.
 
 - Dynamically added empty arrays, or arrays that only contain ``NULL``, are
   now stored in the schema and automatically updated to an array of defined type
@@ -211,3 +193,22 @@ Administration and Operations
 
 - Added schema, table, partition and shard information to ``QueryBreakdown``
   entries of the ``EXPLAIN ANALYZE`` statement.
+
+
+Known issues
+============
+
+- Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.0 can lead
+  to problems with queries on ``sys.users`` table.
+
+- Inserting ``0`` value into a column of a :ref:`NUMERIC<type-numeric>`
+  type via PG wire leads to an error in 5.9.0.
+
+- Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.8.x to
+  5.9.0 can lead to problems when writing into a column of the
+  ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
+  types.
+
+- Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.1 can lead
+  to problems when running queries as a user created on an older version
+  during a rolling upgrade.
