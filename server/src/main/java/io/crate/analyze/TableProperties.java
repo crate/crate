@@ -58,8 +58,8 @@ public final class TableProperties {
                                                String invalidMessage) {
         for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
-            SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
-            if (settingHolder == null) {
+            Setting<?> setting = getSupportedSetting(supportedSettings, settingName);
+            if (setting == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
             }
             Object value = entry.getValue();
@@ -72,7 +72,7 @@ public final class TableProperties {
                     )
                 );
             }
-            settingHolder.apply(builder, entry.getValue());
+            apply(builder, setting, entry.getValue());
         }
     }
 
@@ -85,17 +85,52 @@ public final class TableProperties {
                                               List<String> properties) {
         Map<String, Setting<?>> supportedSettings = tableParameters.supportedSettings();
         for (String name : properties) {
-            SettingHolder settingHolder = getSupportedSetting(supportedSettings, name);
-            if (settingHolder == null) {
+            Setting<?> setting = getSupportedSetting(supportedSettings, name);
+            if (setting == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, name));
             }
-            settingHolder.reset(settingsBuilder);
+            reset(settingsBuilder, setting);
+        }
+    }
+
+    static void apply(Settings.Builder builder, Setting<?> setting, Object value) {
+        if (setting instanceof Setting.AffixSetting<?>) {
+            // only concrete affix settings are supported otherwise it's not possible to parse values
+            throw new IllegalArgumentException(
+                "Cannot change a dynamic group setting, only concrete settings allowed.");
+        }
+        // Need to go through `setting.get` to apply the setting's parse/validation logic
+        // E.g. A `number_of_replicas` value of `0-all` becomes a `Settings` value with
+        //  index.auto_expand_replicas: 0-1
+        //  index.number_of_replicas: 0-all
+        Object resolvedValue = setting.get(Settings.builder()
+            .put(builder.build())
+            .put(setting.getKey(), value)
+            .build()
+        );
+        if (resolvedValue instanceof Settings settings) {
+            builder.put(settings);
+        } else {
+            builder.putStringOrList(setting.getKey(), resolvedValue);
+        }
+    }
+
+    static void reset(Settings.Builder builder, Setting<?> setting) {
+        if (setting instanceof Setting.AffixSetting<?>) {
+            // only concrete affix settings are supported, ES does not support to reset a whole Affix setting group
+            throw new IllegalArgumentException(
+                "Cannot change a dynamic group setting, only concrete settings allowed.");
+        }
+        builder.putNull(setting.getKey());
+        if (setting instanceof NumberOfReplicas numberOfReplicas) {
+            builder.put(numberOfReplicas.getDefault(Settings.EMPTY));
+        } else if (setting.equals(TableParameters.COLUMN_POLICY)) {
+            builder.put(setting.getKey(), ColumnPolicy.STRICT);
         }
     }
 
     @Nullable
-    private static SettingHolder getSupportedSetting(Map<String, Setting<?>> supportedSettings,
-                                                     String settingName) {
+    private static Setting<?> getSupportedSetting(Map<String, Setting<?>> supportedSettings, String settingName) {
         Setting<?> setting = supportedSettings.get(settingName);
         if (setting == null) {
             String groupKey = getPossibleGroup(settingName);
@@ -103,15 +138,11 @@ public final class TableProperties {
                 setting = supportedSettings.get(groupKey);
                 if (setting instanceof Setting.AffixSetting<?> affixSetting) {
                     setting = affixSetting.getConcreteSetting(IndexMetadata.INDEX_SETTING_PREFIX + settingName);
-                    return new SettingHolder(setting);
+                    return setting;
                 }
             }
         }
-
-        if (setting != null) {
-            return new SettingHolder(setting);
-        }
-        return null;
+        return setting;
     }
 
     @Nullable
@@ -121,47 +152,5 @@ public final class TableProperties {
             return key.substring(0, idx);
         }
         return null;
-    }
-
-    private static class SettingHolder {
-
-        private final Setting<?> setting;
-        private final boolean isAffixSetting;
-
-        SettingHolder(Setting<?> setting) {
-            this.setting = setting;
-            this.isAffixSetting = setting instanceof Setting.AffixSetting;
-        }
-
-        void apply(Settings.Builder builder, Object valueSymbol) {
-            if (isAffixSetting) {
-                // only concrete affix settings are supported otherwise it's not possible to parse values
-                throw new IllegalArgumentException(
-                    "Cannot change a dynamic group setting, only concrete settings allowed.");
-            }
-            Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
-            singleSettingBuilder.putStringOrList(setting.getKey(), valueSymbol);
-            Object value = setting.get(singleSettingBuilder.build());
-            if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
-
-        }
-
-        void reset(Settings.Builder builder) {
-            if (isAffixSetting) {
-                // only concrete affix settings are supported, ES does not support to reset a whole Affix setting group
-                throw new IllegalArgumentException(
-                    "Cannot change a dynamic group setting, only concrete settings allowed.");
-            }
-            builder.putNull(setting.getKey());
-            if (setting instanceof NumberOfReplicas numberOfReplicas) {
-                builder.put(numberOfReplicas.getDefault(Settings.EMPTY));
-            } else if (setting.equals(TableParameters.COLUMN_POLICY)) {
-                builder.put(setting.getKey(), ColumnPolicy.STRICT);
-            }
-        }
     }
 }
