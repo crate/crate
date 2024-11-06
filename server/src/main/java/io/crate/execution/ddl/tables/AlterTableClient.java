@@ -33,6 +33,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -74,6 +76,8 @@ import io.crate.sql.tree.ColumnPolicy;
 public class AlterTableClient {
 
     public static final String RESIZE_PREFIX = ".resized.";
+
+    private static final Logger LOGGER = LogManager.getLogger(AlterTableClient.class);
 
     private final ClusterService clusterService;
     private final TransportAlterTableAction transportAlterTableAction;
@@ -124,28 +128,32 @@ public class AlterTableClient {
 
     public CompletableFuture<Long> addColumn(AddColumnRequest addColumnRequest) {
         var newReferences = addColumnRequest.references();
-        String subject = null;
+        String exceptionSubject = null;
+        String warning = null;
         if (addColumnRequest.pKeyIndices().isEmpty() == false) {
-            subject = "primary key";
-        } else if (addColumnRequest.references().stream().anyMatch(ref -> ref instanceof GeneratedReference)) {
-            subject = "generated";
+            exceptionSubject = "primary key";
+        } else if (newReferences.stream().anyMatch(ref -> ref instanceof GeneratedReference)) {
+            exceptionSubject = "generated";
         } else {
             for (Reference newRef : newReferences) {
                 if (newReferences.stream().anyMatch(r -> r.column().isChildOf(newRef.column()))
                     && newRef.columnPolicy().equals(ColumnPolicy.IGNORED)) {
-                    subject = "sub column to an OBJECT(IGNORED) parent";
+                    warning = "Adding a sub column to an OBJECT(IGNORED) parent may shade existing data of this column as the table isn't empty";
                     break;
                 }
             }
         }
-        if (subject != null) {
-            String finalSubject = subject;
+        if (exceptionSubject != null || warning != null) {
+            String finalSubject = exceptionSubject;
+            String finalWarning = warning;
             return getRowCount(addColumnRequest.relationName()).thenCompose(rowCount -> {
                 if (rowCount > 0) {
-                    throw new UnsupportedOperationException("Cannot add a " + finalSubject + " column to a table that isn't empty");
-                } else {
-                    return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
+                    if (finalSubject != null) {
+                        throw new UnsupportedOperationException("Cannot add a " + finalSubject + " column to a table that isn't empty");
+                    }
+                    LOGGER.warn(finalWarning);
                 }
+                return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
             });
         }
         return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);

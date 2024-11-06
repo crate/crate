@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.testing.Asserts.assertExpectedLogMessages;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -30,9 +31,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import java.util.Locale;
 
+import org.apache.logging.log4j.Level;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.MockLogAppender;
 import org.junit.Test;
 
+import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
@@ -342,15 +346,22 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_cannot_add_sub_column_to_ignored_parent_if_table_is_not_empty() {
+    public void test_add_sub_column_to_ignored_parent_if_table_is_not_empty_logs_warning() throws Exception {
         execute("CREATE TABLE t1 (obj object(ignored))");
         execute("INSERT INTO t1 (obj) VALUES ({a={b=21, c=22}})");
         execute("refresh table t1");
 
-        Asserts.assertSQLError(() -> execute("ALTER TABLE t1 ADD COLUMN obj['a'] text"))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4004)
-            .hasMessageContaining("Cannot add a sub column to an OBJECT(IGNORED) parent column to a table that isn't empty");
+        var expectation = new MockLogAppender.SeenEventExpectation(
+            "Logs warning",
+            AlterTableClient.class.getName(),
+            Level.WARN,
+            "Adding a sub column to an OBJECT(IGNORED) parent may shade existing data of this column as the table isn't empty"
+        );
+        assertExpectedLogMessages(
+            () -> execute("ALTER TABLE t1 ADD COLUMN obj['a'] text"),
+            AlterTableClient.class.getName(),
+            expectation
+        );
     }
 
     @Test
