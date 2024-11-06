@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.integrationtests.CopyIntegrationTest.tmpFileWithLines;
+import static io.crate.testing.Asserts.assertExpectedLogMessages;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -34,12 +35,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
@@ -48,8 +46,8 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import io.crate.session.Sessions;
 import io.crate.exceptions.JobKilledException;
+import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -155,6 +153,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                     .isExactlyInstanceOf(JobKilledException.class)
                     .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
             },
+            "io.crate.execution.dml.upsert",
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard1,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",
@@ -231,6 +230,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                     .isExactlyInstanceOf(JobKilledException.class)
                     .hasMessageContaining("Cannot cast value `fail here` to type `integer`");
             },
+            "io.crate.execution.dml.upsert",
             new MockLogAppender.PatternSeenEventExcpectation(
                 "assert failure on node=" + nodeNameOfShard0,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",
@@ -261,20 +261,4 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("select * from t");
         assertThat(response.rowCount()).isEqualTo(cluster().numDataNodes());
     }
-
-    private void assertExpectedLogMessages(Runnable command,
-                                           MockLogAppender.LoggingExpectation ... expectations) throws IllegalAccessException {
-        Logger testLogger = LogManager.getLogger("io.crate.execution.dml.upsert");
-        MockLogAppender appender = new MockLogAppender();
-        Loggers.addAppender(testLogger, appender);
-        try {
-            appender.start();
-            Arrays.stream(expectations).forEach(appender::addExpectation);
-            command.run();
-            appender.assertAllExpectationsMatched();
-        } finally {
-            Loggers.removeAppender(testLogger, appender);
-        }
-    }
-
 }

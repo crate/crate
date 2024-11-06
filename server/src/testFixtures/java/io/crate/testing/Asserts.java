@@ -21,18 +21,25 @@
 
 package io.crate.testing;
 
+import static org.elasticsearch.test.ESTestCase.assertBusy;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.test.MockLogAppender;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -302,4 +309,21 @@ public class Asserts extends Assertions {
     public static Function<Scalar, Consumer<Scalar>> isNotSameInstance() {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
     }
+
+    public static void assertExpectedLogMessages(Runnable command,
+                                                 String loggerName,
+                                                 MockLogAppender.LoggingExpectation ... expectations) throws Exception {
+        Logger testLogger = LogManager.getLogger(loggerName);
+        MockLogAppender appender = new MockLogAppender();
+        Loggers.addAppender(testLogger, appender);
+        try {
+            appender.start();
+            Arrays.stream(expectations).forEach(appender::addExpectation);
+            command.run();
+            assertBusy(appender::assertAllExpectationsMatched);
+        } finally {
+            Loggers.removeAppender(testLogger, appender);
+        }
+    }
+
 }
