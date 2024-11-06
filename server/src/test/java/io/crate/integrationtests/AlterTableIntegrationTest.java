@@ -373,4 +373,21 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("SELECT obj['a'] FROM t1");
         assertThat(response).hasRows("bar");
     }
+
+    @Test
+    public void test_can_add_sub_column_to_ignored_parent_if_table_is_not_empty_and_can_query_data_of_different_type() {
+        execute("CREATE TABLE t1 (obj object(ignored))");
+        execute("INSERT INTO t1 (obj) VALUES ({a={b=21, c=22}})");
+        execute("REFRESH TABLE t1");
+        boolean enableColumnarStore = randomBoolean();
+        execute("ALTER TABLE t1 ADD COLUMN obj['a'] text STORAGE WITH (COLUMNSTORE=" + enableColumnarStore + ")");
+        execute("INSERT INTO t1 (obj) VALUES ({a='bar'})");
+        execute("REFRESH TABLE t1");
+
+        execute("SELECT obj['a'] FROM t1 ORDER BY obj['a'] NULLS FIRST");
+        assertThat(response).hasRows("NULL", "bar");
+
+        execute("SELECT obj['a'] FROM t1 WHERE obj['a'] IS NOT NULL ORDER BY obj['a']");
+        assertThat(response).hasRows("bar");
+    }
 }

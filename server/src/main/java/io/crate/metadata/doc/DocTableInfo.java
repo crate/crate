@@ -345,6 +345,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return referenceTree().findFirstParentMatching(child, test);
     }
 
+    public Predicate<Reference> isParentReferenceIgnored() {
+        return ref -> findParentReferenceMatching(ref, r -> r.columnPolicy() == ColumnPolicy.IGNORED) != null;
+    }
+
     private ReferenceTree referenceTree() {
         if (refTree == null) {
             refTree = ReferenceTree.of(references.values());

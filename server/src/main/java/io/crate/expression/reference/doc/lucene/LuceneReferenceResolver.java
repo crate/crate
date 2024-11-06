@@ -22,6 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -57,11 +58,14 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private final List<Reference> partitionColumns;
     private final String indexName;
+    private final Predicate<Reference> isParentRefIgnored;
 
     public LuceneReferenceResolver(final String indexName,
-                                   final List<Reference> partitionColumns) {
+                                   final List<Reference> partitionColumns,
+                                   Predicate<Reference> isParentRefIgnored) {
         this.indexName = indexName;
         this.partitionColumns = partitionColumns;
+        this.isParentRefIgnored = isParentRefIgnored;
     }
 
     public String getIndexName() {
@@ -101,7 +105,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new PrimaryTermCollectorExpression();
 
             case SysColumns.Names.DOC: {
-                return DocCollectorExpression.create(ref);
+                return DocCollectorExpression.create(ref, isParentRefIgnored);
             }
 
             default: {
@@ -111,12 +115,13 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                         ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
                     );
                 }
-                return typeSpecializedExpression(ref);
+                return typeSpecializedExpression(ref, isParentRefIgnored);
             }
         }
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref) {
+    public static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref,
+                                                                         Predicate<Reference> isParentRefIgnored) {
         final String fqn = ref.storageIdent();
         // non-ignored dynamic references should have been resolved to void references by this point
         if (ref instanceof VoidReference) {
@@ -124,7 +129,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
         assert ref instanceof DynamicReference == false || ref.columnPolicy() == ColumnPolicy.IGNORED;
         if (ref.hasDocValues() == false) {
-            return DocCollectorExpression.create(DocReferences.toDocLookup(ref));
+            return DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
         }
         DataType<?> valueType = ref.valueType();
         return switch (valueType.id()) {
@@ -139,7 +144,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
             case IntegerType.ID -> new IntegerColumnReference(fqn);
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
-            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
+            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
             case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
             default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());
