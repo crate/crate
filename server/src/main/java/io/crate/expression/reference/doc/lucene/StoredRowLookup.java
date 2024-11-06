@@ -227,7 +227,10 @@ public abstract class StoredRowLookup implements StoredRow {
             } else if (ref.valueType().storageSupportSafe().retrieveFromStoredFields() || ref.hasDocValues() == false) {
                 this.fieldsVisitor.registerRef(ref);
             } else {
-                LuceneCollectorExpression<?> expr = LuceneReferenceResolver.typeSpecializedExpression(ref);
+                LuceneCollectorExpression<?> expr = LuceneReferenceResolver.typeSpecializedExpression(
+                    ref,
+                    table.isParentReferenceIgnored()
+                );
                 assert expr instanceof DocCollectorExpression<?> == false;
                 var column = ref.toColumn();
                 if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {

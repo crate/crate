@@ -97,3 +97,10 @@ Fixes
         ELSE 'default'
       END
     FROM test;
+
+- Fixed an issue that caused the :ref:`analyze` statement to fail when executed
+  on a table that was created with an :ref:`OBJECT(IGNORED) <type-object>`
+  column and afterwards a sub-column with a concrete type was added to the
+  object column. In cases where data was already inserted into this sub-column
+  with a different type than defined later on, the :ref:`analyze` statement
+  failed with a cast error.
