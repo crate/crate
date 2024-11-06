@@ -47,6 +47,8 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Re-added the missing ``crate-node`` script to the tarball distribution.
+
 - Fixed an issue that caused error to be thrown when attempting to access a
   nested field of an :ref:`OBJECT <type-object>`, which contains also arrays of
   :ref:`OBJECT <type-object>`, e.g.::
