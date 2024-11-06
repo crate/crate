@@ -104,7 +104,8 @@ public class LuceneQueryBuilder {
                            QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.isParentReferenceIgnored()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
@@ -158,7 +159,8 @@ public class LuceneQueryBuilder {
                 nodeCtx,
                 new LuceneReferenceResolver(
                     indexName,
-                    partitionColumns
+                    partitionColumns,
+                    table.isParentReferenceIgnored()
                 )
             );
             this.queryCache = queryCache;

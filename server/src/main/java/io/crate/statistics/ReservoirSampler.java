@@ -253,7 +253,8 @@ public final class ReservoirSampler {
         String indexName = indexService.index().getName();
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             indexName,
-            docTable.partitionedByColumns()
+            docTable.partitionedByColumns(),
+            docTable.isParentReferenceIgnored()
         );
         List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
             columns,

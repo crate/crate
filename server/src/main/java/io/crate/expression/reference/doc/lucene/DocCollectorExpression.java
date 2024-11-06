@@ -23,6 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
@@ -55,13 +57,28 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         return source.asMap();
     }
 
-    public static LuceneCollectorExpression<?> create(final Reference reference) {
+    public static LuceneCollectorExpression<?> create(final Reference reference,
+                                                      Predicate<Reference> isParentReferenceIgnored) {
         assert reference.column().name().equals(SysColumns.DOC.name()) :
             "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
             return new DocCollectorExpression();
         }
-        return new ChildDocCollectorExpression(reference);
+
+        Function<Object, Object> valueConverter;
+        if (isParentReferenceIgnored.test(reference)) {
+            valueConverter = val -> {
+                try {
+                    return reference.valueType().sanitizeValue(val);
+                } catch (ClassCastException | IllegalArgumentException e) {
+                    return null;
+                }
+            };
+        } else {
+            valueConverter = val -> val;
+        }
+
+        return new ChildDocCollectorExpression(reference, valueConverter);
     }
 
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
@@ -70,9 +87,11 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         private StoredRowLookup storedRowLookup;
         private StoredRow source;
         private ReaderContext context;
+        private final Function<Object, Object> valueConverter;
 
-        ChildDocCollectorExpression(Reference ref) {
+        private ChildDocCollectorExpression(Reference ref, Function<Object, Object> valueConverter) {
             this.ref = ref;
+            this.valueConverter = valueConverter;
         }
 
         @Override
@@ -92,8 +111,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public Object value() {
-            // correct type detection is ensured by the source parser
-            return source.get(ref.column().path());
+            return valueConverter.apply(source.get(ref.column().path()));
         }
     }
 }
