@@ -25,10 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntField;
-import org.apache.lucene.document.StoredField;
-import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
@@ -51,29 +48,11 @@ public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
     @Override
     public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         docBuilder = docBuilder.wrapTranslog(w -> new SidecarTranslogWriter(w, reference.storageIdentLeafName()));
-        docBuilder.translogWriter().startArray();
-        var nestedDocBuilder = docBuilder.noStoredField();
-        for (T value : values) {
-            if (value == null) {
-                docBuilder.translogWriter().writeNull();
-            } else {
-                innerIndexer.indexValue(value, nestedDocBuilder);
-            }
-        }
-        if (docBuilder.getTableVersionCreated().onOrAfter(Version.V_5_9_0)) {
-            // map '[]' to '_array_length_ = 0'
-            // map '[null]' to '_array_length_ = 1'
-            // 'null' is not mapped; can utilize 'FieldExistsQuery' for 'IS NULL' filtering
-            docBuilder.addField(new IntField(arrayLengthFieldName, values.size(), Field.Store.NO));
-        }
-        docBuilder.translogWriter().endArray();
-        if (docBuilder.maybeAddStoredField()) {
-            // we use a prefix here so that there is no confusion between StoredField and IntField, as using
-            // both can result in inconsistent docvalues types across documents.
-            var storedField = ARRAY_VALUES_FIELD_PREFIX + reference.storageIdent();
-            var arrayBytes = docBuilder.translogWriter().bytes().toBytesRef();
-            docBuilder.addField(new StoredField(storedField, arrayBytes));
-        }
+        super.indexValue(values, docBuilder);
     }
 
+    @Override
+    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) {
+        return docBuilder.translogWriter().bytes();
+    }
 }
