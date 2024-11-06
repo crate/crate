@@ -129,7 +129,7 @@ public class Order extends ForwardingLogicalPlan {
         ExecutionPlan plan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
         if (plan.resultDescription().orderBy() != null) {
-            // Collect applied ORDER BY eagerly to produce a optimized execution plan;
+            // Collect applied ORDER BY eagerly to produce an optimized execution plan
             if (source instanceof Collect) {
                 return plan;
             }
@@ -137,18 +137,22 @@ public class Order extends ForwardingLogicalPlan {
         if (plan.resultDescription().hasRemainingLimitOrOffset()) {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
-        List<Symbol> orderByInputColumns = InputColumns.create(this.orderBy.orderBySymbols(), ctx);
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
+        List<Symbol> boundOrderBySymbols = Lists.map(this.orderBy.orderBySymbols(), binder);
+        List<Symbol> orderByInputColumns = InputColumns.create(boundOrderBySymbols, ctx);
+        OrderBy boundOrderBy = new OrderBy(boundOrderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst());
         ensureOrderByColumnsArePresentInOutputs(orderByInputColumns);
         OrderedLimitAndOffsetProjection orderedLimitAndOffsetProjection = new OrderedLimitAndOffsetProjection(
             Limit.limitAndOffset(limit, offset),
             0,
-            InputColumns.create(outputs, ctx),
+            InputColumns.create(boundOutputs, ctx),
             orderByInputColumns,
-            this.orderBy.reverseFlags(),
-            this.orderBy.nullsFirst()
+            boundOrderBy.reverseFlags(),
+            boundOrderBy.nullsFirst()
         );
-        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(this.orderBy, outputs);
+        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(boundOrderBy, boundOutputs);
         plan.addProjection(
             orderedLimitAndOffsetProjection,
             limit,
