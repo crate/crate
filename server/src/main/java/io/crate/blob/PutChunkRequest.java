@@ -33,18 +33,14 @@ import io.crate.common.Hex;
 
 public class PutChunkRequest extends BlobTransferRequest<PutChunkRequest> {
 
-    private byte[] digest;
-    private long currentPos;
+    private final byte[] digest;
+    private final long currentPos;
 
     public PutChunkRequest(ShardId shardId, byte[] digest, UUID transferId,
                            BytesReference content, long currentPos, boolean last) {
         super(shardId, transferId, content, last);
         this.digest = digest;
         this.currentPos = currentPos;
-    }
-
-    public PutChunkRequest() {
-        super();
     }
 
     public String digest() {

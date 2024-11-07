@@ -270,8 +270,8 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
         node.getLeft().accept(this, context);
         node.getRight().accept(this, context);
 
-        if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn) {
-            ((JoinOn) node.getCriteria().get()).getExpression().accept(this, context);
+        if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn joinOn) {
+            joinOn.getExpression().accept(this, context);
         }
 
         return null;

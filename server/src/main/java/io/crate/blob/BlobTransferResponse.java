@@ -21,11 +21,11 @@
 
 package io.crate.blob;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 public class BlobTransferResponse extends ReplicationResponse {
 
@@ -51,8 +51,7 @@ public class BlobTransferResponse extends ReplicationResponse {
         return this;
     }
 
-    protected BlobTransferResponse() {
-    }
+    protected BlobTransferResponse() {}
 
     public BlobTransferResponse(StreamInput in) throws IOException {
         super(in);

@@ -30,8 +30,7 @@ import io.crate.role.Role;
 public record AnalyzedCreateUserMapping(boolean ifNotExists,
                                         Role user,
                                         String serverName,
-                                        Map<String, Symbol> options)
-        implements AnalyzedStatement {
+                                        Map<String, Symbol> options) implements AnalyzedStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {

@@ -33,15 +33,10 @@ import io.crate.sql.tree.QualifiedName;
 public class SubscriptContext {
 
     private QualifiedName qName;
-
     private boolean hasExpression;
 
     private final List<String> parts = new ArrayList<>();
-
     private final List<Expression> index = new ArrayList<>();
-
-    public SubscriptContext() {
-    }
 
     public QualifiedName qualifiedName() {
         return qName;
@@ -68,7 +63,7 @@ public class SubscriptContext {
         return index;
     }
 
-    public void expression(Expression expression) {
+    public void setHasExpression() {
         assert this.qName == null;
         this.hasExpression = true;
     }
@@ -76,5 +71,4 @@ public class SubscriptContext {
     public boolean hasExpression() {
         return this.hasExpression;
     }
-
 }

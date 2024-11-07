@@ -73,7 +73,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         this.orderBy = orderBy;
         this.offset = offset;
         this.limit = limit;
-        assert from.size() >= 1 : "QueriedSelectRelation must have at least 1 relation in FROM";
+        assert !from.isEmpty() : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
         this.from = from;
         this.joinPairs = joinPairs;

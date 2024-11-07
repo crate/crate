@@ -21,15 +21,15 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.common.bytes.BytesReference;
-
 import java.util.UUID;
+
+import org.elasticsearch.common.bytes.BytesReference;
 
 public interface IPutChunkRequest {
 
-    public BytesReference content();
+    BytesReference content();
 
-    public UUID transferId();
+    UUID transferId();
 
-    public boolean isLast();
+    boolean isLast();
 }

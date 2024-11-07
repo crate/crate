@@ -124,7 +124,7 @@ public class WhereClause {
 
     public Set<String> routingValues() {
         if (clusteredBy.isEmpty() == false) {
-            HashSet<String> result = new HashSet<>(clusteredBy.size());
+            HashSet<String> result = HashSet.newHashSet(clusteredBy.size());
             for (Symbol symbol : clusteredBy) {
                 assert symbol instanceof Literal : "clustered by symbols must be literals";
                 result.add(((Literal<?>) symbol).value().toString());
@@ -186,7 +186,7 @@ public class WhereClause {
             return this;
         }
         Symbol newQuery = query == null ? null : mapper.apply(query);
-        HashSet<Symbol> newClusteredBy = new HashSet<>(clusteredBy.size());
+        HashSet<Symbol> newClusteredBy = HashSet.newHashSet(clusteredBy.size());
         for (Symbol symbol : clusteredBy) {
             newClusteredBy.add(mapper.apply(symbol));
         }

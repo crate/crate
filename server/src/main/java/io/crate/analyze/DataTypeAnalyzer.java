@@ -36,8 +36,7 @@ import io.crate.types.ObjectType;
 
 public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>, Void> {
 
-    private DataTypeAnalyzer() {
-    }
+    private DataTypeAnalyzer() {}
 
     private static final DataTypeAnalyzer INSTANCE = new DataTypeAnalyzer();
 

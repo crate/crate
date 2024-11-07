@@ -30,8 +30,7 @@ import io.crate.sql.tree.CascadeMode;
 
 public record AnalyzedDropForeignTable(List<RelationName> names,
                                        boolean ifExists,
-                                       CascadeMode cascadeMode)
-        implements AnalyzedStatement {
+                                       CascadeMode cascadeMode) implements AnalyzedStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {

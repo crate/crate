@@ -21,17 +21,20 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SortItem;
 
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
+public final class OrderyByAnalyzer {
 
-public class OrderyByAnalyzer {
+    private OrderyByAnalyzer() {}
 
     @Nullable
     public static OrderBy analyzeSortItems(List<SortItem> sortItems,
@@ -64,6 +67,5 @@ public class OrderyByAnalyzer {
             reverseFlags[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
         }
         return new OrderBy(symbols, reverseFlags, nullsFirst);
-
     }
 }

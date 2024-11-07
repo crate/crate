@@ -31,8 +31,7 @@ import io.netty.handler.ssl.ClientAuth;
 
 public final class AuthSettings {
 
-    private AuthSettings() {
-    }
+    private AuthSettings() {}
 
     public static final Setting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = Setting.boolSetting(
         "auth.host_based.enabled",

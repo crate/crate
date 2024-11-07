@@ -71,11 +71,6 @@ public class AnalyzedShowCreateTable implements AnalyzedRelation {
     }
 
     @Override
-    public boolean isWriteOperation() {
-        return false;
-    }
-
-    @Override
     public RelationName relationName() {
         return relationName;
     }

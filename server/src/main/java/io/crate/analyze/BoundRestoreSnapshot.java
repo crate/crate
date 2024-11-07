@@ -21,93 +21,33 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class BoundRestoreSnapshot {
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
-    private final String repository;
-    private final String snapshot;
-    private final HashSet<RestoreTableInfo> restoreTables;
-    private final boolean includeTables;
-    private final boolean includeCustomMetadata;
-    private final Set<String> customMetadataTypes;
-    private final boolean includeGlobalSettings;
-    private final List<String> globalSettings;
-    private final Settings settings;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
-    public BoundRestoreSnapshot(String repository,
-                                String snapshot,
-                                HashSet<RestoreTableInfo> restoreTables,
-                                boolean includeTables,
-                                boolean includeCustomMetadata,
-                                Set<String> customMetadataTypes,
-                                boolean includeGlobalSettings,
-                                List<String> globalSettings,
-                                Settings settings) {
-        this.repository = repository;
-        this.snapshot = snapshot;
-        this.restoreTables = restoreTables;
-        this.includeTables = includeTables;
-        this.includeCustomMetadata = includeCustomMetadata;
-        this.customMetadataTypes = customMetadataTypes;
-        this.includeGlobalSettings = includeGlobalSettings;
-        this.globalSettings = globalSettings;
-        this.settings = settings;
-    }
-
-    public String snapshot() {
-        return snapshot;
-    }
-
-    public String repository() {
-        return repository;
-    }
-
-    public Settings settings() {
-        return settings;
-    }
-
-    public Set<RestoreTableInfo> restoreTables() {
-        return restoreTables;
-    }
-
-    public boolean includeTables() {
-        return includeTables;
-    }
-
-    public boolean includeCustomMetadata() {
-        return includeCustomMetadata;
-    }
-
-    public Set<String> customMetadataTypes() {
-        return customMetadataTypes;
-    }
-
-    public boolean includeGlobalSettings() {
-        return includeGlobalSettings;
-    }
-
-    public List<String> globalSettings() {
-        return globalSettings;
-    }
+public record BoundRestoreSnapshot(String repository,
+                                   String snapshot,
+                                   Set<RestoreTableInfo> restoreTables,
+                                   boolean includeTables,
+                                   boolean includeCustomMetadata,
+                                   Set<String> customMetadataTypes,
+                                   boolean includeGlobalSettings,
+                                   List<String> globalSettings,
+                                   Settings settings) {
 
     public static class RestoreTableInfo {
 
         private final RelationName relationName;
         private final PartitionName partitionName;
-        private final String partitionTemplate;
 
         public RestoreTableInfo(RelationName relationName, @Nullable PartitionName partitionName) {
             this.relationName = relationName;
             this.partitionName = partitionName;
-            this.partitionTemplate = PartitionName.templateName(relationName.schema(), tableIdent().name());
         }
 
         public RelationName tableIdent() {
@@ -117,14 +57,6 @@ public class BoundRestoreSnapshot {
         @Nullable
         public PartitionName partitionName() {
             return partitionName;
-        }
-
-        public boolean hasPartitionInfo() {
-            return partitionName != null;
-        }
-
-        public String partitionTemplate() {
-            return partitionTemplate;
         }
     }
 }

@@ -21,14 +21,13 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
 
 public class PutChunkResponse extends BlobTransferResponse {
 
-    public PutChunkResponse() {
-    }
+    public PutChunkResponse() {}
 
     public PutChunkResponse(StreamInput in) throws IOException {
         super(in);

@@ -63,7 +63,7 @@ public class BlobShard {
 
     void initialize() {
         try {
-            blobContainer.visitBlobs(new SimpleFileVisitor<Path>() {
+            blobContainer.visitBlobs(new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     blobsCount += 1;

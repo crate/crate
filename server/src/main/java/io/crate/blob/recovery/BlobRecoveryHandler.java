@@ -274,7 +274,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
                 try (FileInputStream fileStream = new FileInputStream(file)) {
                     String filePath = file.getAbsolutePath();
-                    String relPath = filePath.substring(baseDir.length() + 1, filePath.length());
+                    String relPath = filePath.substring(baseDir.length() + 1);
                     assert !relPath.startsWith("/") : "relPath must not start with a /";
                     byte[] buf = new byte[BUFFER_SIZE];
                     int bytesRead = fileStream.read(buf, 0, BUFFER_SIZE);

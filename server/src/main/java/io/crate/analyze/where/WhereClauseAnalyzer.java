@@ -143,11 +143,14 @@ public class WhereClauseAnalyzer {
             }
         }
 
+        if (queryPartitionMap.isEmpty()) {
+            return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
+        }
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal<?>>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
                 entry.getKey(), Lists.map(entry.getValue(), literal -> nullOrString(literal.value())));
-        } else if (queryPartitionMap.size() > 0) {
+        } else {
             PartitionResult partitionResult = tieBreakPartitionQueries(
                 normalizer, queryPartitionMap, coordinatorTxnCtx);
             return partitionResult == null
@@ -155,8 +158,6 @@ public class WhereClauseAnalyzer {
                 // the query will then be evaluated correctly within each partition to see whether it matches or not
                 ? new PartitionResult(query, Lists.map(tableInfo.getPartitionNames(metadata), PartitionName::asIndexName))
                 : partitionResult;
-        } else {
-            return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
         }
     }
 

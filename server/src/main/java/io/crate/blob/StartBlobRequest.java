@@ -21,18 +21,19 @@
 
 package io.crate.blob;
 
-import io.crate.common.Hex;
+import java.io.IOException;
+import java.util.UUID;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
-import java.util.UUID;
+import io.crate.common.Hex;
 
 public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
 
-    private byte[] digest;
+    private final byte[] digest;
 
     public StartBlobRequest(ShardId shardId, byte[] digest, BytesReference content, boolean last) {
         super(shardId, UUID.randomUUID(), content, last);
@@ -41,9 +42,6 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
 
     public String id() {
         return Hex.encodeHexString(digest);
-    }
-
-    public StartBlobRequest() {
     }
 
     public StartBlobRequest(StreamInput in) throws IOException {
@@ -57,5 +55,4 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
         super.writeTo(out);
         out.write(digest);
     }
-
 }

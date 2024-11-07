@@ -109,11 +109,6 @@ public class ExplainAnalyzedStatement implements AnalyzedRelation {
     }
 
     @Override
-    public boolean isWriteOperation() {
-        return false;
-    }
-
-    @Override
     public RelationName relationName() {
         return relationName;
     }

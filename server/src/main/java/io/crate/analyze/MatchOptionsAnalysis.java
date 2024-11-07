@@ -21,16 +21,16 @@
 
 package io.crate.analyze;
 
+import static java.util.Map.entry;
+
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static java.util.Map.entry;
-
 public class MatchOptionsAnalysis {
 
-    private static final Predicate<Object> POSITIVE_NUMBER = x -> x instanceof Number && ((Number) x).doubleValue() > 0;
+    private static final Predicate<Object> POSITIVE_NUMBER = x -> x instanceof Number number && number.doubleValue() > 0;
     private static final Predicate<Object> IS_STRING = x -> x instanceof String;
     private static final Predicate<Object> IS_NUMBER = x -> x instanceof Number;
     private static final Predicate<Object> NUMBER_OR_STRING = IS_NUMBER.or(IS_STRING);
