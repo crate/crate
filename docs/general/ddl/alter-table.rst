@@ -171,6 +171,16 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
 
+.. NOTE::
+
+    Adding a sub-column to an object column which is declared with a
+    :ref:`IGNORED <type-object-columns-ignored>` policy on a table with
+    existing data **may shadow the existing data** of this column if the newly
+    defined data type doesn't match or an index or columnar store of the
+    new column is used by a query. Additionally, such an operation may fail if
+    the existing primary and replica shards are not in-sync to ensure data
+    consistency.
+
 .. _alter-table-rename-column:
 
 Renaming columns
@@ -204,7 +214,7 @@ To rename a sub-column of an object column, you can use subscript expressions::
     | renamed_obj_column['name']        | text      |
     +-----------------------------------+-----------+
     SELECT 3 rows in set (... sec)
-    
+
 Closing and opening tables
 ==========================
 
