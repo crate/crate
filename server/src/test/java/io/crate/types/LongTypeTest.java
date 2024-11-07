@@ -32,8 +32,8 @@ import org.junit.Test;
 public class LongTypeTest extends DataTypeTestCase<Long> {
 
     @Override
-    public DataType<Long> getType() {
-        return LongType.INSTANCE;
+    protected DataDef<Long> getDataDef() {
+        return DataDef.fromType(LongType.INSTANCE);
     }
 
     @Test

@@ -34,8 +34,8 @@ import io.crate.metadata.settings.SessionSettings;
 public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
 
     @Override
-    public DataType<Regclass> getType() {
-        return RegclassType.INSTANCE;
+    protected DataDef<Regclass> getDataDef() {
+        return DataDef.fromType(RegclassType.INSTANCE);
     }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();

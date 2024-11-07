@@ -47,6 +47,12 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause an error to be thrown when attempting to
+  ``ORDER BY`` on top of a complex query (e.g. a ``JOIN``), using an expression
+  which contains a query parameter, e.g.::
+
+      SELECT * FROM t1 JOIN t2 ON t1.a = t2.b ORDER BY abs(t2.i + ?) DESC
+
 - Re-added the missing ``crate-node`` script to the tarball distribution.
 
 - Fixed an issue that caused error to be thrown when attempting to access a
