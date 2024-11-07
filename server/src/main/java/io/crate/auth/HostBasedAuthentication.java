@@ -118,19 +118,16 @@ public class HostBasedAuthentication implements Authentication {
     private SortedMap<String, HBAConf> hbaConf;
     private final Roles roles;
     private final DnsResolver dnsResolver;
-    private final Settings settings;
-
-    private final Supplier<String> clusterId;
+    private final JWTAuthenticationMethod jwtMethod;
 
     public HostBasedAuthentication(Settings settings,
                                    Roles roles,
                                    DnsResolver dnsResolver,
                                    Supplier<String> clusterId) {
         hbaConf = convertHbaSettingsToHbaConf(settings);
-        this.settings = settings;
         this.roles = roles;
         this.dnsResolver = dnsResolver;
-        this.clusterId = clusterId;
+        this.jwtMethod = new JWTAuthenticationMethod(roles, settings, clusterId);
     }
 
     @VisibleForTesting
@@ -149,13 +146,7 @@ public class HostBasedAuthentication implements Authentication {
             case (TrustAuthenticationMethod.NAME) -> new TrustAuthenticationMethod(roles);
             case (ClientCertAuth.NAME) -> new ClientCertAuth(roles);
             case (PasswordAuthenticationMethod.NAME) -> new PasswordAuthenticationMethod(roles);
-            case (JWTAuthenticationMethod.NAME) ->
-                new JWTAuthenticationMethod(
-                    roles,
-                    settings,
-                    JWTAuthenticationMethod::jwkProvider,
-                    clusterId
-                );
+            case (JWTAuthenticationMethod.NAME) -> jwtMethod;
             default -> null;
         };
     }
