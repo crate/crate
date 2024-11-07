@@ -184,6 +184,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return convert(value, DataType::sanitizeValue);
     }
 
+    @Override
+    public Map<String, Object> sanitizeValueLenient(Object value) {
+        try {
+            return convert(value, DataType::sanitizeValueLenient);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {

@@ -68,13 +68,9 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
 
         Function<Object, Object> valueConverter;
         if (isParentReferenceIgnored.test(reference)) {
-            valueConverter = val -> {
-                try {
-                    return reference.valueType().sanitizeValue(val);
-                } catch (ClassCastException | IllegalArgumentException e) {
-                    return null;
-                }
-            };
+            // If the parent reference is ignored, the child column may have been ignored as well before and may contain
+            // a value that does not fit the current defined child column data type.
+            valueConverter = val -> reference.valueType().sanitizeValueLenient(val);
         } else {
             valueConverter = val -> val;
         }

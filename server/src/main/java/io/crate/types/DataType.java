@@ -159,6 +159,27 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      */
     public abstract T sanitizeValue(Object value);
 
+    /**
+     * Sanitizes the value lenient, handle any exception thrown by {@link DataType#sanitizeValue(Object)}
+     * and return NULL instead.
+     * <p>
+     * On some mapping changes, e.g. adding a new column with a concrete child type to an ignored object, the
+     * replica translog or existing shards may contain entries with values that cannot be sanitized to the current
+     * mapping. In this case, document processing should not fail due to a single corrupt value.
+     *
+     * @param value The value to sanitize to the target {@link DataType}.
+     * @return The value of {@link DataType} or NULL in case of a sanitization error.
+     * @see DataType#sanitizeValue(Object)
+     */
+    @Nullable
+    public T sanitizeValueLenient(Object value) {
+        try {
+            return sanitizeValue(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public TypeSignature getTypeSignature() {
         return new TypeSignature(getName());
     }
