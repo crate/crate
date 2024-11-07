@@ -376,7 +376,8 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_can_add_sub_column_to_ignored_parent_if_table_is_not_empty_and_can_query_data_of_different_type() {
-        execute("CREATE TABLE t1 (obj object(ignored))");
+        // Setting translog to async to increase chances that the first record is processed after the column is added.
+        execute("CREATE TABLE t1 (obj object(ignored)) WITH (\"translog.durability\" = 'async')");
         execute("INSERT INTO t1 (obj) VALUES ({a={b=21, c=22}})");
         execute("REFRESH TABLE t1");
         boolean enableColumnarStore = randomBoolean();

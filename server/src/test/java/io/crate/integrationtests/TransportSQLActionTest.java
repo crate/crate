@@ -1473,7 +1473,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         DocTableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "locations"));
-        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey(), true);
         Map<String, Object> firstRaw = sourceParser.parse(new BytesArray((String) response.rows()[0][0]));
 
         assertThat(response.rows()[0][1]).isEqualTo("2");

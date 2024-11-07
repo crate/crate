@@ -71,7 +71,7 @@ public final class StoredRowLookup {
     }
 
     private StoredRowLookup(DocTableInfo table, String indexName) {
-        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
+        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), true);
         this.partitionValueInjector = PartitionValueInjector.create(indexName, table.partitionedByColumns());
     }
 
