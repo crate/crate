@@ -129,7 +129,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     static Map<String, Object> sourceMap(ParsedDocument parsedDocument, DocTableInfo tableInfo) throws Exception {
-        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
+        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey(), true);
         return sourceParser.parse(parsedDocument.source());
     }
 
