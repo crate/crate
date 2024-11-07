@@ -220,7 +220,7 @@ public class HostBasedAuthentication implements Authentication {
                     if (hbaAddressOrHostname.startsWith(".")) {
                         // not an ip address, subdomain
                         var clientHostName = getHostname.get();
-                        return clientHostName != null ? clientHostName.endsWith(hbaAddressOrHostname) : false;
+                        return clientHostName != null && clientHostName.endsWith(hbaAddressOrHostname);
                     } else {
                         // SystemDefaultDnsResolver is injected here and internally it uses InetAddress.getAllByName
                         // which tries to treat argument as an ip address and then as a hostname.

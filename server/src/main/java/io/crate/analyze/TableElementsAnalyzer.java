@@ -575,7 +575,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
 
             ColumnType<Expression> type = columnDefinition.type();
-            while (type instanceof CollectionColumnType collectionColumnType) {
+            while (type instanceof CollectionColumnType<Expression> collectionColumnType) {
                 type = collectionColumnType.innerType();
             }
             if (type instanceof ObjectColumnType<Expression> objectColumnType) {

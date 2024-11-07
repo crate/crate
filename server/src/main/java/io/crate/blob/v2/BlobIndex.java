@@ -21,18 +21,18 @@
 
 package io.crate.blob.v2;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.IOUtils;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
 
 public class BlobIndex {
 
@@ -93,7 +93,7 @@ public class BlobIndex {
         Path blobRoot = null;
         BlobShard shard = shards.remove(shardId.id());
         if (shard != null) {
-            if (shards.size() == 0) {
+            if (shards.isEmpty()) {
                 blobRoot = retrieveBlobRootDir(shard.getBlobDir(), shard.indexShard().shardId().getIndexName(), logger);
             }
             shard.deleteShard();

@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.ClusteredBy;
-import io.crate.types.DataTypes;
+import java.util.Locale;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Locale;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.types.DataTypes;
 
 @Singleton
 public class NumberOfShards {
@@ -64,5 +65,4 @@ public class NumberOfShards {
         assert numDataNodes >= 0 : "number of data nodes cannot be less than 0";
         return Math.max(MIN_NUM_SHARDS, numDataNodes * 2);
     }
-
 }

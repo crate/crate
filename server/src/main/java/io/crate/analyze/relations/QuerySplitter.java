@@ -137,8 +137,8 @@ public class QuerySplitter {
         public Void visitMatchPredicate(MatchPredicate matchPredicate, Context ctx) {
             LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
             for (Symbol field : matchPredicate.identBoostMap().keySet()) {
-                if (field instanceof ScopedSymbol) {
-                    relationNames.add(((ScopedSymbol) field).relation());
+                if (field instanceof ScopedSymbol scopedSymbol) {
+                    relationNames.add(scopedSymbol.relation());
                 } else if (field instanceof Reference ref) {
                     relationNames.add(ref.ident().tableIdent());
                 }

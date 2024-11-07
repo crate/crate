@@ -56,11 +56,11 @@ import io.crate.sql.tree.PartitionedBy;
 public record AnalyzedCreateTable(
         RelationName relationName,
         boolean ifNotExists,
-        /**
+        /*
          * In order of definition
          */
         Map<ColumnIdent, RefBuilder> columns,
-        /**
+        /*
          * By constraint name; In order of definition
          **/
         Map<String, AnalyzedCheck> checks,

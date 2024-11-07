@@ -61,7 +61,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
     AliasedAnalyzedRelation(AnalyzedRelation relation, RelationName alias, List<String> columnAliases) {
         this.relation = relation;
         this.alias = alias;
-        aliasToColumnMapping = new HashMap<>(columnAliases.size());
+        aliasToColumnMapping = HashMap.newHashMap(columnAliases.size());
         this.outputs = new ArrayList<>(relation.outputs().size());
         this.scopedSymbols = new ArrayList<>(relation.outputs().size());
         for (int i = 0; i < relation.outputs().size(); i++) {

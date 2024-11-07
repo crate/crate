@@ -32,7 +32,9 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.sql.tree.GenericProperties;
 
-public class GeoSettingsApplier {
+public final class GeoSettingsApplier {
+
+    private GeoSettingsApplier() {}
 
     private static final Set<String> SUPPORTED_OPTIONS = Set.of(
         "precision", "distance_error_pct", "tree_levels");

@@ -21,9 +21,16 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Tuple;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -38,12 +45,6 @@ import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.NamedProperties;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
-import io.crate.common.collections.Tuple;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 
 class CreateAnalyzerStatementAnalyzer {
 
@@ -136,6 +137,7 @@ class CreateAnalyzerStatementAnalyzer {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitTokenizer(Tokenizer<?> node, Context context) {
             var tokenizer = (Tokenizer<Expression>) node;
@@ -147,6 +149,7 @@ class CreateAnalyzerStatementAnalyzer {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitGenericProperty(GenericProperty<?> node, Context context) {
             var property = (GenericProperty<Expression>) node;
@@ -160,6 +163,7 @@ class CreateAnalyzerStatementAnalyzer {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitTokenFilters(TokenFilters<?> node, Context context) {
             var tokenFilters = (TokenFilters<Expression>) node;
@@ -173,6 +177,7 @@ class CreateAnalyzerStatementAnalyzer {
             return null;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Void visitCharFilters(CharFilters<?> node, Context context) {
             var charFilters = (CharFilters<Expression>) node;

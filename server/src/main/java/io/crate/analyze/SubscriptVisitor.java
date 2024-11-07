@@ -81,37 +81,37 @@ public final class SubscriptVisitor {
 
         @Override
         public Void visitArrayLiteral(ArrayLiteral node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 
         @Override
         public Void visitObjectLiteral(ObjectLiteral node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 
         @Override
         protected Void visitCast(Cast node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 
         @Override
         protected Void visitTryCast(TryCast node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 
         @Override
         protected Void visitFunctionCall(FunctionCall node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 
         @Override
         protected Void visitSubqueryExpression(SubqueryExpression node, SubscriptContext context) {
-            context.expression(node);
+            context.setHasExpression();
             return null;
         }
 

@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.function.Function;
+
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-
-import java.util.function.Function;
 
 /**
  * A helper class to unwrap a possible {@link AliasedAnalyzedRelation} relation and re-map all fields
@@ -38,8 +38,7 @@ import java.util.function.Function;
 public class MaybeAliasedStatement {
 
     public static MaybeAliasedStatement analyze(AnalyzedRelation relation) {
-        if (relation instanceof AliasedAnalyzedRelation) {
-            AliasedAnalyzedRelation aliasedAnalyzedRelation = (AliasedAnalyzedRelation) relation;
+        if (relation instanceof AliasedAnalyzedRelation aliasedAnalyzedRelation) {
             return new MaybeAliasedStatement(
                 aliasedAnalyzedRelation.relation(),
                 FieldReplacer.bind(aliasedAnalyzedRelation::resolveField)

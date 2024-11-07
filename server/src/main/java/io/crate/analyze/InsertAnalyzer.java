@@ -317,7 +317,7 @@ class InsertAnalyzer {
             null,
             targetTable,
             f -> f.signature().isDeterministic());
-        Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
+        Map<Reference, Symbol> updateAssignments = HashMap.newHashMap(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(

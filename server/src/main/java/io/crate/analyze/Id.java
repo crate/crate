@@ -61,19 +61,16 @@ public class Id {
      */
     private static Function<List<String>, String> compileWithNullValidation(final int numPks,
                                                                             final int clusteredByPosition) {
-        switch (numPks) {
-            case 0:
-                return RANDOM_ID;
-            case 1:
-                return ONLY_ITEM_NULL_VALIDATION;
-            default:
-                return keyValues -> {
-                    if (keyValues.size() != numPks) {
-                        throw new IllegalArgumentException("Missing primary key values");
-                    }
-                    return encode(keyValues, clusteredByPosition);
-                };
-        }
+        return switch (numPks) {
+            case 0 -> RANDOM_ID;
+            case 1 -> ONLY_ITEM_NULL_VALIDATION;
+            default -> keyValues -> {
+                if (keyValues.size() != numPks) {
+                    throw new IllegalArgumentException("Missing primary key values");
+                }
+                return encode(keyValues, clusteredByPosition);
+            };
+        };
     }
 
     /**

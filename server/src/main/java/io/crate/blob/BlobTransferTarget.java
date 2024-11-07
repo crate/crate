@@ -68,7 +68,7 @@ public class BlobTransferTarget {
     private final TransportService transportService;
     private final ClusterService clusterService;
     private CountDownLatch getHeadRequestLatch;
-    private CompletableFuture<CountDownLatch> getHeadRequestLatchFuture;
+    private final CompletableFuture<CountDownLatch> getHeadRequestLatchFuture;
     private final ConcurrentLinkedQueue<UUID> activePutHeadChunkTransfers;
     private CountDownLatch activePutHeadChunkTransfersLatch;
     private volatile boolean recoveryActive = false;
@@ -241,7 +241,7 @@ public class BlobTransferTarget {
         boolean toSchedule = false;
         synchronized (lock) {
             if (recoveryActive) {
-                /**
+                /*
                  * the recovery target node might request the transfer context. So it is
                  * necessary to keep the state until the recovery is done.
                  */
@@ -253,7 +253,7 @@ public class BlobTransferTarget {
         if (toSchedule) {
             LOGGER.debug("finished transfer {}, removing state", transferId);
 
-            /**
+            /*
              * there might be a race condition that the recoveryActive flag is still false although a
              * recovery has been started.
              *
@@ -325,7 +325,7 @@ public class BlobTransferTarget {
     }
 
     public void gotAGetBlobHeadRequest(UUID transferId) {
-        /**
+        /*
          * this method might be called before the getHeadRequestLatch is initialized
          * the future is used here to wait until it is initialized.
          */

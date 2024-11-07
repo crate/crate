@@ -61,7 +61,7 @@ public class AccountableList<T> extends AbstractList<T> {
     private static class SubList<T> extends AbstractList<T> implements RandomAccess {
         private final AccountableList<T> root;
         private final int offset;
-        private int size;
+        private final int size;
 
         public SubList(AccountableList<T> root, int fromIndex, int toIndex) {
             this.root = root;

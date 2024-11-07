@@ -101,10 +101,9 @@ public final class UpdateAnalyzer {
         MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
         relation = maybeAliasedStatement.nonAliasedRelation();
 
-        if (!(relation instanceof AbstractTableRelation)) {
+        if (!(relation instanceof AbstractTableRelation<?> table)) {
             throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
         }
-        AbstractTableRelation<?> table = (AbstractTableRelation<?>) relation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.CLUSTER,

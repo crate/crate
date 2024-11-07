@@ -21,24 +21,22 @@
 
 package io.crate.blob;
 
-import io.crate.common.Hex;
+import java.io.IOException;
+
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
+import io.crate.common.Hex;
 
 public class DeleteBlobRequest extends ReplicationRequest<DeleteBlobRequest> {
 
-    private byte[] digest;
+    private final byte[] digest;
 
     public DeleteBlobRequest(ShardId shardId, byte[] digest) {
         super(shardId);
         this.digest = digest;
-    }
-
-    public DeleteBlobRequest() {
     }
 
     public DeleteBlobRequest(StreamInput in) throws IOException {

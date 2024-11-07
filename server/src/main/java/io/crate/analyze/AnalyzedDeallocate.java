@@ -22,17 +22,18 @@
 package io.crate.analyze;
 
 
-import io.crate.expression.symbol.Symbol;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.function.Consumer;
+
+import io.crate.expression.symbol.Symbol;
 
 public class AnalyzedDeallocate implements AnalyzedStatement {
 
     @Nullable
     private final String preparedStmtName;
 
-    AnalyzedDeallocate(String preparedStmtName) {
+    AnalyzedDeallocate(@Nullable String preparedStmtName) {
         this.preparedStmtName = preparedStmtName;
     }
 

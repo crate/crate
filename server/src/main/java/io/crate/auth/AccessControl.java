@@ -29,12 +29,10 @@ public interface AccessControl {
     AccessControl DISABLED = new AccessControl() {
         @Override
         public void ensureMayExecute(AnalyzedStatement statement) {
-
         }
 
         @Override
         public void ensureMaySee(Throwable t) throws MissingPrivilegeException {
-
         }
     };
 
