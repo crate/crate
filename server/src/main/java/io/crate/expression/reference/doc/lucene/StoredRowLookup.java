@@ -138,7 +138,7 @@ public abstract class StoredRowLookup implements StoredRow {
 
         public FullStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
             super(table, indexName);
-            this.sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
+            this.sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), true);
             register(columns);
         }
 
