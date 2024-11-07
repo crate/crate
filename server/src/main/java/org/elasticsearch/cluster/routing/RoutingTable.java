@@ -269,6 +269,10 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return allShardsSatisfyingPredicate(indices, shardRouting -> true, true);
     }
 
+    public ShardsIterator allPrimaryShards(String[] indices) {
+        return allShardsSatisfyingPredicate(indices, ShardRouting::primary, false);
+    }
+
     private ShardsIterator allShardsSatisfyingPredicate(String[] indices, Predicate<ShardRouting> predicate, boolean includeRelocationTargets) {
         // use list here since we need to maintain identity across shards
         List<ShardRouting> shards = new ArrayList<>();

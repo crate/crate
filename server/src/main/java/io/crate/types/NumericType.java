@@ -168,7 +168,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
 
     @Override
     DataType<?> merge(DataType<?> other) {
-        if (other instanceof NumericType o) {
+        if (DataTypes.isNumeric(other)) { // if 'other' is a number type
             return NumericType.INSTANCE;
         } else {
             return super.merge(other);

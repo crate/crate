@@ -969,7 +969,7 @@ public class IndexShardTests extends IndexShardTestCase {
                     indexShard.updateGlobalCheckpointForShard(
                         indexShard.routingEntry().allocationId().getId(),
                         indexShard.getLocalCheckpoint());
-                    indexShard.syncRetentionLeases();
+                    indexShard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
                 } else {
                     indexShard.updateGlobalCheckpointOnReplica(newGlobalCheckpoint, "test");
 

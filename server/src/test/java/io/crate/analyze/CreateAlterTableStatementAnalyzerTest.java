@@ -336,7 +336,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "ALTER TABLE user_refresh_interval " +
             "RESET (refresh_interval)");
         assertThat(analysisReset.settings().get(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey()))
-            .isEqualTo("1s");
+            .isNull();
     }
 
     @Test
@@ -352,7 +352,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
         assertThat(analysisReset.settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
-            .isEqualTo("1000");
+            .isNull();
     }
 
     @Test
@@ -1143,7 +1143,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             analyze("alter table users reset (\"number_of_shards\")");
         assertThat(analysis.table().ident().name()).isEqualTo("users");
         assertThat(analysis.settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()))
-            .isEqualTo("5");
+            .isNull();
     }
 
     @Test

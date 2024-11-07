@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import static io.crate.metadata.table.Operation.isReplicated;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -164,10 +165,15 @@ public class AlterTablePlan implements Plan {
 
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
     static void maybeRaiseBlockedException(TableInfo tableInfo, Settings tableSettings) {
-        if (tableSettings.size() != 1 ||
-            (tableSettings.get(IndexMetadata.SETTING_BLOCKS_METADATA) == null &&
-             tableSettings.get(IndexMetadata.SETTING_READ_ONLY) == null)) {
-
+        Set<String> blockSettings = Set.of(
+            IndexMetadata.SETTING_BLOCKS_METADATA,
+            IndexMetadata.SETTING_BLOCKS_READ,
+            IndexMetadata.SETTING_BLOCKS_WRITE,
+            IndexMetadata.SETTING_READ_ONLY
+        );
+        if (blockSettings.containsAll(tableSettings.keySet())) {
+            Operation.blockedRaiseException(tableInfo, Operation.ALTER_BLOCKS);
+        } else {
             Operation.blockedRaiseException(tableInfo, Operation.ALTER);
         }
     }
