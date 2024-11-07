@@ -136,8 +136,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
         assertThat(jwtAuth.name()).isEqualTo("jwt");
 
@@ -167,8 +167,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> clusterId
+            () -> clusterId,
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -195,8 +195,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> clusterId
+            () -> clusterId,
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -230,8 +230,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -262,8 +262,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -282,8 +282,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction("RS384"),
-            () -> "dummy"
+            () -> "dummy",
+            jwkProviderFunction("RS384")
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -320,8 +320,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             () -> List.of(JWT_USER),
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> null
+            () -> null,
+            jwkProviderFunction(null)
         );
 
         assertThatThrownBy(
@@ -338,7 +338,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             List::of,
             Settings.EMPTY,
-            null,
             () -> "dummy"
         );
 
@@ -367,8 +366,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             Settings.EMPTY,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -400,8 +399,8 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
             settings,
-            jwkProviderFunction(null),
-            () -> null // ClusterId supplier is not used, aud is taken from defaults
+            () -> null, // ClusterId supplier is not used, aud is taken from defaults
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -424,6 +423,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         when(mockJwkProvider.get(KID)).thenReturn(mockJwk);
         when(mockJwk.getPublicKey()).thenReturn(publicKey);
         when(mockJwk.getAlgorithm()).thenReturn(algorithm);
-        return ignored -> mockJwkProvider;
+        return _ -> mockJwkProvider;
     }
 }

@@ -24,24 +24,21 @@ package io.crate.auth;
 import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING;
 import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.JwkProviderBuilder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -58,21 +55,26 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
 
     private final Roles roles;
 
-    private final Function<String, JwkProvider> urlToJwkProvider;
+    private final Function<String, JwkProvider> createProvider;
+    private final ConcurrentHashMap<String, JwkProvider> cachedJwkProviders = new ConcurrentHashMap<>();
 
     private final Supplier<String> clusterId;
 
     private final Settings settings;
 
+    public JWTAuthenticationMethod(Roles roles, Settings settings, Supplier<String> clusterId) {
+        this(roles, settings, clusterId, CachingJwkProvider::new);
+    }
 
-    public JWTAuthenticationMethod(Roles roles,
-                                   Settings settings,
-                                   Function<String, JwkProvider> urlToJwkProvider,
-                                   Supplier<String> clusterId) {
+    @VisibleForTesting
+    JWTAuthenticationMethod(Roles roles,
+                            Settings settings,
+                            Supplier<String> clusterId,
+                            Function<String, JwkProvider> createProvider) {
         this.roles = roles;
         this.settings = settings;
-        this.urlToJwkProvider = urlToJwkProvider;
         this.clusterId = clusterId;
+        this.createProvider = createProvider;
     }
 
     @Override
@@ -101,8 +103,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
                 name = jwtProperties.username();
                 audience = jwtProperties.aud() != null ? jwtProperties.aud() : audience;
             }
-
-            JwkProvider jwkProvider = urlToJwkProvider.apply(issuer);
+            JwkProvider jwkProvider = cachedJwkProviders.computeIfAbsent(issuer, this.createProvider::apply);
             // Expiration date is checked by default(if provided in token)
             Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
             Verification verification = JWT.require(algorithm)
@@ -128,29 +129,6 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
         }
 
         return user;
-    }
-
-
-    public static JwkProvider jwkProvider(@NotNull String issuer) {
-        URL jwkUrl;
-        try {
-            /*
-             We cannot use JwkProviderBuilder constructor with String.
-             It adds hard coded WELL_KNOWN_JWKS_PATH (/.well-known/jwks.json) to the url.
-             JWK URL not necessarily ends with that suffix, for example:
-             Microsoft: "jwks_uri":" https://login.microsoftonline.com/common/discovery/v2.0/keys"
-             Google: "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
-             Taken from https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration
-             and https://accounts.google.com/.well-known/openid-configuration correspondingly
-            */
-
-            URI uri = new URI(issuer).normalize();
-            jwkUrl = uri.toURL();
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid jwks uri", e);
-        }
-
-        return new JwkProviderBuilder(jwkUrl).build();
     }
 
     @Override
