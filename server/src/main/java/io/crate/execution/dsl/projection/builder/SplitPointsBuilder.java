@@ -37,6 +37,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
@@ -45,7 +46,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     static class Context {
         private final ArrayList<Function> aggregates = new ArrayList<>();
         private final ArrayList<Function> tableFunctions = new ArrayList<>();
-        private final ArrayList<Function> scalarsContainingTableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
         private final ArrayList<WindowFunction> windowFunctions = new ArrayList<>();
         private final ArrayList<SelectSymbol> correlatedQueries = new ArrayList<>();
@@ -62,22 +62,13 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
          */
         private final ArrayList<OuterColumn> outerColumns = new ArrayList<>();
         private boolean insideAggregate = false;
+        private boolean insideWindowFunction = false;
 
         private int tableFunctionLevel = 0;
 
         boolean foundAggregateOrTableFunction = false;
 
-        // Used specifically to catch table functions inside scalars.
-        // Aggregations and window functions cannot be used inside scalars.
-        boolean foundTableFunction = false;
-
         Context() {
-        }
-
-        void allocateScalar(Function scalarFunction) {
-            if (scalarsContainingTableFunctions.contains(scalarFunction) == false) {
-                scalarsContainingTableFunctions.add(scalarFunction);
-            }
         }
 
         void allocateTableFunction(Function tableFunction) {
@@ -133,9 +124,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         Symbol where = relation.where();
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
-        for (Function scalarFunction : context.scalarsContainingTableFunctions) {
-            toCollect.addAll(extractColumns(scalarFunction.arguments()));
-        }
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
         }
@@ -200,9 +188,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         switch (type) {
             case SCALAR:
                 super.visitFunction(function, context);
-                if (context.foundTableFunction == true) {
-                    context.allocateScalar(function);
-                }
                 return null;
 
             case AGGREGATE:
@@ -218,7 +203,6 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                     throw new UnsupportedOperationException("Cannot use table functions inside aggregates");
                 }
                 context.foundAggregateOrTableFunction = true;
-                context.foundTableFunction = true;
                 if (context.tableFunctionLevel == 0) {
                     context.allocateTableFunction(function);
                 }
@@ -234,8 +218,11 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     @Override
     public Void visitWindowFunction(WindowFunction windowFunction, Context context) {
         context.foundAggregateOrTableFunction = true;
+        context.insideWindowFunction = true;
         context.allocateWindowFunction(windowFunction);
-        return super.visitFunction(windowFunction, context);
+        super.visitFunction(windowFunction, context);
+        context.insideWindowFunction = false;
+        return null;
     }
 
     @Override
@@ -259,4 +246,16 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                                  getClass().getCanonicalName());
     }
 
+    @Override
+    public Void visitReference(Reference symbol, Context context) {
+        if (context.foundAggregateOrTableFunction
+            && context.tableFunctionLevel == 0
+            && context.insideAggregate == false
+            && context.insideWindowFunction == false) {
+            // Reference isn't part of an aggregate, table or window function, but it's used inside the outputs
+            // so it must be collected. E.g. using a scalar containing  table + nested scalar arguments
+            context.standalone.add(symbol);
+        }
+        return super.visitReference(symbol, context);
+    }
 }
