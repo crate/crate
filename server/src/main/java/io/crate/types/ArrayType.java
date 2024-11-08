@@ -54,7 +54,6 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
-import io.crate.execution.dml.ArrayOfObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
@@ -104,7 +103,10 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public ValueIndexer<List<? super T>> valueIndexer(RelationName table,
                                                             Reference ref,
                                                             Function<ColumnIdent, Reference> getRef) {
-                    return new ArrayOfObjectIndexer<>(innerStorage.valueIndexer(table, ref, getRef), getRef, ref);
+                    int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
+                    assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
+                        "Must not retrieve value indexer of the child array of a multi dimensional array";
+                    return ArrayIndexer.of(ref, getRef);
                 }
 
                 @Override
