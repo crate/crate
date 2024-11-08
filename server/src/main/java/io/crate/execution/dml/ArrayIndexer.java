@@ -47,6 +47,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
@@ -93,12 +94,15 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @SuppressWarnings("unchecked")
     public static <T> ValueIndexer<T> of(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
-        StorageSupport<?> innerMostStorageSupport = ArrayType.unnest(arrayRef.valueType()).storageSupportSafe();
+        DataType<?> innerMostType = ArrayType.unnest(arrayRef.valueType());
+        StorageSupport<?> innerMostStorageSupport = innerMostType.storageSupportSafe();
         ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.ident().tableIdent(), arrayRef, getRef);
         for (int i = 0; i < ArrayType.dimensions(arrayRef.valueType()) - 1; i++) {
             childIndexer = new ChildArrayIndexer<>(childIndexer, getRef, arrayRef);
         }
-        return (ValueIndexer<T>) new ArrayIndexer<>(childIndexer, getRef, arrayRef);
+        return (ValueIndexer<T>) (innerMostType instanceof ObjectType ?
+            new ArrayOfObjectIndexer<>(childIndexer, getRef, arrayRef) :
+            new ArrayIndexer<>(childIndexer, getRef, arrayRef));
     }
 
     /**

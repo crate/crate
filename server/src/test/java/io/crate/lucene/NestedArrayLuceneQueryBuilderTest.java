@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -131,5 +132,51 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_any_not_equals_on_array_literal_and_nested_array_ref_with_automatic_array_dimension_leveling() {
         var query = convert("[1] != any(c)");
         assertThat(query.toString()).isEqualTo("([1] <> ANY(array_unnest(c)))");
+    }
+
+    @Test
+    public void test_lengths_of_nested_array_of_objects() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (o array(array(object as (a int))))"
+        );
+        var val = List.of(
+            List.of(Map.of("a", 1)),
+            List.of(
+                Map.of("a", 2),
+                Map.of("a", 3),
+                Map.of("a", 4)
+            )
+        );
+        builder.indexValue("o", val);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("o", "array_length(o, 1) = 1")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o, 1) = 2")).containsExactly(val);
+            assertThat(tester.runQuery("o", "array_length(o, 1) = 3")).isEmpty();
+
+            assertThat(tester.runQuery("o", "array_length(o, 2) = 1")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o, 2) = 2")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o, 2) = 3")).containsExactly(val);
+
+            assertThat(tester.runQuery("o", "array_length(o[1], 1) = 1")).containsExactly(val);
+            assertThat(tester.runQuery("o", "array_length(o[1], 1) = 2")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o[1], 1) = 3")).isEmpty();
+
+            assertThat(tester.runQuery("o", "array_length(o[2], 1) = 1")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o[2], 1) = 2")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o[2], 1) = 3")).containsExactly(val);
+
+            assertThat(tester.runQuery("o", "array_length(o['a'], 1) = 1")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o['a'], 1) = 2")).containsExactly(val);
+            assertThat(tester.runQuery("o", "array_length(o['a'], 1) = 3")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o['a'], 1) = 4")).isEmpty();
+
+            assertThat(tester.runQuery("o", "array_length(o['a'], 2) = 1")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o['a'], 2) = 2")).isEmpty();
+            assertThat(tester.runQuery("o", "array_length(o['a'], 2) = 3")).containsExactly(val);
+            assertThat(tester.runQuery("o", "array_length(o['a'], 2) = 4")).isEmpty();
+        }
     }
 }
