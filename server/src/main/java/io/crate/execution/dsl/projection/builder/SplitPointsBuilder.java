@@ -37,6 +37,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
@@ -61,6 +62,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
          */
         private final ArrayList<OuterColumn> outerColumns = new ArrayList<>();
         private boolean insideAggregate = false;
+        private boolean insideWindowFunction = false;
 
         private int tableFunctionLevel = 0;
 
@@ -216,8 +218,11 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     @Override
     public Void visitWindowFunction(WindowFunction windowFunction, Context context) {
         context.foundAggregateOrTableFunction = true;
+        context.insideWindowFunction = true;
         context.allocateWindowFunction(windowFunction);
-        return super.visitFunction(windowFunction, context);
+        super.visitFunction(windowFunction, context);
+        context.insideWindowFunction = false;
+        return null;
     }
 
     @Override
@@ -241,4 +246,16 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                                  getClass().getCanonicalName());
     }
 
+    @Override
+    public Void visitReference(Reference symbol, Context context) {
+        if (context.foundAggregateOrTableFunction
+            && context.tableFunctionLevel == 0
+            && context.insideAggregate == false
+            && context.insideWindowFunction == false) {
+            // Reference isn't part of an aggregate, table or window function, but it's used inside the outputs
+            // so it must be collected. E.g. using a scalar containing  table + nested scalar arguments
+            context.standalone.add(symbol);
+        }
+        return super.visitReference(symbol, context);
+    }
 }
