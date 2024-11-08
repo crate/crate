@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -682,5 +681,30 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "    └ OrderBy[try_cast(x AS bigint) ASC]",
                 "      └ Collect[doc.t1 | [try_cast(x AS bigint) AS val, try_cast(x AS bigint)] | (x < 123)]"
             );
+    }
+
+    @Test
+    public void test_scalar_uses_table_function_and_column_not_used_in_select_and_table_function() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT
+              CASE
+                WHEN regexp_matches(name, '^a') != []
+                    THEN 'found'
+                WHEN text LIKE '%xyz%'
+                    THEN 'special case'
+                ELSE 'default'
+              END
+            FROM users;
+            """);
+        // Column "text" is not in SELECT targets and not used in regexp_matches.
+        // It's used to be not collected and not included into outputs
+        // which lead to failure of constructing an execution plan
+        assertThat(plan).isEqualTo(
+            """
+                Eval[case(true, 'default', (NOT (regexp_matches(name, '^a') = [])), 'found', (text LIKE '%xyz%'), 'special case')]
+                  └ ProjectSet[regexp_matches(name, '^a'), name, text]
+                    └ Collect[doc.users | [name, text] | true]
+                """
+        );
     }
 }
