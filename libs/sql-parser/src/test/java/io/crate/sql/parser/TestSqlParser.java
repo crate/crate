@@ -170,7 +170,7 @@ public class TestSqlParser {
                     selectList(new DoubleLiteral(123.456E7)),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
-                    List.of(),
+                    Optional.empty(),
                     Optional.empty(),
                     Map.of(),
                     List.of(),

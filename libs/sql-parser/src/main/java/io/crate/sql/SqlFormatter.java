@@ -498,12 +498,17 @@ public final class SqlFormatter {
                     .append('\n');
             }
 
-            if (!node.getGroupBy().isEmpty()) {
-                append(indent,
-                    "GROUP BY " + node.getGroupBy().stream()
-                        .map(e -> formatStandaloneExpression(e, parameters))
-                        .collect(COMMA_JOINER))
-                    .append('\n');
+            if (node.getGroupBy().isPresent()) {
+                append(indent, "GROUP BY ");
+                if (node.getGroupBy().get().isAll()) {
+                    append(indent, "ALL");
+                } else {
+                    append(indent,
+                        node.getGroupBy().get().getExpressions().stream()
+                            .map(e -> formatStandaloneExpression(e, parameters))
+                            .collect(COMMA_JOINER));
+                }
+                builder.append('\n');
             }
 
             if (node.getHaving().isPresent()) {

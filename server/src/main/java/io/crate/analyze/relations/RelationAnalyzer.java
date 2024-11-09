@@ -71,6 +71,7 @@ import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
@@ -90,6 +91,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
@@ -416,9 +418,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         List<Symbol> groupBy = analyzeGroupBy(
             selectAnalysis,
-            node.getGroupBy(),
+            node.getGroupBy().map(GroupBy::getExpressions).orElse(List.of()),
             expressionAnalyzer,
-            expressionAnalysisContext);
+            expressionAnalysisContext,
+            node.getGroupBy().map(GroupBy::isAll).orElse(false));
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
             GroupAndAggregateSemantics.validate(selectAnalysis.outputSymbols(), groupBy);
@@ -509,13 +512,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis,
                                         List<Expression> groupBy,
                                         ExpressionAnalyzer expressionAnalyzer,
-                                        ExpressionAnalysisContext expressionAnalysisContext) {
+                                        ExpressionAnalysisContext expressionAnalysisContext,
+                                        boolean isGroupByAll) {
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
-        for (Expression expression : groupBy) {
-            Symbol symbol = symbolFromExpressionFallbackOnSelectOutput(
-                expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
-            GroupBySymbolValidator.validate(symbol);
-            groupBySymbols.add(symbol);
+        if (groupBy.isEmpty() && isGroupByAll) {
+            for (Symbol symbol : selectAnalysis.outputSymbols()) {
+                if (!symbol.hasFunctionType(FunctionType.AGGREGATE) && !symbol.hasFunctionType(FunctionType.TABLE)) {
+                    GroupBySymbolValidator.validate(symbol);
+                    groupBySymbols.add(symbol);
+                }
+            }
+        } else {
+            for (Expression expression : groupBy) {
+                Symbol symbol = symbolFromExpressionFallbackOnSelectOutput(
+                    expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
+                GroupBySymbolValidator.validate(symbol);
+                groupBySymbols.add(symbol);
+            }
         }
         return groupBySymbols;
     }

@@ -190,7 +190,7 @@ querySpec
     : SELECT setQuant? selectItem (COMMA selectItem)*
       (FROM relation (COMMA relation)*)?
       where?
-      (GROUP BY expr (COMMA expr)*)?
+      (GROUP BY ( ALL | expr (COMMA expr)*))?
       (HAVING having=booleanExpression)?
       (WINDOW windows+=namedWindow (COMMA windows+=namedWindow)*)?                   #defaultQuerySpec
     | VALUES values (COMMA values)*                                                  #valuesRelation
