@@ -132,3 +132,8 @@ Fixes
         p GEO_POINT,
         x ARRAY(DOUBLE) GENERATED ALWAYS AS p::ARRAY(DOUBLE)
       );
+
+- Fixed an issue that caused an ``UnsupportedFeatureException`` when
+  ``ORDER BY`` expression contained a nested function. For example::
+
+    SELECT * FROM t ORDER BY LEFT(txt_col, 1) = ANY(['a']);
