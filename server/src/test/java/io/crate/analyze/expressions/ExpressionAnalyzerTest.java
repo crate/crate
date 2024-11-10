@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
@@ -574,6 +575,26 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 y -> assertThat(y).isReference().hasName("b"),
                 y -> assertThat(y).isLiteral("numeric") // implicit cast to 'numeric' NOT 'numeric(4,2)'
             )
+        );
+    }
+
+    @Test
+    public void test_complex_order_by_expression() {
+        QueriedSelectRelation queriedSelectRelation = executor.analyze("""
+            SELECT LEFT(a, 1) = ANY(['hello']) AS txt_match
+            FROM t1
+            ORDER BY txt_match DESC;
+            """);
+        assertThat(queriedSelectRelation.orderBy().orderBySymbols()).hasSize(1);
+        Function orderBy = (Function) queriedSelectRelation.orderBy().orderBySymbols().getFirst();
+        assertThat(orderBy).isFunction(
+            AnyEqOperator.NAME,
+            x -> assertThat(x).isFunction(
+                "left",
+                y -> assertThat(y).isReference().hasName("a"),
+                y -> assertThat(y).isLiteral(1)
+            ),
+            x -> assertThat(x).isLiteral(List.of("hello"))
         );
     }
 }
