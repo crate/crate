@@ -1602,8 +1602,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             new Select(isDistinct(context.setQuant()), selectItems),
             visitCollection(context.relation(), Relation.class),
             visitIfPresent(context.where(), Expression.class),
-            context.expr() == null ? Optional.empty() :
-                context.ALL() != null ? Optional.of(GroupBy.all()) :
+            context.ALL() != null ? Optional.of(GroupBy.all()) :
+                visitCollection(context.expr(), Expression.class).isEmpty() ?
+                    Optional.empty() :
                     Optional.of(GroupBy.of(visitCollection(context.expr(), Expression.class))),
             visitIfPresent(context.having, Expression.class),
             getWindowDefinitions(context.windows),

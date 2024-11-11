@@ -96,6 +96,7 @@ import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Insert;
@@ -499,16 +500,17 @@ public final class SqlFormatter {
             }
 
             if (node.getGroupBy().isPresent()) {
-                append(indent, "GROUP BY ");
-                if (node.getGroupBy().get().isAll()) {
-                    append(indent, "ALL");
-                } else {
+                GroupBy groupBy = node.getGroupBy().get();
+                if (groupBy.isAll()) {
+                    append(indent, "GROUP BY ALL\n");
+                } else if (!groupBy.getExpressions().isEmpty()) {
+                    append(indent, "GROUP BY ");
                     append(indent,
-                        node.getGroupBy().get().getExpressions().stream()
+                        groupBy.getExpressions().stream()
                             .map(e -> formatStandaloneExpression(e, parameters))
                             .collect(COMMA_JOINER));
+                    builder.append('\n');
                 }
-                builder.append('\n');
             }
 
             if (node.getHaving().isPresent()) {
