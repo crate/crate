@@ -386,8 +386,14 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         GenericProperties<Symbol> properties = createTable.properties().map(toSymbol);
         Optional<ClusteredBy<Symbol>> clusteredBy = createTable.clusteredBy().map(x -> x.map(toSymbol));
-
-        Optional<PartitionedBy<Symbol>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toSymbol));
+        Function<Expression, Reference> toRef = x -> {
+            Symbol symbol = toSymbol.apply(x);
+            if (symbol instanceof Reference ref) {
+                return ref;
+            }
+            throw new IllegalArgumentException("Expression must be a column: " + x);
+        };
+        Optional<PartitionedBy<Reference>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toRef));
         partitionedBy.ifPresent(p -> p.columns().forEach(partitionColumn -> {
             ColumnIdent partitionColumnIdent = partitionColumn.toColumn();
             RefBuilder column = columns.get(partitionColumnIdent);
