@@ -35,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -43,6 +44,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 public final class MappingUtil {
@@ -93,7 +95,7 @@ public final class MappingUtil {
     }
 
     /**
-     * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
+     * This is a single entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
      *
@@ -103,7 +105,7 @@ public final class MappingUtil {
                                                     List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
-                                                    List<List<String>> partitionedBy,
+                                                    List<ColumnIdent> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable ColumnIdent routingColumn) {
 
@@ -135,7 +137,12 @@ public final class MappingUtil {
             meta.put("indices", indices);
         }
         if (partitionedBy.isEmpty() == false) {
-            meta.put("partitioned_by", partitionedBy);
+            List<List<String>> pColumns = Lists.map(partitionedBy, pColumn -> {
+                int refIdx = Reference.indexOf(columns, pColumn);
+                Reference pRef = columns.get(refIdx);
+                return toPartitionMapping(pRef);
+            });
+            meta.put("partitioned_by", pColumns);
         }
 
         mapping.put("_meta", meta);
@@ -144,6 +151,11 @@ public final class MappingUtil {
         return mapping;
     }
 
+    private static List<String> toPartitionMapping(Reference ref) {
+        String fqn = ref.column().fqn();
+        String typeMappingName = DataTypes.esMappingNameFrom(ref.valueType().id());
+        return List.of(fqn, typeMappingName);
+    }
 
     /**
      * Creates the "properties" part of a mapping.
