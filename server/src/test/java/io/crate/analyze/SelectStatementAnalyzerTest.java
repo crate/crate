@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
+import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -2868,6 +2869,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs()).satisfiesExactly(
             x -> assertThat(x).isScopedSymbol("x")
                 .hasDataType(DataTypes.INTEGER)
+        );
+    }
+
+    @Test
+    public void test_sub_columns_of_nested_object_arrays() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (o object as (a int)[][])");
+        QueriedSelectRelation relation = executor.analyze("select o['a'] from t");
+        assertThat(relation.outputs()).satisfiesExactly(
+            output -> assertThat(output.valueType()).isEqualTo(makeArray(DataTypes.INTEGER, 2))
         );
     }
 }

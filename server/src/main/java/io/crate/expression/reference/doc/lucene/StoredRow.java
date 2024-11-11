@@ -55,18 +55,7 @@ public interface StoredRow {
             if (tmp instanceof Map) {
                 m = (Map<?, ?>) tmp;
             } else if (tmp instanceof List<?> list) {
-                if (i + 1 == path.size()) {
-                    return list;
-                }
-                ArrayList<Object> newList = new ArrayList<>(list.size());
-                for (Object o : list) {
-                    if (o instanceof Map) {
-                        newList.add(extractValue((Map<?, ?>) o, path, i + 1));
-                    } else {
-                        newList.add(o);
-                    }
-                }
-                return newList;
+                return extractValueHelper(list, path, i);
             } else {
                 if (i + 1 != path.size()) {
                     return null;
@@ -75,5 +64,22 @@ public interface StoredRow {
             }
         }
         return tmp;
+    }
+
+    private static Object extractValueHelper(final List<?> list, List<String> path, int pathStartIndex) {
+        if (pathStartIndex + 1 == path.size()) {
+            return list;
+        }
+        ArrayList<Object> newList = new ArrayList<>(list.size());
+        for (Object o : list) {
+            if (o instanceof Map<?,?> m) {
+                newList.add(extractValue(m, path, pathStartIndex + 1));
+            } else if (o instanceof List<?> l) {
+                newList.add(extractValueHelper(l, path, pathStartIndex));
+            } else {
+                newList.add(o);
+            }
+        }
+        return newList;
     }
 }
