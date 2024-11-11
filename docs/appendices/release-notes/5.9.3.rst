@@ -108,3 +108,10 @@ Fixes
 - Fixed an issue that caused a :ref:`sql-create-table` statement to fail when a
   column defines a generated expression including a conditional
   :ref:`CASE <scalar-case-when-then-end>` function.
+
+- Fixed an issue that caused a SQL parsing error when running a query against
+  a ``FOREIGN TABLE`` of type :ref:`administration-fdw-jdbc` which contains an
+  aliased column name inside the ``WHERE`` clause. For example::
+
+      CREATE FOREIGN TABLE t (a INT) SERVER s;
+      SELECT * FROM (SELECT id as some_alias FROM t) tt WHERE tt.some_alias = 1;
