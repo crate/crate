@@ -70,6 +70,8 @@ system::
    Only `DQL` (Data Query Language) statements are supported on foreign tables.
 
 
+.. _administration-fdw-jdbc:
+
 ``jdbc``
 ========
 
