@@ -102,7 +102,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
                 audience = jwtProperties.aud() != null ? jwtProperties.aud() : audience;
             }
 
-            JwkProvider jwkProvider = urlToJwkProvider.apply(decodedJWT.getIssuer());
+            JwkProvider jwkProvider = urlToJwkProvider.apply(issuer);
             // Expiration date is checked by default(if provided in token)
             Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
             Verification verification = JWT.require(algorithm)
