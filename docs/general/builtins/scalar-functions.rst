@@ -3439,6 +3439,31 @@ skipped and ``NULL`` leaf elements within arrays are preserved.
     :ref:`UNNEST table function <unnest>`
 
 
+.. _scalar-null-or-empty-array:
+
+``null_or_empty(array)``
+-------------------------
+
+The ``null_or_empty(array)`` function returns a Boolean indicating if an array
+is ``NULL`` or empty (``[]``).
+
+This can serve as a faster alternative to ``IS NULL`` if matching on empty
+array is acceptable. It makes better use of indices.
+
+::
+
+    cr> SELECT null_or_empty([]) w,
+    ...        null_or_empty([[]]) x,
+    ...        null_or_empty(NULL) y,
+    ...        null_or_empty([1]) z;
+    +------+-------+------+-------+
+    | w    | x     | y    | z     |
+    +------+-------+------+-------+
+    | TRUE | FALSE | TRUE | FALSE |
+    +------+-------+------+-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-objects:
 
 Object functions
@@ -3517,13 +3542,13 @@ objects::
         SELECT 1 row in set (... sec)
 
 
-.. _scalar-null-or-empty:
+.. _scalar-null-or-empty-object:
 
 
 ``null_or_empty(object)``
 -------------------------
 
-The ``null_or_empty(object)`` function returns a boolean indicating if an object
+The ``null_or_empty(object)`` function returns a Boolean indicating if an object
 is ``NULL`` or empty (``{}``).
 
 This can serve as a faster alternative to ``IS NULL`` if matching on empty
