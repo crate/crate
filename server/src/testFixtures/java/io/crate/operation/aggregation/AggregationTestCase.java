@@ -220,7 +220,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
-            List.of()
+            List.of(),
+            (_) -> false
         );
 
         try {
