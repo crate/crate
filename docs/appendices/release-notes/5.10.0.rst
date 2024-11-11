@@ -70,6 +70,7 @@ SQL Statements
 - Added support for ``GROUP BY ALL`` clause which allows grouping by all output
  columns that are not aggregate functions without explicitly listing them, e.g.::
 
+
    SELECT department, title, AVG(salary) as avg_salary
    FROM employees
    GROUP BY ALL;
