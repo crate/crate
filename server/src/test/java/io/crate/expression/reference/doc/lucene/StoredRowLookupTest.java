@@ -65,4 +65,21 @@ public class StoredRowLookupTest {
         Map<String, Map<String, Integer>> m = singletonMap("x", singletonMap("a", 1)); // such that x['a'] = 1
         assertThat(StoredRow.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
     }
+
+    @Test
+    public void test_extract_sub_columns_of_nested_object_arrays() {
+        Map<String, List<List<Map<String, Integer>>>> m = singletonMap(
+            "o",
+            Arrays.asList(
+                List.of(singletonMap("a", 1)),
+                List.of(singletonMap("a", 2), singletonMap("a", 3)),
+                null)
+        );
+        assertThat(StoredRow.extractValue(m, Arrays.asList("o", "a"), 0)).isEqualTo(
+            Arrays.asList(
+                List.of(1),
+                List.of(2, 3),
+                null)
+        );
+    }
 }
