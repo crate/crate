@@ -30,6 +30,7 @@ import java.util.Map;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -81,10 +82,6 @@ public class CreateTableRequestTest {
             null
         );
         List<Reference> refs = List.of(ref1, ref2, ref3, ref4);
-        List<String> partCol1 = List.of("part_col_1", DataTypes.esMappingNameFrom(DataTypes.STRING.id()));
-        List<String> partCol2 = List.of("part_col_2", DataTypes.esMappingNameFrom(DataTypes.INTEGER.id()));
-        List<List<String>> partitionedBy = List.of(partCol1, partCol2);
-
         CreateTableRequest request = new CreateTableRequest(
             rel,
             null,
@@ -94,22 +91,33 @@ public class CreateTableRequestTest {
             Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_0).build(),
             ColumnIdent.of("some_routing_col"),
             ColumnPolicy.DYNAMIC,
-            partitionedBy
+            List.of(ref1.column(), ref2.column())
         );
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
-        CreateTableRequest fromStream = new CreateTableRequest(out.bytes().streamInput());
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            request.writeTo(out);
+            CreateTableRequest fromStream = new CreateTableRequest(out.bytes().streamInput());
 
-        assertThat(fromStream.getTableName()).isEqualTo(request.getTableName());
-        assertThat(fromStream.references()).isEqualTo(request.references());
-        assertThat(fromStream.checkConstraints()).isEqualTo(request.checkConstraints());
-        assertThat(fromStream.pKeyIndices()).isEqualTo(request.pKeyIndices());
+            assertThat(fromStream.getTableName()).isEqualTo(request.getTableName());
+            assertThat(fromStream.references()).isEqualTo(request.references());
+            assertThat(fromStream.checkConstraints()).isEqualTo(request.checkConstraints());
+            assertThat(fromStream.pKeyIndices()).isEqualTo(request.pKeyIndices());
 
-        assertThat(fromStream.settings()).isEqualTo(request.settings());
-        assertThat(fromStream.routingColumn()).isEqualTo(request.routingColumn());
-        assertThat(fromStream.tableColumnPolicy()).isEqualTo(request.tableColumnPolicy());
-        assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+            assertThat(fromStream.settings()).isEqualTo(request.settings());
+            assertThat(fromStream.routingColumn()).isEqualTo(request.routingColumn());
+            assertThat(fromStream.tableColumnPolicy()).isEqualTo(request.tableColumnPolicy());
+            assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+        }
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_9_2);
+            request.writeTo(out);
+            StreamInput streamInput = out.bytes().streamInput();
+            streamInput.setVersion(Version.V_5_9_2);
+            CreateTableRequest fromStream = new CreateTableRequest(streamInput);
+            assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+        }
     }
 
     @Test

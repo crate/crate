@@ -57,6 +57,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.TableParameters;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.ColumnIdent;
@@ -373,7 +374,7 @@ public class TestingHelpers {
             references,
             pKeysIndices,
             boundCreateTable.getCheckConstraints(),
-            boundCreateTable.partitionedBy(),
+            Lists.map(boundCreateTable.partitionedBy(), Reference::column),
             tableColumnPolicy,
             boundCreateTable.routingColumn().equals(SysColumns.ID.COLUMN)
                 ? null

@@ -51,7 +51,7 @@ public interface Reference extends Symbol {
         .comparing(Reference::position)
         .thenComparing(r -> r.column().fqn());
 
-    static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
+    public static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
         int i = 0;
         for (Reference ref : refs) {
             if (ref.column().equals(column)) {
