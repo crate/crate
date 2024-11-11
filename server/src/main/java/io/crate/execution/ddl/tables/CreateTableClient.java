@@ -37,6 +37,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.TableParameters;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
@@ -75,7 +76,7 @@ public class CreateTableClient {
                 settingsBuilder.build(),
                 routingColumn,
                 tableColumnPolicy,
-                createTable.partitionedBy()
+                Lists.map(createTable.partitionedBy(), Reference::column)
             );
         } else {
             throw new UnsupportedOperationException("All nodes in the cluster must at least have version 5.4.0");

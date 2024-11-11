@@ -70,7 +70,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
                             List<Reference> targetColumns,
                             boolean ignoreDuplicateKeys,
                             Map<Reference, Symbol> onDuplicateKeyAssignments,
-                            List<Symbol> returnValues) {
+                            @Nullable List<Symbol> returnValues) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;

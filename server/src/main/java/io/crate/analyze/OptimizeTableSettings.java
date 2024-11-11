@@ -21,16 +21,15 @@
 
 package io.crate.analyze;
 
+import java.util.Map;
+
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 
-import java.util.Map;
-
 public final class OptimizeTableSettings {
 
-    private OptimizeTableSettings() {
-    }
+    private OptimizeTableSettings() {}
 
     public static final Setting<Integer> MAX_NUM_SEGMENTS =
         Setting.intSetting(

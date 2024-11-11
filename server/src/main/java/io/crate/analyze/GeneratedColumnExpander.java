@@ -96,10 +96,10 @@ public final class GeneratedColumnExpander {
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
 
         static class Context {
-            private final HashMap<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn;
+            private final Map<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn;
             private final NodeContext nodeCtx;
 
-            public Context(HashMap<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn,
+            public Context(Map<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn,
                            NodeContext nodeCtx) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
                 this.nodeCtx = nodeCtx;
@@ -114,7 +114,7 @@ public final class GeneratedColumnExpander {
                               List<GeneratedReference> generatedCols,
                               List<Reference> expansionCandidates,
                               NodeContext nodeCtx) {
-            HashMap<Reference, ArrayList<GeneratedReference>> referencedSingleReferences =
+            Map<Reference, ArrayList<GeneratedReference>> referencedSingleReferences =
                 extractGeneratedReferences(generatedCols, expansionCandidates);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
@@ -150,7 +150,7 @@ public final class GeneratedColumnExpander {
 
         private Symbol addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
             ArrayList<GeneratedReference> genColInfos = context.referencedRefsToGeneratedColumn
-                .computeIfAbsent(reference, (k) -> new ArrayList<>());
+                .computeIfAbsent(reference, k -> new ArrayList<>());
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
             comparisonsToAdd.add(function);
             for (GeneratedReference genColInfo : genColInfos) {
@@ -221,10 +221,10 @@ public final class GeneratedColumnExpander {
         private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, GeneratedReference generatedReference) {
             ReplaceIfMatch replaceIfMatch = new ReplaceIfMatch(
                 wrapMeLikeItsHot,
-                ((GeneratedReference) generatedReference).referencedReferences().get(0));
+                generatedReference.referencedReferences().get(0));
 
             return RefReplacer.replaceRefs(
-                ((GeneratedReference) generatedReference).generatedExpression(),
+                generatedReference.generatedExpression(),
                 replaceIfMatch
             );
         }

@@ -45,13 +45,13 @@ import io.crate.planner.operators.SubQueryResults;
 
 public record AnalyzedAlterTableAddColumn(
         DocTableInfo table,
-        /**
+        /*
          * In order of definition
          */
         Map<ColumnIdent, RefBuilder> columns,
-        /**
+        /*
          * By constraint name; In order of definition
-         **/
+         */
         Map<String, AnalyzedCheck> checks) implements DDLStatement {
 
     @Override

@@ -102,6 +102,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  geostring text," +
             "  is_awesome boolean," +
             "  numeric_val numeric(38, 37)," +
+            "  numeric_4_2 numeric(4, 2)," +
             "  double_val double precision," +
             "  float_val real," +
             "  short_val smallint," +

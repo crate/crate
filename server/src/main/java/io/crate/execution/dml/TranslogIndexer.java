@@ -35,6 +35,8 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 
 import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -58,6 +60,7 @@ public class TranslogIndexer {
      */
     @SuppressWarnings("unchecked")
     public TranslogIndexer(DocTableInfo table) {
+        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), false);
         for (var ref : table.columns()) {
             var storageSupport = ref.valueType().storageSupport();
             if (storageSupport != null) {
@@ -66,15 +69,17 @@ public class TranslogIndexer {
                     (ValueIndexer<Object>) storageSupport.valueIndexer(table.ident(), ref, table::getReference));
                 indexers.put(ref.column().name(), columnIndexer);
             }
+            if (ref.granularity() == RowGranularity.DOC) {
+                sourceParser.register(DocReferences.toDocLookup(ref).column(), ref.valueType());
+            }
         }
         for (var ref : table.indexColumns()) {
             for (var source : ref.columns()) {
                 tableIndexSources.computeIfAbsent(source.column().fqn(), _ -> new ArrayList<>()).add(ref.storageIdent());
             }
         }
-        this.ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
-        this.sourceParser = new SourceParser(table);
-        this.tableVersionCreated = table.versionCreated();
+        ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
+        tableVersionCreated = table.versionCreated();
     }
 
     /**
@@ -141,7 +146,9 @@ public class TranslogIndexer {
     }
 
     private static <T> T valueForInsert(DataType<T> valueType, Object value) {
-        return valueType.valueForInsert(valueType.sanitizeValue(value));
+        // Mapping could have changed since the translog entry was written, so we need to sanitize any column
+        // leniently (use NULL on sanitization errors) to avoid failing the index operation.
+        return valueType.valueForInsert(valueType.sanitizeValueLenient(value));
     }
 
     private static void addIndexField(IndexDocumentBuilder docBuilder, List<String> targetFields, Object value) {

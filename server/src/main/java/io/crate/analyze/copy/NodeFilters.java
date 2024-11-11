@@ -55,12 +55,12 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
 
     NodeFilters(@Nullable String name, @Nullable String id) {
         if (name == null && id == null) {
-            innerPredicate = discoveryNode -> true;
+            innerPredicate = ignoredDiscoveryNode -> true;
         } else {
             Predicate<DiscoveryNode> namesPredicate =
-                name == null ? discoveryNode -> true : new NamesPredicate(name);
+                name == null ? ignoredDiscoveryNode -> true : new NamesPredicate(name);
             Predicate<DiscoveryNode> idsPredicate =
-                id == null ? discoveryNode -> true : new IdsPredicate(id);
+                id == null ? ignoredDiscoveryNode -> true : new IdsPredicate(id);
             innerPredicate = namesPredicate.and(idsPredicate);
         }
     }

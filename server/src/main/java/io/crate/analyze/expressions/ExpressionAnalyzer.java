@@ -61,7 +61,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.ExistsOperator;
@@ -70,6 +69,7 @@ import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ArraySliceFunction;
@@ -314,7 +314,7 @@ public class ExpressionAnalyzer {
     @Nullable
     private WindowDefinition getWindowDefinition(Optional<Window> maybeWindow,
                                                  ExpressionAnalysisContext context) {
-        if (!maybeWindow.isPresent()) {
+        if (maybeWindow.isEmpty()) {
             return null;
         }
         var unresolvedWindow = maybeWindow.get();
@@ -761,18 +761,10 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, ExpressionAnalysisContext context) {
-            final String name;
-            switch (node.getType()) {
-                case AND:
-                    name = AndOperator.NAME;
-                    break;
-                case OR:
-                    name = OrOperator.NAME;
-                    break;
-                default:
-                    throw new UnsupportedOperationException(
-                        "Unsupported logical binary expression " + node.getType().name());
-            }
+            final String name = switch (node.getType()) {
+                case AND -> AndOperator.NAME;
+                case OR -> OrOperator.NAME;
+            };
             List<Symbol> arguments = List.of(
                 node.getLeft().accept(this, context),
                 node.getRight().accept(this, context)
@@ -817,19 +809,10 @@ public class ExpressionAnalyzer {
 
             context.parentIsOrderSensitive(true);
             ComparisonExpression.Type operationType = node.getType();
-            final String operatorName;
-            switch (node.quantifier()) {
-                case ANY:
-                    operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
-                    break;
-
-                case ALL:
-                    operatorName = AllOperator.OPERATOR_PREFIX + operationType.getValue();
-                    break;
-
-                default:
-                    throw new IllegalStateException("Expected comparison quantifier ALL or ANY, got " + node.quantifier());
-            }
+            final String operatorName = switch (node.quantifier()) {
+                case ANY -> AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+                case ALL -> AllOperator.OPERATOR_PREFIX + operationType.getValue();
+            };
             return allocateFunction(
                 operatorName,
                 List.of(leftSymbol, arraySymbol),
@@ -1048,7 +1031,7 @@ public class ExpressionAnalyzer {
                 context);
         }
 
-        private final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
+        private static final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
             Map.of(
                 YEAR, IntervalParser.Precision.YEAR,
                 MONTH, IntervalParser.Precision.MONTH,

@@ -38,8 +38,7 @@ public final class TableProperties {
 
     private static final String INVALID_MESSAGE = "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement";
 
-    private TableProperties() {
-    }
+    private TableProperties() {}
 
     public static void analyze(Settings.Builder settingsBuilder,
                                TableParameters tableParameters,
@@ -48,19 +47,17 @@ public final class TableProperties {
         settingsFromProperties(
             settingsBuilder,
             properties,
-            settingMap,
-            INVALID_MESSAGE);
+            settingMap);
     }
 
     private static void settingsFromProperties(Settings.Builder builder,
                                                GenericProperties<Object> properties,
-                                               Map<String, Setting<?>> supportedSettings,
-                                               String invalidMessage) {
+                                               Map<String, Setting<?>> supportedSettings) {
         for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
             Setting<?> setting = getSupportedSetting(supportedSettings, settingName);
             if (setting == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, entry.getKey()));
             }
             Object value = entry.getValue();
             if (value == null) {

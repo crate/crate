@@ -108,7 +108,7 @@ public class UnionSelect implements AnalyzedRelation {
     @NotNull
     @Override
     public List<Symbol> outputs() {
-        return (List<Symbol>)(List) outputs;
+        return (List) outputs;
     }
 
     @Override

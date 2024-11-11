@@ -186,4 +186,21 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
             "1| 1",
             "1| 2");
     }
+
+    @Test
+    public void test_order_by_on_join_with_parameter() {
+        execute("create table t1(a string, x int, i int)");
+        execute("insert into t1(a, x, i) values ('foo', 1, 1)");
+        execute("insert into t1(a, x, i) values ('bar', 2, 2)");
+        execute("create table t2(b string, y int, i int)");
+        execute("insert into t2(b, y, i) values ('crate', 1, 1)");
+        execute("insert into t2(b, y, i) values ('db', 2, 2)");
+        execute("refresh table t1, t2");
+        execute("SELECT t1.a, t2.b, abs(t2.i + ?), t1.x, t2.y FROM t1 JOIN t2 ON t1.i = t2.i ORDER BY 3 DESC",
+            new Object[]{-5});
+        assertThat(response).hasRows(
+            "foo| crate| 4| 1| 1",
+            "bar| db| 3| 2| 2"
+        );
+    }
 }

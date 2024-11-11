@@ -191,7 +191,7 @@ public class OrderBy implements Writeable {
                 newNullsFirst.add(nullsFirst[i]);
             }
         }
-        if (newOrderBySymbols.size() == 0) {
+        if (newOrderBySymbols.isEmpty()) {
             return null;
         }
         return new OrderBy(newOrderBySymbols, Booleans.toArray(newReverseFlags), Booleans.toArray(newNullsFirst));

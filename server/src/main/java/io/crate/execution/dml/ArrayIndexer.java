@@ -140,14 +140,14 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             // we use a prefix here so that there is no confusion between StoredField and IntField, as using
             // both can result in inconsistent docvalues types across documents.
             var storedField = ARRAY_VALUES_FIELD_PREFIX + reference.storageIdent();
-            var arrayBytes = arrayToBytes(values, docBuilder.getTableVersionCreated()).toBytesRef();
+            var arrayBytes = arrayToBytes(values, docBuilder).toBytesRef();
             docBuilder.addField(new StoredField(storedField, arrayBytes));
         }
     }
 
-    private BytesReference arrayToBytes(List<T> values, Version tableVersion) {
+    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
-            output.setVersion(tableVersion);
+            output.setVersion(docBuilder.getTableVersionCreated());
             bytesConverter.writeValueTo(output, values);
             return output.bytes();
         } catch (IOException e) {

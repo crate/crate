@@ -41,8 +41,8 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -69,7 +69,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
 
-    private static List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
+    private static final List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
 
     private final Authentication authService;
     private final Settings settings;
@@ -89,10 +89,10 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HttpRequest) {
-            handleHttpRequest(ctx, (HttpRequest) msg);
-        } else if (msg instanceof HttpContent) {
-            handleHttpChunk(ctx, ((HttpContent) msg));
+        if (msg instanceof HttpRequest httpRequest) {
+            handleHttpRequest(ctx, httpRequest);
+        } else if (msg instanceof HttpContent httpContent) {
+            handleHttpChunk(ctx, httpContent);
         } else {
             // neither http request nor http chunk - send upstream and see ...
             ctx.fireChannelRead(msg);
@@ -126,7 +126,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             String errorMessage = String.format(
                 Locale.ENGLISH,
                 "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
-                address.getHostAddress(), username, Protocol.HTTP.toString());
+                address.getHostAddress(), username, Protocol.HTTP);
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {

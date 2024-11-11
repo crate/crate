@@ -43,11 +43,6 @@ import io.crate.testing.DataTypeTesting;
 public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Override
-    public DataType<Map<String, Object>> getType() {
-        return new ObjectType.Builder().setInnerType("x", DataTypeTesting.randomTypeExcluding(Set.of(ObjectType.UNTYPED))).build();
-    }
-
-    @Override
     protected DataDef<Map<String, Object>> getDataDef() {
         // float vectors will not compare properly so we exclude them here
         DataType<?> innerType

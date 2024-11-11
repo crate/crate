@@ -297,6 +297,40 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     }
 
     @Test
+    public void test_token_issuer_and_resolved_issuer_mistmatch_throws_error() throws Exception {
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
+        String jwt = JWT.create()
+            .withHeader(
+                Map.of(
+                    "typ","JWT",
+                    "alg", "RS256",
+                    "kid", "1",
+                    "aud", "test_cluster_id" // Aligned with JWT_USER's properties.
+                )
+            )
+            .withIssuer("https://malicious.server") // Different from JWT_USER's properties.
+            .withClaim("username", "cloud_user") // Aligned with JWT_USER's properties.
+            .sign(Algorithm.RSA256(null, privateKey));
+
+        Credentials credentials = new Credentials(jwt);
+        credentials.setUsername(JWT_USER.name());
+
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            () -> List.of(JWT_USER),
+            Settings.EMPTY,
+            jwkProviderFunction(null),
+            () -> null
+        );
+
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("jwt authentication failed for user John. Reason: The Claim 'iss' value doesn't match the required issuer.");
+    }
+
+    @Test
     @SuppressWarnings("resource")
     public void test_jwt_authentication_user_not_found_throws_error() throws Exception {
         // Testing a scenario when user is looked up by iss/username, name is set to Credentials
@@ -315,35 +349,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             () -> jwtAuth.authenticate(credentials, null))
             .isExactlyInstanceOf(RuntimeException.class)
             .hasMessage("jwt authentication failed for user \"John\"");
-    }
-
-    @Test
-    @SuppressWarnings("resource")
-    public void test_jwt_authentication_malformed_endpoint_throws_error() throws Exception {
-        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
-        // Not using pre-generated JWT_TOKEN as it has a valid url.
-        String jwt = JWT.create()
-            .withHeader(Map.of("typ", "JWT", "kid", "1"))
-            .withIssuer("https-:\\bad_url")
-            .withClaim("username", "app_user")
-            .sign(Algorithm.RSA256(null, privateKey));
-
-        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
-            () -> List.of(JWT_USER),
-            Settings.EMPTY,
-            JWTAuthenticationMethod::jwkProvider,
-            () -> "dummy"
-        );
-
-        Credentials credentials = new Credentials(jwt);
-        credentials.setUsername(JWT_USER.name());
-
-        assertThatThrownBy(
-            () -> jwtAuth.authenticate(credentials, null))
-            .isExactlyInstanceOf(RuntimeException.class)
-            .hasMessage("jwt authentication failed for user John. Reason: Invalid jwks uri");
     }
 
     @Test

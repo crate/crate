@@ -22,7 +22,6 @@
 package io.crate.analyze.where;
 
 
-
 import java.util.Locale;
 import java.util.Set;
 import java.util.Stack;
@@ -49,8 +48,7 @@ public final class WhereClauseValidator {
 
     private static final Visitor VISITOR = new Visitor();
 
-    private WhereClauseValidator() {
-    }
+    private WhereClauseValidator() {}
 
     public static void validate(Symbol query) {
         query.accept(VISITOR, new Visitor.Context());
@@ -62,8 +60,7 @@ public final class WhereClauseValidator {
 
             private final Stack<Function> functions = new Stack<>();
 
-            private Context() {
-            }
+            private Context() {}
         }
 
         private static final String SCORE = "_score";

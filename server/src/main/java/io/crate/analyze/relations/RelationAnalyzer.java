@@ -571,8 +571,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (ord > -1) {
             return ordinalOutputReference(selectAnalysis.outputSymbols(), ord, clause);
         }
-        Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        return symbol;
+        return expressionAnalyzer.convert(expression, expressionAnalysisContext);
     }
 
     @Nullable
@@ -603,8 +602,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             return symbol;
         } catch (ColumnUnknownException e) {
-            if (expression instanceof QualifiedNameReference) {
-                Symbol symbol = tryGetFromSelectList((QualifiedNameReference) expression, selectAnalysis);
+            if (expression instanceof QualifiedNameReference qnr) {
+                Symbol symbol = tryGetFromSelectList(qnr, selectAnalysis);
                 if (symbol != null) {
                     return symbol;
                 }
@@ -748,13 +747,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         Symbol symbol = expressionAnalyzer.convert(node.functionCall(), expressionContext);
         expressionContext.allowEagerNormalize(allowEagerNormalizeOriginalValue);
 
-        if (!(symbol instanceof Function)) {
+        if (!(symbol instanceof Function function)) {
             throw new UnsupportedOperationException(
                 String.format(
                     Locale.ENGLISH,
                     "Symbol '%s' is not supported in FROM clause", node.name()));
         }
-        Function function = (Function) symbol;
         FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(function);
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
@@ -793,7 +791,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // At the same time we determine the column type with the highest precedence,
         // so that we don't fail with slight type miss-matches (long vs. int)
         List<ValuesList> rows = values.rows();
-        assert rows.size() > 0 : "Parser grammar enforces at least 1 row";
+        assert !rows.isEmpty() : "Parser grammar enforces at least 1 row";
         ValuesList firstRow = rows.get(0);
         int numColumns = firstRow.values().size();
 
@@ -828,9 +826,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         "The types of the columns within VALUES lists must match. " +
                         "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
                 }
-                if (usePrecedence && cellType.precedes(targetType)) {
-                    targetType = cellType;
-                } else if (targetType == DataTypes.UNDEFINED) {
+                if ((usePrecedence && cellType.precedes(targetType)) || (targetType == DataTypes.UNDEFINED)) {
                     targetType = cellType;
                 }
             }

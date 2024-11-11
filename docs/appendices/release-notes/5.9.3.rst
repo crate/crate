@@ -47,6 +47,14 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause an error to be thrown when attempting to
+  ``ORDER BY`` on top of a complex query (e.g. a ``JOIN``), using an expression
+  which contains a query parameter, e.g.::
+
+      SELECT * FROM t1 JOIN t2 ON t1.a = t2.b ORDER BY abs(t2.i + ?) DESC
+
+- Re-added the missing ``crate-node`` script to the tarball distribution.
+
 - Fixed an issue that caused error to be thrown when attempting to access a
   nested field of an :ref:`OBJECT <type-object>`, which contains also arrays of
   :ref:`OBJECT <type-object>`, e.g.::
@@ -71,14 +79,28 @@ Fixes
       |       1.0 |
       +-----------+
 
-- Fixed an issue which can cause the data of a table to not be queried anymore and the
-  :ref:`analyze` to fail, if a sub column is added to an object column with
-  column policy ``IGNORED`` when the table is not empty and the new column's
-  data type is different from the existing column's values.
-  This is not allowed anymore and results in an error. For example::
+- Fixed an issue that caused ``=`` on a :ref:`NUMERIC type<type-numeric>` and a
+  number type such as :ref:`DOUBLE PRECISION <type-double-precision>` or
+  :ref:`INTEGER <type-integer>` to throw a ``ClassCastException`` or to return
+  invalid results.
 
-    CREATE TABLE t (o OBJECT(IGNORED));
-    INSERT INTO t (o) VALUES ({x=1});
-    ALTER TABLE t ADD COLUMN o['x'] AS TEXT; <--- this is not allowed anymore
-    INSERT INTO t (o) VALUES ({x='foo'});
-    ANALYZE; <--- this will fail without the fix
+- Fixed an issue that lead to an error when selecting a table function inside a
+  a scalar function and using a column inside a scalar but not having it
+  neither in ``SELECT`` nor in the table function. For example::
+
+    SELECT
+      CASE
+        WHEN regexp_matches(col1, '^a') != []
+            THEN 'found'
+        WHEN col2 LIKE '%xyz%'  <--- col2 is not in SELECT targets and not used in the table function
+            THEN 'special case'
+        ELSE 'default'
+      END
+    FROM test;
+
+- Fixed an issue that caused the :ref:`analyze` statement to fail when executed
+  on a table that was created with an :ref:`OBJECT(IGNORED) <type-object>`
+  column and afterwards a sub-column with a concrete type was added to the
+  object column. In cases where data was already inserted into this sub-column
+  with a different type than defined later on, the :ref:`analyze` statement
+  failed with a cast error.

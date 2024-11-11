@@ -65,6 +65,5 @@ public class AnalyzedCreateBlobTable implements AnalyzedStatement {
             clusteredBy.numberOfShards().ifPresent(consumer);
         }
         createBlobTable.genericProperties().forValues(consumer);
-
     }
 }

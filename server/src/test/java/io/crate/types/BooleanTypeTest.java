@@ -33,8 +33,8 @@ import org.junit.Test;
 public class BooleanTypeTest extends DataTypeTestCase<Boolean> {
 
     @Override
-    public DataType<Boolean> getType() {
-        return BooleanType.INSTANCE;
+    protected DataDef<Boolean> getDataDef() {
+        return DataDef.fromType(BooleanType.INSTANCE);
     }
 
     @Test

@@ -33,7 +33,7 @@
             <groupId>org.apache.opendal</groupId>
             <artifactId>opendal-java</artifactId>
             <version>${versions.opendal}</version>
-            <classifier>${os.detected.classifier}</classifier>
+            <classifier>${os.classifier}</classifier>
         </dependency>
 
         <dependency>
@@ -98,14 +98,4 @@
             <classifier>tests</classifier>
         </dependency>
     </dependencies>
-
-    <build>
-        <extensions>
-            <extension>
-                <groupId>kr.motd.maven</groupId>
-                <artifactId>os-maven-plugin</artifactId>
-                <version>${versions.plugin.os}</version>
-            </extension>
-        </extensions>
-    </build>
 </project>

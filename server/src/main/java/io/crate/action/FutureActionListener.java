@@ -27,9 +27,6 @@ import org.elasticsearch.action.ActionListener;
 
 public class FutureActionListener<Response> extends CompletableFuture<Response> implements ActionListener<Response> {
 
-    public FutureActionListener() {
-    }
-
     @Override
     public void onResponse(Response response) {
         complete(response);

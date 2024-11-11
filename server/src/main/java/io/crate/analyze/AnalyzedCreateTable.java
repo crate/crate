@@ -56,16 +56,16 @@ import io.crate.sql.tree.PartitionedBy;
 public record AnalyzedCreateTable(
         RelationName relationName,
         boolean ifNotExists,
-        /**
+        /*
          * In order of definition
          */
         Map<ColumnIdent, RefBuilder> columns,
-        /**
+        /*
          * By constraint name; In order of definition
          **/
         Map<String, AnalyzedCheck> checks,
         GenericProperties<Symbol> properties,
-        Optional<PartitionedBy<Symbol>> partitionedBy,
+        Optional<PartitionedBy<Reference>> partitionedBy,
         Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
 
     @Override
@@ -158,7 +158,7 @@ public record AnalyzedCreateTable(
         });
         ColumnIdent routingColumn = optClusteredBy.orElse(SysColumns.ID.COLUMN);
 
-        List<Symbol> partitionedByColumns = partitionedBy
+        List<Reference> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
             .orElse(List.of());
 

@@ -23,6 +23,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
@@ -56,13 +58,24 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
         this.context = context;
     }
 
-    public static LuceneCollectorExpression<?> create(final Reference reference) {
+    public static LuceneCollectorExpression<?> create(final Reference reference,
+                                                      Predicate<Reference> isParentReferenceIgnored) {
         assert reference.column().name().equals(SysColumns.DOC.name()) :
             "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
             return new RootDocCollectorExpression(reference);
         }
-        return new ChildDocCollectorExpression(reference);
+
+        Function<Object, Object> valueConverter;
+        if (isParentReferenceIgnored.test(reference)) {
+            // If the parent reference is ignored, the child column may have been ignored as well before and may contain
+            // a value that does not fit the current defined child column data type.
+            valueConverter = val -> reference.valueType().sanitizeValueLenient(val);
+        } else {
+            valueConverter = val -> val;
+        }
+
+        return new ChildDocCollectorExpression(reference, valueConverter);
     }
 
     static final class RootDocCollectorExpression extends DocCollectorExpression<Map<String, Object>> {
@@ -79,14 +92,16 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
 
     static final class ChildDocCollectorExpression extends DocCollectorExpression<Object> {
 
-        private ChildDocCollectorExpression(Reference ref) {
+        private final Function<Object, Object> valueConverter;
+
+        private ChildDocCollectorExpression(Reference ref, Function<Object, Object> valueConverter) {
             super(ref);
+            this.valueConverter = valueConverter;
         }
 
         @Override
         public Object value() {
-            // correct type detection is ensured by the source parser
-            return source.get(ref.column().path());
+            return valueConverter.apply(source.get(ref.column().path()));
         }
     }
 }

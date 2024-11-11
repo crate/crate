@@ -43,15 +43,11 @@ public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     @Override
     public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
-        switch (operation) {
-            case READ:
-            case UPDATE:
-                return getField(column);
-            case INSERT:
-            case DELETE:
+        return switch (operation) {
+            case READ, UPDATE -> getField(column);
+            case INSERT, DELETE ->
                 throw new UnsupportedOperationException("getField is only supported for read or update operations on TableRelation");
-            default:
-                throw new AssertionError("new unhandled operation");
-        }
+            default -> throw new AssertionError("new unhandled operation");
+        };
     }
 }

@@ -39,7 +39,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     private final List<Symbol> outputs;
     private final List<Symbol> hiddenOutputs;
 
-    public AbstractTableRelation(T tableInfo, List<Symbol> outputs, List<Symbol> hiddenOutputs) {
+    protected AbstractTableRelation(T tableInfo, List<Symbol> outputs, List<Symbol> hiddenOutputs) {
         this.tableInfo = tableInfo;
         this.outputs = outputs;
         this.hiddenOutputs = hiddenOutputs;

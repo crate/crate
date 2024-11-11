@@ -44,14 +44,6 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
         this.maxDelayInMS = maxDelayInMS;
     }
 
-    /**
-     * Creates a BackoffPolicy which will increase the delay each time it's used until {@code maxDelayInMS}
-     * is reached, at that point the delay stops increasing.
-     */
-    public static BackoffPolicy limitedExponential(int maxDelayInMS) {
-        return new LimitedExponentialBackoff(10, Integer.MAX_VALUE, maxDelayInMS);
-    }
-
     private static class LimitedExponentialBackoffIterator implements Iterator<TimeValue> {
 
         private static final float FACTOR = 1.8f;
