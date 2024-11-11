@@ -84,27 +84,28 @@ public abstract class StoredRowLookup implements StoredRow {
     }
 
     public final StoredRow getStoredRow(ReaderContext context, int doc) {
-        if (this.doc == doc
-                && this.readerContext != null
-                && this.readerContext.reader() == context.reader()) {
-            // Don't invalidate source
+        // TODO ideally we could assert here that doc is increasing if the reader context hasn't
+        // changed, and then the implementations can always cache their readers.  However, at the
+        // moment anything coming via ScoreDocRowFunction may not be in-order, as docs come out
+        // of the priority queue in sorted order, not docid order.
+        boolean reuseReader = this.readerContext != null
+            && this.readerContext.reader() == context.reader()
+            && this.doc <= doc;
+        if (reuseReader && this.doc == doc) {
+            // We haven't moved since the last getStoredRow call, so don't invalidate
             return this;
         }
         this.doc = doc;
         this.readerContext = context;
         try {
-            // TODO ideally we can assert here that doc is increasing if the reader context hasn't
-            // changed, and then the implementations can cache their readers.  However, at the
-            // moment anything coming via ScoreDocRowFunction may not be in-order, as docs come out
-            // of the priority queue in sorted order, not docid order.
-            moveToDoc();
+            moveToDoc(reuseReader);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
         return this;
     }
 
-    protected abstract void moveToDoc() throws IOException;
+    protected abstract void moveToDoc(boolean reuseReader) throws IOException;
 
     protected abstract void registerRef(Reference ref);
 
@@ -148,7 +149,7 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        protected void moveToDoc() {
+        protected void moveToDoc(boolean reuseReader) {
             fieldsVisitor.reset();
             this.docVisited = false;
             this.parsedSource = null;
@@ -241,13 +242,14 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        protected void moveToDoc() throws IOException {
+        protected void moveToDoc(boolean reuseReader) throws IOException {
             fieldsVisitor.reset();
             this.docVisited = false;
             this.parsedSource = null;
             for (var expr : expressions) {
-                // TODO cache reader context and ensure docs are in-order
-                expr.expression.setNextReader(readerContext);
+                if (reuseReader == false) {
+                    expr.expression.setNextReader(readerContext);
+                }
                 expr.expression.setNextDocId(doc);
             }
         }
