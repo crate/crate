@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -49,6 +48,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
@@ -64,6 +64,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -614,5 +615,46 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         var partitionIndex = newBuilder.build().index(partitionIndexName);
         assertThat(partitionIndex.getNumberOfShards()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_get_child_references() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    c1 int,
+                    c2 text,
+                    c3 array(int),
+                    c4 object as (d1 int, d2 object as (e1 int, e2 int)),
+                    c5 array(object as (d1 int, d2 object as (e1 int, e2 int, e3 int))),
+                    x object as (x object as (x int))
+                )
+                """);
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        assertThat(table.findParentReferenceMatching(
+            DocReferences.toDocLookup(table.getReference("c5.d2.e1")),
+            r -> r.valueType() instanceof ArrayType<?>)
+        ).isEqualTo(table.getReference("c5"));
+
+        assertThat(table.getLeafReferences(DocReferences.toDocLookup(table.getReference("c1"))))
+            .hasSize(1)
+            .containsExactly(table.getReference("c1"));
+
+        assertThat(table.getLeafReferences(table.getReference("c4")))
+            .hasSize(3);
+
+        assertThat(table.getLeafReferences(table.getReference("c5")))
+            .hasSize(4);
+
+        assertThat(table.getLeafReferences(table.getReference("c1")))
+            .hasSize(1);
+
+        var x = table.getReference("x");
+        var x_children = table.getChildReferences(x);
+        var x_x = table.getReference("x.x");
+        var x_x_children = table.getChildReferences(x_x);
+        assertThat(x_children).isNotEqualTo(x_x_children);
     }
 }
