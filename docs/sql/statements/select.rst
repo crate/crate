@@ -307,7 +307,7 @@ each group.
 .. _sql-select-group-by-all:
 
 ``GROUP BY ALL``
-'''''''''''''''
+................
 
 ``GROUP BY ALL`` is a convenient shorthand syntax that automatically groups by all non-aggregate
 columns in the SELECT list. This eliminates the need to explicitly list all grouping columns.
