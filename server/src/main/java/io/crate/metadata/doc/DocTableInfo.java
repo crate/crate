@@ -74,7 +74,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
-import io.crate.execution.dml.TranslogIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -201,7 +200,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
     private final ColumnPolicy columnPolicy;
-    private TranslogIndexer translogIndexer; // lazily initialised
     private ReferenceTree refTree;     // lazily initialised
     private final long tableVersion;
 
@@ -363,16 +361,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Set<Reference> droppedColumns() {
         return droppedColumns;
-    }
-
-    /**
-     * Get a TranslogIndexer based on this table
-     */
-    public TranslogIndexer getTranslogIndexer() {
-        if (this.translogIndexer == null) {
-            this.translogIndexer = new TranslogIndexer(this);
-        }
-        return this.translogIndexer;
     }
 
     public int maxPosition() {
