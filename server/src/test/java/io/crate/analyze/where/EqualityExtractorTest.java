@@ -396,7 +396,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         EqualityExtractor extractor = new EqualityExtractor(normalizer) {
             @Override
             protected int maxIterations() {
-                return 1;
+                return 100; // with 20 `x=? AND i=?` joined with OR, 100 iterations are not enough
             }
         };
 
@@ -407,7 +407,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         extractor = new EqualityExtractor(normalizer) {
             @Override
             protected int maxIterations() {
-                return 100;
+                return 1000; // make sure iterations are enough to extract pk matches
             }
         };
         matches = extractor.extractMatches(

@@ -121,6 +121,10 @@ Known limitations
       together in the WHERE clause with equals comparisons and if there are also equals
       comparisons on primary key columns]
 
+- There is an exception to this behaviour, when the ``WHERE`` clause contains
+  complex filtering and/or lots of Primary Key values. You can find more details
+  :ref:`here <sql-refresh-description_collect_exception>`.
+
 .. NOTE::
 
    Both ``DELETE`` and ``UPDATE`` commands will return a row count of ``0``, if
