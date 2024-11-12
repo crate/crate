@@ -42,7 +42,7 @@ public class TranslogIndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         assertThat(table).isNotNull();
 
-        TranslogIndexer ti = table.getTranslogIndexer();
+        TranslogIndexer ti = new TranslogIndexer(table);
         BytesReference source = new BytesArray("{\"1\":1,\"2\":2}");
         assertThatThrownBy(() -> ti.index("1", source))
             .isExactlyInstanceOf(TranslogMappingUpdateException.class)
@@ -54,7 +54,7 @@ public class TranslogIndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, x int)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        TranslogIndexer ti = table.getTranslogIndexer();
+        TranslogIndexer ti = new TranslogIndexer(table);
         BytesReference source = new BytesArray("{\"1\":1,\"2\":\"bar\"}");
         var doc = ti.index("1", source);
         // the value of field 2 is not indexed as it contains an invalid value (sanitize failed)
