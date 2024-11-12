@@ -275,7 +275,7 @@ public final class MappingUtil {
 
         // Generated expressions
         List<GeneratedReference> newGenExpressions = references.stream()
-            .filter(ref -> ref instanceof GeneratedReference)
+            .filter(ref -> ref instanceof GeneratedReference && !ref.isDropped())
             .map(ref -> (GeneratedReference) ref)
             .toList();
         if (newGenExpressions.isEmpty() == false) {
