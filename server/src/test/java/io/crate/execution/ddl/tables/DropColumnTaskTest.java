@@ -83,6 +83,40 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_drop_generated_column() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int GENERATED ALWAYS AS (x+1), z int)");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        ClusterState initialState = clusterService.state();
+        var dropColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
+        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        ClusterState newState = dropColumnTask.execute(initialState, request);
+
+        assertThat(newState.version())
+            .as("Version is not increased. The MasterService does when the state is applied")
+            .isEqualTo(initialState.version());
+        assertThat(newState.metadata().version())
+            .as("Version is not increased. The MasterService does when the state is applied")
+            .isEqualTo(initialState.metadata().version());
+
+        String indexName = tbl.ident().indexNameOrAlias();
+        assertThat(newState.metadata().index(indexName).getVersion())
+            .isGreaterThan(initialState.metadata().index(indexName).getVersion());
+
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
+
+        assertThat(newTable.getReference(colToDrop.column())).isNull();
+        assertThat(newTable.columns()).hasSize(2);
+        assertThat(newTable.droppedColumns()).satisfiesExactly(
+            x -> assertThat(x)
+                .hasName("_dropped_2")
+                .hasPosition(2)
+        );
+    }
+
+    @Test
     public void test_can_drop_subcolumn() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))");

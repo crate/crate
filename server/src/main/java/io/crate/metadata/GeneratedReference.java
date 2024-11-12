@@ -232,7 +232,7 @@ public final class GeneratedReference implements Reference {
 
     @Override
     public boolean isDropped() {
-        return false;
+        return ref.isDropped();
     }
 
     @Override
