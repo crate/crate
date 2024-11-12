@@ -244,7 +244,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return ref;
         });
         this.generatedColumns = this.references.values().stream()
-            .filter(r -> r instanceof GeneratedReference)
+            .filter(r -> r instanceof GeneratedReference && !r.isDropped())
             .map(r -> (GeneratedReference) r)
             .toList();
         this.indexColumns = indexColumns;

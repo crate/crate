@@ -47,6 +47,11 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would prevent
+  :ref:`dropping <sql-alter-table-drop-column>` a
+  :ref:`generated column <ddl-generated-columns>` from a table, even though no
+  error was returned.
+
 - Fixed an issue that would cause an error to be thrown when attempting to
   ``ORDER BY`` on top of a complex query (e.g. a ``JOIN``), using an expression
   which contains a query parameter, e.g.::
