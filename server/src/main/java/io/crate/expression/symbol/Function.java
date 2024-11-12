@@ -65,6 +65,8 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -476,12 +478,13 @@ public class Function implements Symbol, Cloneable {
             builder.append(arguments().get(0).toString(style));
         } else {
             var targetType = arguments.get(1).valueType();
+            var columnType = targetType.toColumnType(ColumnPolicy.DYNAMIC, null);
             builder
                 .append(name)
                 .append("(")
                 .append(arguments().get(0).toString(style))
                 .append(" AS ")
-                .append(targetType.toString())
+                .append(SqlFormatter.formatSql(columnType))
                 .append(")");
         }
     }

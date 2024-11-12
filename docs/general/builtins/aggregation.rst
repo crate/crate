@@ -217,7 +217,7 @@ column to the ``numeric`` data type::
     cr> select avg(t.val :: numeric) from
     ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
     +---------------------------+
-    | avg(cast(val AS numeric)) |
+    | avg(cast(val AS NUMERIC)) |
     +---------------------------+
     |       9223372036854775807 |
     +---------------------------+
@@ -786,7 +786,7 @@ the aggregation column to the ``numeric`` data type::
     cr> SELECT sum(count::numeric)
     ... FROM uservisits;
     +-----------------------------+
-    | sum(cast(count AS numeric)) |
+    | sum(cast(count AS NUMERIC)) |
     +-----------------------------+
     |         9223372036854775816 |
     +-----------------------------+
