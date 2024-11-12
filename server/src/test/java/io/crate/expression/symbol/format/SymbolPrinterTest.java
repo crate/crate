@@ -432,4 +432,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertPrintingRoundTrip("foo NOT LIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ALL(['a', 'b', 'c']))");
         assertPrintingRoundTrip("foo ILIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo ILIKE ALL(['a', 'b', 'c']))");
     }
+
+    @Test
+    public void test_case_expression() {
+        assertPrintingRoundTrip("case when foo = 'bar' then 1 when foo = 'foo' then 2 else 3 end",
+                                "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
+        assertPrintingRoundTrip("case foo when 'bar' then 1 when 'foo' then 2 else 3 end",
+                                "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
+    }
 }
