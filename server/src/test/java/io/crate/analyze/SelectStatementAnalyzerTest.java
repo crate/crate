@@ -32,7 +32,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -1311,6 +1310,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_cannot_use_match_predicate_as_sub_expression_of_order_by() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        assertThatThrownBy(() -> executor.analyze("select name from users order by match(name, 'foo') or match(name, 'bar')"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("match predicate cannot be used in an ORDER BY clause");
+    }
+
+    @Test
     public void testMatchPredicateWithWrongQueryTerm() throws Exception {
         var executor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
@@ -2006,6 +2014,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select * from users ORDER BY shape"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot ORDER BY 'shape': invalid data type 'geo_shape'.");
+    }
+
+    @Test
+    public void test_cannot_use_geo_shape_as_second_expression_of_order_by() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        assertThatThrownBy(() -> executor.analyze("select * from users ORDER BY abs(shorts), shape"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot ORDER BY 'shape': invalid data type 'geo_shape'.");
     }
