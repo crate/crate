@@ -55,6 +55,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
@@ -373,6 +374,19 @@ public class Function implements Symbol, Cloneable {
 
             case ArrayFunction.NAME:
                 printArray(builder, style);
+                break;
+
+            case CaseFunction.NAME:
+                builder.append("CASE");
+                for (int i = 2; i < arguments.size(); i += 2) {
+                    builder.append(" WHEN ");
+                    builder.append(arguments.get(i).toString(style));
+                    builder.append(" THEN ");
+                    builder.append(arguments.get(i + 1).toString(style));
+                }
+                builder.append(" ELSE ");
+                builder.append(arguments.get(1).toString(style));
+                builder.append(" END");
                 break;
 
             default:

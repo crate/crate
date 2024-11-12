@@ -104,3 +104,7 @@ Fixes
   object column. In cases where data was already inserted into this sub-column
   with a different type than defined later on, the :ref:`analyze` statement
   failed with a cast error.
+
+- Fixed an issue that caused a :ref:`sql-create-table` statement to fail when a
+  column defines a generated expression including a conditional
+  :ref:`CASE <scalar-case-when-then-end>` function.

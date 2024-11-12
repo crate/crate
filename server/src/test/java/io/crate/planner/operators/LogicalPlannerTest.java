@@ -701,7 +701,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // which lead to failure of constructing an execution plan
         assertThat(plan).isEqualTo(
             """
-                Eval[case(true, 'default', (NOT (regexp_matches(name, '^a') = [])), 'found', (text LIKE '%xyz%'), 'special case')]
+                Eval[CASE WHEN (NOT (regexp_matches(name, '^a') = [])) THEN 'found' WHEN (text LIKE '%xyz%') THEN 'special case' ELSE 'default' END]
                   └ ProjectSet[regexp_matches(name, '^a'), name, text]
                     └ Collect[doc.users | [name, text] | true]
                 """
