@@ -418,18 +418,29 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         }
 
         private void onShardOperation(final NodeRequest request, final ShardRouting shardRouting, ActionListener<ShardOperationResult> listener) {
+            ActionListener<ShardOperationResult> wrappedListener = new ActionListener<>() {
+                @Override
+                public void onResponse(ShardOperationResult response) {
+                    listener.onResponse(response);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    BroadcastShardOperationFailedException failure =
+                        new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e);
+                    listener.onFailure(failure);
+                }
+            };
             try {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}]  executing operation for shard [{}]", actionName, shardRouting.shortSummary());
                 }
-                shardOperation(request.indicesLevelRequest, shardRouting, listener);
+                shardOperation(request.indicesLevelRequest, shardRouting, wrappedListener);
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}]  completed operation for shard [{}]", actionName, shardRouting.shortSummary());
                 }
             } catch (Exception e) {
-                BroadcastShardOperationFailedException failure =
-                    new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e);
-                listener.onFailure(failure);
+                wrappedListener.onFailure(e);
                 if (TransportActions.isShardNotAvailableException(e)) {
                     if (logger.isTraceEnabled()) {
                         logger.trace(new ParameterizedMessage(
