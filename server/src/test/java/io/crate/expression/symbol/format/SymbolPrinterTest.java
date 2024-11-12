@@ -76,7 +76,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  idx int," +
             "  s_arr array(text)," +
             "  a array(object as (b object as (c int)))," +
-            "  \"OBJ\" object as (intarray int[])" +
+            "  \"OBJ\" object as (intarray int[])," +
+            "  point geo_point" +
             ")";
         RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
@@ -327,9 +328,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testStyles() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
         assertThat(nestedFn.toString(Style.UNQUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
     }
 
     @Test
@@ -439,5 +440,10 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
                                 "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
         assertPrintingRoundTrip("case foo when 'bar' then 1 when 'foo' then 2 else 3 end",
                                 "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
+    }
+
+    @Test
+    public void test_cast_to_array() {
+        assertPrintingRoundTrip("point::ARRAY(DOUBLE)", "cast(doc.formatter.point AS ARRAY(DOUBLE PRECISION))");
     }
 }
