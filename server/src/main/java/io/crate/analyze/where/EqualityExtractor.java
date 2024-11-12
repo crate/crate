@@ -151,7 +151,8 @@ public class EqualityExtractor {
         for (List<EqProxy> proxies : cp) {
             // Protect against large queries, where the number of combinations to check grows large
             if (++iterations >= maxIterations()) {
-                break;
+                // Fallback to lucene query (collect)
+                return EqMatches.NONE;
             }
             boolean anyNull = false;
             for (EqProxy proxy : proxies) {
