@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -57,6 +58,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 
 public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -142,7 +144,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  name string," +
                                             "  date timestamp with time zone" +
                                             ") partitioned by (name)");
-        assertThat(analysis.partitionedBy()).containsExactly(List.of("name", "keyword"));
+        assertThat(analysis.partitionedBy()).satisfiesExactly(
+            x -> assertThat(x).hasName("name")
+        );
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
@@ -188,8 +192,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                     )
                 )
         );
-        assertThat(analysis.partitionedBy().get(0)).containsExactly("name", "keyword");
-        assertThat(analysis.partitionedBy().get(1)).containsExactly("date", "date");
+        assertThat(analysis.partitionedBy().get(0)).hasName("name").hasType(DataTypes.STRING);
+        assertThat(analysis.partitionedBy().get(1)).hasName("date").hasType(DataTypes.TIMESTAMPZ);
     }
 
     @Test
@@ -220,8 +224,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             ),
             "type", "object"
         ));
-        assertThat(analysis.partitionedBy().get(0)).containsExactly("date", "date");
-        assertThat(analysis.partitionedBy().get(1)).containsExactly("o.name", "keyword");
+        assertThat(analysis.partitionedBy().get(0)).hasName("date").hasType(DataTypes.TIMESTAMPZ);
+        assertThat(analysis.partitionedBy().get(1)).hasName("o['name']").hasType(DataTypes.STRING);
     }
 
     @Test
@@ -303,7 +307,9 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                             "  date timestamp with time zone," +
                                             "  primary key (id1, id2)" +
                                             ") partitioned by (id1)");
-        assertThat(analysis.partitionedBy()).containsExactly(List.of("id1", "integer"));
+        assertThat(analysis.partitionedBy()).satisfiesExactly(
+            x -> assertThat(x).hasName("id1")
+        );
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");

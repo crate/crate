@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.junit.Test;
 
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -46,5 +47,19 @@ public class TranslogIndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> ti.index("1", source))
             .isExactlyInstanceOf(TranslogMappingUpdateException.class)
             .hasMessageContaining("Unknown column in translog entry: 2=2");
+    }
+
+    @Test
+    public void test_index_from_translog_does_not_throw_an_error_on_value_sanitization() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x int)");
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        TranslogIndexer ti = table.getTranslogIndexer();
+        BytesReference source = new BytesArray("{\"1\":1,\"2\":\"bar\"}");
+        var doc = ti.index("1", source);
+        // the value of field 2 is not indexed as it contains an invalid value (sanitize failed)
+        assertThat(doc.doc().get("2")).isNull();
+        // the source still contains it as it will be written 1:1
+        assertThat(doc.source().utf8ToString()).isEqualTo(source.utf8ToString());
     }
 }

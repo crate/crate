@@ -454,7 +454,7 @@ does always return ``NULL`` when comparing ``NULL``.
    don't have indices. They only exist for their child columns.
 
    You can either query on inner columns or try the :ref:`null_or_empty
-   <scalar-null-or-empty>` scalar for improved performance.
+   <scalar-null-or-empty-object>` scalar for improved performance.
 
 
 .. _sql_dql_is_not_null:
@@ -506,7 +506,7 @@ does always return ``NULL`` when comparing ``NULL``.
    themselves don't have indices. They only exist for their child columns.
 
    You can either query on inner columns or try the :ref:`null_or_empty
-   <scalar-null-or-empty>` scalar for improved performance.
+   <scalar-null-or-empty-object>` scalar for improved performance.
 
 
 .. _sql_dql_is_distinct_from:

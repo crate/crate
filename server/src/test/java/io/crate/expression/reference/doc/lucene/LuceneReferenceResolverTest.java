@@ -49,7 +49,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     private static final RelationName RELATION_NAME = new RelationName("s", "t");
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
-        List.of()
+        List.of(),
+        (_) -> false
     );
 
     @Test
@@ -115,7 +116,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.isParentReferenceIgnored()
         );
         Reference year = table.getReference(ColumnIdent.of("year"));
         LuceneCollectorExpression<?> impl1 = refResolver.getImplementation(year);

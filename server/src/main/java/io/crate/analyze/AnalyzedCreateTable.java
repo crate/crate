@@ -65,7 +65,7 @@ public record AnalyzedCreateTable(
          **/
         Map<String, AnalyzedCheck> checks,
         GenericProperties<Symbol> properties,
-        Optional<PartitionedBy<Symbol>> partitionedBy,
+        Optional<PartitionedBy<Reference>> partitionedBy,
         Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
 
     @Override
@@ -158,7 +158,7 @@ public record AnalyzedCreateTable(
         });
         ColumnIdent routingColumn = optClusteredBy.orElse(SysColumns.ID.COLUMN);
 
-        List<Symbol> partitionedByColumns = partitionedBy
+        List<Reference> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
             .orElse(List.of());
 

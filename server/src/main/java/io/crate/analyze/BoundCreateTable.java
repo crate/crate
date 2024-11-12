@@ -30,13 +30,10 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.common.collections.Lists;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.types.DataTypes;
 
 public record BoundCreateTable(
         RelationName tableName,
@@ -54,7 +51,7 @@ public record BoundCreateTable(
          **/
         Map<String, AnalyzedCheck> checks,
         ColumnIdent routingColumn,
-        List<Symbol> partitionedByColumns) {
+        List<Reference> partitionedByColumns) {
 
     public boolean isPartitioned() {
         return !partitionedByColumns.isEmpty();
@@ -69,14 +66,8 @@ public record BoundCreateTable(
         return partitionedByColumns.isEmpty() ? null : PartitionName.templatePrefix(tableName.schema(), tableName.name());
     }
 
-    public List<List<String>> partitionedBy() {
-        return Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
-    }
-
-    public static List<String> toPartitionMapping(Symbol symbol) {
-        String fqn = symbol.toColumn().fqn();
-        String typeMappingName = DataTypes.esMappingNameFrom(symbol.valueType().id());
-        return List.of(fqn, typeMappingName);
+    public List<Reference> partitionedBy() {
+        return partitionedByColumns;
     }
 
     public Map<String, String> getCheckConstraints() {

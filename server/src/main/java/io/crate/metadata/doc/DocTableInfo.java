@@ -63,7 +63,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.DropColumn;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
@@ -343,6 +342,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public Reference findParentReferenceMatching(Reference child, Predicate<Reference> test) {
         return referenceTree().findFirstParentMatching(child, test);
+    }
+
+    public Predicate<Reference> isParentReferenceIgnored() {
+        return ref -> findParentReferenceMatching(ref, r -> r.columnPolicy() == ColumnPolicy.IGNORED) != null;
     }
 
     private ReferenceTree referenceTree() {
@@ -1063,7 +1066,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             allColumns,
             pKeyIndices,
             checkConstraintMap,
-            Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
+            Lists.map(partitionedByColumns, Reference::column),
             columnPolicy,
             clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));

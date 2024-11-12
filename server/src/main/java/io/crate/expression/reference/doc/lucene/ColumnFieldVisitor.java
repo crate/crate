@@ -58,7 +58,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     public ColumnFieldVisitor(DocTableInfo table) {
         this.droppedColumns
             = table.droppedColumns().stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
-        this.storedSourceParser = new SourceParser(table);
+        this.storedSourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), true);
         this.tableVersion = table.versionCreated();
     }
 

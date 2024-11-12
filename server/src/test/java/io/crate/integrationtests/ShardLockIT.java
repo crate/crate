@@ -21,12 +21,10 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertExpectedLogMessages;
 import static io.crate.testing.Asserts.assertThat;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.index.Index;
@@ -58,22 +56,19 @@ public class ShardLockIT extends IntegTestCase {
         Index index = resolveIndex("tbl");
         ShardId shardId = new ShardId(index, 0);
         NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class, nodeName);
-        MockLogAppender appender = new MockLogAppender();
+
         var expectation = new MockLogAppender.PatternSeenEventExcpectation(
             "Logs retries",
             IndicesService.class.getName(),
             Level.DEBUG,
             "Repeated attempts to acquire shardLock for .*\\. Retrying again in .*"
         );
-        appender.addExpectation(expectation);
-        appender.start();
-        Logger logger = LogManager.getLogger(IndicesService.class);
-        Loggers.addAppender(logger, appender);
         try (ShardLock shardLock = nodeEnv.shardLock(shardId, "block shard for test")) {
-            execute("alter table doc.tbl reset (\"routing.allocation.exclude._name\")");
-            assertBusy(() -> appender.assertAllExpectationsMatched());
-        } finally {
-            Loggers.removeAppender(logger, appender);
+            assertExpectedLogMessages(
+                () -> execute("alter table doc.tbl reset (\"routing.allocation.exclude._name\")"),
+                IndicesService.class.getName(),
+                expectation
+            );
         }
 
         ensureGreen();

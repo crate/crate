@@ -432,5 +432,57 @@
         <module>server</module>
       </modules>
     </profile>
+
+    <!-- os.classifier -->
+    <profile>
+      <id>amd64</id>
+      <activation>
+        <property>
+          <name>os.arch</name>
+          <value>amd64</value>
+        </property>
+      </activation>
+      <properties>
+        <os.arch.classifier>x86_64</os.arch.classifier>
+      </properties>
+    </profile>
+    <profile>
+      <id>aarch64</id>
+      <activation>
+        <property>
+          <name>os.arch</name>
+          <value>aarch64</value>
+        </property>
+      </activation>
+      <properties>
+        <os.arch.classifier>aarch_64</os.arch.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>linux</id>
+      <activation>
+        <property>
+          <name>os.name</name>
+          <value>Linux</value>
+        </property>
+      </activation>
+      <properties>
+        <os.classifier>linux-${os.arch.classifier}</os.classifier>
+      </properties>
+    </profile>
+    <profile>
+      <id>osx</id>
+      <activation>
+        <property>
+          <name>os.name</name>
+          <value>Mac OS X</value>
+        </property>
+      </activation>
+      <properties>
+        <os.classifier>osx-${os.arch.classifier}</os.classifier>
+      </properties>
+    </profile>
+
   </profiles>
 </project>

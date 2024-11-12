@@ -93,6 +93,18 @@
     </plugins>
   </build>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- guava is pulled in by com.auth0:java-jwt; -->
+      <!-- We don't want to depend on it in our code so force it on runtime path. -->
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <scope>runtime</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>io.crate</groupId>
