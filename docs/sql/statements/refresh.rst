@@ -105,6 +105,30 @@ key lookups, as they see the data even if the table hasn't been refreshed yet.
 See also :ref:`concept-consistency`.
 
 
+.. _sql-refresh-description_collect_exception:
+
+.. NOTE::
+
+    Due to internal constraints, when the ``WHERE`` clause filters on multiple
+    columns of a ``PRIMARY KEY``, but one or more of those columns is tested
+    against lots of values, the query might be executed using a ``Collect``
+    operator instead of a ``Get``, thus records might be unavailable until a
+    ``REFRESH`` is run. The same situation could occur when the ``WHERE`` clause
+    contains long complex expressions, e.g.::
+
+        SELECT * FROM t
+        WHERE pk1 IN (<long_list_of_values>) AND pk2 = 3 AND pk3 = 'foo'
+
+        SELECT * FROM t
+        WHERE pk1 = ?
+            AND pk2 = ?
+            AND pk3 = ?
+            OR pk1 = ?
+            AND pk2 = ?
+            AND pk3 = ?
+            OR pk1 = ?
+            ...
+
 .. _sql-refresh-parameters:
 
 Parameters

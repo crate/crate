@@ -47,6 +47,14 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would lead to wrong results when querying a table with a
+  ``WHERE`` clause which filters on multiple columns, which are part of
+  :ref:`PRIMARY KEY<constraints-primary-key>`, and there at least one of them is
+  tested against lots of values, e.g.::
+
+      SELECT * FROM t
+        WHERE pk1 IN (<long_list_of_values>) AND pk2 = 3 AND pk3 = 'foo'
+
 - Fixed an issue that would prevent
   :ref:`dropping <sql-alter-table-drop-column>` a
   :ref:`generated column <ddl-generated-columns>` from a table, even though no
