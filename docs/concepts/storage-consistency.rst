@@ -159,7 +159,9 @@ which will always have the most recent version of the document. The common
 update and fetch use-case is therefore possible. If a client updates a row and
 that row is looked up by its primary key after that update the changes will
 always be visible, since the information will be retrieved directly from the
-translog.
+translog. There is an exception to that, when the ``WHERE`` clause contains
+complex filtering and/or lots of Primary Key values. You can find more details
+:ref:`here <sql-refresh-description_collect_exception>`.
 
 .. NOTE::
 
@@ -175,6 +177,28 @@ translog.
   carries the same information. Therefore it does not matter if the primary or
   a replica shard is accessed in terms of consistency. Only the refresh of the
   ``IndexReader`` affects consistency.
+
+.. NOTE::
+
+    Due to internal constraints, when the ``WHERE`` clause filters on multiple
+    columns of a ``PRIMARY KEY``, but one or more of those columns is tested
+    against lots of values, the query might be executed using a ``Collect``
+    operator instead of a ``Get``, thus records might be unavailable until a
+    ``REFRESH`` is run. The same situation could occur when the ``WHERE`` clause
+    contains long complex expressions, e.g.::
+
+        SELECT * FROM t
+        WHERE pk1 IN (<long_list_of_values>) AND pk2 = 3 AND pk3 = 'foo'
+
+        SELECT * FROM t
+        WHERE pk1 = ?
+            AND pk2 = ?
+            AND pk3 = ?
+            OR pk1 = ?
+            AND pk2 = ?
+            AND pk3 = ?
+            OR pk1 = ?
+            ...
 
 .. CAUTION::
 
