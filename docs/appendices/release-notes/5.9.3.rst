@@ -118,3 +118,12 @@ Fixes
 
 - Fixed the error messages returned when a given parameter of type
   :ref:`type-object` fails on casting a object element to the expected type.
+
+- Fixed an issue that may cause the use of explicit casts inside a generated
+  column expression to fail with a SQL parsing error, depending on the target
+  type. For example::
+
+      CREATE TABLE t (
+        p GEO_POINT,
+        x ARRAY(DOUBLE) GENERATED ALWAYS AS p::ARRAY(DOUBLE)
+      );
