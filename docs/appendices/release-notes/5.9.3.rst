@@ -115,3 +115,6 @@ Fixes
 
       CREATE FOREIGN TABLE t (a INT) SERVER s;
       SELECT * FROM (SELECT id as some_alias FROM t) tt WHERE tt.some_alias = 1;
+
+- Fixed the error messages returned when a given parameter of type
+  :ref:`type-object` fails on casting a object element to the expected type.
