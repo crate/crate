@@ -139,6 +139,6 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_negated_cast_on_object() {
         assertThat(convert("NOT (cast(obj as string))")).hasToString(
-            "+(+*:* -cast(obj AS text)) #(NOT cast(obj AS text))");
+            "+(+*:* -cast(obj AS TEXT)) #(NOT cast(obj AS TEXT))");
     }
 }

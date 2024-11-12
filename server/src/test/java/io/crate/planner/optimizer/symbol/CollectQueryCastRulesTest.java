@@ -174,10 +174,10 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_any_operator_does_not_move_explicit_reference_cast_to_literal_cast() {
         var query = toQuery("1 = ANY(d_array::int[])");
-        assertThat(query.toString()).isEqualTo("(1 = ANY(cast(d_array AS integer_array)))");
+        assertThat(query.toString()).isEqualTo("(1 = ANY(cast(d_array AS ARRAY(INTEGER))))");
 
         query = toQuery("f::int = ANY([1.1])");
-        assertThat(query.toString()).isEqualTo("(cast(f AS integer) = ANY([1.1]))");
+        assertThat(query.toString()).isEqualTo("(cast(f AS INTEGER) = ANY([1.1]))");
     }
 
     @Test
