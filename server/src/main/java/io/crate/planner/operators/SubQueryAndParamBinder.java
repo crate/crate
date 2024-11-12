@@ -92,6 +92,8 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void> implements
         }
         try {
             return Literal.ofUnchecked(type, type.implicitCast(value));
+        } catch (ConversionException e) {
+            throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new ConversionException(value, type);
         }
