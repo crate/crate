@@ -148,7 +148,7 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("null / interval '1 second'", null))
                 .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (NULL / cast('1 second' AS interval)), " +
+            .hasMessageStartingWith("Unknown function: (NULL / cast('1 second' AS INTERVAL)), " +
                                     "no overload found for matching argument types: (undefined, interval).");
     }
 
@@ -176,6 +176,6 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("interval '1 second' - '86401000'::timestamptz", 86400000L))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), ");
+            .hasMessageStartingWith("Unknown function: (cast('1 second' AS INTERVAL) - cast('86401000' AS TIMESTAMP WITH TIME ZONE)), ");
     }
 }

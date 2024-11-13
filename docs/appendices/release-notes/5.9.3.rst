@@ -47,6 +47,11 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would prevent
+  :ref:`dropping <sql-alter-table-drop-column>` a
+  :ref:`generated column <ddl-generated-columns>` from a table, even though no
+  error was returned.
+
 - Fixed an issue that would cause an error to be thrown when attempting to
   ``ORDER BY`` on top of a complex query (e.g. a ``JOIN``), using an expression
   which contains a query parameter, e.g.::
@@ -108,3 +113,27 @@ Fixes
 - Fixed an issue that caused a :ref:`sql-create-table` statement to fail when a
   column defines a generated expression including a conditional
   :ref:`CASE <scalar-case-when-then-end>` function.
+
+- Fixed an issue that caused a SQL parsing error when running a query against
+  a ``FOREIGN TABLE`` of type :ref:`administration-fdw-jdbc` which contains an
+  aliased column name inside the ``WHERE`` clause. For example::
+
+      CREATE FOREIGN TABLE t (a INT) SERVER s;
+      SELECT * FROM (SELECT id as some_alias FROM t) tt WHERE tt.some_alias = 1;
+
+- Fixed the error messages returned when a given parameter of type
+  :ref:`type-object` fails on casting a object element to the expected type.
+
+- Fixed an issue that may cause the use of explicit casts inside a generated
+  column expression to fail with a SQL parsing error, depending on the target
+  type. For example::
+
+      CREATE TABLE t (
+        p GEO_POINT,
+        x ARRAY(DOUBLE) GENERATED ALWAYS AS p::ARRAY(DOUBLE)
+      );
+
+- Fixed an issue that caused an ``UnsupportedFeatureException`` when
+  ``ORDER BY`` expression contained a nested function. For example::
+
+    SELECT * FROM t ORDER BY LEFT(txt_col, 1) = ANY(['a']);

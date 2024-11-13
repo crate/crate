@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.isColumnDefinition;
 import static io.crate.testing.Asserts.isColumnType;
 import static io.crate.testing.Asserts.isEqualTo;
 import static io.crate.testing.Asserts.isObjectColumnType;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -456,7 +455,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(
-                "cast(port['http'] AS boolean)",
+                "cast(port['http'] AS BOOLEAN)",
                 isColumnType(DataTypes.BOOLEAN.getName())),
             c -> assertThat(c).isColumnDefinition(
                 "active_threads",
