@@ -1631,4 +1631,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void test_float_and_double_implicit_cast_dont_hang_on_range_validation() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+
+        // Used to hang in the value range validation in FloatType.implicitCast.
+        LogicalPlan logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::float");
+        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+
+        // Used to hang in the value range validation in DoubleType.implicitCast.
+        logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::double");
+        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+    }
+
 }

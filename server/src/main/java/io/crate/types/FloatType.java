@@ -23,7 +23,6 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
 
@@ -119,8 +118,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         }
     };
 
-    private static final BigInteger MAX = BigDecimal.valueOf(Float.MAX_VALUE).toBigInteger();
-    private static final BigInteger MIN = BigDecimal.valueOf(-Float.MAX_VALUE).toBigInteger();
+    private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);
+    private static final BigDecimal MIN = BigDecimal.valueOf(-Float.MAX_VALUE);
 
     private FloatType() {
     }
@@ -159,8 +158,12 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         } else if (value instanceof String s) {
             return Float.parseFloat(s);
         } else if (value instanceof BigDecimal bigDecimalValue) {
-            if (MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
-                || MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
+            // Preferring compareTo over equals as it gives safer equality check.
+            // From the compareTo docs:
+            // Two BigDecimal objects that are equal in value but have a different scale (like 2.0 and 2.00)
+            // are considered equal by this method.
+            if (MAX.compareTo(bigDecimalValue) <= 0
+                || MIN.compareTo(bigDecimalValue) >= 0) {
                 throw new IllegalArgumentException("float value out of range: " + value);
             }
             return bigDecimalValue.floatValue();
