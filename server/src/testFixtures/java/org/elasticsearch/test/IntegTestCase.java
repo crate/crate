@@ -93,7 +93,8 @@ import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -832,31 +833,28 @@ public abstract class IntegTestCase extends ESTestCase {
         }
     }
 
+    private static byte[] toBytes(ClusterState state) throws IOException {
+        BytesStreamOutput os = new BytesStreamOutput();
+        state.writeTo(os);
+        return BytesReference.toBytes(os.bytes());
+    }
+
     /**
      * Verifies that all nodes that have the same version of the cluster state as master have same cluster state
      */
     protected void ensureClusterStateConsistency() throws IOException {
         if (cluster() != null && cluster().size() > 0) {
-            NamedWriteableRegistry namedWriteableRegistry = cluster().getNamedWriteableRegistry();
             Client masterClient = client();
             ClusterState masterClusterState = FutureUtils
                 .get(masterClient.admin().cluster().state(new ClusterStateRequest().all()))
                 .getState();
-            byte[] masterClusterStateBytes = ClusterState.Builder.toBytes(masterClusterState);
-            // remove local node reference
-            masterClusterState = ClusterState.Builder.fromBytes(masterClusterStateBytes, null, namedWriteableRegistry);
-            int masterClusterStateSize = ClusterState.Builder.toBytes(masterClusterState).length;
+            int masterClusterStateSize = toBytes(masterClusterState).length;
             String masterId = masterClusterState.nodes().getMasterNodeId();
             for (Client client : cluster().getClients()) {
                 ClusterState localClusterState = FutureUtils
                     .get(client.admin().cluster().state(new ClusterStateRequest().all().local(true)))
                     .getState();
-                byte[] localClusterStateBytes = ClusterState.Builder.toBytes(localClusterState);
-                // remove local node reference
-                localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes,
-                                                                   null,
-                                                                   namedWriteableRegistry);
-                int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
+                int localClusterStateSize = toBytes(localClusterState).length;
                 // Check that the non-master node has the same version of the cluster state as the master and
                 // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
                 if (masterClusterState.version() == localClusterState.version()
