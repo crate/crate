@@ -19,15 +19,7 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.Randomness;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.shard.ShardId;
+import static java.util.Collections.emptyMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,7 +31,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.emptyMap;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.MapBuilder;
 
 /**
  * {@link IndexShardRoutingTable} encapsulates all instances of a single shard.
@@ -345,35 +346,12 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         return allAllocationIds;
     }
 
-    static class AttributesKey {
+    record AttributesKey(List<String> attributes) {}
 
-        final List<String> attributes;
+    record AttributesRoutings(List<ShardRouting> withSameAttribute, List<ShardRouting> withoutSameAttribute) {
 
-        AttributesKey(List<String> attributes) {
-            this.attributes = attributes;
-        }
-
-        @Override
-        public int hashCode() {
-            return attributes.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof AttributesKey && attributes.equals(((AttributesKey) obj).attributes);
-        }
-    }
-
-    static class AttributesRoutings {
-
-        public final List<ShardRouting> withSameAttribute;
-        public final List<ShardRouting> withoutSameAttribute;
-        public final int totalSize;
-
-        AttributesRoutings(List<ShardRouting> withSameAttribute, List<ShardRouting> withoutSameAttribute) {
-            this.withSameAttribute = withSameAttribute;
-            this.withoutSameAttribute = withoutSameAttribute;
-            this.totalSize = withoutSameAttribute.size() + withSameAttribute.size();
+        public int totalSize() {
+            return withoutSameAttribute.size() + withSameAttribute.size();
         }
     }
 
@@ -435,7 +413,7 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
 
         // we now randomize, once between the ones that have the same attributes, and once for the ones that don't
         // we don't want to mix between the two!
-        ArrayList<ShardRouting> ordered = new ArrayList<>(activeRoutings.totalSize + initializingRoutings.totalSize);
+        ArrayList<ShardRouting> ordered = new ArrayList<>(activeRoutings.totalSize() + initializingRoutings.totalSize());
         ordered.addAll(shuffler.shuffle(activeRoutings.withSameAttribute, seed));
         ordered.addAll(shuffler.shuffle(activeRoutings.withoutSameAttribute, seed));
         ordered.addAll(shuffler.shuffle(initializingRoutings.withSameAttribute, seed));
