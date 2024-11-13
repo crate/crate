@@ -541,7 +541,7 @@ public class ClusterState implements Diffable<ClusterState> {
             nodes = after.nodes.diff(before.nodes);
             metadata = after.metadata.diff(before.metadata);
             blocks = after.blocks.diff(before.blocks);
-            customs = DiffableUtils.diff(before.customs, after.customs, DiffableUtils.getStringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
+            customs = Diffs.diff(before.customs, after.customs, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
         }
 
         ClusterStateDiff(StreamInput in, DiscoveryNode localNode) throws IOException {
@@ -553,7 +553,7 @@ public class ClusterState implements Diffable<ClusterState> {
             nodes = DiscoveryNodes.readDiffFrom(in, localNode);
             metadata = Metadata.readDiffFrom(in);
             blocks = ClusterBlocks.readDiffFrom(in);
-            customs = DiffableUtils.readImmutableOpenMapDiff(in, DiffableUtils.getStringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
+            customs = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
         }
 
         @Override

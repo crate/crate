@@ -19,15 +19,15 @@
 
 package org.elasticsearch.cluster;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
-
-import java.io.IOException;
 
 /**
  * Value Serializer for named diffables
  */
-public class NamedDiffableValueSerializer<T extends NamedDiffable<T>> extends DiffableUtils.DiffableValueSerializer<String, T> {
+public class NamedDiffableValueSerializer<T extends NamedDiffable<T>> extends Diffs.DiffableValueSerializer<String, T> {
 
     private final Class<T> tClass;
 

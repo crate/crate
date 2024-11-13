@@ -42,7 +42,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
-import org.elasticsearch.cluster.DiffableUtils;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
@@ -606,18 +606,18 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (after.mapping != null) {
                 afterMappings.put(Constants.DEFAULT_MAPPING_TYPE, after.mapping);
             }
-            mappings = DiffableUtils.diff(beforeMappings.build(), afterMappings.build(), DiffableUtils.getStringKeySerializer());
-            aliases = DiffableUtils.diff(before.aliases, after.aliases, DiffableUtils.getStringKeySerializer());
-            inSyncAllocationIds = DiffableUtils.diff(before.inSyncAllocationIds, after.inSyncAllocationIds,
-                DiffableUtils.getIntKeySerializer(), DiffableUtils.StringSetValueSerializer.getInstance());
+            mappings = Diffs.diff(beforeMappings.build(), afterMappings.build(), Diffs.stringKeySerializer());
+            aliases = Diffs.diff(before.aliases, after.aliases, Diffs.stringKeySerializer());
+            inSyncAllocationIds = Diffs.diff(before.inSyncAllocationIds, after.inSyncAllocationIds,
+                Diffs.intKeySerializer(), Diffs.StringSetValueSerializer.getInstance());
         }
 
-        private static final DiffableUtils.DiffableValueReader<String, AliasMetadata> ALIAS_METADATA_DIFF_VALUE_READER =
-                new DiffableUtils.DiffableValueReader<>(AliasMetadata::new, AliasMetadata::readDiffFrom);
-        private static final DiffableUtils.DiffableValueReader<String, MappingMetadata> MAPPING_DIFF_VALUE_READER =
-                new DiffableUtils.DiffableValueReader<>(MappingMetadata::new, MappingMetadata::readDiffFrom);
-        private static final DiffableUtils.DiffableValueReader<String, DiffableStringMap> CUSTOM_DIFF_VALUE_READER =
-                new DiffableUtils.DiffableValueReader<>(DiffableStringMap::readFrom, DiffableStringMap::readDiffFrom);
+        private static final Diffs.DiffableValueReader<String, AliasMetadata> ALIAS_METADATA_DIFF_VALUE_READER =
+                new Diffs.DiffableValueReader<>(AliasMetadata::new, AliasMetadata::readDiffFrom);
+        private static final Diffs.DiffableValueReader<String, MappingMetadata> MAPPING_DIFF_VALUE_READER =
+                new Diffs.DiffableValueReader<>(MappingMetadata::new, MappingMetadata::readDiffFrom);
+        private static final Diffs.DiffableValueReader<String, DiffableStringMap> CUSTOM_DIFF_VALUE_READER =
+                new Diffs.DiffableValueReader<>(DiffableStringMap::readFrom, DiffableStringMap::readDiffFrom);
 
         IndexMetadataDiff(StreamInput in) throws IOException {
             index = in.readString();
@@ -628,13 +628,13 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             state = State.fromId(in.readByte());
             settings = Settings.readSettingsFromStream(in);
             primaryTerms = in.readVLongArray();
-            mappings = DiffableUtils.readImmutableOpenMapDiff(in, DiffableUtils.getStringKeySerializer(), MAPPING_DIFF_VALUE_READER);
-            aliases = DiffableUtils.readImmutableOpenMapDiff(in, DiffableUtils.getStringKeySerializer(), ALIAS_METADATA_DIFF_VALUE_READER);
+            mappings = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), MAPPING_DIFF_VALUE_READER);
+            aliases = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), ALIAS_METADATA_DIFF_VALUE_READER);
             if (in.getVersion().before(Version.V_5_8_0)) {
-                DiffableUtils.readImmutableOpenMapDiff(in, DiffableUtils.getStringKeySerializer(), CUSTOM_DIFF_VALUE_READER);
+                Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_DIFF_VALUE_READER);
             }
-            inSyncAllocationIds = DiffableUtils.readImmutableOpenIntMapDiff(in, DiffableUtils.getIntKeySerializer(),
-                DiffableUtils.StringSetValueSerializer.getInstance());
+            inSyncAllocationIds = Diffs.readIntMapDiff(in, Diffs.intKeySerializer(),
+                Diffs.StringSetValueSerializer.getInstance());
         }
 
         @Override
@@ -650,10 +650,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             mappings.writeTo(out);
             aliases.writeTo(out);
             if (out.getVersion().before(Version.V_5_8_0)) {
-                Diff<ImmutableOpenMap<String, DiffableStringMap>> customData = DiffableUtils.diff(
+                Diff<ImmutableOpenMap<String, DiffableStringMap>> customData = Diffs.diff(
                     ImmutableOpenMap.<String, DiffableStringMap>of(),
                     ImmutableOpenMap.<String, DiffableStringMap>of(),
-                    DiffableUtils.getStringKeySerializer()
+                    Diffs.stringKeySerializer()
                 );
                 customData.writeTo(out);
             }
@@ -715,7 +715,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         int inSyncAllocationIdsSize = in.readVInt();
         for (int i = 0; i < inSyncAllocationIdsSize; i++) {
             int key = in.readVInt();
-            Set<String> allocationIds = DiffableUtils.StringSetValueSerializer.getInstance().read(in, key);
+            Set<String> allocationIds = Diffs.StringSetValueSerializer.getInstance().read(in, key);
             builder.putInSyncAllocationIds(key, allocationIds);
         }
         return builder.build();
@@ -748,7 +748,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         out.writeVInt(inSyncAllocationIds.size());
         for (IntObjectCursor<Set<String>> cursor : inSyncAllocationIds) {
             out.writeVInt(cursor.key);
-            DiffableUtils.StringSetValueSerializer.getInstance().write(cursor.value, out);
+            Diffs.StringSetValueSerializer.getInstance().write(cursor.value, out);
         }
     }
 
