@@ -19,15 +19,10 @@
 
 package org.elasticsearch.cluster.block;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.cluster.AbstractDiffable;
-import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.unmodifiableSet;
+import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Stream.concat;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -39,15 +34,22 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.unmodifiableSet;
-import static java.util.stream.Collectors.toSet;
-import static java.util.stream.Stream.concat;
+import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 /**
  * Represents current cluster level blocks to block dirty operations done against the cluster.
  */
 public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
+
     public static final ClusterBlocks EMPTY_CLUSTER_BLOCK = new ClusterBlocks(emptySet(), ImmutableOpenMap.of());
 
     private final Set<ClusterBlock> global;
@@ -300,23 +302,25 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         return AbstractDiffable.readDiffFrom(ClusterBlocks::readFrom, in);
     }
 
-    static class ImmutableLevelHolder {
+    record ImmutableLevelHolder(Set<ClusterBlock> global,
+                                ImmutableOpenMap<String, Set<ClusterBlock>> indices) {
+    }
 
-        private final Set<ClusterBlock> global;
-        private final ImmutableOpenMap<String, Set<ClusterBlock>> indices;
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = 31 * result + global.hashCode();
+        result = 31 * result + indicesBlocks.hashCode();
+        result = 31 * result + levelHolders.hashCode();
+        return result;
+    }
 
-        ImmutableLevelHolder(Set<ClusterBlock> global, ImmutableOpenMap<String, Set<ClusterBlock>> indices) {
-            this.global = global;
-            this.indices = indices;
-        }
-
-        public Set<ClusterBlock> global() {
-            return global;
-        }
-
-        public ImmutableOpenMap<String, Set<ClusterBlock>> indices() {
-            return indices;
-        }
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ClusterBlocks other
+            && global.equals(other.global)
+            && indicesBlocks.equals(other.indicesBlocks)
+            && levelHolders.equals(other.levelHolders);
     }
 
     public static Builder builder() {

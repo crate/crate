@@ -489,10 +489,21 @@ public final class UnassignedInfo implements Writeable {
         if (lastAllocationStatus != that.lastAllocationStatus) {
             return false;
         }
-        if (Objects.equals(failure, that.failure) == false) {
+        if (sameException(failure, that.failure) == false) {
             return false;
         }
         return failedNodeIds.equals(that.failedNodeIds);
+    }
+
+    private boolean sameException(@Nullable Exception ex1, @Nullable Exception ex2) {
+        if (ex1 == null && ex2 == null) {
+            return true;
+        }
+        if (ex1 == null && ex2 != null || ex2 == null && ex1 != null) {
+            return false;
+        }
+        return ex1.getClass().getSimpleName().equals(ex2.getClass().getSimpleName())
+            && ex1.getMessage().equals(ex2.getMessage());
     }
 
     @Override

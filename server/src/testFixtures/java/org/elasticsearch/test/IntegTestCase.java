@@ -66,6 +66,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -93,8 +94,8 @@ import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.collect.ImmutableOpenIntMap;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -833,48 +834,38 @@ public abstract class IntegTestCase extends ESTestCase {
         }
     }
 
-    private static byte[] toBytes(ClusterState state) throws IOException {
-        BytesStreamOutput os = new BytesStreamOutput();
-        state.writeTo(os);
-        return BytesReference.toBytes(os.bytes());
-    }
-
     /**
      * Verifies that all nodes that have the same version of the cluster state as master have same cluster state
      */
     protected void ensureClusterStateConsistency() throws IOException {
-        if (cluster() != null && cluster().size() > 0) {
-            Client masterClient = client();
-            ClusterState masterClusterState = FutureUtils
-                .get(masterClient.admin().cluster().state(new ClusterStateRequest().all()))
+        TestCluster cluster = cluster();
+        if (cluster == null || cluster.size() == 0) {
+            return;
+        }
+        Client masterClient = client();
+        ClusterState masterState = FutureUtils
+            .get(masterClient.admin().cluster().state(new ClusterStateRequest().all()))
+            .getState();
+        String masterId = masterState.nodes().getMasterNodeId();
+        for (Client client : cluster.getClients()) {
+            ClusterState localState = FutureUtils
+                .get(client.admin().cluster().state(new ClusterStateRequest().all().local(true)))
                 .getState();
-            int masterClusterStateSize = toBytes(masterClusterState).length;
-            String masterId = masterClusterState.nodes().getMasterNodeId();
-            for (Client client : cluster().getClients()) {
-                ClusterState localClusterState = FutureUtils
-                    .get(client.admin().cluster().state(new ClusterStateRequest().all().local(true)))
-                    .getState();
-                int localClusterStateSize = toBytes(localClusterState).length;
-                // Check that the non-master node has the same version of the cluster state as the master and
-                // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
-                if (masterClusterState.version() == localClusterState.version()
-                    && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
-                    try {
-                        assertThat(localClusterState.stateUUID()).as("cluster state UUID does not match").isEqualTo(masterClusterState.stateUUID());
-                        // We cannot compare serialization bytes since serialization order of maps is not guaranteed
-                        // but we can compare serialization sizes - they should be the same
-                        assertThat(localClusterStateSize).as("cluster state size does not match").isEqualTo(masterClusterStateSize);
-                    } catch (AssertionError error) {
-                        logger.error(
-                            "Cluster state from master:\n{}\nLocal cluster state:\n{}",
-                            masterClusterState,
-                            localClusterState);
-                        throw error;
-                    }
-                }
+            // State must only match if they have the same version
+            if (masterState.version() == localState.version()
+                && masterId.equals(localState.nodes().getMasterNodeId())) {
+
+                assertThat(localState)
+                    .usingRecursiveComparison(RecursiveComparisonConfiguration.builder()
+                        // routingNodes is built on demand
+                        .withIgnoredFields("routingNodes")
+                        .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenMap.class)
+                        .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenIntMap.class)
+                        .withIgnoreAllOverriddenEquals(false)
+                        .build())
+                    .isEqualTo(masterState);
             }
         }
-
     }
 
     protected void ensureStableCluster(int nodeCount) {
