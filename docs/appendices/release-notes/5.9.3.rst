@@ -148,3 +148,8 @@ Fixes
   ``ORDER BY`` expression contained a nested function. For example::
 
     SELECT * FROM t ORDER BY LEFT(txt_col, 1) = ANY(['a']);
+
+- Fixed an issue that caused casting values of the ``NUMERIC`` type to the
+  ``float`` or ``double`` types to hang. For example::
+
+    SELECT exp(-1110102730.1852759636)::float;
