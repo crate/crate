@@ -604,4 +604,18 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return sb.toString();
     }
 
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = 31 * result + (int) (version ^ (version >>> 32));
+        result = 31 * result + indicesRouting.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof RoutingTable other
+            && version == other.version
+            && indicesRouting.equals(other.indicesRouting);
+    }
 }
