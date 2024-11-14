@@ -47,4 +47,7 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused wrong results when implicit joins were combined
+  with outer-joins within the same query e.g.::
+
+      SELECT * FROM t1, t2 RIGHT JOIN t3 ON true
