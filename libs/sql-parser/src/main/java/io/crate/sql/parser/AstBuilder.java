@@ -173,6 +173,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IfExpression;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
 import io.crate.sql.tree.IndexColumnConstraint;
@@ -1601,7 +1602,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             new Select(isDistinct(context.setQuant()), selectItems),
             visitCollection(context.relation(), Relation.class),
             visitIfPresent(context.where(), Expression.class),
-            visitCollection(context.expr(), Expression.class),
+            context.ALL() != null ? Optional.of(GroupBy.all()) :
+                visitCollection(context.expr(), Expression.class).isEmpty() ?
+                    Optional.empty() :
+                    Optional.of(GroupBy.of(visitCollection(context.expr(), Expression.class))),
             visitIfPresent(context.having, Expression.class),
             getWindowDefinitions(context.windows),
             List.of(),
