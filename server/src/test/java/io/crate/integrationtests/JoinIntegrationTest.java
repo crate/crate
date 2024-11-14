@@ -1725,7 +1725,19 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 values (4), (5)");
         execute("refresh table t1, t2, t3");
 
-        execute("SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.id = t3.id) ON t2.id = t1.id;");
+        String query = "SELECT * FROM t1 LEFT JOIN (t2 LEFT JOIN t3 ON t2.id = t3.id) ON t1.id = t2.id";
+
+        execute("explain " + query);
+
+        assertThat(response).hasLines(
+            "HashJoin[LEFT | (id = id)] (rows=unknown)",
+            "  ├ Collect[doc.t1 | [id] | true] (rows=unknown)",
+            "  └ HashJoin[LEFT | (id = id)] (rows=unknown)",
+            "    ├ Collect[doc.t2 | [id] | true] (rows=unknown)",
+            "    └ Collect[doc.t3 | [id] | true] (rows=unknown)"
+        );
+
+        execute(query);
 
         assertThat(response).hasRowsInAnyOrder(
             "0| NULL| NULL",
@@ -1736,4 +1748,36 @@ public class JoinIntegrationTest extends IntegTestCase {
             "5| 5| 5"
         );
     }
+
+
+    /**
+     * https://github.com/crate/crate/issues/16951
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_explicit_joins_are_bind_before_implicit_joins() throws Exception {
+        execute("CREATE  TABLE  doc.t0(c1 VARCHAR(500))");
+        execute("CREATE  TABLE  doc.t1(c0 VARCHAR(500))");
+        execute("INSERT INTO doc.t0(c1) VALUES ('')");
+        execute("REFRESH TABLE doc.t0, doc.t1");
+        String query = "SELECT * FROM doc.t0, doc.t1 RIGHT JOIN (SELECT 1) AS sub0 ON true WHERE (NOT ((doc.t0.c1)>=(doc.t0.c1)))";
+        execute("EXPLAIN " + query);
+
+        assertThat(response).hasLines(
+            "Eval[c1, c0, \"1\"] (rows=unknown)",
+            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
+            "    ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
+            "    │  ├ Collect[doc.t1 | [c0] | true] (rows=unknown)",
+            "    │  └ Rename[\"1\"] AS sub0 (rows=unknown)",
+            "    │    └ TableFunction[empty_row | [1] | true] (rows=unknown)",
+            "    └ Collect[doc.t0 | [c1] | (NOT (c1 >= c1))] (rows=unknown)"
+        );
+
+        execute(query);
+        assertThat(response.rows()).isEmpty();
+    }
+
+
+
 }
