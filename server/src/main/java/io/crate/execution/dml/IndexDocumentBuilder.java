@@ -51,6 +51,7 @@ public class IndexDocumentBuilder {
     private final ValueIndexer.Synthetics synthetics;
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
     private final Version tableVersionCreated;
+    private final boolean addStoredField;
 
     /**
      * Builds a new IndexDocumentBuilder
@@ -61,7 +62,14 @@ public class IndexDocumentBuilder {
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated
     ) {
-        this(new Document(), translogWriter, synthetics, constraints, tableVersionCreated);
+        this(
+            new Document(),
+            translogWriter,
+            synthetics,
+            constraints,
+            tableVersionCreated,
+            tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)
+        );
     }
 
     private IndexDocumentBuilder(
@@ -69,13 +77,15 @@ public class IndexDocumentBuilder {
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
-        Version tableVersionCreated
+        Version tableVersionCreated,
+        boolean addStoredField
     ) {
         this.doc = doc;
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
         this.constraints = constraints;
         this.tableVersionCreated = tableVersionCreated;
+        this.addStoredField = addStoredField;
     }
 
     /**
@@ -114,7 +124,7 @@ public class IndexDocumentBuilder {
      * Should we add stored fields to retrieve values if they are not stored column-wise?
      */
     public boolean maybeAddStoredField() {
-        return tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION);
+        return addStoredField;
     }
 
     /**
@@ -125,12 +135,7 @@ public class IndexDocumentBuilder {
      * ordering and duplication, so child indexers do not need to store their values separately.
      */
     public IndexDocumentBuilder noStoredField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated) {
-            @Override
-            public boolean maybeAddStoredField() {
-                return false;
-            }
-        };
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false);
     }
 
     /**
@@ -141,7 +146,7 @@ public class IndexDocumentBuilder {
      * preserve ordering and duplication.
      */
     public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
-        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated);
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField);
     }
 
     /**
