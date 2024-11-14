@@ -24,6 +24,7 @@ package org.elasticsearch.action.admin.indices.retention;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
@@ -78,7 +79,16 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     @Override
     protected void shardOperation(SyncRetentionLeasesRequest request, ShardRouting shardRouting, ActionListener<ReplicationResponse> listener) throws IOException {
         IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
-        indexShard.syncRetentionLeases(true, listener);
+        indexShard.runUnderPrimaryPermit(
+            () -> indexShard.syncRetentionLeases(true, listener),
+            e -> {
+                logger.warn(new ParameterizedMessage("failed to sync retention leases on OPTIMIZE TABLE"), e);
+                // Listener here wraps an exception in a BroadcastShardOperationFailedException when handling failure.
+                listener.onFailure(e);
+            },
+            ThreadPool.Names.SAME,
+            "retention lease sync on OPTIMIZE TABLE"
+        );
     }
 
     @Override
