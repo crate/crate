@@ -1669,4 +1669,33 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
         assertThat(response).hasRows("a2| {id=xyz, t_id=1}| {id=d2}| 1| xyz| 1");
     }
+
+    /**
+     * https://github.com/crate/crate/issues/16951
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_explicit_joins_are_bind_before_implicit_joins() throws Exception {
+        execute("CREATE  TABLE  doc.t0(c1 VARCHAR(500))");
+        execute("CREATE  TABLE  doc.t1(c0 VARCHAR(500))");
+        execute("INSERT INTO doc.t0(c1) VALUES ('')");
+        execute("REFRESH TABLE doc.t0, doc.t1");
+        String query = "SELECT * FROM doc.t0, doc.t1 RIGHT JOIN (SELECT 1) AS sub0 ON true WHERE (NOT ((doc.t0.c1)>=(doc.t0.c1)))";
+        execute("EXPLAIN " + query);
+
+        assertThat(response).hasLines(
+            "Eval[c1, c0, \"1\"] (rows=unknown)",
+            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
+            "    ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
+            "    │  ├ Collect[doc.t1 | [c0] | true] (rows=unknown)",
+            "    │  └ Rename[\"1\"] AS sub0 (rows=unknown)",
+            "    │    └ TableFunction[empty_row | [1] | true] (rows=unknown)",
+            "    └ Collect[doc.t0 | [c1] | (NOT (c1 >= c1))] (rows=unknown)"
+        );
+
+        execute(query);
+        assertThat(response.rows()).isEmpty();
+    }
+
 }

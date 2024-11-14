@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -69,34 +68,60 @@ public class JoinPlanBuilder {
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = buildRelationsToJoinPairsMap(allJoinPairs);
-        Iterator<RelationName> it = Lists.mapLazy(from, AnalyzedRelation::relationName).iterator();
 
-        final RelationName lhsName = it.next();
-        final RelationName rhsName = it.next();
-        Set<RelationName> joinNames = new LinkedHashSet<>();
-        joinNames.add(lhsName);
-        joinNames.add(rhsName);
+        Map<RelationName, AnalyzedRelation> relationsFromClause = new HashMap<>();
+        List<RelationName> relationNamesFromClause = new ArrayList<>();
 
-        JoinPair joinLhsRhs = joinPairsByRelations.remove(joinNames);
+        for (AnalyzedRelation analyzedRelation : from) {
+            RelationName relationName = analyzedRelation.relationName();
+            relationNamesFromClause.add(relationName);
+            relationsFromClause.put(relationName, analyzedRelation);
+        }
+
+        final RelationName lhsName;
+        final RelationName rhsName;
+
         final JoinType joinType;
         final Symbol joinCondition;
-        if (joinLhsRhs == null) {
-            joinType = JoinType.CROSS;
-            joinCondition = null;
+        Set<RelationName> joinNames = new LinkedHashSet<>();
+
+        // Outer-joins must be created before the implicit joins because the are
+        // binding stronger since they are order-dependent.
+        if (containsOuterJoins(allJoinPairs)) {
+            JoinPair joinPair = allJoinPairs.removeFirst();
+            lhsName = joinPair.left();
+            rhsName = joinPair.right();
+            relationNamesFromClause.remove(lhsName);
+            relationNamesFromClause.remove(rhsName);
+            joinNames.add(lhsName);
+            joinNames.add(rhsName);
+            joinType = joinPair.joinType();
+            joinCondition = joinPair.condition();
+            joinPairsByRelations.remove(joinNames);
         } else {
-            joinType = joinLhsRhs.joinType();
-            joinCondition = joinLhsRhs.condition();
+            // All joins are inner or cross joins sp they are not order-dependent.
+            // Therefore, we build the join in the original order sequentially.
+            lhsName = relationNamesFromClause.removeFirst();
+            rhsName = relationNamesFromClause.removeFirst();
+            joinNames.add(lhsName);
+            joinNames.add(rhsName);
+            JoinPair joinLhsRhs = joinPairsByRelations.remove(joinNames);
+            if (joinLhsRhs == null) {
+                joinType = JoinType.CROSS;
+                joinCondition = null;
+            } else {
+                joinType = joinLhsRhs.joinType();
+                joinCondition = joinLhsRhs.condition();
+            }
         }
+
+        final AnalyzedRelation lhs = relationsFromClause.get(lhsName);
+        final AnalyzedRelation rhs = relationsFromClause.get(rhsName);
 
         var correlatedSubQueriesFromJoin = extractCorrelatedSubQueries(joinCondition);
         var validJoinConditions = AndOperator.join(correlatedSubQueriesFromJoin.remainder(), null);
         var correlatedSubQueriesFromWhereClause = extractCorrelatedSubQueries(removeParts(queryParts, lhsName, rhsName));
         var validWhereConditions = AndOperator.join(correlatedSubQueriesFromWhereClause.remainder());
-
-        Map<RelationName, AnalyzedRelation> sources = from.stream()
-            .collect(Collectors.toMap(AnalyzedRelation::relationName, rel -> rel));
-        AnalyzedRelation lhs = sources.get(lhsName);
-        AnalyzedRelation rhs = sources.get(rhsName);
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
@@ -111,8 +136,9 @@ public class JoinPlanBuilder {
             AbstractJoinPlan.LookUpJoin.NONE);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
-        while (it.hasNext()) {
-            AnalyzedRelation nextRel = sources.get(it.next());
+
+        for (RelationName relationName : relationNamesFromClause) {
+            AnalyzedRelation nextRel = relationsFromClause.get(relationName);
             joinPlan = joinWithNext(
                 plan,
                 joinPlan,
@@ -132,6 +158,16 @@ public class JoinPlanBuilder {
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs: " + joinPairsByRelations;
         return joinPlan;
+    }
+
+    private static boolean containsOuterJoins(List<JoinPair> joinPairs) {
+        for (JoinPair joinPair : joinPairs) {
+            JoinType jt = joinPair.joinType();
+            if (jt.isOuter()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static LogicalPlan joinWithNext(Function<AnalyzedRelation, LogicalPlan> plan,
@@ -177,9 +213,23 @@ public class JoinPlanBuilder {
                 .filter(Objects::nonNull).iterator()
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
+
+        final LogicalPlan lhs;
+        final LogicalPlan rhs;
+
+        // For outer joins lhs/rhs order has to be defined as in the query
+        // which is preserved in the join pair
+        if (type.isOuter() && joinPair.left().equals(nextRel.relationName())) {
+            lhs = nextPlan;
+            rhs = source;
+        } else {
+            lhs = source;
+            rhs = nextPlan;
+        }
+
         var joinPlan = new JoinPlan(
-            source,
-            nextPlan,
+            lhs,
+            rhs,
             type,
             AndOperator.join(conditions, null),
             isFiltered,
