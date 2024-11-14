@@ -40,6 +40,9 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue where joins with join condition ``true`` or no join
+  condition would not be executed as a cross product.
+
 - Fixed an issue which would allow to cast a number to a
   :ref:`NUMERIC<type-numeric>`, even if the ``NUMERIC``'s' precision and scale
   would not be sufficient to fit the number without loosing precision, instead

@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -69,34 +68,53 @@ public class JoinPlanBuilder {
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = buildRelationsToJoinPairsMap(allJoinPairs);
-        Iterator<RelationName> it = Lists.mapLazy(from, AnalyzedRelation::relationName).iterator();
+        List<RelationName> relationsInFromClause = new ArrayList<>();
+        for (AnalyzedRelation analyzedRelation : from) {
+            relationsInFromClause.add(analyzedRelation.relationName());
+        }
+        Map<RelationName, AnalyzedRelation> sources = from.stream()
+            .collect(Collectors.toMap(AnalyzedRelation::relationName, rel -> rel));
 
-        final RelationName lhsName = it.next();
-        final RelationName rhsName = it.next();
-        Set<RelationName> joinNames = new LinkedHashSet<>();
-        joinNames.add(lhsName);
-        joinNames.add(rhsName);
+        final RelationName lhsName;
+        final RelationName rhsName;
 
-        JoinPair joinLhsRhs = joinPairsByRelations.remove(joinNames);
         final JoinType joinType;
         final Symbol joinCondition;
-        if (joinLhsRhs == null) {
-            joinType = JoinType.CROSS;
-            joinCondition = null;
+        Set<RelationName> joinNames = new LinkedHashSet<>();
+
+        if (allJoinPairs.isEmpty() == false) {
+            JoinPair joinPair = allJoinPairs.removeFirst();
+            lhsName = joinPair.left();
+            rhsName = joinPair.right();
+            relationsInFromClause.remove(lhsName);
+            relationsInFromClause.remove(rhsName);
+            joinNames.add(lhsName);
+            joinNames.add(rhsName);
+            joinType = joinPair.joinType();
+            joinCondition = joinPair.condition();
+            joinPairsByRelations.remove(joinNames);
         } else {
-            joinType = joinLhsRhs.joinType();
-            joinCondition = joinLhsRhs.condition();
+            lhsName = relationsInFromClause.removeFirst();
+            rhsName = relationsInFromClause.removeFirst();
+            joinNames.add(lhsName);
+            joinNames.add(rhsName);
+            JoinPair joinLhsRhs = joinPairsByRelations.remove(Set.of(lhsName, rhsName));
+            if (joinLhsRhs == null) {
+                joinType = JoinType.CROSS;
+                joinCondition = null;
+            } else {
+                joinType = joinLhsRhs.joinType();
+                joinCondition = joinLhsRhs.condition();
+            }
         }
+
+        final AnalyzedRelation lhs = sources.get(lhsName);
+        final AnalyzedRelation rhs = sources.get(rhsName);
 
         var correlatedSubQueriesFromJoin = extractCorrelatedSubQueries(joinCondition);
         var validJoinConditions = AndOperator.join(correlatedSubQueriesFromJoin.remainder(), null);
         var correlatedSubQueriesFromWhereClause = extractCorrelatedSubQueries(removeParts(queryParts, lhsName, rhsName));
         var validWhereConditions = AndOperator.join(correlatedSubQueriesFromWhereClause.remainder());
-
-        Map<RelationName, AnalyzedRelation> sources = from.stream()
-            .collect(Collectors.toMap(AnalyzedRelation::relationName, rel -> rel));
-        AnalyzedRelation lhs = sources.get(lhsName);
-        AnalyzedRelation rhs = sources.get(rhsName);
 
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
@@ -111,8 +129,9 @@ public class JoinPlanBuilder {
             AbstractJoinPlan.LookUpJoin.NONE);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
-        while (it.hasNext()) {
-            AnalyzedRelation nextRel = sources.get(it.next());
+
+        for (RelationName relationName : relationsInFromClause) {
+            AnalyzedRelation nextRel = sources.get(relationName);
             joinPlan = joinWithNext(
                 plan,
                 joinPlan,
@@ -178,8 +197,8 @@ public class JoinPlanBuilder {
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
         var joinPlan = new JoinPlan(
-            source,
             nextPlan,
+            source,
             type,
             AndOperator.join(conditions, null),
             isFiltered,
@@ -203,7 +222,8 @@ public class JoinPlanBuilder {
     @Nullable
     private static <V> V removeMatch(Map<Set<RelationName>, V> valuesByNames, Set<RelationName> names, RelationName nextName) {
         for (RelationName name : names) {
-            V v = valuesByNames.remove(Set.of(name, nextName));
+            Set<RelationName> name1 = Set.of(name, nextName);
+            V v = valuesByNames.remove(name1);
             if (v != null) {
                 return v;
             }
