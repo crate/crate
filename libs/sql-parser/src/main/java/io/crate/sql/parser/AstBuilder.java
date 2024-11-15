@@ -172,6 +172,7 @@ import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
@@ -830,11 +831,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
                 if (ex instanceof QualifiedNameReference ref && ref.getName().getParts().size() > 1) {
                     throw new IllegalArgumentException(
                         "Column references used in INSERT INTO <tbl> (...) must use the column name. " +
-                        "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
+                            "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                     "Invalid column reference %s used in INSERT INTO statement",
-                                                                     ex.toString()));
+                        "Invalid column reference %s used in INSERT INTO statement",
+                        ex.toString()));
                 }
             }
             throw e;
@@ -903,7 +904,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             assignments,
             visitIfPresent(context.where(), Expression.class),
             getReturningItems(context.returning())
-            );
+        );
     }
 
     @Override
@@ -1000,7 +1001,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             var userNameLiteral = visit(context.username);
             assert userNameLiteral instanceof StringLiteral
                 : "username must be a StringLiteral because " +
-                  "the parser grammar is restricted to string literals";
+                "the parser grammar is restricted to string literals";
             var userName = ((StringLiteral) userNameLiteral).getValue();
             return new SetSessionAuthorizationStatement(userName, scope);
         }
@@ -1601,7 +1602,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             new Select(isDistinct(context.setQuant()), selectItems),
             visitCollection(context.relation(), Relation.class),
             visitIfPresent(context.where(), Expression.class),
-            visitCollection(context.expr(), Expression.class),
+            context.ALL() != null ? Optional.of(GroupBy.all()) :
+                visitCollection(context.expr(), Expression.class).isEmpty() ?
+                    Optional.empty() :
+                    Optional.of(GroupBy.of(visitCollection(context.expr(), Expression.class))),
             visitIfPresent(context.having, Expression.class),
             getWindowDefinitions(context.windows),
             List.of(),
@@ -1692,12 +1696,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     /*
-    * case sensitivity like it is in postgres
-    * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
-    *
-    * unfortunately this has to be done in the parser because afterwards the
-    * knowledge of the IDENT / QUOTED_IDENT difference is lost
-    */
+     * case sensitivity like it is in postgres
+     * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
+     *
+     * unfortunately this has to be done in the parser because afterwards the
+     * knowledge of the IDENT / QUOTED_IDENT difference is lost
+     */
     @Override
     public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
         return new StringLiteral(context.getText().toLowerCase(Locale.ENGLISH));
@@ -2057,7 +2061,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
         if (targetType instanceof CollectionColumnType || targetType instanceof ObjectColumnType) {
             throw new UnsupportedOperationException("type 'string' cast notation only supports primitive types. " +
-                                                    "Use '::' or cast() operator instead.");
+                "Use '::' or cast() operator instead.");
         }
         return new Cast((Expression) visit(context.stringLiteral()), targetType);
     }
@@ -2164,8 +2168,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitArraySlice(SqlBaseParser.ArraySliceContext ctx) {
         return new ArraySliceExpression((Expression) visit(ctx.base),
-                                        visitIfPresent(ctx.from, Expression.class),
-                                        visitIfPresent(ctx.to, Expression.class));
+            visitIfPresent(ctx.from, Expression.class),
+            visitIfPresent(ctx.to, Expression.class));
     }
 
     @Override
@@ -2486,7 +2490,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     private List<SelectItem> getReturningItems(@Nullable SqlBaseParser.ReturningContext context) {
         return context == null ? List.of() : visitCollection(context.selectItem(),
-                                                             SelectItem.class);
+            SelectItem.class);
     }
 
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
@@ -2630,9 +2634,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "The function name is not correct! " +
-                                                             "name [%s] does not conform the [[schema_name .] function_name] format.",
-                                                             functionName));
+                "The function name is not correct! " +
+                    "name [%s] does not conform the [[schema_name .] function_name] format.",
+                functionName));
         }
     }
 
