@@ -83,7 +83,7 @@ public class SymbolVisitor<C, R> {
     }
 
     public R visitAlias(AliasSymbol aliasSymbol, C context) {
-        return visitSymbol(aliasSymbol, context);
+        return aliasSymbol.symbol().accept(this, context);
     }
 
     public R visitFetchMarker(FetchMarker fetchMarker, C context) {

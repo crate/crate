@@ -250,11 +250,6 @@ public class EvaluatingNormalizer {
                 function.ignoreNulls()
             );
         }
-
-        @Override
-        public Symbol visitAlias(AliasSymbol aliasSymbol, TransactionContext context) {
-            return aliasSymbol.symbol().accept(this, context);
-        }
     }
 
     public Symbol normalize(@Nullable Symbol symbol, @NotNull TransactionContext txnCtx) {

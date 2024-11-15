@@ -97,10 +97,4 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         matchPredicate.options().accept(this, context);
         return null;
     }
-
-    @Override
-    public R visitAlias(AliasSymbol aliasSymbol, C context) {
-        aliasSymbol.symbol().accept(this, context);
-        return null;
-    }
 }

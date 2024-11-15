@@ -99,11 +99,6 @@ public final class GroupAndAggregateSemantics {
             return null;
         }
 
-        @Override
-        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
-            return aliasSymbol.symbol().accept(this, context);
-        }
-
         private static void raiseException(Symbol symbol) {
             throw new IllegalArgumentException(
                 "Cannot group or aggregate on '" + symbol.toString() + "' with an undefined type." +

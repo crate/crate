@@ -23,7 +23,6 @@ package io.crate.analyze.validator;
 
 import java.util.Locale;
 
-import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
@@ -76,11 +75,6 @@ public class GroupBySymbolValidator {
         @Override
         protected Void visitSymbol(Symbol symbol, Boolean insideScalar) {
             return null;
-        }
-
-        @Override
-        public Void visitAlias(AliasSymbol aliasSymbol, Boolean insideScalar) {
-            return aliasSymbol.symbol().accept(this, insideScalar);
         }
     }
 }
