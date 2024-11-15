@@ -74,55 +74,55 @@ public class TestSqlParser {
             SqlParser.createStatement("-- this is a line comment\nSelect \n-- this is a line comment\n1"))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  /* this
-                         is a multiline
-                         comment
-                      */
-                  Select 1;"""))
+            """
+            /* this
+                   is a multiline
+                   comment
+                */
+            Select 1;"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select 1;    /* this
-                         is a multiline
-                         comment
-                      */"""))
+            """
+            Select 1;    /* this
+                   is a multiline
+                   comment
+                */"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select    /* this
-                         is a multiline
-                         comment
-                      */1"""))
+            """
+            Select    /* this
+                   is a multiline
+                   comment
+                */1"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select    /* this
-                         is a multiline
-                         comment
-                      */
-                  -- line comment
-                  1"""))
+            """
+            Select    /* this
+                   is a multiline
+                   comment
+                */
+            -- line comment
+            1"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                """
-                  CREATE TABLE IF NOT EXISTS "doc"."data" (
-                     "week__generated" TIMESTAMP GENERATED ALWAYS AS date_trunc('week', "ts"),
-                     "mid" STRING, -- measurement id, mainly used for triggers, starts for continuuous measurment with random uuid
-                     "res" INTEGER, -- resolution in ms
-                     "ts" TIMESTAMP,
-                     "val_avg" FLOAT,
-                     "val_max" FLOAT,
-                     "val_min" FLOAT,
-                     "val_stddev" FLOAT,
-                     "vid" STRING, -- variable id, unique uuid
-                     PRIMARY KEY ("ts", "mid", "vid", "res", "week__generated")
-                  )
-                  CLUSTERED INTO 3 SHARDS
-                  PARTITIONED BY ("res", "week__generated")
-                  WITH (
-                     number_of_replicas = '1'
-                  );"""))
+            """
+              CREATE TABLE IF NOT EXISTS "doc"."data" (
+                 "week__generated" TIMESTAMP GENERATED ALWAYS AS date_trunc('week', "ts"),
+                 "mid" STRING, -- measurement id, mainly used for triggers, starts for continuuous measurment with random uuid
+                 "res" INTEGER, -- resolution in ms
+                 "ts" TIMESTAMP,
+                 "val_avg" FLOAT,
+                 "val_max" FLOAT,
+                 "val_min" FLOAT,
+                 "val_stddev" FLOAT,
+                 "vid" STRING, -- variable id, unique uuid
+                 PRIMARY KEY ("ts", "mid", "vid", "res", "week__generated")
+              )
+              CLUSTERED INTO 3 SHARDS
+              PARTITIONED BY ("res", "week__generated")
+              WITH (
+                 number_of_replicas = '1'
+              );"""))
             .isExactlyInstanceOf(CreateTable.class);
     }
 
@@ -170,7 +170,7 @@ public class TestSqlParser {
                     selectList(new DoubleLiteral(123.456E7)),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
-                    List.of(),
+                    Optional.empty(),
                     Optional.empty(),
                     Map.of(),
                     List.of(),
@@ -605,9 +605,9 @@ public class TestSqlParser {
     private static void assertParsed(String input, Node expected, Node parsed) {
         if (!parsed.equals(expected)) {
             fail(format("expected%n%n%s%n%nto parse as%n%n%s%n%nbut was%n%n%s%n",
-                        indent(input),
-                        indent(formatSql(expected)),
-                        indent(formatSql(parsed))));
+                indent(input),
+                indent(formatSql(expected)),
+                indent(formatSql(parsed))));
         }
     }
 
