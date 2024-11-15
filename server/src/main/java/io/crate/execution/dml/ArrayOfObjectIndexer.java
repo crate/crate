@@ -41,7 +41,7 @@ import io.crate.metadata.Reference;
  */
 public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
 
-    public ArrayOfObjectIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    ArrayOfObjectIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         super(innerIndexer, getRef, reference);
     }
 

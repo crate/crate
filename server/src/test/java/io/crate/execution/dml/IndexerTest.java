@@ -832,11 +832,34 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_1:3>");
 
         indexer = getIndexer(e, "tbl", "xs2");
-        doc = indexer.index(item(List.of(List.of(List.of(1, 1, 1)), List.of(List.of(2, 2, 2, 2))))); // [ [ [1,1,1] ], [ [2],[2],[2] ] ]
+        doc = indexer.index(item(List.of(List.of(List.of(1, 1, 1)), List.of(List.of(2, 2, 2, 2))))); // [ [ [1,1,1] ], [ [2,2,2,2] ] ]
         arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs2"), table::getReference));
 
         assertThat(arrayLengthFields.length).isEqualTo(1);
         assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_2:2>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_only_top_most_array_length_is_indexed_for_multi_dimensional_object_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs object as (a int)[][], xs2 object as (a int)[][][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        var o = Map.of("a", 1);
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of(List.of(o), List.of(o, o), List.of(o, o, o, o)))); // [ [o], [o,o], [o,o,o,o] ]
+        IndexableField[] arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_1:3>");
+
+        indexer = getIndexer(e, "tbl", "xs2");
+        doc = indexer.index(item(List.of(List.of(List.of(o, o, o)), List.of(List.of(o, o, o, o))))); // [ [ [o,o,o] ], [ [o,o,o,o] ] ]
+        arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs2"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_3:2>");
         assertTranslogParses(doc, table);
     }
 
