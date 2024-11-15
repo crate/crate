@@ -68,18 +68,17 @@ SQL Statements
   table.
 
 - Added support for ``GROUP BY ALL`` clause which allows grouping by all output
- columns that are not aggregate functions without explicitly listing them, e.g.::
+  columns that are not aggregate functions without explicitly listing them, e.g.::
 
+    SELECT department, title, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY ALL;
 
-   SELECT department, title, AVG(salary) as avg_salary
-   FROM employees
-   GROUP BY ALL;
+  This is equivalent to::
 
- This is equivalent to::
-
-   SELECT department, title, AVG(salary) as avg_salary
-   FROM employees
-   GROUP BY department, title;
+    SELECT department, title, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY department, title;
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
