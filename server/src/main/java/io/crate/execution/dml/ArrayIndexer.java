@@ -46,6 +46,8 @@ import io.crate.types.StorageSupport;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
+    public static final Version ARRAY_LENGTH_FIELD_SUPPORTED_VERSION = Version.V_5_9_0;
+
     public static Query arrayLengthTermQuery(Reference arrayRef, int length, Function<ColumnIdent, Reference> getRef) {
         return IntPoint.newExactQuery(toArrayLengthFieldName(arrayRef, getRef), length);
     }
@@ -112,14 +114,15 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     @Override
     public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         docBuilder.translogWriter().startArray();
+        var nestedDocBuilder = docBuilder.noArrayLengthField();
         for (T value : values) {
             if (value == null) {
                 docBuilder.translogWriter().writeNull();
             } else {
-                innerIndexer.indexValue(value, docBuilder);
+                innerIndexer.indexValue(value, nestedDocBuilder);
             }
         }
-        if (docBuilder.getTableVersionCreated().onOrAfter(Version.V_5_9_0)) {
+        if (docBuilder.maybeAddArrayLengthField()) {
             // map '[]' to '_array_length_ = 0'
             // map '[null]' to '_array_length_ = 1'
             // 'null' is not mapped; can utilize 'FieldExistsQuery' for 'IS NULL' filtering
