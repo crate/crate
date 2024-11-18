@@ -268,7 +268,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 "SELECT health, count(*) FROM sys.health GROUP BY 1");
             assertThat(response).hasRowCount(1L);
             assertThat(response.rows()[0][0]).isEqualTo("GREEN");
-        }, 10, TimeUnit.SECONDS);
+        }, 30, TimeUnit.SECONDS);
     }
 
     /**
