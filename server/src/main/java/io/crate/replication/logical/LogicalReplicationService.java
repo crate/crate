@@ -63,9 +63,9 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.PartitionName;
@@ -317,33 +317,36 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 Strings.EMPTY_ARRAY
             );
 
-        FutureActionListener<RestoreService.RestoreCompletionResponse> restoreFuture = new FutureActionListener<>();
+        FutureActionListener<RestoreService.RestoreCompletionResponse> restoreListener = new FutureActionListener<>();
         activeOperations.incrementAndGet();
-        restoreFuture.whenComplete((res, err) -> {
-            activeOperations.decrementAndGet();
-        });
-        try {
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
-                () -> {
-                    try {
-                        restoreService.restoreSnapshot(restoreRequest, null, restoreFuture);
-                    } catch (Exception e) {
-                        restoreFuture.onFailure(e);
-                    }
-                }
-            );
-        } catch (RejectedExecutionException ex) {
-            restoreFuture.onFailure(ex);
-        }
-
-        return restoreFuture
-            .thenCompose(ignored -> updateSubscriptionState(
+        var restoreFuture = restoreListener
+            .whenComplete((_, _) -> {
+                activeOperations.decrementAndGet();
+            })
+            // Update subscription state, we want to wait until this update is done before proceeding
+            .thenCompose(_ -> updateSubscriptionState(
                 subscriptionName,
                 relationNames,
                 Subscription.State.RESTORING,
                 null
             ))
-            .thenCompose(ignored -> afterReplicationStarted(subscriptionName, restoreFuture.join(), relationNames));
+            .thenCompose(_ -> afterReplicationStarted(subscriptionName, restoreListener.join(), relationNames));
+
+        try {
+            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
+                () -> {
+                    try {
+                        restoreService.restoreSnapshot(restoreRequest, null, restoreListener);
+                    } catch (Exception e) {
+                        restoreListener.onFailure(e);
+                    }
+                }
+            );
+        } catch (RejectedExecutionException ex) {
+            restoreListener.onFailure(ex);
+        }
+
+        return restoreFuture;
     }
 
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
@@ -372,6 +375,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             }
         };
         if (response.getRestoreInfo() != null) {
+            LOGGER.debug("Restore completed immediately, no shards to wait for using a cluster state listener");
             return onRestoreInfo.apply(response.getRestoreInfo());
         } else {
             FutureActionListener<RestoreSnapshotResponse> restoreFuture = new FutureActionListener<>();
