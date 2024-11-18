@@ -44,11 +44,12 @@ import io.crate.metadata.doc.SysColumns;
  */
 public class IndexDocumentBuilder {
 
-    private final Document doc = new Document();
+    private final Document doc;
     private final TranslogWriter translogWriter;
     private final ValueIndexer.Synthetics synthetics;
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
     private final Version tableVersionCreated;
+    private final boolean addArrayLengthField;
 
     /**
      * Builds a new IndexDocumentBuilder
@@ -59,10 +60,30 @@ public class IndexDocumentBuilder {
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated
     ) {
+        this(
+            new Document(),
+            translogWriter,
+            synthetics,
+            constraints,
+            tableVersionCreated,
+            tableVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)
+        );
+    }
+
+    private IndexDocumentBuilder(
+        Document doc,
+        TranslogWriter translogWriter,
+        ValueIndexer.Synthetics synthetics,
+        Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
+        Version tableVersionCreated,
+        boolean addArrayLengthField
+    ) {
+        this.doc = doc;
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
         this.constraints = constraints;
         this.tableVersionCreated = tableVersionCreated;
+        this.addArrayLengthField = addArrayLengthField;
     }
 
     /**
@@ -95,6 +116,24 @@ public class IndexDocumentBuilder {
         if (constraint != null) {
             constraint.verify(value);
         }
+    }
+
+    /**
+     * Should the current arrayIndexer index its array length?
+     */
+    public boolean maybeAddArrayLengthField() {
+        return addArrayLengthField;
+    }
+
+    /**
+     * Returns an IndexDocumentBuilder that shares a lucene document and translog with the current one,
+     * but that tells any child indexers they should not add array length fields.
+     * <p/>
+     * Called by ArrayIndexers that are not children of another ArrayIndexers in order to prevent child ArrayIndexers to
+     * index array lengths.
+     */
+    public IndexDocumentBuilder noArrayLengthField() {
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false);
     }
 
     /**

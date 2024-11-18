@@ -840,19 +840,55 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_array_length_is_indexed_for_child_arrays() throws Exception {
+    public void test_only_top_most_array_length_is_indexed_for_multi_dimensional_object_arrays() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs int[])))))");
+            .addTable("create table tbl (xs object as (a int)[][], xs2 object as (a int)[][][])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        var o = Map.of("a", 1);
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of(List.of(o), List.of(o, o), List.of(o, o, o, o)))); // [ [o], [o,o], [o,o,o,o] ]
+        IndexableField[] arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_1:3>");
+
+        indexer = getIndexer(e, "tbl", "xs2");
+        doc = indexer.index(item(List.of(List.of(List.of(o, o, o)), List.of(List.of(o, o, o, o))))); // [ [ [o,o,o] ], [ [o,o,o,o] ] ]
+        arrayLengthFields = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs2"), table::getReference));
+
+        assertThat(arrayLengthFields.length).isEqualTo(1);
+        assertThat(arrayLengthFields[0].toString()).isEqualTo("IntField <_array_length_3:2>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_array_length_is_not_indexed_for_object_arrays_within_object_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (o2 object as (a int)[])[])");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "o");
+        ParsedDocument doc = indexer.index(item(List.of(Map.of("o2", List.of(Map.of("a", 1))))));
+
+        var arrayLengthFields = doc.doc().getFields().stream().filter(f -> f.name().startsWith(ARRAY_LENGTH_FIELD_PREFIX)).toList();
+        assertThat(arrayLengthFields).hasSize(1);
+        assertThat(arrayLengthFields.getFirst().toString()).isEqualTo("IntField <_array_length_1:1>");
+
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_array_length_is_not_indexed_for_child_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs2 int[])))))");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", "o_array");
-        ParsedDocument doc = indexer.index(item(List.of(Map.of("xs", List.of(), "o_array_2", List.of(Map.of("xs", List.of()))))));
-        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['xs']")).storageIdentLeafName()).toString())
-            .isEqualTo("IntField <_array_length_2:0>"); // o_array['xs'] is empty
-        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['o_array_2']")).storageIdentLeafName()).toString())
-            .isEqualTo("IntField <_array_length_3:1>"); // 1 element of o_array['o_array_2']
-        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['o_array_2']['xs']")).storageIdentLeafName()).toString())
-            .isEqualTo("IntField <_array_length_4:0>"); // o_array['o_array_2']['xs'] is empty
+        ParsedDocument doc = indexer.index(item(List.of(Map.of("xs", List.of(), "o_array_2", List.of(Map.of("xs2", List.of()))))));
+        var arrayLengthFields = doc.doc().getFields().stream().filter(field -> field.name().startsWith(ARRAY_LENGTH_FIELD_PREFIX)).toList();
+        assertThat(arrayLengthFields.getFirst().toString()).isEqualTo("IntField <_array_length_1:1>"); // for the groot level array
+
         assertTranslogParses(doc, table);
     }
 
