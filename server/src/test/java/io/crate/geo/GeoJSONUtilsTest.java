@@ -24,6 +24,7 @@ package io.crate.geo;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +42,8 @@ import org.locationtech.spatial4j.io.WKTWriter;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
+
+import io.crate.common.collections.Maps;
 
 public class GeoJSONUtilsTest {
 
@@ -100,7 +103,7 @@ public class GeoJSONUtilsTest {
         for (Shape shape : SHAPES) {
             Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
             assertThat(map).containsKey("type");
-            GeoJSONUtils.validateGeoJson(map);
+            GeoJSONUtils.sanitizeMap(map);
         }
     }
 
@@ -162,7 +165,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testValidateMissingType() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(Map.of()))
+            () -> GeoJSONUtils.sanitizeMap(Map.of()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid GeoJSON: type field missing");
     }
@@ -170,7 +173,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testValidateWrongType() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, "Foo")))
+            () -> GeoJSONUtils.sanitizeMap(Map.of(GeoJSONUtils.TYPE_FIELD, "Foo")))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid GeoJSON: invalid type");
     }
@@ -178,7 +181,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testValidateMissingCoordinates() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING)))
+            () -> GeoJSONUtils.sanitizeMap(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid GeoJSON: coordinates field missing");
     }
@@ -186,7 +189,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testValidateGeometriesMissing() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(
+            () -> GeoJSONUtils.sanitizeMap(
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD,
                     GeoJSONUtils.GEOMETRY_COLLECTION
@@ -198,7 +201,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testInvalidGeometryCollection() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(
+            () -> GeoJSONUtils.sanitizeMap(
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
                     GeoJSONUtils.GEOMETRIES_FIELD, List.<Object>of("ABC")
@@ -210,7 +213,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testValidateInvalidCoordinates() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(
+            () -> GeoJSONUtils.sanitizeMap(
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
                     GeoJSONUtils.COORDINATES_FIELD, "ABC"
@@ -222,7 +225,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testInvalidNestedCoordinates() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(
+            () -> GeoJSONUtils.sanitizeMap(
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
                     GeoJSONUtils.COORDINATES_FIELD, new double[][]{
@@ -237,7 +240,7 @@ public class GeoJSONUtilsTest {
     @Test
     public void testInvalidDepthNestedCoordinates() throws Exception {
         assertThatThrownBy(
-            () -> GeoJSONUtils.validateGeoJson(
+            () -> GeoJSONUtils.sanitizeMap(
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
                     GeoJSONUtils.COORDINATES_FIELD, new double[][]{
@@ -247,5 +250,83 @@ public class GeoJSONUtilsTest {
                 )))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid GeoJSON: invalid coordinate");
+    }
+
+    @Test
+    public void test_geometry_collection_of_a_single_part_transformed_to_multi_part() throws Exception {
+        List<Map<String, Object>> composableShapes = new ArrayList<>();
+        Map<String, Object> point = Map.of(
+            GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+            GeoJSONUtils.COORDINATES_FIELD, new double[]{1.0, 1.0}
+        );
+        Map<String, Object> polygon = Map.of(
+            GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
+            GeoJSONUtils.COORDINATES_FIELD, new double[][][]{
+                {{0.0, 0.0}},
+                {{1.0, 0.0}},
+                {{1.1, 1.1}},
+                {{0.0, 1.0}}
+            }
+        );
+        Map<String, Object> lineString = Map.of(
+            GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
+            GeoJSONUtils.COORDINATES_FIELD, new Double[][]{{0.0, 0.1}, {1.0, 1.1}}
+        );
+        composableShapes.add(point);
+        composableShapes.add(polygon);
+        composableShapes.add(lineString);
+        for (Map<String, Object> shape: composableShapes) {
+            Map<String, Object> collection = Map.of(
+                GeoJSONUtils.TYPE_FIELD,
+                GeoJSONUtils.GEOMETRY_COLLECTION,
+                GeoJSONUtils.GEOMETRIES_FIELD,
+                List.of(
+                    shape,
+                    shape
+                )
+            );
+            Map<String, Object> sanitizedMap = GeoJSONUtils.sanitizeMap(collection);
+            String type = (String) shape.get(GeoJSONUtils.TYPE_FIELD);
+            assert type != null : "Tests operates with pre-defined coposable types";
+            String targetType = GeoJSONUtils.COMPOSABLE_TYPES.get(type);
+            assertThat(sanitizedMap.get(GeoJSONUtils.TYPE_FIELD)).isEqualTo(targetType);
+        }
+    }
+
+    @Test
+    public void test_geometry_collection_with_nested_collection_single_part_transformed_to_multi_part() throws Exception {
+        var points = List.of(
+            Map.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                GeoJSONUtils.COORDINATES_FIELD, new double[]{1.0, 1.0}
+            ),
+            Map.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                GeoJSONUtils.COORDINATES_FIELD, new double[]{2.0, 2.0}
+            )
+        );
+        Map<String, Object> collection = Map.of(
+            GeoJSONUtils.TYPE_FIELD,
+            GeoJSONUtils.GEOMETRY_COLLECTION,
+            GeoJSONUtils.GEOMETRIES_FIELD,
+            List.of(
+                // Nested collection
+                Map.of(
+                    GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
+                    GeoJSONUtils.GEOMETRIES_FIELD, points
+                ),
+                points.getFirst(),
+                points.getLast()
+            )
+        );
+        Map<String, Object> sanitizedMap = GeoJSONUtils.sanitizeMap(collection);
+        // (transformed_collection, point, point) = collection.
+        assertThat(sanitizedMap.get(GeoJSONUtils.TYPE_FIELD)).isEqualTo(GeoJSONUtils.GEOMETRY_COLLECTION);
+        List<Map<String, Object>> geometries = Maps.get(sanitizedMap, GeoJSONUtils.GEOMETRIES_FIELD);
+        assertThat(geometries).hasSize(3);
+        // Nested collection is transformed.
+        assertThat(geometries.get(0)).containsEntry(GeoJSONUtils.TYPE_FIELD, "MultiPoint");
+        assertThat(geometries.get(1)).containsEntry(GeoJSONUtils.TYPE_FIELD, "Point");
+        assertThat(geometries.get(2)).containsEntry(GeoJSONUtils.TYPE_FIELD, "Point");
     }
 }
