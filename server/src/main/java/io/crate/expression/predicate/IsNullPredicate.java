@@ -21,6 +21,7 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
@@ -35,7 +36,6 @@ import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.Nullable;
 
@@ -124,7 +124,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+            if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
                 // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
                 // such that FieldExistsQuery can be used.
                 return ArrayIndexer.arrayLengthExistsQuery(ref, context.tableInfo()::getReference);
