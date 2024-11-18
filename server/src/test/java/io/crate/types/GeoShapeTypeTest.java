@@ -171,7 +171,7 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
     public void test_sanitize_value_geo_shape_objects() {
         for (Shape shape : GeoJSONUtilsTest.SHAPES) {
             Map<String, Object> map = type.sanitizeValue(shape);
-            GeoJSONUtils.validateGeoJson(map);
+            GeoJSONUtils.sanitizeMap(map);
         }
     }
 
@@ -331,6 +331,36 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
             """);
         assertThat(type.compare(shape1, shape2)).isEqualTo(1);
         assertThat(type.compare(shape2, shape1)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_geometry_collection_equal_to_corresponding_multi_part() throws Exception {
+        Map<String, Object> collection = parse(
+            """
+            {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "type": "Point",
+                        "coordinates": [1.0, 1.0]
+                    },
+                    {
+                        "type": "Point",
+                        "coordinates": [2.0, 2.0]
+                    }
+                ]
+            }
+            """
+        );
+        Map<String, Object> multiPoint = parse("""
+            {
+                "type": "MultiPoint",
+                "coordinates": [[1.0, 1.0], [2.0, 2.0]]
+            }
+            """
+        );
+        assertThat(type.implicitCast(collection)).isEqualTo(type.implicitCast(multiPoint));
+        assertThat(type.sanitizeValue(collection)).isEqualTo(type.sanitizeValue(multiPoint));
     }
 }
 

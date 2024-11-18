@@ -91,7 +91,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
@@ -102,8 +101,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         } else if (value instanceof Shape shape) {
             return GeoJSONUtils.shape2Map(shape);
         } else if (value instanceof Map<?, ?> map) {
-            GeoJSONUtils.validateGeoJson(map);
-            return (Map<String, Object>) value;
+            return GeoJSONUtils.sanitizeMap(map);
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -115,8 +113,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         if (value == null) {
             return null;
         } else if (value instanceof Map<?, ?> map) {
-            GeoJSONUtils.validateGeoJson(map);
-            return (Map<String, Object>) value;
+            return GeoJSONUtils.sanitizeMap(map);
         } else {
             return GeoJSONUtils.shape2Map((Shape) value);
         }
