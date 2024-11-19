@@ -309,8 +309,9 @@ each group.
 ``GROUP BY ALL``
 ''''''''''''''''
 
-``GROUP BY ALL`` is a convenient shorthand syntax that automatically groups by all non-aggregate
-columns in the SELECT list. This eliminates the need to explicitly list all grouping columns.
+``GROUP BY ALL`` is a shorthand syntax that groups all non-aggregate columns in
+the SELECT list. This eliminates the need to explicitly list all grouping
+columns.
 
 ::
 
