@@ -179,4 +179,67 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("o", "array_length(o['a'], 2) = 4")).isEmpty();
         }
     }
+
+    @Test
+    public void test_length_of_arrays_within_object_arrays() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs2 int[])))))"
+        );
+        var o_array = List.of(
+            Map.of(
+                "xs", // length = 2
+                List.of(1, 2),
+                "o_array_2", // length = 4
+                List.of(
+                    Map.of(
+                        "xs2", // length = 5
+                        List.of(1, 2, 3, 4, 5)),
+                    Map.of("xs2", List.of(1, 2, 3, 4, 5)),
+                    Map.of("xs2", List.of(1, 2, 3, 4, 5)),
+                    Map.of("xs2", List.of(1, 2, 3, 4, 5))
+                )
+            )
+        );
+        builder.indexValue("o_array", o_array);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("o_array", "array_length(o_array, 1) = 1")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array, 1) != 1")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['xs'], 1) = 1")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['xs'], 1) != 1")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['xs'][1], 1) = 2")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['xs'][1], 1) != 2")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2'], 1) = 1")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2'], 1) != 1")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2'][1], 1) = 4")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2'][1], 1) != 4")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'], 1) = 1")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'], 1) != 1")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'][1], 1) = 4")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'][1], 1) != 4")).isEmpty();
+
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'][1][1], 1) = 5")).containsExactly(o_array);
+            assertThat(tester.runQuery("o_array", "array_length(o_array['o_array_2']['xs2'][1][1], 1) != 5")).isEmpty();
+
+            // array lengths of the children of the root level array are equal to the array length of the root level array
+            assertThat(tester.toQuery("array_length(o_array, 1) = 1").toString()).isEqualTo("_array_length_o_array:[1 TO 1]");
+            assertThat(tester.toQuery("array_length(o_array['xs'], 1) = 1").toString()).isEqualTo("_array_length_o_array:[1 TO 1]");
+            assertThat(tester.toQuery("array_length(o_array['o_array_2'], 1) = 1").toString()).isEqualTo("_array_length_o_array:[1 TO 1]");
+            assertThat(tester.toQuery("array_length(o_array['o_array_2']['xs2'], 1) = 1").toString()).isEqualTo("_array_length_o_array:[1 TO 1]");
+
+            // array length fields are not indexed for arrays within arrays, utilize generic function queries
+            assertThat(tester.toQuery("array_length(o_array['xs'][1], 1) = 2").toString()).isEqualTo("(array_length(o_array[1]['xs'], 1) = 2)");
+            assertThat(tester.toQuery("array_length(o_array['o_array_2'][1], 1) = 4").toString()).isEqualTo("(array_length(o_array[1]['o_array_2'], 1) = 4)");
+            assertThat(tester.toQuery("array_length(o_array['o_array_2']['xs2'][1], 1) = 4").toString()).isEqualTo("(array_length(o_array[1]['o_array_2']['xs2'], 1) = 4)");
+            assertThat(tester.toQuery("array_length(o_array['o_array_2']['xs2'][1][1], 1) = 5").toString()).isEqualTo("(array_length(o_array[1]['o_array_2']['xs2'][1], 1) = 5)");
+        }
+    }
 }
