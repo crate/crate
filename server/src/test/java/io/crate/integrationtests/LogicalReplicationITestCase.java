@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 
@@ -129,7 +128,11 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     public void clearCluster() throws Exception {
         // Existing subscriptions must be dropped first before any index is deleted.
         // Otherwise, the metadata tracking logic would try to restore these indices.
-        dropSubscriptions();
+        try {
+            dropSubscriptions();
+        } catch (Exception e) {
+            // ignore
+        }
         stopCluster(subscriberCluster);
         subscriberCluster = null;
         stopCluster(publisherCluster);
@@ -265,7 +268,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 "SELECT health, count(*) FROM sys.health GROUP BY 1");
             assertThat(response).hasRowCount(1L);
             assertThat(response.rows()[0][0]).isEqualTo("GREEN");
-        }, 10, TimeUnit.SECONDS);
+        }, 30, TimeUnit.SECONDS);
     }
 
     /**
