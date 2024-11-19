@@ -135,7 +135,6 @@ public class DocTableInfoFactory {
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
         Map<ColumnIdent, Reference> references = new HashMap<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-        Map<ColumnIdent, String> analyzers = new HashMap<>();
 
         parseColumns(
             expressionAnalyzer,
@@ -147,7 +146,6 @@ public class DocTableInfoFactory {
             partitionedBy,
             properties,
             indexColumns,
-            analyzers,
             references
         );
         var refExpressionAnalyzer = new ExpressionAnalyzer(
@@ -185,7 +183,6 @@ public class DocTableInfoFactory {
             references,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
-            analyzers,
             Maps.get(metaMap, "pk_constraint_name"),
             primaryKeys,
             checkConstraints,
@@ -262,7 +259,6 @@ public class DocTableInfoFactory {
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
         Map<ColumnIdent, Reference> references = new HashMap<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-        Map<ColumnIdent, String> analyzers = new HashMap<>();
 
         parseColumns(
             expressionAnalyzer,
@@ -274,7 +270,6 @@ public class DocTableInfoFactory {
             partitionedBy,
             properties,
             indexColumns,
-            analyzers,
             references
         );
         var refExpressionAnalyzer = new ExpressionAnalyzer(
@@ -313,7 +308,6 @@ public class DocTableInfoFactory {
             references,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
-            analyzers,
             Maps.get(metaMap, "pk_constraint_name"),
             primaryKeys,
             checkConstraints,
@@ -375,7 +369,6 @@ public class DocTableInfoFactory {
                                     List<ColumnIdent> partitionedBy,
                                     Map<String, Object> properties,
                                     Map<ColumnIdent, IndexReference.Builder> indexColumns,
-                                    Map<ColumnIdent, String> analyzers,
                                     Map<ColumnIdent, Reference> references) {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         for (Entry<String,Object> entry : properties.entrySet()) {
@@ -387,10 +380,6 @@ public class DocTableInfoFactory {
             columnProperties = innerProperties(columnProperties);
 
             String analyzer = (String) columnProperties.get("analyzer");
-            if (analyzer != null) {
-                analyzers.put(column, analyzer);
-            }
-
             String defaultExpressionString = Maps.get(columnProperties, "default_expr");
             Symbol defaultExpression = null;
             if (defaultExpressionString != null) {
@@ -473,7 +462,6 @@ public class DocTableInfoFactory {
                         partitionedBy,
                         nestedProperties,
                         indexColumns,
-                        analyzers,
                         references
                     );
                 }

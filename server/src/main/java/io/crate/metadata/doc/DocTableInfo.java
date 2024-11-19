@@ -181,7 +181,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
     private final Map<String, String> leafNamesByOid;
-    private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     @Nullable
     private final String pkConstraintName;
@@ -206,7 +205,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Map<ColumnIdent, String> analyzers,
                         @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
@@ -252,7 +250,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
             .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
             .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
-        this.analyzers = analyzers;
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
 
@@ -633,8 +630,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return RelationType.BASE_TABLE;
     }
 
+    @Nullable
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
-        return analyzers.get(ident);
+        Reference reference = references.get(ident);
+        if (reference instanceof GeneratedReference gen) {
+            reference = gen.reference();
+        }
+        if (reference instanceof IndexReference indexRef) {
+            return indexRef.analyzer();
+        }
+        return null;
     }
 
     @Nullable
@@ -833,7 +838,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             references,
             indexColumns,
-            analyzers,
             pkConstraintName,
             primaryKeys,
             newConstraints,
@@ -901,7 +905,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             newReferences,
             indexColumns,
-            analyzers,
             pkConstraintName,
             primaryKeys,
             newCheckConstraints,
@@ -1001,14 +1004,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         var renamedPrimaryKeys = Lists.map(primaryKeys, renameColumnIfMatch);
         var renamedPartitionedBy = Lists.map(partitionedBy, renameColumnIfMatch);
         var renamedCheckConstraints = Lists.map(checkConstraints, renameCheckConstraints);
-        var renamedAnalyzers = analyzers.entrySet().stream()
-            .collect(Collectors.toMap(e -> renameColumnIfMatch.apply(e.getKey()), Entry::getValue));
-
         return new DocTableInfo(
             ident,
             renamedReferences,
             renamedIndexColumns,
-            renamedAnalyzers,
             pkConstraintName,
             renamedPrimaryKeys,
             renamedCheckConstraints,
@@ -1225,7 +1224,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             newReferences,
             indexColumns,
-            analyzers,
             pkConstraintName,
             newPrimaryKeys,
             newChecks,

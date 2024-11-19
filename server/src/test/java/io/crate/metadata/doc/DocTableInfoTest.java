@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -90,7 +91,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 )
             ),
             Map.of(),
-            Map.of(),
             null,
             List.of(),
             List.of(),
@@ -155,7 +155,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo info = new DocTableInfo(
             dummy,
             references,
-            Map.of(),
             Map.of(),
             null,
             List.of(),
@@ -287,7 +286,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                             null
                     )
                 ),
-                Map.of(),
                 Map.of(),
                 null,
                 List.of(),
