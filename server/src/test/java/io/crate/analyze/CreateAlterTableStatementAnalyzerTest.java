@@ -215,8 +215,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, List<String>> constraints = (Map<String, List<String>>) metaMapping.get("constraints");
         List<String> notNullColumns = constraints != null ? constraints.get("not_null") : List.of();
-        assertThat(notNullColumns).hasSize(1);
-        assertThat(notNullColumns.get(0)).isEqualTo("name");
+        assertThat(notNullColumns).containsExactly("name");
     }
 
     @Test

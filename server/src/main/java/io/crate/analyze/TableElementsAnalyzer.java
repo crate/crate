@@ -790,6 +790,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         column.pkConstraintName = pkConstraintName;
         column.primaryKey = true;
+        column.nullable = false;
         ColumnIdent columnName = column.name;
         DataType<?> type = column.type;
         if (type instanceof ArrayType) {

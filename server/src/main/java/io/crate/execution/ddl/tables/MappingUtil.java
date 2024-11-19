@@ -260,6 +260,7 @@ public final class MappingUtil {
         }
 
         // PK
+        List<ColumnIdent> pkColumns = new ArrayList<>();
         if (pKeyIndices.isEmpty() == false) {
             List<String> primaryKeys = (List<String>) meta.get("primary_keys");
             if (primaryKeys == null) {
@@ -267,12 +268,21 @@ public final class MappingUtil {
                 meta.put("primary_keys", primaryKeys);
             }
             for (int i = 0; i < pKeyIndices.size(); i ++) {
-                primaryKeys.add(references.get(pKeyIndices.get(i)).column().fqn());
+                Reference pkRef = references.get(pKeyIndices.get(i));
+                pkColumns.add(pkRef.column());
+                primaryKeys.add(pkRef.column().fqn());
             }
         }
 
         // Not nulls
-        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).toList();
+        ArrayList<String> newNotNulls = new ArrayList<>();
+        for (int i = 0; i < references.size(); i++) {
+            Reference ref = references.get(i);
+            // primary keys are implicitly null and not explicitly stored within not null constraints
+            if (!ref.isNullable() && !pkColumns.contains(ref.column())) {
+                newNotNulls.add(ref.column().fqn());
+            }
+        }
         if (newNotNulls.isEmpty() == false) {
             Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
             List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
