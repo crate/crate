@@ -115,7 +115,6 @@ public record ForeignTable(RelationName name,
                     case "references":
                         references = new HashMap<>();
                         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-                        Map<ColumnIdent, String> analyzers = new HashMap<>();
 
                         Map<String, Object> properties = parser.map();
                         DocTableInfoFactory.parseColumns(
@@ -128,7 +127,6 @@ public record ForeignTable(RelationName name,
                             List.of(),
                             properties,
                             indexColumns,
-                            analyzers,
                             references
                         );
                         break;

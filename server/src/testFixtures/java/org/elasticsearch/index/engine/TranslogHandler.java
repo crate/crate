@@ -73,7 +73,6 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             relation,
             Map.of(ColumnIdent.of("value"), column),
             Map.of(),
-            Map.of(),
             null,
             List.of(),
             List.of(),

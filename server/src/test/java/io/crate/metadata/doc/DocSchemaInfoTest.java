@@ -179,7 +179,6 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
             Map.of(),
             Map.of(),
-            Map.of(),
             null,
             List.of(),
             List.of(),
