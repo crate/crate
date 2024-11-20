@@ -3,7 +3,6 @@ name: "CodeQL"
 on:
   push:
     branches: [master]
-#   paths: ['**.java', 'pom.xml', '**/pom.xml']
   pull_request:
     branches: [master]
     paths-ignore:
@@ -28,12 +27,12 @@ jobs:
     - run: git checkout HEAD^2
       if: ${{ github.event_name == 'pull_request' }}
 
-    - name: Setup Maven Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: 23
-        distribution: temurin
-        cache: maven
+#    - name: Setup Maven Java
+#      uses: actions/setup-java@v4
+#      with:
+#        java-version: 23
+#        distribution: temurin
+#        cache: maven
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
