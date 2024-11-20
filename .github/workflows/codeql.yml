@@ -24,16 +24,6 @@ jobs:
       with:
         fetch-depth: 2
 
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
-
-#    - name: Setup Maven Java
-#      uses: actions/setup-java@v4
-#      with:
-#        java-version: 23
-#        distribution: temurin
-#        cache: maven
-
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
