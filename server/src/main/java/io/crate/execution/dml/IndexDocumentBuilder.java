@@ -52,6 +52,7 @@ public class IndexDocumentBuilder {
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
     private final Version tableVersionCreated;
     private final boolean addStoredField;
+    private final boolean addArrayLengthField;
 
     /**
      * Builds a new IndexDocumentBuilder
@@ -68,7 +69,8 @@ public class IndexDocumentBuilder {
             synthetics,
             constraints,
             tableVersionCreated,
-            tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)
+            tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION),
+            tableVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)
         );
     }
 
@@ -78,7 +80,8 @@ public class IndexDocumentBuilder {
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated,
-        boolean addStoredField
+        boolean addStoredField,
+        boolean addArrayLengthField
     ) {
         this.doc = doc;
         this.translogWriter = translogWriter;
@@ -86,6 +89,7 @@ public class IndexDocumentBuilder {
         this.constraints = constraints;
         this.tableVersionCreated = tableVersionCreated;
         this.addStoredField = addStoredField;
+        this.addArrayLengthField = addArrayLengthField;
     }
 
     /**
@@ -128,6 +132,13 @@ public class IndexDocumentBuilder {
     }
 
     /**
+     * Should the current arrayIndexer index its array length?
+     */
+    public boolean maybeAddArrayLengthField() {
+        return addArrayLengthField;
+    }
+
+    /**
      * Returns an IndexDocumentBuilder that shares a lucene document and translog with the current one,
      * but that tells any child indexers they should not add stored fields.
      * <p/>
@@ -135,7 +146,18 @@ public class IndexDocumentBuilder {
      * ordering and duplication, so child indexers do not need to store their values separately.
      */
     public IndexDocumentBuilder noStoredField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false);
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false, addArrayLengthField);
+    }
+
+    /**
+     * Returns an IndexDocumentBuilder that shares a lucene document and translog with the current one,
+     * but that tells any child indexers they should not add array length fields.
+     * <p/>
+     * Called by ArrayIndexers that are not children of another ArrayIndexers in order to prevent child ArrayIndexers to
+     * index array lengths.
+     */
+    public IndexDocumentBuilder noArrayLengthField() {
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, addStoredField, false);
     }
 
     /**
@@ -146,7 +168,7 @@ public class IndexDocumentBuilder {
      * preserve ordering and duplication.
      */
     public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
-        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField);
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField, addArrayLengthField);
     }
 
     /**

@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -32,7 +33,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -179,7 +179,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         int cmpVal = cmpNumber.intValue();
         // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
         // see ArrayIndexer for details
-        if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+        if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
             return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, context.tableInfo()::getReference);
         }
 
