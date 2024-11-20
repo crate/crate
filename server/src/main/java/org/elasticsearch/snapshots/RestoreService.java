@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,7 +51,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest.TableOrPartition;
@@ -71,7 +69,6 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
@@ -115,7 +112,6 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -495,12 +491,8 @@ public class RestoreService implements ClusterStateApplier {
                     snapshotIndexMetadata = updateIndexSettings(snapshotIndexMetadata,
                                                                 request.indexSettings(), request.ignoreIndexSettings());
                     try {
-                        String indexName = snapshotIndexMetadata.getIndex().getName();
                         snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                             snapshotIndexMetadata,
-                            IndexName.isPartitioned(indexName) ?
-                                currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
-                                null,
                             minIndexCompatibilityVersion);
                     } catch (Exception ex) {
                         throw new SnapshotRestoreException(snapshot, "cannot restore index [" + index +
@@ -617,10 +609,7 @@ public class RestoreService implements ClusterStateApplier {
                 shards = ImmutableOpenMap.of();
             }
 
-            validateExistingTemplates(templates);
             checkAliasNameConflicts(indices, aliases);
-            // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(templates, mdBuilder, currentState);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && metadata.persistentSettings() != null) {
@@ -778,66 +767,6 @@ public class RestoreService implements ClusterStateApplier {
                 }));
             settingsBuilder.remove(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey());
             return builder.settings(settingsBuilder).build();
-        }
-
-        private void restoreTemplates(List<String> templates,
-                                      Metadata.Builder mdBuilder,
-                                      ClusterState currentState) {
-            ImmutableOpenMap<String, IndexTemplateMetadata> templateMetadata = metadata.templates();
-            if (templateMetadata == null) {
-                return;
-            }
-            Map<String, IndexTemplateMetadata> includedTemplates = new HashMap<>();
-            boolean allTemplates = allTemplates(templates);
-            boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
-            for (var cursor : templateMetadata) {
-                String templateName = cursor.key;
-                IndexTemplateMetadata indexTemplateMetadata = cursor.value;
-                if (allTemplates || templates.contains(templateName)) {
-                    IndexTemplateMetadata previous;
-                    if (applyRenamePattern) {
-                        IndexParts indexParts = IndexName.decode(templateName);
-                        String schema = indexParts.schema();
-                        String table = indexParts.table();
-                        RelationName newName = new RelationName(
-                            schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement()),
-                            table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement())
-                        );
-                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.withName(indexTemplateMetadata, newName).build();
-                        previous = includedTemplates.put(newName.indexNameOrAlias(), renamedIndexTemplateMetadata);
-                    } else {
-                        previous = includedTemplates.put(templateName, indexTemplateMetadata);
-                    }
-                    if (previous != null) {
-                        throw new SnapshotRestoreException(
-                            request.repositoryName,
-                            request.snapshotName,
-                            String.format(
-                                Locale.ENGLISH,
-                                "Rename conflict for partitioned table `%s`. `%s` already exists. Cannot rename `%s` to the same name",
-                                IndexName.decode(templateName).toRelationName().fqn(),
-                                templateName,
-                                previous.name()
-                            )
-                        );
-                    }
-                }
-            }
-            includedTemplates = metadataUpgrader.indexTemplateMetadataUpgraders.apply(includedTemplates);
-            for (var indexTemplateMetadata : includedTemplates.values()) {
-                mdBuilder.put(indexTemplateMetadata);
-            }
-        }
-
-        private void validateExistingTemplates(List<String> templates) {
-            if (request.indicesOptions().ignoreUnavailable() || allTemplates(templates)) {
-                return;
-            }
-            for (String template : templates) {
-                if (!metadata.templates().containsKey(template)) {
-                    throw new ResourceNotFoundException("[{}] template not found", template);
-                }
-            }
         }
 
         @Override

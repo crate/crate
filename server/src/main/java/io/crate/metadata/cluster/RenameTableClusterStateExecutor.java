@@ -31,15 +31,12 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.IndexTemplateMissingException;
 
-import io.crate.execution.ddl.Templates;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
@@ -72,8 +69,7 @@ public class RenameTableClusterStateExecutor {
         boolean isView = views != null && views.contains(source);
 
         boolean viewExists = views != null && views.contains(target);
-        boolean tableExists = currentMetadata.hasIndex(target.indexNameOrAlias()) || // simple table
-            DDLClusterStateHelpers.templateMetadata(currentMetadata, target) != null; // partitioned table
+        boolean tableExists = currentMetadata.contains(target);
         if (viewExists || tableExists) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -90,11 +86,11 @@ public class RenameTableClusterStateExecutor {
         }
 
         if (isPartitioned) {
-            IndexTemplateMetadata indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(currentMetadata, source);
-            if (indexTemplateMetadata == null) {
-                throw new IndexTemplateMissingException("Template for partitioned table is missing");
-            }
-            renameTemplate(newMetadata, indexTemplateMetadata, target);
+            // IndexTemplateMetadata indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(currentMetadata, source);
+            // if (indexTemplateMetadata == null) {
+            //     throw new IndexTemplateMissingException("Template for partitioned table is missing");
+            // }
+            // renameTemplate(newMetadata, indexTemplateMetadata, target);
         }
 
         RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
@@ -148,14 +144,5 @@ public class RenameTableClusterStateExecutor {
             ddlClusterStateService.onRenameTable(clusterStateAfterRename, source, target, request.isPartitioned()),
             "rename-table"
         );
-    }
-
-    private static void renameTemplate(Metadata.Builder newMetadata,
-                                       IndexTemplateMetadata sourceTemplateMetadata,
-                                       RelationName target) {
-        IndexTemplateMetadata.Builder updatedTemplate = Templates.withName(sourceTemplateMetadata, target);
-        newMetadata
-            .removeTemplate(sourceTemplateMetadata.name())
-            .put(updatedTemplate);
     }
 }

@@ -68,7 +68,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
@@ -267,11 +266,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         for (var index : stateResponse.concreteIndices()) {
             if (metadata.hasIndex(index)) {
                 onExists.accept(RelationName.fromIndexName(index));
-            }
-        }
-        for (var template : stateResponse.concreteTemplates()) {
-            if (metadata.templates().containsKey(template)) {
-                onExists.accept(PartitionName.fromIndexOrTemplate(template).relationName());
             }
         }
     }

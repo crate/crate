@@ -22,11 +22,8 @@
 package io.crate.metadata.doc;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,15 +33,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -58,19 +50,16 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -115,134 +104,12 @@ public class DocTableInfoFactory {
     }
 
     public DocTableInfo create(RelationName relation, Metadata metadata) {
-        String templateName = PartitionName.templateName(relation.schema(), relation.name());
-        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-        Version versionCreated;
-        Version versionUpgraded;
-        Map<String, Object> mappingSource;
-        Settings tableParameters;
-        IndexMetadata.State state;
-        String[] concreteIndices;
-        try {
-            concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                indexTemplateMetadata == null
-                    ? IndicesOptions.STRICT_EXPAND_OPEN
-                    : IndicesOptions.LENIENT_EXPAND_OPEN,
-                relation.indexNameOrAlias()
-            );
-        } catch (IndexNotFoundException e) {
-            throw new RelationUnknown(relation.fqn(), e);
-        }
-        long tableVersion;
-        if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
-            if (index == null) {
-                throw new RelationUnknown(relation);
-            }
-            tableParameters = index.getSettings();
-            versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
-            versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-            state = index.getState();
-            mappingSource = Map.of();
-            tableVersion = index.getVersion();
-            if (concreteIndices.length == 0) {
-                throw new RelationUnknown(relation);
-            }
-        } else {
-            mappingSource = Map.of();
-            mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
-            tableParameters = indexTemplateMetadata.settings();
-            versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
-            versionUpgraded = null;
-            boolean isClosed = Maps.getOrDefault(
-                Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
-            state = isClosed ? State.CLOSE : State.OPEN;
-            tableVersion = indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
-        }
         RelationMetadata relationMetadata = metadata.getRelation(relation);
         if (relationMetadata instanceof RelationMetadata.Table table) {
             DocTableInfo newTableInfo = tableFromRelationMetadata(table);
             return newTableInfo;
         }
-        final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
-        final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
-            Maps.getOrDefault(metaMap, "partitioned_by", List.of())
-        );
-        List<ColumnIdent> primaryKeys = getPrimaryKeys(metaMap);
-        Set<ColumnIdent> notNullColumns = getNotNullColumns(metaMap);
-
-        Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
-        Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
-        Map<ColumnIdent, Reference> references = new HashMap<>();
-        Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-
-        parseColumns(
-            expressionAnalyzer,
-            relation,
-            null,
-            indicesMap,
-            notNullColumns,
-            primaryKeys,
-            partitionedBy,
-            properties,
-            indexColumns,
-            references
-        );
-        var refExpressionAnalyzer = new ExpressionAnalyzer(
-            systemTransactionContext,
-            nodeCtx,
-            ParamTypeHints.EMPTY,
-            new TableReferenceResolver(references, relation),
-            null
-        );
-        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
-        Map<String, String> generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
-        for (Entry<String,String> entry : generatedColumns.entrySet()) {
-            ColumnIdent column = ColumnIdent.fromPath(entry.getKey());
-            String generatedExpressionStr = entry.getValue();
-            Reference reference = references.get(column);
-            Symbol generatedExpression = refExpressionAnalyzer.convert(
-                SqlParser.createExpression(generatedExpressionStr),
-                expressionAnalysisContext
-            ).cast(reference.valueType());
-            assert reference != null : "Column present in generatedColumns must exist";
-            GeneratedReference generatedRef = new GeneratedReference(
-                reference,
-                generatedExpression
-            );
-            references.put(column, generatedRef);
-        }
-        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
-            refExpressionAnalyzer,
-            expressionAnalysisContext,
-            Maps.get(metaMap, "check_constraints")
-        );
-        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
-        ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
-        DocTableInfo oldTableInfo = new DocTableInfo(
-            relation,
-            references,
-            indexColumns.entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
-            Maps.get(metaMap, "pk_constraint_name"),
-            primaryKeys,
-            checkConstraints,
-            clusteredBy,
-            tableParameters,
-            partitionedBy,
-            ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
-            versionCreated,
-            versionUpgraded,
-            state == IndexMetadata.State.CLOSE,
-            Operation.buildFromIndexSettingsAndState(
-                tableParameters,
-                state,
-                publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
-            ),
-            tableVersion
-        );
-        return oldTableInfo;
+        throw new RelationUnknown(relation);
     }
 
     private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table) {
@@ -288,16 +155,6 @@ public class DocTableInfoFactory {
             EnumSet.allOf(Operation.class),
             0
         );
-    }
-
-    private static ColumnIdent getClusteredBy(List<ColumnIdent> primaryKeys, @Nullable String routing) {
-        if (routing != null) {
-            return ColumnIdent.fromPath(routing);
-        }
-        if (primaryKeys.size() == 1) {
-            return primaryKeys.get(0);
-        }
-        return SysColumns.ID.COLUMN;
     }
 
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
@@ -575,45 +432,6 @@ public class DocTableInfoFactory {
             next = Maps.get(inner, "inner");
         }
         return inner;
-    }
-
-    private static List<ColumnIdent> getPrimaryKeys(Map<String, Object> metaMap) {
-        Object primaryKeys = metaMap.get("primary_keys");
-        if (primaryKeys == null) {
-            return List.of();
-        }
-        if (primaryKeys instanceof String pkString) {
-            return List.of(ColumnIdent.fromPath(pkString));
-        }
-        if (primaryKeys instanceof Collection<?> keys) {
-            List<ColumnIdent> result = new ArrayList<>(keys.size());
-            for (Object key : keys) {
-                result.add(ColumnIdent.fromPath(key.toString()));
-            }
-            return result;
-        }
-        return List.of();
-    }
-
-    private static Set<ColumnIdent> getNotNullColumns(Map<String, Object> metaMap) {
-        Map<String, Object> constraintsMap = Maps.get(metaMap, "constraints");
-        if (constraintsMap == null) {
-            return Set.of();
-        }
-        HashSet<ColumnIdent> result = new HashSet<>();
-        Collection<Object> notNullCols = Maps.getOrDefault(constraintsMap, "not_null", List.of());
-        for (Object notNullColumn : notNullCols) {
-            result.add(ColumnIdent.fromPath(notNullColumn.toString()));
-        }
-        return result;
-    }
-
-    private static List<ColumnIdent> parsePartitionedByStringsList(List<List<String>> partitionedByList) {
-        ArrayList<ColumnIdent> builder = new ArrayList<>();
-        for (List<String> partitionedByInfo : partitionedByList) {
-            builder.add(ColumnIdent.fromPath(partitionedByInfo.get(0)));
-        }
-        return List.copyOf(builder);
     }
 
     record InnerObjectType(String name, int position, DataType<?> type) {}

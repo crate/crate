@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -41,19 +40,6 @@ import io.crate.Constants;
 public class MetadataIndexUpgraderTest extends ESTestCase {
 
 
-
-    @Test
-    public void testDynamicStringTemplateIsPurged() throws IOException {
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        MappingMetadata mappingMetadata = new MappingMetadata(createDynamicStringMappingTemplate());
-        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy", null);
-
-        Object dynamicTemplates = newMappingMetadata.sourceAsMap().get("dynamic_templates");
-        assertThat(dynamicTemplates).isNull();
-
-        // Check that the new metadata still has the root "default" element
-        assertThat("{\"default\":{}}").isEqualTo(newMappingMetadata.source().toString());
-    }
 
 
 

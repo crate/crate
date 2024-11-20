@@ -87,7 +87,6 @@ import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -280,22 +279,6 @@ public class MetadataCreateIndexService {
             for (Alias alias : request.aliases()) {
                 AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
             }
-
-            // No template handling here since neither of usages of this service is relevant to them:
-            // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
-            // 2. Resize partitioned tables. findTemplates always returns an empty list since
-            //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
-            // 3. Creating partitions/indices by inserting into a partitioned table.
-            //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
-            //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
-            IndexTemplateMetadata template = null;
-            try {
-                template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
-            } catch (Exception ex) {
-                // Creation of regular tables or resizing a partition don't pass validation.
-                // Catching validation errors to do a safe assertion.
-            }
-            assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
             final Index recoverFromIndex = request.recoverFrom();
             // TODO: recoverFromIndex mapping
@@ -692,7 +675,6 @@ public class MetadataCreateIndexService {
                 List.of(),
                 routingNumShards
             );
-            new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
             return updatedState;
         });
     }

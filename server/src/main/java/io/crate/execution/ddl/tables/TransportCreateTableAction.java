@@ -55,8 +55,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.ddl.Templates;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -86,9 +87,11 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private final MetadataCreateIndexService createIndexService;
     private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
+    private final NodeContext nodeContext;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
+                                      NodeContext nodeContext,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       IndicesService indicesService,
@@ -100,6 +103,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             clusterService, threadPool,
             CreateTableRequest::new
         );
+        this.nodeContext = nodeContext;
         this.createIndexService = createIndexService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
@@ -177,8 +181,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 List<String> indexUUIDs;
                 if (isPartitioned) {
                     indexUUIDs = List.of();
-                    newState = Templates.add(
-                        indicesService, createIndexService, currentState, request, normalizedSettings);
+                    newState = currentState;
                 } else {
                     String indexUUID = UUIDs.randomBase64UUID();
                     indexUUIDs = List.of(indexUUID);
@@ -209,9 +212,11 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                         indexUUIDs
                     );
                 Metadata metadata = newMetadata.build();
-                return ClusterState.builder(newState)
+                ClusterState finalState = ClusterState.builder(newState)
                     .metadata(metadata)
                     .build();
+                new DocTableInfoFactory(nodeContext).create(request.getTableName(), finalState.metadata());
+                return finalState;
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

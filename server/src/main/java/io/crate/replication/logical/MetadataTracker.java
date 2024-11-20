@@ -66,8 +66,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -404,14 +402,6 @@ public final class MetadataTracker implements Closeable {
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
             .collect(Collectors.toCollection(() -> new HashSet<>()));
 
-        for (String t: publisherStateResponse.concreteTemplates()) {
-            if (metadata.templates().containsKey(t)) {
-                var relationName = PartitionName.fromIndexOrTemplate(t).relationName();
-                if (currentlyReplicatedTables.contains(relationName) == false) {
-                    existingRelations.add(relationName);
-                }
-            }
-        }
         return existingRelations;
     }
 
@@ -441,18 +431,6 @@ public final class MetadataTracker implements Closeable {
                 relationNamesForStateUpdate.add(relationName);
             } else if (subscribedRelations.get(relationName) == null) {
                 relationNamesForStateUpdate.add(relationName);
-            }
-        }
-        for (var templateName : stateResponse.concreteTemplates()) {
-            var indexParts = IndexName.decode(templateName);
-            if (indexParts.isPartitioned()) {
-                var relationName = indexParts.toRelationName();
-                if (subscriberState.metadata().templates().get(templateName) == null) {
-                    toRestoreTemplates.add(templateName);
-                }
-                if (subscribedRelations.get(relationName) == null) {
-                    relationNamesForStateUpdate.add(relationName);
-                }
             }
         }
         if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {

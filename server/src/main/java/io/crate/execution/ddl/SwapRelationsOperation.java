@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -91,7 +90,6 @@ public class SwapRelationsOperation {
             // In case former "target" was partitioned therefore,
             // we have to drop a partitioned (currently "source") table
             String templateName = PartitionName.templateName(dropRelation.schema(), dropRelation.name());
-            updatedMetadata.removeTemplate(templateName);
         }
         ClusterState stateAfterDropRelations = ClusterState
             .builder(stateAfterRename)
@@ -173,7 +171,6 @@ public class SwapRelationsOperation {
             updatedMetadata.remove(indexName);
             blocksBuilder.removeIndexBlocks(indexName);
         }
-        updatedMetadata.removeTemplate(templateName);
     }
 
     private void addSourceIndicesRenamedToTargetName(Metadata metadata,
@@ -184,7 +181,6 @@ public class SwapRelationsOperation {
                                                      RelationName target,
                                                      Consumer<String> onProcessedIndex) {
         String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
-        IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
 
         for (Index sourceIndex : IndexNameExpressionResolver.concreteIndices(
                 metadata, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
@@ -192,7 +188,7 @@ public class SwapRelationsOperation {
             String sourceIndexName = sourceIndex.getName();
             IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
             IndexMetadata targetMd;
-            if (sourceTemplate == null) {
+            if (true) {
                 targetMd = IndexMetadata.builder(sourceMd)
                     .removeAllAliases()
                     .index(target.indexNameOrAlias())
@@ -211,10 +207,6 @@ public class SwapRelationsOperation {
             updatedMetadata.put(targetMd, true);
             blocksBuilder.addBlocks(targetMd);
             routingBuilder.addAsFromCloseToOpen(targetMd);
-        }
-        if (sourceTemplate != null) {
-            IndexTemplateMetadata.Builder templateBuilder = Templates.withName(sourceTemplate, target);
-            updatedMetadata.put(templateBuilder);
         }
     }
 }
