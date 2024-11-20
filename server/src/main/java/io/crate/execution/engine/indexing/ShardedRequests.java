@@ -33,11 +33,12 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.ShardRequest;
+import io.crate.metadata.PartitionName;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Releasable, Accountable {
 
-    final Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex = new HashMap<>();
+    final Map<PartitionName, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingPartition = new HashMap<>();
     final Map<String, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
     final Map<String, String> sourceUrisWithFailure = new HashMap<>();
     final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
@@ -61,7 +62,8 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
-        List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
+        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
+        List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingPartition.computeIfAbsent(partitionName, k -> new ArrayList<>());
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
@@ -95,8 +97,8 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         sourceUrisWithFailure.put(sourceUri, uriReadFailure);
     }
 
-    public Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex() {
-        return itemsByMissingIndex;
+    public Map<PartitionName, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingPartition() {
+        return itemsByMissingPartition;
     }
 
     public Map<ShardLocation, TReq> itemsByShard() {
