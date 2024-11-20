@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
 
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
@@ -54,14 +53,12 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             relationName.indexNameOrAlias()));
 
         currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
-        Metadata metadata = currentState.metadata();
-
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        if (metadata.templates().containsKey(templateName)) {
-            currentState = ClusterState.builder(currentState)
-                .metadata(Metadata.builder(metadata).removeTemplate(templateName))
-                .build();
-        }
+        Metadata newMetadata = new Metadata.Builder(currentState.metadata())
+            .dropTable(relationName)
+            .build();
+        currentState = ClusterState.builder(currentState)
+            .metadata(newMetadata)
+            .build();
 
         // call possible modifiers
         currentState = ddlClusterStateService.onDropTable(currentState, request.tableIdent());

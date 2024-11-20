@@ -24,7 +24,6 @@ package io.crate.execution.ddl.tables;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
@@ -41,19 +40,17 @@ import io.crate.metadata.RelationName;
  */
 public final record AlterTableTarget(RelationName table,
                                      Index[] indices,
-                                     @Nullable String partition,
-                                     @Nullable IndexTemplateMetadata templateMetadata) {
+                                     @Nullable String partition) {
 
     public static AlterTableTarget of(ClusterState state, RelationName table, @Nullable String partition) {
         Metadata metadata = state.metadata();
         if (partition == null) {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            return new AlterTableTarget(table, indices, partition, indexTemplateMetadata);
+            return new AlterTableTarget(table, indices, partition);
         } else {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, partition);
-            return new AlterTableTarget(table, indices, partition, null);
+            return new AlterTableTarget(table, indices, partition);
         }
     }
 
@@ -62,6 +59,6 @@ public final record AlterTableTarget(RelationName table,
     }
 
     public boolean isEmpty() {
-        return indices.length == 0 && templateMetadata == null;
+        return indices.length == 0;
     }
 }

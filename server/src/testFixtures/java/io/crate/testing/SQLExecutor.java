@@ -25,7 +25,6 @@ import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -58,11 +57,9 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -709,14 +706,6 @@ public class SQLExecutor {
 
         // addPartitionedTable can be called multiple times, create supplier based on existing state.
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-
-        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
-        IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
-            .patterns(singletonList(boundCreateTable.templatePrefix()))
-            .settings(combinedSettings)
-            .putAlias(alias);
-
-        mdBuilder.put(template);
 
         RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
         ArrayList<String> indexUUIDs = new ArrayList<>();

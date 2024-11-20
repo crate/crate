@@ -47,8 +47,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.common.collections.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -386,9 +384,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         schemas.add(DOC_SCHEMA_NAME);
         for (String index : metadata.getConcreteAllIndices()) {
             addIfSchema(schemas, index);
-        }
-        for (ObjectCursor<String> cursor : metadata.templates().keys()) {
-            addIfSchema(schemas, cursor.value);
         }
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {

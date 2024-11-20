@@ -831,21 +831,25 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             return this;
         }
 
+        @Deprecated
         public Builder putAlias(AliasMetadata aliasMetadata) {
             aliases.put(aliasMetadata.alias(), aliasMetadata);
             return this;
         }
 
+        @Deprecated
         public Builder putAlias(AliasMetadata.Builder aliasMetadata) {
             aliases.put(aliasMetadata.alias(), aliasMetadata.build());
             return this;
         }
 
+        @Deprecated
         public Builder removeAlias(String alias) {
             aliases.remove(alias);
             return this;
         }
 
+        @Deprecated
         public Builder removeAllAliases() {
             aliases.clear();
             return this;

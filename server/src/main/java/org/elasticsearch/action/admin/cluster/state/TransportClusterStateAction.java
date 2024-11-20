@@ -176,12 +176,6 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                         }
                     }
                 }
-                for (String template : request.templates()) {
-                    var templateMetadata = currentState.metadata().templates().get(template);
-                    if (templateMetadata != null) {
-                        mdBuilder.put(templateMetadata);
-                    }
-                }
             }
 
             // filter out metadata that shouldn't be returned by the API

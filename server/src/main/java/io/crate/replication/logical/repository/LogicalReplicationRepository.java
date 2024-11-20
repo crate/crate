@@ -48,7 +48,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -155,21 +154,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, true, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(false, true, resp.concreteIndices()))
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
-                for (var cursor : remoteClusterState.metadata().templates().values()) {
-                    // Add subscription name as a setting value which can be used to restrict operations on
-                    // partitioned tables (e.g. forbid writes/creating new partitions)
-                    var settings = Settings.builder()
-                        .put(cursor.value.settings())
-                        .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
-                        .build();
-                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value)
-                        .settings(settings);
-                    metadataBuilder.put(templateMetadata);
-                }
                 return metadataBuilder.build();
             });
     }
@@ -225,7 +213,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices()))
             .thenApply(remoteStateResp -> {
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
@@ -345,7 +333,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      RecoveryState recoveryState,
                                                      ActionListener<Void> listener) {
         // 1. Get all the files info from the publisher cluster for this shardId
-        var remoteClusterState = getRemoteClusterState(true, true, List.of(indexId.getName()), List.of());
+        var remoteClusterState = getRemoteClusterState(true, true, List.of(indexId.getName()));
         remoteClusterState.whenComplete((resp, err) -> {
             if (err != null) {
                 listener.onFailure(Exceptions.toException(err));
@@ -437,17 +425,15 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(String... remoteIndices) {
-        return getRemoteClusterState(false, true, Arrays.asList(remoteIndices), List.of());
+        return getRemoteClusterState(false, true, Arrays.asList(remoteIndices));
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
                                                                           boolean includeRouting,
-                                                                          List<String> remoteIndices,
-                                                                          List<String> remoteTemplates) {
+                                                                          List<String> remoteIndices) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
             .indices(remoteIndices.toArray(new String[0]))
-            .templates(remoteTemplates.toArray(new String[0]))
             .metadata(true)
             .nodes(includeNodes)
             .routingTable(includeRouting)

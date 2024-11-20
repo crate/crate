@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
@@ -60,9 +60,10 @@ public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableCl
         Set<Index> indicesToClose = context.indicesMetadata().stream()
             .map(IndexMetadata::getIndex)
             .collect(Collectors.toSet());
-        IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
-        if (indicesToClose.isEmpty() && templateMetadata == null) {
+        RelationMetadata relation = currentState.metadata().getRelation(request.tableIdent());
+
+        if (indicesToClose.isEmpty() && relation == null) {
             return currentState;
         }
 

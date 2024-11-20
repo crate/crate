@@ -28,7 +28,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -63,9 +62,8 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
     protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
         Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
-        IndexTemplateMetadata templateMetadata = context.templateMetadata();
 
-        if (indicesToOpen.isEmpty() && templateMetadata == null) {
+        if (indicesToOpen.isEmpty()) {
             return currentState;
         }
 
@@ -92,7 +90,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
 
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
-            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, templateMetadata, minIndexCompatibilityVersion);
+            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, minIndexCompatibilityVersion);
             try {
                 indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {

@@ -27,14 +27,10 @@ import java.util.Set;
 
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.mapper.ContentPath;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 
 public class DDLClusterStateHelpers {
 
@@ -49,12 +45,6 @@ public class DDLClusterStateHelpers {
             }
         }
         return indicesMetadata;
-    }
-
-    @Nullable
-    static IndexTemplateMetadata templateMetadata(Metadata metadata, RelationName relationName) {
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        return metadata.templates().get(templateName);
     }
 
     public static boolean populateColumnPositions(Map<String, Object> mapping) {

@@ -29,7 +29,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUI
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,7 +38,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -137,15 +135,9 @@ public class MetadataTrackerTest extends ESTestCase {
 
         public Builder addPartitionedTable(RelationName relation, List<PartitionName> partitions) throws IOException {
             var templateName = PartitionName.templateName(relation.schema(), relation.name());
-            var newTemplateMetadata = IndexTemplateMetadata
-                .builder(templateName)
-                .patterns(Collections.singletonList(PartitionName.templatePrefix(relation.schema(), relation.name())))
-                .putAlias(new AliasMetadata(relation.indexNameOrAlias()))
-                .build();
 
             clusterState = ClusterState.builder(clusterState)
-                .metadata(Metadata.builder(clusterState.metadata())
-                              .put(newTemplateMetadata))
+                .metadata(Metadata.builder(clusterState.metadata()))
                 .incrementVersion()
                 .build();
 

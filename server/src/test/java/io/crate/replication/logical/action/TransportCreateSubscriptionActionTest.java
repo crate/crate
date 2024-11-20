@@ -124,8 +124,7 @@ public class TransportCreateSubscriptionActionTest {
                         .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0) // must be supplied
                 )
                 .build()
-            ),
-            null
+            )
         );
 
         PublicationsStateAction.Response response = new PublicationsStateAction.Response(

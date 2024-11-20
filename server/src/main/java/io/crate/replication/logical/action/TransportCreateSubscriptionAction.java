@@ -119,13 +119,6 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                     // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
                     // in this case subscription works fine.
                     for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
-                        if (relationMetadata.template() != null) {
-                            checkVersionCompatibility(
-                                relationMetadata.name().fqn(),
-                                state.nodes().getMinNodeVersion(),
-                                relationMetadata.template().settings()
-                            );
-                        }
                         if (!relationMetadata.indices().isEmpty()) {
                             // All indices belong to the same table and has same metadata.
                             IndexMetadata indexMetadata = relationMetadata.indices().get(0);
