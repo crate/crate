@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_PREFIX;
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX;
 import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.GeoShapeType.Names.TREE_BKD;
@@ -44,6 +45,7 @@ import java.util.stream.Stream;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -1412,6 +1414,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
+    }
+
+    @Test
+    public void test_array_of_object_within_array_of_object_does_not_store_values() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService).addTable("create table tbl (o object as (o2 object as (a int)[])[])");
+        var indexer = getIndexer(e, "tbl", "o");
+        ParsedDocument doc = indexer.index(item(List.of(Map.of("o2", List.of(Map.of("a", 1))))));
+        var storedFields = doc.doc().getFields().stream().filter(f -> f.name().startsWith(ARRAY_VALUES_FIELD_PREFIX)).toList();
+        assertThat(storedFields).hasSize(1);
+        StoredField storedField = (StoredField) storedFields.getFirst();
+        assertThat(storedField.name()).isEqualTo("_array_values_1");
+        assertThat(storedField.binaryValue().utf8ToString()).isEqualTo("{\"1\":[{\"2\":[{\"3\":1}]}]}");
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {

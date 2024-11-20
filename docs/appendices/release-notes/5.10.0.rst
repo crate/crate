@@ -123,6 +123,9 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added caching for public keys retrieved from JWK endpoints for JWT
+  authentication. See :ref:`JWT authentication method <auth_jwt>` for more details.
+
 - Added node settings for the :ref:`jwt_defaults` allowing to provide global
   values for the :ref:`JWT properties <create-user-jwt>`.
 

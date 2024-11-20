@@ -51,23 +51,19 @@ public record BoundCreateTable(
          **/
         Map<String, AnalyzedCheck> checks,
         ColumnIdent routingColumn,
-        List<Reference> partitionedByColumns) {
+        List<Reference> partitionedBy) {
 
     public boolean isPartitioned() {
-        return !partitionedByColumns.isEmpty();
+        return !partitionedBy.isEmpty();
     }
 
     @Nullable
     public String templateName() {
-        return partitionedByColumns.isEmpty() ? null : PartitionName.templateName(tableName.schema(), tableName.name());
+        return partitionedBy.isEmpty() ? null : PartitionName.templateName(tableName.schema(), tableName.name());
     }
 
     public String templatePrefix() {
-        return partitionedByColumns.isEmpty() ? null : PartitionName.templatePrefix(tableName.schema(), tableName.name());
-    }
-
-    public List<Reference> partitionedBy() {
-        return partitionedByColumns;
+        return partitionedBy.isEmpty() ? null : PartitionName.templatePrefix(tableName.schema(), tableName.name());
     }
 
     public Map<String, String> getCheckConstraints() {

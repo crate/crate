@@ -144,6 +144,10 @@ and the global configuration.
 
 See :ref:`create-user-jwt` and :ref:`jwt_defaults` for details.
 
+The `JWK endpoint`_ should provide ``Cache-Control`` headers to allow caching
+the keys to prevent CrateDB from re-requesting the keys each time a user logs
+in.
+
 It's recommended to have ``exp`` (`expiration date`_ as epoch seconds) in the
 header. If it's provided, the token's expiration date will be checked against
 the local system's time in UTC.
