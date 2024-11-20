@@ -43,8 +43,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -55,6 +53,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -103,6 +102,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -115,8 +115,6 @@ import io.crate.types.DataType;
 
 
 public class InsertFromValues implements LogicalPlan {
-
-    private static final Logger LOGGER = LogManager.getLogger(InsertFromValues.class);
 
     private final TableFunctionRelation tableFunctionRelation;
     private final ColumnIndexWriterProjection writerProjection;
@@ -281,9 +279,9 @@ public class InsertFromValues implements LogicalPlan {
         }
         validatorsCache.clear();
 
-        createIndices(
+        createPartitions(
             dependencies.client(),
-            shardedRequests.itemsByMissingIndex().keySet(),
+            shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
@@ -438,9 +436,9 @@ public class InsertFromValues implements LogicalPlan {
         }
         validatorsCache.clear();
 
-        createIndices(
+        createPartitions(
             dependencies.client(),
-            shardedRequests.itemsByMissingIndex().keySet(),
+            shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
@@ -576,9 +574,10 @@ public class InsertFromValues implements LogicalPlan {
     private static ShardLocation getShardLocation(String indexName,
                                                   String id,
                                                   @Nullable String routing,
-                                                  ClusterService clusterService) {
-        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-            clusterService.state(),
+                                                  OperationRouting operationRouting,
+                                                  ClusterState state) {
+        ShardIterator shardIterator = operationRouting.indexShards(
+            state,
             indexName,
             id,
             routing);
@@ -598,10 +597,12 @@ public class InsertFromValues implements LogicalPlan {
     private static <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
         Map<ShardLocation, TReq> resolveAndGroupShardRequests(ShardedRequests<TReq, TItem> shardedRequests,
                                                           ClusterService clusterService) {
-        var itemsByMissingIndex = shardedRequests.itemsByMissingIndex().entrySet().iterator();
-        while (itemsByMissingIndex.hasNext()) {
-            var entry = itemsByMissingIndex.next();
-            var index = entry.getKey();
+        var itemsByMissingPartition = shardedRequests.itemsByMissingPartition().entrySet().iterator();
+        ClusterState state = clusterService.state();
+        OperationRouting operationRouting = clusterService.operationRouting();
+        while (itemsByMissingPartition.hasNext()) {
+            var entry = itemsByMissingPartition.next();
+            var partition = entry.getKey();
             var requestItems = entry.getValue();
 
             var requestItemsIterator = requestItems.iterator();
@@ -610,23 +611,21 @@ public class InsertFromValues implements LogicalPlan {
                 ShardLocation shardLocation;
                 try {
                     shardLocation = getShardLocation(
-                        index,
+                        partition.asIndexName(),
                         itemAndRoutingAndSourceInfo.item().id(),
                         itemAndRoutingAndSourceInfo.routing(),
-                        clusterService);
+                        operationRouting,
+                        state
+                    );
                 } catch (IndexNotFoundException e) {
-                    if (IndexName.isPartitioned(index)) {
-                        requestItemsIterator.remove();
-                        continue;
-                    } else {
-                        throw e;
-                    }
+                    requestItemsIterator.remove();
+                    continue;
                 }
                 shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null);
                 requestItemsIterator.remove();
             }
             if (requestItems.isEmpty()) {
-                itemsByMissingIndex.remove();
+                itemsByMissingPartition.remove();
             }
         }
 
@@ -747,20 +746,20 @@ public class InsertFromValues implements LogicalPlan {
         return false;
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createIndices(ElasticsearchClient elasticsearchClient,
-                                                                         Set<String> indices,
-                                                                         ClusterService clusterService) {
+    private static CompletableFuture<AcknowledgedResponse> createPartitions(ElasticsearchClient client,
+                                                                            Set<PartitionName> partitions,
+                                                                            ClusterService clusterService) {
         Metadata metadata = clusterService.state().metadata();
-        List<String> indicesToCreate = new ArrayList<>();
-        for (var index : indices) {
-            if (IndexName.isPartitioned(index) && metadata.hasIndex(index) == false) {
-                indicesToCreate.add(index);
+        List<PartitionName> partitionsToCreate = new ArrayList<>();
+        for (var partition : partitions) {
+            if (metadata.hasIndex(partition.asIndexName()) == false) {
+                partitionsToCreate.add(partition);
             }
         }
-        if (indicesToCreate.isEmpty()) {
+        if (partitionsToCreate.isEmpty()) {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
-        return elasticsearchClient.execute(CreatePartitionsAction.INSTANCE, new CreatePartitionsRequest(indicesToCreate));
+        return client.execute(CreatePartitionsAction.INSTANCE, CreatePartitionsRequest.of(partitionsToCreate));
     }
 
     @Override
