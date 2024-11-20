@@ -1,21 +1,7 @@
 ---
 queue_rules:
   - name: default
-    conditions:
-      - check-success=verification/cla-signed
-      - check-success=ci/jenkins/pr_tests
-      - check-success~=^Test CrateDB SQL on ubuntu
-      - check-success=docs/readthedocs.org:crate
-      - check-success~=^checkstyle
-      - check-success~=^forbiddenApis
-      - check-success~=^Vale
-
-
-pull_request_rules:
-  - name: automatic merge
-    conditions:
-      - label=ready-to-merge
-      - '#approved-reviews-by>=1'
+    queue_conditions:
       - status-success=verification/cla-signed
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
@@ -23,11 +9,12 @@ pull_request_rules:
       - status-success~=^checkstyle
       - status-success~=^forbiddenApis
       - status-success~=^Vale
-    actions:
-      queue:
-        method: rebase
-        name: default
+    merge_conditions:
+      - label=ready-to-merge
+      - '#approved-reviews-by>=1'
+    merge_method: rebase
 
+pull_request_rules:
   - name: backport 5.9
     actions:
       backport:
@@ -77,4 +64,3 @@ pull_request_rules:
     conditions:
       - label=ready-to-merge
       - label=v/5.5
-
