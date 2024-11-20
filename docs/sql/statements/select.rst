@@ -334,14 +334,6 @@ When using ``GROUP BY ALL``, the following rules apply:
         FROM employees
         GROUP BY department, title;
 
-.. NOTE::
-
-  The same limitations that apply to regular GROUP BY also apply to GROUP BY ALL:
-  - Grouping can only be applied on indexed fields
-  - Non-aggregate columns in the SELECT list must appear in the grouping
-  - The HAVING clause can be used with GROUP BY ALL for filtering groups
-
-
 .. _sql-select-having:
 
 ``HAVING``
