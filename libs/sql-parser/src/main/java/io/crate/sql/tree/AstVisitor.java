@@ -228,6 +228,10 @@ public abstract class AstVisitor<R, C> {
         return visitQueryBody(node, context);
     }
 
+    protected R visitGroupBy(GroupBy node, C context) {
+        return visitNode(node, context);
+    }
+
     protected R visitAliasedRelation(AliasedRelation node, C context) {
         return visitRelation(node, context);
     }
