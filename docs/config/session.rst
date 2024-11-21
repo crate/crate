@@ -40,6 +40,10 @@ Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
     All the active settings for a session can also be retrieved from the
     :ref:`sys.sessions <sys-sessions>` table.
 
+.. NOTE::
+    Default values for session settings can set per role using :ref:`ALTER ROLE
+    <ref-alter-role>`.
+
 Supported session settings
 ==========================
 
@@ -88,12 +92,21 @@ Supported session settings
   | *Default:* ``'0'``
   | *Modifiable:* ``yes``
 
-  The maximum duration of any statement before it gets cancelled. If ``0`` (the
-  default), queries are allowed to run infinitely and don't get cancelled
-  automatically.
+  The maximum duration of any statement in milliseconds before it gets
+  cancelled. If ``0`` (the default), queries are allowed to run infinitely and
+  don't get cancelled automatically.
 
   The value is an ``INTERVAL`` with a maximum of ``2147483647`` milliseconds.
   That's roughly 24 days.
+
+  Example statement to update the default value to 50 seconds, i.e. 50,000ms:
+
+  .. code-block:: sql
+
+    SET GLOBAL PERSISTENT statement_timeout = '50000ms';
+
+  After executing the statement, every **new** database session will apply the
+  limit.
 
 .. _conf-session-memory-operation-limit:
 
@@ -113,6 +126,16 @@ operation. You can use the :ref:`sys.operations <sys-operations>` view to get
 some insights, but keep in mind that both, operations which are used to execute
 a query, and their name could change with any release, including hotfix
 releases.
+
+Example statement to update the default value to 1GB, i.e. 1073741824 bytes:
+
+.. code-block:: sql
+
+  SET GLOBAL PERSISTENT 'memory.operation_limit' = '1073741824';
+
+Operations that hit this memory limit will trigger a CircuitBreakerException
+that can be handled in the application to inform the user about too much memory
+consumption for the particular query.
 
 .. _conf-session-enable-hashjoin:
 
