@@ -82,7 +82,7 @@ Repeated cluster partitions can cause lost cluster updates
 
    <style>
    table.summary td {
-     border: 1px solid black;
+     border: 1px solid;
      padding: 5px;
    }
    </style>
