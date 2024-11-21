@@ -55,7 +55,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -196,8 +195,9 @@ public final class ReservoirSampler {
                     continue;
                 }
 
+                String indexName = indexService.index().getName();
                 List<? extends LuceneCollectorExpression<?>> expressions
-                    = getCollectorExpressions(indexService, docTable, columns);
+                    = getCollectorExpressions(indexName, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
                     ShardRouting routingEntry = indexShard.routingEntry();
@@ -206,7 +206,7 @@ public final class ReservoirSampler {
                     }
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
-                        searchersToRelease.add(new ShardExpressions(searcher, expressions));
+                        searchersToRelease.add(new ShardExpressions(indexShard, indexName, searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                         // We do the sampling in 2 phases. First we get the docIds;
@@ -246,28 +246,20 @@ public final class ReservoirSampler {
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
-        IndexService indexService,
+        String indexName,
         DocTableInfo docTable,
         List<Reference> columns
     ) {
-        String indexName = indexService.index().getName();
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             indexName,
             docTable.partitionedByColumns(),
             docTable.isParentReferenceIgnored()
         );
-        List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
+
+        return Lists.map(
             columns,
             x -> referenceResolver.getImplementation(DocReferences.toDocLookup(x))
         );
-
-        CollectorContext collectorContext
-            = new CollectorContext(() -> StoredRowLookup.create(docTable, indexName));
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.startCollect(collectorContext);
-        }
-
-        return expressions;
     }
 
     private static class ColumnCollector<T> {
@@ -295,13 +287,22 @@ public final class ReservoirSampler {
         }
     }
 
-    private record ShardExpressions(Engine.Searcher searcher,
+    private record ShardExpressions(IndexShard indexShard,
+                                    String indexName,
+                                    Engine.Searcher searcher,
+                                    DocTableInfo tableInfo,
                                     List<? extends LuceneCollectorExpression<?>> expressions) {
 
         void updateColumnCollectors(List<ColumnCollector<?>> collectors) {
             assert collectors.size() == expressions.size();
+            CollectorContext context = new CollectorContext(() -> StoredRowLookup.create(
+                indexShard.getVersionCreated(),
+                tableInfo,
+                indexName));
             for (int i = 0; i < collectors.size(); i++) {
-                collectors.get(i).setShard(expressions.get(i));
+                LuceneCollectorExpression<?> expression = expressions.get(i);
+                expression.startCollect(context);
+                collectors.get(i).setShard(expression);
             }
         }
     }

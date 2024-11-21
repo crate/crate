@@ -253,6 +253,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     refResolver,
                     targetColumns,
                     mock(DocTableInfo.class),
+                    Version.CURRENT,
                     List.of()
                 );
                 if (docValueAggregator != null) {
@@ -404,6 +405,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         Indexer indexer = new Indexer(
             shard.shardId().getIndexName(),
             table,
+            Version.CURRENT,
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
             targetColumns,
@@ -608,6 +610,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             mock(LuceneReferenceResolver.class),
             toReference(argumentTypes),
             mock(DocTableInfo.class),
+            Version.CURRENT,
             List.of()
         );
         assertThat(docValueAggregator)

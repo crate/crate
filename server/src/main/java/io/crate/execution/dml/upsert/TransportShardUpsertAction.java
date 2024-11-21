@@ -150,6 +150,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Indexer indexer = new Indexer(
             indexName,
             tableInfo,
+            indexShard.getVersionCreated(),
             txnCtx,
             nodeCtx,
             insertColumns,
@@ -161,6 +162,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             updatingIndexer = new Indexer(
                 request.index(),
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
                 updateToInsert.columns(),
@@ -192,6 +194,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
                 request.returnValues(),
@@ -311,6 +314,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
                 null,
@@ -321,6 +325,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indexer = new Indexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
                 targetColumns,

@@ -155,6 +155,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference returnField = aggregationReferences.getFirst();
         Reference searchField = aggregationReferences.getLast();
@@ -182,14 +183,14 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(() -> StoredRowLookup.create(table, referenceResolver.getIndexName()))
+                        new CollectorContext(() -> StoredRowLookup.create(shardCreatedVersion, table, referenceResolver.getIndexName()))
                     );
                 } else {
                     return new MaxByLong(
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(() -> StoredRowLookup.create(table, referenceResolver.getIndexName()))
+                        new CollectorContext(() -> StoredRowLookup.create(shardCreatedVersion, table, referenceResolver.getIndexName()))
                     );
                 }
             default:

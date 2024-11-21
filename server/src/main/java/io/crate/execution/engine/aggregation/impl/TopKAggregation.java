@@ -220,6 +220,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.isEmpty()) {
             return null;

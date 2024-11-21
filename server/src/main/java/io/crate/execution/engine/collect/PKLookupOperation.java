@@ -99,7 +99,7 @@ public final class PKLookupOperation {
             if (docIdAndVersion == null) {
                 return null;
             }
-            StoredRowLookup storedRowLookup = StoredRowLookup.create(table, shard.shardId().getIndexName(), columns, getResult.fromTranslog());
+            StoredRowLookup storedRowLookup = StoredRowLookup.create(shard.getVersionCreated(), table, shard.shardId().getIndexName(), columns, getResult.fromTranslog());
             try {
                 StoredRow storedRow
                     = storedRowLookup.getStoredRow(new ReaderContext(docIdAndVersion.reader.getContext()), docIdAndVersion.docId);

@@ -67,6 +67,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 indexEnv.indexService().index().getName(),
                 indexEnv.indexService().indexAnalyzers(),
                 table,
+                Version.CURRENT,
                 indexEnv.queryCache()
             );
             SimpleReference ref = new SimpleReference(
@@ -97,6 +98,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 indexEnv.indexService().index().getName(),
                 indexEnv.indexService().indexAnalyzers(),
                 table,
+                Version.CURRENT,
                 indexEnv.queryCache()
             ).query();
             assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);

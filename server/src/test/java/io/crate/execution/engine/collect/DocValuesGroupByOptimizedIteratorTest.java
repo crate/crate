@@ -139,6 +139,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 null)
             ),
             mock(DocTableInfo.class),
+            Version.CURRENT,
             List.of()
         );
         var keyExpressions = List.of(new LongColumnReference("y"));
@@ -201,6 +202,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 null)
             ),
             mock(DocTableInfo.class),
+            Version.CURRENT,
             List.of()
         );
         var keyExpressions = List.of(new StringColumnReference("x"), new LongColumnReference("y"));

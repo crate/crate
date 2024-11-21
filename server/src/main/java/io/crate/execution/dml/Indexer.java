@@ -391,6 +391,7 @@ public class Indexer {
     @SuppressWarnings("unchecked")
     public Indexer(String indexName,
                    DocTableInfo table,
+                   Version shardVersionCreated,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    List<Reference> targetColumns,
@@ -530,7 +531,7 @@ public class Indexer {
             }
         }
         this.expressions = ctxForRefs.expressions();
-        this.tableVersionCreated = table.versionCreated();
+        this.tableVersionCreated = shardVersionCreated;
     }
 
     /**

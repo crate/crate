@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -84,6 +85,7 @@ public class CountAggregationTest extends AggregationTestCase {
             mock(LuceneReferenceResolver.class),
             aggregationReferences,
             sourceTable,
+            Version.CURRENT,
             List.of()
         );
         if (expectedAggregatorClass == null) {

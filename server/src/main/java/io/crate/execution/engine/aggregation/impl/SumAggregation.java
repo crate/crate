@@ -194,6 +194,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
 

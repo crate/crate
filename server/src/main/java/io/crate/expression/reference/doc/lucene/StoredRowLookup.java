@@ -67,12 +67,12 @@ public abstract class StoredRowLookup implements StoredRow {
     protected boolean docVisited = false;
     protected Map<String, Object> parsedSource = null;
 
-    public static StoredRowLookup create(DocTableInfo table, String indexName) {
-        return create(table, indexName, List.of(), false);
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName) {
+        return create(shardCreatedVersion, table, indexName, List.of(), false);
     }
 
-    public static StoredRowLookup create(DocTableInfo table, String indexName, List<Symbol> columns, boolean fromTranslog) {
-        if (table.versionCreated().before(PARTIAL_STORED_SOURCE_VERSION) || fromTranslog) {
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName, List<Symbol> columns, boolean fromTranslog) {
+        if (shardCreatedVersion.before(PARTIAL_STORED_SOURCE_VERSION) || fromTranslog) {
             return new FullStoredRowLookup(table, indexName, columns);
         }
         return new ColumnAndStoredRowLookup(table, indexName, columns);

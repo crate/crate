@@ -38,6 +38,7 @@ import io.crate.common.collections.RefCountedItem;
 public class SharedShardContext {
 
     private final IndexService indexService;
+    private final IndexShard indexShard;
     private final int readerId;
     private final RefCountedItem<Engine.Searcher> searcher;
 
@@ -46,9 +47,9 @@ public class SharedShardContext {
                        int readerId,
                        BiFunction<ShardId, Engine.Searcher, Engine.Searcher> wrapSearcher) {
         this.indexService = indexService;
-        IndexShard indexShard = indexService.getShard(shardId.id());
+        this.indexShard = indexService.getShard(shardId.id());
         this.readerId = readerId;
-        this.searcher = new RefCountedItem<Engine.Searcher>(
+        this.searcher = new RefCountedItem<>(
             source -> wrapSearcher.apply(shardId, indexShard.acquireSearcher(source)),
             Engine.Searcher::close
         );
@@ -61,6 +62,10 @@ public class SharedShardContext {
 
     public IndexService indexService() {
         return indexService;
+    }
+
+    public IndexShard indexShard() {
+        return indexShard;
     }
 
     public int readerId() {

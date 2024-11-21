@@ -220,6 +220,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
         public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                            List<Reference> aggregationReferences,
                                                            DocTableInfo table,
+                                                           Version shardCreatedVersion,
                                                            List<Literal<?>> optionalParams) {
             Reference reference = aggregationReferences.get(0);
 

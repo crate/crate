@@ -228,6 +228,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
         if (reference == null) {
