@@ -1,0 +1,45 @@
+---
+name: CrateDB Docs
+on:
+  pull_request: ~
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linkcheck:
+    name: Sphinx linkcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r blackbox/requirements.txt
+
+      - name: Run linkcheck
+        run: |
+          sphinx-build -n -W --keep-going -q -c docs/ -b linkcheck -E docs/ docs/out/html
+
+  vale:
+    name: Vale
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run vale
+        uses: errata-ai/vale-action@v2.1.0
+        with:
+          files: docs/
+          version: 3.4.1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
