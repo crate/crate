@@ -1075,6 +1075,14 @@ Default value for the :ref:`memory.operation_limit
 session setting <conf-session-memory-operation-limit>`. Changing the cluster
 setting will only affect new sessions, not existing sessions.
 
+Example statement to update the default value to 1 GB, i.e. 1073741824 bytes::
+
+    cr> SET GLOBAL "memory.operation_limit" = 1073741824;
+
+Operations that hit this memory limit will trigger a ``CircuitBreakingException``
+that can be handled in the application to inform the user about too much memory
+consumption for the particular query.
+
 Query circuit breaker
 ---------------------
 
