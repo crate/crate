@@ -100,8 +100,13 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         StorageSupport<?> innerMostStorageSupport = innerMostType.storageSupportSafe();
         ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.ident().tableIdent(), arrayRef, getRef);
         for (int i = 0; i < ArrayType.dimensions(arrayRef.valueType()) - 1; i++) {
-            childIndexer = new ChildArrayIndexer<>(childIndexer, getRef, arrayRef);
+            childIndexer = new ArrayIndexer<>(childIndexer, getRef, arrayRef);
         }
+        // the top most indexer of a multidimensional object array is an ArrayOfObjectIndexer
+        // i.e. the indexer for `object[][]`,
+        //    ArrayOfObjectIndexer
+        //      └ArrayIndexer
+        //         └ObjectIndexer
         return (ValueIndexer<T>) (innerMostType instanceof ObjectType ?
             new ArrayOfObjectIndexer<>(childIndexer, getRef, arrayRef) :
             new ArrayIndexer<>(childIndexer, getRef, arrayRef));
@@ -208,24 +213,5 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     @Override
     public String storageIdentLeafName() {
         return reference.storageIdentLeafName();
-    }
-
-    private static class ChildArrayIndexer<T> extends ArrayIndexer<T> {
-        public ChildArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
-            super(innerIndexer, getRef, reference);
-        }
-
-        @Override
-        public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
-            docBuilder.translogWriter().startArray();
-            for (T value : values) {
-                if (value == null) {
-                    docBuilder.translogWriter().writeNull();
-                } else {
-                    innerIndexer.indexValue(value, docBuilder);
-                }
-            }
-            docBuilder.translogWriter().endArray();
-        }
     }
 }
