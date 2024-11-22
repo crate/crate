@@ -47,6 +47,10 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue leading to an error when running ``ANALYZE`` followed by a
+  correlated subquery with the Subquery being an ``INNER JOIN`` and a table on
+  the right side having more records than a table on the left side.
+
 - Fixed an ``ArrayIndexOutOfBoundsException`` that happened when using ``SET ...
   TO DEFAULT`` with either ``statement_timeout`` or ``operation.memory_limit``.
 
