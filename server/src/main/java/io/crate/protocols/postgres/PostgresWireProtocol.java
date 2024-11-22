@@ -78,6 +78,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.SslContext;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -385,13 +386,23 @@ public class PostgresWireProtocol {
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if (cause instanceof SocketException && cause.getMessage().equals("Connection reset")) {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable t) throws Exception {
+            if (t instanceof SocketException && t.getMessage().equals("Connection reset")) {
                 LOGGER.info("Connection reset. Client likely terminated connection");
-                closeSession();
+            } else if (t instanceof DecoderException) {
+                Messages.sendErrorResponse(
+                    channel,
+                    session == null
+                        ? AccessControl.DISABLED
+                        : getAccessControl.apply(session.sessionSettings()),
+                    t.getCause(),
+                    PGError.Severity.FATAL
+                );
             } else {
-                LOGGER.error("Uncaught exception: ", cause);
+                LOGGER.error("Uncaught exception: ", t);
             }
+            closeSession();
+            ctx.channel().close();
         }
 
         @Override

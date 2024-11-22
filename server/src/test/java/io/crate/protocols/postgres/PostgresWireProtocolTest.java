@@ -116,7 +116,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testHandleEmptySimpleQuery() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(Sessions.class),
+                sqlOperations,
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
@@ -156,13 +156,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_channel_is_flushed_after_receiving_flush_request() throws Exception {
-        Sessions sqlOperations = mock(Sessions.class);
-        Session session = mock(Session.class);
-        when(sqlOperations.newSession(
-            any(ConnectionProperties.class),
-            any(String.class),
-            any(Role.class))
-        ).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
@@ -418,7 +411,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testSslRejection() {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(Sessions.class),
+                sqlOperations,
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
@@ -449,7 +442,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_ssl_accepted() {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
-            mock(Sessions.class),
+            sqlOperations,
             new SessionSettingRegistry(Set.of()),
             sessionSettings -> AccessControl.DISABLED,
             chPipeline -> {},
@@ -539,11 +532,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPasswordMessageAuthenticationProcess() throws Exception {
-        var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.newSession(
-            any(ConnectionProperties.class),
-            any(String.class),
-            any(Role.class))).thenReturn(mock(Session.class));
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
@@ -724,6 +712,90 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(request.innerRequest().toKill()).containsExactly(pg1.session.getMostRecentJobID());
 
         assertThat(channel.isOpen()).isFalse();
+    }
+
+    @Test
+    public void test_throw_error_on_if_startup_message_is_to_short() {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new SessionSettingRegistry(Set.of()),
+                sessionSettings -> AccessControl.DISABLED,
+                chPipeline -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+
+        int length = 3; // At least 8 bytes are required
+        buffer.writeInt(length);
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        assertErrorResponse(channel, PGError.Severity.FATAL, "invalid length of startup packet");
+    }
+
+    @Test
+    public void test_throw_error_on_if_startup_message_is_to_long() {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new SessionSettingRegistry(Set.of()),
+                sessionSettings -> AccessControl.DISABLED,
+                chPipeline -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+
+        int length = PgDecoder.MAX_STARTUP_LENGTH + 1;
+        buffer.writeInt(length);
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        assertErrorResponse(channel, PGError.Severity.FATAL, "invalid length of startup packet");
+    }
+
+    @Test
+    public void test_throw_error_on_invalid_request_code() {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new SessionSettingRegistry(Set.of()),
+                sessionSettings -> AccessControl.DISABLED,
+                chPipeline -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+
+        int length = 8;
+        buffer.writeInt(length);
+        buffer.writeInt(1234); // invalid request code
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        assertErrorResponse(channel, PGError.Severity.FATAL, "Unsupported frontend protocol 0.1234: server supports 3.0 to 3.0");
+    }
+
+    private void assertErrorResponse(EmbeddedChannel channel, PGError.Severity expectedSeverity, String expectedMessage) {
+        ByteBuf buf = channel.readOutbound();
+        try {
+            assertThat((char) buf.readByte()).isEqualTo('E'); // Error
+            assertThat(buf.readInt()).isGreaterThan(8); // length
+            assertThat((char) buf.readByte()).isEqualTo('S'); // Error severity
+            assertThat(PostgresWireProtocol.readCString(buf)).isEqualTo(expectedSeverity.name());
+            assertThat((char) buf.readByte()).isEqualTo('M'); // Error message
+            assertThat(PostgresWireProtocol.readCString(buf)).isEqualTo(expectedMessage);
+        } finally {
+            buf.release();
+        }
     }
 
     private void submitQueriesThroughSimpleQueryMode(String statements) {

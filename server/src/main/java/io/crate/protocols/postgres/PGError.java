@@ -40,8 +40,20 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 
 public class PGError {
 
-    public static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);
+    public enum Severity {
+        ERROR,
+        FATAL;
+
+        private final byte[] bytes;
+
+        Severity() {
+            bytes = name().getBytes(StandardCharsets.UTF_8);
+        }
+
+        public byte[] bytes() {
+            return bytes;
+        }
+    }
 
     private final PGErrorStatus status;
     private final String message;
