@@ -290,17 +290,15 @@ public class GeoJSONUtils {
                 }
             });
             Map<String, Object> transformed = new HashMap<>();
-            if (sameType[0] == true) {
-                String targetType = COMPOSABLE_TYPES.get(typeInCollection[0]);
-                if (targetType != null) {
-                    transformed.put(TYPE_FIELD, targetType);
-                    final List<Object> coords = new ArrayList<>();
-                    forEach(geometries, input -> {
-                        Map<String, Object> validatedShape = (Map<String, Object>) input;
-                        coords.add(validatedShape.get(COORDINATES_FIELD));
-                    });
-                    transformed.put(COORDINATES_FIELD, coords);
-                }
+            String targetType = COMPOSABLE_TYPES.get(typeInCollection[0]);
+            if (sameType[0] == true && targetType != null) {
+                transformed.put(TYPE_FIELD, targetType);
+                final List<Object> coords = new ArrayList<>();
+                forEach(geometries, input -> {
+                    Map<String, Object> validatedShape = (Map<String, Object>) input;
+                    coords.add(validatedShape.get(COORDINATES_FIELD));
+                });
+                transformed.put(COORDINATES_FIELD, coords);
             } else {
                 transformed.put(TYPE_FIELD, GEOMETRY_COLLECTION);
                 transformed.put(GEOMETRIES_FIELD, sanitizedGeometries);
