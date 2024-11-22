@@ -152,6 +152,7 @@ public class CorrelatedJoin implements LogicalPlan {
         selectSymbol.relation().visitSymbols(tree ->
             tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
         );
+        toCollect.remove(selectSymbol);
         LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
 
         if (inputPlan == newInputPlan) {
