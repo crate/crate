@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -705,6 +706,52 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                   └ ProjectSet[regexp_matches(name, '^a'), name, text]
                     └ Collect[doc.users | [name, text] | true]
                 """
+        );
+    }
+
+    /**
+     * Tracks a bug https://github.com/crate/crate/issues/17016
+     */
+    @Test
+    public void test_can_create_execution_plan_from_correlated_join_with_reordered_hash_join() {
+        // Provoke re-ordering by making a table on the right side bigger.
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(T3.T1, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(T3.T2, new Stats(100, 0, Map.of()));
+        sqlExecutor.updateTableStats(rowCountByTable);
+
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            WITH cte_1 AS (
+                SELECT g.x
+                FROM t1 g
+                WHERE g.i = 1
+            )
+            SELECT (
+                    SELECT true
+                    FROM t1 s
+                    WHERE c.x = s.x
+                   )
+            FROM cte_1 c
+            JOIN t2 p ON c.x = p.y"""
+        );
+
+        // Eval under CorrelatedJoin used to incorrectly have (SELECT true FROM (s)) Symbol as a result of outputs prunning.
+        assertThat(plan).isEqualTo("""
+            Eval[(SELECT true FROM (s))]
+              └ CorrelatedJoin[x, (SELECT true FROM (s))]
+                └ Eval[x]
+                  └ HashJoin[INNER | (x = y)]
+                    ├ Rename[y] AS p
+                    │  └ Collect[doc.t2 | [y] | true]
+                    └ Rename[x] AS c
+                      └ Rename[x] AS cte_1
+                        └ Rename[x] AS g
+                          └ Collect[doc.t1 | [x] | (i = 1)]
+                └ SubPlan
+                  └ Eval[true]
+                    └ Rename[true] AS s
+                      └ Limit[2::bigint;0::bigint]
+                        └ Collect[doc.t1 | [true] | (x = x)]"""
         );
     }
 }
