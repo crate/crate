@@ -135,8 +135,3 @@ Client interfaces
 - Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
   issued over the :ref`interface-http` containing details of the error that
   caused the bulk operation to fail.
-
-User Interface
---------------
-
-- Updated to Admin UI 1.24.9 to fix an issue with rendering the UI.
