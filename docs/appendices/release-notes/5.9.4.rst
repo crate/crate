@@ -65,3 +65,7 @@ Fixes
          type='GeometryCollection',
          geometries=[{type='Point', coordinates=[10, 40]}, {type='Point', coordinates=[40, 30]}]
        }::GEO_SHAPE;
+
+- Fixed an issue on the :ref:`PostgreSQL wire protocol <interface-postgresql>`
+  that may cause the node to crash with OutOfMemory exceptions when a client
+  sends a invalid (or huge) startup message.
