@@ -329,4 +329,23 @@ public class GeoJSONUtilsTest {
         assertThat(geometries.get(1)).containsEntry(GeoJSONUtils.TYPE_FIELD, "Point");
         assertThat(geometries.get(2)).containsEntry(GeoJSONUtils.TYPE_FIELD, "Point");
     }
+
+    @Test
+    public void test_geometry_collection_of_a_single_part_of_not_compasable_type_not_transformed() throws Exception {
+        String wkt = "MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))";
+        Map<String, Object> multiLineString = GeoJSONUtils.wkt2Map(wkt);
+
+        Map<String, Object> collection = Map.of(
+            GeoJSONUtils.TYPE_FIELD,
+            GeoJSONUtils.GEOMETRY_COLLECTION,
+            GeoJSONUtils.GEOMETRIES_FIELD,
+            List.of(multiLineString, multiLineString)
+        );
+        Map<String, Object> sanitizedMap = GeoJSONUtils.sanitizeMap(collection);
+        assertThat(sanitizedMap.get(GeoJSONUtils.TYPE_FIELD)).isEqualTo(GeoJSONUtils.GEOMETRY_COLLECTION);
+        List<Map<String, Object>> geometries = Maps.get(sanitizedMap, GeoJSONUtils.GEOMETRIES_FIELD);
+        assertThat(geometries).hasSize(2);
+        assertThat(geometries.get(0)).containsEntry(GeoJSONUtils.TYPE_FIELD, "MultiLineString");
+        assertThat(geometries.get(1)).containsEntry(GeoJSONUtils.TYPE_FIELD, "MultiLineString");
+    }
 }
