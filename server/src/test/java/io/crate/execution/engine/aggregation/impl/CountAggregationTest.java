@@ -126,7 +126,6 @@ public class CountAggregationTest extends AggregationTestCase {
             new ReferenceIdent(null, ColumnIdent.of("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             childType,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -137,8 +136,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -178,7 +176,6 @@ public class CountAggregationTest extends AggregationTestCase {
                 ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -189,8 +186,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object", "second_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -202,8 +198,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -261,7 +256,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference sibling = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_sibling")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
             0,
             null
         );
@@ -292,7 +287,7 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
             0,
             null
         );
@@ -313,7 +308,6 @@ public class CountAggregationTest extends AggregationTestCase {
                 ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -327,7 +321,6 @@ public class CountAggregationTest extends AggregationTestCase {
                 ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
             RowGranularity.DOC,
             DataTypes.BYTE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -338,11 +331,10 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference immediateChild = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object", "second_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder()
+            ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType(notNullGrandChild1.column().leafName(), notNullGrandChild1.valueType())
                 .setInnerType(notNullGrandChild2.column().leafName(), notNullGrandChild2.valueType())
                 .build(),
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -355,7 +347,6 @@ public class CountAggregationTest extends AggregationTestCase {
             new ReferenceIdent(null, ColumnIdent.of("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             DataTypes.IP,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -366,11 +357,10 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference countedObject = new SimpleReference(
             new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder()
+            ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType(immediateChild.column().leafName(), immediateChild.valueType())
                 .setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType())
                 .build(),
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,

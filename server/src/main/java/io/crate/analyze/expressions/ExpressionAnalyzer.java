@@ -167,6 +167,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -701,11 +702,11 @@ public class ExpressionAnalyzer {
             // We should come up with a design that addresses those and remove the duct-tape logic below.
 
             Symbol ref;
+            List<String> parts = subscriptContext.parts();
             try {
-                List<String> parts = subscriptContext.parts();
                 ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
             } catch (ColumnUnknownException e) {
-                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, e);
+                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
             }
 
             // If there are any array subscripts, recursively wrap the resolved expression in an
@@ -723,8 +724,8 @@ public class ExpressionAnalyzer {
             SubscriptExpression node,
             ExpressionAnalysisContext context,
             QualifiedName qualifiedName,
-            ColumnUnknownException e
-        ) {
+            List<String> parts,
+            ColumnUnknownException e) {
             if (operation != Operation.READ) {
                 throw e;
             }
@@ -733,7 +734,36 @@ public class ExpressionAnalyzer {
                     List.of(),
                     operation,
                     context.errorOnUnknownObjectKey());
-                if (base instanceof Reference ref && ref.columnPolicy() != ColumnPolicy.IGNORED) {
+                DataType<?> baseType = base.valueType();
+                // Need to double-check that the base type does not hold the inner type before throwing. For instance,
+                //     create table t (o array(object as (a int)));
+                //     select col['a'] from (select unnest(o) as col from t) t_alias;
+                // `col['a']` cannot be resolved(due to unnest), although we know o['a'] exists. Here `col`(the base)
+                // is resolved to a ScopedSymbol which holds `a` as the inner type.
+                // There are test cases that fail without checking inner types:
+                //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
+                //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
+                // Another example is selecting sub-column of an object that is union-ed.
+                if (DataTypes.hasPath(baseType, parts)) {
+                    return allocateFunction(
+                        SubscriptFunction.NAME,
+                        List.of(
+                            node.base().accept(this, context),
+                            node.index().accept(this, context)
+                        ),
+                        context
+                    );
+                }
+                DataType<?> currentType = baseType;
+                ColumnPolicy parentPolicy = baseType.columnPolicy();
+                for (String p : parts) {
+                    if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
+                        parentPolicy = objectType.columnPolicy();
+                        currentType = objectType.innerType(p);
+                    }
+                }
+                if (parentPolicy == ColumnPolicy.STRICT ||
+                    (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
                     throw e;
                 }
                 return allocateFunction(

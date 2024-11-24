@@ -37,6 +37,7 @@ import org.elasticsearch.test.ESTestCase;
 
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
@@ -48,7 +49,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
     public void test_array_stats() {
 
         var builder = new ColumnSketchBuilder.Composite<>(
-            new ArrayType<>(ObjectType.builder().setInnerType("id", IntegerType.INSTANCE).build())
+            new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("id", IntegerType.INSTANCE).build())
         );
 
         builder.add(List.of(Map.of("id", 1)));

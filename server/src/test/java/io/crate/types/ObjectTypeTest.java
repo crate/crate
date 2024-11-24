@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 
 public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
@@ -48,7 +49,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
         DataType<?> innerType
             = DataTypeTesting.randomTypeExcluding(Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED));
         DataType<Map<String, Object>> objectType
-            = new ObjectType.Builder().setInnerType("x", innerType).build();
+            = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("x", innerType).build();
         String definition = "OBJECT AS (x " + innerType.getTypeSignature() + ")";
         return new DataDef<>(objectType, definition, DataTypeTesting.getDataGenerator(objectType));
     }
@@ -67,7 +68,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingWithEmptyInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder().build();
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC).build();
         BytesStreamOutput out = new BytesStreamOutput();
         type.writeTo(out);
 
@@ -79,9 +80,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -110,9 +111,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingOfNullValueWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -131,9 +132,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     @Test
     public void testStreamingOfValueWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -180,9 +181,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testResolveInnerType() {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("inner", ObjectType.builder()
+            .setInnerType("inner", ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build())
             .build();
@@ -192,7 +193,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void test_object_type_to_signature_to_object_type_round_trip() {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("inner field", DataTypes.STRING)
             .build();
         assertThat(objectType.getTypeSignature().createType()).isEqualTo(objectType);

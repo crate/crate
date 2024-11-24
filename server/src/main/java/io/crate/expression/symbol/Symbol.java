@@ -45,7 +45,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -177,7 +176,7 @@ public interface Symbol extends Writeable, Accountable {
     default ColumnDefinition<Expression> toColumnDefinition() {
         return new ColumnDefinition<>(
             toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
-            valueType().toColumnType(ColumnPolicy.DYNAMIC, null),
+            valueType().toColumnType(null),
             List.of()
         );
     }

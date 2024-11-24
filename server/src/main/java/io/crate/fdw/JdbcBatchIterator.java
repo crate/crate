@@ -67,7 +67,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.Identifiers;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class JdbcBatchIterator implements BatchIterator<Row> {
@@ -307,10 +306,6 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
 
         public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
             return ref.accept(visitor, context);
-        }
-
-        public ColumnPolicy columnPolicy() {
-            return ref.columnPolicy();
         }
 
         public boolean isNullable() {

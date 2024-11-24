@@ -83,7 +83,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -218,7 +217,6 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             new ReferenceIdent(new RelationName("doc", "test"), "x"),
             RowGranularity.DOC,
             DataTypes.STRING,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,

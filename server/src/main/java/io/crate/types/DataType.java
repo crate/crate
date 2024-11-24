@@ -306,8 +306,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
 
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         assert getTypeParameters().isEmpty()
             : "If the type parameters aren't empty, `" + getClass().getSimpleName() + "` must override `toColumnType`";
         return new ColumnType<>(getName());
@@ -342,5 +341,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public ColumnStatsSupport<T> columnStatsSupport() {
         throw new UnsupportedOperationException("Datatype " + this + " does not support column stats");
+    }
+
+    public ColumnPolicy columnPolicy() {
+        return ColumnPolicy.STRICT;
     }
 }

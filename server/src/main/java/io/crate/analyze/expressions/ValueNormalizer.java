@@ -128,7 +128,7 @@ public final class ValueNormalizer {
             ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
-                if (info.columnPolicy() == ColumnPolicy.IGNORED) {
+                if (info.valueType().columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
                 }
                 DynamicReference dynamicReference = null;

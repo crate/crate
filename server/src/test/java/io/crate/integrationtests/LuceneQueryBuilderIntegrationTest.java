@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 
@@ -356,7 +355,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         var extendedType = DataTypeTesting.extendedType(type, val1);
         Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
 
-        String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.DYNAMIC, null));
+        String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
         execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
 
         Object[][] bulkArgs = $$($(val1), $(val2), new Object[]{null});

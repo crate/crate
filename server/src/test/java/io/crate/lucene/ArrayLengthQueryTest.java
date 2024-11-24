@@ -34,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -291,7 +292,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 while (innerType instanceof FloatVectorType || innerType instanceof ObjectType) {
                     innerType = DataTypeTesting.randomType();
                 }
-                type = ObjectType.builder()
+                type = ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("x", innerType)
                     .build();
             }

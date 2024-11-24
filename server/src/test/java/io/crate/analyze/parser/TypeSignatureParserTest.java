@@ -30,6 +30,7 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerLiteralTypeSignature;
@@ -155,7 +156,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_type_signature_from_nested_named_text_type_with_length_limit() {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("name", StringType.of(1))
             .build();
         assertThat(objectType.getTypeSignature().toString()).isEqualTo("object(text,\"name\" text(1))");
@@ -188,7 +189,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("first field", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -200,7 +201,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_bracket() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("()))", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -212,7 +213,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces_and_brackets() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("foo ()))", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -224,7 +225,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_special_characters() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("foo # !!::\\n ''", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -236,7 +237,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces_and_quotes() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("first \" field", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();

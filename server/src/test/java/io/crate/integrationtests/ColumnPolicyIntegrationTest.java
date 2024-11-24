@@ -39,6 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.types.ArrayType;
@@ -84,7 +85,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         DocTableInfo table = getTable("dynamic_table");
-        ObjectType expectedObject = ObjectType.builder()
+        ObjectType expectedObject = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("city", DataTypes.STRING)
             .setInnerType("country", DataTypes.STRING)
             .build();

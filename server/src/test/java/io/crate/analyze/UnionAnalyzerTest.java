@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
@@ -194,7 +195,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table v2 (obj object as (col text))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
-        ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.INTEGER).build();
+        ObjectType expectedType = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("col", DataTypes.INTEGER).build();
         Asserts.assertThat(union.outputs())
             .as("Output type is object(col::int) because int has higher precedence than text")
             .satisfiesExactly(isField("obj", expectedType));
@@ -207,7 +208,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table v2 (obj object as (col1 text, col2 int))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
-        ObjectType expectedType = ObjectType.builder()
+        ObjectType expectedType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("col1", DataTypes.INTEGER)
             .setInnerType("col2", DataTypes.INTEGER)
             .build();

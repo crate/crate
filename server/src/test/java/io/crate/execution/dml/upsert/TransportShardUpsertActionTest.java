@@ -83,7 +83,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -95,7 +94,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         new ReferenceIdent(TABLE_IDENT, "id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
-        ColumnPolicy.DYNAMIC,
         IndexType.PLAIN,
         true,
         false,
@@ -173,7 +171,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
-                ColumnPolicy.DYNAMIC,
                 IndexType.PLAIN,
                 true,
                 false,

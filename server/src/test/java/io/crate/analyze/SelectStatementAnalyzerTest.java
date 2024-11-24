@@ -2711,35 +2711,30 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSubscriptExpressionWithUnknownObjectKeyFromAliasedRelationWithSessionSetting() throws Exception {
-        /*
-         * This is documenting a bug. If this fails, it is a breaking change.
-         * CREATE TABLE e1 (obj_dy object, obj_st object(strict))
-         *
-         * select obj_dy['missing_key'] from (select obj_dy from e1) alias; --> works ------> bug
-         * select obj_st['missing_key'] from (select obj_st from e1) alias; --> works ------> bug (1)
-         * set errorOnUnknownObjectKey = false
-         * select obj_dy['missing_key'] from (select obj_dy from e1) alias; --> works ------> expected
-         * select obj_st['missing_key'] from (select obj_st from e1) alias; --> works ------> bug (depends on (1))
-         */
         var executor = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE e1 (obj_dy object, obj_st object(strict))");
+
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
-        var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj_dy"), isLiteral("missing_key"));
-        analyzed = executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj_st"), isLiteral("missing_key"));
+
+        assertThatThrownBy(() -> executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dy['missing_key'] unknown");
+
+        assertThatThrownBy(() -> executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_st['missing_key'] unknown");
 
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
-        analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
+
+        var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
             .isVoidReference()
             .hasName("obj_dy['missing_key']");
-        analyzed = executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj_st"), isLiteral("missing_key"));
+
+        assertThatThrownBy(() -> executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_st['missing_key'] unknown");
     }
 
     @Test
@@ -2749,12 +2744,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
          * CREATE TABLE c1 (obj object (strict)  as (a int,        c int))
          * CREATE TABLE c2 (obj object (dynamic) as (       b int, c int))
          *
-         * select obj['unknown'] from (select obj from c1 union all select obj from c1) alias;  --> works
-         * select obj['unknown'] from (select obj from c2 union all select obj from c2) alias;  --> works
+         * select obj['unknown'] from (select obj from c1 union all select obj from c1) alias;  --> throws
+         * select obj['unknown'] from (select obj from c2 union all select obj from c2) alias;  --> throws
          * select obj['a']       from (select obj from c1 union all select obj from c2) alias;  --> works
          * select obj['b']       from (select obj from c1 union all select obj from c2) alias;  --> works
          * select obj['c']       from (select obj from c1 union all select obj from c2) alias;  --> works
-         * select obj['unknown'] from (select obj from c1 union all select obj from c2) alias;  --> works
+         * select obj['unknown'] from (select obj from c1 union all select obj from c2) alias;  --> throws
          * set errorOnUnknownObjectKey = false
          * select obj['unknown'] from (select obj from c1 union all select obj from c1) alias;  --> works
          * select obj['unknown'] from (select obj from c2 union all select obj from c2) alias;  --> works
@@ -2768,13 +2763,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("CREATE TABLE c1 (obj object (strict)  as (a int,        c int))")
             .addTable("CREATE TABLE c2 (obj object (dynamic) as (       b int, c int))");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
-        var analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("unknown"));
-        analyzed = executor.analyze("select obj['unknown'] from (select obj from c2 union all select obj from c2) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("unknown"));
-        analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
+
+        assertThatThrownBy(() ->
+            executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj['unknown'] unknown");
+        assertThatThrownBy(() ->
+            executor.analyze("select obj['unknown'] from (select obj from c2 union all select obj from c2) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj['unknown'] unknown");
+        var analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("a"));
         analyzed = executor.analyze("select obj['b'] from (select obj from c1 union all select obj from c2) alias");
@@ -2783,9 +2781,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         analyzed = executor.analyze("select obj['c'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("c"));
-        analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("unknown"));
+        assertThatThrownBy(() ->
+            executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj['unknown'] unknown");
 
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
@@ -2819,6 +2818,60 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .isVoidReference()
             .hasColumnIdent(ColumnIdent.of("o", "unknown_key"))
             .hasTableIdent(new RelationName(null, "alias"));
+    }
+
+    @Test
+    public void test_unknown_object_key_from_scoped_symbols() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (obj array(object as (x int)))");
+        assertThatThrownBy(() -> executor.analyze("select tbl.o['unknown'] from (select t.obj as o from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['unknown'] unknown");
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+        executor.analyze("select tbl.o['unknown'] from (select t.obj as o from t) tbl");
+    }
+
+    @Test
+    public void test_unknown_object_key_from_nested_objects() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (o array(object(ignored) as (o2 array(object(dynamic) as (o3 array(object(strict) as (a int)))))))");
+        assertThatThrownBy(() -> executor.analyze("select o['o2']['unknown'] from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['o2']['unknown'] unknown");
+        assertThatThrownBy(() -> executor.analyze("select o['o2']['o3']['unknown'] from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['o2']['o3']['unknown'] unknown");
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        executor.analyze("select o['o2']['unknown'] from t");
+        assertThatThrownBy(() -> executor.analyze("select o['o2']['o3']['unknown'] from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['o2']['o3']['unknown'] unknown");
+    }
+
+    @Test
+    public void test_unknown_object_key_from_strict_objects() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (obj object(strict) as (a int))");
+        assertThatThrownBy(() -> executor.analyze("select obj['unknown'] from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj['unknown'] unknown");
+        assertThatThrownBy(() -> executor.analyze("select tbl.o['unknown'] from (select t.obj as o from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['unknown'] unknown");
+    }
+
+    @Test
+    public void test_unknown_object_key_from_aliased_functions_shadowing_columns() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (obj array(object as (x int)))");
+        assertThatThrownBy(() -> executor.analyze(
+            "select obj['unknown'] from (select unnest(obj) as obj from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj['unknown'] unknown");
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+        executor.analyze("select obj['unknown'] from (select unnest(obj) as obj from t) tbl");
     }
 
     @Test

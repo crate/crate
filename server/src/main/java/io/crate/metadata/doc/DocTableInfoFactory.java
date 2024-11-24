@@ -419,7 +419,6 @@ public class DocTableInfoFactory {
                 Reference ref = new GeoReference(
                     refIdent,
                     type,
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     nullable,
                     position,
@@ -433,13 +432,10 @@ public class DocTableInfoFactory {
                 );
                 references.put(column, ref);
             } else if (elementType.id() == ObjectType.ID) {
-                ColumnPolicy columnPolicy = ColumnPolicy.fromMappingValue(columnProperties.get("dynamic"));
-
                 Reference ref = new SimpleReference(
                     refIdent,
                     granularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,
@@ -480,7 +476,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -513,7 +508,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -527,7 +521,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -667,11 +660,7 @@ public class DocTableInfoFactory {
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
-            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
-            if (innerProperties == null) {
-                return Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
-            }
-
+            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.getOrDefault("properties", Map.of());
             List<InnerObjectType> children = new ArrayList<>();
             for (Map.Entry<String, Object> entry : innerProperties.entrySet()) {
                 Map<String, Object> value = (Map<String, Object>) entry.getValue();
@@ -681,8 +670,8 @@ public class DocTableInfoFactory {
                     children.add(new InnerObjectType(entry.getKey(), position, getColumnDataType(value)));
                 }
             }
-            children.sort(Comparator.comparingInt(x -> x.position()));
-            ObjectType.Builder builder = ObjectType.builder();
+            children.sort(Comparator.comparingInt(InnerObjectType::position));
+            ObjectType.Builder builder = ObjectType.of(ColumnPolicy.fromMappingValue(columnProperties.get("dynamic")));
             for (var child : children) {
                 builder.setInnerType(child.name, child.type);
             }

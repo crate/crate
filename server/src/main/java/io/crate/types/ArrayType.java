@@ -490,9 +490,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
-        return new CollectionColumnType<>(innerType.toColumnType(columnPolicy, convertChildColumn));
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        return new CollectionColumnType<>(innerType.toColumnType(convertChildColumn));
     }
 
     @Override
@@ -524,5 +523,10 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public ColumnStatsSupport<List<T>> columnStatsSupport() {
         return ColumnStatsSupport.composite(this);
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return innerType.columnPolicy();
     }
 }

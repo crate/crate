@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -41,7 +40,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -231,7 +229,6 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             RowGranularity.DOC,
             // since the analysis, the data type of 'a' has changed from int to double
             DataTypes.DOUBLE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,

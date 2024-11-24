@@ -26,7 +26,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -220,10 +219,10 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = newTable(metadata, "test1");
         assertThat(table.columns()).hasSize(4);
         assertThat(table).hasSize(20);
-        assertThat(table.getReference(ColumnIdent.of("implicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(table.getReference(ColumnIdent.of("explicit_dynamic")).columnPolicy()).isEqualTo(ColumnPolicy.DYNAMIC);
-        assertThat(table.getReference(ColumnIdent.of("ignored")).columnPolicy()).isEqualTo(ColumnPolicy.IGNORED);
-        assertThat(table.getReference(ColumnIdent.of("strict")).columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(((table.getReference(ColumnIdent.of("implicit_dynamic")).valueType().columnPolicy()))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(((table.getReference(ColumnIdent.of("explicit_dynamic")).valueType().columnPolicy()))).isEqualTo(ColumnPolicy.DYNAMIC);
+        assertThat(((table.getReference(ColumnIdent.of("ignored")).valueType()).columnPolicy())).isEqualTo(ColumnPolicy.IGNORED);
+        assertThat(((table.getReference(ColumnIdent.of("strict")).valueType()).columnPolicy())).isEqualTo(ColumnPolicy.STRICT);
     }
 
     @Test
@@ -1364,13 +1363,13 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             table.getReference(ColumnIdent.fromPath("tags")).valueType()).isEqualTo(
                 new ArrayType<>(
-                    ObjectType.builder()
+                    ObjectType.of(ColumnPolicy.STRICT)
                         .setInnerType("size", DataTypes.DOUBLE)
                         .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
                         .setInnerType("quote", DataTypes.STRING)
                         .build()));
-        assertThat(table.getReference(ColumnIdent.fromPath("tags")).columnPolicy()).isEqualTo(
-            ColumnPolicy.STRICT);
+        assertThat(table.getReference(ColumnIdent.fromPath("tags")).valueType().columnPolicy())
+            .isEqualTo(ColumnPolicy.STRICT);
         assertThat(table.getReference(ColumnIdent.fromPath("tags.size")).valueType()).isEqualTo(
             DataTypes.DOUBLE);
         assertThat(table.getReference(ColumnIdent.fromPath("tags.size")).indexType()).isEqualTo(
