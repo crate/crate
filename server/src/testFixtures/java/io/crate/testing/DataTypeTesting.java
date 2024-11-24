@@ -46,6 +46,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -266,7 +267,7 @@ public class DataTypeTesting {
     public static DataType<?> extendedType(DataType<?> type, Object value) {
         if (type.id() == ObjectType.ID) {
             var entryIt = ((Map<?, ?>) value).entrySet().iterator();
-            Builder builder = ObjectType.builder();
+            Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC);
             while (entryIt.hasNext()) {
                 var entry = entryIt.next();
                 String innerName = (String) entry.getKey();

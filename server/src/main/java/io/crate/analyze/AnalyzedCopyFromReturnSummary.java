@@ -31,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
@@ -50,7 +51,7 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
                                   Symbol uri) {
         super(tableInfo, targetColumns, table, properties, uri);
         this.fields = List.of(
-            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("node"), ObjectType.builder()
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("node"), ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("id", DataTypes.STRING)
                 .setInnerType("name", DataTypes.STRING)
                 .build()),

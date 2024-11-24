@@ -37,7 +37,6 @@ import org.junit.Test;
 import io.crate.analyze.TableElementsAnalyzer;
 import io.crate.lucene.LuceneQueryBuilderTest;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -115,7 +114,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
             if (type instanceof FloatVectorType) {
                 continue;
             }
-            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
                 " (xs array(" + typeDefinition + "))";
@@ -130,7 +129,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
                 continue;
             }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
-                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
                     " (xs array(" + typeDefinition + ") index off)";
@@ -172,7 +171,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
             if (type instanceof FloatVectorType) {
                 continue;
             }
-            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             // including geo_shape
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
@@ -188,7 +187,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
                 continue;
             }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
-                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
                     " (xs array(" + typeDefinition + ") index off)";
@@ -238,7 +237,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             var extendedType = DataTypeTesting.extendedType(type, val1);
-            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
             String stmt = "create table tbl (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
             QueryTester.Builder builder = new QueryTester.Builder(
                 THREAD_POOL,

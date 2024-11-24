@@ -41,6 +41,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.IndexEnv;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -49,7 +50,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
 
     @Test
     public void test_refExistsQuery_does_not_throw_npe_on_missing_child_reference_of_object_type() throws Exception {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.INTEGER)
             .build();
         LuceneQueryBuilder luceneQueryBuilder = new LuceneQueryBuilder(sqlExpressions.nodeCtx);

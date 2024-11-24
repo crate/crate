@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -139,8 +138,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference strictParent = new SimpleReference(
             foobarIdent,
             RowGranularity.DOC,
-            DataTypes.UNTYPED_OBJECT,
-            ColumnPolicy.STRICT,
+            ObjectType.of(ColumnPolicy.STRICT).build(),
             IndexType.PLAIN,
             true,
             false,
@@ -262,7 +260,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                             new ReferenceIdent(relationName, a),
                             RowGranularity.DOC,
                             DataTypes.INTEGER,
-                            ColumnPolicy.DYNAMIC,
                             IndexType.PLAIN,
                             true,
                             false,
@@ -276,7 +273,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                             new ReferenceIdent(relationName, b),
                             RowGranularity.DOC,
                             DataTypes.INTEGER,
-                            ColumnPolicy.DYNAMIC,
                             IndexType.PLAIN,
                             true,
                             false,
@@ -491,13 +487,13 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             Map.of()
         );
 
-        var oooType = ObjectType.builder()
+        var oooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("c1", DataTypes.INTEGER).build();
-        var ooType = ObjectType.builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("o", oooType)
             .setInnerType("b1", DataTypes.INTEGER)
             .setInnerType("b2", DataTypes.INTEGER).build();
-        var oType = ObjectType.builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("o", ooType)
             .setInnerType("a1", DataTypes.INTEGER).build();
 
@@ -528,8 +524,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             )
         );
 
-        var ooType = ObjectType.builder().build();
-        var oType = ObjectType.builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC).build();
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("o", ooType)
             .setInnerType("a1", DataTypes.INTEGER).build();
 
@@ -553,12 +549,12 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         ColumnIdent ooo2 = ColumnIdent.of("o", List.of("o", "o2"));
         table = table.renameColumn(table.getReference(ooo), ooo2);
 
-        var ooo2Type = ObjectType.builder()
+        var ooo2Type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("c1", DataTypes.INTEGER).build();
-        var ooType = ObjectType.builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("o2", ooo2Type)
             .setInnerType("b1", DataTypes.INTEGER).build();
-        var oType = ObjectType.builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("o", ooType)
             .setInnerType("a1", DataTypes.INTEGER).build();
 
@@ -654,5 +650,31 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var x_x = table.getReference("x.x");
         var x_x_children = table.getChildReferences(x_x);
         assertThat(x_children).isNotEqualTo(x_x_children);
+    }
+
+    public void test_isIgnoredOrImmediateChildOfIgnored_method() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    o object(ignored) as (b int, o2 object(dynamic) as (a int))
+                )
+                """);
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference o = table.getReference(ColumnIdent.of("o"));
+        Reference o2 = table.getReference(ColumnIdent.of("o", List.of("o2")));
+        Reference a = table.getReference(ColumnIdent.of("o", List.of("o2", "a")));
+        Reference b = table.getReference(ColumnIdent.of("o", List.of("b")));
+
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(o)).isTrue();
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(o2)).isFalse();
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(a)).isFalse();
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(b)).isTrue();
+
+        Reference unknown2 = table.getDynamic(ColumnIdent.of("o", List.of("unknown", "unknown2")), false, false); // o['unknown']['unknown2']
+        Reference unknown3 = table.getDynamic(ColumnIdent.of("o", List.of("o2", "unknown", "unknown3")), false, false); // o['o2']['unknown3']['unknown4']
+
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown2)).isTrue(); // child of o
+        assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown3)).isFalse(); // child of o2
     }
 }

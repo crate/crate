@@ -289,7 +289,6 @@ public final class SystemTable<T> implements TableInfo {
                         new ReferenceIdent(name, column.column),
                         RowGranularity.DOC,
                         column.type,
-                        ColumnPolicy.DYNAMIC,
                         IndexType.PLAIN,
                         column.isNullable,
                         false,
@@ -306,7 +305,6 @@ public final class SystemTable<T> implements TableInfo {
                         var ref = new DynamicReference(
                             new ReferenceIdent(name, wanted),
                             RowGranularity.DOC,
-                            ColumnPolicy.DYNAMIC,
                             position
                         );
                         ref.valueType(leafType);
@@ -380,7 +378,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public P endObject() {
-            ObjectType.Builder typeBuilder = ObjectType.builder();
+            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             ArrayList<Column<T, ?>> directChildren = new ArrayList<>();
             for (var col : columns) {
                 if (col.column.path().size() == baseColumn.path().size() + 1) {
@@ -417,7 +415,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public P endObjectArray() {
-            ObjectType.Builder typeBuilder = ObjectType.builder();
+            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             ArrayList<Column<ItemType, ?>> directChildren = new ArrayList<>();
             for (var col : columns) {
                 if (col.column.path().size() == baseColumn.path().size() + 1) {

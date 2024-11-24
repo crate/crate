@@ -38,7 +38,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.Style;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public final class GeneratedReference implements Reference {
@@ -108,7 +107,6 @@ public final class GeneratedReference implements Reference {
                     ref.ident(),
                     ref.granularity(),
                     ref.valueType(),
-                    ref.columnPolicy(),
                     ref.indexType(),
                     ref.isNullable(),
                     ref.hasDocValues(),
@@ -203,11 +201,6 @@ public final class GeneratedReference implements Reference {
     @Override
     public IndexType indexType() {
         return ref.indexType();
-    }
-
-    @Override
-    public ColumnPolicy columnPolicy() {
-        return ref.columnPolicy();
     }
 
     @Override

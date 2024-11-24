@@ -39,7 +39,6 @@ import io.crate.lucene.GenericFunctionQuery;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -127,7 +126,7 @@ public class EqOperatorTest extends ScalarTestCase {
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
 
-            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             try (QueryTester tester = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,

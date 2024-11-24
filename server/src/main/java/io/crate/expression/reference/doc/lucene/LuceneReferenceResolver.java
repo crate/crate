@@ -27,14 +27,12 @@ import java.util.function.Predicate;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -127,7 +125,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (ref instanceof VoidReference) {
             return new LiteralValueExpression(null);
         }
-        assert ref instanceof DynamicReference == false || ref.columnPolicy() == ColumnPolicy.IGNORED;
         if (ref.hasDocValues() == false) {
             return DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
         }

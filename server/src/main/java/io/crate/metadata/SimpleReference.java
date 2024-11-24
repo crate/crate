@@ -59,7 +59,6 @@ public class SimpleReference implements Reference {
     protected boolean isDropped;
 
     protected final ReferenceIdent ident;
-    protected final ColumnPolicy columnPolicy;
     protected final RowGranularity granularity;
     protected final IndexType indexType;
     protected final boolean nullable;
@@ -86,7 +85,17 @@ public class SimpleReference implements Reference {
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+        if (in.getVersion().before(Version.V_5_10_0)) {
+            ColumnPolicy columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+            int dimensions = ArrayType.dimensions(type);
+            if (ArrayType.unnest(type) instanceof ObjectType objectType) {
+                ObjectType.Builder builder = ObjectType.of(columnPolicy);
+                for (var innerType : objectType.innerTypes().entrySet()) {
+                    builder.setInnerType(innerType.getKey(), innerType.getValue());
+                }
+                type = ArrayType.makeArray(builder.build(), dimensions);
+            }
+        }
         indexType = IndexType.fromStream(in);
         nullable = in.readBoolean();
 
@@ -106,7 +115,6 @@ public class SimpleReference implements Reference {
         this(ident,
              granularity,
              type,
-             ColumnPolicy.DYNAMIC,
              IndexType.PLAIN,
              true,
              false,
@@ -119,7 +127,6 @@ public class SimpleReference implements Reference {
     public SimpleReference(ReferenceIdent ident,
                            RowGranularity granularity,
                            DataType<?> type,
-                           ColumnPolicy columnPolicy,
                            IndexType indexType,
                            boolean nullable,
                            boolean hasDocValues,
@@ -131,7 +138,6 @@ public class SimpleReference implements Reference {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
-        this.columnPolicy = columnPolicy;
         this.indexType = indexType;
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
@@ -157,7 +163,6 @@ public class SimpleReference implements Reference {
             newIdent,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -179,7 +184,6 @@ public class SimpleReference implements Reference {
             ident,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -196,7 +200,6 @@ public class SimpleReference implements Reference {
             ident,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -213,7 +216,6 @@ public class SimpleReference implements Reference {
             ident,
             granularity,
             newType,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -265,11 +267,6 @@ public class SimpleReference implements Reference {
     @Override
     public RowGranularity granularity() {
         return granularity;
-    }
-
-    @Override
-    public ColumnPolicy columnPolicy() {
-        return columnPolicy;
     }
 
     @Override
@@ -366,9 +363,6 @@ public class SimpleReference implements Reference {
         if (!ident.equals(reference.ident)) {
             return false;
         }
-        if (columnPolicy != reference.columnPolicy) {
-            return false;
-        }
         if (granularity != reference.granularity) {
             return false;
         }
@@ -389,7 +383,6 @@ public class SimpleReference implements Reference {
         int result = type.hashCode();
         result = 31 * result + Integer.hashCode(position);
         result = 31 * result + ident.hashCode();
-        result = 31 * result + columnPolicy.hashCode();
         result = 31 * result + granularity.hashCode();
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
@@ -415,7 +408,9 @@ public class SimpleReference implements Reference {
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
-        out.writeVInt(columnPolicy.ordinal());
+        if (out.getVersion().before(Version.V_5_10_0)) {
+            out.writeVInt(valueType().columnPolicy().ordinal());
+        }
         out.writeVInt(indexType.ordinal());
         out.writeBoolean(nullable);
         // property was "columnStoreDisabled" so need to reverse the value.

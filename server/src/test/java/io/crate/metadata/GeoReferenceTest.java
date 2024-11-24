@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 
@@ -43,7 +42,6 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo = new GeoReference(
             referenceIdent,
             DataTypes.GEO_SHAPE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             1,
@@ -66,7 +64,6 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo3 = new GeoReference(
             referenceIdent,
             DataTypes.GEO_SHAPE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             false,
             2,
@@ -108,7 +105,6 @@ public class GeoReferenceTest extends ESTestCase {
         return new GeoReference(
             referenceIdent,
             DataTypes.GEO_SHAPE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             false,
             2,

@@ -243,7 +243,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
                                Synthetics synthetics) throws IOException {
-        ColumnPolicy columnPolicy = ref.columnPolicy();
+        ColumnPolicy columnPolicy = ref.valueType().columnPolicy();
         if (columnPolicy == ColumnPolicy.IGNORED) {
             return;
         }

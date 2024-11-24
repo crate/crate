@@ -37,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
@@ -243,7 +244,7 @@ public class SignatureBinderTest extends ESTestCase {
 
         assertThatSignature(getValueFunction)
             .boundTo(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("V", DataTypes.LONG).build(),
                 DataTypes.STRING)
             .produces(new BoundVariables(
@@ -254,7 +255,7 @@ public class SignatureBinderTest extends ESTestCase {
 
         assertThatSignature(getValueFunction)
             .boundTo(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("V", DataTypes.LONG).build(),
                 DataTypes.LONG)
             .withoutCoercion()

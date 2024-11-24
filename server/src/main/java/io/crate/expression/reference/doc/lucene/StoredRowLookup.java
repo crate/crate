@@ -211,7 +211,8 @@ public abstract class StoredRowLookup implements StoredRow {
                 // if we are inside an array, or an object type with ignored fields, then we need to load
                 // the relevant parent from stored fields
                 var storedParent = table.findParentReferenceMatching(ref, r ->
-                    r.valueType() instanceof ObjectType && r.columnPolicy() == ColumnPolicy.IGNORED ||
+                    r.valueType() instanceof ObjectType objectType &&
+                        objectType.columnPolicy() == ColumnPolicy.IGNORED ||
                         r.valueType() instanceof ArrayType<?>);
                 if (storedParent != null) {
                     this.fieldsVisitor.registerRef(storedParent);

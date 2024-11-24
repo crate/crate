@@ -37,7 +37,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -52,7 +51,6 @@ public class DropColumnTest extends ESTestCase {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,

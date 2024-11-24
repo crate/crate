@@ -61,7 +61,6 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             new ReferenceIdent(relation, "value"),
             RowGranularity.DOC,
             StringType.INSTANCE,
-            ColumnPolicy.STRICT,
             IndexType.PLAIN,
             false,
             true,

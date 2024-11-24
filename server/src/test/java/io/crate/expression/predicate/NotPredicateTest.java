@@ -35,7 +35,6 @@ import org.junit.Test;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -109,7 +108,7 @@ public class NotPredicateTest extends ScalarTestCase {
             } else {
                 randomData = Literal.ofUnchecked(type, getDataGenerator(type).get()).toString();
             }
-            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             String query = "xs != [" + randomData + "]";
 
             // with default columnstore
@@ -157,7 +156,7 @@ public class NotPredicateTest extends ScalarTestCase {
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
 
-            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             String query = "xs != []";
 
             // with default columnstore

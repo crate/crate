@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.data.RowN;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -130,63 +131,63 @@ public class DataTypeTest extends ESTestCase {
 
     @Test
     public void test_is_compatible_type_with_same_names_different_inner_types() {
-        ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build();
-        ObjectType obj2 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.STRING).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isFalse();
     }
 
     @Test
     public void test_is_compatible_type_with_same_names_same_inner_types() {
-        ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
-        ObjectType obj2 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.STRING).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.STRING).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
     public void test_is_compatible_type_with_different_names_same_inner_types() {
-        ObjectType obj1 = ObjectType.builder().setInnerType("a", DataTypes.STRING).build();
-        ObjectType obj2 = ObjectType.builder().setInnerType("b", DataTypes.STRING).build();
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.STRING).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("b", DataTypes.STRING).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
     public void test_is_compatible_type_on_nested_types_with_same_names_same_inner_types() {
-        ObjectType obj1 = ObjectType.builder()
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        ObjectType obj2 = ObjectType.builder()
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
     }
 
     @Test
     public void test_is_compatible_type_on_nested_types_with_same_names_different_inner_types() {
-        ObjectType obj1 = ObjectType.builder()
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        ObjectType obj2 = ObjectType.builder()
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("a", DataTypes.STRING).build()).build();
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.STRING).build()).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isFalse();
     }
 
     @Test
     public void test_is_compatible_type_on_nested_types_with_different_names_same_inner_types() {
-        ObjectType obj1 = ObjectType.builder()
+        ObjectType obj1 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj1",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        ObjectType obj2 = ObjectType.builder()
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
+        ObjectType obj2 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj2",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
         assertThat(DataTypes.isCompatibleType(obj1, obj2)).isTrue();
 
-        ObjectType obj3 = ObjectType.builder()
+        ObjectType obj3 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("a", DataTypes.INTEGER).build()).build();
-        ObjectType obj4 = ObjectType.builder()
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER).build()).build();
+        ObjectType obj4 = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("obj",
-                          ObjectType.builder().setInnerType("b", DataTypes.INTEGER).build()).build();
+                          ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("b", DataTypes.INTEGER).build()).build();
         assertThat(DataTypes.isCompatibleType(obj3, obj4)).isTrue();
     }
 
