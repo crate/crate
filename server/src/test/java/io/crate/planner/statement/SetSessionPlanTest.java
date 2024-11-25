@@ -43,6 +43,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
 
@@ -70,5 +71,19 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
         assertThat(consumer.getBucket())
             .as("Must not raise an exception")
             .isEmpty();
+    }
+
+    @Test
+    public void test_can_reset_statement_timeout_and_memory_limit() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        List<String> statements = List.of(
+            "set \"statement_timeout\" to default",
+            "set \"operation.memory_limit\" to default"
+        );
+        for (String stmt : statements) {
+            SetSessionPlan plan = e.plan(stmt);
+            TestingRowConsumer result = e.execute(plan);
+            assertThat(result.getResult()).isEmpty();
+        }
     }
 }
