@@ -20,7 +20,8 @@ example:
 
 .. code-block:: sql
 
-  SET search_path TO myschema, doc;
+  cr> SET search_path TO myschema, doc;
+  SET OK, 0 rows affected (... sec)
 
 Alternatively, session settings can be modified permanently from their default
 values for a user, with the use of :ref:`ALTER ROLE <ref-alter-role>`.
@@ -103,7 +104,8 @@ Supported session settings
 
   .. code-block:: sql
 
-    SET GLOBAL PERSISTENT statement_timeout = '50000ms';
+    cr> SET LOCAL statement_timeout = '50000ms';
+    SET OK, 0 rows affected (... sec)
 
   After executing the statement, every **new** database session will apply the
   limit.
@@ -131,7 +133,8 @@ Example statement to update the default value to 1GB, i.e. 1073741824 bytes:
 
 .. code-block:: sql
 
-  SET GLOBAL PERSISTENT 'memory.operation_limit' = '1073741824';
+  cr> SET LOCAL "memory.operation_limit" = '1073741824';
+  SET OK, 0 rows affected (... sec)
 
 Operations that hit this memory limit will trigger a CircuitBreakerException
 that can be handled in the application to inform the user about too much memory
@@ -263,5 +266,16 @@ consumption for the particular query.
   Experimental session settings might be removed in the future even in minor
   feature releases.
 
+
+.. hide:
+
+  cr> SET "memory.operation_limit" TO DEFAULT;
+  SET OK, 0 rows affected (... sec)
+
+  cr> SET "statement_timeout" TO DEFAULT;
+  SET OK, 0 rows affected (... sec)
+
+  cr> SET search_path TO DEFAULT;
+  SET OK, 0 rows affected (... sec)
 
 .. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH

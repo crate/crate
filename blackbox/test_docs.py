@@ -498,6 +498,8 @@ def load_tests(loader, suite, ignore):
         tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
 
     for fn in doctest_files(
+            'config/cluster.rst',
+            'config/session.rst',
             'general/occ.rst',
             'sql/statements/refresh.rst',
             'sql/statements/create-table.rst',
