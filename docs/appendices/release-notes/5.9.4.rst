@@ -47,6 +47,9 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an ``ArrayIndexOutOfBoundsException`` that happened when using ``SET ...
+  TO DEFAULT`` with either ``statement_timeout`` or ``operation.memory_limit``.
+
 - Fixed an issue that caused incorrect result when comparing values of type
   ``geo_shape`` defined as object literals and one being a geometry collection
   and another ``MultiPolygon`` or ``MultiPoint``. Example of the query
