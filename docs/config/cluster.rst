@@ -106,6 +106,7 @@ Collecting stats
   execute::
 
     cr> SET GLOBAL "stats.jobs_log_filter" = $$ended - started > '5 minutes'::interval$$;
+    SET OK, 1 row affected (... sec)
 
 .. _stats.jobs_log_persistent_filter:
 
@@ -1075,6 +1076,15 @@ Default value for the :ref:`memory.operation_limit
 session setting <conf-session-memory-operation-limit>`. Changing the cluster
 setting will only affect new sessions, not existing sessions.
 
+Example statement to update the default value to 1 GB, i.e. 1073741824 bytes::
+
+    cr> SET GLOBAL "memory.operation_limit" = 1073741824;
+    SET OK, 1 row affected (... sec)
+
+Operations that hit this memory limit will trigger a ``CircuitBreakingException``
+that can be handled in the application to inform the user about too much memory
+consumption for the particular query.
+
 Query circuit breaker
 ---------------------
 
@@ -1475,6 +1485,14 @@ Chunk size to transfer files during the initial recovery of a replicating table.
 
 Controls the number of file chunk requests that can be sent in parallel between
 clusters during the recovery.
+
+.. hide:
+
+   cr> RESET GLOBAL "stats.jobs_log_filter"
+   RESET OK, 1 row affected (... sec)
+
+   cr> RESET GLOBAL "memory.operation_limit"
+   RESET OK, 1 row affected (... sec)
 
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
