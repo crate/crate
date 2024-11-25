@@ -34,7 +34,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
-import io.crate.session.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexName;
@@ -43,6 +42,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.session.Sessions;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 
@@ -84,6 +84,11 @@ public class SessionSettingRegistry {
     static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
         Sessions.STATEMENT_TIMEOUT_KEY,
         inputs -> {
+            // SET "statement_timeout" to default;
+            if (inputs.length == 0) {
+                return TimeValue.ZERO;
+            }
+
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
             if (input instanceof Number num) {
@@ -111,7 +116,7 @@ public class SessionSettingRegistry {
 
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
         Sessions.MEMORY_LIMIT_KEY,
-        inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
+        inputs -> inputs.length == 0 ? 0 : DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
         () -> "0",
