@@ -597,4 +597,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).isLiteral(List.of("hello"))
         );
     }
+
+    @Test
+    public void test_aliased_match_predicate_in_select_throws() {
+        assertThatThrownBy(() -> executor.analyze("select match(a, 'foo') as alias from t1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("match predicate cannot be selected");
+    }
 }
