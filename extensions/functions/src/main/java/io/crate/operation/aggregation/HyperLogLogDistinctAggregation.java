@@ -166,11 +166,14 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return null;
     }
 
+
+
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.stream().anyMatch(x -> x != null && !x.hasDocValues())) {
             return null;

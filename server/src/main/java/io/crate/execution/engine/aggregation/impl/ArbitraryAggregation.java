@@ -159,6 +159,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference arg = aggregationReferences.get(0);
         if (arg == null) {

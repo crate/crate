@@ -299,6 +299,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {
             return null;

@@ -156,6 +156,7 @@ public class CountOperation {
                 indexName,
                 indexService.indexAnalyzers(),
                 table,
+                indexShard.getVersionCreated(),
                 indexService.cache()
             );
             if (Thread.interrupted()) {

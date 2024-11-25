@@ -93,7 +93,8 @@ public final class DocValuesAggregates {
             referenceResolver,
             aggregateProjection.aggregations(),
             phase.toCollect(),
-            table
+            table,
+            indexShard.getVersionCreated()
         );
         if (aggregators == null) {
             return null;
@@ -109,6 +110,7 @@ public final class DocValuesAggregates {
             indexShard.shardId().getIndexName(),
             indexService.indexAnalyzers(),
             table,
+            indexShard.getVersionCreated(),
             indexService.cache()
         );
 
@@ -141,7 +143,8 @@ public final class DocValuesAggregates {
                                                              LuceneReferenceResolver referenceResolver,
                                                              List<Aggregation> aggregations,
                                                              List<Symbol> toCollect,
-                                                             DocTableInfo table) {
+                                                             DocTableInfo table,
+                                                             Version shardVersionCreated) {
         ArrayList<DocValueAggregator> aggregator = new ArrayList<>(aggregations.size());
         for (int i = 0; i < aggregations.size(); i++) {
             Aggregation aggregation = aggregations.get(i);
@@ -180,6 +183,7 @@ public final class DocValuesAggregates {
                 referenceResolver,
                 aggregationReferences,
                 table,
+                shardVersionCreated,
                 literals
             );
             if (docValueAggregator == null) {

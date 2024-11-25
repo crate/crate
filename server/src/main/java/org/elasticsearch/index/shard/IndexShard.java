@@ -336,6 +336,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return this.store;
     }
 
+    public Version getVersionCreated() {
+        return this.store.indexSettings().getIndexVersionCreated();
+    }
+
     public boolean isClosed() {
         return this.queryCache == null;
     }
