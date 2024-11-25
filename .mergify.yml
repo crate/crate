@@ -15,6 +15,11 @@ queue_rules:
     merge_method: rebase
 
 pull_request_rules:
+  - name: default
+    conditions: []
+    actions:
+      queue:
+
   - name: backport 5.9
     actions:
       backport:
