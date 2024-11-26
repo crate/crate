@@ -49,6 +49,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Rule;
@@ -273,7 +274,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   date timestamp with time zone" +
             ") partitioned by (date)");
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "parted");
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "parted");
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
@@ -282,15 +283,15 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table parted");
 
         Metadata metadata = clusterService().state().metadata();
-        String fqTablename = getFqn("parted");
-        assertThat(metadata.hasAlias(fqTablename)).isTrue();
+        RelationMetadata relation = metadata.getRelation(relationName);
+        assertThat(relation).isNotNull();
+        assertThat(relation).isExactlyInstanceOf(RelationMetadata.Table.class);
 
+        List<String> partitionValues = Collections.singletonList(String.valueOf(13959981214861L));
         String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(String.valueOf(13959981214861L))
+            relationName,
+            partitionValues
         ).asIndexName();
-
-        assertThat(metadata.indices().get(partitionName).getAliases().get(fqTablename)).isNotNull();
 
         execute("select id, name, date from parted");
         assertThat(response).hasRows(
