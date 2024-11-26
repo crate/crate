@@ -25,13 +25,11 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
@@ -41,8 +39,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
@@ -60,8 +56,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.analyze.TableParameters;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 
@@ -113,15 +107,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 Map<String, Object> newMapping = settingsToMapping(request.settings());
 
                 // template gets all changes unfiltered
-                currentState = updateTemplate(
-                    currentState,
-                    request.tableIdent(),
-                    settings,
-                    newMapping,
-                    (name, s) -> validateSettings(name, s, indexScopedSettings, metadataCreateIndexService),
-                    indexScopedSettings
-                );
-
                 if (!request.excludePartitions()) {
                     Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
 
@@ -164,15 +149,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
-            Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            String mappingValue = columnPolicy.toMappingValue();
-            if (indexMapping.get(ColumnPolicy.MAPPING_KEY).equals(mappingValue)) {
-                return currentState;
-            }
-            indexMapping.put(ColumnPolicy.MAPPING_KEY, mappingValue);
-            IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
-            imBuilder.putMapping(new MappingMetadata(indexMapping)).mappingVersion(1 + imBuilder.mappingVersion());
-            metadataBuilder.put(imBuilder); // implicitly increments metadata version.
         }
 
         return ClusterState.builder(currentState).metadata(metadataBuilder).build();
@@ -224,27 +200,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             return Map.of();
         }
         return Map.of(ColumnPolicy.MAPPING_KEY, ColumnPolicy.of(policy).toMappingValue());
-    }
-
-    static ClusterState updateTemplate(ClusterState currentState,
-                                       RelationName relationName,
-                                       Settings newSetting,
-                                       Map<String, Object> newMapping,
-                                       BiConsumer<String, Settings> settingsValidator,
-                                       IndexScopedSettings indexScopedSettings) throws IOException {
-
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
-        IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
-            indexTemplateMetadata,
-            newMapping,
-            Collections.emptyMap(),
-            newSetting,
-            indexScopedSettings
-        );
-
-        final Metadata.Builder metadata = Metadata.builder(currentState.metadata()).put(newIndexTemplateMetadata);
-        return ClusterState.builder(currentState).metadata(metadata).build();
     }
 
     private static void validateSettings(String name,

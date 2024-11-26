@@ -53,8 +53,8 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -66,7 +66,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.CountDown;
@@ -84,7 +83,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
@@ -153,15 +151,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         // that does not support the replication of closed indices
         final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
 
-        IndexTemplateMetadata templateMetadata = target.templateMetadata();
-        ClusterState updatedState;
-        if (templateMetadata == null) {
-            updatedState = currentState;
-        } else {
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
-            updatedState = ClusterState.builder(currentState).metadata(metadata).build();
-        }
+        ClusterState updatedState = currentState;
 
         String partition = target.partition();
         if (partition != null) {
@@ -237,17 +227,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             .build();
     }
 
-    private static IndexTemplateMetadata closePartitionTemplate(IndexTemplateMetadata templateMetadata) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        return DDLClusterStateHelpers.updateTemplate(
-            templateMetadata,
-            metaMap,
-            Collections.emptyMap(),
-            Settings.EMPTY,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-        );
-    }
-
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
         String partition = request.partition();
@@ -263,18 +242,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
                                                   ClusterState clusterState) {
-        var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            clusterState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()
-        );
-        if (concreteIndices.length > 0) {
-            return false;
-        }
-
-        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        var templateMetadata = clusterState.metadata().templates().get(templateName);
-        return templateMetadata != null;
+        RelationMetadata relation = clusterState.metadata().getRelation(relationName);
+        return relation instanceof RelationMetadata.Table table
+            && !table.partitionedBy().isEmpty()
+            && table.indexUUIDs().isEmpty();
     }
 
 

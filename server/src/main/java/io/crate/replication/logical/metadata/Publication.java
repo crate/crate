@@ -40,7 +40,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.IndexSettings;
 
 import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -148,14 +147,6 @@ public class Publication implements Writeable {
 
         if (isForAllTables()) {
             Metadata metadata = state.metadata();
-            for (var cursor : metadata.templates().keys()) {
-                String templateName = cursor.value;
-                IndexParts indexParts = IndexName.decode(templateName);
-                RelationName relationName = indexParts.toRelationName();
-                if (indexParts.isPartitioned()) {
-                    relations.add(relationName);
-                }
-            }
             for (var cursor : metadata.indices().values()) {
                 var indexMetadata = cursor.value;
                 var indexName = indexMetadata.getIndex().getName();

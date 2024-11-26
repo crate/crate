@@ -21,9 +21,6 @@
 
 package io.crate.cluster.commands;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,21 +31,15 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
-import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -151,8 +142,6 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         final Metadata oldMetadata = persistedClusterStateService.loadBestOnDiskState().metadata;
         final Metadata.Builder fixedMetadata = Metadata.builder(oldMetadata);
 
-        fixNameOfTemplateMetadata(oldMetadata.templates(), fixedMetadata);
-
         for (var indexMetadata : oldMetadata) {
             fixNameOfIndexMetadata(indexMetadata, fixedMetadata);
         }
@@ -198,7 +187,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
                                                          Metadata.Builder fixedMetadata) {
         String indexName = indexMetadata.getIndex().getName();
         String[] indexParts = indexName.split("\\.");
-        MappingMetadata mappingMetadata = indexMetadata.mapping();
+        MappingMetadata mappingMetadata = null; // TODO
         if (mappingMetadata != null && !IndexName.isPartitioned(indexName) && indexParts.length == 2) {
             Map<String, Object> metaMap = Maps.get(mappingMetadata.sourceAsMap(), "_meta");
             if (metaMap != null && metaMap.containsKey("partitioned_by")) {
@@ -206,14 +195,6 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
                 fixedMetadata.remove(indexName);
                 fixedMetadata.put(generatePartitionedIndexMetadata(indexName, indexMetadata, partitionedByColumns));
 
-                String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
-                ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-                mapBuilder.put(
-                    templateName,
-                    generateTemplateIndexMetadata(indexName, indexMetadata, mappingMetadata).build());
-
-                fixedMetadata.removeTemplate(templateName);
-                fixedMetadata.templates(mapBuilder.build());
             } else {
                 /*
                    ex) test_swap_table_partitioned_to_non_partitioned_3
@@ -224,33 +205,10 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
                        "m7..partitioned.t7." - partitioned by t
                    > since "m7.t7" is not partitioned, "m7..partitioned.t7." can be dropped.
                 */
-                fixedMetadata.removeTemplate(PartitionName.templateName(indexParts[0], indexParts[1]));
             }
         }
     }
 
-    /**
-     * Generates an indexTemplateMetadata based on the given indexMetadata.
-     */
-    private static IndexTemplateMetadata.Builder generateTemplateIndexMetadata(String indexName,
-                                                                               IndexMetadata indexMetadata,
-                                                                               MappingMetadata mappingMetadata) {
-        String[] indexParts = indexName.split("\\.");
-
-        String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
-        IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(templateName);
-        templateBuilder.putAlias(new AliasMetadata(indexName));
-        templateBuilder.putMapping(mappingMetadata.source());
-        Settings indexSettings = indexMetadata.getSettings();
-        var templateCompatibleSettings =
-            // these settings cause exceptions when added to templates
-            indexSettings.filter(k -> !(k.equals(SETTING_INDEX_UUID) || k.equals(SETTING_CREATION_DATE)));
-
-        templateBuilder.settings(templateCompatibleSettings);
-        templateBuilder.patterns(List.of(PartitionName.templatePrefix(indexParts[0], indexParts[1])));
-
-        return templateBuilder;
-    }
 
     /**
      * Generates a partitioned indexMetadata based on the given indexMetadata.
@@ -269,24 +227,6 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         partitionedIndexMetadata.index(partitionedIndexName);
 
         return partitionedIndexMetadata;
-    }
-
-    @VisibleForTesting
-    static void fixNameOfTemplateMetadata(ImmutableOpenMap<String, IndexTemplateMetadata> templates,
-                                          Metadata.Builder fixedMetadata) {
-        for (ObjectObjectCursor<String, IndexTemplateMetadata> e : templates) {
-            RelationName fixedRelationName = fixTemplateName(e.key);
-            if (fixedRelationName != null) {
-                fixedMetadata.removeTemplate(e.key);
-                // in case of duplicate keys, name-fixed templates overwrite
-                fixedMetadata.put(Templates.withName(e.value, fixedRelationName).build());
-            } else {
-                // in case of duplicate keys, do not overwrite
-                if (fixedMetadata.getTemplate(e.key) == null) {
-                    fixedMetadata.put(e.value);
-                }
-            }
-        }
     }
 
     @VisibleForTesting

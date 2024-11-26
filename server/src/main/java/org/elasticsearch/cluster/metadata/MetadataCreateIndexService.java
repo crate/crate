@@ -84,12 +84,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.CreateTableRequest;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -283,30 +280,8 @@ public class MetadataCreateIndexService {
                 AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
             }
 
-            // No template handling here since neither of usages of this service is relevant to them:
-            // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
-            // 2. Resize partitioned tables. findTemplates always returns an empty list since
-            //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
-            // 3. Creating partitions/indices by inserting into a partitioned table.
-            //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
-            //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
-            IndexTemplateMetadata template = null;
-            try {
-                template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
-            } catch (Exception ex) {
-                // Creation of regular tables or resizing a partition don't pass validation.
-                // Catching validation errors to do a safe assertion.
-            }
-            assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
-
             final Index recoverFromIndex = request.recoverFrom();
-            MappingMetadata mapping;
-            if (recoverFromIndex == null) {
-                mapping = new MappingMetadata(Map.of());
-            } else {
-                IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                mapping = sourceMetadata.mapping();
-            }
+            // TODO: recoverFromIndex mapping
 
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
@@ -400,7 +375,6 @@ public class MetadataCreateIndexService {
                     Metadata.builder(currentState.metadata()),
                     request.index(),
                     tmpImd,
-                    mapping,
                     request.aliases(),
                     routingNumShards
                 );
@@ -650,7 +624,8 @@ public class MetadataCreateIndexService {
 
     public ClusterState add(ClusterState currentState,
                             CreateTableRequest request,
-                            Settings settings) throws IOException {
+                            Settings settings,
+                            String indexUUID) throws IOException {
         RelationName tableName = request.getTableName();
         String indexName = tableName.indexNameOrAlias();
 
@@ -659,20 +634,9 @@ public class MetadataCreateIndexService {
         shardLimitValidator.validateShardLimit(settings, currentState);
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
-            request.pkConstraintName(),
-            DocReferences.applyOid(request.references(), metadataBuilder.columnOidSupplier()),
-            request.pKeyIndices(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
-        )));
-
         Settings.Builder indexSettingsBuilder = Settings.builder()
             .put(settings)
-            .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+            .put(SETTING_INDEX_UUID, indexUUID)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         final Settings idxSettings = indexSettingsBuilder.build();
@@ -708,11 +672,9 @@ public class MetadataCreateIndexService {
                 metadataBuilder,
                 indexName,
                 tmpImd,
-                mapping,
                 List.of(),
                 routingNumShards
             );
-            new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
             return updatedState;
         });
     }
@@ -723,14 +685,12 @@ public class MetadataCreateIndexService {
                                          Metadata.Builder metadataBuilder,
                                          String indexName,
                                          IndexMetadata tmpImd,
-                                         MappingMetadata mapping,
                                          Iterable<Alias> aliases,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
-            .state(State.OPEN)
-            .putMapping(mapping);
+            .state(State.OPEN);
 
         for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
             indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));

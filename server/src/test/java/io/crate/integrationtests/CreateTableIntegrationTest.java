@@ -22,29 +22,16 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -62,61 +49,6 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         executeCreateTableThreaded("create table if not exists t " +
                                    "(name string, p string) partitioned by (p) " +
                                    "with (number_of_replicas = 0)");
-    }
-
-    @Test
-    public void test_allow_drop_of_corrupted_table() throws Exception {
-        execute("create table doc.tbl (ts timestamp without time zone as '2020-01-01')");
-        XContentBuilder builder = JsonXContent.builder()
-            .startObject()
-            .startObject("default")
-                .startObject("_meta")
-                    .startObject("generated_columns")
-                        .field("ts", "foobar")
-                    .endObject()
-                .endObject()
-            .endObject()
-            .endObject();
-
-        ClusterService clusterService = cluster().getCurrentMasterNodeInstance(ClusterService.class);
-        var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AcknowledgedRequest() {}) {
-
-            @Override
-            protected AcknowledgedResponse newResponse(boolean acknowledged) {
-                return new AcknowledgedResponse(acknowledged);
-            }
-
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                Metadata metadata = currentState.metadata();
-                IndexMetadata indexMetadata = metadata.index("tbl");
-                BytesReference newMapping = BytesReference.bytes(builder);
-                return ClusterState.builder(currentState)
-                    .metadata(
-                        Metadata.builder(metadata)
-                            .put(
-                                IndexMetadata.builder(indexMetadata)
-                                    .putMapping(new MappingMetadata(new CompressedXContent(newMapping)))
-                                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
-                            )
-                    )
-                    .build();
-                }
-        };
-        clusterService.submitStateUpdateTask("corrupt-mapping", updateTask);
-        assertThat(updateTask.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
-
-        assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
-            .isTrue();
-        Asserts.assertSQLError(() -> execute("select * from doc.tbl"))
-            .hasPGError(UNDEFINED_TABLE)
-            .hasHTTPError(NOT_FOUND, 4041)
-            .hasMessageContaining("Relation 'doc.tbl' unknown");
-        execute("drop table doc.tbl");
-        execute("select count(*) from information_schema.tables where table_name = 'tbl'");
-        assertThat(response.rows()[0][0]).isEqualTo(0L);
-        assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
-            .isFalse();
     }
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {

@@ -47,7 +47,6 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.InMemoryPersistedState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
@@ -69,8 +68,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -223,29 +220,11 @@ public class GatewayMetaState implements Closeable {
         boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
 
-        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
-        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
-
-        // upgrade current templates
-        if (applyPluginUpgraders(
-            metadata.templates(),
-            metadataUpgrader.indexTemplateMetadataUpgraders,
-            upgradedMetadata::removeTemplate,
-            (s, indexTemplateMetadata) -> {
-                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
-                upgradedMetadata.put(indexTemplateMetadata);
-            })) {
-            changed = true;
-        }
 
         // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
-            String indexName = indexMetadata.getIndex().getName();
             IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
                 indexMetadata,
-                IndexName.isPartitioned(indexName) ?
-                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
-                    null,
                 Version.CURRENT.minimumIndexCompatibilityVersion());
             changed |= indexMetadata != newMetadata;
             upgradedMetadata.put(newMetadata, false);
