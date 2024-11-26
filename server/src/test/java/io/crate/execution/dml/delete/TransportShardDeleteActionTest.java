@@ -33,7 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -100,7 +100,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
-        TransportWriteAction.WritePrimaryResult<ShardDeleteRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardDeleteRequest, ShardResponse> result =
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);

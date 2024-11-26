@@ -140,7 +140,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected WriteReplicaResult<ShardDeleteRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) throws IOException {
+    protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) throws IOException {
         Translog.Location translogLocation = null;
         for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
@@ -166,7 +166,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 }
             }
         }
-        return new WriteReplicaResult<>(translogLocation, null, indexShard);
+        return new WriteReplicaResult(translogLocation, null, indexShard);
     }
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
