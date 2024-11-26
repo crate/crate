@@ -35,7 +35,7 @@ import java.util.function.IntFunction;
 
 /**
  * Hyperloglog++ counter, implemented based on pseudo code from
- * http://static.googleusercontent.com/media/research.google.com/fr//pubs/archive/40671.pdf
+ * https://research.google.com/pubs/archive/40671.pdf
  * and its appendix
  * https://docs.google.com/document/d/1gyjfMHy43U9OWBXxfaeG-3MjGzejW1dlpyMwEYAAWEI/view?fullscreen
  *
