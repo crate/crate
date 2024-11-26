@@ -84,11 +84,6 @@ public class SessionSettingRegistry {
     static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
         Sessions.STATEMENT_TIMEOUT_KEY,
         inputs -> {
-            // SET "statement_timeout" to default;
-            if (inputs.length == 0) {
-                return TimeValue.ZERO;
-            }
-
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
             if (input instanceof Number num) {
@@ -116,7 +111,7 @@ public class SessionSettingRegistry {
 
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
         Sessions.MEMORY_LIMIT_KEY,
-        inputs -> inputs.length == 0 ? 0 : DataTypes.INTEGER.implicitCast(inputs[0]),
+        inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
         () -> "0",
