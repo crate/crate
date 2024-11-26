@@ -180,11 +180,18 @@ public class Messages {
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.code().getBytes(StandardCharsets.UTF_8);
 
-        sendErrorResponse(channel, message, msg, PGError.SEVERITY_FATAL, null, null,
+        sendErrorResponse(channel, message, msg, PGError.Severity.FATAL.bytes(), null, null,
                           METHOD_NAME_CLIENT_AUTH, errorCode);
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, AccessControl accessControl, Throwable throwable) {
+        return sendErrorResponse(channel, accessControl, throwable, PGError.Severity.ERROR);
+    }
+
+    static ChannelFuture sendErrorResponse(Channel channel,
+                                           AccessControl accessControl,
+                                           Throwable throwable,
+                                           PGError.Severity severity) {
         final var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
 
         ByteBuf buffer = channel.alloc().buffer();
@@ -192,7 +199,7 @@ public class Messages {
         buffer.writeInt(0); // length, updated later
 
         buffer.writeByte('S');
-        writeCString(buffer, PGError.SEVERITY_ERROR);
+        writeCString(buffer, severity.bytes());
 
         buffer.writeByte('M');
         writeCString(buffer, error.message().getBytes(StandardCharsets.UTF_8));
@@ -230,6 +237,7 @@ public class Messages {
             }
             writeCString(buffer, sb.toString().getBytes(StandardCharsets.UTF_8));
         }
+
         buffer.writeByte(0);
         buffer.setInt(1, buffer.writerIndex() - 1); // exclude msg type from length
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);

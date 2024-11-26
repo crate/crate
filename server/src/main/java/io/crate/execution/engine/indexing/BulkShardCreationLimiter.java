@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.indexing;
 
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.function.Predicate;
 
 public class BulkShardCreationLimiter implements Predicate<ShardedRequests<?, ?>> {
 
@@ -45,8 +45,8 @@ public class BulkShardCreationLimiter implements Predicate<ShardedRequests<?, ?>
 
     @Override
     public boolean test(ShardedRequests<?, ?> requests) {
-        if (requests.itemsByMissingIndex.isEmpty() == false) {
-            int numberOfShardForAllIndices = numberOfAllShards * requests.itemsByMissingIndex.size();
+        if (requests.itemsByMissingPartition.isEmpty() == false) {
+            int numberOfShardForAllIndices = numberOfAllShards * requests.itemsByMissingPartition.size();
             int numberOfShardsPerNode = numberOfShardForAllIndices / numDataNodes;
             if (numberOfShardsPerNode >= MAX_NEW_SHARDS_PER_NODE) {
                 if (LOGGER.isDebugEnabled()) {

@@ -161,13 +161,13 @@ public class ShardingUpsertExecutor
         collectFailingSourceUris(requests, upsertResults);
         collectFailingItems(requests, upsertResults);
 
-        if (requests.itemsByMissingIndex.isEmpty()) {
+        if (requests.itemsByMissingPartition.isEmpty()) {
             return execRequests(requests, upsertResults);
         }
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
             CreatePartitionsAction.INSTANCE,
-            new CreatePartitionsRequest(requests.itemsByMissingIndex.keySet()))
+            CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;

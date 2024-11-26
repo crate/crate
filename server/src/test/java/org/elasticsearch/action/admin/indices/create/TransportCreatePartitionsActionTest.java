@@ -22,24 +22,20 @@
 package org.elasticsearch.action.admin.indices.create;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.UseRandomizedSchema;
@@ -140,26 +136,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     @Test
     public void testEmpty() throws Exception {
-        AcknowledgedResponse response = action.execute(
-            new CreatePartitionsRequest(List.of())).get();
-        assertThat(response.isAcknowledged()).isTrue();
-    }
-
-    @Test
-    public void testCreateInvalidName() {
-        CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"));
-        assertThatThrownBy(
-            () -> {
-                try {
-                    action.execute(createPartitionsRequest).get();
-                } catch (Exception e) {
-                    throw SQLExceptions.unwrap(e);
-                }
-            })
-            .isExactlyInstanceOf(InvalidIndexNameException.class)
-            .hasMessage("Invalid index name [invalid/#haha], must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
-
-        // if one name is invalid no index is created
-        assertThat(cluster().clusterService().state().metadata().hasIndex("valid")).isFalse();
+        assertThatThrownBy(() -> CreatePartitionsRequest.of(List.of()))
+            .hasMessage("Must create at least one partition");
     }
 }

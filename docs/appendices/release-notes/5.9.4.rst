@@ -51,8 +51,8 @@ Fixes
   correlated subquery with the Subquery being an ``INNER JOIN`` and a table on
   the right side having more records than a table on the left side.
 
-- Fixed an ``ArrayIndexOutOfBoundsException`` that happened when using ``SET ...
-  TO DEFAULT`` with either ``statement_timeout`` or ``operation.memory_limit``.
+- Fixed an ``ArrayIndexOutOfBoundsException`` that happened when using ``SET
+  LOCAL <settingName> TO DEFAULT``.
 
 - Fixed an issue that caused incorrect result when comparing values of type
   ``geo_shape`` defined as object literals and one being a geometry collection
@@ -69,3 +69,7 @@ Fixes
          type='GeometryCollection',
          geometries=[{type='Point', coordinates=[10, 40]}, {type='Point', coordinates=[40, 30]}]
        }::GEO_SHAPE;
+
+- Fixed an issue on the :ref:`PostgreSQL wire protocol <interface-postgresql>`
+  that may cause the node to crash with OutOfMemory exceptions when a client
+  sends a invalid (or huge) startup message.

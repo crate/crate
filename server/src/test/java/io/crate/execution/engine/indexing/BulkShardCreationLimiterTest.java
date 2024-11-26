@@ -23,6 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.test.ESTestCase;
@@ -31,6 +32,8 @@ import org.junit.Test;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class BulkShardCreationLimiterTest extends ESTestCase {
 
@@ -38,12 +41,18 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
 
     @Before
     public void setup() {
+        RelationName relationName = new RelationName("doc", "tbl");
         UUID jobId = UUID.randomUUID();
         shardedRequests = new ShardedRequests<>(
             shardId -> new ShardDeleteRequest(shardId, jobId),
             RamAccounting.NO_ACCOUNTING
         );
-        shardedRequests.add(new ShardDeleteRequest.Item("id1"), "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
+        shardedRequests.add(
+            new ShardDeleteRequest.Item("id1"),
+            new PartitionName(relationName, List.of("1")).asIndexName(),
+            null,
+            RowSourceInfo.EMPTY_INSTANCE
+        );
     }
 
     @Test
