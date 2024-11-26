@@ -127,7 +127,7 @@ class NumericType extends PGType<BigDecimal> {
             for (var nextDigitIdx = digitIdx + DEC_DIGITS; digitIdx < nextDigitIdx; digitIdx++) {
                 ndigit *= 10;
                 if (digitIdx >= start && digitIdx < end) {
-                    ndigit += digits[digitIdx] - '0';
+                    ndigit += (short) (digits[digitIdx] - '0');
                 }
             }
             buffer.writeShort(ndigit);

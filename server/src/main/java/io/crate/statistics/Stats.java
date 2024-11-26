@@ -158,7 +158,7 @@ public class Stats implements Writeable {
                     sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
                 }
             } else {
-                sum += columnStats.averageSizeInBytes();
+                sum += (long) columnStats.averageSizeInBytes();
             }
         }
         return sum;
