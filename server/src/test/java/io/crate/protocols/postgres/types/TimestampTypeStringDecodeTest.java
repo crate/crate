@@ -71,7 +71,7 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
         fullTimestamp.append(era);
 
         if (numberOfFractionDigits > 0 && numberOfFractionDigits <= 3) {
-            expectedMillis += Math.pow(10, 3 - numberOfFractionDigits);
+            expectedMillis += (long) Math.pow(10, 3 - numberOfFractionDigits);
         }
 
         assertThat(TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)))
