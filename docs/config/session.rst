@@ -107,8 +107,6 @@ Supported session settings
     cr> SET LOCAL statement_timeout = '50000ms';
     SET OK, 0 rows affected (... sec)
 
-  After executing the statement, every **new** database session will apply the
-  limit.
 
 .. _conf-session-memory-operation-limit:
 
