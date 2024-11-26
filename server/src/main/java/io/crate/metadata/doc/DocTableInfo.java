@@ -43,17 +43,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -503,15 +500,15 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!isPartitioned) {
             return List.of();
         }
-        Index[] indices = IndexNameExpressionResolver.concreteIndices(
-            metadata,
-            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
-            ident.indexNameOrAlias()
-        );
-        ArrayList<PartitionInfo> result = new ArrayList<>(indices.length);
-        for (Index index : indices) {
-            IndexMetadata indexMetadata = metadata.index(index);
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(index.getName());
+        RelationMetadata relation = metadata.getRelation(ident);
+        if (!(relation instanceof RelationMetadata.Table table)) {
+            return List.of();
+        }
+        ArrayList<PartitionInfo> result = new ArrayList<>(table.indexUUIDs().size());
+        for (String indexUUID : table.indexUUIDs()) {
+            IndexMetadata indexMetadata = metadata.indexByUUID(indexUUID);
+            // TODO: get values from indexMetadata?
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexMetadata.getIndex().getName());
             List<String> values = partitionName.values();
             Map<String, Object> valuesMap = HashMap.newHashMap(values.size());
             assert values.size() == partitionedBy.size()

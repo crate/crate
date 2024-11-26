@@ -40,7 +40,6 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -286,13 +285,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         RelationMetadata relation = metadata.getRelation(relationName);
         assertThat(relation).isNotNull();
         assertThat(relation).isExactlyInstanceOf(RelationMetadata.Table.class);
-
-        List<String> partitionValues = Collections.singletonList(String.valueOf(13959981214861L));
-        String partitionName = new PartitionName(
-            relationName,
-            partitionValues
-        ).asIndexName();
-
+        assertThat(((RelationMetadata.Table)relation).indexUUIDs()).hasSize(1);
         execute("select id, name, date from parted");
         assertThat(response).hasRows(
             "1| Ford| 13959981214861"

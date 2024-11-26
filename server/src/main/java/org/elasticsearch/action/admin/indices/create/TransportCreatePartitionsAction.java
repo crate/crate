@@ -220,15 +220,18 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
+            ArrayList<String> newIndexUUIDs = new ArrayList<>(table.indexUUIDs());
             for (String index : indicesToCreate) {
+                String indexUUID = UUIDs.randomBase64UUID();
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
                     .state(IndexMetadata.State.OPEN)
                     .settings(Settings.builder()
                         .put(commonIndexSettings)
-                        .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                        .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
                     );
 
+                newIndexUUIDs.add(indexUUID);
                 final IndexMetadata indexMetadata;
                 try {
                     indexMetadata = indexMetadataBuilder.build();
@@ -245,9 +248,13 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 newMetadataBuilder.put(indexMetadata, false);
             }
 
-            Metadata newMetadata = newMetadataBuilder.build();
+            Metadata newMetadata = newMetadataBuilder
+                .addPartitions(table, newIndexUUIDs)
+                .build();
 
-            ClusterState updatedState = ClusterState.builder(currentState).metadata(newMetadata).build();
+            ClusterState updatedState = ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .build();
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
             for (String index : indicesToCreate) {
                 routingTableBuilder.addAsNew(updatedState.metadata().index(index));

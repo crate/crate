@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -1099,6 +1100,36 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schema.relations())
                 .fRemove(relationName.name())
+                .build();
+            schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+            return this;
+        }
+
+        public Builder addPartitions(RelationMetadata.Table table, ArrayList<String> newIndexUUIDs) {
+            RelationName relationName = table.name();
+            SchemaMetadata schema = schemas.get(relationName.schema());
+            if (schema == null) {
+                throw new IllegalStateException(String.format(
+                    Locale.ENGLISH,
+                    "Can't add partitions to table {}: SchemaMetadata is missing",
+                    relationName
+                ));
+            }
+            RelationMetadata.Table newTable = new RelationMetadata.Table(
+                relationName,
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newIndexUUIDs
+            );
+            ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schema.relations())
+                .fPut(relationName.name(), newTable)
                 .build();
             schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
             return this;

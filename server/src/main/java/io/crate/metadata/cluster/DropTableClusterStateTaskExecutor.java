@@ -21,13 +21,14 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.index.Index;
 
 import io.crate.execution.ddl.tables.DropTableRequest;
@@ -47,12 +48,19 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
-        Set<Index> concreteIndices = Set.of(IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()));
-
-        currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
+        Metadata metadata = currentState.metadata();
+        RelationMetadata relation = metadata.getRelation(relationName);
+        if (!(relation instanceof RelationMetadata.Table table)) {
+            throw new IllegalArgumentException("Cannot drop table " + relationName);
+        }
+        List<Index> toDelete = new ArrayList<>(table.indexUUIDs().size());
+        for (String indexUUID : table.indexUUIDs()) {
+            IndexMetadata indexMetadata = metadata.indexByUUID(indexUUID);
+            if (indexMetadata != null) {
+                toDelete.add(indexMetadata.getIndex());
+            }
+        }
+        currentState = deleteIndexService.deleteIndices(currentState, toDelete);
         Metadata newMetadata = new Metadata.Builder(currentState.metadata())
             .dropTable(relationName)
             .build();
