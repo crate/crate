@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -128,12 +129,14 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         }
         IndexService indexService = sharedShardContext.indexService();
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
+        Version shardCreatedVersion = indexShard.getVersionCreated();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
             indexService.indexAnalyzers(),
             table,
+            shardCreatedVersion,
             indexService.cache()
         );
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
@@ -144,7 +147,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.query(),
             queryContext.minScore(),
             Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE),
-            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexShard.shardId().getIndexName())),
+            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexShard.shardId().getIndexName())),
             docCtx.topLevelInputs(),
             docCtx.expressions()
         );
@@ -202,18 +205,20 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
+        Version shardCreatedVersion = indexShard.getVersionCreated();
         final var queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
             indexService.indexAnalyzers(),
             table,
+            shardCreatedVersion,
             indexService.cache()
         );
         ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), phase);
         collectorContext = new CollectorContext(
             sharedShardContext.readerId(),
-            () -> StoredRowLookup.create(table, indexShard.shardId().getIndexName())
+            () -> StoredRowLookup.create(shardCreatedVersion, table, indexShard.shardId().getIndexName())
         );
         int batchSize = phase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {

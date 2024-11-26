@@ -36,6 +36,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
@@ -101,6 +102,7 @@ public class LuceneQueryBuilder {
                            String indexName,
                            IndexAnalyzers indexAnalyzers,
                            DocTableInfo table,
+                           Version shardCreatedVersion,
                            QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
@@ -110,6 +112,7 @@ public class LuceneQueryBuilder {
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
             table,
+            shardCreatedVersion,
             txnCtx,
             nodeCtx,
             queryCache,
@@ -134,6 +137,7 @@ public class LuceneQueryBuilder {
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
         private final DocTableInfo table;
+        private final Version shardCreatedVersion;
         final DocInputFactory docInputFactory;
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
@@ -144,6 +148,7 @@ public class LuceneQueryBuilder {
         private final Symbol parentQuery;
 
         Context(DocTableInfo table,
+                Version shardCreatedVersion,
                 TransactionContext txnCtx,
                 NodeContext nodeCtx,
                 QueryCache queryCache,
@@ -152,6 +157,7 @@ public class LuceneQueryBuilder {
                 List<Reference> partitionColumns,
                 Symbol parentQuery) {
             this.table = table;
+            this.shardCreatedVersion = shardCreatedVersion;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.indexAnalyzers = indexAnalyzers;
@@ -389,7 +395,7 @@ public class LuceneQueryBuilder {
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
         final CollectorContext collectorContext
-            = new CollectorContext(() -> StoredRowLookup.create(context.table, context.indexName));
+            = new CollectorContext(() -> StoredRowLookup.create(context.shardCreatedVersion, context.table, context.indexName));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

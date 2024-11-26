@@ -98,6 +98,7 @@ public class IndexerBenchmark {
         indexer = new Indexer(
             table.concreteIndices(Metadata.EMPTY_METADATA)[0],
             table,
+            table.versionCreated(),
             new CoordinatorTxnCtx(session.sessionSettings()),
             injector.getInstance(NodeContext.class),
             List.of(

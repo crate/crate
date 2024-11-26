@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -63,7 +64,8 @@ class FetchCollector {
         this.ramAccounting = ramAccounting;
         this.readerId = readerId;
         var table = fetchTask.table(readerId);
-        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(table, indexName));
+        Version shardCreatedVersion = fetchTask.indexShard(readerId).getVersionCreated();
+        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(shardCreatedVersion, table, indexName));
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

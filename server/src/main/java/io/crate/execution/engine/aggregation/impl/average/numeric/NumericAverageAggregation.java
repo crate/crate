@@ -196,6 +196,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
         if (reference == null) {

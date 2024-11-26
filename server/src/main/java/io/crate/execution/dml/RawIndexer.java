@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.NotNull;
@@ -51,6 +52,7 @@ public class RawIndexer {
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
     private final Symbol[] returnValues;
+    private final Version shardVersionCreated;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
     private final List<Reference> nonDeterministicSynthetics;
@@ -61,6 +63,7 @@ public class RawIndexer {
 
     public RawIndexer(String indexName,
                       DocTableInfo table,
+                      Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
@@ -71,6 +74,7 @@ public class RawIndexer {
         this.nodeCtx = nodeCtx;
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
+        this.shardVersionCreated = shardVersionCreated;
     }
 
     /**
@@ -98,6 +102,7 @@ public class RawIndexer {
             return new Indexer(
                 indexName,
                 table,
+                shardVersionCreated,
                 txnCtx,
                 nodeCtx,
                 targetRefs,

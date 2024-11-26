@@ -118,12 +118,15 @@ final class DocValuesGroupByOptimizedIterator {
             }
         }
 
+        Version shardCreatedVersion = indexShard.getVersionCreated();
+
         List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
             functions,
             referenceResolver,
             groupProjection.values(),
             collectPhase.toCollect(),
-            table
+            table,
+            shardCreatedVersion
         );
         if (aggregators == null) {
             return null;
@@ -148,6 +151,7 @@ final class DocValuesGroupByOptimizedIterator {
             indexName,
             indexService.indexAnalyzers(),
             table,
+            shardCreatedVersion,
             indexService.cache()
         );
 
@@ -161,7 +165,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexName))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -173,7 +177,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexName))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
             );
         }
     }

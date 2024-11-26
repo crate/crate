@@ -108,6 +108,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         return new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            table.versionCreated(),
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             Stream.of(columns)
@@ -151,6 +152,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(o),
@@ -190,6 +192,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(o),
@@ -253,6 +256,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(o),
@@ -295,6 +299,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             txnCtx,
             executor.nodeCtx,
             List.of(y),
@@ -310,6 +315,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             txnCtx,
             executor.nodeCtx,
             List.of(x),
@@ -332,6 +338,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x),
@@ -356,6 +363,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             partition,
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x),
@@ -376,6 +384,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(o),
@@ -406,6 +415,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x),
@@ -433,6 +443,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer1 = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x, y),
@@ -444,6 +455,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer2 = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x, o),
@@ -461,6 +473,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
@@ -491,6 +504,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
@@ -522,6 +536,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
@@ -547,6 +562,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
@@ -571,6 +587,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
@@ -596,6 +613,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
@@ -704,6 +722,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Indexer indexer = new Indexer(
                 table.ident().indexNameOrAlias(),
                 table,
+                Version.CURRENT,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 e.nodeCtx,
                 Lists.map(columns, c -> table.getReference(c)),
@@ -733,6 +752,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
@@ -776,6 +796,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new Indexer(
                 table.ident().indexNameOrAlias(),
                 table,
+                Version.CURRENT,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 e.nodeCtx,
                 List.<Reference>of(
@@ -1051,6 +1072,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer = new Indexer(
             newTable.ident().indexNameOrAlias(),
             newTable,
+            Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of("x", "o", "y").stream()
@@ -1144,6 +1166,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x, y),
@@ -1179,6 +1202,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             partition,
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
@@ -1211,6 +1235,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
+            Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(x),

@@ -41,6 +41,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.NotNull;
 
@@ -181,6 +182,14 @@ public class FetchTask implements Task {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Reader with id %d not found", readerId));
         }
         return sharedShardContext.indexService();
+    }
+
+    public IndexShard indexShard(int readerId) {
+        SharedShardContext sharedShardContext = shardContexts.get(readerId);
+        if (sharedShardContext == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Reader with id %d not found", readerId));
+        }
+        return sharedShardContext.indexShard();
     }
 
     @Override

@@ -132,6 +132,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         return null;
     }
