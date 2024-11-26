@@ -86,7 +86,11 @@ public class SetSessionPlan implements Plan {
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
             ensureNotGlobalSetting(settingName);
         } else {
-            sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
+            if (assignment.expressions().isEmpty()) {
+                sessionSetting.apply(sessionSettings, sessionSetting.defaultValue());
+            } else {
+                sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
+            }
         }
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }

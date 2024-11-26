@@ -74,13 +74,20 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_can_reset_statement_timeout_and_memory_limit() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService);
-        List<String> statements = List.of(
-            "set \"statement_timeout\" to default",
-            "set \"operation.memory_limit\" to default"
+    public void test_can_reset_all_session_settings() throws Exception {
+        Set<String> immutableSettings = Set.of(
+            "max_index_keys",
+            "max_identifier_length",
+            "server_version_num",
+            "server_version"
         );
-        for (String stmt : statements) {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of());
+        for (String settingName : sessionSettingRegistry.settings().keySet()) {
+            if (immutableSettings.contains(settingName)) {
+                continue;
+            }
+            String stmt = "SET \"" + settingName + "\" TO DEFAULT";
             SetSessionPlan plan = e.plan(stmt);
             TestingRowConsumer result = e.execute(plan);
             assertThat(result.getResult()).isEmpty();
