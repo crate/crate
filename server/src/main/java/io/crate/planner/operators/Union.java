@@ -240,6 +240,12 @@ public class Union implements LogicalPlan {
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
+        if (newLhs.outputs().size() != newRhs.outputs().size()) {
+            // UNION left/right side plans must have outputs of the same size.
+            // Column prunning can lead to a situation when one side stays intact and another gets modified.
+            // We should not use prunned plans in this case to keep UNION operator valid.
+            return this;
+        }
         return new Union(newLhs, newRhs, newOutputs);
     }
 

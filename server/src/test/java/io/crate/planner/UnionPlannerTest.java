@@ -24,23 +24,27 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.operators.Union;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -263,6 +267,44 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                     └ TableFunction[empty_row | [1, 1] | true]
                 """
         );
+    }
+
+    @Test
+    public void test_union_works_when_both_sides_get_different_output_size_after_prunning() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t");
+
+        assertThat(plan).isEqualTo("""
+            HashAggregate[count(*)]
+              └ Rename[id] AS t
+                └ Union[id]
+                  ├ Collect[doc.users | [id] | true]
+                  └ Eval[1 AS renamed]
+                    └ TableFunction[empty_row | [] | true]
+            """
+        );
+
+        ExecutionPlan executionPlan = plan.build(
+            mock(DependencyCarrier.class),
+            e.getPlannerContext(),
+            Set.of(),
+            new ProjectionBuilder(e.nodeCtx),
+            -1,
+            0,
+            null,
+            null,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        // Used to fail with IndexOutOfBoundsException due to different number of outputs on the UNION sides.
+        assertThat(executionPlan).isExactlyInstanceOf(UnionExecutionPlan.class);
+        UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) executionPlan;
+        assertThat(unionExecutionPlan.left()).isExactlyInstanceOf(Collect.class);
+        assertThat(unionExecutionPlan.right()).isExactlyInstanceOf(Collect.class);
+        Collect left = (Collect) unionExecutionPlan.left();
+        Collect right = (Collect) unionExecutionPlan.right();
+        assertThat(left.numOutputs()).isEqualTo(right.numOutputs());
     }
 
 }

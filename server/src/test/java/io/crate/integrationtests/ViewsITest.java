@@ -290,4 +290,23 @@ public class ViewsITest extends IntegTestCase {
                 "Cannot rename view %s.v1 to %s.tbl_parted, table %s.tbl_parted already exists",
                 schema, schema, schema));
     }
+
+    @Test
+    public void test_union_works_when_both_sides_get_different_output_size_after_prunning() {
+        execute("create table t as (select 1 as id);");
+        execute("refresh table t");
+
+        execute("create view v1 as (select 2 as id)");
+        execute("""
+            create view v2 as (
+               select * from t
+               union all
+               select * from v1
+            )
+            """
+        );
+
+        execute("select count(*) from v2");
+        assertThat(response).hasRows("2");
+    }
 }
