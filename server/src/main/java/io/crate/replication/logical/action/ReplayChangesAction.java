@@ -217,9 +217,9 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         }
 
         @Override
-        protected WriteReplicaResult<Request> shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
+        protected WriteReplicaResult shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
             Translog.Location location = performOnReplica(request, replica);
-            return new WriteReplicaResult<>(location, null, replica);
+            return new WriteReplicaResult(location, null, replica);
         }
 
         private Translog.Location performOnReplica(Request request, IndexShard replica) throws Exception {

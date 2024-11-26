@@ -275,7 +275,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
+    protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Reference[] insertColumns = request.insertColumns();
         if (insertColumns == null) {
             // On the primary, update columns get converted to insert columns, so
@@ -283,7 +283,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // this should mean that there are either no items to index, or that
             // all items on the primary errored out and so should be ignored.
             assert noItemsToIndexOnReplica(request);
-            return new WriteReplicaResult<>(null, null, indexShard);
+            return new WriteReplicaResult(null, null, indexShard);
         }
 
         Translog.Location location = null;
@@ -384,7 +384,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
             location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(location, null, indexShard);
+        return new WriteReplicaResult(location, null, indexShard);
     }
 
     /**
