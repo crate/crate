@@ -83,7 +83,7 @@ public class NodeFetchOperation {
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
                 indexName,
                 table.partitionedByColumns(),
-                table.isParentReferenceIgnored()
+                table.isIgnoredReference()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {

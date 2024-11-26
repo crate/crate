@@ -59,7 +59,7 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference,
-                                                      Predicate<Reference> isParentReferenceIgnored) {
+                                                      Predicate<Reference> isIgnoredReference) {
         assert reference.column().name().equals(SysColumns.DOC.name()) :
             "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
@@ -67,7 +67,7 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
         }
 
         Function<Object, Object> valueConverter;
-        if (isParentReferenceIgnored.test(reference)) {
+        if (isIgnoredReference.test(reference)) {
             // If the parent reference is ignored, the child column may have been ignored as well before and may contain
             // a value that does not fit the current defined child column data type.
             valueConverter = val -> reference.valueType().sanitizeValueLenient(val);

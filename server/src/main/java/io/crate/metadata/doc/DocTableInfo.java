@@ -339,8 +339,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return referenceTree().findFirstParentMatching(child, test);
     }
 
-    public Predicate<Reference> isParentReferenceIgnored() {
-        return ref -> findParentReferenceMatching(ref, r -> r.columnPolicy() == ColumnPolicy.IGNORED) != null;
+    /**
+     * A reference is ignored if it is an ignored object or an immediate child of an ignored object.
+     */
+    public Predicate<Reference> isIgnoredReference() {
+        return ref -> {
+            if (ref.valueType() instanceof ObjectType) {
+                return ref.columnPolicy() == ColumnPolicy.IGNORED;
+            }
+            for (Reference parent : getParents(ref.column())) {
+                if (parent.valueType() instanceof ObjectType) {
+                    return parent.columnPolicy() == ColumnPolicy.IGNORED;
+                }
+            }
+            return false;
+        };
     }
 
     private ReferenceTree referenceTree() {

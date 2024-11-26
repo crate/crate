@@ -105,7 +105,7 @@ public class LuceneQueryBuilder {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
-            table.isParentReferenceIgnored()
+            table.isIgnoredReference()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
@@ -160,7 +160,7 @@ public class LuceneQueryBuilder {
                 new LuceneReferenceResolver(
                     indexName,
                     partitionColumns,
-                    table.isParentReferenceIgnored()
+                    table.isIgnoredReference()
                 )
             );
             this.queryCache = queryCache;

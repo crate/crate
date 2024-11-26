@@ -91,7 +91,7 @@ public final class IndexEnv implements AutoCloseable {
         luceneReferenceResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
-            table.isParentReferenceIgnored()
+            table.isIgnoredReference()
         );
         indexService = indexModule.newIndexService(
             nodeContext,

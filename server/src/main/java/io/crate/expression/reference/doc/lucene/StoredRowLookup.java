@@ -230,7 +230,7 @@ public abstract class StoredRowLookup implements StoredRow {
             } else {
                 LuceneCollectorExpression<?> expr = LuceneReferenceResolver.typeSpecializedExpression(
                     ref,
-                    table.isParentReferenceIgnored()
+                    table.isIgnoredReference()
                 );
                 assert expr instanceof DocCollectorExpression<?> == false;
                 var column = ref.toColumn();

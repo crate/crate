@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -654,5 +653,26 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var x_x = table.getReference("x.x");
         var x_x_children = table.getChildReferences(x_x);
         assertThat(x_children).isNotEqualTo(x_x_children);
+    }
+
+    @Test
+    public void test_ignored_object_or_immediate_child_of_ignored_object_are_ignored_references() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    o object(ignored) as (b int, o2 object(dynamic) as (a int))
+                )
+                """);
+
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference o = table.getReference(ColumnIdent.of("o"));
+        Reference o2 = table.getReference(ColumnIdent.of("o", List.of("o2")));
+        Reference a = table.getReference(ColumnIdent.of("o", List.of("o2", "a")));
+        Reference b = table.getReference(ColumnIdent.of("o", List.of("b")));
+
+        assertThat(table.isIgnoredReference().test(o)).isTrue();
+        assertThat(table.isIgnoredReference().test(o2)).isFalse();
+        assertThat(table.isIgnoredReference().test(a)).isFalse();
+        assertThat(table.isIgnoredReference().test(b)).isTrue();
     }
 }
