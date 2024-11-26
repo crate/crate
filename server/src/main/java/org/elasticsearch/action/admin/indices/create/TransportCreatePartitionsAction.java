@@ -75,6 +75,7 @@ import org.joda.time.DateTimeZone;
 
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 
 /**
@@ -136,24 +137,20 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
-
-        if (request.indices().isEmpty()) {
-            listener.onResponse(new AcknowledgedResponse(true));
-            return;
-        }
-
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                activeShardsObserver.waitForActiveShards(request.indices().toArray(new String[0]), ActiveShardCount.DEFAULT, request.ackTimeout(),
+                List<String> indexNames = request.indexNames();
+                activeShardsObserver.waitForActiveShards(indexNames.toArray(String[]::new), ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
-                            String partitionTemplateName = PartitionName.templateName(request.indices().iterator().next());
+                            RelationName relationName = request.relationName();
+                            String partitionTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
                             IndexTemplateMetadata templateMetadata = state.metadata().templates().get(partitionTemplateName);
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
-                                request.indices(), request.timeout(),
+                                relationName, request.timeout(),
                                 SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.settings()),
                                 INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.settings()));
                         }
@@ -161,7 +158,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     }, listener::onFailure);
             } else {
                 logger.warn("[{}] Table partitions created, but publishing new cluster state timed out. Timeout={}",
-                    request.indices(), request.timeout());
+                    request.relationName(), request.timeout());
                 listener.onResponse(new AcknowledgedResponse(false));
             }
         }, listener::onFailure));
@@ -313,8 +310,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     private List<String> getValidatedIndicesToCreate(ClusterState state, CreatePartitionsRequest request) {
-        ArrayList<String> indicesToCreate = new ArrayList<>(request.indices().size());
-        for (String index : request.indices()) {
+        ArrayList<String> indicesToCreate = new ArrayList<>(request.partitionValuesList().size());
+        for (List<String> partitionValues : request.partitionValuesList()) {
+            String index = new PartitionName(request.relationName(), partitionValues).asIndexName();
             if (state.metadata().hasIndex(index)) {
                 continue;
             }
@@ -345,6 +343,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
     @Override
     protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, request.indices().toArray(String[]::new));
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            request.indexNames().toArray(String[]::new)
+        );
     }
 }
