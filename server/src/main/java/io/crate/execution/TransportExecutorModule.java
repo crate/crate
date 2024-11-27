@@ -30,7 +30,7 @@ import io.crate.execution.ddl.tables.TransportAlterTableAction;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportDropColumnAction;
 import io.crate.execution.ddl.tables.TransportDropConstraintAction;
-import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
+import io.crate.execution.ddl.tables.TransportOpenTableAction;
 import io.crate.execution.ddl.tables.TransportRenameTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
@@ -53,7 +53,7 @@ public class TransportExecutorModule extends AbstractModule {
 
         bind(TransportRenameTableAction.class).asEagerSingleton();
         bind(TransportSwapAndDropIndexNameAction.class).asEagerSingleton();
-        bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
+        bind(TransportOpenTableAction.class).asEagerSingleton();
         bind(TransportCloseTable.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();

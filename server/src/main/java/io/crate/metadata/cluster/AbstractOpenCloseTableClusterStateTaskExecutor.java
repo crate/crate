@@ -22,6 +22,7 @@
 package io.crate.metadata.cluster;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,11 +37,11 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.tables.OpenTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<OpenCloseTableOrPartitionRequest> {
+public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<OpenTableRequest> {
 
     protected static class Context {
 
@@ -80,16 +81,19 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
-    protected Context prepare(ClusterState currentState, OpenCloseTableOrPartitionRequest request) {
-        RelationName relationName = request.tableIdent();
-        String partitionIndexName = request.partitionIndexName();
+    protected Context prepare(ClusterState currentState, OpenTableRequest request) {
+        RelationName relationName = request.relation();
+        List<String> partitionValues = request.partitionValues();
+        PartitionName partitionName = partitionValues.isEmpty() ? null : new PartitionName(relationName, partitionValues);
         Metadata metadata = currentState.metadata();
-        String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexNameOrAlias();
-        PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
-        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, indexToResolve);
+        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
+            currentState.metadata(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            partitionName == null ? relationName.indexNameOrAlias() : partitionName.asIndexName()
+        );
         Set<IndexMetadata> indicesMetadata = DDLClusterStateHelpers.indexMetadataSetFromIndexNames(metadata, concreteIndices, indexState());
         IndexTemplateMetadata indexTemplateMetadata = null;
-        if (partitionIndexName == null) {
+        if (partitionName == null) {
             indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(metadata, relationName);
         }
         return new Context(indicesMetadata, indexTemplateMetadata, partitionName);
