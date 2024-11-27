@@ -21,10 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.CloseTableClusterStateTaskExecutor;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
+import static io.crate.execution.ddl.tables.TransportCloseTable.isEmptyPartitionedTable;
+
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -41,19 +39,22 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import static io.crate.execution.ddl.tables.TransportCloseTable.isEmptyPartitionedTable;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
 
 @Singleton
-public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, AcknowledgedResponse> {
+public class TransportOpenTableAction extends AbstractDDLTransportAction<OpenTableRequest, AcknowledgedResponse> {
 
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
 
     private final OpenTableClusterStateTaskExecutor openExecutor;
-    private final CloseTableClusterStateTaskExecutor closeExecutor;
 
     @Inject
-    public TransportOpenCloseTableOrPartitionAction(TransportService transportService,
+    public TransportOpenTableAction(TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
                                                     AllocationService allocationService,
@@ -64,30 +65,44 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
             transportService,
             clusterService,
             threadPool,
-            OpenCloseTableOrPartitionRequest::new,
+            OpenTableRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
             "open-table-or-partition");
-        openExecutor = new OpenTableClusterStateTaskExecutor(allocationService,
-            ddlClusterStateService, metadataIndexUpgradeService, indexServices);
-        closeExecutor = new CloseTableClusterStateTaskExecutor(allocationService, ddlClusterStateService);
+        openExecutor = new OpenTableClusterStateTaskExecutor(
+            allocationService,
+            ddlClusterStateService,
+            metadataIndexUpgradeService,
+            indexServices
+        );
     }
 
     @Override
-    public ClusterStateTaskExecutor<OpenCloseTableOrPartitionRequest> clusterStateTaskExecutor(OpenCloseTableOrPartitionRequest request) {
-        if (request.isOpenTable()) {
-            return openExecutor;
-        } else {
-            return closeExecutor;
-        }
+    public ClusterStateTaskExecutor<OpenTableRequest> clusterStateTaskExecutor(OpenTableRequest request) {
+        return openExecutor;
     }
 
     @Override
-    protected ClusterBlockException checkBlock(OpenCloseTableOrPartitionRequest request, ClusterState state) {
-        if (isEmptyPartitionedTable(request.tableIdent(), state)) {
+    protected ClusterBlockException checkBlock(OpenTableRequest request, ClusterState state) {
+        RelationName relation = request.relation();
+        if (isEmptyPartitionedTable(relation, state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), STRICT_INDICES_OPTIONS, request.tableIdent().indexNameOrAlias()));
+        String[] indexNames;
+        if (request.partitionValues().isEmpty()) {
+            indexNames = IndexNameExpressionResolver.concreteIndexNames(
+                state.metadata(),
+                STRICT_INDICES_OPTIONS,
+                relation.indexNameOrAlias()
+            );
+        } else {
+            PartitionName partition = new PartitionName(relation, request.partitionValues());
+            indexNames = IndexNameExpressionResolver.concreteIndexNames(
+                state.metadata(),
+                STRICT_INDICES_OPTIONS,
+                partition.asIndexName()
+            );
+        }
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 }

@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 
-import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.tables.OpenTableRequest;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 
 
@@ -60,7 +60,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
     }
 
     @Override
-    protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
+    protected ClusterState execute(ClusterState currentState, OpenTableRequest request) throws Exception {
         Context context = prepare(currentState, request);
         Set<IndexMetadata> indicesToOpen = context.indicesMetadata();
         IndexTemplateMetadata templateMetadata = context.templateMetadata();
@@ -116,7 +116,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
         if (context.partitionName() != null) {
             updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, context.partitionName());
         } else {
-            updatedState = ddlClusterStateService.onOpenTable(updatedState, request.tableIdent());
+            updatedState = ddlClusterStateService.onOpenTable(updatedState, request.relation());
         }
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());

@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -85,7 +84,7 @@ public class AlterTableClient {
     private final TransportAddColumnAction transportAddColumnAction;
     private final TransportDropColumnAction transportDropColumnAction;
     private final TransportRenameTableAction transportRenameTableAction;
-    private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
+    private final TransportOpenTableAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
@@ -97,7 +96,7 @@ public class AlterTableClient {
     @Inject
     public AlterTableClient(ClusterService clusterService,
                             TransportRenameTableAction transportRenameTableAction,
-                            TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
+                            TransportOpenTableAction transportOpenCloseTableOrPartitionAction,
                             TransportCloseTable transportCloseTable,
                             TransportResizeAction transportResizeAction,
                             TransportDeleteIndexAction transportDeleteIndexAction,
@@ -181,17 +180,12 @@ public class AlterTableClient {
     public CompletableFuture<Long> closeOrOpen(RelationName relationName,
                                                boolean openTable,
                                                @Nullable PartitionName partitionName) {
-        String partitionIndexName = null;
-        if (partitionName != null) {
-            partitionIndexName = partitionName.asIndexName();
-        }
-        if (openTable || clusterService.state().nodes().getMinNodeVersion().before(Version.V_4_3_0)) {
-            OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
-                relationName, partitionIndexName, openTable);
+        if (openTable) {
+            OpenTableRequest request = new OpenTableRequest(relationName, partitionName == null ? List.of() : partitionName.values());
             return transportOpenCloseTableOrPartitionAction.execute(request, _ -> -1L);
         } else {
             return transportCloseTable.execute(
-                new CloseTableRequest(relationName, partitionIndexName),
+                new CloseTableRequest(relationName, partitionName == null ? null : partitionName.asIndexName()),
                 _ -> -1L
             );
         }
