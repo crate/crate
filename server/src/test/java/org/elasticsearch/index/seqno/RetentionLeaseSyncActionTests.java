@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportReplicationAction.PrimaryResult;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -148,8 +148,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
-        final TransportWriteAction.WriteReplicaResult<RetentionLeaseSyncAction.Request> result =
-                action.shardOperationOnReplica(request, indexShard);
+        final TransportReplicationAction.ReplicaResult result =
+            action.shardOperationOnReplica(request, indexShard);
         // the retention leases on the shard should be updated
         verify(indexShard).updateRetentionLeasesOnReplica(retentionLeases);
         // the retention leases on the shard should be persisted

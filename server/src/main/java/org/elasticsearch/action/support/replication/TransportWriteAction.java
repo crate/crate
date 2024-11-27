@@ -113,31 +113,9 @@ public abstract class TransportWriteAction<
     }
 
     /**
-     * Called on the primary with a reference to the primary {@linkplain IndexShard} to modify.
-     *
-     * @param listener listener for the result of the operation on primary, including current translog location and operation response
-     * and failure async refresh is performed on the <code>primary</code> shard according to the <code>Request</code> refresh policy
-     */
-    @Override
-    protected abstract void shardOperationOnPrimary(
-            Request request, IndexShard primary, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener);
-
-    /**
-     * Called once per replica with a reference to the replica {@linkplain IndexShard} to modify.
-     *
-     * @return the result of the operation on replica, including current translog location and operation response and failure
-     * async refresh is performed on the <code>replica</code> shard according to the <code>ReplicaRequest</code> refresh policy
-     */
-    @Override
-    protected abstract WriteReplicaResult<ReplicaRequest> shardOperationOnReplica(
-            ReplicaRequest request, IndexShard replica) throws Exception;
-
-    /**
      * Result of taking the action on the primary.
-     *
-     * NOTE: public for testing
      */
-    public static class WritePrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
+    protected static class WritePrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
             Response extends ReplicationResponse> extends PrimaryResult<ReplicaRequest, Response> {
         public final Location location;
         public final IndexShard primary;
@@ -183,9 +161,9 @@ public abstract class TransportWriteAction<
     /**
      * Result of taking the action on the replica.
      */
-    public static class WriteReplicaResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>>
-            extends ReplicaResult implements RespondingWriteResult {
-        public final Location location;
+    protected static class WriteReplicaResult
+        extends ReplicaResult implements RespondingWriteResult {
+        private final Location location;
         private final IndexShard replica;
 
         public WriteReplicaResult(@Nullable Location location,

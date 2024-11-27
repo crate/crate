@@ -21,10 +21,13 @@
 
 package io.crate.execution.dml;
 
-import io.crate.exceptions.JobKilledException;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.kill.KillAllListener;
-import io.crate.execution.jobs.kill.KillableCallable;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -37,14 +40,12 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.KillAllListener;
+import io.crate.execution.jobs.kill.KillableCallable;
 
 /**
  * Base class for performing Crate-specific TransportWriteActions like Delete or Upsert.
@@ -111,11 +112,11 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     }
 
     @Override
-    protected WriteReplicaResult<Request> shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
-        KillableWrapper<WriteReplicaResult<Request>> callable =
-            new KillableWrapper<WriteReplicaResult<Request>>(replicaRequest.jobId()) {
+    protected WriteReplicaResult shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
+        KillableWrapper<WriteReplicaResult> callable =
+            new KillableWrapper<WriteReplicaResult>(replicaRequest.jobId()) {
                 @Override
-                public WriteReplicaResult<Request> call() throws Exception {
+                public WriteReplicaResult call() throws Exception {
                     return processRequestItemsOnReplica(indexShard, replicaRequest);
                 }
             };
@@ -165,7 +166,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     protected abstract WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException, IOException;
 
-    protected abstract WriteReplicaResult<Request> processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
+    protected abstract WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
 
     abstract static class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 

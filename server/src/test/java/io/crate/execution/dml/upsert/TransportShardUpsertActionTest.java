@@ -37,7 +37,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -217,7 +217,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
@@ -239,7 +239,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.finalResponseIfSuccessful;
@@ -264,7 +264,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);

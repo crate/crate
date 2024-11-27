@@ -31,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,26 +40,18 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.session.BaseResultReceiver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.NodeContext;
@@ -66,6 +59,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.session.BaseResultReceiver;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -131,23 +125,25 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  id integer primary key, " +
                 "  quote string index using fulltext" +
                 ") partitioned by (id)");
-        ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount()).isEqualTo(3L);
         execute("refresh table quotes");
         ensureYellow();
 
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        for (String id : List.of("1", "2", "3")) {
-            String partitionName = new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                List.of(id)).asIndexName();
-            var partitionIndexMetadata = state.metadata().indices().get(partitionName);
-            assertThat(partitionIndexMetadata).isNotNull();
-            assertThat(partitionIndexMetadata.getAliases().get(getFqn("quotes"))).isNotNull();
-        }
-
+        execute("""
+            select
+                values
+            from information_schema.table_partitions
+            where
+                table_name = ?
+            order by partition_ident
+            """, $("quotes"));
+        assertThat(response).hasRows(
+            "{id=1}",
+            "{id=2}",
+            "{id=3}"
+        );
         execute("select * from quotes");
         assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0].length).isEqualTo(2);
@@ -238,8 +234,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select table_schema, table_name from information_schema.tables where table_name like '%parted%'");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            "my_schema| parted\n");
+        assertThat(response).hasRows("my_schema| parted");
 
         execute("select count(*) from my_schema.parted");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -276,25 +271,21 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   date timestamp with time zone" +
             ") partitioned by (date)");
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "parted");
-
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
         assertThat(response).hasRowCount(1);
         ensureYellow();
         execute("refresh table parted");
 
-        Metadata metadata = clusterService().state().metadata();
-        String fqTablename = getFqn("parted");
-        assertThat(metadata.hasAlias(fqTablename)).isTrue();
-        assertThat(metadata.templates().containsKey(templateName)).isTrue();
-
-        String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(String.valueOf(13959981214861L))
-        ).asIndexName();
-
-        assertThat(metadata.indices().get(partitionName).getAliases().get(fqTablename)).isNotNull();
+        execute("""
+            select values
+            from information_schema.table_partitions
+            where table_name = ?
+            order by partition_ident
+            """, $("parted"));
+        assertThat(response).hasRows(
+            "{date=13959981214861}"
+        );
 
         execute("select id, name, date from parted");
         assertThat(response).hasRows(
@@ -314,7 +305,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testMultiValueInsertPartitionedTable() {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
         execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "Ford", 13959981214861L,
@@ -332,7 +322,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testBulkInsertPartitionedTable() {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
         execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][]{
             new Object[]{1, "Ford", 13959981214861L},
             new Object[]{2, "Trillian", 0L},
@@ -348,7 +337,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testInsertPartitionedTableOnlyPartitionedColumns() {
         execute("create table parted (name string, date timestamp with time zone)" +
                 "partitioned by (name, date)");
-        ensureYellow();
 
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
@@ -375,7 +363,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExists() {
         execute("create table parted (name string, date timestamp with time zone)" +
                 "partitioned by (name, date)");
-        ensureYellow();
 
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
@@ -428,20 +415,23 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (name, date)");
-        ensureYellow();
 
         Long dateValue = System.currentTimeMillis();
         execute("insert into parted (id, date, name) values (?, ?, ?)",
             new Object[]{1, dateValue, "Trillian"});
         assertThat(response.rowCount()).isEqualTo(1L);
-        ensureYellow();
         execute("refresh table parted");
-        String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Arrays.asList("Trillian", dateValue.toString())).asIndexName();
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get()
-            .getState().metadata().indices().get(partitionName).getAliases().get(getFqn("parted")))
-            .isNotNull();
+
+        execute("""
+            select values
+            from information_schema.table_partitions
+            where table_name = 'parted'
+            order by partition_ident
+            """
+        );
+        assertThat(response).hasRows(
+            "{date=" + dateValue + ", name=Trillian}"
+        );
     }
 
     @Test
@@ -452,7 +442,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " day as date_trunc('day', ts)" +
                 ") partitioned by (day)" +
                 " with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into parted_generated (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-23T14:43:00"
@@ -467,7 +456,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testSelectFromPartitionedTableWhereClause() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -483,7 +471,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testSelectCountFromPartitionedTableWhereClause() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -503,7 +490,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testSelectFromPartitionedTable() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -524,7 +510,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  type byte primary key," +
                 "  content string) " +
                 "partitioned by(type) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
             new Object[]{1, 127, "Don't panic"});
         execute("insert into stuff (id, type, content) values(?, ?, ?)",
@@ -557,7 +542,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testUpdatePartitionedTable() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -594,7 +578,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   timestamp timestamp with time zone, " +
             "   o object" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -618,7 +601,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   timestamp timestamp with time zone, " +
             "   o object(ignored)" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -637,7 +619,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testUpdatePartitionedUnknownColumnKnownValue() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -677,7 +658,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testUpdateByQueryOnEmptyPartitionedTable() {
         execute("create table empty_parted(id integer, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("update empty_parted set id = 10 where timestamp = 1396303200000");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -691,7 +671,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   quote string, " +
             "   timestamp timestamp with time zone" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -771,7 +750,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "   quote string, " +
                 "   timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -816,7 +794,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   timestamp timestamp with time zone," +
             "   o object(ignored)" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
+
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -852,7 +830,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testDeleteFromPartitionedTableDeleteByPartitionAndQueryWithConjunction() {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
+
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L});
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -871,7 +849,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testDeleteByQueryFromEmptyPartitionedTable() {
         execute("create table empty_parted (id integer, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
+
 
         execute("delete from empty_parted where not timestamp = 1396303200000");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -881,7 +859,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testGlobalAggregatePartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
+
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -932,7 +910,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testGroupByPartitionedColumns() {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
+
         execute("select date, count(*) from parted group by date");
         assertThat(response.rowCount()).isEqualTo(0L);
 
@@ -966,7 +944,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testGroupByPartitionedColumnWhereClause() {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
+
         execute("select date, count(*) from parted where date > 0 group by date");
         assertThat(response.rowCount()).isEqualTo(0L);
 
@@ -997,7 +975,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testGlobalAggregateWhereClause() {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
-        ensureYellow();
+
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted where date > 0");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1056,7 +1034,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testPartitionedTableSelectById() throws Exception {
         execute("create table quotes (id integer, quote string, num double, primary key (id, num)) partitioned by (num)");
-        ensureYellow();
         execute("insert into quotes (id, quote, num) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "Don't panic", 4.0d,
@@ -1081,7 +1058,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   date timestamp with time zone," +
             "   author object(dynamic) as (name string)" +
             ") partitioned by(date) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 new HashMap<String, Object>() {{
@@ -1123,7 +1099,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp with time zone primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1160,7 +1135,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp with time zone primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1198,7 +1172,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "   id int primary key," +
                 "   date timestamp with time zone primary key" +
                 ") partitioned by (date) with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
         execute("insert into t1 (id, date, dynamic_added_col1) values (1, '2014-01-01', 'foo')");
         execute("insert into t1 (id, date, dynamic_added_col2) values (2, '2014-02-01', 'bar')");
         execute("refresh table t1");
@@ -1226,7 +1199,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  date timestamp with time zone, " +
                 "  user_id string)" +
                 ") partitioned by(created['date']) clustered by (id) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
             new Object[]{1, "Don't panic", Map.of("date", 1395874800000L, "user_id", "Arthur")});
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1284,14 +1256,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("refresh table tbl");
 
-        assertThat(clusterService().state().metadata().hasAlias(getFqn("tbl"))).isTrue();
-
-        RelationName relationName = new RelationName(defaultSchema, "tbl");
-        List<String> partitions = List.of(
-            new PartitionName(relationName, List.of("1")).asIndexName(),
-            new PartitionName(relationName, List.of("2")).asIndexName()
-        );
-
         execute("select number_of_replicas from information_schema.table_partitions");
         assertThat(response).hasRows(
             "0",
@@ -1322,23 +1286,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table tbl (id int, p int) partitioned by (p) with (number_of_replicas = 1)");
         execute("insert into tbl (id, p) values (1, 1)");
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "tbl");
-        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
-        Settings settings = indexTemplateMetadata.settings();
-
-        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(1);
-        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
-        assertThat(autoExpand1.isEnabled()).isFalse();
+        execute("select number_of_replicas from information_schema.table_partitions");
+        assertThat(response).hasRows(
+            "1"
+        );
 
         execute("alter table tbl reset (number_of_replicas)");
-
-        indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
-        settings = indexTemplateMetadata.settings();
-
-        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
-        AutoExpandReplicas autoExpand2 = AutoExpandReplicas.SETTING.get(settings);
-        assertThat(autoExpand2.isEnabled()).isTrue();
-        assertThat(autoExpand2.toString()).isEqualTo("0-1");
 
         assertBusy(() -> {
             execute("select number_of_replicas from information_schema.table_partitions");
@@ -1367,14 +1320,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "04732cpp6ks3ed1o60o30c1g| 1",
             "04732cpp6ksjcc9i60o30c1g| 0"
         );
-
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
-        Settings settings = indexTemplateMetadata.settings();
-
-        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
-        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
-        assertThat(autoExpand1.isEnabled()).isFalse();
     }
 
     @Test
@@ -1429,7 +1374,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testAlterPartitionedTableOnlySettings() throws Exception {
         execute("create table attrs (name string, attr string, value integer) " +
                 "partitioned by (name) clustered into 1 shards with (number_of_replicas=0, \"routing.allocation.total_shards_per_node\"=5)");
-        ensureYellow();
         execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
             new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
         execute("refresh table attrs");
@@ -1489,7 +1433,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date) with (refresh_interval=0)");
-        ensureYellow();
 
         Asserts.assertSQLError(() -> execute("refresh table parted partition(date=0)"))
             .hasPGError(INTERNAL_ERROR)
@@ -1507,7 +1450,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   date timestamp with time zone" +
             ") partitioned by (date) " +
             "with (number_of_replicas=0, refresh_interval=-1)");
-        ensureYellow();
+
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Arthur', '1970-01-07')");
@@ -1555,7 +1498,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  date timestamp with time zone)" +
                 "  partitioned by (date, age)" +
                 "  with (number_of_replicas=0, refresh_interval=-1)");
-        ensureYellow();
 
         execute("insert into t1 (id, name, age, date) values " +
                 "(1, 'Trillian', 90, '1970-01-01')," +
@@ -1583,7 +1525,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 ") partitioned by (score) with (number_of_replicas=0, column_policy='dynamic')");
         execute("insert into dynamic_table (id, score) values (1, 10)");
         execute("refresh table dynamic_table");
-        ensureYellow();
 
         DocTableInfo table = getTable("dynamic_table");
         assertThat(table.columns()).hasSize(2);
@@ -1604,7 +1545,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  name string, " +
                 "  date timestamp with time zone" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("select count(*) from parted");
         assertThat(response.rowCount()).isEqualTo(1L);
@@ -1773,7 +1713,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table event (day timestamp with time zone primary key, data object) " +
             "clustered into 6 shards " +
             "partitioned by (day)");
-        ensureYellow();
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("refresh table event");
@@ -1851,7 +1790,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   number int" +
             ") clustered into 6 shards " +
             "partitioned by (day)");
-        ensureYellow();
+
         execute("insert into event (day, data, number) values ('2015-01-03', {sessionid = null}, 0)");
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 21)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
@@ -1885,7 +1824,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table event (day timestamp with time zone primary key) " +
                 "clustered into 6 shards partitioned by (day) " +
                 "with (column_policy = 'dynamic') ");
-        ensureYellow();
+
         execute("insert into event (day) values ('2015-01-03')");
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
         execute("refresh table event");
@@ -1903,7 +1842,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("set global stats.enabled = true");
 
         execute("create table fetch_partition_test (name string, p string) partitioned by (p) with (number_of_replicas=0)");
-        ensureYellow();
+
         Object[][] bulkArgs = new Object[3][];
         for (int i = 0; i < 3; i++) {
             bulkArgs[i] = new Object[]{"Marvin", i};
@@ -1919,8 +1858,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testAlterTableAfterDeleteDoesNotAttemptToAlterDeletedPartitions() throws Exception {
         execute("create table t (name string, p string) partitioned by (p)");
-        ensureYellow();
-
         execute("insert into t (name, p) values (?, ?)", new Object[][]{
             new Object[]{"Arthur", "1"},
             new Object[]{"Arthur", "2"},
@@ -1941,7 +1878,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("create table t (p string primary key, v string) " +
                 "partitioned by (p) " +
                 "with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into t (p, v) values ('a', 'Marvin')");
         execute("refresh table t");
         execute("select _raw from t");
@@ -1951,7 +1887,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testMatchPredicateOnPartitionedTableWithPKColumn() throws Throwable {
         execute("create table foo (id integer primary key, name string INDEX using fulltext) partitioned by (id)");
-        ensureYellow();
         execute("insert into foo (id, name) values (?, ?)", new Object[]{1, "Marvin Other Name"});
         execute("insert into foo (id, name) values (?, ?)", new Object[]{2, "Ford Yet Another Name"});
         execute("refresh table foo");
@@ -1964,7 +1899,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testMatchPredicateOnPartitionedTableWithoutPKColumn() throws Throwable {
         execute("create table foo (id integer, name string INDEX using fulltext) partitioned by (id)");
-        ensureYellow();
         execute("insert into foo (id, name) values (?, ?)", new Object[]{1, "Marvin Other Name"});
         execute("insert into foo (id, name) values (?, ?)", new Object[]{2, "Ford Yet Another Name"});
         execute("refresh table foo");
@@ -1982,7 +1916,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " primary key (id, reseller_id, date_partition))" +
                 " partitioned by (date_partition)" +
                 " with (number_of_replicas='0')");
-        ensureYellow();
 
         execute("alter table device_event SET (number_of_replicas='3')");
 
@@ -1996,7 +1929,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testSelectByIdEmptyPartitionedTable() {
         execute("create table test (id integer, entity integer, primary key(id, entity))" +
                 " partitioned by (entity) with (number_of_replicas=0)");
-        ensureYellow();
         execute("select * from test where entity = 0 and id = 0");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
@@ -2005,7 +1937,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testSelectByMultiIdEmptyPartitionedTable() {
         execute("create table test (id integer, entity integer, primary key(id, entity))" +
                 " partitioned by (entity) with (number_of_replicas=0)");
-        ensureYellow();
         execute("select * from test where entity = 0 and (id = 0 or id = 1)");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
@@ -2013,7 +1944,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testScalarEvaluatesInErrorOnPartitionedTable() throws Exception {
         execute("create table t1 (id int) partitioned by (id) with (number_of_replicas=0)");
-        ensureYellow();
         // we need at least 1 row/partition, otherwise the table is empty and no evaluation occurs
         execute("insert into t1 (id) values (1)");
         execute("refresh table t1");
