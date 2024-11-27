@@ -103,7 +103,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;
         this.localNodeId = () -> clusterService.localNode().getId();
-        this.relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
+        this.relationName = clusterService.state().metadata().getRelationName(indexShard.indexSettings().getUUID());
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         this.referenceResolver = new LuceneReferenceResolver(
             indexShard.shardId().getIndexName(),

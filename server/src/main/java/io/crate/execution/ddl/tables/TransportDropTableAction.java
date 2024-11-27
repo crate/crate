@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -54,9 +53,6 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
             super(NAME);
         }
     }
-
-    // Delete index should work by default on both open and closed indices.
-    private static final IndicesOptions INDICES_OPTIONS = IndicesOptions.fromOptions(false, true, true, true);
 
     private final DropTableClusterStateTaskExecutor executor;
 

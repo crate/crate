@@ -1134,6 +1134,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
             return this;
         }
+
+        @Nullable
+        public RelationMetadata getRelation(RelationName relation) {
+            SchemaMetadata schemaMetadata = schemas.get(relation.schema());
+            if (schemaMetadata == null) {
+                return null;
+            }
+            return schemaMetadata.relations().get(relation.name());
+        }
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {
@@ -1221,5 +1230,22 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return null;
         }
         return schemaMetadata.get(relation);
+    }
+
+    @Nullable
+    public RelationName getRelationName(String indexUUID) {
+        // TODO: cache this into a uuid->name map when building the Metadata?
+        for (var schemaCursor : schemas.values()) {
+            SchemaMetadata schema = schemaCursor.value;
+            for (var relationCursor : schema.relations().values()) {
+                RelationMetadata relation = relationCursor.value;
+                if (relation instanceof RelationMetadata.Table table) {
+                    if (table.indexUUIDs().contains(indexUUID)) {
+                        return table.name();
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

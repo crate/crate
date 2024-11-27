@@ -50,6 +50,8 @@ public sealed interface RelationMetadata extends Writeable permits
 
     RelationName name();
 
+    RelationMetadata withName(RelationName newName);
+
     static RelationMetadata of(StreamInput in) throws IOException {
         short ord = in.readShort();
         return switch (ord) {
@@ -125,6 +127,23 @@ public sealed interface RelationMetadata extends Writeable permits
             out.writeEnum(state);
             out.writeStringCollection(indexUUIDs);
         }
+
+        @Override
+        public RelationMetadata withName(RelationName newName) {
+            return new Table(
+                newName,
+                columns,
+                settings,
+                routingColumn,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraints,
+                primaryKeys,
+                partitionedBy,
+                state,
+                indexUUIDs
+            );
+        }
     }
 
     public static final class View implements RelationMetadata {
@@ -144,6 +163,12 @@ public sealed interface RelationMetadata extends Writeable permits
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'writeTo'");
         }
+
+        @Override
+        public RelationMetadata withName(RelationName newName) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 
     public static final class ForeignTable implements RelationMetadata {
@@ -162,6 +187,12 @@ public sealed interface RelationMetadata extends Writeable permits
         public void writeTo(StreamOutput out) throws IOException {
             // TODO Auto-generated method stub
             throw new UnsupportedOperationException("Unimplemented method 'writeTo'");
+        }
+
+        @Override
+        public RelationMetadata withName(RelationName newName) {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 }

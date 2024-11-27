@@ -29,14 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.junit.annotations.TestLogging;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
 
 @UseRandomizedOptimizerRules(0)
-@Ignore
 public class SwapTableITest extends IntegTestCase {
 
     @Test

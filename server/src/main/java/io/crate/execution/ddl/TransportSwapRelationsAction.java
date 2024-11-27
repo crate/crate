@@ -25,10 +25,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -38,7 +36,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -47,22 +45,20 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.ActionListeners;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportSwapRelationsAction extends TransportMasterNodeAction<SwapRelationsRequest, AcknowledgedResponse> {
 
     private final SwapRelationsOperation swapRelationsOperation;
-    private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
     public TransportSwapRelationsAction(Settings settings,
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        DDLClusterStateService ddlClusterStateService,
-                                        AllocationService allocationService) {
+                                        MetadataDeleteIndexService deleteIndexService,
+                                        DDLClusterStateService ddlClusterStateService) {
         super(
             "internal:crate:sql/alter/cluster/indices",
             transportService,
@@ -70,9 +66,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             threadPool,
             SwapRelationsRequest::new
         );
-        this.activeShardsObserver = new ActiveShardsObserver(clusterService);
-        this.swapRelationsOperation = new SwapRelationsOperation(
-            allocationService, ddlClusterStateService);
+        this.swapRelationsOperation = new SwapRelationsOperation(deleteIndexService, ddlClusterStateService);
     }
 
     @Override
@@ -89,16 +83,8 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     protected void masterOperation(SwapRelationsRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        AtomicReference<String[]> indexNamesAfterRelationSwap = new AtomicReference<>(null);
-        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
-            listener,
-            activeShardsObserver,
-            request.ackTimeout(),
-            () -> logger.info("Switched name of relations, but the operation timed out waiting for enough shards to be started"),
-            indexNamesAfterRelationSwap::get
-        );
         AckedClusterStateUpdateTask<AcknowledgedResponse> updateTask =
-            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
+            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, listener) {
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
@@ -108,9 +94,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
                             ::iterator;
                         logger.info("Swapping tables [{}]", String.join(", ", swapActions));
                     }
-                    SwapRelationsOperation.UpdatedState newState = swapRelationsOperation.execute(currentState, request);
-                    indexNamesAfterRelationSwap.set(newState.newIndices.toArray(new String[0]));
-                    return newState.newState;
+                    return swapRelationsOperation.execute(currentState, request);
                 }
 
                 @Override
