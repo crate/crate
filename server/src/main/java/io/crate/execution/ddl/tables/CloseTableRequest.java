@@ -23,44 +23,71 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public final class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
 
     private final RelationName table;
-    private final String partition;
+    private final List<String> partitionValues;
 
-    public CloseTableRequest(RelationName table, @Nullable String partition) {
+    public CloseTableRequest(RelationName table, List<String> partitionValues) {
         this.table = table;
-        this.partition = partition;
+        this.partitionValues = partitionValues;
     }
 
     public CloseTableRequest(StreamInput in) throws IOException {
         super(in);
         this.table = new RelationName(in);
-        this.partition = in.readOptionalString();
+        if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+            int numValues = in.readVInt();
+            this.partitionValues = new ArrayList<>(numValues);
+            for (int i = 0; i < numValues; i++) {
+                partitionValues.add(in.readOptionalString());
+            }
+        } else {
+            String partition = in.readOptionalString();
+            if (partition == null) {
+                partitionValues = List.of();
+            } else {
+                partitionValues = PartitionName.fromIndexOrTemplate(partition).values();
+            }
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         table.writeTo(out);
-        out.writeOptionalString(partition);
+        if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+            out.writeVInt(partitionValues.size());
+            for (String value : partitionValues) {
+                out.writeOptionalString(value);
+            }
+        } else {
+            if (partitionValues.isEmpty()) {
+                out.writeBoolean(false);
+            } else {
+                PartitionName partitionName = new PartitionName(table, partitionValues);
+                out.writeBoolean(true);
+                out.writeString(partitionName.asIndexName());
+            }
+        }
     }
 
     public RelationName table() {
         return table;
     }
 
-    @Nullable
-    public String partition() {
-        return partition;
+    public List<String> partitionValues() {
+        return partitionValues;
     }
 }
