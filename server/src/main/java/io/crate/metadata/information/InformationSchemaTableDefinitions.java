@@ -24,6 +24,7 @@ package io.crate.metadata.information;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
@@ -147,7 +148,7 @@ public class InformationSchemaTableDefinitions {
                     false
                 )
             ),
-            Map.entry (
+            Map.entry(
                 InformationApplicableRolesTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     (txnCtx, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
@@ -166,7 +167,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationAdministrableRoleAuthorizationsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.administrableRoleAuthorizations(role, roles)),
+                    (txnCtx, role) -> completedFuture(List.of()),
                     InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE.expressions(),
                     false
                 )

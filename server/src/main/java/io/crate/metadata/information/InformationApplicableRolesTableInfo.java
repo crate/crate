@@ -31,8 +31,8 @@ public class InformationApplicableRolesTableInfo {
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<ApplicableRole> INSTANCE = SystemTable.<ApplicableRole>builder(IDENT)
-        .add("grantee", DataTypes.STRING, ApplicableRole::getGrantee)
-        .add("role_name", DataTypes.STRING, ApplicableRole::getRoleName)
+        .add("grantee", DataTypes.STRING, ApplicableRole::grantee)
+        .add("role_name", DataTypes.STRING, ApplicableRole::roleName)
         .add("is_grantable", DataTypes.BOOLEAN, ApplicableRole::isGrantable)
         .build();
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,7 +21,6 @@
 
 package io.crate.metadata.information;
 
-import io.crate.expression.roles.AdministrableRoleAuthorization;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
@@ -30,9 +29,9 @@ public class InformationAdministrableRoleAuthorizationsTableInfo {
     public static final String NAME = "administrable_role_authorizations";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<AdministrableRoleAuthorization> INSTANCE = SystemTable.<AdministrableRoleAuthorization>builder(IDENT)
-        .add("grantee", DataTypes.STRING, AdministrableRoleAuthorization::getGrantee)
-        .add("role_name", DataTypes.STRING, AdministrableRoleAuthorization::getRoleName)
-        .add("is_grantable", DataTypes.BOOLEAN, AdministrableRoleAuthorization::isGrantable)
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("grantee", DataTypes.STRING, ignored -> null)
+        .add("role_name", DataTypes.STRING, ignored -> null)
+        .add("is_grantable", DataTypes.BOOLEAN, ignored -> null)
         .build();
 }

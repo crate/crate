@@ -49,7 +49,6 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.expression.roles.AdministrableRoleAuthorization;
 import io.crate.expression.roles.ApplicableRole;
 import io.crate.expression.roles.RoleTableGrant;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -442,10 +441,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
         List<ApplicableRole> applicableRoles = new ArrayList<>();
 
         for (GrantedRole grantedRole: role.grantedRoles()) {
-            ApplicableRole newRole = new ApplicableRole();
-            newRole.setGrantee(role.name());
-            newRole.setRoleName(grantedRole.roleName());
-            newRole.setGrantable(roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null));
+            ApplicableRole newRole = new ApplicableRole(
+                role.name(),
+                grantedRole.roleName(),
+                roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null)
+            );
             applicableRoles.add(newRole);
         }
 
@@ -455,41 +455,25 @@ public class InformationSchemaIterables implements ClusterStateListener {
     public Iterable<RoleTableGrant> roleTableGrants(Role role, Roles roles) {
         List<RoleTableGrant> roleTableGrants = new ArrayList<>();
         role.privileges().forEach(p -> {
-            RoleTableGrant roleTableGrant = new RoleTableGrant();
             Securable securableType = p.subject().securable();
             if (securableType.equals(Securable.TABLE)) {
-                roleTableGrant.setGrantor(p.grantor());
-
                 String[] fqn = Objects.requireNonNull(p.subject().ident()).split("\\.");
-                roleTableGrant.setTableSchema(fqn[0]);
-                roleTableGrant.setTableName(fqn[1]);
-                roleTableGrant.setGrantable(roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null));
-                roleTableGrant.setGrantee(role.name());
-                roleTableGrant.setPrivilegeType(p.subject().permission().name());
-                roleTableGrant.setWithHierarchy(p.subject().permission().equals(Permission.DQL));
-                roleTableGrant.setTableCatalog("doc");
 
+                RoleTableGrant roleTableGrant = new RoleTableGrant(
+                    p.grantor(),
+                    role.name(),
+                    "doc",
+                    fqn[0],
+                    fqn[1],
+                    p.subject().permission().name(),
+                    roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null),
+                    p.subject().permission().equals(Permission.DQL)
+                );
                 roleTableGrants.add(roleTableGrant);
             }
         });
 
         return roleTableGrants;
-    }
-
-    public Iterable<AdministrableRoleAuthorization> administrableRoleAuthorizations(Role role, Roles roles) {
-        List<AdministrableRoleAuthorization> authorizations = new ArrayList<>();
-        for (GrantedRole grantedRole: role.grantedRoles()) {
-            if (roles.hasPrivilege(Objects.requireNonNull(roles.findRole(grantedRole.roleName())),
-                Permission.AL, Securable.CLUSTER, null)
-            ) {
-                AdministrableRoleAuthorization authorization = new AdministrableRoleAuthorization();
-                authorization.setGrantable(true);
-                authorization.setGrantee(role.name());
-                authorization.setRoleName(grantedRole.roleName());
-                authorizations.add(authorization);
-            }
-        }
-        return authorizations;
     }
 
     /**

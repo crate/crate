@@ -21,43 +21,4 @@
 
 package io.crate.expression.roles;
 
-public class ApplicableRole {
-    private String grantee;
-    private String roleName;
-    private boolean isGrantable;
-
-
-    public ApplicableRole() {
-    }
-
-    public ApplicableRole(String grantee, String roleName, boolean isGrantable) {
-        this.grantee = grantee;
-        this.roleName = roleName;
-        this.isGrantable = isGrantable;
-    }
-
-
-    public String getGrantee() {
-        return grantee;
-    }
-
-    public void setGrantee(String grantee) {
-        this.grantee = grantee;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
-    }
-
-    public boolean isGrantable() {
-        return isGrantable;
-    }
-
-    public void setGrantable(boolean grantable) {
-        isGrantable = grantable;
-    }
-}
+public record ApplicableRole(String grantee, String roleName, boolean isGrantable) {}

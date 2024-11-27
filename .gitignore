@@ -19,7 +19,6 @@ build/
 build-idea/
 reports/
 test-output/
-.idea/misc.xml
 
 # eclipse files
 bin/
