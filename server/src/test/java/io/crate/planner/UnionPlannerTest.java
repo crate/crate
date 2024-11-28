@@ -270,7 +270,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_union_works_when_both_sides_get_different_output_size_after_prunning() {
+    public void test_union_works_when_both_sides_have_no_outputs_to_keep_on_prunning() {
         LogicalPlan plan = e.logicalPlan(
             "SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t");
 

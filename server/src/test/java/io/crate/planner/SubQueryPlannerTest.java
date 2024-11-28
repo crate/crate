@@ -82,19 +82,23 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedSimpleSelectWithJoin() throws Exception {
-        Join nl = e.plan("select t1x from (" +
+        QueryThenFetch qtf = e.plan("select t1x from (" +
                         "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
                         ") t order by t1x desc limit 3");
-        List<Projection> projections = nl.joinPhase().projections();
+        Join plan = (Join) qtf.subPlan();
+        List<Projection> projections = plan.joinPhase().projections();
+
         assertThat(projections).satisfiesExactly(
             exactlyInstanceOf(EvalProjection.class),
             isLimitAndOffset(10, 0),
             exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
             isLimitAndOffset(3, 0),
+            exactlyInstanceOf(FetchProjection.class),
+            exactlyInstanceOf(EvalProjection.class),
             exactlyInstanceOf(EvalProjection.class)
         );
-        assertSQL(projections.get(0).outputs(), "INPUT(0)");
-        assertSQL(projections.get(4).outputs(), "INPUT(1)");
+        assertSQL(projections.getFirst().outputs(), "INPUT(0), INPUT(1)");
+        assertSQL(projections.getLast().outputs(), "INPUT(0)");
     }
 
     @Test
