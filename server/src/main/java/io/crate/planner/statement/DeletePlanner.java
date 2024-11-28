@@ -90,7 +90,7 @@ public final class DeletePlanner {
         DocTableInfo table = tableRel.tableInfo();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(context.nodeContext());
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, delete.query(), table, context.transactionContext(), context.nodeContext());
+            normalizer, delete.query(), table, context.transactionContext(), context.nodeContext(), context.timeoutToken());
         Symbol query = detailedQuery.query();
         if (!detailedQuery.partitions().isEmpty()) {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols

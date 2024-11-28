@@ -189,7 +189,8 @@ public final class CopyToPlan implements Plan {
                     planStats,
                     context.transactionContext(),
                     context.nodeContext(),
-                    UnaryOperator.identity()
+                    UnaryOperator.identity(),
+                    context.timeoutToken()
                 ));
             return plan == null ? collect : plan;
         }

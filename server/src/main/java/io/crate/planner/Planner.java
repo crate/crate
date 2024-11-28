@@ -165,6 +165,7 @@ import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
 import io.crate.role.RoleManager;
 import io.crate.session.Cursors;
+import io.crate.session.Session;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
 
@@ -217,7 +218,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                                         int fetchSize,
                                         @Nullable Row params,
                                         Cursors cursors,
-                                        TransactionState transactionState) {
+                                        TransactionState transactionState,
+                                        Session.TimeoutToken timeoutToken) {
         return new PlannerContext(
             clusterService.state(),
             routingProvider,
@@ -229,7 +231,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             cursors,
             transactionState,
             new PlanStats(nodeCtx, txnCtx, tableStats),
-            this.logicalPlanner::optimize
+            this.logicalPlanner::optimize,
+            timeoutToken
         );
     }
 

@@ -60,6 +60,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.session.Session;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -93,8 +94,11 @@ public class EqualityExtractor {
         return MAX_ITERATIONS;
     }
 
-    public EqMatches extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext coordinatorTxnCtx) {
-        return extractMatches(columns, symbol, false, coordinatorTxnCtx);
+    public EqMatches extractParentMatches(List<ColumnIdent> columns,
+                                          Symbol symbol,
+                                          @Nullable TransactionContext coordinatorTxnCtx,
+                                          Session.TimeoutToken timeoutToken) {
+        return extractMatches(columns, symbol, false, coordinatorTxnCtx, timeoutToken);
     }
 
     /**
@@ -122,14 +126,16 @@ public class EqualityExtractor {
      */
     public EqMatches extractMatches(List<ColumnIdent> columns,
                                     Symbol symbol,
-                                    TransactionContext txnCtx) {
-        return extractMatches(columns, symbol, true, txnCtx);
+                                    TransactionContext txnCtx,
+                                    Session.TimeoutToken timeoutToken) {
+        return extractMatches(columns, symbol, true, txnCtx, timeoutToken);
     }
 
     private EqMatches extractMatches(Collection<ColumnIdent> columns,
                                      Symbol query,
                                      boolean shortCircuitOnMatchPredicateUnknown,
-                                     TransactionContext txnCtx) {
+                                     TransactionContext txnCtx,
+                                     Session.TimeoutToken timeoutToken) {
         var context = new ProxyInjectingVisitor.Context(columns);
         // Normalize the query so that any casts on literals are evaluated
         var normalizedQuery = normalizer.normalize(query, txnCtx);
@@ -149,10 +155,16 @@ public class EqualityExtractor {
         List<List<Symbol>> result = new ArrayList<>();
         int iterations = 0;
         for (List<EqProxy> proxies : cp) {
+
             // Protect against large queries, where the number of combinations to check grows large
             if (++iterations >= maxIterations()) {
                 // Fallback to lucene query (collect)
                 return EqMatches.NONE;
+            }
+            if (iterations % 100 == 0) {
+                // Intermediate check to throw early.
+                // Overall planning time is checked one more time right before execute once plan is created
+                timeoutToken.check();
             }
             boolean anyNull = false;
             for (EqProxy proxy : proxies) {

@@ -153,6 +153,9 @@ Administration and Operations
 
   now throws a ``ColumnUnknownException`` as expected.
 
+- Updated :ref:`statement_timeout setting <conf-session-statement-timeout>` to
+  also account for parsing, analysis and planning phases.
+
 Client interfaces
 -----------------
 

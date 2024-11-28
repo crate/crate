@@ -267,8 +267,9 @@ public class LogicalPlanner {
                                  boolean avoidTopLevelFetch) {
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         OptimizerTracer tracer = plannerContext.optimizerTracer();
-        LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
+        var timeoutToken = plannerContext.timeoutToken();
+        LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs())
             : "Pruned plan must have the same outputs as original plan";
@@ -276,7 +277,8 @@ public class LogicalPlanner {
             prunedPlan,
             plannerContext.planStats(),
             txnCtx,
-            tracer
+            tracer,
+            timeoutToken
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
@@ -291,17 +293,20 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan optimize(LogicalPlan plan, PlannerContext plannerContext) {
+        var timeoutToken = plannerContext.timeoutToken();
         LogicalPlan optimizedPlan = optimizer.optimize(
             plan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
-            plannerContext.optimizerTracer()
+            plannerContext.optimizerTracer(),
+            timeoutToken
         );
         optimizedPlan = joinOrderOptimizer.optimize(
             optimizedPlan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
-            plannerContext.optimizerTracer()
+            plannerContext.optimizerTracer(),
+            timeoutToken
         );
         return optimizedPlan;
     }
@@ -687,7 +692,8 @@ public class LogicalPlanner {
                     subqueryPlanner),
                 context.planStats(),
                 context.transactionContext(),
-                context.optimizerTracer()
+                context.optimizerTracer(),
+                context.timeoutToken()
             );
         }
     }

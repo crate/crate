@@ -39,6 +39,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.session.Session;
 
 public class Optimizer {
 
@@ -57,16 +58,18 @@ public class Optimizer {
     public LogicalPlan optimize(LogicalPlan plan,
                                 PlanStats planStats,
                                 CoordinatorTxnCtx txnCtx,
-                                OptimizerTracer tracer) {
+                                OptimizerTracer tracer,
+                                Session.TimeoutToken timeoutToken) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
-        var optimizedSources = Lists.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer, timeoutToken);
+        var optimizedSources = Lists.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer, timeoutToken));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             planStats,
             txnCtx,
-            tracer
+            tracer,
+            timeoutToken
         );
     }
 
@@ -89,15 +92,21 @@ public class Optimizer {
                                       LogicalPlan plan,
                                       PlanStats planStats,
                                       TransactionContext txnCtx,
-                                      OptimizerTracer tracer) {
+                                      OptimizerTracer tracer,
+                                      Session.TimeoutToken timeoutToken) {
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
         int numIterations = 0;
-        Rule.Context ruleContext = new Rule.Context(planStats, txnCtx, nodeCtx, UnaryOperator.identity());
+        Rule.Context ruleContext = new Rule.Context(planStats, txnCtx, nodeCtx, UnaryOperator.identity(), timeoutToken);
         Version minVersion = minNodeVersionInCluster.get();
         while (!done && numIterations < 10_000) {
+            if (numIterations % 100 == 0) {
+                // Intermediate check to throw early.
+                // Overall planning time is checked one more time right before execute once plan is created
+                timeoutToken.check();
+            }
             done = true;
             for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {

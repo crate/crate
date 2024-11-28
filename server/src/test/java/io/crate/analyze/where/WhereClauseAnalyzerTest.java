@@ -26,7 +26,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -147,7 +146,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     queriedRelation.where(),
                     docTableRelation.tableInfo(),
                     coordinatorTxnCtx,
-                    e.nodeCtx);
+                    e.nodeCtx,
+                    e.getPlannerContext().timeoutToken());
                 return detailedQuery.toBoundWhereClause(
                     docTableRelation.tableInfo(),
                     Row.EMPTY,

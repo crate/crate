@@ -62,6 +62,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.BulkResponse;
@@ -223,9 +224,14 @@ public class Session implements AutoCloseable {
         return secret;
     }
 
+    public TimeoutToken newTimeoutToken() {
+        return new TimeoutToken(sessionSettings.statementTimeout(), System.nanoTime());
+    }
+
     /**
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
+     * This is used for system calls and statement_timeout is not accounted for here.
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         lastStmt = statement;
@@ -248,7 +254,8 @@ public class Session implements AutoCloseable {
             0,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            TimeoutToken.noopToken()
         );
         Plan plan;
         try {
@@ -276,7 +283,8 @@ public class Session implements AutoCloseable {
                     routingProvider,
                     new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener),
                     params,
-                    txnCtx
+                    txnCtx,
+                    TimeoutToken.noopToken()
                 )
             );
         }
@@ -289,7 +297,8 @@ public class Session implements AutoCloseable {
                             RoutingProvider routingProvider,
                             RowConsumer consumer,
                             Row params,
-                            CoordinatorTxnCtx txnCtx) {
+                            CoordinatorTxnCtx txnCtx,
+                            TimeoutToken timeoutToken) {
         PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
@@ -297,9 +306,14 @@ public class Session implements AutoCloseable {
             0,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            timeoutToken
+
         );
         Plan plan = planner.plan(stmt, plannerContext);
+        if (timeoutToken != null) {
+            timeoutToken.check();
+        }
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
@@ -316,6 +330,7 @@ public class Session implements AutoCloseable {
     }
 
     public void parse(String statementName, String query, List<DataType<?>> paramTypes) {
+        TimeoutToken timeoutToken = newTimeoutToken();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
         }
@@ -331,13 +346,16 @@ public class Session implements AutoCloseable {
                 throw t;
             }
         }
-        analyze(statementName, statement, paramTypes, query);
+        timeoutToken.check();
+
+        analyze(statementName, statement, paramTypes, query, timeoutToken);
     }
 
     public void analyze(String statementName,
                         Statement statement,
                         List<DataType<?>> paramTypes,
-                        @Nullable String query) {
+                        @Nullable String query,
+                        TimeoutToken timeoutToken) {
         AnalyzedStatement analyzedStatement;
         DataType<?>[] parameterTypes;
         try {
@@ -349,6 +367,7 @@ public class Session implements AutoCloseable {
             );
 
             parameterTypes = ParameterTypes.extract(analyzedStatement).toArray(new DataType[0]);
+            timeoutToken.check();
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUIDs.dirtyUUID(),
@@ -357,9 +376,10 @@ public class Session implements AutoCloseable {
                 sessionSettings.sessionUser());
             throw t;
         }
+
         preparedStatements.put(
             statementName,
-            new PreparedStmt(statement, analyzedStatement, query, parameterTypes));
+            new PreparedStmt(statement, analyzedStatement, query, parameterTypes, timeoutToken));
     }
 
     public void bind(String portalName,
@@ -400,7 +420,8 @@ public class Session implements AutoCloseable {
                     declare.query(),
                     analyzedDeclare.query(),
                     SqlFormatter.formatSql(declare.query()),
-                    parameterTypes
+                    parameterTypes,
+                    preparedStmt.timeoutToken()
                 );
                 Portal queryPortal = new Portal(
                     cursorName,
@@ -593,13 +614,16 @@ public class Session implements AutoCloseable {
         }
     }
 
-    private void addStatementTimeout(CompletableFuture<?> result) {
+    private void addStatementTimeout(CompletableFuture<?> result, TimeoutToken timeoutToken) {
+        long durationNs = timeoutToken.disable();
         TimeValue timeout = sessionSettings.statementTimeout();
         final UUID jobId = mostRecentJobID;
-        long timeoutMillis = timeout.millis();
-        if (jobId == null || timeoutMillis <= 0) {
+        long timeoutNanos = timeout.nanos();
+        if (jobId == null || timeoutNanos <= 0) {
             return;
         }
+        long remainingTimeoutMs = (long) ((timeoutNanos - durationNs) * 0.000001);
+        assert remainingTimeoutMs > 0 : "Execute must have positive timeout if timeout was not exceeded on previous phases.";
         Runnable kill = () -> {
             if (result.isDone()) {
                 return;
@@ -608,12 +632,12 @@ public class Session implements AutoCloseable {
                 List.of(),
                 List.of(jobId),
                 sessionSettings.userName(),
-                "statement_timeout (" + TimeValue.timeValueMillis(timeoutMillis).toString() + ")"
+                "statement_timeout (" + timeout.toString() + ")"
             );
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
         ScheduledExecutorService scheduler = executor.scheduler();
-        scheduler.schedule(kill, timeoutMillis, TimeUnit.MILLISECONDS);
+        scheduler.schedule(kill, remainingTimeoutMs, TimeUnit.MILLISECONDS);
     }
 
     private CompletableFuture<?> triggerDeferredExecutions() {
@@ -661,6 +685,10 @@ public class Session implements AutoCloseable {
         final UUID jobId = mostRecentJobID;
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
+        PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
+        TimeoutToken timeoutToken = firstPreparedStatement.timeoutToken();
+        timeoutToken.enable();
+
         var plannerContext = planner.createContext(
             routingProvider,
             jobId,
@@ -668,16 +696,18 @@ public class Session implements AutoCloseable {
             0,
             null,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            timeoutToken
         );
 
-        PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
+
         AnalyzedStatement analyzedStatement = firstPreparedStatement.analyzedStatement();
         lastStmt = firstPreparedStatement.rawStatement();
 
         Plan plan;
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
+            timeoutToken.check();
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 jobId,
@@ -705,7 +735,7 @@ public class Session implements AutoCloseable {
 
         result
             .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp));
-        addStatementTimeout(result);
+        addStatementTimeout(result, timeoutToken);
         return result.runAfterBoth(allResultReceivers, () -> {});
 
     }
@@ -744,6 +774,8 @@ public class Session implements AutoCloseable {
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
         var params = new RowN(portal.params().toArray());
+        TimeoutToken timeoutToken = portal.preparedStmt().timeoutToken();
+        timeoutToken.enable();
         var plannerContext = planner.createContext(
             routingProvider,
             jobId,
@@ -751,9 +783,11 @@ public class Session implements AutoCloseable {
             maxRows,
             params,
             cursors,
-            currentTransactionState
+            currentTransactionState,
+            timeoutToken
         );
         var analyzedStmt = portal.analyzedStatement();
+
         String rawStatement = portal.preparedStmt().rawStatement();
         lastStmt = rawStatement;
         if (analyzedStmt == null) {
@@ -764,6 +798,7 @@ public class Session implements AutoCloseable {
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
+            timeoutToken.check();
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
@@ -784,7 +819,8 @@ public class Session implements AutoCloseable {
                         maxRows,
                         new JobsLogsUpdateListener(newJobId, jobsLogs)),
                     params,
-                    txnCtx
+                    txnCtx,
+                    timeoutToken
                 )
             );
         }
@@ -795,7 +831,7 @@ public class Session implements AutoCloseable {
         portal.setActiveConsumer(consumer);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
         CompletableFuture<?> result = resultReceiver.completionFuture();
-        addStatementTimeout(result);
+        addStatementTimeout(result, timeoutToken);
         return result;
     }
 
@@ -939,5 +975,59 @@ public class Session implements AutoCloseable {
             ", mostRecentJobID=" + mostRecentJobID +
             ", id=" + id +
             "}";
+    }
+
+    /**
+     * Controls execution time of all lifecycle phases of a statement (parse/analysis/plan/execution).
+     * If statement_timeout is specified, statement is stopped when processing exceeds it.
+     */
+    public static class TimeoutToken {
+
+        private TimeValue statementTimeout;
+        private long startNanos;
+        private boolean enabled = true;
+
+        public TimeoutToken(TimeValue statementTimeout, long startNanos) {
+            this.statementTimeout = statementTimeout;
+            this.startNanos = startNanos;
+        }
+
+
+        public static TimeoutToken noopToken() {
+            return new TimeoutToken();
+        }
+
+        private TimeoutToken() {
+            this.enabled = false;
+        }
+
+        public void check() {
+            if (enabled && statementTimeout.nanos() > 0) {
+                long durationNs = System.nanoTime() - startNanos;
+                if (durationNs > statementTimeout.nanos()) {
+                    throw JobKilledException.of("statement_timeout (" + statementTimeout + ")");
+                }
+            }
+        }
+
+        /**
+         * Disables the token.
+         * This should be called on `execute` to prevent the token from running into timeouts
+         * if it is re-used when a prepared statement/portal is executed again.
+         **/
+        public long disable() {
+            enabled = false;
+            return System.nanoTime() - startNanos;
+        }
+
+        /**
+         * Re-enable a disabled token; noop if already enabled
+         **/
+        public void enable() {
+            if (!enabled) {
+                startNanos = System.nanoTime();
+                enabled = true;
+            }
+        }
     }
 }
