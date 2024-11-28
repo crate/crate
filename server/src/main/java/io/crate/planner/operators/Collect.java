@@ -340,7 +340,8 @@ public class Collect implements LogicalPlan {
                 newOutputs.add(outputs.get(index));
             });
         }
-        if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
+        boolean prunned = newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs);
+        if (prunned || outputsToKeep.isEmpty()) {
             return this;
         }
         return new Collect(relation, List.copyOf(newOutputs), immutableWhere);

@@ -40,12 +40,6 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue leading to an error when running SELECT COUNT(*) on a Subquery
-  with ``UNION ALL`` having a table on the one side and a renamed table or view
-  on another. Example::
-
-      SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t;
-
 - Fixed an issue leading to an error when running ``ANALYZE`` followed by a
   correlated subquery with the Subquery being an ``INNER JOIN`` and a table on
   the right side having more records than a table on the left side.
