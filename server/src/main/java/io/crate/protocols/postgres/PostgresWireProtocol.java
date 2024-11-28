@@ -567,7 +567,9 @@ public class PostgresWireProtocol {
             }
             paramTypes.add(dataType);
         }
-        session.parse(statementName, query, paramTypes);
+        Session.TimeoutToken timeoutToken = session.parse(statementName, query, paramTypes);
+        // todo: figure out how to pass timeoutToken to the next phase.
+        // Looks like can't pass directly, need to store state in the Session (again coming to the sync/differentiate jobs problem).
         Messages.sendParseComplete(channel);
     }
 
@@ -813,7 +815,14 @@ public class PostgresWireProtocol {
 
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
-            session.analyze("", statement, Collections.emptyList(), query);
+
+            session.analyze(
+                "",
+                statement,
+                Collections.emptyList(),
+                query,
+                new Session.TimeoutToken(session.sessionSettings().statementTimeout().millis())
+            );
             session.bind("", "", Collections.emptyList(), null);
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
