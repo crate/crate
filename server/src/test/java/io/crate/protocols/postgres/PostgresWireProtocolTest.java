@@ -120,13 +120,20 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 new SessionSettingRegistry(Set.of()),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of()),
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         try {
+            // Auth is needed to have a not null Session.
+            // In production code we always have a session (even for a trusted user).
+            sendStartupMessage(channel);
+            readAuthenticationOK(channel);
+            skipParameterMessages(channel);
+            readKeyData(channel);
+            readReadyForQueryMessage(channel);
             Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
             ctx.handleSimpleQuery(buffer, new DelayableWriteChannel(channel));
         } finally {
@@ -814,6 +821,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).thenReturn(future);
         var sessionSettings = new CoordinatorSessionSettings(Role.CRATE_USER);
         when(session.sessionSettings()).thenReturn(sessionSettings);
+        when(session.newTimeoutToken()).thenReturn(
+            new Session.TimeoutToken(sessionSettings.statementTimeout(), System.nanoTime())
+        );
         when(sqlOperations.newSession(
             any(ConnectionProperties.class),
             any(String.class),

@@ -35,6 +35,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.session.Session;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -61,17 +62,17 @@ public abstract class EqualityExtractorBaseTest extends CrateDummyClusterService
     }
 
     /**
-     * Helper method, used to test {@link EqualityExtractor#extractMatches(List, Symbol, TransactionContext)}
+     * Helper method, used to test {@link EqualityExtractor#extractMatches(List, Symbol, TransactionContext, Session.TimeoutToken)}
      */
     protected List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
-        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx).matches();
+        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
     }
 
     /**
-     * Helper method, used to test {@link EqualityExtractor#extractParentMatches(List, Symbol, TransactionContext)}
+     * Helper method, used to test {@link EqualityExtractor#extractParentMatches(List, Symbol, TransactionContext, Session.TimeoutToken)}
      */
     protected List<List<Symbol>> analyzeParent(Symbol query, List<ColumnIdent> primaryKeys) {
-        return ee.extractParentMatches(primaryKeys, query, coordinatorTxnCtx).matches();
+        return ee.extractParentMatches(primaryKeys, query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
     }
 
     /**

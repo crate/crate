@@ -244,7 +244,8 @@ public class SQLExecutor {
             -1,
             null,
             cursors,
-            transactionState
+            transactionState,
+            Session.TimeoutToken.noopToken()
         );
     }
 
@@ -579,7 +580,8 @@ public class SQLExecutor {
             fetchSize,
             null,
             cursors,
-            transactionState
+            transactionState,
+            Session.TimeoutToken.noopToken()
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan logicalPlan) {
@@ -977,7 +979,8 @@ public class SQLExecutor {
             0,
             null,
             cursors,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            Session.TimeoutToken.noopToken()
         );
         var request = CreateForeignTablePlan.toRequest(
             foreignDataWrappers,
@@ -1021,6 +1024,6 @@ public class SQLExecutor {
     }
 
     public Rule.Context ruleContext() {
-      return new Rule.Context(planStats, CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, UnaryOperator.identity());
+      return new Rule.Context(planStats, CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, UnaryOperator.identity(), null);
     }
 }

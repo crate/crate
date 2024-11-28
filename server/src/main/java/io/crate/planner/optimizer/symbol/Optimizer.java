@@ -45,6 +45,7 @@ import io.crate.planner.optimizer.symbol.rule.RemoveRedundantImplicitCastOverRef
 import io.crate.planner.optimizer.symbol.rule.SimplifyEqualsOperationOnIdenticalReferences;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInComparisonOperators;
 import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
+import io.crate.session.Session;
 
 public class Optimizer {
 
@@ -61,19 +62,23 @@ public class Optimizer {
     );
 
     public static Symbol optimizeCasts(Symbol query, PlannerContext plannerCtx) {
-        return optimizeCasts(query, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+        return optimizeCasts(query, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.timeoutToken());
     }
 
-    public static Symbol optimizeCasts(Symbol query, TransactionContext txnCtx, NodeContext nodeCtx) {
-        Optimizer optimizer = new Optimizer(txnCtx, nodeCtx);
+    public static Symbol optimizeCasts(Symbol query,
+                                       TransactionContext txnCtx,
+                                       NodeContext nodeCtx,
+                                       Session.TimeoutToken timeoutToken) {
+        Optimizer optimizer = new Optimizer(txnCtx, nodeCtx, timeoutToken);
         return optimizer.optimize(query);
     }
 
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
     private final FunctionLookup functionLookup;
+    private final Session.TimeoutToken timeoutToken;
 
-    public Optimizer(TransactionContext txnCtx, NodeContext nodeCtx) {
+    public Optimizer(TransactionContext txnCtx, NodeContext nodeCtx, Session.TimeoutToken timeoutToken) {
         functionLookup = (f, args) -> {
             try {
                 return ExpressionAnalyzer.allocateFunction(
@@ -88,6 +93,7 @@ public class Optimizer {
             }
         };
         this.nodeCtx = nodeCtx;
+        this.timeoutToken = timeoutToken;
     }
 
     public Symbol optimize(Symbol node) {
@@ -101,6 +107,11 @@ public class Optimizer {
         boolean done = false;
         int numIterations = 0;
         while (!done && numIterations < 10_000) {
+            if (numIterations % 100 == 0) {
+                // Intermediate check to throw early.
+                // Overall planning time is checked one more time right before execute once plan is created
+                timeoutToken.check();
+            }
             done = true;
             for (Rule<?> rule : RULES) {
                 Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);

@@ -21,13 +21,16 @@
 
 package io.crate.session;
 
+import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +54,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
@@ -98,7 +102,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_select_query_executed_on_session_execute_method() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
 
         var activeExecutionFuture = CompletableFuture.completedFuture(null);
         doReturn(activeExecutionFuture)
@@ -130,7 +134,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).setPlanner(planner)
             .build()
             .addTable("create table users (name text)");
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
@@ -372,7 +376,9 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         when(dependencies.client()).thenReturn(client);
 
         Session session = sqlExecutor.createSession();
-        session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+        // Using a bigger value for the timeout
+        // to ensure that parsing/analysis/planning doesn't timeout and only execute does.
+        session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(1000));
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -380,6 +386,50 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.sync();
 
         verify(client, times(1))
-            .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
+            .execute(eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
     }
+
+    @Test
+    public void test_parsing_throws_an_error_on_exceeding_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            Session spy = spy(session);
+            when(spy.newTimeoutToken()).thenReturn(
+                new Session.TimeoutToken(
+                    session.sessionSettings().statementTimeout(),
+                    System.nanoTime() - TimeValue.timeValueMillis(11).nanos() // operation started 11 millis ago
+                )
+            );
+            assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
+                .isExactlyInstanceOf(JobKilledException.class)
+                .hasMessage("Job killed. statement_timeout (10ms)");
+        }
+    }
+
+    @Test
+    public void test_statement_timeout_previous_statement_time_is_not_accounted_for() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            Session spy = spy(session);
+            when(spy.newTimeoutToken()).thenReturn(
+                new Session.TimeoutToken(
+                    session.sessionSettings().statementTimeout(),
+                    System.nanoTime() - TimeValue.timeValueMillis(5).nanos() // Operation started 5 millis ago, fits into timeout
+                )
+            );
+            spy.parse(UNNAMED, "SELECT 1", List.of());
+
+            // New statement runs for 5 millis as well,  timeout must not be exceeded.
+            spy.parse(UNNAMED, "SELECT 2", List.of());
+        }
+    }
+
 }

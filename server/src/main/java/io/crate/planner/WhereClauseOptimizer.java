@@ -51,6 +51,7 @@ import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
+import io.crate.session.Session;
 
 /**
  * Used to analyze a query for primaryKey/partition "direct access" possibilities.
@@ -150,7 +151,8 @@ public final class WhereClauseOptimizer {
                                          Symbol query,
                                          DocTableInfo table,
                                          TransactionContext txnCtx,
-                                         NodeContext nodeCtx) {
+                                         NodeContext nodeCtx,
+                                         Session.TimeoutToken timeoutToken) {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
@@ -171,12 +173,12 @@ public final class WhereClauseOptimizer {
         // ExpressionAnalyzer will "blindly" add cast to the column, to match the datatype of the literal.
         // To be able to properly extract pkMatches (and therefore dockeys), so that the cast is moved to the literal,
         // we need to optimize the casts, before the extraction of pkMatches (and the dockeys after that)
-        var optimizedCastsQuery = Optimizer.optimizeCasts(query, txnCtx, nodeCtx);
-        EqMatches pkMatches = eqExtractor.extractMatches(pkCols, optimizedCastsQuery, txnCtx);
+        var optimizedCastsQuery = Optimizer.optimizeCasts(query, txnCtx, nodeCtx, timeoutToken);
+        EqMatches pkMatches = eqExtractor.extractMatches(pkCols, optimizedCastsQuery, txnCtx, timeoutToken);
         Set<Symbol> clusteredBy = Collections.emptySet();
         if (table.clusteredBy() != null) {
             EqualityExtractor.EqMatches clusteredByMatches = eqExtractor.extractParentMatches(
-                Collections.singletonList(table.clusteredBy()), optimizedCastsQuery, txnCtx);
+                Collections.singletonList(table.clusteredBy()), optimizedCastsQuery, txnCtx, timeoutToken);
             List<List<Symbol>> clusteredBySymbols = clusteredByMatches.matches();
             if (clusteredBySymbols != null) {
                 clusteredBy = HashSet.newHashSet(clusteredBySymbols.size());
@@ -192,7 +194,7 @@ public final class WhereClauseOptimizer {
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().getFirst())));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
-            pkMatches = eqExtractor.extractMatches(List.of(SysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx);
+            pkMatches = eqExtractor.extractMatches(List.of(SysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx, timeoutToken);
         }
 
         if (pkMatches.matches() == null) {
@@ -209,7 +211,7 @@ public final class WhereClauseOptimizer {
                                   partitionIndicesWithinPks);
         }
         EqMatches partitionMatches = table.isPartitioned()
-            ? eqExtractor.extractMatches(table.partitionedBy(), optimizedCastsQuery, txnCtx)
+            ? eqExtractor.extractMatches(table.partitionedBy(), optimizedCastsQuery, txnCtx, timeoutToken)
             : EqMatches.NONE;
 
         WhereClauseValidator.validate(query);

@@ -778,6 +778,8 @@ public class PostgresWireProtocol {
 
     @VisibleForTesting
     void handleSimpleQuery(ByteBuf buffer, final DelayableWriteChannel channel) {
+        assert session != null : "Session must be created when running a simple query";
+        Session.TimeoutToken timeoutToken = session.newTimeoutToken();
         String queryString = readCString(buffer);
         assert queryString != null : "query must not be nulL";
 
@@ -801,19 +803,30 @@ public class PostgresWireProtocol {
             sendReadyForQuery(channel, TransactionState.IDLE);
             return;
         }
+        timeoutToken.check();
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
-            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, queryString, channel));
+            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, queryString, channel, timeoutToken));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
 
-    private CompletableFuture<?> handleSingleQuery(Statement statement, String query, DelayableWriteChannel channel) {
+    private CompletableFuture<?> handleSingleQuery(Statement statement,
+                                                   String query,
+                                                   DelayableWriteChannel channel,
+                                                   Session.TimeoutToken timeoutToken) {
         CompletableFuture<?> result = new CompletableFuture<>();
 
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
-            session.analyze("", statement, Collections.emptyList(), query);
+
+            session.analyze(
+                "",
+                statement,
+                Collections.emptyList(),
+                query,
+                timeoutToken
+            );
             session.bind("", "", Collections.emptyList(), null);
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();

@@ -43,6 +43,7 @@ import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.tracer.LoggingOptimizerTracer;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.Session;
 
 public class PlannerContext {
 
@@ -64,7 +65,8 @@ public class PlannerContext {
             context.transactionState,
             context.planStats,
             context.optimizerTracer,
-            context.optimize
+            context.optimize,
+            context.timeoutToken
         );
     }
 
@@ -84,6 +86,7 @@ public class PlannerContext {
     private final PlanStats planStats;
     private final OptimizerTracer optimizerTracer;
     private final BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize;
+    private final Session.TimeoutToken timeoutToken;
 
     /**
      * @param params See {@link #params()}
@@ -98,7 +101,8 @@ public class PlannerContext {
                    Cursors cursors,
                    TransactionState transactionState,
                    PlanStats planStats,
-                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
+                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize,
+                   Session.TimeoutToken timeoutToken) {
         this(
             clusterState,
             routingProvider,
@@ -112,7 +116,8 @@ public class PlannerContext {
             transactionState,
             planStats,
             LoggingOptimizerTracer.getInstance(),
-            optimize
+            optimize,
+            timeoutToken
         );
     }
 
@@ -128,7 +133,8 @@ public class PlannerContext {
                            TransactionState transactionState,
                            PlanStats planStats,
                            OptimizerTracer optimizerTracer,
-                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize
+                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize,
+                           Session.TimeoutToken timeoutToken
                            ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
@@ -144,6 +150,7 @@ public class PlannerContext {
         this.planStats = planStats;
         this.optimizerTracer = optimizerTracer;
         this.optimize = optimize;
+        this.timeoutToken = timeoutToken;
     }
 
     public PlannerContext withOptimizerTracer(OptimizerTracer optimizerTracer) {
@@ -160,7 +167,8 @@ public class PlannerContext {
             transactionState,
             planStats,
             optimizerTracer,
-            optimize
+            optimize,
+            timeoutToken
         );
     }
 
@@ -238,5 +246,9 @@ public class PlannerContext {
 
     public BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize() {
         return optimize;
+    }
+
+    public Session.TimeoutToken timeoutToken() {
+        return timeoutToken;
     }
 }

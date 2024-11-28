@@ -32,6 +32,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.session.Session;
 
 public interface Rule<T> {
 
@@ -85,6 +86,7 @@ public interface Rule<T> {
         PlanStats planStats,
         TransactionContext txnCtx,
         NodeContext nodeCtx,
-        UnaryOperator<LogicalPlan> resolvePlan
+        UnaryOperator<LogicalPlan> resolvePlan,
+        Session.TimeoutToken timeoutToken
     ) {}
 }

@@ -1692,7 +1692,8 @@ public abstract class IntegTestCase extends ESTestCase {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            Session.TimeoutToken.noopToken()
         );
         Plan plan = planner.plan(
             analyzer.analyze(

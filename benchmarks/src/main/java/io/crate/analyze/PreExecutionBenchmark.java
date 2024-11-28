@@ -125,7 +125,8 @@ public class PreExecutionBenchmark {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            Session.TimeoutToken.noopToken()
         );
         return planner.plan(analyzedStatement, plannerContext);
     }

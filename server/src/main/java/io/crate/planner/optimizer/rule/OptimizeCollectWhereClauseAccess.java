@@ -70,7 +70,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
             where.queryOrFallback(),
             relation.tableInfo(),
             context.txnCtx(),
-            context.nodeCtx()
+            context.nodeCtx(),
+            context.timeoutToken()
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         if (docKeys.isPresent()) {

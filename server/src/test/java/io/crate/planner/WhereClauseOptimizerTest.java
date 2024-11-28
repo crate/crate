@@ -125,7 +125,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
             where,
             table.tableInfo(),
             e.getPlannerContext().transactionContext(),
-            e.nodeCtx
+            e.nodeCtx,
+            e.getPlannerContext().timeoutToken()
         );
     }
 

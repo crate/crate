@@ -130,7 +130,7 @@ public final class UpdatePlanner {
         DocTableInfo tableInfo = docTable.tableInfo();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(plannerCtx.nodeContext());
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, query, tableInfo, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+            normalizer, query, tableInfo, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.timeoutToken());
 
         if (detailedQuery.docKeys().isPresent() && detailedQuery.queryHasPkSymbolsOnly()) {
             return new UpdateById(

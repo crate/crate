@@ -36,6 +36,7 @@ import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.session.Session;
 
 /**
  * The optimizer takes an operator tree of logical plans and creates an optimized plan.
@@ -53,7 +54,11 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerTracer tracer) {
+    public LogicalPlan optimize(LogicalPlan plan,
+                                PlanStats planStats,
+                                CoordinatorTxnCtx txnCtx,
+                                OptimizerTracer tracer,
+                                Session.TimeoutToken timeoutToken) {
         var memo = new Memo(plan);
         var planStatsWithMemo = planStats.withMemo(memo);
 
@@ -71,7 +76,10 @@ public class IterativeOptimizer {
         tracer.optimizationStarted(plan, planStatsWithMemo);
 
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer));
+        exploreGroup(
+            memo.getRootGroup(),
+            new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer, timeoutToken)
+        );
         return memo.extract();
     }
 
@@ -106,7 +114,7 @@ public class IterativeOptimizer {
     private boolean exploreNode(int group, Context context) {
         var rules = context.rules;
         var node = context.memo.resolve(group);
-        var ruleContext = new Rule.Context(context.planStats, context.txnCtx, nodeCtx, context.groupReferenceResolver);
+        var ruleContext = new Rule.Context(context.planStats, context.txnCtx, nodeCtx, context.groupReferenceResolver, context.timeoutToken);
 
         int numIteration = 0;
         int maxIterations = 10_000;
@@ -115,6 +123,12 @@ public class IterativeOptimizer {
         var minVersion = minNodeVersionInCluster.get();
         while (!done && numIteration < maxIterations) {
             numIteration++;
+            var timeoutToken = context.timeoutToken;
+            if (numIteration % 100 == 0) {
+                // Intermediate check to throw early.
+                // Overall planning time is checked one more time right before execute once plan is created
+                timeoutToken.check();
+            }
             done = true;
             for (Rule<?> rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
@@ -167,6 +181,7 @@ public class IterativeOptimizer {
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
         PlanStats planStats,
-        OptimizerTracer tracer
+        OptimizerTracer tracer,
+        Session.TimeoutToken timeoutToken
     ) {}
 }

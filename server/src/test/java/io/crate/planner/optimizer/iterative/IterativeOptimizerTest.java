@@ -23,23 +23,32 @@ package io.crate.planner.optimizer.iterative;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.JobKilledException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.session.Session;
 import io.crate.statistics.TableStats;
 
 public class IterativeOptimizerTest {
@@ -58,7 +67,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters()));
 
-        var result = optimizer.optimize(filter2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(filter2, planStats, ctx, OptimizerTracer.NOOP, null);
         assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
                                              "  └ TestPlan[]");
     }
@@ -75,7 +84,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP, null);
         assertThat(result).isEqualTo(
             """
             OrderBy[]
@@ -110,7 +119,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MoveFilterBeneathOrder(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP, null);
 
         assertThat(result).isEqualTo(
             """
@@ -119,6 +128,38 @@ public class IterativeOptimizerTest {
                 └ TestPlan[]
             """
         );
+    }
+
+    @Test
+    public void test_optimizer_is_interrupted_when_exceeds_timeout() {
+        var plan = new MemoTest.TestPlan(1, List.of());
+        IterativeOptimizer optimizer = new IterativeOptimizer(nodeCtx,
+            () -> Version.CURRENT,
+            List.of(new SlowRule()));
+
+        Session.TimeoutToken token = new Session.TimeoutToken(TimeValue.timeValueMillis(1), System.nanoTime());
+        assertThatThrownBy(() -> optimizer.optimize(plan, planStats, ctx, OptimizerTracer.NOOP, token)
+        )
+            .isExactlyInstanceOf(JobKilledException.class)
+            .hasMessage("Job killed. statement_timeout (1ms)");
+    }
+
+    static class SlowRule implements Rule<MemoTest.TestPlan> {
+
+        @Override
+        public Pattern<MemoTest.TestPlan> pattern() {
+            return Pattern.typeOf(MemoTest.TestPlan.class);
+        }
+
+        @Override
+        public LogicalPlan apply(MemoTest.TestPlan plan, Captures captures, Context context) {
+            try {
+                Thread.sleep(Duration.ofMillis(1));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return plan;
+        }
     }
 
 }
