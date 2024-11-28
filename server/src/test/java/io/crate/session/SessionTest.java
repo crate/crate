@@ -21,6 +21,7 @@
 
 package io.crate.session;
 
+import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -381,5 +382,82 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         verify(client, times(1))
             .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
+    }
+
+    @Test
+    public void test_parsing_throws_an_error_on_exceeding_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            TestSession testSession = new TestSession(session, 11, 1);
+            assertThatThrownBy(() -> testSession.parse(UNNAMED, "SELECT 1", List.of()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Statement SELECT 1 parsing exceeded 10 ms statement_timeout");
+        }
+    }
+
+    @Test
+    public void test_analysis_throws_an_error_on_exceeding_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            // Both parsing and analysis times don't exceed timeout, but combined time exceed the timeout.
+            TestSession testSession = new TestSession(session, 1, 10);
+            assertThatThrownBy(() -> testSession.parse(UNNAMED, "SELECT 1", List.of()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Statement SELECT 1 analysis exceeded 10 ms statement_timeout");
+        }
+    }
+
+    @Test
+    public void test_statement_timeout_previous_statement_time_is_not_accounted_for() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+
+            // Overall spent time is 10 millis. We must reset the time when we are done with one query,
+            // so that the next query starts from the clean state and time spent in previous queries doesn't add up.
+            TestSession testSession = new TestSession(session, 5, 5);
+            testSession.parse(UNNAMED, "SELECT 1", List.of());
+
+            // New statement runs for 10 (5 + 5) seconds as well, timeout must not be exceeded.
+            testSession.parse(UNNAMED, "SELECT 2", List.of());
+        }
+    }
+
+    /**
+     * A {@link Session} with possibility to prolong execution time of parsing and analysis.
+     * All times must be provided in milliseconds.
+     */
+    private static class TestSession extends Session {
+
+        private final long parseTime;
+        private final long analyzeTime;
+
+        public TestSession(Session session, long parseTime, long analyzeTime) {
+            super(session);
+            this.parseTime = parseTime;
+            this.analyzeTime = analyzeTime;
+        }
+
+        @Override
+        protected long phaseTime(String phase, long phaseStart) {
+            if (phase.equals("parsing")) {
+                return parseTime;
+            } else if (phase.equals("analysis")) {
+                return analyzeTime;
+            } else {
+                return System.currentTimeMillis() - phaseStart;
+            }
+        }
     }
 }

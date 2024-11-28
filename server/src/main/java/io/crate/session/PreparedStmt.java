@@ -32,15 +32,18 @@ public class PreparedStmt {
     private final Statement parsedStatement;
     private final String rawStatement;
     private final DataType<?>[] describedParameterTypes;
+    private final Session.TimeoutToken timeoutToken;
 
     PreparedStmt(Statement parsedStatement,
                  AnalyzedStatement analyzedStatement,
                  String query,
-                 DataType<?>[] parameterTypes) {
+                 DataType<?>[] parameterTypes,
+                 Session.TimeoutToken timeoutToken) {
         this.parsedStatement = parsedStatement;
         this.analyzedStatement = analyzedStatement;
         this.rawStatement = query;
         this.describedParameterTypes = parameterTypes;
+        this.timeoutToken = timeoutToken;
     }
 
     public AnalyzedStatement analyzedStatement() {
@@ -70,5 +73,9 @@ public class PreparedStmt {
 
     public String rawStatement() {
         return rawStatement;
+    }
+
+    public Session.TimeoutToken timeoutToken() {
+        return timeoutToken;
     }
 }
