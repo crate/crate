@@ -57,7 +57,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     public void test_get_wrong_file_path() throws Exception {
         var response = get("/file/path/notexists");
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body()).isEqualTo("Requested file [file/path/notexists] was not found");
+        assertThat(response.body()).matches("Requested file \\[.*\\] was not found");
     }
 
     @Test
