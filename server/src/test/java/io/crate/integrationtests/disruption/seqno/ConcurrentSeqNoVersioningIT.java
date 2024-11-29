@@ -64,6 +64,9 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.common.SuppressForbidden;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -124,6 +127,7 @@ import io.crate.testing.SQLResponse;
  * </ul>
  */
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, minNumDataNodes = 4, maxNumDataNodes = 6)
+@Seed("709F6BE21D75FBB")
 public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
 
     @Override
@@ -138,6 +142,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
     // Wait up to 1 minute (+10s in thread to ensure it does not time out) for threads to complete previous round before initiating next
     // round.
     @Test
+    @Repeat(iterations = 100)
     public void testSeqNoCASLinearizability() {
         final int disruptTimeSeconds = scaledRandomIntBetween(1, 8);
 
