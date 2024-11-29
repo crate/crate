@@ -101,7 +101,7 @@ public final class Eval extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
-        if (source == newSource) {
+        if (source == newSource && outputs.isEmpty()) {
             return this;
         }
         return new Eval(newSource, List.copyOf(outputsToKeep));
