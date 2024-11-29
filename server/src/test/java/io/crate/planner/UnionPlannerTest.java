@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -262,6 +261,21 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                     │      └ Collect[doc.users | [id] | true]
                     └ TableFunction[empty_row | [1, 1] | true]
                 """
+        );
+    }
+
+    @Test
+    public void test_union_works_when_both_sides_have_no_outputs_to_keep_on_prunning() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t");
+
+        assertThat(plan).isEqualTo("""
+            HashAggregate[count(*)]
+              └ Rename[] AS t
+                └ Union[]
+                  ├ Collect[doc.users | [] | true]
+                  └ TableFunction[empty_row | [] | true]
+            """
         );
     }
 

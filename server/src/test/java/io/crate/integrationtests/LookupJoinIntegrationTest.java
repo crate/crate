@@ -145,7 +145,7 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
             execute("explain (costs false)" + query, session);
             assertThat(response).hasLines(
                 "HashAggregate[count(name)]",
-                "  └ Eval[name, id, id]",
+                "  └ Eval[name]",
                 "    └ HashJoin[INNER | (id = id)]",
                 "      ├ MultiPhase",
                 "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
