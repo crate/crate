@@ -1758,7 +1758,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @UseHashJoins(0)
-    public void test_explicit_joins_are_bind_before_implicit_join() throws Exception {
+    public void test_explicit_joins_are_bind_before_implicit_joins() throws Exception {
         execute("CREATE  TABLE  doc.t0(c1 VARCHAR(500))");
         execute("CREATE  TABLE  doc.t1(c0 VARCHAR(500))");
         execute("INSERT INTO doc.t0(c1) VALUES ('')");
