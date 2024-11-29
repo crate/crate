@@ -423,22 +423,16 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Set<String> enabledRoles(Role role, Roles roles) {
-        Set<String> enabledRoles = new HashSet<>();
-        enabledRoles.add(role.name());
-        for (GrantedRole grantedRole: role.grantedRoles()) {
-            enabledRoles.add(grantedRole.roleName());
-            Role retrievedRole = roles.findRole(grantedRole.roleName());
-            if (retrievedRole != null) {
-                if (!retrievedRole.grantedRoles().isEmpty()) {
-                    enabledRoles.addAll(enabledRoles(retrievedRole, roles));
-                }
-            }
+        Set<String> result = new HashSet<>();
+        Set<ApplicableRole> applicableRoles = applicableRoles(role, roles);
+        for (ApplicableRole applicableRole: applicableRoles) {
+            result.add(applicableRole.roleName());
         }
-        return enabledRoles;
+        return result;
     }
 
-    public Iterable<ApplicableRole> applicableRoles(Role role, Roles roles) {
-        List<ApplicableRole> applicableRoles = new ArrayList<>();
+    public Set<ApplicableRole> applicableRoles(Role role, Roles roles) {
+        Set<ApplicableRole> applicableRoles = new HashSet<>();
 
         for (GrantedRole grantedRole: role.grantedRoles()) {
             ApplicableRole newRole = new ApplicableRole(
@@ -446,6 +440,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 grantedRole.roleName(),
                 roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null)
             );
+            Role retrievedRole = roles.findRole(grantedRole.roleName());
+            if (retrievedRole != null) {
+                if (!retrievedRole.grantedRoles().isEmpty()) {
+                    applicableRoles.addAll(applicableRoles(retrievedRole, roles));
+                }
+            }
             applicableRoles.add(newRole);
         }
 
