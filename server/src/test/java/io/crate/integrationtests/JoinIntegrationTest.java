@@ -1538,12 +1538,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
         assertThat(execute("explain " + stmt)).hasLines(
                 "Eval[e] (rows=0)",
-                "  └ Eval[b, a, e, f, c, d] (rows=0)",
-                "    └ HashJoin[((a = c) AND (d = e))] (rows=0)",
-                "      ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
-                "      └ HashJoin[(b = f)] (rows=1)",
-                "        ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
-                "        └ Collect[doc.t3 | [e, f] | true] (rows=1)"
+                "  └ HashJoin[((a = c) AND (d = e))] (rows=0)",
+                "    ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
+                "    └ HashJoin[(b = f)] (rows=1)",
+                "      ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
+                "      └ Collect[doc.t3 | [e, f] | true] (rows=1)"
         );
 
         execute(stmt);
