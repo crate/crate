@@ -195,7 +195,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                     .isExactlyInstanceOf(AssertionFailedError.class)
-                    .withMessage("\nexpected: 6\n but was: 5");
+                    .withMessageMatching("\\Rexpected: 6\\R but was: 5");
 
             // We try to write yet another snap- blob for "foo" in the next generation.
             // It passes cleanly because the content of the blob except for the timestamps.
