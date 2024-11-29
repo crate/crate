@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -330,12 +329,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = buildLogicalPlan(mss);
         assertThat(plan).isEqualTo("""
             Eval[name, id]
-              └ Eval[name, id, id]
-                └ HashJoin[(id = id)]
-                  ├ Collect[doc.locations | [id] | true]
-                  └ Collect[doc.users | [name, id] | true]""");
+              └ HashJoin[(id = id)]
+                ├ Collect[doc.locations | [id] | true]
+                └ Collect[doc.users | [name, id] | true]""");
 
-        LogicalPlan hashjoin = plan.sources().getFirst().sources().getFirst();
+        LogicalPlan hashjoin = plan.sources().getFirst();
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
         assertThat(((HashJoin) hashjoin).lhs().relationNames())
             .as("Smaller table must be on the left-hand-side")
