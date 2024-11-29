@@ -63,9 +63,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseRandomizedOptimizerRules;
-import io.crate.testing.UseRandomizedSchema;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
