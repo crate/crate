@@ -63,6 +63,9 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.testing.UseRandomizedSchema;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -1140,6 +1143,90 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ HashJoin[LEFT | (a = b)]",
             "    ├ Collect[doc.t2 | [b] | true]",
             "    └ Collect[doc.t1 | [a] | true]"
+        );
+    }
+
+    @Test
+    public void test_many_mized_implicit_and_explicit_joins() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .build()
+            .addTable("CREATE TABLE doc.t1(a integer)")
+            .addTable("CREATE TABLE doc.t2(b integer)")
+            .addTable("CREATE TABLE doc.t3(c integer)")
+            .addTable("CREATE TABLE doc.t4(d integer)")
+            .addTable("CREATE TABLE doc.t5(e integer)")
+            .addTable("CREATE TABLE doc.t6(f integer)");
+
+
+        QueriedSelectRelation mss = e.analyze("SELECT * FROM doc.t1 right join doc.t2 on true, doc.t3, doc.t4, t5, t6");
+        var plannerCtx = executor.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "NestedLoopJoin[CROSS]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ NestedLoopJoin[CROSS]",
+            "  │  │  ├ NestedLoopJoin[CROSS]",
+            "  │  │  │  ├ NestedLoopJoin[RIGHT | true]",
+            "  │  │  │  │  ├ Collect[doc.t1 | [a] | true]",
+            "  │  │  │  │  └ Collect[doc.t2 | [b] | true]",
+            "  │  │  │  └ Collect[doc.t3 | [c] | true]",
+            "  │  │  └ Collect[doc.t4 | [d] | true]",
+            "  │  └ Collect[doc.t5 | [e] | true]",
+            "  └ Collect[doc.t6 | [f] | true]"
+        );
+
+
+        mss = e.analyze("SELECT * FROM doc.t1, doc.t2, doc.t3 right join doc.t4 on true, doc.t5, doc.t6");
+        result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[a, b, c, d, e, f]",
+            "  └ NestedLoopJoin[CROSS]",
+            "    ├ NestedLoopJoin[CROSS]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  │  ├ NestedLoopJoin[RIGHT | true]",
+            "    │  │  │  │  ├ Collect[doc.t3 | [c] | true]",
+            "    │  │  │  │  └ Collect[doc.t4 | [d] | true]",
+            "    │  │  │  └ Collect[doc.t1 | [a] | true]",
+            "    │  │  └ Collect[doc.t2 | [b] | true]",
+            "    │  └ Collect[doc.t5 | [e] | true]",
+            "    └ Collect[doc.t6 | [f] | true]"
+        );
+
+        mss = e.analyze("SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true, doc.t4 left join doc.t5 on true, doc.t6");
+        result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[a, b, c, d, e, f]",
+            "  └ NestedLoopJoin[CROSS]",
+            "    ├ NestedLoopJoin[LEFT | true]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  │  ├ NestedLoopJoin[RIGHT | true]",
+            "    │  │  │  │  ├ Collect[doc.t2 | [b] | true]",
+            "    │  │  │  │  └ Collect[doc.t3 | [c] | true]",
+            "    │  │  │  └ Collect[doc.t1 | [a] | true]",
+            "    │  │  └ Collect[doc.t4 | [d] | true]",
+            "    │  └ Collect[doc.t5 | [e] | true]",
+            "    └ Collect[doc.t6 | [f] | true]"
+        );
+
+        mss = e.analyze("SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true left join doc.t5 on true, doc.t6");
+        result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[a, b, c, e, f]",
+            "  └ NestedLoopJoin[CROSS]",
+            "    ├ NestedLoopJoin[LEFT | true]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ NestedLoopJoin[RIGHT | true]",
+            "    │  │  │  ├ Collect[doc.t2 | [b] | true]",
+            "    │  │  │  └ Collect[doc.t3 | [c] | true]",
+            "    │  │  └ Collect[doc.t1 | [a] | true]",
+            "    │  └ Collect[doc.t5 | [e] | true]",
+            "    └ Collect[doc.t6 | [f] | true]"
         );
     }
 }

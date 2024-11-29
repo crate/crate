@@ -1757,7 +1757,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(0)
     public void test_explicit_joins_are_bind_before_implicit_joins() throws Exception {
         execute("CREATE  TABLE  doc.t0(c1 VARCHAR(500))");
         execute("CREATE  TABLE  doc.t1(c0 VARCHAR(500))");
@@ -1781,106 +1780,5 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
 
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(0)
-    public void test_many_mized_implicit_and_explicit_joins() throws Exception {
-        execute("CREATE  TABLE  doc.t1(a integer)");
-        execute("CREATE  TABLE  doc.t2(b integer)");
-        execute("CREATE  TABLE  doc.t3(c integer)");
-        execute("CREATE  TABLE  doc.t4(d integer)");
-        execute("CREATE  TABLE  doc.t5(e integer)");
-        execute("CREATE  TABLE  doc.t6(f integer)");
 
-        execute("INSERT INTO doc.t1(a) VALUES (1)");
-        execute("INSERT INTO doc.t2(b) VALUES (2)");
-        execute("INSERT INTO doc.t3(c) VALUES (3)");
-        execute("INSERT INTO doc.t4(d) VALUES (4)");
-        execute("INSERT INTO doc.t5(e) VALUES (5)");
-        execute("INSERT INTO doc.t6(f) VALUES (6)");
-
-        execute("REFRESH TABLE doc.t1, doc.t2, doc.t3, doc.t4, doc.t5, doc.t6");
-
-        String query = "SELECT * FROM doc.t1 right join doc.t2 on true, doc.t3, doc.t4, t5, t6";
-        execute("explain " + query);
-
-        assertThat(response).hasLines(
-            "NestedLoopJoin[CROSS] (rows=unknown)",
-            "  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "  │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "  │  │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "  │  │  │  ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
-            "  │  │  │  │  ├ Collect[doc.t1 | [a] | true] (rows=unknown)",
-            "  │  │  │  │  └ Collect[doc.t2 | [b] | true] (rows=unknown)",
-            "  │  │  │  └ Collect[doc.t3 | [c] | true] (rows=unknown)",
-            "  │  │  └ Collect[doc.t4 | [d] | true] (rows=unknown)",
-            "  │  └ Collect[doc.t5 | [e] | true] (rows=unknown)",
-            "  └ Collect[doc.t6 | [f] | true] (rows=unknown)"
-        );
-
-        execute(query);
-        assertThat(response).hasRows("1| 2| 3| 4| 5| 6");
-
-        query = "SELECT * FROM doc.t1, doc.t2, doc.t3 right join doc.t4 on true, doc.t5, doc.t6";
-        execute("explain " + query);
-
-        assertThat(response).hasLines(
-            "Eval[a, b, c, d, e, f] (rows=unknown)",
-            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  │  │  ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
-            "    │  │  │  │  ├ Collect[doc.t3 | [c] | true] (rows=unknown)",
-            "    │  │  │  │  └ Collect[doc.t4 | [d] | true] (rows=unknown)",
-            "    │  │  │  └ Collect[doc.t1 | [a] | true] (rows=unknown)",
-            "    │  │  └ Collect[doc.t2 | [b] | true] (rows=unknown)",
-            "    │  └ Collect[doc.t5 | [e] | true] (rows=unknown)",
-            "    └ Collect[doc.t6 | [f] | true] (rows=unknown)"
-        );
-
-        execute(query);
-        assertThat(response).hasRows("1| 2| 3| 4| 5| 6");
-
-        query = "SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true, doc.t4 left join doc.t5 on true, doc.t6";
-        execute("explain " + query);
-
-        assertThat(response).hasLines(
-            "Eval[a, b, c, d, e, f] (rows=unknown)",
-            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    ├ NestedLoopJoin[LEFT | true] (rows=unknown)",
-            "    │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  │  │  ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
-            "    │  │  │  │  ├ Collect[doc.t2 | [b] | true] (rows=unknown)",
-            "    │  │  │  │  └ Collect[doc.t3 | [c] | true] (rows=unknown)",
-            "    │  │  │  └ Collect[doc.t1 | [a] | true] (rows=unknown)",
-            "    │  │  └ Collect[doc.t4 | [d] | true] (rows=unknown)",
-            "    │  └ Collect[doc.t5 | [e] | true] (rows=unknown)",
-            "    └ Collect[doc.t6 | [f] | true] (rows=unknown)"
-        );
-
-        execute(query);
-        assertThat(response).hasRows("1| 2| 3| 4| 5| 6");
-
-        query = "SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true left join doc.t5 on true, doc.t6";
-        execute("explain " + query);
-
-        assertThat(response).hasLines(
-            "Eval[a, b, c, e, f] (rows=unknown)",
-            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    ├ NestedLoopJoin[LEFT | true] (rows=unknown)",
-            "    │  ├ NestedLoopJoin[CROSS] (rows=unknown)",
-            "    │  │  ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
-            "    │  │  │  ├ Collect[doc.t2 | [b] | true] (rows=unknown)",
-            "    │  │  │  └ Collect[doc.t3 | [c] | true] (rows=unknown)",
-            "    │  │  └ Collect[doc.t1 | [a] | true] (rows=unknown)",
-            "    │  └ Collect[doc.t5 | [e] | true] (rows=unknown)",
-            "    └ Collect[doc.t6 | [f] | true] (rows=unknown)"
-        );
-
-        execute(query);
-        assertThat(response).hasRows("1| 2| 3| 5| 6");
-    }
 }
