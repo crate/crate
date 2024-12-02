@@ -267,7 +267,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     private final State state;
 
+    @Deprecated
     private final ImmutableOpenMap<String, AliasMetadata> aliases;
+
+    private final List<String> partitionValues;
 
     private final Settings settings;
 
@@ -295,6 +298,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                           int numberOfReplicas,
                           Settings settings,
                           ImmutableOpenMap<String, AliasMetadata> aliases,
+                          List<String> partitionValues,
                           ImmutableOpenIntMap<Set<String>> inSyncAllocationIds,
                           DiscoveryNodeFilters requireFilters,
                           DiscoveryNodeFilters initialRecoveryFilters,
@@ -320,6 +324,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         this.totalNumberOfShards = numberOfShards * (numberOfReplicas + 1);
         this.settings = settings;
         this.aliases = aliases;
+        this.partitionValues = partitionValues;
         this.inSyncAllocationIds = inSyncAllocationIds;
         this.requireFilters = requireFilters;
         this.includeFilters = includeFilters;
@@ -433,6 +438,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return settings;
     }
 
+    public List<String> partitionValues() {
+        return partitionValues;
+    }
+
+    @Deprecated
     public ImmutableOpenMap<String, AliasMetadata> getAliases() {
         return this.aliases;
     }
@@ -718,6 +728,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private long settingsVersion = 1;
         private long[] primaryTerms = null;
         private Settings settings = Settings.EMPTY;
+        private List<String> partitionValues;
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
@@ -726,6 +737,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.indexName = indexName;
             this.aliases = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
+            this.partitionValues = List.of();
         }
 
         public Builder(IndexMetadata indexMetadata) {
@@ -736,6 +748,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.settingsVersion = indexMetadata.settingsVersion;
             this.settings = indexMetadata.getSettings();
             this.primaryTerms = indexMetadata.primaryTerms.clone();
+            this.partitionValues = indexMetadata.partitionValues;
             this.aliases = ImmutableOpenMap.builder(indexMetadata.aliases);
             this.routingNumShards = indexMetadata.routingNumShards;
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder(indexMetadata.inSyncAllocationIds);
@@ -828,6 +841,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         public Builder state(State state) {
             this.state = state;
+            return this;
+        }
+
+        public Builder partitionValues(List<String> values) {
+            this.partitionValues = values;
             return this;
         }
 
@@ -1021,6 +1039,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 numberOfReplicas,
                 tmpSettings,
                 tmpAliases.build(),
+                partitionValues,
                 filledInSyncAllocationIds.build(),
                 requireFilters,
                 initialRecoveryFilters,
@@ -1152,6 +1171,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             }
             return builder.build();
         }
+
     }
 
     /**

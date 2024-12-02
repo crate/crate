@@ -21,31 +21,14 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.mapper.ContentPath;
 
 import io.crate.common.collections.Maps;
 
 public class DDLClusterStateHelpers {
-
-    static Set<IndexMetadata> indexMetadataSetFromIndexNames(Metadata metadata,
-                                                             String[] indices,
-                                                             IndexMetadata.State state) {
-        Set<IndexMetadata> indicesMetadata = new HashSet<>();
-        for (String indexName : indices) {
-            IndexMetadata indexMetadata = metadata.index(indexName);
-            if (indexMetadata != null && indexMetadata.getState() != state) {
-                indicesMetadata.add(indexMetadata);
-            }
-        }
-        return indicesMetadata;
-    }
 
     public static boolean populateColumnPositions(Map<String, Object> mapping) {
         var columnPositionResolver = new ColumnPositionResolver<Map<String, Object>>();

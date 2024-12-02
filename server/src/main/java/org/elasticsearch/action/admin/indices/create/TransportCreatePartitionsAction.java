@@ -157,8 +157,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         String removalReason = null;
         Index testIndex = null;
         try {
-            List<String> indicesToCreate = getValidatedIndicesToCreate(currentState, request);
-            if (indicesToCreate.isEmpty()) {
+            List<PartitionName> partitionsToCreate = getPartitionsToCreate(currentState, request);
+            if (partitionsToCreate.isEmpty()) {
                 return currentState;
             }
 
@@ -182,7 +182,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
             final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(commonIndexSettings);
             // Shard limit check has to take to account all new partitions.
-            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * indicesToCreate.size();
+            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * partitionsToCreate.size();
             shardLimitValidator.checkShardLimit(numShardsToCreate, currentState)
                 .ifPresent(err -> {
                     final ValidationException e = new ValidationException();
@@ -201,7 +201,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     numTargetShards, indexVersionCreated);
             }
 
-            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(indicesToCreate.getFirst())
+            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(partitionsToCreate.getFirst().asIndexName())
                 .setRoutingNumShards(routingNumShards);
 
             // Set up everything, now locally create the index to see that things are ok, and apply
@@ -221,9 +221,10 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
             ArrayList<String> newIndexUUIDs = new ArrayList<>(table.indexUUIDs());
-            for (String index : indicesToCreate) {
+            for (PartitionName partition : partitionsToCreate) {
                 String indexUUID = UUIDs.randomBase64UUID();
-                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
+                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(partition.asIndexName())
+                    .partitionValues(partition.values())
                     .setRoutingNumShards(routingNumShards)
                     .state(IndexMetadata.State.OPEN)
                     .settings(Settings.builder()
@@ -241,7 +242,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
 
                 logger.info("[{}] creating index, cause [bulk], shards [{}]/[{}]",
-                    index, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
+                    partition, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
@@ -256,8 +257,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 .metadata(newMetadata)
                 .build();
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
-            for (String index : indicesToCreate) {
-                routingTableBuilder.addAsNew(updatedState.metadata().index(index));
+            for (PartitionName partition : partitionsToCreate) {
+                routingTableBuilder.addAsNew(updatedState.metadata().index(partition.asIndexName()));
             }
             return allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
@@ -295,10 +296,11 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         );
     }
 
-    private List<String> getValidatedIndicesToCreate(ClusterState state, CreatePartitionsRequest request) {
-        ArrayList<String> indicesToCreate = new ArrayList<>(request.partitionValuesList().size());
+    private List<PartitionName> getPartitionsToCreate(ClusterState state, CreatePartitionsRequest request) {
+        ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
         for (List<String> partitionValues : request.partitionValuesList()) {
-            String index = new PartitionName(request.relationName(), partitionValues).asIndexName();
+            var partitionName = new PartitionName(request.relationName(), partitionValues);
+            String index = partitionName.asIndexName();
             if (state.metadata().hasIndex(index)) {
                 continue;
             }
@@ -306,9 +308,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 continue;
             }
             IndexName.validate(index);
-            indicesToCreate.add(index);
+            partitions.add(partitionName);
         }
-        return indicesToCreate;
+        return partitions;
     }
 
     private Settings createCommonIndexSettings(ClusterState currentState, Settings tableSettings) {

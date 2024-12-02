@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -152,7 +151,11 @@ public class DocTableInfoFactory {
             versionCreated,
             versionUpgraded,
             table.state() == State.CLOSE,
-            EnumSet.allOf(Operation.class),
+            Operation.buildFromIndexSettingsAndState(
+                table.settings(),
+                table.state(),
+                false // TODO: publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
+            ),
             0
         );
     }

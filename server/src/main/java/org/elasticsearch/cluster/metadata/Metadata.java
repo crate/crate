@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -1230,6 +1231,31 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return null;
         }
         return schemaMetadata.get(relation);
+    }
+
+    public <T> List<T> getIndices(RelationName relationName,
+                                  List<String> partitionValues,
+                                  Function<IndexMetadata, T> as) {
+        RelationMetadata relation = getRelation(relationName);
+        if (!(relation instanceof RelationMetadata.Table table)) {
+            return List.of();
+        }
+        ArrayList<T> result = new ArrayList<>();
+        boolean targetsPartition = !partitionValues.isEmpty();
+        for (String indexUUID : table.indexUUIDs()) {
+            IndexMetadata indexMetadata = indexByUUID(indexUUID);
+            if (indexMetadata == null) {
+                // TODO: should this fail if not partitioned?
+                continue;
+            }
+            if (!targetsPartition || indexMetadata.partitionValues().equals(partitionValues)) {
+                T item = as.apply(indexMetadata);
+                if (item != null) {
+                    result.add(item);
+                }
+            }
+        }
+        return result;
     }
 
     @Nullable
