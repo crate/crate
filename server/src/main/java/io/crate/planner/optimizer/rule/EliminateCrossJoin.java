@@ -68,15 +68,12 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             if (joinGraph.hasCrossJoin()) {
                 var newOrder = eliminateCrossJoin(joinGraph);
                 if (newOrder != null) {
-                    var originalOrder = joinGraph.nodes();
-                    if (originalOrder.equals(newOrder) == false) {
-                        var newJoinPlan = reorder(joinGraph, newOrder);
-                        if (newJoinPlan != null) {
-                            return Eval.create(
-                                newJoinPlan,
-                                join.outputs()
-                            );
-                        }
+                    var newJoinPlan = reorder(joinGraph, newOrder);
+                    if (newJoinPlan != null) {
+                        return Eval.create(
+                            newJoinPlan,
+                            join.outputs()
+                        );
                     }
                 }
             }

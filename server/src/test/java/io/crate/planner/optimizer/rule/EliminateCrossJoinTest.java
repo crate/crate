@@ -305,6 +305,43 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    public void test_eliminate_cross_join_when_order_does_not_change() throws Exception {
+        var firstJoin = new JoinPlan(a, c, JoinType.CROSS, null);
+        Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
+        var join = new JoinPlan(firstJoin, b, JoinType.INNER, joinCondition);
+
+        assertThat(join).hasOperators(
+            "Join[INNER | ((z = x) AND (z = y))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.b | [y] | true]"
+        );
+
+        var joinGraph = JoinGraph.create(join, UnaryOperator.identity());
+        var newOrder = EliminateCrossJoin.eliminateCrossJoin(joinGraph);
+        var originalOrder = joinGraph.nodes();
+        assertThat(originalOrder).isEqualTo(newOrder);
+
+        var rule = new EliminateCrossJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(join);
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            e.ruleContext());
+
+        assertThat(result).hasOperators(
+            "Join[INNER | (z = y)]",
+            "  ├ Join[INNER | (z = x)]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.b | [y] | true]"
+        );
+    }
+
     public void test_do_not_reorder_with_outer_joins() throws Exception {
         var firstJoin = new JoinPlan(a, b, JoinType.CROSS, null);
         Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
