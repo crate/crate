@@ -43,7 +43,6 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class CreateTableClient {
@@ -65,7 +64,6 @@ public class CreateTableClient {
         Settings.Builder settingsBuilder = Settings.builder()
             .put(createTable.settings());
         settingsBuilder.remove(TableParameters.COLUMN_POLICY.getKey());
-        ColumnIdent routingColumn = createTable.routingColumn().equals(SysColumns.ID.COLUMN) ? null : createTable.routingColumn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
                 relationName,
@@ -74,7 +72,7 @@ public class CreateTableClient {
                 pKeysIndices,
                 createTable.getCheckConstraints(),
                 settingsBuilder.build(),
-                routingColumn,
+                createTable.routingColumn(),
                 tableColumnPolicy,
                 Lists.map(createTable.partitionedBy(), Reference::column)
             );

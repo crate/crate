@@ -45,7 +45,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -156,7 +155,7 @@ public record AnalyzedCreateTable(
                     "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
             }
         });
-        ColumnIdent routingColumn = optClusteredBy.orElse(SysColumns.ID.COLUMN);
+        ColumnIdent routingColumn = optClusteredBy.orElse(null);
 
         List<Reference> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
