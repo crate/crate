@@ -120,6 +120,19 @@ Performance and Resilience Improvements
 
   Note that these settings are experimental, and may change in the future.
 
+- Reduced storage requirements for new tables and partitions. CrateDB no longer
+  permanently retains a complete json representation of a row, and instead always
+  retrieves data from other data structures where they exist.  Columns that can
+  not be perfectly reconstructed from other data structures, for example arrays of
+  numeric data which are sorted and deduplicated by the built-in column store,
+  are stored separately in a more efficient format.
+
+  The json representation of a row is still stored initially as part of the
+  transaction log for a shard.  It will be removed naturally by merging as
+  indexing continues once the row has been successfully replicated to all shards,
+  or it can be removed explicitly by an ``OPTIMIZE`` operation after indexing
+  to a table or partition has completed.
+
 Administration and Operations
 -----------------------------
 
