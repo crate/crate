@@ -185,7 +185,7 @@ public class AlterTableClient {
             return transportOpenCloseTableOrPartitionAction.execute(request, _ -> -1L);
         } else {
             return transportCloseTable.execute(
-                new CloseTableRequest(relationName, partitionName == null ? null : partitionName.asIndexName()),
+                new CloseTableRequest(relationName, partitionName == null ? List.of() : partitionName.values()),
                 _ -> -1L
             );
         }

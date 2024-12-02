@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.util.List;
+
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -41,24 +43,25 @@ import io.crate.metadata.RelationName;
  */
 public final record AlterTableTarget(RelationName table,
                                      Index[] indices,
-                                     @Nullable String partition,
+                                     List<String> partitionValues,
                                      @Nullable IndexTemplateMetadata templateMetadata) {
 
-    public static AlterTableTarget of(ClusterState state, RelationName table, @Nullable String partition) {
+    public static AlterTableTarget of(ClusterState state, RelationName table, List<String> partitionValues) {
         Metadata metadata = state.metadata();
-        if (partition == null) {
+        if (partitionValues.isEmpty()) {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
             IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            return new AlterTableTarget(table, indices, partition, indexTemplateMetadata);
+            return new AlterTableTarget(table, indices, partitionValues, indexTemplateMetadata);
         } else {
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, partition);
-            return new AlterTableTarget(table, indices, partition, null);
+            String indexName = new PartitionName(table, partitionValues).asIndexName();
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
+            return new AlterTableTarget(table, indices, partitionValues, null);
         }
     }
 
     public boolean targetsIndividualPartition() {
-        return partition != null;
+        return !partitionValues.isEmpty();
     }
 
     public boolean isEmpty() {
