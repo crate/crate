@@ -70,7 +70,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
@@ -376,10 +375,7 @@ public class TestingHelpers {
             boundCreateTable.getCheckConstraints(),
             Lists.map(boundCreateTable.partitionedBy(), Reference::column),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(SysColumns.ID.COLUMN)
-                ? null
-                : boundCreateTable.routingColumn()
+            boundCreateTable.routingColumn()
         );
-
     }
 }
