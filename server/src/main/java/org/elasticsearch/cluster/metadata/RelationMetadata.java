@@ -129,7 +129,7 @@ public sealed interface RelationMetadata extends Writeable permits
         }
 
         @Override
-        public RelationMetadata withName(RelationName newName) {
+        public Table withName(RelationName newName) {
             return new Table(
                 newName,
                 columns,

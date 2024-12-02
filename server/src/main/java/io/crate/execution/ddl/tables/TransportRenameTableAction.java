@@ -22,47 +22,34 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActiveShardsObserver;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.ActionListeners;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
-import io.crate.metadata.view.ViewsMetadata;
 
 @Singleton
 public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/rename";
-    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
-
     private final RenameTableClusterStateExecutor executor;
-    private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
     public TransportRenameTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService) {
         super(ACTION_NAME,
               transportService,
@@ -70,11 +57,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
               threadPool,
               RenameTableRequest::new
         );
-        activeShardsObserver = new ActiveShardsObserver(clusterService);
-        executor = new RenameTableClusterStateExecutor(
-            allocationService,
-            ddlClusterStateService
-        );
+        executor = new RenameTableClusterStateExecutor(ddlClusterStateService);
     }
 
     @Override
@@ -91,31 +74,12 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     protected void masterOperation(RenameTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        AtomicReference<String[]> newIndexNames = new AtomicReference<>(null);
-        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
-            listener,
-            activeShardsObserver,
-            request.timeout(),
-            () -> logger.info("Renamed a relation, but the operation timed out waiting for enough shards to become available"),
-            newIndexNames::get
-        );
-
         clusterService.submitStateUpdateTask(
             "rename-table",
-            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
+            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    ClusterState updatedState = executor.execute(currentState, request);
-                    IndicesOptions openIndices = IndicesOptions.fromOptions(
-                        true,
-                        true,
-                        true,
-                        false,
-                        true
-                    );
-                    newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(
-                        updatedState.metadata(), openIndices, request.targetName().indexNameOrAlias()));
-                    return updatedState;
+                    return executor.execute(currentState, request);
                 }
 
                 @Override
@@ -127,25 +91,6 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
 
     @Override
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
-        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
-        if (views != null && views.contains(request.sourceName())) {
-            return null;
-        }
-        try {
-            return state.blocks().indicesBlockedException(
-                ClusterBlockLevel.METADATA_WRITE,
-                IndexNameExpressionResolver.concreteIndexNames(
-                    state.metadata(),
-                    STRICT_INDICES_OPTIONS,
-                    request.sourceName().indexNameOrAlias()
-                )
-            );
-        } catch (IndexNotFoundException e) {
-            if (request.isPartitioned() == false) {
-                throw e;
-            }
-            // empty partition, no indices just a template exists.
-            return null;
-        }
+        return null;
     }
 }
