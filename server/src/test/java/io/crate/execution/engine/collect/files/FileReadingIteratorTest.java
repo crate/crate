@@ -59,7 +59,9 @@ import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
+import io.crate.integrationtests.WindowsIncompatible;
 
+@WindowsIncompatible
 public class FileReadingIteratorTest extends ESTestCase {
 
     private static ThreadPool THREAD_POOL;
