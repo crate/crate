@@ -50,6 +50,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 
 public final class DataTypes {
 
@@ -301,7 +302,7 @@ public final class DataTypes {
         return switch (value) {
             case null -> UNDEFINED;
             case Map<?, ?> map -> {
-                ObjectType.Builder builder = ObjectType.builder();
+                ObjectType.Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC);
                 for (var entry : map.entrySet()) {
                     Object key = entry.getKey();
                     Object val = entry.getValue();

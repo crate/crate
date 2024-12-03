@@ -89,11 +89,11 @@ public class DataTypeTest extends ESTestCase {
 
         List<Object> objects = List.of(objA, objB);
         DataType<?> dataType = DataTypes.guessType(objects);
-        var expectedObjectType = ObjectType.builder()
+        var expectedObjectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType(
                 "b",
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("bn1", DataTypes.INTEGER)
                     .setInnerType("bn2", DataTypes.INTEGER)
                     .build()
