@@ -39,6 +39,7 @@ import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -311,7 +312,10 @@ public abstract class IntegTestCase extends ESTestCase {
     private static Long SUITE_SEED = null;
 
     @Rule
-    public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
+    public Timeout globalTimeout = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+        .anyMatch(s -> s.contains("-agentlib:jdwp"))
+            ? new Timeout(30, TimeUnit.MINUTES)
+            : new Timeout(3, TimeUnit.MINUTES);
 
     @Rule
     public TestName testName = new TestName();
