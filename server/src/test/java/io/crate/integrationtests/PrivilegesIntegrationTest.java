@@ -29,18 +29,22 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.pgcatalog.OidHash.Type;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
@@ -685,6 +689,11 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testAccessesToPgConstraintEntriesWithRespectToPrivileges() throws Exception {
+        int relationOid = OidHash.relationOid(Type.TABLE, new RelationName("test_schema", "my_table"));
+        String selectConstraints =
+            "select conname from pg_catalog.pg_constraint where conrelid = ? order by conname";
+        Object[] args = new Object[] { relationOid };
+
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession);
@@ -700,29 +709,36 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                     "views_pk");
 
             //create a table with constraints that a new user is not privileged to access
-            executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
-            executeAsSuperuser("insert into test_schema.my_table values (1,10),(2,20)");
+            executeAsSuperuser("""
+                create table test_schema.my_table (
+                    my_pk int primary key,
+                    my_col int constraint positive_num check (my_col > 0)
+                )
+                """
+            );
 
-            //make sure a new user cannot access constraints without privilege
-            execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                    null, testUserSession);
-            assertThat(response).hasRowCount(0L);
+            execute(selectConstraints, args, testUserSession);
+            assertThat(response)
+                .as("user doesn't see constraints for tables without privileges")
+                .isEmpty();
 
-            //if privilege is granted, the new user can access
             executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
-            execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                    null, testUserSession);
-            assertThat(response).hasRowCount(2L);
+            execute(selectConstraints, args, testUserSession);
+            assertThat(response)
+                .as("user sees constraints after having granted privileges")
+                .hasRows(
+                    "my_table_pk",
+                    "positive_num"
+                );
         }
 
-        //values are identical
-        String newUserWithPrivilegesResult = printedTable(response.rows());
-        executeAsSuperuser("select * from pg_catalog.pg_constraint" +
-                           " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
-        String superUserResult = printedTable(response.rows());
-        assertThat(newUserWithPrivilegesResult).isEqualTo(superUserResult);
+        executeAsSuperuser(selectConstraints, args);
+        assertThat(response)
+            .as("super user sees same constraints")
+            .hasRows(
+                "my_table_pk",
+                "positive_num"
+            );
     }
 
     @Test
