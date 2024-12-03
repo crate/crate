@@ -35,13 +35,10 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -229,36 +226,29 @@ public class AlterTableClient {
 
     private CompletableFuture<Long> resize(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
-        final boolean isPartitioned = analysis.isPartitioned();
-        String sourceIndexName;
-        String sourceIndexAlias;
-        if (isPartitioned) {
-            PartitionName partitionName = analysis.partitionName();
-            assert partitionName != null
-                : "Resizing operations for partitioned tables are only supported at partition level";
-            sourceIndexName = partitionName.asIndexName();
-            sourceIndexAlias = table.ident().indexNameOrAlias();
-        } else {
-            sourceIndexName = table.ident().indexNameOrAlias();
-            sourceIndexAlias = null;
-        }
+        PartitionName partitionName = analysis.partitionName();
+        String sourceIndexName = partitionName == null
+            ? table.ident().indexNameOrAlias()
+            : partitionName.asIndexName();
 
         final ClusterState currentState = clusterService.state();
         final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
         final int targetNumberOfShards = getNumberOfShards(analysis.settings());
-        validateForResizeRequest(sourceIndexMetadata, targetNumberOfShards);
+        validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
+        validateReadOnlyIndexForResize(sourceIndexMetadata);
 
         final List<ChainableAction<Long>> actions = new ArrayList<>();
         final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
         deleteLeftOverFromPreviousOperations(currentState, actions, resizedIndex);
 
+        final ResizeRequest request = new ResizeRequest(
+            table.ident(),
+            partitionName == null ? List.of() : partitionName.values(),
+            targetNumberOfShards
+        );
+
         actions.add(new ChainableAction<>(
-            () -> resizeIndex(
-                currentState.metadata().index(sourceIndexName),
-                sourceIndexAlias,
-                resizedIndex,
-                targetNumberOfShards
-            ),
+            () -> transportResizeAction.execute(request, r -> r.isAcknowledged() ? 1L : 0L),
             () -> CompletableFuture.completedFuture(-1L)
         ));
         actions.add(new ChainableAction<>(
@@ -285,11 +275,6 @@ public class AlterTableClient {
                 () -> CompletableFuture.completedFuture(-1L)
             ));
         }
-    }
-
-    private static void validateForResizeRequest(IndexMetadata sourceIndex, int targetNumberOfShards) {
-        validateNumberOfShardsForResize(sourceIndex, targetNumberOfShards);
-        validateReadOnlyIndexForResize(sourceIndex);
     }
 
     @VisibleForTesting
@@ -357,26 +342,6 @@ public class AlterTableClient {
                 }
             }
         }
-    }
-
-    private CompletableFuture<Long> resizeIndex(IndexMetadata sourceIndex,
-                                                @Nullable String sourceIndexAlias,
-                                                String targetIndexName,
-                                                int targetNumberOfShards) {
-        Settings targetIndexSettings = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, targetNumberOfShards)
-            .build();
-
-        int currentNumShards = sourceIndex.getNumberOfShards();
-        ResizeRequest request = new ResizeRequest(targetIndexName, sourceIndex.getIndex().getName());
-        request.getTargetIndexRequest().settings(targetIndexSettings);
-        if (sourceIndexAlias != null) {
-            request.getTargetIndexRequest().alias(new Alias(sourceIndexAlias));
-        }
-        request.setResizeType(targetNumberOfShards > currentNumShards ? ResizeType.SPLIT : ResizeType.SHRINK);
-        request.setCopySettings(Boolean.TRUE);
-        request.setWaitForActiveShards(ActiveShardCount.ONE);
-        return transportResizeAction.execute(request, r -> r.isAcknowledged() ? 1L : 0L);
     }
 
     private CompletableFuture<Long> deleteIndex(String... indexNames) {
