@@ -22,6 +22,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -92,8 +93,8 @@ public sealed interface RelationMetadata extends Writeable permits
             ColumnIdent routingColumn = in.readOptionalWriteable(ColumnIdent::of);
             ColumnPolicy columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
             String pkConstraintName = in.readOptionalString();
-            // TODO:
-            Map<String, String> checkConstraints = Map.of();
+            Map<String, String> checkConstraints = in.readMap(
+                HashMap::new, StreamInput::readString, StreamInput::readString);
             List<ColumnIdent> primaryKeys = in.readList(ColumnIdent::of);
             List<ColumnIdent> partitionedBy = in.readList(ColumnIdent::of);
             State state = in.readEnum(State.class);
@@ -121,7 +122,7 @@ public sealed interface RelationMetadata extends Writeable permits
             out.writeOptionalWriteable(routingColumn);
             out.writeVInt(columnPolicy.ordinal());
             out.writeOptionalString(pkConstraintName);
-            // TODO: checkConstraints
+            out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
             out.writeList(primaryKeys);
             out.writeList(partitionedBy);
             out.writeEnum(state);

@@ -137,13 +137,18 @@ public class DocTableInfoFactory {
                 ? table.primaryKeys().get(0)
                 : SysColumns.ID.COLUMN;
         }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            expressionAnalyzer,
+            expressionAnalysisContext,
+            table.checkConstraints()
+        );
         return new DocTableInfo(
             table.name(),
             columns,
             indexColumns,
             table.pkConstraintName(),
             table.primaryKeys(),
-            getCheckConstraints(expressionAnalyzer, expressionAnalysisContext, table.checkConstraints()),
+            checkConstraints,
             routingColumn,
             table.settings(),
             table.partitionedBy(),

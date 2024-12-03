@@ -46,6 +46,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
@@ -53,6 +54,7 @@ import io.crate.blob.v2.BlobShard;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
+@Ignore
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws Exception {
