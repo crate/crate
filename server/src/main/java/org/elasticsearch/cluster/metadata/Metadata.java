@@ -72,6 +72,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -740,7 +741,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder addTable(RelationName relationName,
+        public Builder addTable(RelationName name,
                                 Collection<Reference> columns,
                                 Settings settings,
                                 @Nullable ColumnIdent routingColumn,
@@ -753,7 +754,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 List<String> indexUUIDs) {
             return addTable(
                 columnOidSupplier,
-                relationName,
+                name,
                 columns,
                 settings,
                 routingColumn,
@@ -1225,12 +1226,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     @Nullable
-    public RelationMetadata getRelation(RelationName relation) {
+    @SuppressWarnings("unchecked")
+    public <T extends RelationMetadata> T getRelation(RelationName relation) {
         SchemaMetadata schemaMetadata = schemas.get(relation.schema());
         if (schemaMetadata == null) {
             return null;
         }
-        return schemaMetadata.get(relation);
+        RelationMetadata relationMetadata = schemaMetadata.get(relation);
+        if (relationMetadata == null) {
+            return null;
+        }
+        try {
+            return (T) relationMetadata;
+        } catch (ClassCastException e) {
+            throw new OperationOnInaccessibleRelationException(
+                relation,
+                "The relation " + relation.sqlFqn() + " doesn't support the operation");
+        }
     }
 
     public <T> List<T> getIndices(RelationName relationName,

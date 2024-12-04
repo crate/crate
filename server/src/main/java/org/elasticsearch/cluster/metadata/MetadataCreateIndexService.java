@@ -44,6 +44,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
@@ -82,7 +83,9 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
@@ -232,8 +235,154 @@ public class MetadataCreateIndexService {
                     nodeContext));
     }
 
+    public void resize(ResizeRequest request, ActionListener<ClusterStateUpdateResponse> listener) {
+        ResizeTableTask updateTask = new ResizeTableTask(allocationService, indexScopedSettings, request);
+        clusterService.submitStateUpdateTask(
+            "resize-table",
+            updateTask
+        );
+        updateTask.completionFuture().whenComplete((resp, err) -> {
+            if (err != null) {
+                listener.onFailure(Exceptions.toException(err));
+            } else {
+                List<String> indexNames = clusterService.state().metadata().getIndices(
+                    request.table(),
+                    request.partitionValues(),
+                    idxMd -> idxMd.getIndex().getName()
+                );
+                activeShardsObserver.waitForActiveShards(
+                    indexNames.toArray(String[]::new),
+                    ActiveShardCount.ONE,
+                    request.ackTimeout(),
+                    result -> listener.onResponse(resp),
+                    ex -> listener.onFailure(ex)
+                );
+            }
+        });
+    }
+
     interface IndexValidator {
         void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state);
+    }
+
+
+    static class ResizeTableTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
+
+        private final AllocationService allocationService;
+        private final IndexScopedSettings indexScopedSettings;
+        private final ResizeRequest request;
+
+        protected ResizeTableTask(AllocationService allocationService,
+                                  IndexScopedSettings indexScopedSettings,
+                                  ResizeRequest request) {
+            super(Priority.HIGH, request);
+            this.allocationService = allocationService;
+            this.indexScopedSettings = indexScopedSettings;
+            this.request = request;
+        }
+
+        @Override
+        protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+            return new ClusterStateUpdateResponse(acknowledged);
+        }
+
+        @Override
+        public ClusterState execute(ClusterState currentState) throws Exception {
+            Metadata metadata = currentState.metadata();
+            RelationMetadata.Table table = metadata.getRelation(request.table());
+
+            Metadata.Builder newMetadata = Metadata.builder(metadata);
+            ClusterBlocks.Builder newBlocks = ClusterBlocks.builder().blocks(currentState.blocks());
+            RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
+            List<String> newIndexUUIDs = new ArrayList<>();
+            for (String indexUUID : table.indexUUIDs()) {
+                IndexMetadata sourceMetadata = metadata.indexByUUID(indexUUID);
+                Index sourceIndex = sourceMetadata.getIndex();
+                boolean shrink = request.newNumShards() < sourceMetadata.getNumberOfShards();
+
+                String targetName = AlterTableClient.RESIZE_PREFIX + sourceIndex.getName();
+                IndexMetadata.Builder newIndexMetadata = IndexMetadata.builder(targetName)
+                    .partitionValues(sourceMetadata.partitionValues());
+
+                String newIndexUUID = UUIDs.randomBase64UUID();
+                newIndexUUIDs.add(newIndexUUID);
+                Settings.Builder newSettings = Settings.builder()
+                    .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID)
+                    .put(IndexMetadata.SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, request.newNumShards())
+                    .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, sourceIndex.getName())
+                    .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, sourceIndex.getUUID());
+
+                for (String key : sourceMetadata.getSettings().keySet()) {
+                    final Setting<?> setting = indexScopedSettings.get(key);
+                    if (setting == null) {
+                        assert indexScopedSettings.isPrivateSetting(key) : key;
+                    } else if (setting.getProperties().contains(Setting.Property.NotCopyableOnResize)) {
+                        continue;
+                    }
+                    // do not override settings that have already been set (for example, from the request)
+                    if (newSettings.keys().contains(key)) {
+                        continue;
+                    }
+                    newSettings.copy(key, sourceMetadata.getSettings());
+                }
+
+                if (shrink) {
+                    List<String> nodesToAllocateOn = validateShrinkIndex(
+                        currentState,
+                        sourceIndex.getName(),
+                        targetName,
+                        sourceMetadata.getSettings()
+                    );
+                    newSettings.put(
+                        IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getKey() + "_id",
+                        Strings.arrayToCommaDelimitedString(nodesToAllocateOn.toArray())
+                    );
+                } else {
+                    validateSplitIndex(
+                        currentState,
+                        sourceIndex.getName(),
+                        targetName,
+                        sourceMetadata.getSettings()
+                    );
+                }
+
+                newIndexMetadata.settings(newSettings);
+                long primaryTerm = IntStream
+                    .range(0, sourceMetadata.getNumberOfShards())
+                    .mapToLong(sourceMetadata::primaryTerm)
+                    .max()
+                    .getAsLong();
+                for (int shardId = 0; shardId < request.newNumShards(); shardId++) {
+                    newIndexMetadata.primaryTerm(shardId, primaryTerm);
+                }
+                IndexMetadata indexMetadata = newIndexMetadata.build();
+                newBlocks.updateBlocks(indexMetadata);
+                newMetadata.put(indexMetadata, true);
+                newRoutingTable.addAsNew(indexMetadata);
+            }
+
+            newMetadata.addTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newIndexUUIDs
+            );
+
+            ClusterState newState = ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .blocks(newBlocks)
+                .routingTable(newRoutingTable.build())
+                .build();
+            return allocationService.reroute(newState, "indices of table resized: " + table.name());
+        }
     }
 
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
