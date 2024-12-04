@@ -23,6 +23,7 @@ package io.crate.metadata.shard.unassigned;
 
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.Index;
 
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
@@ -77,17 +78,18 @@ public final class UnassignedShard {
     private final String partitionIdent;
     private final String state;
     private final boolean orphanedPartition;
+    private final String partitionUUID;
 
     private static final String UNASSIGNED = "UNASSIGNED";
     private static final String INITIALIZING = "INITIALIZING";
 
 
     public UnassignedShard(int shardId,
-                           String indexName,
+                           Index index,
                            ClusterService clusterService,
                            Boolean primary,
                            ShardRoutingState state) {
-        IndexParts indexParts = IndexName.decode(indexName);
+        IndexParts indexParts = IndexName.decode(index.getName());
         this.schemaName = indexParts.schema();
         this.tableName = indexParts.table();
         this.partitionIdent = indexParts.partitionIdent();
@@ -96,6 +98,7 @@ public final class UnassignedShard {
         this.primary = primary;
         this.id = shardId;
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;
+        this.partitionUUID = index.getUUID();
     }
 
     public String tableName() {
@@ -112,6 +115,10 @@ public final class UnassignedShard {
 
     public String partitionIdent() {
         return partitionIdent;
+    }
+
+    public String partitionUUID() {
+        return partitionUUID;
     }
 
     public Boolean primary() {

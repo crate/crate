@@ -468,13 +468,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
                 for (IntCursor shard : shards) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard.value)));
+                    unassignedShards.add(toUnassignedShard(index, UnassignedShard.markAssigned(shard.value)));
                 }
                 continue;
             }
             for (IntCursor shard : shards) {
                 if (UnassignedShard.isUnassigned(shard.value)) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), UnassignedShard.markAssigned(shard.value)));
+                    unassignedShards.add(toUnassignedShard(index, UnassignedShard.markAssigned(shard.value)));
                     continue;
                 }
                 ShardId shardId = new ShardId(index, shard.value);
@@ -482,7 +482,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     shardRowContexts.add(shardCollectorProvider.shardRowContext());
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    unassignedShards.add(toUnassignedShard(index.getName(), shard.value));
+                    unassignedShards.add(toUnassignedShard(index, shard.value));
                 }
             }
         }
@@ -505,7 +505,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         return rows;
     }
 
-    private UnassignedShard toUnassignedShard(String indexName, int shardId) {
-        return new UnassignedShard(shardId, indexName, clusterService, false, ShardRoutingState.UNASSIGNED);
+    private UnassignedShard toUnassignedShard(Index index, int shardId) {
+        return new UnassignedShard(shardId, index, clusterService, false, ShardRoutingState.UNASSIGNED);
     }
 }

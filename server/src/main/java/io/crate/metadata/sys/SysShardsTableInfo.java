@@ -77,6 +77,7 @@ public class SysShardsTableInfo {
         static final ColumnIdent SCHEMA_NAME = ColumnIdent.of("schema_name");
         public static final ColumnIdent TABLE_NAME = ColumnIdent.of("table_name");
         public static final ColumnIdent PARTITION_IDENT = ColumnIdent.of("partition_ident");
+        public static final ColumnIdent PARTITION_UUID = ColumnIdent.of("partition_uuid");
         static final ColumnIdent NUM_DOCS = ColumnIdent.of("num_docs");
         public static final ColumnIdent PRIMARY = ColumnIdent.of("primary");
         static final ColumnIdent RELOCATING_NODE = ColumnIdent.of("relocating_node");
@@ -104,6 +105,7 @@ public class SysShardsTableInfo {
             entry(Columns.SCHEMA_NAME, () -> forFunction(UnassignedShard::schemaName)),
             entry(Columns.TABLE_NAME, () -> forFunction(UnassignedShard::tableName)),
             entry(Columns.PARTITION_IDENT, () -> forFunction(UnassignedShard::partitionIdent)),
+            entry(Columns.PARTITION_UUID, () -> forFunction(UnassignedShard::partitionUUID)),
             entry(Columns.ID, () -> forFunction(UnassignedShard::id)),
             entry(Columns.NUM_DOCS, () -> constant(0L)),
             entry(Columns.PRIMARY, () -> forFunction(UnassignedShard::primary)),
@@ -131,6 +133,7 @@ public class SysShardsTableInfo {
             .add("table_name", STRING, r -> r.indexParts().table())
             .add("id", INTEGER, ShardRowContext::id)
             .add("partition_ident", STRING, ShardRowContext::partitionIdent)
+            .add("partition_uuid", STRING, ShardRowContext::partitionUUID)
             .add("num_docs", LONG, ShardRowContext::numDocs)
             .add("primary", BOOLEAN, r -> r.indexShard().routingEntry().primary())
             .add("relocating_node", STRING, r -> r.indexShard().routingEntry().relocatingNodeId())
