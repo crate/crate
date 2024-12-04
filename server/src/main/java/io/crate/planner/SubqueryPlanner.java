@@ -27,6 +27,7 @@ import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.LogicalPlan;
 
@@ -59,6 +60,12 @@ public class SubqueryPlanner {
         statement.visitSymbols(tree ->
             tree.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries))
         );
+        return subQueries;
+    }
+
+    public SubQueries planSubQueries(Symbol symbol) {
+        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
+        symbol.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries));
         return subQueries;
     }
 

@@ -30,7 +30,6 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -150,14 +149,17 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "limit 10");
-        assertThat(relation)
-                   .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint");
-        assertThat(relation.joinPairs().get(0).condition())
-                   .isSQL("(t1.i = t2.i)");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
-                   .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
-                   .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
+        assertThat(relation).isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint");
+
+        JoinRelation joinRelation = (JoinRelation) relation.from().get(0);
+        assertThat(joinRelation.joinCondition()).isSQL("(t1.i = t2.i)");
+
+        assertThat(((AliasedAnalyzedRelation) joinRelation.left()).relation())
+            .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
+        assertThat(((AliasedAnalyzedRelation) joinRelation.right()).relation())
+            .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
+
+
     }
 
     @Test
@@ -168,13 +170,12 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "order by 2 limit 10");
-        assertThat(relation)
-            .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint");
-        assertThat(relation.joinPairs().get(0).condition())
-            .isSQL("(t1.i = t2.i)");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
+        assertThat(relation).isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint");
+        JoinRelation joinRelation = (JoinRelation) relation.from().get(0);
+        assertThat(joinRelation.joinCondition()).isSQL("(t1.i = t2.i)");
+        assertThat(((AliasedAnalyzedRelation) joinRelation.left()).relation())
             .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
-        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
+        assertThat(((AliasedAnalyzedRelation) joinRelation.right()).relation())
             .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
     }
 
@@ -193,10 +194,10 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isFunction("count"));
         assertThat(relation.limit()).isLiteral(10L);
 
-        assertThat(relation.joinPairs().get(0).condition())
-            .isFunction("op_=", isField("i"), isField("i"));
+        JoinRelation joinRelation = (JoinRelation) relation.from().get(0);
+        assertThat(joinRelation.joinCondition()).isFunction("op_=", isField("i"), isField("i"));
 
-        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
+        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) joinRelation.left();
         QueriedSelectRelation t1Sub = ((QueriedSelectRelation) t1Alias.relation());
         assertThat(t1Sub.outputs()).satisfiesExactly(isField("a"), isField("i"));
         assertThat(Objects.requireNonNull(t1Sub.orderBy()).orderBySymbols()).satisfiesExactly(isField("a"));
@@ -207,7 +208,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(Objects.requireNonNull(t1.orderBy()).orderBySymbols()).satisfiesExactly(isReference("a"));
         assertThat(t1.limit()).isLiteral(5L);
 
-        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
+        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) joinRelation.right();
         QueriedSelectRelation t2sub = (QueriedSelectRelation) t2Alias.relation();
         assertThat(t2sub.where())
             .isFunction("op_>", isReference("b"), isLiteral("10"));
@@ -245,10 +246,12 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select max(b) mb, i from t2 group by i having i > 10::int) t2 " +
                                                  "on t1.i = t2.i where t1.ma > '50' and t2.mb > '100'");
         assertList(relation.outputs()).isSQL("t1.ma, t1.i, t2.mb, t2.i");
-        assertThat(relation.joinPairs().get(0).condition()).isSQL("(t1.i = t2.i)");
         assertThat(relation.where()).isSQL("((t1.ma > '50') AND (t2.mb > '100'))");
 
-        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
+        JoinRelation joinRelation = (JoinRelation) relation.from().get(0);
+        assertThat(joinRelation.joinCondition()).isSQL("(t1.i = t2.i)");
+
+        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) joinRelation.left();
         QueriedSelectRelation t1Sel = (QueriedSelectRelation) t1Alias.relation();
         assertThat(t1Sel.outputs()).satisfiesExactly(
             isAlias("ma", isFunction("max")),
@@ -256,7 +259,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertList(t1Sel.groupBy()).isSQL("doc.t1.i");
         assertThat(t1Sel.having()).isNull();
 
-        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
+        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) joinRelation.right();
         QueriedSelectRelation t2Sel = (QueriedSelectRelation) t2Alias.relation();
         assertThat(t2Sel.outputs()).satisfiesExactly(
             isAlias("mb", isFunction("max", isReference("b"))),

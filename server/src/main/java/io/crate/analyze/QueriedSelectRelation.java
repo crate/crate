@@ -23,13 +23,13 @@ package io.crate.analyze;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.JoinPair;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -42,7 +42,6 @@ import io.crate.metadata.table.Operation;
 public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final List<AnalyzedRelation> from;
-    private final List<JoinPair> joinPairs;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
     private final Symbol whereClause;
@@ -58,7 +57,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
-                                 List<JoinPair> joinPairs,
                                  List<Symbol> outputs,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
@@ -76,7 +74,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         assert !from.isEmpty() : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
         this.from = from;
-        this.joinPairs = joinPairs;
     }
 
     public List<AnalyzedRelation> from() {
@@ -186,10 +183,13 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public String toString() {
         return "SELECT "
-               + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
-               + " FROM ("
-               + Lists.joinOn(", ", from, x -> x.relationName().toString())
-               + ')';
+            + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
+            + " FROM ("
+            + from.stream()
+            .flatMap(rel -> RelationNames.getRelationNames(rel).stream())
+            .map(RelationName::toString)
+            .collect(Collectors.joining(", "))
+            + ')';
     }
 
     @Override
@@ -213,14 +213,5 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (offset != null) {
             consumer.accept(offset);
         }
-        for (var joinPair : joinPairs) {
-            if (joinPair.condition() != null) {
-                consumer.accept(joinPair.condition());
-            }
-        }
-    }
-
-    public List<JoinPair> joinPairs() {
-        return joinPairs;
     }
 }

@@ -21,14 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
-
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
@@ -44,12 +41,12 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
-public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
+public class MoveEquiJoinFilterIntoInnerJoin implements Rule<Filter> {
 
     private final Capture<JoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
 
-    public RewriteFilterOnCrossJoinToInnerJoin() {
+    public MoveEquiJoinFilterIntoInnerJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(f -> EquiJoinDetector.isEquiJoin(f.query()))
@@ -57,7 +54,7 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
                 source(),
                 typeOf(JoinPlan.class)
                     .capturedAs(joinCapture)
-                    .with(j -> j.joinType() == JoinType.CROSS)
+                    .with(j -> j.joinType() == JoinType.INNER)
             );
     }
 
@@ -68,34 +65,32 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
 
     @Override
     public LogicalPlan apply(Filter equiJoinConditionFilter, Captures captures, Context context) {
-        JoinPlan crossJoin = captures.get(joinCapture);
 
-        Map<Set<RelationName>, Symbol> filterQuery = QuerySplitter.split(equiJoinConditionFilter.query());
-        HashSet<RelationName> relationNamesInFilterQuery = new HashSet<>();
+        JoinPlan innerJoin = captures.get(joinCapture);
+        Symbol query = equiJoinConditionFilter.query();
 
-        ArrayList<Symbol> newJoinCondition = new ArrayList<>();
+        HashSet<RelationName> relationNamesInFilter = new HashSet<>();
         ArrayList<Symbol> newFilterQuery = new ArrayList<>();
+        ArrayList<Symbol> newJoinCondition = new ArrayList<>();
+        newJoinCondition.add(innerJoin.joinCondition());
 
-        for (var entry : filterQuery.entrySet()) {
-            Set<RelationName> key = entry.getKey();
-            Symbol value = entry.getValue();
+        for (var entries : QuerySplitter.split(query).entrySet()) {
+            Symbol value = entries.getValue();
             if (EquiJoinDetector.isEquiJoin(value)) {
-                relationNamesInFilterQuery.addAll(key);
+                relationNamesInFilter.addAll(entries.getKey());
                 newJoinCondition.add(value);
             } else {
                 newFilterQuery.add(value);
             }
         }
+        HashSet<RelationName> relationNamesInJoin = new HashSet<>();
+        relationNamesInJoin.addAll(innerJoin.lhs().relationNames());
+        relationNamesInJoin.addAll(innerJoin.rhs().relationNames());
 
-        HashSet<RelationName> sources = new HashSet<>();
-        sources.addAll(crossJoin.lhs().relationNames());
-        sources.addAll(crossJoin.rhs().relationNames());
-
-        if (relationNamesInFilterQuery.containsAll(sources)) {
-            return Filter.create(
-                new JoinPlan(
-                    crossJoin.lhs(),
-                    crossJoin.rhs(),
+        if (relationNamesInJoin.containsAll(relationNamesInFilter)) {
+            return Filter.create(new JoinPlan(
+                    innerJoin.lhs(),
+                    innerJoin.rhs(),
                     JoinType.INNER,
                     AndOperator.join(newJoinCondition)
                 ),
@@ -104,4 +99,5 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
         }
         return null;
     }
+
 }
