@@ -69,7 +69,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
         executor = new AlterTableClusterStateExecutor(
             indicesService,
             indexScopedSettings,
-            metadataCreateIndexService,
             updateSettingsService,
             nodeContext
         );

@@ -23,25 +23,21 @@ package io.crate.metadata.cluster;
 
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -50,12 +46,14 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 
@@ -65,17 +63,14 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         true, true, true, true);
 
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataCreateIndexService metadataCreateIndexService;
     private final NodeContext nodeContext;
     private final MetadataUpdateSettingsService updateSettingsService;
 
     public AlterTableClusterStateExecutor(IndicesService indicesService,
                                           IndexScopedSettings indexScopedSettings,
-                                          MetadataCreateIndexService metadataCreateIndexService,
                                           MetadataUpdateSettingsService updateSettingsService,
                                           NodeContext nodeContext) {
         this.indexScopedSettings = indexScopedSettings;
-        this.metadataCreateIndexService = metadataCreateIndexService;
         this.nodeContext = nodeContext;
         this.updateSettingsService = updateSettingsService;
     }
@@ -89,72 +84,67 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             .put(request.settings());
         settingsBuilder.remove(TableParameters.COLUMN_POLICY.getKey());
         Settings settings = settingsBuilder.build();
-        if (request.isPartitioned()) {
-            if (request.partitionIndexName() != null) {
-                for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
-                    if (tableOnlySetting.exists(settings)) {
-                        throw new IllegalArgumentException(String.format(
-                            Locale.ENGLISH,
-                            "\"%s\" cannot be changed on partition level",
-                            tableOnlySetting.getKey()
-                        ));
-                    }
-                }
-                Index[] concreteIndices = resolveIndices(currentState, request.partitionIndexName());
-                currentState = updateSettings(currentState, settings, concreteIndices);
-            } else {
-                // using settings from request with column policy still present
-                Map<String, Object> newMapping = settingsToMapping(request.settings());
 
-                // template gets all changes unfiltered
-                if (!request.excludePartitions()) {
-                    Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
+        Metadata metadata = currentState.metadata();
+        RelationName tableName = request.tableIdent();
+        RelationMetadata.Table table = metadata.getRelation(tableName);
+        if (table == null) {
+            throw new RelationUnknown(tableName);
+        }
 
-                    // These settings only apply for already existing partitions
-                    List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-                        .supportedSettings()
-                        .values()
-                        .stream()
-                        .collect(Collectors.toList());
+        Metadata.Builder newMetadata = Metadata.builder(metadata);
 
-                    // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
-                    supportedSettings.add(AutoExpandReplicas.SETTING);
+        String partitionIndexName = request.partitionIndexName();
+        List<String> partitionValues = partitionIndexName == null
+            ? List.of()
+            : PartitionName.fromIndexOrTemplate(partitionIndexName).values();
 
-                    currentState = updateSettings(currentState, filterSettings(settings, supportedSettings), concreteIndices);
-                    currentState = updateMapping(currentState, concreteIndices, columnPolicy);
+        if (partitionValues.isEmpty()) {
+            newMetadata.addTable(
+                table.name(),
+                table.columns(),
+                Settings.builder()
+                    .put(table.settings())
+                    .put(settings)
+                    .build(),
+                table.routingColumn(),
+                columnPolicy == null ? table.columnPolicy() : columnPolicy,
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                table.indexUUIDs()
+            );
+        } else {
+            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
+                if (tableOnlySetting.exists(settings)) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "\"%s\" cannot be changed on partition level",
+                        tableOnlySetting.getKey()
+                    ));
                 }
             }
-        } else {
-            Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
-            currentState = updateMapping(currentState, concreteIndices, columnPolicy);
-            currentState = updateSettings(currentState, settings, concreteIndices);
         }
 
-        // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
+        for (IndexMetadata indexMetadata : metadata.getIndices(tableName, partitionValues, x -> x)) {
+            Settings.Builder newSettings = Settings.builder()
+                .put(indexMetadata.getSettings())
+                .put(settings);
+            newMetadata.put(
+                IndexMetadata.builder(indexMetadata).settings(newSettings).build(),
+                true
+            );
+        }
 
-        return currentState;
+        Metadata updatedMetadata = newMetadata.build();
+        new DocTableInfoFactory(nodeContext).create(tableName, updatedMetadata);
+
+        return ClusterState.builder(currentState)
+            .metadata(updatedMetadata)
+            .build();
     }
-
-    /**
-     * @param mappingDelta is dynamic policy setting which for now is the only mapping change allowed by ALTER TABLE SET
-     */
-    private ClusterState updateMapping(ClusterState currentState,
-                                       Index[] concreteIndices,
-                                       @Nullable ColumnPolicy columnPolicy) throws IOException {
-        if (columnPolicy == null) {
-            return currentState;
-        }
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        for (Index index : concreteIndices) {
-            final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-
-        }
-
-        return ClusterState.builder(currentState).metadata(metadataBuilder).build();
-    }
-
-
 
     /**
      * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}
@@ -192,14 +182,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             closedSettings,
             openSettings
         );
-    }
-
-    public static Map<String, Object> settingsToMapping(Settings settings) {
-        String policy = settings.get(TableParameters.COLUMN_POLICY.getKey());
-        if (policy == null) {
-            return Map.of();
-        }
-        return Map.of(ColumnPolicy.MAPPING_KEY, ColumnPolicy.of(policy).toMappingValue());
     }
 
     private static void validateSettings(String name,
@@ -242,14 +224,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             }
         }
         return settingsBuilder.build();
-    }
-
-    public static Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
-        return IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(),
-            FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING,
-            indexExpressions
-        );
     }
 
     /**
