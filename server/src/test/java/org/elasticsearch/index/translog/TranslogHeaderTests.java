@@ -19,11 +19,8 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
@@ -44,13 +41,13 @@ public class TranslogHeaderTests extends ESTestCase {
         final Path translogFile = createTempDir().resolve(Translog.getFilename(generation));
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             outHeader.write(channel);
-            assertThat(outHeader.sizeInBytes(), equalTo((int)channel.position()));
+            assertThat(outHeader.sizeInBytes()).isEqualTo((int)channel.position());
         }
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
             final TranslogHeader inHeader = TranslogHeader.read(translogUUID, translogFile, channel);
-            assertThat(inHeader.getTranslogUUID(), equalTo(translogUUID));
-            assertThat(inHeader.getPrimaryTerm(), equalTo(outHeader.getPrimaryTerm()));
-            assertThat(inHeader.sizeInBytes(), equalTo((int)channel.position()));
+            assertThat(inHeader.getTranslogUUID()).isEqualTo(translogUUID);
+            assertThat(inHeader.getPrimaryTerm()).isEqualTo(outHeader.getPrimaryTerm());
+            assertThat(inHeader.sizeInBytes()).isEqualTo((int)channel.position());
         }
         assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
@@ -65,14 +62,16 @@ public class TranslogHeaderTests extends ESTestCase {
                 final TranslogHeader translogHeader = TranslogHeader.read(outHeader.getTranslogUUID(), translogFile, channel);
                 // succeeds if the corruption corrupted the version byte making this look like a v2 translog, because we don't check the
                 // checksum on this version
-                assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + " translog",
-                           translogHeader.getPrimaryTerm(), equalTo(SequenceNumbers.UNASSIGNED_PRIMARY_TERM));
+                assertThat(translogHeader.getPrimaryTerm()).as("version " + TranslogHeader.VERSION_CHECKPOINTS + " translog").isEqualTo(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version");
             } catch (IllegalStateException e) {
                 // corruption corrupted the version byte making this look like a v2, v1 or v0 translog
-                assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + "-or-earlier translog",
-                    e.getMessage(), anyOf(containsString("pre-2.0 translog found"), containsString("pre-1.4 translog found"),
-                        containsString("pre-6.3 translog found")));
+                assertThat(e.getMessage())
+                    .as("version " + TranslogHeader.VERSION_CHECKPOINTS + "-or-earlier translog")
+                    .satisfiesAnyOf(
+                        m -> assertThat(m).contains("pre-1.4 translog found"),
+                        m -> assertThat(m).contains("pre-2.0 translog found"),
+                        m -> assertThat(m).contains("pre-6.3 translog found"));
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version", e);
             }
         }).isExactlyInstanceOf(TranslogCorruptedException.class)
@@ -88,7 +87,7 @@ public class TranslogHeaderTests extends ESTestCase {
         final Path translogFile = translogLocation.resolve(Translog.getFilename(generation));
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             outHeader.write(channel);
-            assertThat(outHeader.sizeInBytes(), equalTo((int) channel.position()));
+            assertThat(outHeader.sizeInBytes()).isEqualTo((int) channel.position());
         }
         TestTranslog.corruptFile(logger, random(), translogFile, false);
         assertThatThrownBy(() -> {

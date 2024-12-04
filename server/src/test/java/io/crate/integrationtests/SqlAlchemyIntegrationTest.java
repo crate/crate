@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -37,13 +37,13 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
             new Object[]{"*", "foo"}
         );
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -55,13 +55,13 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
             new Object[]{"foo"}
         );
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -74,7 +74,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
@@ -82,7 +82,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
             new Object[]{"*"}
         );
 
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -96,13 +96,13 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
             "GROUP BY test.col2 order by count_1 desc"
         );
 
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 }

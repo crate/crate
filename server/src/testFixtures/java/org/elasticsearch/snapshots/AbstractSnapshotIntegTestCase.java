@@ -82,7 +82,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     public void verifyNoLeakedListeners() throws Exception {
         assertBusy(() -> {
             for (SnapshotsService snapshotsService : cluster().getInstances(SnapshotsService.class)) {
-                assertThat(snapshotsService.assertAllListenersResolved()).isEqualTo(true);
+                assertThat(snapshotsService.assertAllListenersResolved()).isTrue();
             }
         }, 30L, TimeUnit.SECONDS);
     }
@@ -236,7 +236,11 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     protected void awaitClusterState(String viaNode, Predicate<ClusterState> statePredicate) throws Exception {
         ClusterService clusterService = cluster().getInstance(ClusterService.class, viaNode);
-        ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
+        ClusterStateObserver observer = new ClusterStateObserver(
+            clusterService,
+            TimeValue.timeValueSeconds(30),
+            logger
+        );
         if (statePredicate.test(observer.setAndGetObservedState()) == false) {
             final FutureActionListener<Void> future = new FutureActionListener<>();
             observer.waitForNextChange(new ClusterStateObserver.Listener() {
@@ -270,6 +274,25 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
                 }
             }
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    protected SnapshotInfo snapshotInfo(String repo, String snapshot) throws Exception {
+        execute(
+            "SELECT id, concrete_indices, started, reason, finished, total_shards, failures, include_global_state " +
+                "FROM sys.snapshots WHERE repository = ? AND name = ?",
+            new Object[]{repo, snapshot}
+        );
+        return new SnapshotInfo(
+            new SnapshotId(snapshot, (String) response.rows()[0][0]),
+            (List<String>) response.rows()[0][1],
+            (Long) response.rows()[0][2],
+            (String) response.rows()[0][3],
+            (Long) response.rows()[0][4],
+            (int) response.rows()[0][5],
+            (List<SnapshotShardFailure>) response.rows()[0][6],
+            (boolean) response.rows()[0][7]
+        );
     }
 
 }

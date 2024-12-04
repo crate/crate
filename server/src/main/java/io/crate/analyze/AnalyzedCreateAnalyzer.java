@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.GenericProperties;
-import io.crate.common.collections.Tuple;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Tuple;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
 public class AnalyzedCreateAnalyzer implements DDLStatement {
 
@@ -88,10 +89,10 @@ public class AnalyzedCreateAnalyzer implements DDLStatement {
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         if (tokenizer != null) {
-            tokenizer.v2().properties().values().forEach(consumer);
+            tokenizer.v2().forValues(consumer);
         }
-        tokenFilters.values().forEach(x -> x.properties().values().forEach(consumer));
-        charFilters.values().forEach(x -> x.properties().values().forEach(consumer));
-        genericAnalyzerProperties.properties().values().forEach(consumer);
+        tokenFilters.values().forEach(x -> x.forValues(consumer));
+        charFilters.values().forEach(x -> x.forValues(consumer));
+        genericAnalyzerProperties.forValues(consumer);
     }
 }

@@ -48,11 +48,11 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -159,7 +159,7 @@ public class Get implements LogicalPlan {
         ArrayList<Projection> projections = new ArrayList<>();
         if (!queryHasPkSymbolsOnly) {
             var toCollectSet = new LinkedHashSet<>(boundOutputs);
-            RefVisitor.visitRefs(boundQuery, toCollectSet::add);
+            boundQuery.visit(Reference.class, toCollectSet::add);
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
             filterProjection.requiredGranularity(RowGranularity.SHARD);
@@ -197,7 +197,7 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(tableRelation.relationName());
     }
 
@@ -247,7 +247,7 @@ public class Get implements LogicalPlan {
         RelationName relation = tableInfo.ident();
         if (tableInfo.isPartitioned()) {
             assert partitionValues != null : "values must not be null";
-            return IndexParts.toIndexName(relation, PartitionName.encodeIdent(partitionValues));
+            return IndexName.encode(relation, PartitionName.encodeIdent(partitionValues));
         } else {
             return relation.indexNameOrAlias();
         }

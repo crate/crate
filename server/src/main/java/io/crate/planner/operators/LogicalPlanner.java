@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -62,15 +62,12 @@ import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ForeignTableRelation;
@@ -79,7 +76,9 @@ import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -88,7 +87,6 @@ import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.EliminateCrossJoin;
@@ -115,14 +113,19 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RemoveOrderBeneathInsert;
 import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
+import io.crate.planner.optimizer.rule.RewriteFilterOnCrossJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
+import io.crate.planner.optimizer.rule.RewriteLeftOuterJoinToHashJoin;
+import io.crate.planner.optimizer.rule.RewriteRightOuterJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
 /**
@@ -158,6 +161,7 @@ public class LogicalPlanner {
         new MergeFilterAndCollect(),
         new MergeFilterAndForeignCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
+        new RewriteFilterOnCrossJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
         new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathEval(),
@@ -168,6 +172,8 @@ public class LogicalPlanner {
         new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
+        new RewriteLeftOuterJoinToHashJoin(),
+        new RewriteRightOuterJoinToHashJoin(),
         new RewriteJoinPlan()
     );
 
@@ -182,11 +188,10 @@ public class LogicalPlanner {
         new RewriteToQueryThenFetch()
     );
 
-    // This rule is private because the RewriteInsertFromSubQueryToInsertFromValues
-    // rule is mandatory to make inserts from a sub-query work correctly
-    // and should therefore not be exposed to be configurable
-    private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
-        List.of(new RewriteInsertFromSubQueryToInsertFromValues());
+    public static final List<Rule<?>> WRITE_OPTIMIZER_RULES = List.of(
+        new RewriteInsertFromSubQueryToInsertFromValues(),
+        new RemoveOrderBeneathInsert()
+    );
 
     public LogicalPlanner(NodeContext nodeCtx,
                           ForeignDataWrappers foreignDataWrappers,
@@ -248,8 +253,8 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             foreignDataWrappers,
-            plannerContext.planStats(),
-            plannerContext.clusterState()
+            plannerContext.clusterState(),
+            plannerContext.transactionContext()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
@@ -285,6 +290,22 @@ public class LogicalPlanner {
         return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized);
     }
 
+    public LogicalPlan optimize(LogicalPlan plan, PlannerContext plannerContext) {
+        LogicalPlan optimizedPlan = optimizer.optimize(
+            plan,
+            plannerContext.planStats(),
+            plannerContext.transactionContext(),
+            plannerContext.optimizerTracer()
+        );
+        optimizedPlan = joinOrderOptimizer.optimize(
+            optimizedPlan,
+            plannerContext.planStats(),
+            plannerContext.transactionContext(),
+            plannerContext.optimizerTracer()
+        );
+        return optimizedPlan;
+    }
+
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
     // the building of TermInSetQuery which does a sort on the collection of values.
     // See issue https://github.com/crate/crate/issues/6755
@@ -317,8 +338,8 @@ public class LogicalPlanner {
         var planBuilder = new PlanBuilder(
             subqueryPlanner,
             foreignDataWrappers,
-            plannerContext.planStats(),
-            plannerContext.clusterState()
+            plannerContext.clusterState(),
+            plannerContext.transactionContext()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         return optimize(logicalPlan, relation, plannerContext, avoidTopLevelFetch);
@@ -327,18 +348,18 @@ public class LogicalPlanner {
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
 
         private final SubqueryPlanner subqueryPlanner;
-        private final PlanStats planStats;
         private final ForeignDataWrappers foreignDataWrappers;
         private final ClusterState clusterState;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             ForeignDataWrappers foreignDataWrappers,
-                            PlanStats planStats,
-                            ClusterState clusterState) {
+                            ClusterState clusterState,
+                            CoordinatorTxnCtx coordinatorTxnCtx) {
             this.subqueryPlanner = subqueryPlanner;
             this.foreignDataWrappers = foreignDataWrappers;
-            this.planStats = planStats;
             this.clusterState = clusterState;
+            this.coordinatorTxnCtx = coordinatorTxnCtx;
         }
 
         @Override
@@ -379,7 +400,8 @@ public class LogicalPlanner {
                 foreignDataWrapper,
                 relation,
                 outputs,
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                coordinatorTxnCtx.sessionSettings().userName()
             );
         }
 
@@ -400,8 +422,12 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitView(AnalyzedView view, List<Symbol> outputs) {
+            CoordinatorSessionSettings sessionSettings = coordinatorTxnCtx.sessionSettings();
+            Role sessionUser = sessionSettings.sessionUser();
+            sessionSettings.setSessionUser(view.owner());
             var child = view.relation();
             var source = child.accept(this, child.outputs());
+            sessionSettings.setSessionUser(sessionUser);
             return new Rename(view.outputs(), view.relationName(), view, source);
         }
 
@@ -437,28 +463,23 @@ public class LogicalPlanner {
                         // a) introduce a column pruning
                         // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
 
-                        var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
-                        Consumer<Reference> addRefIfMatch = ref -> {
-                            if (ref.ident().tableIdent().equals(rel.relationName())) {
-                                toCollect.add(ref);
+                        Set<Symbol> toCollect = LinkedHashSet.newLinkedHashSet(splitPoints.toCollect().size());
+                        RelationName relationName = rel.relationName();
+                        Predicate<Symbol> addFiltered = node -> {
+                            if ((node instanceof Reference ref && ref.ident().tableIdent().equals(relationName)) ||
+                                (node instanceof ScopedSymbol scopedSymbol && scopedSymbol.relation().equals(relationName))) {
+                                toCollect.add(node);
                             }
-                        };
-                        Consumer<ScopedSymbol> addFieldIfMatch = field -> {
-                            if (field.relation().equals(rel.relationName())) {
-                                toCollect.add(field);
-                            }
+                            return false;
                         };
                         for (Symbol symbol : splitPoints.toCollect()) {
-                            RefVisitor.visitRefs(symbol, addRefIfMatch);
-                            FieldsVisitor.visitFields(symbol, addFieldIfMatch);
+                            symbol.any(addFiltered);
                         }
-                        FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
+                        relation.where().any(addFiltered);
                         for (var joinPair : relation.joinPairs()) {
                             var condition = joinPair.condition();
                             if (condition != null) {
-                                FieldsVisitor.visitFields(condition, addFieldIfMatch);
-                                RefVisitor.visitRefs(condition, addRefIfMatch);
+                                condition.any(addFiltered);
                             }
                         }
                         return rel.accept(this, List.copyOf(toCollect));
@@ -466,7 +487,7 @@ public class LogicalPlanner {
                 }
             );
             Symbol having = relation.having();
-            if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
+            if (having != null && having.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
             return MultiPhase.createIfNeeded(
@@ -484,8 +505,7 @@ public class LogicalPlanner {
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
                                                 relation.groupBy(),
-                                                splitPoints.aggregates(),
-                                                planStats
+                                                splitPoints.aggregates()
                                             ),
                                             having
                                         ),
@@ -508,9 +528,8 @@ public class LogicalPlanner {
     }
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,
-                                           List<Symbol> groupKeys,
-                                           List<Function> aggregates,
-                                           PlanStats planStats) {
+                                                  List<Symbol> groupKeys,
+                                                  List<Function> aggregates) {
         if (!groupKeys.isEmpty()) {
             return new GroupHashAggregate(source, groupKeys, aggregates);
         }
@@ -522,16 +541,14 @@ public class LogicalPlanner {
 
     public static Set<Symbol> extractColumns(Symbol symbol) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
-        RefVisitor.visitRefs(symbol, columns::add);
-        FieldsVisitor.visitFields(symbol, columns::add);
+        symbol.visit(Symbol.IS_COLUMN, columns::add);
         return columns;
     }
 
     public static Set<Symbol> extractColumns(Collection<? extends Symbol> symbols) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
         for (Symbol symbol : symbols) {
-            RefVisitor.visitRefs(symbol, columns::add);
-            FieldsVisitor.visitFields(symbol, columns::add);
+            symbol.visit(Symbol.IS_COLUMN, columns::add);
         }
         return columns;
     }

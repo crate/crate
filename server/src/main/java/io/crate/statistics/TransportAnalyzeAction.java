@@ -46,6 +46,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -69,12 +70,12 @@ public final class TransportAnalyzeAction {
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
                                   ReservoirSampler reservoirSampler,
-                                  Schemas schemas,
+                                  NodeContext nodeContext,
                                   ClusterService clusterService,
                                   TableStats tableStats,
                                   ThreadPool threadPool) {
         this.transportService = transportService;
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
         this.executor = threadPool.executor(ThreadPool.Names.SEARCH);
 

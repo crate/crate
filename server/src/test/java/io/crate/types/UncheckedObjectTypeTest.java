@@ -21,9 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
@@ -35,6 +33,8 @@ import org.junit.Test;
 
 public class UncheckedObjectTypeTest extends ESTestCase {
 
+    UncheckedObjectType uncheckedObjectType = UncheckedObjectType.INSTANCE;
+
     @Test
     public void testStreamingMap() throws IOException {
         long longKey = 11L;
@@ -42,29 +42,24 @@ public class UncheckedObjectTypeTest extends ESTestCase {
         String stringKey = "string_key";
         int intValue = 42;
         Map<Object, Object> genericValues = Map.of(longKey, arrayValue, stringKey, intValue);
-        UncheckedObjectType writeObject = new UncheckedObjectType();
 
         BytesStreamOutput out = new BytesStreamOutput();
-        writeObject.writeValueTo(out, genericValues);
+        uncheckedObjectType.writeValueTo(out, genericValues);
 
         StreamInput in = out.bytes().streamInput();
-        UncheckedObjectType readObject = new UncheckedObjectType();
-        Map<Object, Object> readMap = readObject.readValueFrom(in);
+        Map<Object, Object> readMap = uncheckedObjectType.readValueFrom(in);
 
-        assertThat(readMap.get(longKey), is(arrayValue));
-        assertThat(readMap.get(stringKey), is(intValue));
+        assertThat(readMap.get(longKey)).isEqualTo(arrayValue);
+        assertThat(readMap.get(stringKey)).isEqualTo(intValue);
     }
 
     @Test
     public void testStreamingOfNullValue() throws IOException {
-        UncheckedObjectType writeObject = new UncheckedObjectType();
         BytesStreamOutput out = new BytesStreamOutput();
-
-        writeObject.writeValueTo(out, null);
+        uncheckedObjectType.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        UncheckedObjectType readType = new UncheckedObjectType();
-        Map<Object, Object> v = readType.readValueFrom(in);
-        assertThat(v, nullValue());
+        Map<Object, Object> v = uncheckedObjectType.readValueFrom(in);
+        assertThat(v).isNull();
     }
 }

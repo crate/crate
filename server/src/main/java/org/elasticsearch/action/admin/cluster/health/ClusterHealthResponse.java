@@ -19,18 +19,19 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.elasticsearch.cluster.health.ClusterStateHealth;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Objects;
+import io.crate.common.unit.TimeValue;
 
 public class ClusterHealthResponse extends TransportResponse {
 

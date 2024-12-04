@@ -18,12 +18,7 @@
  */
 package org.elasticsearch.gateway;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -61,11 +56,13 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.decider.ClusterRebalanceAllocationDecider;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
@@ -189,41 +186,41 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithAssignedIndex(indexMetadata, masterEligible));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices).hasSize(1);
     }
 
     public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithNonReplicatedClosedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, true));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices).hasSize(1);
     }
 
     @Test
@@ -262,7 +259,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         List<IncrementalClusterStateWriter.IndexMetadataAction> actions =
             IncrementalClusterStateWriter.resolveIndexMetadataActions(indices, relevantIndices, oldMetadata, newMetadata);
 
-        assertThat(actions, hasSize(3));
+        assertThat(actions).hasSize(3);
 
         boolean keptPreviousGeneration = false;
         boolean wroteNewIndex = false;
@@ -270,57 +267,58 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
         for (IncrementalClusterStateWriter.IndexMetadataAction action : actions) {
             if (action instanceof IncrementalClusterStateWriter.KeepPreviousGeneration) {
-                assertThat(action.getIndex(), equalTo(notChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(notChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 verify(writer, times(1)).incrementIndicesSkipped();
                 verifyNoMoreInteractions(writer);
                 keptPreviousGeneration = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteNewIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex("freshly created", newIndex)).thenReturn(0L);
-                assertThat(action.execute(writer), equalTo(0L));
+                assertThat(action.execute(writer)).isEqualTo(0L);
                 verify(writer, times(1)).incrementIndicesWritten();
                 wroteNewIndex = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteChangedIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newVersionChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newVersionChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex(anyString(), eq(newVersionChangedIndex))).thenReturn(3L);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
                 verify(writer).writeIndex(reason.capture(), eq(newVersionChangedIndex));
                 verify(writer, times(1)).incrementIndicesWritten();
-                assertThat(reason.getValue(), containsString(Long.toString(versionChangedIndex.getVersion())));
-                assertThat(reason.getValue(), containsString(Long.toString(newVersionChangedIndex.getVersion())));
+                assertThat(reason.getValue()).contains(versionChangedIndex.getVersion() + "");
+                assertThat(reason.getValue()).contains(newVersionChangedIndex.getVersion() + "");
                 wroteChangedIndex = true;
             }
         }
 
-        assertTrue(keptPreviousGeneration);
-        assertTrue(wroteNewIndex);
-        assertTrue(wroteChangedIndex);
+        assertThat(keptPreviousGeneration).isTrue();
+        assertThat(wroteNewIndex).isTrue();
+        assertThat(wroteChangedIndex).isTrue();
     }
 
     private static class MetaStateServiceWithFailures extends MetaStateService {
         private final int invertedFailRate;
         private boolean failRandomly;
 
-        private <T> MetadataStateFormat<T> wrap(MetadataStateFormat<T> format) {
+        private <T extends Writeable> MetadataStateFormat<T> wrap(MetadataStateFormat<T> format) {
             return new MetadataStateFormat<T>(format.getPrefix()) {
-                @Override
-                public void toXContent(XContentBuilder builder, T state) throws IOException {
-                    format.toXContent(builder, state);
-                }
 
                 @Override
                 public T fromXContent(XContentParser parser) throws IOException {
                     return format.fromXContent(parser);
+                }
+
+                @Override
+                public T readFrom(StreamInput in) throws IOException {
+                    return format.readFrom(in);
                 }
 
                 @Override
@@ -344,8 +342,8 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             };
         }
 
-        MetaStateServiceWithFailures(int invertedFailRate, NodeEnvironment nodeEnv, NamedXContentRegistry namedXContentRegistry) {
-            super(nodeEnv, namedXContentRegistry);
+        MetaStateServiceWithFailures(int invertedFailRate, NodeEnvironment nodeEnv, NamedWriteableRegistry namedWriteableRegistry, NamedXContentRegistry namedXContentRegistry) {
+            super(nodeEnv, namedWriteableRegistry, namedXContentRegistry);
             METADATA_FORMAT = wrap(Metadata.FORMAT);
             INDEX_METADATA_FORMAT = wrap(IndexMetadata.FORMAT);
             MANIFEST_FORMAT = wrap(Manifest.FORMAT);
@@ -398,10 +396,11 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         return builder.build();
     }
 
+    @Test
     public void testAtomicityWithFailures() throws IOException {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateServiceWithFailures metaStateService =
-                new MetaStateServiceWithFailures(randomIntBetween(100, 1000), env, xContentRegistry());
+                new MetaStateServiceWithFailures(randomIntBetween(100, 1000), env, writableRegistry(), xContentRegistry());
 
             // We only guarantee atomicity of writes, if there is initial Manifest file
             Manifest manifest = Manifest.empty();
@@ -451,7 +450,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             Tuple<Manifest, Metadata> manifestAndMetadata = metaStateService.loadFullState();
             Metadata loadedMetadata = manifestAndMetadata.v2();
 
-            assertTrue(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata)));
+            assertThat(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata))).isTrue();
         }
     }
 
@@ -515,7 +514,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             "writing cluster state took [*] which is above the warn threshold of [*]; " +
                 "wrote metadata for [0] indices and skipped [0] unchanged indices"));
 
-        assertThat(currentTime.get(), lessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis)); // ensure no overflow
+        assertThat(currentTime.get()).isLessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis); // ensure no overflow
     }
 
     private void assertExpectedLogs(ClusterState clusterState, IncrementalClusterStateWriter incrementalClusterStateWriter,

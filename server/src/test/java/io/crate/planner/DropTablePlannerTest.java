@@ -21,17 +21,15 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -53,46 +51,43 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropTable() throws Exception {
         DropTablePlan plan = e.plan("drop table users");
-        assertThat(plan.tableInfo().ident().name(), is("users"));
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
-        DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
-        assertThat(plan.tableInfo(), Matchers.nullValue());
-        assertThat(plan.dropTable().maybeCorrupt(), is(false));
+        DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknown_table");
+        assertThat(plan.dropTable().tableName()).isEqualTo(new RelationName("unknown_schema", "unknown_table"));
     }
 
     @Test
     public void testDropTableIfExists() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists users");
-        assertThat(plan.tableInfo().ident().name(), is("users"));
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsNonExistentTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists groups");
-        assertThat(plan.tableInfo(), Matchers.nullValue());
-        assertThat(plan.dropTable().maybeCorrupt(), is(false));
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("groups");
     }
 
 
     @Test
     public void testDropPartitionedTable() throws Exception {
         DropTablePlan plan = e.plan("drop table parted");
-        assertThat(plan.tableInfo().ident().name(), is("parted"));
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("parted");
     }
 
     @Test
     public void testDropBlobTableIfExistsCreatesDropTablePlan() throws Exception {
         Plan plan = e.plan("drop blob table if exists screenshots");
-        assertThat(plan, instanceOf(DropTablePlan.class));
+        assertThat(plan).isExactlyInstanceOf(DropTablePlan.class);
     }
 
     @Test
     public void testDropNonExistentBlobTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop blob table if exists unknown");
-        assertThat(plan.tableInfo(), Matchers.nullValue());
-        assertThat(plan.dropTable().maybeCorrupt(), is(false));
+        assertThat(plan.dropTable().tableName().name()).isEqualTo("unknown");
     }
 }

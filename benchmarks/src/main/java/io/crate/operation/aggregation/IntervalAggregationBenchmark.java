@@ -56,7 +56,9 @@ import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -91,21 +93,23 @@ public class IntervalAggregationBenchmark {
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
         final IntervalSumAggregation intervalSumAggregation = (IntervalSumAggregation) functions.getQualified(
-                Signature.aggregate(
-                    IntervalSumAggregation.NAME,
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature()),
+                Signature.builder(IntervalSumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                        .returnType(DataTypes.INTERVAL.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
                 List.of(DataTypes.INTERVAL),
                 DataTypes.INTERVAL
-            );
+        );
 
         final IntervalAverageAggregation intervalAvgAggregation = (IntervalAverageAggregation) functions.getQualified(
-            Signature.aggregate(
-                AverageAggregation.NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()),
-            List.of(DataTypes.INTERVAL),
-            DataTypes.INTERVAL
+                Signature.builder(AverageAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                        .returnType(DataTypes.INTERVAL.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.INTERVAL),
+                DataTypes.INTERVAL
         );
 
         onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});

@@ -50,4 +50,12 @@ public final class SettingsAssert extends AbstractAssert<SettingsAssert, Setting
         }
         return this;
     }
+
+    public SettingsAssert hasSize(int size) {
+        isNotNull();
+        if (actual.size() != size) {
+            failWithMessage("Expected Settings to have size: [%s]", size);
+        }
+        return this;
+    }
 }

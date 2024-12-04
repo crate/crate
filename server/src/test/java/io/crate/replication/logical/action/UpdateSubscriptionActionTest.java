@@ -21,8 +21,7 @@
 
 package io.crate.replication.logical.action;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -59,6 +58,6 @@ public class UpdateSubscriptionActionTest {
             )
         );
 
-        assertThat(UpdateSubscriptionAction.updateSubscription(oldSubscription, newSubscription), is(oldSubscription));
+        assertThat(UpdateSubscriptionAction.updateSubscription(oldSubscription, newSubscription)).isEqualTo(oldSubscription);
     }
 }

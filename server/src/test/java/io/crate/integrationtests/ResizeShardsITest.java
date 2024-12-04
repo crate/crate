@@ -22,8 +22,10 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,7 +46,7 @@ public class ResizeShardsITest extends IntegTestCase {
             "   id integer," +
             "   quote string," +
             "   date timestamp with time zone" +
-            ") clustered into 3 shards with (number_of_replicas = 1)");
+            ") clustered into 3 shards with (number_of_replicas = 0)");
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
@@ -73,8 +75,8 @@ public class ResizeShardsITest extends IntegTestCase {
         execute("alter table quotes set (number_of_shards=?)", $(1));
         ensureYellow();
 
-        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(response).hasRows("1");
+        execute("select count(*), primary from sys.shards where table_name = 'quotes' group by primary order by 2");
+        assertThat(response).hasRows("1| true");
         execute("select id from quotes");
         assertThat(response).hasRowCount(2L);
     }
@@ -120,7 +122,7 @@ public class ResizeShardsITest extends IntegTestCase {
     @Test
     public void testShrinkShardsOfPartition() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas = 1)");
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas = 2)");
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
                 1, "Don't panic", 1395874800000L,
@@ -149,10 +151,17 @@ public class ResizeShardsITest extends IntegTestCase {
             $(1));
         ensureYellow();
 
-        execute("select number_of_shards from information_schema.table_partitions " +
+        execute("select partition_ident, number_of_shards from information_schema.table_partitions " +
                 "where table_name = 'quotes' " +
                 "and values = '{\"date\": 1395874800000}'");
-        assertThat(response).hasRows("1");
+        assertThat(response.rows()[0][1]).isEqualTo(1);
+
+        String partitionIdent = (String) response.rows()[0][0];
+        execute("select count(*), primary from sys.shards where table_name = 'quotes' and " + "" +
+            "partition_ident='" + partitionIdent + "' group by primary order by 2");
+        assertThat(response).hasRows(
+            "2| false",
+            "1| true");
         execute("select id from quotes");
         assertThat(response).hasRowCount(2L);
     }
@@ -168,25 +177,85 @@ public class ResizeShardsITest extends IntegTestCase {
         execute("alter table t1 set (number_of_shards = 2)");
         ensureYellow();
 
-        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
-        assertThat(response).hasRows("2");
+        execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
+        assertThat(response).hasRows(
+            "2| false",
+            "2| true");
         execute("select x from t1");
         assertThat(response).hasRowCount(2L);
     }
 
     @Test
-    public void testNumberOfShardsOfAPartitionCanBeIncreased() {
-        execute("create table t1 (x int, p int) partitioned by (p) clustered into 1 shards " +
-                "with (number_of_replicas = 1, number_of_routing_shards = 10)");
-        execute("insert into t1 (x, p) values (1, 1), (2, 1)");
-        execute("alter table t1 partition (p = 1) set (\"blocks.write\" = true)");
+    public void test_number_of_shards_of_a_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 1 shards " +
+            "with (number_of_replicas = 2)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
 
-        execute("alter table t1 partition (p = 1) set (number_of_shards = 2)");
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 12)");
         ensureYellow();
 
-        execute("select number_of_shards from information_schema.table_partitions where table_name = 't1'");
-        assertThat(response).hasRows("2");
+        execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
+        assertThat(response).hasRows(
+            "24| false",
+            "12| true");
         execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+    }
+
+    @Test
+    public void test_number_of_shards_on_a_one_sharded_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 1 shards " +
+            "with (number_of_replicas = 2)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
+
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 3)");
+        ensureYellow();
+
+        execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
+        assertThat(response).hasRows(
+            "6| false",
+            "3| true");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+
+        // number_of_routing_shards is calculated based on 3 shards (after the first increase) and set implicitly
+        assertSQLError(() -> execute("alter table t1 set (number_of_shards = 8)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("the number of source shards [3] must be a must be a factor of [8]");
+
+        execute("alter table t1 set (number_of_shards = 12)");
+        ensureYellow();
+
+        execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
+        assertThat(response).hasRows(
+            "24| false",
+            "12| true");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+    }
+
+    @Test
+    public void testNumberOfShardsOfAPartitionCanBeIncreased() {
+        execute("create table t_parted (x int, p int) partitioned by (p) clustered into 1 shards " +
+                "with (number_of_replicas = 0, number_of_routing_shards = 10)");
+        execute("insert into t_parted (x, p) values (1, 1), (2, 1)");
+        execute("refresh table t_parted");
+        execute("alter table t_parted partition (p = 1) set (\"blocks.write\" = true)");
+
+        execute("alter table t_parted partition (p = 1) set (number_of_shards = 5)");
+        ensureYellow();
+
+        execute("select count(*), primary from sys.shards where table_name = 't_parted' group by primary order by 2");
+        assertThat(response).hasRows(
+            "5| true");
+        execute("select x from t_parted");
         assertThat(response).hasRowCount(2L);
     }
 }

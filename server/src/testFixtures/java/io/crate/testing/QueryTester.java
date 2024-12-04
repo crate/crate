@@ -36,8 +36,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -51,6 +52,7 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
@@ -101,18 +103,18 @@ public final class QueryTester implements AutoCloseable {
             var sqlExecutor = SQLExecutor
                 .of(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
-                .addTable(createTableStmt);
-            plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
+                .addTable(createTableStmt, Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), indexVersion).build());
+            plannerContext = sqlExecutor.getPlannerContext();
 
             var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);
             String tableName = Iterables.getLast(createTable.name().getName().getParts());
             table = sqlExecutor.resolveTableInfo(tableName);
 
             indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 threadPool,
                 table,
-                clusterService.state(),
-                indexVersion
+                clusterService.state(), indexVersion
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
             var docTableRelation = new DocTableRelation(table);
@@ -130,13 +132,12 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValue(String column, Object value) throws IOException {
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
-                table.concreteIndices()[0],
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
+                Version.CURRENT,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                mapperService::getLuceneFieldType,
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
                 null
             );
@@ -147,13 +148,12 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
-                table.concreteIndices()[0],
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
+                Version.CURRENT,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                mapperService::getLuceneFieldType,
                 Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
                 null
             );
@@ -180,7 +180,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey()),
+                new CollectorContext(() -> StoredRowLookup.create(Version.CURRENT, table, indexEnv.luceneReferenceResolver().getIndexName())),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
@@ -208,10 +208,10 @@ public final class QueryTester implements AutoCloseable {
                 symbol -> queryBuilder.convert(
                     Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
-                    indexEnv.mapperService(),
                     indexEnv.indexService().index().getName(),
-                    indexEnv.queryShardContext(),
+                    indexEnv.indexService().indexAnalyzers(),
                     table,
+                    Version.CURRENT,
                     indexEnv.queryCache()
                 ).query(),
                 indexEnv

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +47,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -53,7 +55,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -74,8 +75,9 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.lucene.FieldTypeLookup;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -97,12 +99,12 @@ public final class ReservoirSampler {
     @Inject
     public ReservoirSampler(ClusterService clusterService,
                             CircuitBreakerService circuitBreakerService,
-                            Schemas schemas,
+                            NodeContext nodeContext,
                             IndicesService indicesService,
                             Settings settings) {
         this(clusterService,
              circuitBreakerService,
-             schemas,
+             nodeContext,
              indicesService,
              new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
         );
@@ -110,13 +112,13 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     ReservoirSampler(ClusterService clusterService,
-                            CircuitBreakerService circuitBreakerService,
-                            Schemas schemas,
-                            IndicesService indicesService,
-                            RateLimiter rateLimiter) {
+                     CircuitBreakerService circuitBreakerService,
+                     NodeContext nodeContext,
+                     IndicesService indicesService,
+                     RateLimiter rateLimiter) {
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.indicesService = indicesService;
         this.rateLimiter = rateLimiter;
 
@@ -164,6 +166,12 @@ public final class ReservoirSampler {
                                Random random,
                                Metadata metadata) throws IOException {
 
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Start collecting samples for table: {}({}),",
+                docTable.ident().fqn(),
+                columns.stream().map(r -> r.column().fqn()).collect(Collectors.joining(", ")));
+        }
+
         Reservoir fetchIdSamples = new Reservoir(random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
@@ -177,7 +185,7 @@ public final class ReservoirSampler {
 
         try {
 
-            for (String index : docTable.concreteOpenIndices()) {
+            for (String index : docTable.concreteOpenIndices(metadata)) {
                 var indexMetadata = metadata.index(index);
                 if (indexMetadata == null) {
                     continue;
@@ -187,16 +195,18 @@ public final class ReservoirSampler {
                     continue;
                 }
 
+                String indexName = indexService.index().getName();
                 List<? extends LuceneCollectorExpression<?>> expressions
-                    = getCollectorExpressions(indexService, docTable, columns);
+                    = getCollectorExpressions(indexName, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
-                    if (!indexShard.routingEntry().primary()) {
+                    ShardRouting routingEntry = indexShard.routingEntry();
+                    if (!routingEntry.primary() || !routingEntry.active()) {
                         continue;
                     }
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
-                        searchersToRelease.add(new ShardExpressions(searcher, expressions));
+                        searchersToRelease.add(new ShardExpressions(indexShard, indexName, searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                         // We do the sampling in 2 phases. First we get the docIds;
@@ -236,28 +246,20 @@ public final class ReservoirSampler {
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
-        IndexService indexService,
+        String indexName,
         DocTableInfo docTable,
         List<Reference> columns
     ) {
-        var mapperService = indexService.mapperService();
-        FieldTypeLookup fieldTypeLookup = mapperService::fieldType;
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
-            indexService.index().getName(),
-            fieldTypeLookup,
-            docTable.partitionedByColumns()
+            indexName,
+            docTable.partitionedByColumns(),
+            docTable.isParentReferenceIgnored()
         );
-        List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
+
+        return Lists.map(
             columns,
-            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+            x -> referenceResolver.getImplementation(DocReferences.toDocLookup(x))
         );
-
-        CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.startCollect(collectorContext);
-        }
-
-        return expressions;
     }
 
     private static class ColumnCollector<T> {
@@ -285,16 +287,24 @@ public final class ReservoirSampler {
         }
     }
 
-    private record ShardExpressions(Engine.Searcher searcher,
+    private record ShardExpressions(IndexShard indexShard,
+                                    String indexName,
+                                    Engine.Searcher searcher,
+                                    DocTableInfo tableInfo,
                                     List<? extends LuceneCollectorExpression<?>> expressions) {
 
         void updateColumnCollectors(List<ColumnCollector<?>> collectors) {
             assert collectors.size() == expressions.size();
+            CollectorContext context = new CollectorContext(() -> StoredRowLookup.create(
+                indexShard.getVersionCreated(),
+                tableInfo,
+                indexName));
             for (int i = 0; i < collectors.size(); i++) {
-                collectors.get(i).setShard(expressions.get(i));
+                LuceneCollectorExpression<?> expression = expressions.get(i);
+                expression.startCollect(context);
+                collectors.get(i).setShard(expression);
             }
         }
-
     }
 
     private static class ColumnSampler {

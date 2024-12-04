@@ -28,10 +28,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Arrays;
 import java.util.List;
 
-import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
-public class PartitionNameTest extends ESTestCase {
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+
+public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSingleColumn() throws Exception {
@@ -115,19 +122,19 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testPartitionNameNotFromTable() throws Exception {
-        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test1._1";
+        String partitionName = IndexName.PARTITIONED_TABLE_PART + "test1._1";
         assertThat(PartitionName.fromIndexOrTemplate(partitionName).relationName().name().equals("test")).isFalse();
     }
 
     @Test
     public void testPartitionNameNotFromSchema() throws Exception {
-        String partitionName = "schema1." + IndexParts.PARTITIONED_TABLE_PART + "test1._1";
+        String partitionName = "schema1." + IndexName.PARTITIONED_TABLE_PART + "test1._1";
         assertThat(PartitionName.fromIndexOrTemplate(partitionName).relationName().schema().equals("schema")).isFalse();
     }
 
     @Test
     public void testInvalidValueString() throws Exception {
-        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test.🐩";
+        String partitionName = IndexName.PARTITIONED_TABLE_PART + "test.🐩";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(partitionName).values())
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid partition ident: 🐩");
@@ -135,17 +142,17 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testIsPartition() throws Exception {
-        assertThat(IndexParts.isPartitioned("test")).isFalse();
+        assertThat(IndexName.isPartitioned("test")).isFalse();
 
-        assertThat(IndexParts.isPartitioned(IndexParts.PARTITIONED_TABLE_PART + "test.")).isTrue();
-        assertThat(IndexParts.isPartitioned("schema." + IndexParts.PARTITIONED_TABLE_PART + "test.")).isTrue();
+        assertThat(IndexName.isPartitioned(IndexName.PARTITIONED_TABLE_PART + "test.")).isTrue();
+        assertThat(IndexName.isPartitioned("schema." + IndexName.PARTITIONED_TABLE_PART + "test.")).isTrue();
 
-        assertThat(IndexParts.isPartitioned("partitioned.test.dshhjfgjsdh")).isFalse();
-        assertThat(IndexParts.isPartitioned("schema.partitioned.test.dshhjfgjsdh")).isFalse();
-        assertThat(IndexParts.isPartitioned(".test.dshhjfgjsdh")).isFalse();
-        assertThat(IndexParts.isPartitioned("schema.test.dshhjfgjsdh")).isFalse();
-        assertThat(IndexParts.isPartitioned(".partitioned.test.dshhjfgjsdh")).isTrue();
-        assertThat(IndexParts.isPartitioned("schema..partitioned.test.dshhjfgjsdh")).isTrue();
+        assertThat(IndexName.isPartitioned("partitioned.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexName.isPartitioned("schema.partitioned.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexName.isPartitioned(".test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexName.isPartitioned("schema.test.dshhjfgjsdh")).isFalse();
+        assertThat(IndexName.isPartitioned(".partitioned.test.dshhjfgjsdh")).isTrue();
+        assertThat(IndexName.isPartitioned("schema..partitioned.test.dshhjfgjsdh")).isTrue();
     }
 
     @Test
@@ -184,7 +191,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSplitInvalid1() throws Exception {
-        String part = IndexParts.PARTITIONED_TABLE_PART.substring(0, IndexParts.PARTITIONED_TABLE_PART.length() - 1);
+        String part = IndexName.PARTITIONED_TABLE_PART.substring(0, IndexName.PARTITIONED_TABLE_PART.length() - 1);
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(part + "lalala.n"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid index name");
@@ -192,7 +199,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSplitInvalid2() throws Exception {
-        String indexOrTemplate = IndexParts.PARTITIONED_TABLE_PART.substring(1) + "lalala.n";
+        String indexOrTemplate = IndexName.PARTITIONED_TABLE_PART.substring(1) + "lalala.n";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid index name");
@@ -207,7 +214,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSplitInvalid4() throws Exception {
-        String indexOrTemplate = IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        String indexOrTemplate = IndexName.PARTITIONED_TABLE_PART + "lalala";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid index name");
@@ -215,7 +222,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSplitInvalidWithSchema1() throws Exception {
-        String indexOrTemplate = "schema" + IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        String indexOrTemplate = "schema" + IndexName.PARTITIONED_TABLE_PART + "lalala";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid index name");
@@ -223,7 +230,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSplitInvalidWithSchema2() throws Exception {
-        String indexOrTemplate = "schema." + IndexParts.PARTITIONED_TABLE_PART + "lalala";
+        String indexOrTemplate = "schema." + IndexName.PARTITIONED_TABLE_PART + "lalala";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid index name: schema");
@@ -239,5 +246,45 @@ public class PartitionNameTest extends ESTestCase {
             .isNotEqualTo(new PartitionName(new RelationName("schema", "table"), Arrays.asList("xxx")));
         PartitionName name = new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"));
         assertThat(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName()))).isTrue();
+    }
+
+
+    @Test
+    public void test_PartitionName_from_assignments_with_relation_name() {
+        PartitionName partitionName = PartitionName.ofAssignments(new RelationName("dummy", "tbl"), List.of(
+            new Assignment<>(new QualifiedName("p1"), 10),
+            new Assignment<>(new QualifiedName("a"), 20)
+        ));
+        assertThat(partitionName.values()).containsExactly("10", "20");
+        assertThat(partitionName.asIndexName()).isEqualTo("dummy..partitioned.tbl.081j2c0368o0");
+    }
+
+    @Test
+    public void test_PartitionName_from_assignment_with_partitioned_table() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addPartitionedTable(
+                "create table doc.users (x int, p1 int) partitioned by (p1)",
+                ".partitioned.users.041j2c0"
+            );
+
+        DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
+        Metadata metadata = e.getPlannerContext().clusterState().metadata();
+        PartitionName partitionName = PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 10)), metadata);
+        assertThat(partitionName.values()).containsExactly("10");
+        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices(metadata)[0]);
+
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 20)), metadata)).isExactlyInstanceOf(PartitionUnknownException.class);
+    }
+
+    @Test
+    public void test_PartitionName_from_assignments_of_regular_table() {
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "users"),
+            "create table doc.users (name text primary key)",
+            clusterService);
+
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("name"), "foo")), Metadata.EMPTY_METADATA))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("table 'doc.users' is not partitioned");
     }
 }

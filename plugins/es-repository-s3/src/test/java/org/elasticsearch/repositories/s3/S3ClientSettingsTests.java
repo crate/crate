@@ -135,6 +135,6 @@ public class S3ClientSettingsTests extends ESTestCase {
             Settings.builder()
                 .put("use_path_style_access", true)
                 .build());
-        assertThat(settings.pathStyleAccess).isEqualTo(true);
+        assertThat(settings.pathStyleAccess).isTrue();
     }
 }

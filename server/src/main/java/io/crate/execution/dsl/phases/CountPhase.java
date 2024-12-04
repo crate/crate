@@ -21,18 +21,22 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Routing;
-import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Routing;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.DataTypes;
+
 public class CountPhase implements UpstreamPhase {
+
+    private static final Streamer<?>[] STREAMERS = new Streamer[]{DataTypes.LONG};
 
     private final int executionPhaseId;
     private final Routing routing;
@@ -57,6 +61,11 @@ public class CountPhase implements UpstreamPhase {
     @Override
     public String name() {
         return "count";
+    }
+
+    @Override
+    public Streamer<?>[] getStreamers() {
+        return STREAMERS;
     }
 
     public Routing routing() {
@@ -95,7 +104,7 @@ public class CountPhase implements UpstreamPhase {
     public CountPhase(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
         routing = new Routing(in);
-        where = Symbols.fromStream(in);
+        where = Symbol.fromStream(in);
         distributionInfo = new DistributionInfo(in);
     }
 
@@ -103,7 +112,7 @@ public class CountPhase implements UpstreamPhase {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(executionPhaseId);
         routing.writeTo(out);
-        Symbols.toStream(where, out);
+        Symbol.toStream(where, out);
         distributionInfo.writeTo(out);
     }
 

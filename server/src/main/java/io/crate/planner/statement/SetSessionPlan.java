@@ -29,9 +29,9 @@ import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -86,7 +86,11 @@ public class SetSessionPlan implements Plan {
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
             ensureNotGlobalSetting(settingName);
         } else {
-            sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
+            if (assignment.expressions().isEmpty()) {
+                sessionSetting.apply(sessionSettings, sessionSetting.defaultValue());
+            } else {
+                sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
+            }
         }
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
@@ -94,7 +98,7 @@ public class SetSessionPlan implements Plan {
     @VisibleForTesting
     static void ensureNotGlobalSetting(String settingName) {
         List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
-        if (nameParts.size() != 0) {
+        if (!nameParts.isEmpty()) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",

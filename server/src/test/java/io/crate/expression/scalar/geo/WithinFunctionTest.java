@@ -23,6 +23,7 @@ package io.crate.expression.scalar.geo;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -139,18 +140,18 @@ public class WithinFunctionTest extends ScalarTestCase {
 
     @Test
     public void testFirstArgumentWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
-                                        " no overload found for matching argument types: (bigint, geo_point).");
-        getFunction(FNAME, List.of(DataTypes.LONG, DataTypes.GEO_POINT));
+        assertThatThrownBy(() -> getFunction(FNAME, List.of(DataTypes.LONG, DataTypes.GEO_POINT)))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: within(INPUT(0), INPUT(0)), " +
+                                    "no overload found for matching argument types: (bigint, geo_point).");
     }
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point, bigint).");
-        getFunction(FNAME, List.of(DataTypes.GEO_POINT, DataTypes.LONG));
+        assertThatThrownBy(() -> getFunction(FNAME, List.of(DataTypes.GEO_POINT, DataTypes.LONG)))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: within(INPUT(0), INPUT(0)), " +
+                                    "no overload found for matching argument types: (geo_point, bigint).");
     }
 
     @Test

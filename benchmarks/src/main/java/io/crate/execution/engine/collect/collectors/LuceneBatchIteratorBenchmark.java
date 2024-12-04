@@ -23,9 +23,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -71,7 +69,7 @@ public class LuceneBatchIteratorBenchmark {
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
-        collectorContext = new CollectorContext(Set.of(), UnaryOperator.identity());
+        collectorContext = new CollectorContext(() -> null);
     }
 
     @Benchmark

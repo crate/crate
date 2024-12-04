@@ -33,7 +33,6 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateArrays;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Point;
@@ -45,9 +44,9 @@ import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -63,12 +62,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.GEO_SHAPE.getTypeSignature(),
-                DataTypes.GEO_SHAPE.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.GEO_SHAPE.getTypeSignature(),
+                    DataTypes.GEO_SHAPE.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             WithinFunction::new
         );
         // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
@@ -76,12 +76,14 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         // the other signature
         for (var type : List.of(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)) {
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.GEO_POINT.getTypeSignature(),
-                    type.getTypeSignature(),
-                    DataTypes.BOOLEAN.getTypeSignature()
-                ).withForbiddenCoercion(),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(
+                        DataTypes.GEO_POINT.getTypeSignature(),
+                        type.getTypeSignature())
+                    .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
                 WithinFunction::new
             );
         }
@@ -92,18 +94,14 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         assert args.length == 2 : "number of args must be 2";
-        return evaluate(args[0], args[1]);
-    }
-
-    public Boolean evaluate(Input<?> leftInput, Input<?> rightInput) {
-        Object left = leftInput.value();
+        Object left = args[0].value();
         if (left == null) {
             return null;
         }
-        Object right = rightInput.value();
+        Object right = args[1].value();
         if (right == null) {
             return null;
         }
@@ -112,46 +110,16 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     @SuppressWarnings("unchecked")
     private static Shape parseLeftShape(Object left) {
-        Shape shape;
-        if (left instanceof Point point) {
-            shape = SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY());
-        } else if (left instanceof Double[] values) {
-            shape = SpatialContext.GEO.getShapeFactory().pointXY(values[0], values[1]);
-        } else if (left instanceof String str) {
-            shape = GeoJSONUtils.wkt2Shape(str);
-        } else {
-            shape = GeoJSONUtils.map2Shape((Map<String, Object>) left);
-        }
-        return shape;
+        return left instanceof Point point
+            ? point
+            : GeoJSONUtils.map2Shape((Map<String, Object>) left);
     }
 
     @SuppressWarnings("unchecked")
-    private Shape parseRightShape(Object right) {
+    private static Shape parseRightShape(Object right) {
         return (right instanceof String str) ?
             GeoJSONUtils.wkt2Shape(str) :
             GeoJSONUtils.map2Shape((Map<String, Object>) right);
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
-        Symbol left = symbol.arguments().get(0);
-        Symbol right = symbol.arguments().get(1);
-
-        short numLiterals = 0;
-
-        if (left.symbolType().isValueSymbol()) {
-            numLiterals++;
-        }
-
-        if (right.symbolType().isValueSymbol()) {
-            numLiterals++;
-        }
-
-        if (numLiterals == 2) {
-            return Literal.of(evaluate((Input<?>) left, (Input<?>) right));
-        }
-
-        return symbol;
     }
 
     @Override

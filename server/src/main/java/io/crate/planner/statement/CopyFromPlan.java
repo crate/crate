@@ -23,6 +23,9 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.NUM_READERS_SETTING;
+import static io.crate.analyze.CopyStatementSettings.SHARED_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
@@ -34,13 +37,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -51,7 +50,7 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.collections.Lists;
@@ -81,8 +80,8 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -90,12 +89,11 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
 
-    private static final Logger LOGGER = LogManager.getLogger(CopyFromPlan.class);
-    static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -129,9 +127,7 @@ public final class CopyFromPlan implements Plan {
             copyFrom,
             boundedCopyFrom,
             dependencies.clusterService().state().nodes(),
-            plannerContext,
-            params,
-            subQueryResults);
+            plannerContext);
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(plan, dependencies.localNodeId());
@@ -142,7 +138,8 @@ public final class CopyFromPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyFrom.settings())
+        );
     }
 
     @VisibleForTesting
@@ -159,28 +156,16 @@ public final class CopyFromPlan implements Plan {
             subQueryResults
         );
 
-        String partitionIdent;
-        if (!copyFrom.table().partitionProperties().isEmpty()) {
-            partitionIdent = PartitionPropertiesAnalyzer
-                .toPartitionName(
-                    copyFrom.tableInfo(),
-                    Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)))
-                .ident();
-        } else {
-            partitionIdent = null;
-        }
+        PartitionName partitionName = copyFrom.table().partitionProperties().isEmpty()
+            ? null
+            : PartitionName.ofAssignmentsUnsafe(copyFrom.tableInfo(), Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
+        String partitionIdent = partitionName == null ? null : partitionName.ident();
         final var properties = copyFrom.properties().map(eval);
-        final var nodeFiltersPredicate = discoveryNodePredicate(
-            properties.properties().getOrDefault(NodeFilters.NAME, null));
+        final var nodeFiltersPredicate = discoveryNodePredicate(properties.get(NodeFilters.NAME, null));
         final var settings = Settings.builder().put(properties).build();
 
-        if (properties.properties().containsKey("validation")) {
-            DEPRECATION_LOGGER.deprecatedAndMaybeLog(
-                "copy_from.validation",
-                "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
-        }
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        boolean waitForCompletion = WAIT_FOR_COMPLETION_SETTING.get(settings);
         if (!waitForCompletion && returnSummary) {
             throw new UnsupportedOperationException(
                 "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
@@ -191,7 +176,7 @@ public final class CopyFromPlan implements Plan {
         // TODO make FileUriCollectPhase ctor accept an uri of the List<String>
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
-        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
+        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()), properties);
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
@@ -211,9 +196,7 @@ public final class CopyFromPlan implements Plan {
     public static ExecutionPlan planCopyFromExecution(AnalyzedCopyFrom copyFrom,
                                                       BoundCopyFrom boundedCopyFrom,
                                                       DiscoveryNodes allNodes,
-                                                      PlannerContext context,
-                                                      Row params,
-                                                      SubQueryResults subQueryResults) {
+                                                      PlannerContext context) {
 
         /*
          * Create a plan that reads json-objects-lines from a file
@@ -235,13 +218,13 @@ public final class CopyFromPlan implements Plan {
 
         // need to exclude _id columns; they're auto generated and won't be available in the files being imported
         ColumnIdent clusteredBy = table.clusteredBy();
-        if (DocSysColumns.ID.equals(clusteredBy)) {
+        if (SysColumns.ID.COLUMN.equals(clusteredBy)) {
             clusteredBy = null;
         }
         List<Reference> primaryKeyRefs = table.primaryKey().stream()
-            .filter(r -> !r.equals(DocSysColumns.ID))
+            .filter(r -> !r.equals(SysColumns.ID.COLUMN))
             .map(table::getReference)
-            .collect(Collectors.toList());
+            .toList();
 
         List<Symbol> toCollect = getSymbolsRequiredForShardIdCalc(
             primaryKeyRefs,
@@ -252,7 +235,7 @@ public final class CopyFromPlan implements Plan {
         final int rawOrDocIdx = toCollect.size();
         toCollect.add(rawOrDoc);
 
-        String[] excludes = partitionedByNames.size() > 0
+        String[] excludes = !partitionedByNames.isEmpty()
             ? partitionedByNames.toArray(new String[0]) : null;
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
@@ -282,7 +265,7 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
+                table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
@@ -302,7 +285,7 @@ public final class CopyFromPlan implements Plan {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 table.ident(),
                 partitionIdent,
-                table.getReference(DocSysColumns.RAW),
+                table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
                 table.primaryKey(),
                 InputColumns.create(table.partitionedByColumns(), sourceSymbols),
@@ -323,20 +306,22 @@ public final class CopyFromPlan implements Plan {
             rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
         }
 
+        Integer numReaders = NUM_READERS_SETTING.getOrNull(boundedCopyFrom.settings());
+        numReaders = numReaders == null ? allNodes.getSize() : numReaders;
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
             "copyFrom",
             getExecutionNodes(
                 allNodes,
-                boundedCopyFrom.settings().getAsInt("num_readers", allNodes.getSize()),
+                numReaders,
                 boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
             boundedCopyFrom.targetColumns(),
             toCollect,
             Collections.emptyList(),
             COMPRESSION_SETTING.getOrNull(boundedCopyFrom.settings()),
-            boundedCopyFrom.settings().getAsBoolean("shared", null),
+            SHARED_SETTING.getOrNull(boundedCopyFrom.settings()),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat(),
             boundedCopyFrom.settings()
@@ -394,8 +379,8 @@ public final class CopyFromPlan implements Plan {
     }
 
     private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, Reference ref) {
-        if (ref instanceof GeneratedReference) {
-            toCollectUnique.add(((GeneratedReference) ref).generatedExpression());
+        if (ref instanceof GeneratedReference generatedReference) {
+            toCollectUnique.add(generatedReference.generatedExpression());
         } else {
             toCollectUnique.add(ref);
         }
@@ -416,9 +401,9 @@ public final class CopyFromPlan implements Plan {
      */
     private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
         if (table.isPartitioned() && selectedPartitionIdent == null) {
-            return table.getReference(DocSysColumns.DOC);
+            return table.getReference(SysColumns.DOC);
         }
-        return table.getReference(DocSysColumns.RAW);
+        return table.getReference(SysColumns.RAW);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
@@ -434,13 +419,28 @@ public final class CopyFromPlan implements Plan {
         return nodes;
     }
 
-    private static Symbol validateAndConvertToLiteral(Object uri) {
+    /**
+     * Validates that uri is either String or List<String>.
+     *
+     * If schema is "file" also validates scheme independent settings.
+     *
+     * Settings of other schemes are validated later in plugins
+     * as only plugins are aware of scheme specific properties.
+     */
+    private static Literal<?> validateAndConvertToLiteral(Object uri, GenericProperties<Object> properties) {
         if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.sanitizeValue(uri));
+            String uriAsString = DataTypes.STRING.sanitizeValue(uri);
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
+            }
+            return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
             Object value = uris.get(0);
-            if (!(value instanceof String)) {
+            if (!(value instanceof String uriAsString)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
+            }
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_FROM_SETTINGS);
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }
@@ -449,7 +449,7 @@ public final class CopyFromPlan implements Plan {
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(@Nullable Object nodeFilter) {
         if (nodeFilter == null) {
-            return discoveryNode -> true;
+            return ignoredDiscoveryNode -> true;
         }
         try {
             return NodeFilters.fromMap((Map<?, ?>) nodeFilter);

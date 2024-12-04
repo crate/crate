@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -33,10 +34,11 @@ import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
 import io.crate.lucene.GenericFunctionQuery;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.testing.Asserts;
+import io.crate.metadata.doc.SysColumns;
+import io.crate.sql.SqlFormatter;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -113,7 +115,7 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_array_equals_empty_array_on_all_types() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
@@ -124,30 +126,32 @@ public class EqOperatorTest extends ScalarTestCase {
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
 
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             try (QueryTester tester = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+                "create table \"t_" + type.getName() + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "xs = []");
-                Asserts.assertThat(result)
+                assertThat(result)
                     .as("xs = [] should match 1 row for type " + type)
                     .hasSize(1);
-                Asserts.assertThat(result.get(0)).asList().isEmpty();
+                assertThat((List<?>) result.getFirst()).isEmpty();
             }
         }
     }
 
     @Test
     public void test_terms_query_on__id_encodes_ids() throws Exception {
-        Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
+        String idName = SysColumns.ID.COLUMN.name();
+        Query query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.NONE);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), true, IndexType.NONE);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.NONE);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), false, IndexType.NONE);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
     }
 
@@ -170,5 +174,16 @@ public class EqOperatorTest extends ScalarTestCase {
                 Map.of()
             );
         }
+    }
+
+    @Test
+    public void test_numeric_type_equals_number_types() {
+        assertEvaluate("numeric_4_2 = 1.111", false, Literal.of(new BigDecimal("1.11")));
+        assertEvaluate("numeric_4_2 = 100", false, Literal.of(new BigDecimal("100.01")));
+        assertEvaluate("numeric_4_2 = 100", true, Literal.of(new BigDecimal("100.00")));
+        assertEvaluate(
+            "numeric_4_2 = double_val",
+            false,
+            Literal.of(new BigDecimal("1.11")), Literal.of(1.111));
     }
 }

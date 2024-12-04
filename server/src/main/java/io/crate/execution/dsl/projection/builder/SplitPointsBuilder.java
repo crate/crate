@@ -31,15 +31,13 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.OuterColumn;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
@@ -64,6 +62,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
          */
         private final ArrayList<OuterColumn> outerColumns = new ArrayList<>();
         private boolean insideAggregate = false;
+        private boolean insideWindowFunction = false;
 
         private int tableFunctionLevel = 0;
 
@@ -159,22 +158,15 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         } else if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
-        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
-
-            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
-                toCollect.add(outerColumn.symbol());
-                return null;
-            }
-        };
         for (var selectSymbol : context.correlatedQueries) {
-            selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+            selectSymbol.relation().visitSymbols(tree ->
+                tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
+            );
         }
-
-        RefVisitor.visitRefs(where, toCollect::add);
-        FieldsVisitor.visitFields(where, toCollect::add);
+        where.visit(Symbol.IS_COLUMN, toCollect::add);
         ArrayList<Symbol> outputs = new ArrayList<>();
         for (var output : toCollect) {
-            if (Symbols.containsCorrelatedSubQuery(output)) {
+            if (output.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 outputs.addAll(extractColumns(output));
             } else {
                 outputs.add(output);
@@ -192,7 +184,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     @Override
     public Void visitFunction(Function function, Context context) {
-        FunctionType type = function.signature().getKind();
+        FunctionType type = function.signature().getType();
         switch (type) {
             case SCALAR:
                 super.visitFunction(function, context);
@@ -226,8 +218,11 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     @Override
     public Void visitWindowFunction(WindowFunction windowFunction, Context context) {
         context.foundAggregateOrTableFunction = true;
+        context.insideWindowFunction = true;
         context.allocateWindowFunction(windowFunction);
-        return super.visitFunction(windowFunction, context);
+        super.visitFunction(windowFunction, context);
+        context.insideWindowFunction = false;
+        return null;
     }
 
     @Override
@@ -251,4 +246,16 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
                                  getClass().getCanonicalName());
     }
 
+    @Override
+    public Void visitReference(Reference symbol, Context context) {
+        if (context.foundAggregateOrTableFunction
+            && context.tableFunctionLevel == 0
+            && context.insideAggregate == false
+            && context.insideWindowFunction == false) {
+            // Reference isn't part of an aggregate, table or window function, but it's used inside the outputs
+            // so it must be collected. E.g. using a scalar containing  table + nested scalar arguments
+            context.standalone.add(symbol);
+        }
+        return super.visitReference(symbol, context);
+    }
 }

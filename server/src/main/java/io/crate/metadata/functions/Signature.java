@@ -23,10 +23,9 @@ package io.crate.metadata.functions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.lucene.util.Accountable;
@@ -38,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.EnumSets;
 import io.crate.common.collections.Lists;
-import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -50,96 +48,16 @@ public final class Signature implements Writeable, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Signature.class);
 
-    /**
-     * See {@link #aggregate(FunctionName, TypeSignature...)}
-     */
-    public static Signature aggregate(String name, TypeSignature... types) {
-        return aggregate(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#AGGREGATE}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature aggregate(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.AGGREGATE, types).build();
-    }
-
-    /**
-     * See {@link #scalar(FunctionName, TypeSignature...)}
-     */
-    public static Signature scalar(String name, TypeSignature... types) {
-        return scalar(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#TABLE}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature table(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.TABLE, types).build();
-    }
-
-    /**
-     * See {@link #table(FunctionName, TypeSignature...)}
-     */
-    public static Signature table(String name, TypeSignature... types) {
-        return table(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#WINDOW}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature window(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.WINDOW, types).build();
-    }
-
-    /**
-     * See {@link #window(FunctionName, TypeSignature...)}
-     */
-    public static Signature window(String name, TypeSignature... types) {
-        return window(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#SCALAR}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature scalar(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.SCALAR, types).build();
-    }
-
-    private static Signature.Builder signatureBuilder(FunctionName name, FunctionType type, TypeSignature... types) {
-        assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
-        Builder builder = Signature.builder()
+    public static Builder builder(FunctionName name, FunctionType type) {
+        return new Builder()
             .name(name)
-            .kind(type)
-            .returnType(types[types.length - 1]);
-        if (types.length > 1) {
-            builder.argumentTypes(Arrays.copyOf(types, types.length - 1));
-        }
-        return builder;
+            .type(type);
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(String name, FunctionType type) {
+        return new Builder()
+            .name(name)
+            .type(type);
     }
 
     public static Builder builder(Signature signature) {
@@ -148,10 +66,10 @@ public final class Signature implements Writeable, Accountable {
 
     public static class Builder {
         private FunctionName name;
-        private FunctionType kind;
+        private FunctionType type;
         private List<TypeSignature> argumentTypes = Collections.emptyList();
         private TypeSignature returnType;
-        private Set<Scalar.Feature> features = Scalar.DETERMINISTIC_ONLY;
+        private Set<Scalar.Feature> features = Set.of();
         private List<TypeVariableConstraint> typeVariableConstraints = Collections.emptyList();
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
@@ -162,7 +80,7 @@ public final class Signature implements Writeable, Accountable {
 
         public Builder(Signature signature) {
             name = signature.getName();
-            kind = signature.getKind();
+            type = signature.getType();
             argumentTypes = signature.getArgumentTypes();
             returnType = signature.getReturnType();
             features = signature.getFeatures();
@@ -183,8 +101,8 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
-        public Builder kind(FunctionType kind) {
-            this.kind = kind;
+        public Builder type(FunctionType type) {
+            this.type = type;
             return this;
         }
 
@@ -202,13 +120,18 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
-        public Builder feature(Scalar.Feature feature) {
-            this.features = Sets.concat(this.features, feature);
+        public Builder features(Set<Scalar.Feature> features) {
+            this.features = features;
             return this;
         }
 
-        public Builder features(Set<Scalar.Feature> features) {
-            this.features = features;
+        public Builder features(Scalar.Feature feature, Scalar.Feature ... rest) {
+            this.features = EnumSet.of(feature, rest);
+            return this;
+        }
+
+        public Builder features(Scalar.Feature feature) {
+            this.features = EnumSet.of(feature);
             return this;
         }
 
@@ -239,11 +162,11 @@ public final class Signature implements Writeable, Accountable {
 
         public Signature build() {
             assert name != null : "Signature requires the 'name' to be set";
-            assert kind != null : "Signature requires the 'kind' to be set";
+            assert type != null : "Signature requires the 'type' to be set";
             assert returnType != null : "Signature requires the 'returnType' to be set";
             return new Signature(
                 name,
-                kind,
+                type,
                 typeVariableConstraints,
                 argumentTypes,
                 returnType,
@@ -274,9 +197,7 @@ public final class Signature implements Writeable, Accountable {
         int enumElements = in.readVInt();
         var features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
 
-        return Signature.builder()
-            .name(functionName)
-            .kind(type)
+        return Signature.builder(functionName, type)
             .argumentTypes(argumentTypeSignatures)
             .returnType(returnType.getTypeSignature())
             .features(features)
@@ -286,7 +207,7 @@ public final class Signature implements Writeable, Accountable {
 
 
     private final FunctionName name;
-    private final FunctionType kind;
+    private final FunctionType type;
     private final List<TypeSignature> argumentTypes;
     private final TypeSignature returnType;
     private final Set<Scalar.Feature> features;
@@ -294,7 +215,7 @@ public final class Signature implements Writeable, Accountable {
     private final SignatureBindingInfo bindingInfo;
 
     private Signature(FunctionName name,
-                      FunctionType kind,
+                      FunctionType type,
                       List<TypeVariableConstraint> typeVariableConstraints,
                       List<TypeSignature> argumentTypes,
                       TypeSignature returnType,
@@ -303,7 +224,7 @@ public final class Signature implements Writeable, Accountable {
                       boolean variableArity,
                       boolean allowCoercion) {
         this.name = name;
-        this.kind = kind;
+        this.type = type;
         this.argumentTypes = argumentTypes;
         this.returnType = returnType;
         this.features = features;
@@ -317,7 +238,7 @@ public final class Signature implements Writeable, Accountable {
 
     public Signature(StreamInput in) throws IOException {
         name = new FunctionName(in);
-        kind = FunctionType.values()[in.readVInt()];
+        type = FunctionType.values()[in.readVInt()];
         int argsSize = in.readVInt();
         argumentTypes = new ArrayList<>(argsSize);
         for (int i = 0; i < argsSize; i++) {
@@ -337,46 +258,12 @@ public final class Signature implements Writeable, Accountable {
             + returnType.ramBytesUsed();
     }
 
-    public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
-        return Signature.builder(this)
-            .typeVariableConstraints(typeVariableConstraints)
-            .build();
-    }
-
-    public Signature withVariableArity() {
-        return Signature.builder(this)
-            .setVariableArity(true)
-            .build();
-    }
-
-    /*
-     * Forbid coercion of argument types.
-     * This prevents e.g. matching a numeric_only function with convertible argument (text).
-     */
-    public Signature withForbiddenCoercion() {
-        return Signature.builder(this)
-            .forbidCoercion()
-            .build();
-    }
-
-    public Signature withFeature(Scalar.Feature feature) {
-        return Signature.builder(this)
-            .feature(feature)
-            .build();
-    }
-
-    public Signature withFeatures(Set<Scalar.Feature> features) {
-        return Signature.builder(this)
-            .features(features)
-            .build();
-    }
-
     public FunctionName getName() {
         return name;
     }
 
-    public FunctionType getKind() {
-        return kind;
+    public FunctionType getType() {
+        return type;
     }
 
     public List<TypeSignature> getArgumentTypes() {
@@ -411,7 +298,7 @@ public final class Signature implements Writeable, Accountable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         name.writeTo(out);
-        out.writeVInt(kind.ordinal());
+        out.writeVInt(type.ordinal());
         out.writeVInt(argumentTypes.size());
         for (TypeSignature typeSignature : argumentTypes) {
             TypeSignature.toStream(typeSignature, out);
@@ -422,22 +309,20 @@ public final class Signature implements Writeable, Accountable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Signature signature = (Signature) o;
-        return name.equals(signature.name) &&
-               kind == signature.kind &&
-               argumentTypes.equals(signature.argumentTypes) &&
-               returnType.equals(signature.returnType);
+        return o instanceof Signature signature &&
+            name.equals(signature.name) &&
+            type == signature.type &&
+            argumentTypes.equals(signature.argumentTypes) &&
+            returnType.equals(signature.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, kind, argumentTypes, returnType);
+        int result = name.hashCode();
+        result = 31 * result + type.hashCode();
+        result = 31 * result + argumentTypes.hashCode();
+        result = 31 * result + returnType.hashCode();
+        return result;
     }
 
     @Override
@@ -469,7 +354,7 @@ public final class Signature implements Writeable, Accountable {
         // FunctionIdent end
 
         DataTypes.toStream(returnType.createType(), out);
-        out.writeVInt(kind.ordinal());
+        out.writeVInt(type.ordinal());
         out.writeVInt(EnumSets.packToInt(features));
     }
 }

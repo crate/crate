@@ -30,6 +30,7 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerLiteralTypeSignature;
@@ -71,7 +72,7 @@ public class TypeSignatureParserTest extends ESTestCase {
         var signature = TypeSignature.parse("array(object(text, array(integer)))");
         assertThat(signature.getBaseTypeName()).isEqualTo(ArrayType.NAME);
 
-        var innerObjectTypeSignature = signature.getParameters().get(0);
+        var innerObjectTypeSignature = signature.getParameters().getFirst();
         assertThat(innerObjectTypeSignature.getBaseTypeName()).isEqualTo(ObjectType.NAME);
         assertThat(innerObjectTypeSignature.getParameters()).containsExactly(
                 new TypeSignature(DataTypes.STRING.getName()),
@@ -146,16 +147,16 @@ public class TypeSignatureParserTest extends ESTestCase {
     public void test_parse_nested_named_text_type_signature_with_length_limit() {
         var signature = TypeSignature.parse("object(name text(11))");
         assertThat(signature.getBaseTypeName()).isEqualTo("object");
-        assertThat(signature.getParameters().size()).isEqualTo(1);
+        assertThat(signature.getParameters()).hasSize(1);
 
-        var textTypeSignature = signature.getParameters().get(0);
+        var textTypeSignature = signature.getParameters().getFirst();
         assertThat(textTypeSignature.getBaseTypeName()).isEqualTo("text");
         assertThat(textTypeSignature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(11));
     }
 
     @Test
     public void test_create_type_signature_from_nested_named_text_type_with_length_limit() {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("name", StringType.of(1))
             .build();
         assertThat(objectType.getTypeSignature().toString()).isEqualTo("object(text,\"name\" text(1))");
@@ -174,21 +175,21 @@ public class TypeSignatureParserTest extends ESTestCase {
         var signature = TypeSignature.parse("numeric(1)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(1));
-        assertThat(signature.createType()).isEqualTo(NumericType.of(1));
+        assertThat(signature.createType()).isEqualTo(new NumericType(1, 0));
     }
 
     @Test
     public void test_parse_numeric_type_signature_with_precision_and_scale_round_trip() {
-        var signature = TypeSignature.parse("numeric(1, 2)");
+        var signature = TypeSignature.parse("numeric(3, 1)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(
-            new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2));
-        assertThat(signature.createType()).isEqualTo(NumericType.of(1, 2));
+            new IntegerLiteralTypeSignature(3), new IntegerLiteralTypeSignature(1));
+        assertThat(signature.createType()).isEqualTo(new NumericType(3, 1));
     }
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("first field", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -200,7 +201,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_bracket() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("()))", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -212,7 +213,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces_and_brackets() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("foo ()))", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -224,7 +225,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_special_characters() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("foo # !!::\\n ''", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();
@@ -236,7 +237,7 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_create_and_parse_object_type_containing_parameter_name_with_spaces_and_quotes() {
-        var type = ObjectType.builder()
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("first \" field", DataTypes.STRING)
             .build();
         var signature = type.getTypeSignature();

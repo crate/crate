@@ -28,6 +28,8 @@ import io.crate.expression.symbol.Symbol;
 
 public final class Distinct {
 
+    private Distinct() {}
+
     public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs) {
         if (!distinct) {
             return source;

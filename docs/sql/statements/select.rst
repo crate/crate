@@ -304,6 +304,36 @@ each group.
   column from the queried relation rather than an output column name.
 
 
+.. _sql-select-group-by-all:
+
+``GROUP BY ALL``
+''''''''''''''''
+
+``GROUP BY ALL`` is a shorthand syntax that groups all non-aggregate columns in
+the SELECT list. This eliminates the need to explicitly list all grouping
+columns.
+
+::
+
+   GROUP BY ALL [HAVING condition]
+
+When using ``GROUP BY ALL``, the following rules apply:
+- All output columns that are not aggregate functions are used as grouping columns
+- Aggregate functions (like COUNT, SUM, AVG etc.) are excluded from the automatic grouping
+- The order of columns in the grouping matches their order in the SELECT list
+
+    For example::
+
+        SELECT department, title, AVG(salary) as avg_salary
+        FROM employees
+        GROUP BY ALL;
+
+    Is equivalent to explicitly listing all non-aggregate columns::
+
+        SELECT department, title, AVG(salary) as avg_salary
+        FROM employees
+        GROUP BY department, title;
+
 .. _sql-select-having:
 
 ``HAVING``

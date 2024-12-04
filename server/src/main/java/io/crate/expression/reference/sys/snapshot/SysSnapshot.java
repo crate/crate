@@ -24,12 +24,14 @@ package io.crate.expression.reference.sys.snapshot;
 import java.util.List;
 import java.util.stream.Stream;
 
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class SysSnapshot {
 
+    private final String uuid;
     private final String name;
     private final String repository;
     private final List<String> concreteIndices;
@@ -38,10 +40,14 @@ public class SysSnapshot {
     private final Long finished;
     private final String version;
     private final String state;
+    private final String reason;
+    private final int totalShards;
+    private final Boolean includeGlobalState;
 
     private final List<String> snapshotShardFailures;
 
-    public SysSnapshot(String name,
+    public SysSnapshot(String uuid,
+                       String name,
                        String repository,
                        List<String> concreteIndices,
                        List<String> partitionedTables,
@@ -49,7 +55,12 @@ public class SysSnapshot {
                        Long finished,
                        String version,
                        String state,
-                       List<String> snapshotShardFailures) {
+                       List<String> snapshotShardFailures,
+                       String reason,
+                       int totalShards,
+                       Boolean includeGlobalState
+                       ) {
+        this.uuid = uuid;
         this.name = name;
         this.repository = repository;
         this.concreteIndices = concreteIndices;
@@ -59,6 +70,13 @@ public class SysSnapshot {
         this.version = version;
         this.state = state;
         this.snapshotShardFailures = snapshotShardFailures;
+        this.reason = reason;
+        this.totalShards = totalShards;
+        this.includeGlobalState = includeGlobalState;
+    }
+
+    public String uuid() {
+        return uuid;
     }
 
     public String name() {
@@ -93,19 +111,42 @@ public class SysSnapshot {
         return snapshotShardFailures;
     }
 
+    public String reason() {
+        return reason;
+    }
+
+    public int totalShards() {
+        return totalShards;
+    }
+
+    public Boolean includeGlobalState() {
+        return includeGlobalState;
+    }
+
     public List<String> tables() {
         return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
             .distinct()
             .toList();
     }
 
-    public List<PartitionName> tablePartitions() {
-        return concreteIndices.stream()
-            .map(IndexParts::new)
-            .filter(IndexParts::isPartitioned)
-            .map(indexParts -> new PartitionName(
-                new RelationName(indexParts.getSchema(), indexParts.getTable()),
-                indexParts.getPartitionIdent()))
+    public List<RelationName> relationNames() {
+        return Stream.concat(
+                concreteIndices.stream().map(RelationName::fromIndexName),
+                partitionedTables.stream().map(RelationName::fromIndexName)
+            )
+            .distinct()
             .toList();
     }
+
+    public List<PartitionName> tablePartitions() {
+        return concreteIndices.stream()
+            .map(IndexName::decode)
+            .filter(IndexParts::isPartitioned)
+            .map(indexParts -> new PartitionName(
+                new RelationName(indexParts.schema(), indexParts.table()),
+                indexParts.partitionIdent()))
+            .toList();
+    }
+
+
 }

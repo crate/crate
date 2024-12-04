@@ -41,8 +41,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -72,7 +70,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
                             List<Reference> targetColumns,
                             boolean ignoreDuplicateKeys,
                             Map<Reference, Symbol> onDuplicateKeyAssignments,
-                            List<Symbol> returnValues) {
+                            @Nullable List<Symbol> returnValues) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
@@ -117,7 +115,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
         if (targetColumns.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<ColumnIdent, Integer> columnPositions = new HashMap<>(targetColumns.size(), 1);
+        Map<ColumnIdent, Integer> columnPositions = HashMap.newHashMap(targetColumns.size());
         ListIterator<Reference> it = targetColumns.listIterator();
         while (it.hasNext()) {
             columnPositions.put(it.next().column(), it.previousIndex());
@@ -159,7 +157,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
                     }
                 }
 
-                if (SymbolVisitors.any(Symbols.IS_COLUMN, symbol)) {
+                if (symbol.any(Symbol.IS_COLUMN)) {
                     if (alwaysRequireColumn) {
                         throw new IllegalArgumentException(String.format(
                             Locale.ENGLISH,

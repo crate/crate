@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -57,7 +58,7 @@ class CollectingBatchIteratorTest {
     @Test
     void testCollectingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
+            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L)), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
@@ -67,7 +68,7 @@ class CollectingBatchIteratorTest {
         var tester = BatchIteratorTester.forRows(
             () -> CollectingBatchIterator.summingLong(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0L, 10L), 2, 5, executor)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }

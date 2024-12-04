@@ -24,6 +24,7 @@ package io.crate.execution.engine.window;
 import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
@@ -93,7 +94,8 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState frame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,

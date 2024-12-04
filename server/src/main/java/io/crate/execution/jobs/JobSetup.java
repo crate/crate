@@ -121,8 +121,8 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -146,7 +146,6 @@ public class JobSetup {
 
     @Inject
     public JobSetup(Settings settings,
-                    Schemas schemas,
                     MapSideDataCollectOperation collectOperation,
                     ClusterService clusterService,
                     NodeLimits nodeJobsCounter,
@@ -161,7 +160,7 @@ public class JobSetup {
                     ShardCollectSource shardCollectSource,
                     MemoryManagerFactory memoryManagerFactory) {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
-        this.schemas = schemas;
+        this.schemas = nodeCtx.schemas();
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
@@ -175,7 +174,6 @@ public class JobSetup {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -291,7 +289,7 @@ public class JobSetup {
                 var ramAccounting = new BlockBasedRamAccounting(
                     b -> breaker.addEstimateBytesAndMaybeBreak(b, executionPhase.label()),
                     ramAccountingBlockSizeInBytes);
-                Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(executionPhase);
+                Streamer<?>[] streamers = executionPhase.getStreamers();
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting);
                 context.directResponseFutures.add(bucketBuilder.completionFuture().whenComplete((res, err) -> ramAccounting.close()));
                 context.registerBatchConsumer(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
@@ -936,7 +934,6 @@ public class JobSetup {
                 projectorFactory
             );
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
-
             HashJoinOperation joinOperation = new HashJoinOperation(
                 phase.numLeftOutputs(),
                 phase.numRightOutputs(),
@@ -952,7 +949,8 @@ public class JobSetup {
                 context.transactionContext,
                 inputFactory,
                 breaker(),
-                phase.estimatedRowSizeForLeft()
+                phase.estimatedRowSizeForLeft(),
+                phase.joinType() == JoinType.LEFT
             );
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
@@ -1018,7 +1016,7 @@ public class JobSetup {
                 nodeName,
                 mergePhase.phaseId(),
                 searchTp,
-                StreamerVisitor.streamersFromOutputs(mergePhase),
+                mergePhase.getStreamers(),
                 rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),

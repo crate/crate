@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -30,85 +32,85 @@ public class ArithmeticOverflowTest extends ScalarTestCase {
 
     @Test
     public void test_integer_overflow() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("2147483647::integer + 1::integer");
+        assertThatThrownBy(() -> assertEvaluateNull("2147483647::integer + 1::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("a + 1::integer", Literal.of(Integer.MAX_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("a + 1::integer", Literal.of(Integer.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_mul() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("2147483647::integer * 2::integer");
+        assertThatThrownBy(() -> assertEvaluateNull("2147483647::integer * 2::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_mul_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("a * 2::integer", Literal.of(Integer.MAX_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("a * 2::integer", Literal.of(Integer.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_underflow() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("-2147483647::integer - 2::integer");
+        assertThatThrownBy(() -> assertEvaluateNull("-2147483647::integer - 2::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_underflow_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluateNull("a - 1::integer", Literal.of(Integer.MIN_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("a - 1::integer", Literal.of(Integer.MIN_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_long_overflow() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("9223372036854775807 + 1");
+        assertThatThrownBy(() -> assertEvaluateNull("9223372036854775807 + 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("x + 1", Literal.of(Long.MAX_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("x + 1", Literal.of(Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_mul() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("9223372036854775807 * 2");
+        assertThatThrownBy(() -> assertEvaluateNull("9223372036854775807 * 2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_mul_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("x * 2", Literal.of(Long.MAX_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("x * 2", Literal.of(Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_underflow() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("-9223372036854775807 - 2");
+        assertThatThrownBy(() -> assertEvaluateNull("-9223372036854775807 - 2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_underflow_from_table() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("long overflow");
-        assertEvaluateNull("x - 1", Literal.of(Long.MIN_VALUE));
+        assertThatThrownBy(() -> assertEvaluateNull("x - 1", Literal.of(Long.MIN_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 }

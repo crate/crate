@@ -36,7 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.ArrayLiteral;
@@ -74,55 +74,55 @@ public class TestSqlParser {
             SqlParser.createStatement("-- this is a line comment\nSelect \n-- this is a line comment\n1"))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  /* this
-                         is a multiline
-                         comment
-                      */
-                  Select 1;"""))
+            """
+            /* this
+                   is a multiline
+                   comment
+                */
+            Select 1;"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select 1;    /* this
-                         is a multiline
-                         comment
-                      */"""))
+            """
+            Select 1;    /* this
+                   is a multiline
+                   comment
+                */"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select    /* this
-                         is a multiline
-                         comment
-                      */1"""))
+            """
+            Select    /* this
+                   is a multiline
+                   comment
+                */1"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                  """
-                  Select    /* this
-                         is a multiline
-                         comment
-                      */
-                  -- line comment
-                  1"""))
+            """
+            Select    /* this
+                   is a multiline
+                   comment
+                */
+            -- line comment
+            1"""))
             .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
-                """
-                  CREATE TABLE IF NOT EXISTS "doc"."data" (
-                     "week__generated" TIMESTAMP GENERATED ALWAYS AS date_trunc('week', "ts"),
-                     "mid" STRING, -- measurement id, mainly used for triggers, starts for continuuous measurment with random uuid
-                     "res" INTEGER, -- resolution in ms
-                     "ts" TIMESTAMP,
-                     "val_avg" FLOAT,
-                     "val_max" FLOAT,
-                     "val_min" FLOAT,
-                     "val_stddev" FLOAT,
-                     "vid" STRING, -- variable id, unique uuid
-                     PRIMARY KEY ("ts", "mid", "vid", "res", "week__generated")
-                  )
-                  CLUSTERED INTO 3 SHARDS
-                  PARTITIONED BY ("res", "week__generated")
-                  WITH (
-                     number_of_replicas = '1'
-                  );"""))
+            """
+              CREATE TABLE IF NOT EXISTS "doc"."data" (
+                 "week__generated" TIMESTAMP GENERATED ALWAYS AS date_trunc('week', "ts"),
+                 "mid" STRING, -- measurement id, mainly used for triggers, starts for continuuous measurment with random uuid
+                 "res" INTEGER, -- resolution in ms
+                 "ts" TIMESTAMP,
+                 "val_avg" FLOAT,
+                 "val_max" FLOAT,
+                 "val_min" FLOAT,
+                 "val_stddev" FLOAT,
+                 "vid" STRING, -- variable id, unique uuid
+                 PRIMARY KEY ("ts", "mid", "vid", "res", "week__generated")
+              )
+              CLUSTERED INTO 3 SHARDS
+              PARTITIONED BY ("res", "week__generated")
+              WITH (
+                 number_of_replicas = '1'
+              );"""))
             .isExactlyInstanceOf(CreateTable.class);
     }
 
@@ -133,24 +133,24 @@ public class TestSqlParser {
 
     @Test
     public void testDouble() {
-        assertExpression("123.", new DoubleLiteral("123"));
-        assertExpression("123.0", new DoubleLiteral("123"));
-        assertExpression(".5", new DoubleLiteral(".5"));
-        assertExpression("123.5", new DoubleLiteral("123.5"));
+        assertExpression("123.", new DoubleLiteral(123));
+        assertExpression("123.0", new DoubleLiteral(123));
+        assertExpression(".5", new DoubleLiteral(.5));
+        assertExpression("123.5", new DoubleLiteral(123.5));
 
-        assertExpression("123E7", new DoubleLiteral("123E7"));
-        assertExpression("123.E7", new DoubleLiteral("123E7"));
-        assertExpression("123.0E7", new DoubleLiteral("123E7"));
-        assertExpression("123E+7", new DoubleLiteral("123E7"));
-        assertExpression("123E-7", new DoubleLiteral("123E-7"));
+        assertExpression("123E7", new DoubleLiteral(123E7));
+        assertExpression("123.E7", new DoubleLiteral(123E7));
+        assertExpression("123.0E7", new DoubleLiteral(123E7));
+        assertExpression("123E+7", new DoubleLiteral(123E7));
+        assertExpression("123E-7", new DoubleLiteral(123E-7));
 
-        assertExpression("123.456E7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E+7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E-7", new DoubleLiteral("123.456E-7"));
+        assertExpression("123.456E7", new DoubleLiteral(123.456E7));
+        assertExpression("123.456E+7", new DoubleLiteral(123.456E7));
+        assertExpression("123.456E-7", new DoubleLiteral(123.456E-7));
 
-        assertExpression(".4E42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E+42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E-42", new DoubleLiteral(".4E-42"));
+        assertExpression(".4E42", new DoubleLiteral(.4E42));
+        assertExpression(".4E+42", new DoubleLiteral(.4E42));
+        assertExpression(".4E-42", new DoubleLiteral(.4E-42));
     }
 
     @Test
@@ -167,10 +167,10 @@ public class TestSqlParser {
             new Query(
                 Optional.empty(),
                 new QuerySpecification(
-                    selectList(new DoubleLiteral("123.456E7")),
+                    selectList(new DoubleLiteral(123.456E7)),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
-                    List.of(),
+                    Optional.empty(),
                     Optional.empty(),
                     Map.of(),
                     List.of(),
@@ -381,8 +381,8 @@ public class TestSqlParser {
 
     @Test
     public void testParsingExceptionPositionInfo() {
-        ParsingException pe = catchThrowableOfType(
-            () -> SqlParser.createStatement("select *\nfrom x\nwhere from"), ParsingException.class);
+        ParsingException pe = catchThrowableOfType(ParsingException.class,
+            () -> SqlParser.createStatement("select *\nfrom x\nwhere from"));
         assertThat(pe.getMessage())
             .isEqualTo("line 3:7: no viable alternative at input 'select *\\nfrom x\\nwhere from'");
         assertThat(pe.getErrorMessage())
@@ -488,17 +488,9 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testStackOverflowExpression() {
-        assertThatThrownBy(
-            () -> SqlParser.createExpression(Lists.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:1: expression is too large (stack overflow while parsing)");
-    }
-
-    @Test
     public void testStackOverflowStatement() {
         assertThatThrownBy(
-            () -> SqlParser.createStatement("SELECT " + Lists.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
+            () -> SqlParser.createStatement("SELECT " + Lists.joinOn(" OR ", nCopies(12000, "x = y"), x -> x)))
             .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:1: statement is too large (stack overflow while parsing)");
     }
@@ -613,9 +605,9 @@ public class TestSqlParser {
     private static void assertParsed(String input, Node expected, Node parsed) {
         if (!parsed.equals(expected)) {
             fail(format("expected%n%n%s%n%nto parse as%n%n%s%n%nbut was%n%n%s%n",
-                        indent(input),
-                        indent(formatSql(expected)),
-                        indent(formatSql(parsed))));
+                indent(input),
+                indent(formatSql(expected)),
+                indent(formatSql(parsed))));
         }
     }
 

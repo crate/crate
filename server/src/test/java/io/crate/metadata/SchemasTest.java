@@ -21,18 +21,14 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -87,7 +83,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                                                     "burlesque", "Hello, World!Q")
                 )
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metadata), containsInAnyOrder("doc", "new_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactlyInAnyOrder("doc", "new_schema");
     }
 
     @Test
@@ -97,7 +93,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                 ViewsMetadata.TYPE,
                 ViewsMetadataTest.createMetadata()
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metadata), containsInAnyOrder("doc", "my_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactlyInAnyOrder("doc", "my_schema");
     }
 
 
@@ -133,13 +129,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
-        assertThat(Schemas.getNewCurrentSchemas(metadata), contains("foo", "doc"));
-    }
-
-    private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
-        Map<String, SchemaInfo> builtInSchema = new HashMap<>();
-        builtInSchema.put(schemaInfo.name(), schemaInfo);
-        return new Schemas(builtInSchema, clusterService, mock(DocSchemaInfoFactory.class), List::of);
+        assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactly("foo", "doc");
     }
 
     @Test
@@ -153,8 +143,8 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             .findRelation(fqn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), is("schema"));
-        assertThat(relation.name(), is("t"));
+        assertThat(relation.schema()).isEqualTo("schema");
+        assertThat(relation.name()).isEqualTo("t");
     }
 
     private SQLExecutor getSqlExecutorBuilderForTable(RelationName tableIdent, String... searchPath) throws IOException {
@@ -169,9 +159,14 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
 
         var sessionSetttings = sqlExecutor.getSessionSettings();
-        expectedException.expect(SchemaUnknownException.class);
-        expectedException.expectMessage("Schema 'bogus_schema' unknown");
-        sqlExecutor.schemas().findRelation(invalidFqn, Operation.READ, sessionSetttings.sessionUser(), sessionSetttings.searchPath());
+        assertThatThrownBy(() ->
+                sqlExecutor.schemas().findRelation(
+                    invalidFqn,
+                    Operation.READ,
+                    sessionSetttings.sessionUser(),
+                    sessionSetttings.searchPath()))
+            .isExactlyInstanceOf(SchemaUnknownException.class)
+            .hasMessage("Schema 'bogus_schema' unknown");
     }
 
     @Test
@@ -180,9 +175,13 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName table = QualifiedName.of("missing_table");
 
         var sessionSettings = sqlExecutor.getSessionSettings();
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().findRelation(table, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+        assertThatThrownBy(() -> sqlExecutor.schemas().findRelation(
+                table,
+                Operation.READ,
+                sessionSettings.sessionUser(),
+                sessionSettings.searchPath()))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'missing_table' unknown");
     }
 
     @Test
@@ -194,7 +193,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             .findRelation(tableQn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), is("schema"));
-        assertThat(relation.name(), is("t"));
+        assertThat(relation.schema()).isEqualTo("schema");
+        assertThat(relation.name()).isEqualTo("t");
     }
 }

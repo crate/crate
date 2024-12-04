@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,15 +61,13 @@ public class SortTest extends ESTestCase {
         }
         var unsortedNumbers = new ArrayList<>(numbers);
         numbers.sort(Comparator.comparingInt(x -> x));
-        assertThat(
-            numbers,
-            is(Sort.parallelSort(
+        assertThat(numbers).isEqualTo(
+            Sort.parallelSort(
                 unsortedNumbers,
                 Comparator.comparingInt(x -> x),
                 randomIntBetween(1, 1000),
                 randomIntBetween(1, 4),
                 executor
-                ).get(5, TimeUnit.SECONDS))
-        );
+            ).get(5, TimeUnit.SECONDS));
     }
 }

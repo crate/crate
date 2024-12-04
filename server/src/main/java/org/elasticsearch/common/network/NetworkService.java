@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -35,6 +29,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.unit.ByteSizeValue;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 public final class NetworkService {
 
@@ -69,12 +70,12 @@ public final class NetworkService {
         /**
          * Resolves the default value if possible. If not, return {@code null}.
          */
-        InetAddress[] resolveDefault();
+        List<InetAddress> resolveDefault();
 
         /**
          * Resolves a custom value handling, return {@code null} if can't handle it.
          */
-        InetAddress[] resolveIfPossible(String value) throws IOException;
+        List<InetAddress> resolveIfPossible(String value) throws IOException;
     }
 
     private final List<CustomNameResolver> customNameResolvers;
@@ -92,10 +93,10 @@ public final class NetworkService {
      *
      * @return unique set of internet addresses
      */
-    public InetAddress[] resolveBindHostAddresses(String[] bindHosts) throws IOException {
+    public List<InetAddress> resolveBindHostAddresses(String[] bindHosts) throws IOException {
         if (bindHosts == null || bindHosts.length == 0) {
             for (CustomNameResolver customNameResolver : customNameResolvers) {
-                InetAddress[] addresses = customNameResolver.resolveDefault();
+                List<InetAddress> addresses = customNameResolver.resolveDefault();
                 if (addresses != null) {
                     return addresses;
                 }
@@ -104,7 +105,7 @@ public final class NetworkService {
             bindHosts = new String[] {"_local_"};
         }
 
-        InetAddress[] addresses = resolveInetAddresses(bindHosts);
+        List<InetAddress> addresses = resolveInetAddresses(bindHosts);
 
         // try to deal with some (mis)configuration
         for (InetAddress address : addresses) {
@@ -113,7 +114,7 @@ public final class NetworkService {
                 throw new IllegalArgumentException("bind address: {" + NetworkAddress.format(address) + "} is invalid: multicast address");
             }
             // check if its a wildcard address: this is only ok if its the only address!
-            if (address.isAnyLocalAddress() && addresses.length > 1) {
+            if (address.isAnyLocalAddress() && addresses.size() > 1) {
                 throw new IllegalArgumentException("bind address: {" + NetworkAddress.format(address) + "} is wildcard, but multiple addresses specified: this makes no sense");
             }
         }
@@ -130,27 +131,26 @@ public final class NetworkService {
      *                     such as _local_ (see the documentation). if it is null, it will fall back to _local_
      * @return single internet address
      */
-    // TODO: needs to be InetAddress[]
     public InetAddress resolvePublishHostAddresses(String[] publishHosts) throws IOException {
         if (publishHosts == null || publishHosts.length == 0) {
             for (CustomNameResolver customNameResolver : customNameResolvers) {
-                InetAddress[] addresses = customNameResolver.resolveDefault();
+                List<InetAddress> addresses = customNameResolver.resolveDefault();
                 if (addresses != null) {
-                    return addresses[0];
+                    return addresses.getFirst();
                 }
             }
             // we know it's not here. get the defaults
             publishHosts = new String[] {DEFAULT_NETWORK_HOST};
         }
 
-        InetAddress[] addresses = resolveInetAddresses(publishHosts);
+        List<InetAddress> addresses = resolveInetAddresses(publishHosts);
         // TODO: allow publishing multiple addresses
         // for now... the hack begins
 
         // 1. single wildcard address, probably set by network.host: expand to all interface addresses.
-        if (addresses.length == 1 && addresses[0].isAnyLocalAddress()) {
-            HashSet<InetAddress> all = new HashSet<>(Arrays.asList(NetworkUtils.getAllAddresses()));
-            addresses = all.toArray(new InetAddress[all.size()]);
+        if (addresses.size() == 1 && addresses.get(0).isAnyLocalAddress()) {
+            HashSet<InetAddress> all = new HashSet<>(NetworkUtils.getAllAddresses());
+            addresses = List.copyOf(all);
         }
 
         // 2. try to deal with some (mis)configuration
@@ -168,16 +168,16 @@ public final class NetworkService {
 
         // 3. if we end out with multiple publish addresses, select by preference.
         // don't warn the user, or they will get confused by bind_host vs publish_host etc.
-        if (addresses.length > 1) {
-            List<InetAddress> sorted = new ArrayList<>(Arrays.asList(addresses));
+        if (addresses.size() > 1) {
+            List<InetAddress> sorted = new ArrayList<>(addresses);
             NetworkUtils.sortAddresses(sorted);
-            addresses = new InetAddress[]{sorted.get(0)};
+            return sorted.getFirst();
         }
-        return addresses[0];
+        return addresses.getFirst();
     }
 
     /** resolves (and deduplicates) host specification */
-    private InetAddress[] resolveInetAddresses(String[] hosts) throws IOException {
+    private List<InetAddress> resolveInetAddresses(String[] hosts) throws IOException {
         if (hosts.length == 0) {
             throw new IllegalArgumentException("empty host specification");
         }
@@ -185,19 +185,19 @@ public final class NetworkService {
         // stuff like https://bugzilla.redhat.com/show_bug.cgi?id=496300
         HashSet<InetAddress> set = new HashSet<>();
         for (String host : hosts) {
-            set.addAll(Arrays.asList(resolveInternal(host)));
+            set.addAll(resolveInternal(host));
         }
-        return set.toArray(new InetAddress[set.size()]);
+        return List.copyOf(set);
     }
 
     /** resolves a single host specification */
-    private InetAddress[] resolveInternal(String host) throws IOException {
+    private List<InetAddress> resolveInternal(String host) throws IOException {
         if ((host.startsWith("#") && host.endsWith("#")) || (host.startsWith("_") && host.endsWith("_"))) {
             host = host.substring(1, host.length() - 1);
             // next check any registered custom resolvers if any
             if (customNameResolvers != null) {
                 for (CustomNameResolver customNameResolver : customNameResolvers) {
-                    InetAddress[] addresses = customNameResolver.resolveIfPossible(host);
+                    List<InetAddress> addresses = customNameResolver.resolveIfPossible(host);
                     if (addresses != null) {
                         return addresses;
                     }
@@ -235,6 +235,6 @@ public final class NetworkService {
                     }
             }
         }
-        return InetAddress.getAllByName(host);
+        return Arrays.asList(InetAddress.getAllByName(host));
     }
 }

@@ -51,7 +51,7 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
     @Before
     public void setupExecutor() throws IOException {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         jobLauncher = new JobLauncher(
             UUID.randomUUID(),
             clusterService,

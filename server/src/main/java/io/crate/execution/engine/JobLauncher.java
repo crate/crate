@@ -26,16 +26,17 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
@@ -44,6 +45,7 @@ import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -176,7 +178,7 @@ public class JobLauncher {
         }
     }
 
-    public List<CompletableFuture<Long>> executeBulk(TransactionContext txnCtx) {
+    public CompletableFuture<BulkResponse> executeBulk(TransactionContext txnCtx) {
         Iterable<NodeOperation> nodeOperations = nodeOperationTrees.stream()
             .flatMap(opTree -> opTree.nodeOperations().stream())
             ::iterator;
@@ -184,20 +186,31 @@ public class JobLauncher {
 
         List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
         List<RowConsumer> handlerConsumers = new ArrayList<>(nodeOperationTrees.size());
+        CompletableFuture<BulkResponse> result = new CompletableFuture<>();
+        var bulkResponse = new BulkResponse(nodeOperationTrees.size());
         List<CompletableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
-        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
+        for (int i = 0; i < nodeOperationTrees.size(); i++) {
+            NodeOperationTree nodeOperationTree = nodeOperationTrees.get(i);
             CollectingRowConsumer<?, Long> consumer = new CollectingRowConsumer<>(
                 Collectors.collectingAndThen(Collectors.summingLong(r -> ((long) r.get(0))), sum -> sum));
             handlerConsumers.add(consumer);
-            results.add(consumer.completionFuture());
+            final int idx = i;
+            results.add(consumer.completionFuture().whenComplete((rowCount, t) -> bulkResponse.update(idx, rowCount, t)));
             handlerPhases.add(nodeOperationTree.leaf());
         }
+        CompletableFutures.allSuccessfulAsList(results).whenComplete((ignored, t) -> {
+            if (t == null) {
+                result.complete(bulkResponse);
+            } else {
+                result.completeExceptionally(t);
+            }
+        });
         try {
             setupTasks(txnCtx, operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
-            return Collections.singletonList(CompletableFuture.failedFuture(throwable));
+            return CompletableFuture.failedFuture(throwable);
         }
-        return results;
+        return result;
     }
 
     private void setupTasks(TransactionContext txnCtx,
@@ -288,19 +301,19 @@ public class JobLauncher {
 
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
         if (enableProfiling) {
-            var profilers = new ArrayList<QueryProfiler>();
+            var profilers = new HashMap<ShardId, QueryProfiler>();
             ProfilingContext profilingContext = new ProfilingContext(profilers);
             builder.profilingContext(profilingContext);
             return new SharedShardContexts(
                 indicesService,
-                indexSearcher -> {
+                (shardId, indexSearcher) -> {
                     var queryProfiler = new QueryProfiler();
-                    profilers.add(queryProfiler);
+                    profilers.put(shardId, queryProfiler);
                     return new InstrumentedIndexSearcher(indexSearcher, queryProfiler);
                 }
             );
         } else {
-            return new SharedShardContexts(indicesService, UnaryOperator.identity());
+            return new SharedShardContexts(indicesService, (ignored, indexSearcher) -> indexSearcher);
         }
     }
 

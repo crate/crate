@@ -39,8 +39,8 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Override
-    public DataType<String> getType() {
-        return StringType.of(randomIntBetween(1, 40));
+    protected DataDef<String> getDataDef() {
+        return DataDef.fromType(StringType.of(randomIntBetween(1, 40)));
     }
 
     @Test
@@ -62,7 +62,7 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     @Test
     public void test_create_text_type_with_length_limit() {
         var stringDataType = StringType.of(10);
-        assertThat(stringDataType.unbound()).isEqualTo(false);
+        assertThat(stringDataType.unbound()).isFalse();
         assertThat(stringDataType.lengthLimit()).isEqualTo(10);
     }
 

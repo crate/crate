@@ -21,17 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
@@ -42,7 +38,7 @@ public class SysOperationsTest extends IntegTestCase {
     public void testDistinctSysOperations() throws Exception {
         // this tests a distributing collect without shards but DOC level granularity
         SQLResponse response = execute("select distinct name  from sys.operations limit 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
@@ -53,20 +49,20 @@ public class SysOperationsTest extends IntegTestCase {
         // but it could be that the collect is finished before the localMerge task is started in which
         // case it is missing.
 
-        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo((long) cluster().numDataNodes()));
+        assertThat(resp.rowCount()).isGreaterThanOrEqualTo(cluster().numDataNodes());
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
         }
         Collections.sort(names);
-        assertTrue(names.contains("collect"));
+        assertThat(names.contains("collect")).isTrue();
     }
 
     @Test
     public void testNodeExpressionOnSysOperations() throws Exception {
         execute("select * from sys.nodes");
         SQLResponse response = execute("select node['name'], id from sys.operations limit 1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0].toString(), startsWith("node_s"));
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0].toString()).startsWith("node_s");
     }
 }

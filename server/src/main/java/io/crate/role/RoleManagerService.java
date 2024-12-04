@@ -23,10 +23,10 @@ package io.crate.role;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,24 +34,19 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.RoleUnknownException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.role.metadata.SysPrivilegesTableInfo;
-import io.crate.role.metadata.SysRolesTableInfo;
-import io.crate.role.metadata.SysUsersTableInfo;
 
 @Singleton
 public class RoleManagerService implements RoleManager {
 
-    private static final void ensureDropRoleTargetIsNotSuperUser(Role user) {
+    private static void ensureDropRoleTargetIsNotSuperUser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
         }
     }
 
-    private static final void ensureAlterPrivilegeTargetIsNotSuperuser(Role user) {
+    private static void ensureAlterPrivilegeTargetIsNotSuperuser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
@@ -61,52 +56,14 @@ public class RoleManagerService implements RoleManager {
 
     private static final RoleManagerDDLModifier DDL_MODIFIER = new RoleManagerDDLModifier();
 
-    private final TransportCreateRoleAction transportCreateRoleAction;
-    private final TransportDropRoleAction transportDropRoleAction;
-    private final TransportAlterRoleAction transportAlterRoleAction;
-    private final TransportPrivilegesAction transportPrivilegesAction;
-
     private final Roles roles;
+    private final NodeClient client;
 
-    @Inject
-    public RoleManagerService(TransportCreateRoleAction transportCreateRoleAction,
-                              TransportDropRoleAction transportDropRoleAction,
-                              TransportAlterRoleAction transportAlterRoleAction,
-                              TransportPrivilegesAction transportPrivilegesAction,
-                              SysTableRegistry sysTableRegistry,
+    public RoleManagerService(NodeClient client,
                               Roles roles,
-                              DDLClusterStateService ddlClusterStateService,
-                              ClusterService clusterService) {
-        this.transportCreateRoleAction = transportCreateRoleAction;
-        this.transportDropRoleAction = transportDropRoleAction;
-        this.transportAlterRoleAction = transportAlterRoleAction;
-        this.transportPrivilegesAction = transportPrivilegesAction;
+                              DDLClusterStateService ddlClusterStateService) {
+        this.client = client;
         this.roles = roles;
-        var userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
-        sysTableRegistry.registerSysTable(
-            userTable,
-            () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(Role::isUser).toList()),
-            userTable.expressions(),
-            false
-        );
-        var rolesTable = SysRolesTableInfo.create();
-        sysTableRegistry.registerSysTable(
-            rolesTable,
-            () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(r -> r.isUser() == false).toList()),
-                rolesTable.expressions(),
-            false
-        );
-
-        var privilegesTable = SysPrivilegesTableInfo.create();
-        sysTableRegistry.registerSysTable(
-            privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
-            privilegesTable.expressions(),
-            false
-        );
-
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
 
@@ -116,7 +73,8 @@ public class RoleManagerService implements RoleManager {
                                               boolean isUser,
                                               @Nullable SecureHash hashedPw,
                                               @Nullable JwtProperties jwtProperties) {
-        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
+        CreateRoleRequest request = new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties);
+        return client.execute(TransportCreateRoleAction.ACTION, request).thenApply(r -> {
             if (r.doesUserExist()) {
                 throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
             }
@@ -127,7 +85,8 @@ public class RoleManagerService implements RoleManager {
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
         ensureDropRoleTargetIsNotSuperUser(roles.findUser(roleName));
-        return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
+        DropRoleRequest request = new DropRoleRequest(roleName, suppressNotFoundError);
+        return client.execute(TransportDropRoleAction.ACTION, request).thenApply(r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
@@ -143,23 +102,30 @@ public class RoleManagerService implements RoleManager {
                                              @Nullable SecureHash newHashedPw,
                                              @Nullable JwtProperties newJwtProperties,
                                              boolean resetPassword,
-                                             boolean resetJwtProperties) {
-        return transportAlterRoleAction.execute(
-            new AlterRoleRequest(roleName, newHashedPw, newJwtProperties, resetPassword, resetJwtProperties),
-            r -> {
-                if (r.doesUserExist() == false) {
-                    throw new RoleUnknownException(roleName);
-                }
-                return 1L;
-            }
+                                             boolean resetJwtProperties,
+                                             Map<Boolean, Map<String, Object>> sessionSettingsChange) {
+        AlterRoleRequest request = new AlterRoleRequest(
+            roleName,
+            newHashedPw,
+            newJwtProperties,
+            resetPassword,
+            resetJwtProperties,
+            sessionSettingsChange
         );
+        return client.execute(TransportAlterRoleAction.ACTION, request).thenApply(r -> {
+            if (r.doesUserExist() == false) {
+                throw new RoleUnknownException(roleName);
+            }
+            return 1L;
+        });
     }
 
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
                                                    Collection<Privilege> privileges,
                                                    GrantedRolesChange grantedRolesChange) {
         roleNames.forEach(s -> ensureAlterPrivilegeTargetIsNotSuperuser(roles.findUser(s)));
-        return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges, grantedRolesChange), r -> {
+        PrivilegesRequest request = new PrivilegesRequest(roleNames, privileges, grantedRolesChange);
+        return client.execute(TransportPrivilegesAction.ACTION, request).thenApply(r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());
             }
@@ -169,8 +135,8 @@ public class RoleManagerService implements RoleManager {
 
 
     @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
-        return new AccessControlImpl(roles, sessionSettings);
+    public AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
+        return new AccessControlImpl(roles, authenticatedUser, sessionUser);
     }
 
     public Collection<Role> roles() {

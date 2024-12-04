@@ -27,12 +27,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -52,7 +52,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.schema()).isEqualTo("doc");
         assertThat(analysis.name()).isEqualTo("bar");
-        assertThat(analysis.replace()).isEqualTo(false);
+        assertThat(analysis.replace()).isFalse();
         assertThat(analysis.returnType()).isEqualTo(DataTypes.LONG);
         assertThat(analysis.arguments().get(0)).isEqualTo(FunctionArgumentDefinition.of(DataTypes.LONG));
         assertThat(analysis.arguments().get(1)).isEqualTo(FunctionArgumentDefinition.of(DataTypes.LONG));
@@ -106,7 +106,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name()).isEqualTo("bar");
-        assertThat(analysis.replace()).isEqualTo(true);
+        assertThat(analysis.replace()).isTrue();
         assertThat(analysis.returnType()).isEqualTo(DataTypes.LONG);
         assertThat(analysis.language()).isLiteral("dummy_lang");
         assertThat(analysis.definition()).isLiteral("function() { return 1; }");
@@ -120,7 +120,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name()).isEqualTo("bar");
-        assertThat(analysis.replace()).isEqualTo(false);
+        assertThat(analysis.replace()).isFalse();
         assertThat(analysis.returnType()).isEqualTo(DataTypes.GEO_POINT);
         assertThat(analysis.arguments().get(0)).isEqualTo(FunctionArgumentDefinition.of(DataTypes.GEO_POINT));
         assertThat(analysis.arguments().get(1)).isEqualTo(FunctionArgumentDefinition.of(DataTypes.GEO_SHAPE));
@@ -139,7 +139,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name()).isEqualTo("bar");
-        assertThat(analysis.replace()).isEqualTo(false);
+        assertThat(analysis.replace()).isFalse();
         assertThat(analysis.returnType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
         assertThat(analysis.arguments().get(0)).isEqualTo(FunctionArgumentDefinition.of(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(analysis.arguments().get(1)).isEqualTo(FunctionArgumentDefinition.of(DataTypes.UNTYPED_OBJECT));

@@ -32,6 +32,8 @@ import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.auth.AccessControl;
+import io.crate.auth.AccessControlImpl;
 import io.crate.common.FourFunction;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -75,7 +77,8 @@ public interface Roles {
     }
 
     /**
-     * Finds a user by given predicate
+     * Finds a user by given predicate.
+     * Can match exactly 1 user.
      */
     @Nullable
     default Role findUser(Predicate<Role> predicate) {
@@ -83,7 +86,6 @@ public interface Roles {
             if (role.isUser() && predicate.test(role)) {
                 return role;
             }
-
         }
         return null;
     }
@@ -137,6 +139,10 @@ public interface Roles {
     default boolean hasAnyPrivilege(Role user, Securable securable, @Nullable String ident) {
         return user.isSuperUser()
             || hasPrivilege(user, null, securable, ident, (r, p, s, o) -> r.privileges().matchPrivilegeOfAnyType(s, (String) o)) == GRANT;
+    }
+
+    default AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
+        return new AccessControlImpl(this, authenticatedUser, sessionUser);
     }
 
     Collection<Role> roles();

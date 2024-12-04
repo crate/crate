@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -55,8 +54,10 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.testing.Asserts;
@@ -75,7 +76,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     private final String nestedArrayCopyFilePath =
         Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -97,7 +98,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ?", new Object[] {copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -114,7 +115,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -131,7 +132,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -149,7 +150,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes(id, quote, comment) from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -167,7 +168,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (format='csv', header=false)", new Object[]{copyFilePath + "test_copy_from_csv_no_header.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -223,7 +224,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(6L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(6L);
@@ -237,7 +238,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ?", new Object[]{copyFilePathShared + "*.json"});
         assertThat(response).hasRowCount(6L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(6L);
@@ -255,7 +256,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         }
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table foo");
 
         execute("select * from foo order by id");
         assertThat(response.rows()[0][0]).isEqualTo(1);
@@ -281,7 +282,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table foo");
 
         execute("select * from foo order by id");
 
@@ -314,7 +315,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         ensureGreen();
         execute("COPY quotes PARTITION (id = 1) FROM ? WITH (shared = true)", new Object[]{
             copyFilePath + "test_copy_from.json"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("SELECT * FROM quotes");
         assertThat(response).hasRowCount(3L);
@@ -346,7 +347,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ")");
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select gen_quote from quotes limit 1");
         assertThat((String) response.rows()[0][0]).endsWith("This is awesome!");
@@ -371,7 +372,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (gen_quote)");
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select gen_quote from quotes limit 1");
         assertThat((String) response.rows()[0][0]).endsWith("Partitioned by awesomeness!");
@@ -384,7 +385,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (time)");
 
         execute("copy times from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from_null_value.json"});
-        refresh();
+        execute("refresh table times");
 
         execute("select time from times");
         assertThat(response).hasRowCount(1L);
@@ -404,7 +405,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{
             copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes where id_str = 1");
         assertThat(response).hasRowCount(3L);
@@ -550,7 +551,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table users");
 
         execute("select * from users");
         assertThat(response).hasRowCount(1L);
@@ -565,7 +566,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "   timestamp TIMESTAMP WITH TIME ZONE" +
                 ") PARTITIONED BY (day)");
         execute("insert into foo (timestamp) values (1454454000377)");
-        refresh();
+        execute("refresh table foo");
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy foo to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response).hasRowCount(1L);
@@ -577,17 +578,17 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             " clustered by (c) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into t (i, c) values (1, 'clusteredbyvalue'), (2, 'clusteredbyvalue')");
-        refresh();
+        execute("refresh table t");
 
         String uri = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
         assertThat(response).hasRowCount(2L);
 
         execute("delete from t");
-        refresh();
+        execute("refresh table t");
 
         execute("copy t from ? with (shared=true)", new Object[]{uri + "t_*"});
-        refresh();
+        execute("refresh table t");
 
         // only one shard should have all imported rows, since we have the same routing for both rows
         response = execute("select count(*) from sys.shards where num_docs>0 and table_name='t'");
@@ -601,7 +602,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
-        List<String> urls = List.of(upload("blobs", r1), upload("blobs", r2));
+        List<String> urls = List.of(upload("blobs", r1).toString(), upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
@@ -621,7 +622,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2));
+        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
@@ -638,7 +639,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (shared = true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where id = 2");
         assertThat((String) response.rows()[0][0]).contains("lot of time");
@@ -652,7 +653,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where id = 3");
         assertThat((String) response.rows()[0][0]).contains("Time is an illusion.");
@@ -848,7 +849,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             "COPY t FROM ? WITH (format='csv', empty_string_as_null=true)",
             new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table t");
 
         execute("SELECT * FROM t ORDER BY id");
         assertThat(response).hasRows(
@@ -922,9 +923,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 new Object[] { file.toPath().toUri().toString() }
             );
             execute("refresh table tbl2");
-            execute("SELECT _raw, * FROM tbl2");
+            execute("SELECT _doc, * FROM tbl2");
             assertThat(response).hasRows(
-                "{\"3\":10,\"4\":{}}| 10| {p=1}"
+                "{o={p=1}, x=10}| 10| {p=1}"
             );
         }
     }
@@ -962,7 +963,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToTrueDoesTypeValidation() throws Exception {
+    public void test_copy_from_does_type_validation() throws Exception {
 
         // copying an empty string to a boolean column
 
@@ -972,7 +973,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = true) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");
@@ -981,14 +982,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseStillValidatesIfGeneratedColumnsInvolved() throws Exception {
+    public void test_copy_from_validates_generated_columns() throws Exception {
         execute("create table t (a boolean, b int generated always as 1)");
 
         List<String> lines = List.of("{\"a\": \"\"}");
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");
@@ -997,7 +998,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseAndInsertingToPartitionedByColumn() throws Exception {
+    public void test_copy_from_validates_inserts_into_partitioned_by_column() throws Exception {
         // copying an empty string to a boolean column
 
         execute("create table t (a boolean, b boolean) partitioned by (b)");
@@ -1006,7 +1007,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains(
             // The validation should be skipped but since it is partitioned by column, that is used to create shards,
@@ -1020,30 +1021,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void test_validation_set_to_false_has_no_effect_and_results_in_validation_errors() throws Exception {
-        // copying an empty string to a boolean column
-
-        execute("create table t (a boolean, b boolean) partitioned by (b)");
-
-        List<String> lines = List.of("{\"a\": \"\"}"); // a
-        File file = folder.newFile(UUID.randomUUID().toString());
-        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-
-        execute("copy t from ? with (shared = true, validation = false) return summary",
-                new Object[]{Paths.get(file.toURI()).toUri().toString()});
-
-        assertThat(response.rows()[0][4].toString()).contains("Cannot cast value `` to type `boolean`");
-    }
-
-    @Test
-    public void testCopyFromWithValidationSetToFalseStillValidatesIfDefaultExpressionsInvolved() throws Exception {
+    public void test_copy_from_validates_default_expressions() throws Exception {
         execute("create table t (a boolean, b int default 1)");
 
         List<String> lines = List.of("{\"a\": \"\"}");
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");
@@ -1216,7 +1201,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         var roles = cluster().getInstance(Roles.class);
         Role user = roles.getUser("test_user");
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        try (var session = sqlOperations.newSession(null, user)) {
+        try (var session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
             assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
                 .isExactlyInstanceOf(UnauthorizedException.class)
                 .hasMessage("Only a superuser can read from the local file system");

@@ -22,7 +22,11 @@
 package io.crate.execution.engine.collect.files;
 
 
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This is a copy of sun.nio.fs.Globs to make the methods public available.
@@ -211,6 +215,19 @@ public class Globs {
 
     public static String toUnixRegexPattern(String globPattern) {
         return toRegexPattern(globPattern, false);
+    }
+
+    public static class GlobPredicate implements Predicate<String> {
+        private final Pattern globPattern;
+
+        public GlobPredicate(String uri) {
+            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(uri));
+        }
+
+        @Override
+        public boolean test(@Nullable String input) {
+            return input != null && globPattern.matcher(input).matches();
+        }
     }
 
 }

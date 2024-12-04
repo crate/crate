@@ -58,15 +58,8 @@ public class ArrayComparisonExpression extends ComparisonExpression implements A
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-
-        ArrayComparisonExpression that = (ArrayComparisonExpression) o;
-
-        if (quantifier != that.quantifier) return false;
-
-        return true;
+        return o instanceof ArrayComparisonExpression cmp
+            && quantifier == cmp.quantifier;
     }
 
     @Override

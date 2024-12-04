@@ -33,8 +33,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -43,18 +41,17 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.blob.v2.BlobIndex;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.ResourceUnknownException;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -123,13 +120,11 @@ public class DocSchemaInfo implements SchemaInfo {
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
     private final ViewInfoFactory viewInfoFactory;
-    private final NodeContext nodeCtx;
-    private final UserDefinedFunctionService udfService;
 
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
 
     public static final Predicate<String> NO_BLOB_NOR_DANGLING =
-        index -> ! (BlobIndex.isBlobIndex(index) || IndexParts.isDangling(index));
+        index -> ! (BlobIndex.isBlobIndex(index) || IndexName.isDangling(index));
 
     private final String schemaName;
 
@@ -138,27 +133,48 @@ public class DocSchemaInfo implements SchemaInfo {
      */
     public DocSchemaInfo(final String schemaName,
                          ClusterService clusterService,
-                         NodeContext nodeCtx,
-                         UserDefinedFunctionService udfService,
                          ViewInfoFactory viewInfoFactory,
                          DocTableInfoFactory docTableInfoFactory) {
-        this.nodeCtx = nodeCtx;
         this.schemaName = schemaName;
         this.clusterService = clusterService;
-        this.udfService = udfService;
         this.viewInfoFactory = viewInfoFactory;
         this.docTableInfoFactory = docTableInfoFactory;
     }
 
     @Override
     public TableInfo getTableInfo(String name) {
+        Metadata metadata = clusterService.state().metadata();
+        DocTableInfo docTableInfo = docTableByName.get(name);
         try {
-            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state().metadata()));
+            RelationName relation = new RelationName(schemaName, name);
+            if (docTableInfo == null) {
+                return docTableByName.computeIfAbsent(
+                    name,
+                    n -> docTableInfoFactory.create(relation, metadata)
+                );
+            }
+            if (docTableInfo.tableVersion() < getTableVersion(metadata, relation)) {
+                DocTableInfo newTable = docTableInfoFactory.create(new RelationName(schemaName, name), metadata);
+                docTableByName.replace(name, newTable);
+                return newTable;
+            }
+            return docTableInfo;
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 return null;
             }
             throw e;
+        }
+    }
+
+    private static long getTableVersion(Metadata metadata, RelationName relation) {
+        String templateName = PartitionName.templateName(relation.schema(), relation.name());
+        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
+        if (indexTemplateMetadata == null) {
+            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
+            return index == null ? 0 : index.getVersion();
+        } else {
+            return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
         }
     }
 
@@ -171,7 +187,7 @@ public class DocSchemaInfo implements SchemaInfo {
         Iterator<String> templates = clusterService.state().metadata().templates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
-            if (!IndexParts.isPartitioned(templateName)) {
+            if (!IndexName.isPartitioned(templateName)) {
                 continue;
             }
             try {
@@ -207,21 +223,16 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private static void extractRelationNamesForSchema(Stream<String> stream, String schema, Set<String> target) {
         stream.filter(NO_BLOB_NOR_DANGLING)
-            .map(IndexParts::new)
+            .map(IndexName::decode)
             .filter(indexParts -> !indexParts.isPartitioned())
-            .filter(indexParts -> indexParts.matchesSchema(schema))
-            .map(IndexParts::getTable)
+            .filter(indexParts -> indexParts.schema().equals(schema))
+            .map(IndexParts::table)
             .forEach(target::add);
     }
 
     @Override
     public String name() {
         return schemaName;
-    }
-
-    @Override
-    public void invalidateTableCache(String tableName) {
-        docTableByName.remove(tableName);
     }
 
     @Override
@@ -273,7 +284,7 @@ public class DocSchemaInfo implements SchemaInfo {
                     String possibleTemplateName = PartitionName.templateName(name(), tableName);
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetadata> indexEntry : indices) {
-                            if (IndexParts.isPartitioned(indexEntry.key)) {
+                            if (IndexName.isPartitioned(indexEntry.key)) {
                                 docTableByName.remove(tableName);
                                 break;
                             }
@@ -281,14 +292,6 @@ public class DocSchemaInfo implements SchemaInfo {
                     }
                 }
             }
-        }
-
-        // re register UDFs for this schema
-        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata != null) {
-            udfService.updateImplementations(
-                schemaName,
-                udfMetadata.functionsMetadata().stream().filter(f -> schemaName.equals(f.schema())));
         }
 
         PublicationsMetadata prevPublicationsMetadata = prevMetadata.custom(PublicationsMetadata.TYPE);
@@ -427,6 +430,5 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void close() throws Exception {
-        nodeCtx.functions().deregisterUdfResolversForSchema(schemaName);
     }
 }

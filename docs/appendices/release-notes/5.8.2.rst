@@ -1,0 +1,75 @@
+.. _version_5.8.2:
+
+=============
+Version 5.8.2
+=============
+
+Released on 2024-08-28.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.8.2.
+
+    We recommend that you upgrade to the latest 5.7 release before moving to
+    5.8.2.
+
+    A rolling upgrade from 5.7.x to 5.8.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.8.0` release notes for a full list of changes in the
+5.8 series.
+
+Fixes
+=====
+
+- Fixed an issue that would cause rows to not be inserted, on a table with
+  :ref:`dynamic column policy <sql-create-table-column-policy>`, when the row
+  contained an empty array (``[]``) for a new column (to be added dynamically),
+  together with one or more new columns (also to be added dynamically), e.g.::
+
+    CREATE TABLE t (id TEXT PRIMARY KEY) WITH (column_policy = 'dynamic');
+    INSERT INTO t (id, a ,b) VALUES ('abc',[],'Text');
+
+- Fixed an issue that could lead to a ``SQLParseException[Couldn't create
+  executionContexts from ...`` error if using ``INSERT INTO`` with a ``SELECT``
+  query containing a trailing ``ORDER BY``.
+
+- Added a ``schema`` property to the ``NodeInfo/ShardInfo`` JMX property to fix
+  an issue with Prometheus 2.52.0 rejecting values due to duplicate entries.
+
+- Fixed an issue that led to a ``IllegalStateException`` or
+  ``SQLParseException`` when trying to use a user defined function which returns
+  a value of type ``GEO_SHAPE`` within a ``MATCH`` predicate.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``ARRAY_LENGTH``
+  scalar on an array type that is a child of an object array to match and
+  return a wrong result set.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when the
+  clause contained :ref:`ANY <sql_any_array_comparison>` over array literals
+  that are empty or containing only nulls.
+
+- Fixed an issue that caused queries with nested arrays, compared with `=` and
+  `= ANY` operators in the ``WHERE`` clause to throw ``ClassCastException``.
+
+- Fixed a regression introduced with :ref:`version_5.6.0` that caused an
+  exception when altering a partitioned table where the current number of shards
+  differs from the number of shards of existing partitions.

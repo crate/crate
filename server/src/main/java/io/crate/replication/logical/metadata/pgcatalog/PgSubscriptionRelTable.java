@@ -21,6 +21,13 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.REGCLASS;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.stream.Stream;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -28,27 +35,18 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.types.Regclass;
 
-import java.util.stream.Stream;
-
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING;
-
 public class PgSubscriptionRelTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_subscription_rel");
 
-    public static SystemTable<PgSubscriptionRelTable.PgSubscriptionRelRow> create() {
-        return SystemTable.<PgSubscriptionRelTable.PgSubscriptionRelRow>builder(IDENT)
-            .add("srsubid", INTEGER, PgSubscriptionRelRow::subOid)
-            .add("srrelid", REGCLASS, PgSubscriptionRelRow::relOid)
-            .add("srsubstate", STRING, PgSubscriptionRelRow::state)
-            .add("srsubstate_reason", STRING, PgSubscriptionRelRow::state_reason)
-            // CrateDB doesn't have Log Sequence Number per table, only a seqNo per shard (see SysShardsTable)
-            .add("srsublsn", LONG, ignored -> null)
-            .build();
-    }
+    public static SystemTable<PgSubscriptionRelTable.PgSubscriptionRelRow> INSTANCE = SystemTable.<PgSubscriptionRelTable.PgSubscriptionRelRow>builder(IDENT)
+        .add("srsubid", INTEGER, PgSubscriptionRelRow::subOid)
+        .add("srrelid", REGCLASS, PgSubscriptionRelRow::relOid)
+        .add("srsubstate", STRING, PgSubscriptionRelRow::state)
+        .add("srsubstate_reason", STRING, PgSubscriptionRelRow::state_reason)
+        // CrateDB doesn't have Log Sequence Number per table, only a seqNo per shard (see SysShardsTable)
+        .add("srsublsn", LONG, ignored -> null)
+        .build();
 
     public static Iterable<PgSubscriptionRelTable.PgSubscriptionRelRow> rows(LogicalReplicationService logicalReplicationService) {
         return () -> {

@@ -47,7 +47,7 @@ import io.crate.types.ObjectType;
 public interface TableInfo extends RelationInfo {
 
     Predicate<DataType<?>> IS_OBJECT_ARRAY =
-        type -> type instanceof ArrayType && ((ArrayType<?>) type).innerType().id() == ObjectType.ID;
+        type -> type instanceof ArrayType && ArrayType.unnest(type).id() == ObjectType.ID;
 
     /**
      * returns information about a column with the given ident.
@@ -74,7 +74,6 @@ public interface TableInfo extends RelationInfo {
                 ref.ident(),
                 ref.granularity(),
                 readType,
-                ref.columnPolicy(),
                 ref.indexType(),
                 ref.isNullable(),
                 ref.hasDocValues(),
@@ -144,7 +143,7 @@ public interface TableInfo extends RelationInfo {
         int arrayDimensions = 0;
         for (var parent : getParents(column)) {
             if (IS_OBJECT_ARRAY.test(parent.valueType())) {
-                arrayDimensions++;
+                arrayDimensions += ArrayType.dimensions(parent.valueType());
             }
         }
         return makeArray(ref.valueType(), arrayDimensions);

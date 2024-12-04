@@ -33,16 +33,14 @@ public class InformationRoutinesTableInfo {
     public static final String NAME = "routines";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<RoutineInfo> create() {
-        return SystemTable.<RoutineInfo>builder(IDENT)
-            .add("routine_name", STRING, RoutineInfo::name)
-            .add("routine_type", STRING, RoutineInfo::type)
-            .add("routine_schema", STRING, RoutineInfo::schema)
-            .add("specific_name", STRING, RoutineInfo::specificName)
-            .add("routine_body", STRING, RoutineInfo::body)
-            .add("routine_definition", STRING, RoutineInfo::definition)
-            .add("data_type", STRING, RoutineInfo::dataType)
-            .add("is_deterministic", BOOLEAN, RoutineInfo::isDeterministic)
-            .build();
-    }
+    public static SystemTable<RoutineInfo> INSTANCE = SystemTable.<RoutineInfo>builder(IDENT)
+        .add("routine_name", STRING, RoutineInfo::name)
+        .add("routine_type", STRING, RoutineInfo::type)
+        .add("routine_schema", STRING, RoutineInfo::schema)
+        .add("specific_name", STRING, RoutineInfo::specificName)
+        .add("routine_body", STRING, RoutineInfo::body)
+        .add("routine_definition", STRING, RoutineInfo::definition)
+        .add("data_type", STRING, RoutineInfo::dataType)
+        .add("is_deterministic", BOOLEAN, RoutineInfo::isDeterministic)
+        .build();
 }

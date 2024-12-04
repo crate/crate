@@ -23,17 +23,18 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.metadata.table.Operation.isReplicated;
 
+import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.BoundAlterTable;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
@@ -44,6 +45,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -78,10 +80,12 @@ public class AlterTablePlan implements Plan {
             plannerContext.transactionContext(),
             dependencies.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
 
-        dependencies.alterTableOperation().executeAlterTable(stmt)
+        dependencies.alterTableClient().setSettingsOrResize(stmt)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
@@ -89,7 +93,8 @@ public class AlterTablePlan implements Plan {
                                        CoordinatorTxnCtx txnCtx,
                                        NodeContext nodeCtx,
                                        Row params,
-                                       SubQueryResults subQueryResults) {
+                                       SubQueryResults subQueryResults,
+                                       Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -97,23 +102,47 @@ public class AlterTablePlan implements Plan {
             params,
             subQueryResults
         );
-        DocTableInfo docTableInfo = analyzedAlterTable.tableInfo();
+        TableInfo tableInfo = analyzedAlterTable.tableInfo();
         AlterTable<Object> alterTable = analyzedAlterTable.alterTable().map(eval);
         Table<Object> table = alterTable.table();
 
-        PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), docTableInfo);
-        TableParameters tableParameters = getTableParameterInfo(table, docTableInfo, partitionName);
-        TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
-        maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
+        boolean isPartitioned = false;
+        PartitionName partitionName = null;
+        TableParameters tableParameters;
+        if (tableInfo instanceof DocTableInfo docTableInfo) {
+            partitionName = table.partitionProperties().isEmpty()
+                ? null
+                : PartitionName.ofAssignments(docTableInfo, table.partitionProperties(), metadata);
+            isPartitioned = docTableInfo.isPartitioned();
+            tableParameters = getTableParameterInfo(table, tableInfo, partitionName);
+        } else {
+            assert tableInfo.ident().schema().equals(BlobSchemaInfo.NAME) : "If tableInfo is not a DocTableInfo, the schema must be `blob`";
+            tableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
+        }
+        Settings.Builder settingsBuilder = getTableParameter(alterTable, tableParameters);
+        Settings settings = settingsBuilder.build();
+        if (partitionName != null) {
+            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
+                if (tableOnlySetting.exists(settings)) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Changing \"%s\" on partition level is not supported",
+                        tableOnlySetting.getKey()
+                    ));
+                }
+            }
+        }
+        maybeRaiseBlockedException(tableInfo, settings);
         return new BoundAlterTable(
-            docTableInfo,
+            tableInfo,
             partitionName,
-            tableParameter,
+            settings,
             table.excludePartitions(),
-            docTableInfo.isPartitioned());
+            isPartitioned
+        );
     }
 
-    private static TableParameters getTableParameterInfo(Table table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
+    private static TableParameters getTableParameterInfo(Table<?> table, TableInfo tableInfo, @Nullable PartitionName partitionName) {
         if (isReplicated(tableInfo.parameters())) {
             return TableParameters.REPLICATED_TABLE_ALTER_PARAMETER_INFO;
         }
@@ -124,24 +153,28 @@ public class AlterTablePlan implements Plan {
         return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
-        TableParameter tableParameter = new TableParameter();
+    private static Settings.Builder getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
+        Settings.Builder settingsBuilder = Settings.builder();
         if (!node.genericProperties().isEmpty()) {
-            TableProperties.analyze(tableParameter, tableParameters, node.genericProperties(), false);
+            TableProperties.analyze(settingsBuilder, tableParameters, node.genericProperties());
         } else if (!node.resetProperties().isEmpty()) {
-            TableProperties.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
+            TableProperties.analyzeResetProperties(settingsBuilder, tableParameters, node.resetProperties());
         }
-        return tableParameter;
+        return settingsBuilder;
     }
 
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
     static void maybeRaiseBlockedException(TableInfo tableInfo, Settings tableSettings) {
-        if (tableSettings.size() != 1 ||
-            (tableSettings.get(IndexMetadata.SETTING_BLOCKS_METADATA) == null &&
-             tableSettings.get(IndexMetadata.SETTING_READ_ONLY) == null)) {
-
+        Set<String> blockSettings = Set.of(
+            IndexMetadata.SETTING_BLOCKS_METADATA,
+            IndexMetadata.SETTING_BLOCKS_READ,
+            IndexMetadata.SETTING_BLOCKS_WRITE,
+            IndexMetadata.SETTING_READ_ONLY
+        );
+        if (blockSettings.containsAll(tableSettings.keySet())) {
+            Operation.blockedRaiseException(tableInfo, Operation.ALTER_BLOCKS);
+        } else {
             Operation.blockedRaiseException(tableInfo, Operation.ALTER);
         }
     }
-
 }

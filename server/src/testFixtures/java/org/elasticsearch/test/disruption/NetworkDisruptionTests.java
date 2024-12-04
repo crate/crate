@@ -19,8 +19,7 @@
 
 package org.elasticsearch.test.disruption;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,16 +46,16 @@ public class NetworkDisruptionTests extends ESTestCase {
 
     private void checkTwoPartitions(TwoPartitions topology, Set<String> partition1, Set<String> partition2) {
         for (int i = 0; i < 10; i++) {
-            assertTrue(topology.disrupt(randomFrom(partition1), randomFrom(partition2)));
-            assertTrue(topology.disrupt(randomFrom(partition2), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomFrom(partition1), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomFrom(partition2), randomFrom(partition2)));
-            assertFalse(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition2)));
-            assertFalse(topology.disrupt(randomFrom(partition1), randomAlphaOfLength(10)));
-            assertFalse(topology.disrupt(randomFrom(partition2), randomAlphaOfLength(10)));
+            assertThat(topology.disrupt(randomFrom(partition1), randomFrom(partition2))).isTrue();
+            assertThat(topology.disrupt(randomFrom(partition2), randomFrom(partition1))).isTrue();
+            assertThat(topology.disrupt(randomFrom(partition1), randomFrom(partition1))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition2), randomFrom(partition2))).isFalse();
+            assertThat(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition1))).isFalse();
+            assertThat(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition2))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition1), randomAlphaOfLength(10))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition2), randomAlphaOfLength(10))).isFalse();
         }
-        assertTrue(topology.getMajoritySide().size() >= topology.getMinoritySide().size());
+        assertThat(topology.getMajoritySide().size() >= topology.getMinoritySide().size()).isTrue();
     }
 
     public void testIsolateAll() {
@@ -68,9 +67,9 @@ public class NetworkDisruptionTests extends ESTestCase {
             if (node1.equals(node2)) {
                 continue;
             }
-            assertTrue(topology.nodes().contains(node1));
-            assertTrue(topology.nodes().contains(node2));
-            assertTrue(topology.disrupt(node1, node2));
+            assertThat(topology.nodes().contains(node1)).isTrue();
+            assertThat(topology.nodes().contains(node2)).isTrue();
+            assertThat(topology.disrupt(node1, node2)).isTrue();
         }
     }
 
@@ -92,20 +91,20 @@ public class NetworkDisruptionTests extends ESTestCase {
 
     private void checkBridge(Bridge topology, String bridgeNode, Set<String> partition1, Set<String> partition2) {
         for (int i = 0; i < 10; i++) {
-            assertTrue(topology.disrupt(randomFrom(partition1), randomFrom(partition2)));
-            assertTrue(topology.disrupt(randomFrom(partition2), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomFrom(partition1), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomFrom(partition1), bridgeNode));
-            assertFalse(topology.disrupt(bridgeNode, randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomFrom(partition2), randomFrom(partition2)));
-            assertFalse(topology.disrupt(randomFrom(partition2), bridgeNode));
-            assertFalse(topology.disrupt(bridgeNode, randomFrom(partition2)));
-            assertFalse(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition1)));
-            assertFalse(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition2)));
-            assertFalse(topology.disrupt(randomAlphaOfLength(10), bridgeNode));
-            assertFalse(topology.disrupt(randomFrom(partition1), randomAlphaOfLength(10)));
-            assertFalse(topology.disrupt(randomFrom(partition2), randomAlphaOfLength(10)));
-            assertFalse(topology.disrupt(bridgeNode, randomAlphaOfLength(10)));
+            assertThat(topology.disrupt(randomFrom(partition1), randomFrom(partition2))).isTrue();
+            assertThat(topology.disrupt(randomFrom(partition2), randomFrom(partition1))).isTrue();
+            assertThat(topology.disrupt(randomFrom(partition1), randomFrom(partition1))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition1), bridgeNode)).isFalse();
+            assertThat(topology.disrupt(bridgeNode, randomFrom(partition1))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition2), randomFrom(partition2))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition2), bridgeNode)).isFalse();
+            assertThat(topology.disrupt(bridgeNode, randomFrom(partition2))).isFalse();
+            assertThat(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition1))).isFalse();
+            assertThat(topology.disrupt(randomAlphaOfLength(10), randomFrom(partition2))).isFalse();
+            assertThat(topology.disrupt(randomAlphaOfLength(10), bridgeNode)).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition1), randomAlphaOfLength(10))).isFalse();
+            assertThat(topology.disrupt(randomFrom(partition2), randomAlphaOfLength(10))).isFalse();
+            assertThat(topology.disrupt(bridgeNode, randomAlphaOfLength(10))).isFalse();
         }
     }
 

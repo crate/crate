@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,9 +35,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.compress.NotXContentException;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -51,6 +55,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
@@ -70,6 +75,8 @@ import io.crate.statistics.ColumnStatsSupport;
  */
 public class ArrayType<T> extends DataType<List<T>> {
 
+    public static final ArrayType<Object> ARRAY_OF_UNDEFINED = new ArrayType<>(UndefinedType.INSTANCE);
+
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayType.class);
 
     public static final String NAME = "array";
@@ -78,7 +85,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     private final DataType<T> innerType;
     private Streamer<List<T>> streamer;
 
-    private final StorageSupport<? super T> storageSupport;
+    private final StorageSupport<List<T>> storageSupport;
 
     /**
      * Construct a new Collection type
@@ -90,18 +97,75 @@ public class ArrayType<T> extends DataType<List<T>> {
         StorageSupport innerStorage = innerType.storageSupport();
         if (innerStorage == null) {
             this.storageSupport = null;
-        } else {
-            this.storageSupport = new StorageSupport<T>(
-                    innerStorage.docValuesDefault(),
-                    innerStorage.supportsDocValuesOff(),
-                    innerStorage.eqQuery()) {
+        } else if (ArrayType.unnest(this) instanceof ObjectType objectType) {
+            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
+                @Override
+                public ValueIndexer<List<? super T>> valueIndexer(RelationName table,
+                                                            Reference ref,
+                                                            Function<ColumnIdent, Reference> getRef) {
+                    int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
+                    assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
+                        "Must not retrieve value indexer of the child array of a multi dimensional array";
+                    return ArrayIndexer.of(ref, getRef);
+                }
 
                 @Override
-                public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
-                                                    Function<String, FieldType> getFieldType,
+                public List<T> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+                    try {
+                        var col = column.leafName();
+                        var map = sourceParser.parse(new BytesArray(bytes), Map.of(col, objectType.innerTypes()), false);
+                        if (map.isEmpty()) {
+                            return List.of();
+                        }
+                        return (List<T>) map.values().iterator().next();
+                    } catch (NotXContentException e) {
+                        // may be an array of nulls inserted before the field was upcast to an array of objects
+                        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                            in.setVersion(tableVersion);
+                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
+                        } catch (IOException io) {
+                            throw new UncheckedIOException(io);
+                        }
+                    }
+                }
+
+                @Override
+                public boolean retrieveFromStoredFields() {
+                    return true;
+                }
+            };
+        } else {
+            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
+                @Override
+                public ValueIndexer<List<T>> valueIndexer(RelationName table,
+                                                    Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
-                    return new ArrayIndexer<>(
-                        innerStorage.valueIndexer(table, ref, getFieldType, getRef));
+                    int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
+                    assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
+                        "Must not retrieve value indexer of the child array of a multi dimensional array";
+                    return ArrayIndexer.of(ref, getRef);
+                }
+
+                @Override
+                public List<T> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+                    try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                        in.setVersion(tableVersion);
+                        return ArrayType.this.streamer().readValueFrom(in);
+                    } catch (Exception e) {
+                        // Might be an array of nulls inserted before the column was upcast to an
+                        // array of defined type
+                        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                            in.setVersion(tableVersion);
+                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
+                        } catch (IOException ee) {
+                            throw new UncheckedIOException(ee);
+                        }
+                    }
+                }
+
+                @Override
+                public boolean retrieveFromStoredFields() {
+                    return true;
                 }
             };
         }
@@ -232,15 +296,17 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> List<T> convert(@Nullable Object value,
-                                       DataType<T> innerType,
-                                       Function<Object, T> convertInner,
-                                       SessionSettings sessionSettings) {
+    private List<T> convert(@Nullable Object value,
+                            DataType<T> innerType,
+                            Function<Object, T> convertInner,
+                            SessionSettings sessionSettings) {
         if (value == null) {
             return null;
         }
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
+        } else if (value instanceof Map<?, ?> map && map.isEmpty()) {
+            return List.of();
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -322,6 +388,15 @@ public class ArrayType<T> extends DataType<List<T>> {
             || other.id() == FloatVectorType.ID
             || ((other instanceof ArrayType)
                 && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType(), explicitCast));
+    }
+
+    @Override
+    DataType<?> merge(DataType<?> other) {
+        if (other instanceof ArrayType<?> o) {
+            return new ArrayType<>(DataTypes.merge(this.innerType, o.innerType));
+        } else {
+            return super.merge(other);
+        }
     }
 
     @Override
@@ -415,9 +490,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
-        return new CollectionColumnType<>(innerType.toColumnType(columnPolicy, convertChildColumn));
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        return new CollectionColumnType<>(innerType.toColumnType(convertChildColumn));
     }
 
     @Override
@@ -449,5 +523,10 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public ColumnStatsSupport<List<T>> columnStatsSupport() {
         return ColumnStatsSupport.composite(this);
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return innerType.columnPolicy();
     }
 }

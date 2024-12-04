@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -167,7 +167,7 @@ public class RootTaskTest extends ESTestCase {
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        ProfilingContext profilingContext = new ProfilingContext(List.of());
+        ProfilingContext profilingContext = new ProfilingContext(Map.of());
         builder.profilingContext(profilingContext);
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);

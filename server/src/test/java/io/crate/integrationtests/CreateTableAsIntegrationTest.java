@@ -62,9 +62,9 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             ")";
         execute(createTableStmt);
         execute("insert into tbl values({col_nested_integer=null,col_nested_object={col_text=null}})");
-        refresh();
+        execute("refresh table tbl");
         execute("create table cpy as select * from tbl");
-        refresh();
+        execute("refresh table cpy");
         execute("select * from cpy");
 
         assertThat(response).hasRowCount(1);
@@ -87,9 +87,9 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             ")";
         execute(createTableStmt);
         execute("insert into tbl values({col_nested_integer=1,col_nested_object={col_text='test'}})");
-        refresh();
+        execute("refresh table tbl");
         execute("create table cpy as (select * from tbl)");
-        refresh();
+        execute("refresh table cpy");
         execute("select * from cpy");
 
         assertThat(response).hasRowCount(1);
@@ -125,5 +125,16 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         assertThatThrownBy(() -> execute("create table doc.cpy as select * from doc.tbl"))
             .isExactlyInstanceOf(RelationAlreadyExists.class)
             .hasMessage("Relation 'doc.cpy' already exists.");
+    }
+
+    @Test
+    public void testCreateTableIfNotExists() {
+        execute("create table tbl (a int, b string)");
+        execute("insert into tbl(a, b) select g, g || 'foo' from generate_series(1, 10, 1) as g");
+        execute("refresh table tbl");
+        execute("create table if not exists cpy as select * from tbl");
+        assertThat(response).hasRowCount(10);
+        execute("create table if not exists cpy as select * from tbl");
+        assertThat(response).hasRowCount(0);
     }
 }

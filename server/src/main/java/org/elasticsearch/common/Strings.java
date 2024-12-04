@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,14 +26,9 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.exceptions.Exceptions;
 
 
 public class Strings {
@@ -463,14 +457,6 @@ public class Strings {
     private Strings() {
     }
 
-    /**
-     * Return a {@link String} that is the json representation of the provided {@link ToXContent}.
-     * Wraps the output into an anonymous object if needed. The content is not pretty-printed
-     * nor human readable.
-     */
-    public static String toString(ToXContent toXContent) {
-        return toString(toXContent, false, false);
-    }
 
     /**
      * Returns a string representation of the builder (only applicable for text based xcontent).
@@ -478,48 +464,6 @@ public class Strings {
      */
     public static String toString(XContentBuilder xContentBuilder) {
         return BytesReference.bytes(xContentBuilder).utf8ToString();
-    }
-
-    /**
-     * Return a {@link String} that is the json representation of the provided {@link ToXContent}.
-     * Wraps the output into an anonymous object if needed. Allows to control whether the outputted
-     * json needs to be pretty printed and human readable.
-     *
-     */
-    public static String toString(ToXContent toXContent, boolean pretty, boolean human) {
-        try {
-            XContentBuilder builder = createBuilder(pretty, human);
-            if (toXContent.isFragment()) {
-                builder.startObject();
-            }
-            toXContent.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            if (toXContent.isFragment()) {
-                builder.endObject();
-            }
-            return toString(builder);
-        } catch (IOException e) {
-            try {
-                XContentBuilder builder = createBuilder(pretty, human);
-                builder.startObject();
-                builder.field("error", "error building toString out of XContent: " + e.getMessage());
-                builder.field("stack_trace", Exceptions.stackTrace(e));
-                builder.endObject();
-                return toString(builder);
-            } catch (IOException e2) {
-                throw new ElasticsearchException("cannot generate error message for deserialization", e);
-            }
-        }
-    }
-
-    private static XContentBuilder createBuilder(boolean pretty, boolean human) throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-        if (pretty) {
-            builder.prettyPrint();
-        }
-        if (human) {
-            builder.humanReadable(true);
-        }
-        return builder;
     }
 
     public static String padStart(String s, int minimumLength, char c) {

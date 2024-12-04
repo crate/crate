@@ -53,15 +53,18 @@ import java.util.zip.GZIPOutputStream;
 @NotThreadSafe
 public class S3FileOutput implements FileOutput {
 
+    private final URI uri;
+
     @Nullable
     private final String protocolSetting;
 
-    public S3FileOutput(String protocol) {
+    public S3FileOutput(URI uri, String protocol) {
+        this.uri = uri;
         protocolSetting = protocol;
     }
 
     @Override
-    public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
+    public OutputStream acquireOutputStream(Executor executor,WriterProjection.CompressionType compressionType) throws IOException {
         OutputStream outputStream = new S3OutputStream(executor, S3URI.toS3URI(uri), new S3ClientHelper(), protocolSetting);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);

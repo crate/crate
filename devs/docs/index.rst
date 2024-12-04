@@ -13,3 +13,4 @@ Contents
 - `Release workflow <release.rst>`_
 - `Benchmarks <benchmarks.rst>`_
 - `Logging <logging.rst>`_
+- `Maven cheatsheet <maven.rst>`_

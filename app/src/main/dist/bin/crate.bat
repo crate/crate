@@ -63,12 +63,12 @@ SET GC_LOG_SIZE=64m
 SET GC_LOG_FILES=16
 
 REM Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
-if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
+if NOT DEFINED CRATE_DISABLE_GC_LOGGING (
 
   REM GC logging requires 16x64mb = 1g of free disk space
-  IF DEFINED %CRATE_GC_LOG_DIR% (SET GC_LOG_DIR=!CRATE_GC_LOG_DIR!)
-  IF DEFINED %CRATE_GC_LOG_SIZE% (SET GC_LOG_SIZE=!CRATE_GC_LOG_SIZE!)
-  IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=!CRATE_GC_LOG_FILES!)
+  IF DEFINED CRATE_GC_LOG_DIR (SET GC_LOG_DIR=!CRATE_GC_LOG_DIR!)
+  IF DEFINED CRATE_GC_LOG_SIZE (SET GC_LOG_SIZE=!CRATE_GC_LOG_SIZE!)
+  IF DEFINED CRATE_GC_LOG_FILES (SET GC_LOG_FILES=!CRATE_GC_LOG_FILES!)
 
   SET LOGGC=!GC_LOG_DIR!\gc.log
 
@@ -77,6 +77,9 @@ if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
 
 REM Disables explicit GC
 set JAVA_OPTS=%JAVA_OPTS% -XX:+DisableExplicitGC
+
+REM Prevent denial of service attacks via SSL renegotiation
+set JAVA_OPTS=%JAVA_OPTS% -Djdk.tls.rejectClientInitiatedRenegotiation=true
 
 REM Use our provided JNA always versus the system one
 set JAVA_OPTS=%JAVA_OPTS% -Djna.nosys=true
@@ -89,6 +92,10 @@ set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx
 
 REM Disable netty recycler
 set JAVA_OPTS=%JAVA_OPTS% -Dio.netty.recycler.maxCapacityPerThread=0
+
+REM Lucene uses native access
+set JAVA_OPTS=%JAVA_OPTS% --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector
+
 
 REM Dump heap on OOM
 set JAVA_OPTS=%JAVA_OPTS% -XX:+HeapDumpOnOutOfMemoryError

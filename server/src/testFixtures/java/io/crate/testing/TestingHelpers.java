@@ -22,11 +22,7 @@
 package io.crate.testing;
 
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -39,16 +35,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
@@ -58,15 +51,13 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.BoundCreateTable;
+import io.crate.analyze.TableParameters;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.ColumnIdent;
@@ -79,11 +70,9 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -143,16 +132,25 @@ public class TestingHelpers {
                 }
             }
             out.print("]");
+        } else if (o instanceof List<?> list) {
+            out.print("[");
+            for (int i = 0; i < list.size(); i++) {
+                printObject(out, true, list.get(i));
+                if (i < list.size() - 1) {
+                    out.print(", ");
+                }
+            }
+            out.print("]");
         } else if (o.getClass().isArray()) {
             out.print("[");
             boolean arrayFirst = true;
             for (int i = 0, length = Array.getLength(o); i < length; i++) {
                 if (!arrayFirst) {
-                    out.print(",v");
+                    out.print(", ");
                 } else {
                     arrayFirst = false;
                 }
-                printObject(out, first, Array.get(o, i));
+                printObject(out, true, Array.get(o, i));
             }
             out.print("]");
         } else if (o instanceof Map) {
@@ -169,7 +167,7 @@ public class TestingHelpers {
             }
             out.print("}");
         } else {
-            out.print(o.toString());
+            out.print(o);
         }
         return first;
     }
@@ -195,7 +193,7 @@ public class TestingHelpers {
 
     @SuppressWarnings("unchecked")
     private static Collection<?> sortRecursive(Collection<?> collection) {
-        if (collection.size() == 0) {
+        if (collection.isEmpty()) {
             return collection;
         }
         Object firstElement = collection.iterator().next();
@@ -215,18 +213,23 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext() {
-        return createNodeContext(List.of(Role.CRATE_USER));
+        return createNodeContext(null, List.of(Role.CRATE_USER));
     }
 
     public static NodeContext createNodeContext(List<Role> roles) {
+        return createNodeContext(null, roles);
+    }
+
+    public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
-            () -> roles
+            () -> roles,
+            nodeContext -> schemas
         );
     }
 
     public static Reference createReference(String columnName, DataType<?> dataType) {
-        return createReference("dummyTable", new ColumnIdent(columnName), dataType);
+        return createReference("dummyTable", ColumnIdent.of(columnName), dataType);
     }
 
     public static Reference createReference(ColumnIdent columnIdent, DataType<?> dataType) {
@@ -247,46 +250,6 @@ public class TestingHelpers {
         return String.join("\n", Files.readAllLines(Paths.get(path)));
     }
 
-
-    public static Matcher<Row> isNullRow() {
-        return isRow((Object) null);
-    }
-
-    public static Matcher<Row> isRow(Object... cells) {
-        if (cells == null) {
-            cells = new Object[]{null};
-        }
-        final List<Object> expected = Arrays.asList(cells);
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(Row item, Description mismatchDescription) {
-                if (item.numColumns() != expected.size()) {
-                    mismatchDescription.appendText("row size does not match: ")
-                        .appendValue(item.numColumns()).appendText(" != ").appendValue(expected.size());
-                    return false;
-                }
-                for (int i = 0; i < item.numColumns(); i++) {
-                    Object actual = item.get(i);
-                    if (!Objects.equals(expected.get(i), actual)) {
-                        mismatchDescription.appendText("value at pos ")
-                            .appendValue(i)
-                            .appendText(" does not match: ")
-                            .appendValue(expected.get(i))
-                            .appendText(" != ")
-                            .appendValue(actual);
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("is Row with cells: ")
-                    .appendValue(expected);
-            }
-        };
-    }
 
     /**
      * Get the values at column index <code>index</code> within all <code>rows</code>
@@ -322,61 +285,6 @@ public class TestingHelpers {
         return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
-    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
-        return isSortedBy(extractSortingKeyFunction, false, null);
-    }
-
-    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(
-        final Function<T, K> extractSortingKeyFunction,
-        final boolean descending,
-        @Nullable final Boolean nullsFirst) {
-        Comparator<K> comparator = Comparator.naturalOrder();
-        if (descending) {
-            comparator = Comparator.reverseOrder();
-        }
-        if (nullsFirst != null && nullsFirst) {
-            comparator = Comparator.nullsFirst(comparator);
-        } else {
-            comparator = Comparator.nullsLast(comparator);
-        }
-        Comparator<K> finalComparator = comparator;
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(Iterable<? extends T> item, Description mismatchDescription) {
-                K previous = null;
-                int i = 0;
-                for (T elem : item) {
-                    K current = extractSortingKeyFunction.apply(elem);
-                    if (previous != null) {
-                        if (finalComparator.compare(previous, current) > 0) {
-                            mismatchDescription
-                                .appendText("element ").appendValue(current)
-                                .appendText(" at position ").appendValue(i)
-                                .appendText(" is ")
-                                .appendText(descending ? "bigger" : "smaller")
-                                .appendText(" than previous element ")
-                                .appendValue(previous);
-                            return false;
-                        }
-                    }
-                    i++;
-                    previous = current;
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("expected iterable to be sorted ");
-                if (descending) {
-                    description.appendText("in DESCENDING order");
-                } else {
-                    description.appendText("in ASCENDING order");
-                }
-            }
-        };
-    }
-
     public static DataType<?> randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
     }
@@ -404,15 +312,25 @@ public class TestingHelpers {
     @SuppressWarnings("unchecked")
     public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
         var map = (Map<String, String>) object;
-        assertThat(
-            map,
-            allOf(
-                hasEntry(
-                    is(Version.Property.CREATED.toString()),
-                    versionCreated == null ? nullValue() : is(versionCreated.externalNumber())),
-                hasEntry(
-                    is(Version.Property.UPGRADED.toString()),
-                    versionUpgraded == null ? nullValue() : is(versionUpgraded.externalNumber()))));
+        assertThat(map)
+            .hasEntrySatisfying(
+                Version.Property.CREATED.toString(),
+                s -> {
+                    if (versionCreated == null) {
+                        assertThat(s).isNull();
+                    } else {
+                        assertThat(s).isEqualTo(versionCreated.externalNumber());
+                    }
+                })
+            .hasEntrySatisfying(
+                Version.Property.UPGRADED.toString(),
+                s -> {
+                    if (versionUpgraded == null) {
+                        assertThat(s).isNull();
+                    } else {
+                        assertThat(s).isEqualTo(versionUpgraded.externalNumber());
+                    }
+                });
     }
 
     public static <T> List<T> getRandomsOfType(int minLength, int maxLength, DataType<T> dataType) {
@@ -438,9 +356,7 @@ public class TestingHelpers {
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
-        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
-        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
-
+        var tableColumnPolicy = TableParameters.COLUMN_POLICY.get(boundCreateTable.settings());
         List<Reference> references;
         if (columnOidSupplier != null) {
             references = DocReferences.applyOid(
@@ -457,10 +373,9 @@ public class TestingHelpers {
             references,
             pKeysIndices,
             boundCreateTable.getCheckConstraints(),
-            boundCreateTable.partitionedBy(),
+            Lists.map(boundCreateTable.partitionedBy(), Reference::column),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
+            boundCreateTable.routingColumn()
         );
-
     }
 }

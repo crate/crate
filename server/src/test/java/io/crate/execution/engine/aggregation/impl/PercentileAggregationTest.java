@@ -36,8 +36,11 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -45,27 +48,27 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     private Object execSingleFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
-            rows,
-            List.of()
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                rows,
+                List.of()
         );
     }
 
     private Object execArrayFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
-            rows,
-            List.of()
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                rows,
+                List.of()
         );
     }
 
@@ -75,24 +78,24 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Before
     public void initFunctions() throws Exception {
         singleArgPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
-            DataTypes.DOUBLE
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                                DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
+                DataTypes.DOUBLE
         );
         arraysPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
     }
 
@@ -137,37 +140,45 @@ public class PercentileAggregationTest extends AggregationTestCase {
         assertThat(result).isNull();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyPercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, List.of()},
-            {10, List.of()}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, List.of()},
+                {10, List.of()}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("no fraction value specified");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNullMultiplePercentiles() throws Exception {
         List<Double> fractions = Arrays.asList(0.25, null);
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, fractions},
-            {10, fractions}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, fractions},
+                {10, fractions}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("no fraction value specified");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNegativePercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, -1.2},
-            {10, -1.2}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, -1.2},
+                {10, -1.2}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("q should be in [0,1], got -1.2");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testTooLargePercentile() throws Exception {
-        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, 1.5},
-            {10, 1.5}
-        });
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+                {1, 1.5},
+                {10, 1.5}
+            }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("q should be in [0,1], got 1.5");
     }
 
     @Test
@@ -228,14 +239,14 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
         var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
-            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
@@ -252,39 +263,16 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Test
     public void test_percentile_accounts_memory_for_tdigeststate() throws Exception {
         var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
-            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
-        RamAccounting ramAccounting = new RamAccounting() {
-
-            long total = 0;
-
-            @Override
-            public void addBytes(long bytes) {
-                total += bytes;
-            }
-
-            @Override
-            public long totalBytes() {
-                return total;
-            }
-
-            @Override
-            public void release() {
-                total = 0;
-            }
-
-            @Override
-            public void close() {
-                release();
-            }
-        };
+        RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
         assertThat(ramAccounting.totalBytes()).isEqualTo(72L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);

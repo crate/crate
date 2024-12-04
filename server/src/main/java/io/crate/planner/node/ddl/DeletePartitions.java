@@ -28,16 +28,16 @@ import java.util.function.Function;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -76,9 +76,9 @@ public class DeletePartitions implements Plan {
         ArrayList<String> indexNames = getIndices(
             plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
         dependencies.client().execute(DeleteIndexAction.INSTANCE, request)
-            .whenComplete(new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
+            .whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
     }
 
     @VisibleForTesting
@@ -88,7 +88,7 @@ public class DeletePartitions implements Plan {
             s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
             List<String> values = Lists.map(partitionValues, symbolToString);
-            String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));
+            String indexName = IndexName.encode(relationName, PartitionName.encodeIdent(values));
             indexNames.add(indexName);
         }
         return indexNames;

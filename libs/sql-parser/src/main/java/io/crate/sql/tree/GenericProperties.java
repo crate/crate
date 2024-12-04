@@ -24,10 +24,17 @@ package io.crate.sql.tree;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -46,7 +53,7 @@ import java.util.function.Function;
  * d=[1, 2, 3, 'abc']
  * </code>
  */
-public class GenericProperties<T> extends Node {
+public class GenericProperties<T> extends Node implements Iterable<Entry<String, T>> {
 
     private static final GenericProperties<?> EMPTY = new GenericProperties<>(Map.of());
 
@@ -61,16 +68,47 @@ public class GenericProperties<T> extends Node {
         this.properties = Collections.unmodifiableMap(map);
     }
 
-    public Map<String, T> properties() {
-        return properties;
+    public void forValues(Consumer<? super T> action) {
+        properties.values().forEach(action);
     }
 
+    @Nullable
     public T get(String key) {
         return properties.get(key);
     }
 
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public <U> U getUnsafe(String key) {
+        return (U) properties.get(key);
+    }
+
+    @Nullable
+    public T get(String key, T defaultValue) {
+        return properties.getOrDefault(key, defaultValue);
+    }
+
+    public boolean contains(String key) {
+        return properties.containsKey(key);
+    }
+
     public boolean isEmpty() {
         return properties.isEmpty();
+    }
+
+    @Override
+    public Iterator<Entry<String, T>> iterator() {
+        return properties.entrySet().iterator();
+    }
+
+    public Stream<Entry<String, T>> stream() {
+        return properties.entrySet().stream();
+    }
+
+    public Map<String, T> toMap(Supplier<Map<String, T>> newMap) {
+        Map<String, T> result = newMap.get();
+        result.putAll(properties);
+        return result;
     }
 
     public <U> GenericProperties<U> map(Function<? super T, ? extends U> mapper) {
@@ -133,4 +171,5 @@ public class GenericProperties<T> extends Node {
         }
         return this;
     }
+
 }

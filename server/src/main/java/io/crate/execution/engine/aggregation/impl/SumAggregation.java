@@ -47,8 +47,10 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -70,30 +72,31 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         BinaryOperator<Long> sub = Math::subtractExact;
 
         builder.add(
-            Signature.aggregate(
-                NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ),
-            getSumAggregationForFloatFactory()
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                        .returnType(DataTypes.FLOAT.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                getSumAggregationForFloatFactory()
         );
         builder.add(
-            Signature.aggregate(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
-            getSumAggregationForDoubleFactory()
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
-                (signature, boundSignature) ->
-                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
+                    Signature.builder(NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(supportedType.getTypeSignature())
+                            .returnType(DataTypes.LONG.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    (signature, boundSignature) ->
+                            new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );
         }
     }
@@ -191,11 +194,18 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+
+        if (reference == null) {
+            return null;
+        }
+
         if (!reference.hasDocValues()) {
             return null;
         }
+
         switch (reference.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:

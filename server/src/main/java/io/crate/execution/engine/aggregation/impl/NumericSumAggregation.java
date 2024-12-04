@@ -43,8 +43,10 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -61,11 +63,11 @@ import io.crate.types.ShortType;
 public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDecimal> {
 
     public static final String NAME = "sum";
-    public static final Signature SIGNATURE = Signature.aggregate(
-        NAME,
-        DataTypes.NUMERIC.getTypeSignature(),
-        DataTypes.NUMERIC.getTypeSignature()
-    );
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
+            .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+            .returnType(DataTypes.NUMERIC.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
     private static final long INIT_BIG_DECIMAL_SIZE = NumericType.size(BigDecimal.ZERO);
 
     public static void register(Functions.Builder builder) {
@@ -179,8 +181,12 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (!reference.hasDocValues()) {
             return null;
         }

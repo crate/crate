@@ -10,6 +10,10 @@ CrateDB includes support to store `binary large objects`_. By utilizing
 CrateDB's cluster features the files can be replicated and sharded just like
 regular data.
 
+.. WARNING::
+
+   Backup of blobs via :ref:`sql-create-snapshot` is not supported.
+
 .. rubric:: Table of contents
 
 .. contents::

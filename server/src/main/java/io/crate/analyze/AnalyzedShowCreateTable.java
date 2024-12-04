@@ -47,7 +47,7 @@ public class AnalyzedShowCreateTable implements AnalyzedRelation {
     public AnalyzedShowCreateTable(TableInfo tableInfo) {
         String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
         relationName = new RelationName(null, "SHOW CREATE TABLE");
-        this.fields = Collections.singletonList(new ScopedSymbol(relationName, new ColumnIdent(columnName), DataTypes.STRING));
+        this.fields = Collections.singletonList(new ScopedSymbol(relationName, ColumnIdent.of(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
     }
 
@@ -68,11 +68,6 @@ public class AnalyzedShowCreateTable implements AnalyzedRelation {
     @Override
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         throw new UnsupportedOperationException("Cannot use getField on " + getClass().getSimpleName());
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return false;
     }
 
     @Override

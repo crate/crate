@@ -21,7 +21,7 @@
 
 package io.crate.fdw;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -29,10 +29,13 @@ import java.util.List;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.execution.dsl.phases.ForeignCollectPhase;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
 import io.crate.planner.CreateUserMappingPlan;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -140,5 +143,48 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
         assertThatThrownBy(() -> e.plan("create publication pub1 for table doc.tbl"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"doc.tbl\" doesn't support or allow CREATE PUBLICATION operations");
+    }
+
+    @Test
+    public void test_subscript_on_ignored_object_leads_to_functioncall() throws Exception {
+        // Remote end could be any database - CrateDB, PostgreSQL, etc, we don't know up-front
+        //
+        // Using `subscript(o, 'x')` as function instead of (Dynamic)Reference is
+        // general and works in any case, but it bypasses push-down/optimizations of
+        // `o['x']` if the remote is CrateDB
+        //
+        // Compromise: Allow `subscript(o, 'x')`, but only on `object(ignored)`.
+        // It's a bit worse than native access on CrateDB (it fetches the full object),
+        // but it at least makes no difference regarding tablescan/index-lookup as the
+        // data is not indexed
+
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table tbl (o object(ignored)) server pg options (schema_name 'doc')");
+
+        QueriedSelectRelation relation = e.analyze("select o['x'] from tbl");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isFunction("subscript")
+        );
+    }
+
+    @Test
+    public void test_foreign_collect_query_does_not_contain_aliased_symbol() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)")
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("CREATE FOREIGN TABLE IF NOT EXISTS \"doc\".\"t2\" (id int) SERVER pg OPTIONS (schema_name 'doc', table_name 't1')");
+
+        var stmt = "SELECT * FROM (SELECT id as some_alias FROM doc.t2) t WHERE t.some_alias = 1";
+        Collect collect = e.plan(stmt);
+        var query = ((ForeignCollectPhase) collect.collectPhase()).query();
+        // Without any logic (e.g. using the EvaluationNormalizer) to remove aliases, the query would be `(some_alias = 1)`
+        assertThat(query.toString()).isEqualTo("(id = 1)");
     }
 }

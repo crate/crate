@@ -27,10 +27,12 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -51,7 +53,10 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.EmptyHttpHeaders;
 import io.netty.handler.codec.http.HttpContentCompressor;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -82,7 +87,24 @@ public class HttpTestServer {
         JSON_FACTORY.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
+    @Nullable
+    private final Map<String, String> headers;
 
+
+
+    /**
+     * @param port the port to listen on
+     * @param fail of set to true, the server will emit error responses
+     * @param requestHandler is function to transform incoming messages to some custom output, written to a pre-configured json generator.
+     * @param headers Http headers which are attached to the response
+     * It MUST propagate any exception to the server so that server can set status to 500.
+     */
+    public HttpTestServer(int port, boolean fail, BiConsumer<HttpRequest, JsonGenerator> requestHandler, @Nullable Map<String, String> headers) {
+        this.port = port;
+        this.fail = fail;
+        this.requestHandler = requestHandler;
+        this.headers = headers;
+    }
 
     /**
      * @param port the port to listen on
@@ -94,6 +116,7 @@ public class HttpTestServer {
         this.port = port;
         this.fail = fail;
         this.requestHandler = requestHandler;
+        this.headers = null;
     }
 
     public void run() throws InterruptedException {
@@ -168,7 +191,17 @@ public class HttpTestServer {
             ByteBuf byteBuf = Unpooled.wrappedBuffer(out.toByteArray());
             responses.add(out.toString(StandardCharsets.UTF_8));
 
-            DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, byteBuf);
+            DefaultFullHttpResponse response;
+            if (headers != null && headers.isEmpty() == false) {
+                HttpHeaders httpHeaders = new DefaultHttpHeaders();
+                for (var entries : headers.entrySet()) {
+                    httpHeaders.add(entries.getKey(), entries.getValue());
+                }
+                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, byteBuf, httpHeaders, EmptyHttpHeaders.INSTANCE);
+            } else {
+                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, byteBuf);
+            }
+
             ChannelFuture future = ctx.channel().writeAndFlush(response);
             future.addListener(ChannelFutureListener.CLOSE);
         }

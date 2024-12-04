@@ -32,6 +32,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 
 public class SysAllocation {
@@ -53,23 +54,23 @@ public class SysAllocation {
                          boolean isPrimary) {
         this.shardId = shardId;
         this.currentState = routingState;
-        this.indexParts = new IndexParts(shardId.getIndexName());
+        this.indexParts = IndexName.decode(shardId.getIndexName());
         this.computeDecision = computeDecision;
         this.nodeId = nodeId;
         this.primary = isPrimary;
     }
 
     public String tableSchema() {
-        return indexParts.getSchema();
+        return indexParts.schema();
     }
 
     public String tableName() {
-        return indexParts.getTable();
+        return indexParts.table();
     }
 
     @Nullable
     public String partitionIdent() {
-        return indexParts.isPartitioned() ? indexParts.getPartitionIdent() : null;
+        return indexParts.isPartitioned() ? indexParts.partitionIdent() : null;
     }
 
     public int shardId() {

@@ -38,7 +38,6 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -90,7 +89,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
                                                      "from information_schema.tables");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
+        assertThat(relation.outputs().getFirst().toColumn().sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
     @Test
@@ -107,15 +106,15 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         relation = executor.analyze("select crate.doc.t1.a from crate.doc.t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select crate.doc.t1.a from t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select t.a from crate.doc.t1 as t");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
     }
 
     @Test
@@ -139,7 +138,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .setSearchPath("a", "b");
 
         QueriedSelectRelation relation = executor.analyze("select * from t1");
-        assertThat(relation.from().size()).isEqualTo(1);
-        assertThat(relation.from().get(0)).isInstanceOf(AnalyzedView.class);
+        assertThat(relation.from()).hasSize(1);
+        assertThat(relation.from().getFirst()).isInstanceOf(AnalyzedView.class);
     }
 }

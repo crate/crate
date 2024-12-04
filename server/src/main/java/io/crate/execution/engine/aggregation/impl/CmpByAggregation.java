@@ -42,10 +42,13 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -107,27 +110,23 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
         builder.add(
-            Signature.aggregate(
-                MAX_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+            Signature.builder(MAX_BY, FunctionType.AGGREGATE)
+                .argumentTypes(returnValueType,
+                        cmpType)
+                .returnType(returnValueType)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(variableConstraintA, variableConstraintB)
+                .build(),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
         );
         builder.add(
-            Signature.aggregate(
-                MIN_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+            Signature.builder(MIN_BY, FunctionType.AGGREGATE)
+                .argumentTypes(returnValueType,
+                        cmpType)
+                .returnType(returnValueType)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(variableConstraintA, variableConstraintB)
+                .build(),
             (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
         );
     }
@@ -156,12 +155,21 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference searchRef = aggregationReferences.get(1);
-        if (!searchRef.hasDocValues()) {
+        Reference returnField = aggregationReferences.getFirst();
+        Reference searchField = aggregationReferences.getLast();
+        if (returnField == null) {
             return null;
         }
-        DataType<?> searchType = searchRef.valueType();
+        if (searchField == null) {
+            return null;
+        }
+        if (!searchField.hasDocValues()) {
+            return null;
+        }
+
+        DataType<?> searchType = searchField.valueType();
         switch (searchType.id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -169,20 +177,20 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
+                var resultExpression = referenceResolver.getImplementation(returnField);
                 if (signature.getName().name().equalsIgnoreCase("min_by")) {
                     return new MinByLong(
-                        searchRef.storageIdent(),
+                        searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                        new CollectorContext(() -> StoredRowLookup.create(shardCreatedVersion, table, referenceResolver.getIndexName()))
                     );
                 } else {
                     return new MaxByLong(
-                        searchRef.storageIdent(),
+                        searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                        new CollectorContext(() -> StoredRowLookup.create(shardCreatedVersion, table, referenceResolver.getIndexName()))
                     );
                 }
             default:

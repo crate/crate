@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Visitor to change a _doc reference into a regular column reference.
@@ -60,8 +60,8 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree) {
-        return RefReplacer.replaceRefs(tree, DocReferences::toSourceLookup);
+    public static Symbol toDocLookup(Symbol tree) {
+        return RefReplacer.replaceRefs(tree, DocReferences::toDocLookup);
     }
 
     /**
@@ -71,23 +71,23 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
-        return RefReplacer.replaceRefs(tree, r -> toSourceLookup(r, condition));
+    public static Symbol toDocLookup(Symbol tree, Predicate<Reference> condition) {
+        return RefReplacer.replaceRefs(tree, r -> toDocLookup(r, condition));
     }
 
     /**
-     * Rewrite the reference to do a source lookup if possible.
-     * @see #toSourceLookup(Symbol)
+     * Rewrite the reference to do a _doc lookup if possible.
+     * @see #toDocLookup(Symbol)
      *
      * <pre>
      *     x -> _doc['x']
      * </pre>
      */
-    public static Reference toSourceLookup(Reference reference) {
-        return toSourceLookup(reference, r -> true);
+    public static Reference toDocLookup(Reference reference) {
+        return toDocLookup(reference, r -> true);
     }
 
-    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
+    private static Reference toDocLookup(Reference reference, Predicate<Reference> condition) {
         ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
@@ -95,14 +95,14 @@ public final class DocReferences {
         if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
             && condition.test(reference)) {
             return reference.withReferenceIdent(
-                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.Names.DOC)));
+                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(SysColumns.Names.DOC)));
         }
         return reference;
     }
 
     public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
-        if (!column.isRoot() && column.name().equals(DocSysColumns.Names.DOC)) {
+        if (!column.isRoot() && column.name().equals(SysColumns.Names.DOC)) {
             return ref.withReferenceIdent(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
         }
         return ref;

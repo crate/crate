@@ -21,12 +21,15 @@
 
 package io.crate.fdw;
 
+import static io.crate.types.ResultSetParser.getObject;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
@@ -38,6 +41,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
@@ -62,10 +67,11 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.Identifiers;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class JdbcBatchIterator implements BatchIterator<Row> {
+
+    private static final Logger LOGGER = LogManager.getLogger(JdbcBatchIterator.class);
 
     private final String url;
     private final Properties properties;
@@ -113,7 +119,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             .append(table.name())
             .append(qs);
 
-        return String.format(
+        var stmt = String.format(
             Locale.ENGLISH,
             "SELECT %s FROM %s WHERE %s",
             String.join(", ", Lists.mapLazy(
@@ -124,6 +130,8 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
                 query,
                 ref -> new QuotedReference(ref, qs)).toString(Style.UNQUALIFIED)
         );
+        LOGGER.debug("Generated statement for foreign JDBC source: {}", stmt);
+        return stmt;
     }
 
     @Override
@@ -168,7 +176,8 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             if (resultSet.next()) {
                 for (int i = 0; i < columns.size(); i ++) {
                     Reference ref = columns.get(i);
-                    Object object = resultSet.getObject(i + 1);
+                    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                    Object object = getObject(resultSet, i, resultSetMetaData.getColumnTypeName(i + 1));
                     try {
                         cells[i] = ref.valueType().implicitCast(object);
                     } catch (ClassCastException | IllegalArgumentException e) {
@@ -262,7 +271,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
                 sb.append(quoteString);
             }
             sb.append(quoteString);
-            sb.append(Identifiers.escape(column.name()));
+            sb.append(Identifiers.escape(column.sqlFqn()));
             sb.append(quoteString);
             return sb.toString();
         }
@@ -297,10 +306,6 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
 
         public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
             return ref.accept(visitor, context);
-        }
-
-        public ColumnPolicy columnPolicy() {
-            return ref.columnPolicy();
         }
 
         public boolean isNullable() {

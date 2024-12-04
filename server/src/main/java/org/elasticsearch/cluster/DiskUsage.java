@@ -19,21 +19,19 @@
 
 package org.elasticsearch.cluster;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * Encapsulation class used to represent the amount of disk used on a node.
  */
-public class DiskUsage implements ToXContentFragment, Writeable {
+public class DiskUsage implements Writeable {
     final String nodeId;
     final String nodeName;
     final String path;
@@ -67,27 +65,6 @@ public class DiskUsage implements ToXContentFragment, Writeable {
         out.writeString(this.path);
         out.writeVLong(this.totalBytes);
         out.writeVLong(this.freeBytes);
-    }
-
-    private static double truncatePercent(double pct) {
-        return Math.round(pct * 10.0) / 10.0;
-    }
-
-    XContentBuilder toShortXContent(XContentBuilder builder) throws IOException {
-        builder.field("path", this.path);
-        builder.humanReadableField("total_bytes", "total", new ByteSizeValue(this.totalBytes));
-        builder.humanReadableField("used_bytes", "used", new ByteSizeValue(this.getUsedBytes()));
-        builder.humanReadableField("free_bytes", "free", new ByteSizeValue(this.freeBytes));
-        builder.field("free_disk_percent", truncatePercent(this.getFreeDiskAsPercentage()));
-        builder.field("used_disk_percent", truncatePercent(this.getUsedDiskAsPercentage()));
-        return builder;
-    }
-
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field("node_id", this.nodeId);
-        builder.field("node_name", this.nodeName);
-        builder = toShortXContent(builder);
-        return builder;
     }
 
     public String getNodeId() {

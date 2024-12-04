@@ -78,6 +78,13 @@
         <!--</module>-->
         <module name="AvoidStarImport"/>
         <module name="UnusedImports"/>
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="
+                org.junit.Assert,
+                org.junit.jupiter.api.Assertions,
+                org.hamcrest.CoreMatchers,
+                org.hamcrest.Matchers"/>
+        </module>
 
         <module name="OneTopLevelClass"/>
         <module name="NoLineWrap"/>
@@ -209,7 +216,9 @@
             <!--<property name="allowedAbbreviationLength" value="1"/>-->
         <!--</module>-->
         <!--<module name="OverloadMethodsDeclarationOrder"/>-->
-        <module name="VariableDeclarationUsageDistance"/>
+        <module name="VariableDeclarationUsageDistance">
+          <property name="allowedDistance" value="5" />
+        </module>
         <!--<module name="CustomImportOrder">-->
             <!--<property name="sortImportsInGroupAlphabetically" value="true"/>-->
             <!--<property name="separateLineBetweenGroups" value="true"/>-->

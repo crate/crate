@@ -23,12 +23,10 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.document.DoublePoint;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.NumericUtils;
@@ -36,6 +34,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -115,14 +114,13 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new DoubleIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new DoubleIndexer(ref);
         }
     };
 
-    private static final BigInteger DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE).toBigInteger();
-    private static final BigInteger DOUBLE_MIN = BigDecimal.valueOf(-Double.MAX_VALUE).toBigInteger();
+    private static final BigDecimal DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE);
+    private static final BigDecimal DOUBLE_MIN = BigDecimal.valueOf(-Double.MAX_VALUE);
 
     private DoubleType() {
     }
@@ -159,10 +157,14 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         } else if (value instanceof Double d) {
             return d;
         } else if (value instanceof String s) {
-            return Double.valueOf(s);
+            return JavaDoubleParser.parseDouble(s);
         } else if (value instanceof BigDecimal bigDecimalValue) {
-            if (DOUBLE_MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
-                || DOUBLE_MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
+            // Preferring compareTo over equals as it gives safer equality check.
+            // From the compareTo docs:
+            // Two BigDecimal objects that are equal in value but have a different scale (like 2.0 and 2.00)
+            // are considered equal by this method.
+            if (DOUBLE_MAX.compareTo(bigDecimalValue) <= 0
+                || DOUBLE_MIN.compareTo(bigDecimalValue) >= 0) {
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
             return bigDecimalValue.doubleValue();

@@ -43,7 +43,7 @@ public class SysSegmentsTableInfoTest extends IntegTestCase {
                 WITH (number_of_replicas = 1)
             """);
         execute("INSERT INTO t1 VALUES(1, 'test')");
-        refresh();
+        execute("refresh table t1");
         ensureGreen();
         execute(
             """

@@ -21,8 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -51,7 +50,7 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
             alias_source_lookup
         );
 
-        assertThat(MapBackedSymbolReplacer.convert(alias, mapping), is(alias_source_lookup));
+        assertThat(MapBackedSymbolReplacer.convert(alias, mapping)).isEqualTo(alias_source_lookup);
     }
 
     @Test
@@ -70,6 +69,6 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
             x_source_lookup
         );
 
-        assertThat(MapBackedSymbolReplacer.convert(alias, mapping), is(alias_source_lookup));
+        assertThat(MapBackedSymbolReplacer.convert(alias, mapping)).isEqualTo(alias_source_lookup);
     }
 }

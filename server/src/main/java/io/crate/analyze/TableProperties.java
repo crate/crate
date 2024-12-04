@@ -24,68 +24,40 @@ package io.crate.analyze;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.AffixSetting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.settings.NumberOfReplicas;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 
 public final class TableProperties {
 
     private static final String INVALID_MESSAGE = "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement";
 
-    private TableProperties() {
-    }
+    private TableProperties() {}
 
-    public static void analyze(TableParameter tableParameter,
+    public static void analyze(Settings.Builder settingsBuilder,
                                TableParameters tableParameters,
-                               GenericProperties<Object> properties,
-                               boolean withDefaults) {
+                               GenericProperties<Object> properties) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
-
         settingsFromProperties(
-            tableParameter.settingsBuilder(),
+            settingsBuilder,
             properties,
-            settingMap,
-            withDefaults,
-            mappingsMap::containsKey,
-            INVALID_MESSAGE);
-
-        settingsFromProperties(
-            tableParameter.mappingsBuilder(),
-            properties,
-            mappingsMap,
-            withDefaults,
-            settingMap::containsKey,
-            INVALID_MESSAGE);
+            settingMap);
     }
 
     private static void settingsFromProperties(Settings.Builder builder,
                                                GenericProperties<Object> properties,
-                                               Map<String, Setting<?>> supportedSettings,
-                                               boolean setDefaults,
-                                               Predicate<String> ignoreProperty,
-                                               String invalidMessage) {
-        if (setDefaults) {
-            setDefaults(builder, supportedSettings);
-        }
-        for (Map.Entry<String, Object> entry : properties.properties().entrySet()) {
+                                               Map<String, Setting<?>> supportedSettings) {
+        for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
-            if (ignoreProperty.test(settingName)) {
-                continue;
-            }
-            String groupName = getPossibleGroup(settingName);
-            if (groupName != null && ignoreProperty.test(groupName)) {
-                continue;
-            }
-            SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
-            if (settingHolder == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
+            Setting<?> setting = getSupportedSetting(supportedSettings, settingName);
+            if (setting == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, entry.getKey()));
             }
             Object value = entry.getValue();
             if (value == null) {
@@ -97,7 +69,7 @@ public final class TableProperties {
                     )
                 );
             }
-            settingHolder.apply(builder, entry.getValue());
+            apply(builder, setting, entry.getValue());
         }
     }
 
@@ -105,70 +77,57 @@ public final class TableProperties {
      * Processes the property names which should be reset and updates the settings or mappings with the related
      * default value.
      */
-    public static void analyzeResetProperties(TableParameter tableParameter,
+    public static void analyzeResetProperties(Settings.Builder settingsBuilder,
                                               TableParameters tableParameters,
                                               List<String> properties) {
-        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
-
-        resetSettingsFromProperties(
-            tableParameter.settingsBuilder(),
-            properties,
-            settingMap,
-            mappingsMap::containsKey,
-            INVALID_MESSAGE);
-
-        resetSettingsFromProperties(
-            tableParameter.mappingsBuilder(),
-            properties,
-            mappingsMap,
-            settingMap::containsKey,
-            INVALID_MESSAGE);
-    }
-
-    private static void resetSettingsFromProperties(Settings.Builder builder,
-                                                    List<String> properties,
-                                                    Map<String, Setting<?>> supportedSettings,
-                                                    Predicate<String> ignoreProperty,
-                                                    String invalidMessage) {
+        Map<String, Setting<?>> supportedSettings = tableParameters.supportedSettings();
         for (String name : properties) {
-            if (ignoreProperty.test(name)) {
-                continue;
+            Setting<?> setting = getSupportedSetting(supportedSettings, name);
+            if (setting == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, INVALID_MESSAGE, name));
             }
-            String groupName = getPossibleGroup(name);
-            if (groupName != null && ignoreProperty.test(groupName)) {
-                continue;
-            }
-            SettingHolder settingHolder = getSupportedSetting(supportedSettings, name);
-            if (settingHolder == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, name));
-            }
-            settingHolder.reset(builder);
+            reset(settingsBuilder, setting);
         }
     }
 
-    private static void setDefaults(Settings.Builder builder, Map<String, Setting<?>> supportedSettings) {
-        for (Map.Entry<String, Setting<?>> entry : supportedSettings.entrySet()) {
-            Setting<?> setting = entry.getValue();
-            // We'd set the "wrong" default for settings that base their default on other settings
-            if (TableParameters.SETTINGS_NOT_INCLUDED_IN_DEFAULT.contains(setting)) {
-                continue;
-            }
-            if (setting instanceof AffixSetting) {
-                continue;
-            }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
+    static void apply(Settings.Builder builder, Setting<?> setting, Object value) {
+        if (setting instanceof Setting.AffixSetting<?>) {
+            // only concrete affix settings are supported otherwise it's not possible to parse values
+            throw new IllegalArgumentException(
+                "Cannot change a dynamic group setting, only concrete settings allowed.");
+        }
+        // Need to go through `setting.get` to apply the setting's parse/validation logic
+        // E.g. A `number_of_replicas` value of `0-all` becomes a `Settings` value with
+        //  index.auto_expand_replicas: 0-1
+        //  index.number_of_replicas: 0-all
+        Object resolvedValue = setting.get(Settings.builder()
+            .put(builder.build())
+            .put(setting.getKey(), value)
+            .build()
+        );
+        if (resolvedValue instanceof Settings settings) {
+            builder.put(settings);
+        } else {
+            builder.putStringOrList(setting.getKey(), resolvedValue);
+        }
+    }
+
+    static void reset(Settings.Builder builder, Setting<?> setting) {
+        if (setting instanceof Setting.AffixSetting<?>) {
+            // only concrete affix settings are supported, ES does not support to reset a whole Affix setting group
+            throw new IllegalArgumentException(
+                "Cannot change a dynamic group setting, only concrete settings allowed.");
+        }
+        builder.putNull(setting.getKey());
+        if (setting instanceof NumberOfReplicas numberOfReplicas) {
+            builder.put(numberOfReplicas.getDefault(Settings.EMPTY));
+        } else if (setting.equals(TableParameters.COLUMN_POLICY)) {
+            builder.put(setting.getKey(), ColumnPolicy.STRICT);
         }
     }
 
     @Nullable
-    private static SettingHolder getSupportedSetting(Map<String, Setting<?>> supportedSettings,
-                                                     String settingName) {
+    private static Setting<?> getSupportedSetting(Map<String, Setting<?>> supportedSettings, String settingName) {
         Setting<?> setting = supportedSettings.get(settingName);
         if (setting == null) {
             String groupKey = getPossibleGroup(settingName);
@@ -176,15 +135,11 @@ public final class TableProperties {
                 setting = supportedSettings.get(groupKey);
                 if (setting instanceof Setting.AffixSetting<?> affixSetting) {
                     setting = affixSetting.getConcreteSetting(IndexMetadata.INDEX_SETTING_PREFIX + settingName);
-                    return new SettingHolder(setting, true);
+                    return setting;
                 }
             }
         }
-
-        if (setting != null) {
-            return new SettingHolder(setting);
-        }
-        return null;
+        return setting;
     }
 
     @Nullable
@@ -194,56 +149,5 @@ public final class TableProperties {
             return key.substring(0, idx);
         }
         return null;
-    }
-
-    private static class SettingHolder {
-
-        private final Setting<?> setting;
-        private final boolean isAffixSetting;
-        private final boolean isChildOfAffixSetting;
-
-        SettingHolder(Setting<?> setting) {
-            this(setting, false);
-        }
-
-        SettingHolder(Setting<?> setting, boolean isChildOfAffixSetting) {
-            this.setting = setting;
-            this.isAffixSetting = setting instanceof Setting.AffixSetting;
-            this.isChildOfAffixSetting = isChildOfAffixSetting;
-        }
-
-        void apply(Settings.Builder builder, Object valueSymbol) {
-            if (isAffixSetting) {
-                // only concrete affix settings are supported otherwise it's not possible to parse values
-                throw new IllegalArgumentException(
-                    "Cannot change a dynamic group setting, only concrete settings allowed.");
-            }
-            Settings.Builder singleSettingBuilder = Settings.builder().put(builder.build());
-            singleSettingBuilder.putStringOrList(setting.getKey(), valueSymbol);
-            Object value = setting.get(singleSettingBuilder.build());
-            if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
-
-        }
-
-        void reset(Settings.Builder builder) {
-            if (isAffixSetting) {
-                // only concrete affix settings are supported, ES does not support to reset a whole Affix setting group
-                throw new IllegalArgumentException(
-                    "Cannot change a dynamic group setting, only concrete settings allowed.");
-            }
-            Object value = setting.getDefault(Settings.EMPTY);
-            if (isChildOfAffixSetting) {
-                // affix settings should be removed on reset, they don't have a default value
-                builder.putNull(setting.getKey());
-            } else if (value instanceof Settings settings) {
-                builder.put(settings);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
-        }
     }
 }

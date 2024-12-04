@@ -24,8 +24,6 @@ package io.crate.expression.scalar;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -50,7 +48,7 @@ public class SubstrFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubstring() throws Exception {
-        assertThat(SubstrFunction.substring("cratedata", 2, 5), is("ate"));
+        assertThat(SubstrFunction.substring("cratedata", 2, 5)).isEqualTo("ate");
     }
 
     @Test

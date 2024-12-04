@@ -32,7 +32,6 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -41,13 +40,10 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Sets;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -87,7 +83,7 @@ import io.crate.sql.tree.JoinType;
  * |                                                      |   └ Filter[(x > 1)] (rows=0)                         |
  * |                                                      |     └ Collect[doc.t2 | [x] | true] (rows=unknown)    |
  * <p>
- * See {@link MoveFilterBeneathJoinTest} for more examples.
+ * See {@code MoveFilterBeneathJoinTest} for more examples.
  */
 public final class MoveFilterBeneathJoin implements Rule<Filter> {
 
@@ -113,10 +109,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         var join = captures.get(joinCapture);
         var query = filter.query();
         if (!WhereClause.canMatch(query)) {
@@ -133,8 +126,8 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         var lhs = join.lhs();
         var rhs = join.rhs();
 
-        var lhsRelations = new HashSet<>(lhs.getRelationNames());
-        var rhsRelations = new HashSet<>(rhs.getRelationNames());
+        var lhsRelations = new HashSet<>(lhs.relationNames());
+        var rhsRelations = new HashSet<>(rhs.relationNames());
 
         var leftQuery = splitQueries.remove(lhsRelations);
         var rightQuery = splitQueries.remove(rhsRelations);

@@ -21,6 +21,15 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.REGCLASS;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.isArray;
+
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -28,52 +37,41 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 
-import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.isArray;
-
 public final class PgAttributeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attribute");
 
     private PgAttributeTable() {}
 
-    public static SystemTable<ColumnContext> create() {
-        return SystemTable.<ColumnContext>builder(IDENT)
-            .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
-            .add("attname", STRING, c -> attName(c))
-            .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
-            .add("attstattarget", INTEGER, c -> 0)
-            .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
-            .add("attnum", INTEGER, c -> c.ref().position())
-            .add("attndims", INTEGER, c -> isArray(c.ref().valueType()) ? 1 : 0)
-            .add("attcacheoff", INTEGER, c -> -1)
-            .add("atttypmod", INTEGER, c -> PGTypes.get(c.ref().valueType()).typeMod())
-            .add("attbyval", BOOLEAN, c -> false)
-            .add("attalign", STRING, c -> null)
-            .add("attstorage", STRING, c -> null)
-            .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
-            .add("atthasdef", BOOLEAN, c -> false) // don't support default values
-            .add("atthasmissing", BOOLEAN, c -> false)
-            .add("attidentity", STRING, c -> "")
-            .add("attgenerated", STRING, c -> c.ref().isGenerated() ? "s" : "")
-            .add("attisdropped", BOOLEAN, c -> c.ref().isDropped())
-            .add("attislocal", BOOLEAN, c -> true)
-            .add("attinhcount", INTEGER, c -> 0)
-            .add("attcollation", INTEGER, c -> 0)
-            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
-            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L92
-            .add("attacl", DataTypes.STRING_ARRAY, ignored -> null)
-            .add("attoptions", STRING_ARRAY, c -> null)
-            .add("attfdwoptions", STRING_ARRAY, c -> null)
-            .add("attmissingval", STRING_ARRAY, c -> null)
-            .build();
-    }
+    public static SystemTable<ColumnContext> INSTANCE = SystemTable.<ColumnContext>builder(IDENT)
+        .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
+        .add("attname", STRING, c -> attName(c))
+        .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
+        .add("attstattarget", INTEGER, c -> 0)
+        .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
+        .add("attnum", INTEGER, c -> c.ref().position())
+        .add("attndims", INTEGER, c -> isArray(c.ref().valueType()) ? 1 : 0)
+        .add("attcacheoff", INTEGER, c -> -1)
+        .add("atttypmod", INTEGER, c -> PGTypes.get(c.ref().valueType()).typeMod())
+        .add("attbyval", BOOLEAN, c -> false)
+        .add("attalign", STRING, c -> null)
+        .add("attstorage", STRING, c -> null)
+        .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
+        .add("atthasdef", BOOLEAN, c -> false) // don't support default values
+        .add("atthasmissing", BOOLEAN, c -> false)
+        .add("attidentity", STRING, c -> "")
+        .add("attgenerated", STRING, c -> c.ref().isGenerated() ? "s" : "")
+        .add("attisdropped", BOOLEAN, c -> c.ref().isDropped())
+        .add("attislocal", BOOLEAN, c -> true)
+        .add("attinhcount", INTEGER, c -> 0)
+        .add("attcollation", INTEGER, c -> 0)
+        // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+        // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L92
+        .add("attacl", DataTypes.STRING_ARRAY, ignored -> null)
+        .add("attoptions", STRING_ARRAY, c -> null)
+        .add("attfdwoptions", STRING_ARRAY, c -> null)
+        .add("attmissingval", STRING_ARRAY, c -> null)
+        .build();
 
     private static String attName(ColumnContext c) {
         if (c.ref().isDropped()) {

@@ -127,21 +127,32 @@ public class Credentials implements Closeable {
     }
 
     /**
-     * Matches only on jwt properites.
+     * Matches on CrateDB username or JWT properties.
+     * Can match exactly one user.
      * @return NULL if no lookup is needed (Basic auth).
      */
     @Nullable
-    public Predicate<Role> jwtPropertyMatch() {
+    public Predicate<Role> matchByToken(boolean checkJwtProperties) {
         if (decodedToken != null) {
-            return role -> {
-                var jwtProperties = role.jwtProperties();
-                if (role.isUser() && jwtProperties != null) {
-                    assert jwtProperties.iss() != null && jwtProperties.username() != null :
-                        "If user has jwt properties, 'iss' and 'username' must be not null";
-                    return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
-                }
-                return false;
-            };
+            if (checkJwtProperties) {
+                return role -> {
+                    var jwtProperties = role.jwtProperties();
+                    if (role.isUser() && jwtProperties != null) {
+                        assert jwtProperties.iss() != null && jwtProperties.username() != null :
+                            "If user has jwt properties, 'iss' and 'username' must be not null";
+                        return jwtProperties.match(decodedToken.getIssuer(), decodedToken.getClaim("username").asString());
+                    }
+                    return false;
+                };
+            } else {
+                return role -> {
+                    if (role.isUser()) {
+                        return role.name().equals(decodedToken.getClaim("username").asString());
+                    }
+                    return false;
+                };
+
+            }
         }
         return null;
     }

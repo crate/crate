@@ -23,9 +23,9 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,7 +76,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         ColumnStats<Integer> columnStats = new ColumnStats<>(
             0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
+        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(ColumnIdent.of("x"), columnStats))));
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");
@@ -233,7 +233,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSelectCountStarIsOptimizedOnNestedSubqueries() throws Exception {
+    public void testSelectCountStarIsOptimizedOnNestedSubqueries() {
         LogicalPlan plan = plan("SELECT * FROM t1 WHERE x > (SELECT 1 FROM t1 WHERE x > (SELECT count(*) FROM t2 LIMIT 1)::integer)");
         // instead of a Collect plan, this must result in a CountPlan through optimization
         assertThat(plan).hasOperators(
@@ -241,7 +241,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]",
             "  └ Limit[2::bigint;0::bigint]",
             "    └ MultiPhase",
-            "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS integer))]",
+            "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS INTEGER))]",
             "      └ Limit[2::bigint;0::bigint]",
             "        └ Limit[1::bigint;0]",
             "          └ Count[doc.t2 | true]"
@@ -262,7 +262,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[i, cnt]
-              └ HashJoin[(cnt = cast(i AS bigint))]
+              └ HashJoin[INNER | (cnt = cast(i AS BIGINT))]
                 ├ Rename[cnt] AS t1
                 │  └ Eval[count(*) AS cnt]
                 │    └ Count[doc.t1 | true]
@@ -288,7 +288,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             Fetch[x, a, y]
               └ Limit[10::bigint;0]
                 └ OrderBy[x ASC]
-                  └ HashJoin[(x = y)]
+                  └ HashJoin[INNER | (x = y)]
                     ├ Collect[doc.t1 | [_fetchid, x] | true]
                     └ Collect[doc.t2 | [y] | true]
             """);
@@ -360,7 +360,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[a, i, b, i]
               └ Limit[10::bigint;0]
-                └ HashJoin[(i = i)]
+                └ HashJoin[INNER | (i = i)]
                   ├ Rename[a, i] AS t1
                   │  └ Filter[(a > '50')]
                   │    └ Fetch[a, i]
@@ -384,7 +384,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[x, a, x, a]
-              └ HashJoin[(x = x)]
+              └ HashJoin[INNER | (x = x)]
                 ├ Rename[a, x] AS doc.v2
                 │  └ Collect[doc.t1 | [a, x] | true]
                 └ Rename[a, x] AS doc.v3
@@ -446,7 +446,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[a, x, i, b, y, i]
               └ Limit[3::bigint;0]
-                └ HashJoin[(a = b)]
+                └ HashJoin[INNER | (a = b)]
                   ├ Collect[doc.t1 | [_fetchid, a] | true]
                   └ Collect[doc.t2 | [_fetchid, b] | true]
             """
@@ -512,7 +512,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Fetch[name, a, x, i]
               └ Limit[10::bigint;0]
-                └ HashJoin[(a = name)]
+                └ HashJoin[INNER | (a = name)]
                   ├ Rename[name] AS u
                   │  └ GroupHashAggregate[name]
                   │    └ Collect[doc.users | [name] | true]
@@ -559,7 +559,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                   ├ TableFunction[generate_series | [generate_series] | true]
                   └ Rename[v._fetchid, aliased] AS v
                     └ Eval[_fetchid, y AS aliased]
-                      └ HashJoin[(x = y)]
+                      └ HashJoin[INNER | (x = y)]
                         ├ Collect[doc.t1 | [_fetchid, x] | true]
                         └ Collect[doc.t2 | [y] | true]
             """
@@ -576,22 +576,21 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             UNION
             SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
             """);
-        assertThat(plan).isEqualTo(
-            """
-            GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-              └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-                │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
-                │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
-                └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]
-            """);
+        assertThat(plan).hasOperators(
+            "GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    ├ GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+        );
     }
 
     // tracks a bug: https://github.com/crate/crate/issues/14330
@@ -605,21 +604,21 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
             LIMIT 10
             """);
-        assertThat(plan).isEqualTo(
-            """
-                LimitDistinct[10::bigint;0 | [ai, "avg(x)", "cast(i AS bigint)"]]
-                  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                    ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-                    │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                    │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                    │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
-                    │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                    │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
-                    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]""");
+        assertThat(plan).hasOperators(
+            "LimitDistinct[10::bigint;0 | [ai, \"avg(x)\", \"cast(i AS BIGINT)\"]]",
+            "  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    ├ GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
+            "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
+            "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
+            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+        );
     }
 
     @Test
@@ -627,12 +626,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = sqlExecutor.logicalPlan("""
             SELECT i, avgx FROM (SELECT a, avg(x) OVER(ORDER BY i) as avgx, i FROM t1) as vt
             """);
-        assertThat(plan).isEqualTo(
-            """
-                Rename[i, avgx] AS vt
-                  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]
-                    └ WindowAgg[x, i, avg(x) OVER (ORDER BY i ASC)]
-                      └ Collect[doc.t1 | [x, i] | true]""");
+        assertThat(plan).hasOperators(
+            "Rename[i, avgx] AS vt",
+            "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
+            "    └ WindowAgg[i, x, avg(x) OVER (ORDER BY i ASC)]",
+            "      └ Collect[doc.t1 | [i, x] | true]"
+        );
     }
 
     @Test
@@ -645,8 +644,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
                 Rename[sumx, umaxx, minx, uavgx] AS vt
-                  └ Eval[sum(x) AS sumx, unnest(_array(max(x))) AS umaxx, min(x) AS minx, unnest(_array(avg(x))) AS uavgx]
-                    └ ProjectSet[unnest(_array(min(x))), unnest(_array(max(x))), unnest(_array(avg(x))), unnest(_array(sum(x))), sum(x), max(x), min(x), avg(x)]
+                  └ Eval[sum(x) AS sumx, unnest([max(x)]) AS umaxx, min(x) AS minx, unnest([avg(x)]) AS uavgx]
+                    └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
                       └ HashAggregate[min(x), max(x), avg(x), sum(x)]
                         └ Collect[doc.t1 | [x] | true]""");
     }
@@ -663,5 +662,93 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "  └ OrderBy[a ASC]",
                 "    └ Collect[doc.t1 | [a] | (x > 10)]"
             );
+    }
+
+    @Test
+    public void test_rename_gets_scalar_outputs_from_collect() {
+        var plan = sqlExecutor.logicalPlan("""
+          SELECT
+            TRY_CAST(x AS BIGINT) AS val
+          FROM t1 as t
+          WHERE x < 123
+          ORDER BY val ASC
+            """);
+        assertThat(plan)
+            .hasOperators(
+                "Eval[try_cast(x AS BIGINT) AS val]",
+                "  └ Rename[try_cast(x AS BIGINT) AS val, try_cast(x AS BIGINT)] AS t",
+                "    └ OrderBy[try_cast(x AS BIGINT) ASC]",
+                "      └ Collect[doc.t1 | [try_cast(x AS BIGINT) AS val, try_cast(x AS BIGINT)] | (x < 123)]"
+            );
+    }
+
+    @Test
+    public void test_scalar_uses_table_function_and_column_not_used_in_select_and_table_function() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT
+              CASE
+                WHEN regexp_matches(name, '^a') != []
+                    THEN 'found'
+                WHEN text LIKE '%xyz%'
+                    THEN 'special case'
+                ELSE 'default'
+              END
+            FROM users;
+            """);
+        // Column "text" is not in SELECT targets and not used in regexp_matches.
+        // It's used to be not collected and not included into outputs
+        // which lead to failure of constructing an execution plan
+        assertThat(plan).isEqualTo(
+            """
+                Eval[CASE WHEN (NOT (regexp_matches(name, '^a') = [])) THEN 'found' WHEN (text LIKE '%xyz%') THEN 'special case' ELSE 'default' END]
+                  └ ProjectSet[regexp_matches(name, '^a'), name, text]
+                    └ Collect[doc.users | [name, text] | true]
+                """
+        );
+    }
+
+    /**
+     * Tracks a bug https://github.com/crate/crate/issues/17016
+     */
+    @Test
+    public void test_can_create_execution_plan_from_correlated_join_with_reordered_hash_join() {
+        // Provoke re-ordering by making a table on the right side bigger.
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(T3.T1, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(T3.T2, new Stats(100, 0, Map.of()));
+        sqlExecutor.updateTableStats(rowCountByTable);
+
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            WITH cte_1 AS (
+                SELECT g.x
+                FROM t1 g
+                WHERE g.i = 1
+            )
+            SELECT (
+                    SELECT true
+                    FROM t1 s
+                    WHERE c.x = s.x
+                   )
+            FROM cte_1 c
+            JOIN t2 p ON c.x = p.y"""
+        );
+
+        // Eval under CorrelatedJoin used to incorrectly have (SELECT true FROM (s)) Symbol as a result of outputs prunning.
+        assertThat(plan).isEqualTo("""
+            Eval[(SELECT true FROM (s))]
+              └ CorrelatedJoin[x, (SELECT true FROM (s))]
+                └ Eval[x]
+                  └ HashJoin[INNER | (x = y)]
+                    ├ Rename[y] AS p
+                    │  └ Collect[doc.t2 | [y] | true]
+                    └ Rename[x] AS c
+                      └ Rename[x] AS cte_1
+                        └ Rename[x] AS g
+                          └ Collect[doc.t1 | [x] | (i = 1)]
+                └ SubPlan
+                  └ Rename[true] AS s
+                    └ Limit[2::bigint;0::bigint]
+                      └ Collect[doc.t1 | [true] | (x = x)]"""
+        );
     }
 }

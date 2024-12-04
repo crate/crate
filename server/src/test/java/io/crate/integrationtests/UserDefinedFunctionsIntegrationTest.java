@@ -124,7 +124,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             rows[i] = new Object[]{(long) i, String.valueOf(i)};
         }
         execute("insert into test (id, str) values (?, ?)", rows);
-        refresh();
+        execute("refresh table test");
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
@@ -265,9 +265,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     @Test
     public void test_pg_function_is_visible() throws Exception {
         Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
+            .builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"), FunctionType.SCALAR)
             .argumentTypes(
                 TypeSignature.parse("array(array(integer))"),
                 TypeSignature.parse("integer"),
@@ -293,10 +291,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     public void test_pg_get_function_result() throws Exception {
         TypeSignature returnTypeSig = TypeSignature.parse("array(array(integer))");
         String returnType = returnTypeSig.toString();
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"))
+        Signature signature = Signature.builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"), FunctionType.SCALAR)
             .argumentTypes(DataTypes.INTEGER.getTypeSignature())
             .returnType(returnTypeSig)
             .build();
@@ -317,11 +312,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_pg_function_is_visible_when_oid_is_retrieved_from_column() throws Exception {
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(null, CurrentTimeFunction.NAME))
-            .argumentTypes()
+        Signature signature = Signature.builder(new FunctionName(null, CurrentTimeFunction.NAME), FunctionType.SCALAR)
             .returnType(DataTypes.TIMETZ.getTypeSignature())
             .build();
         int functionOid = OidHash.functionOid(signature);
@@ -344,6 +335,6 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining(
-                        "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'");
+                        "Cannot drop function 'doc.foo'. It is in use by column 'l' of table 'doc.t1'");
     }
 }

@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.symbol.Symbol;
-
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.Symbol;
 
 public class AnalyzedCreateTableAs implements AnalyzedStatement {
 
@@ -67,5 +67,4 @@ public class AnalyzedCreateTableAs implements AnalyzedStatement {
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
-
 }

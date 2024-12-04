@@ -65,6 +65,14 @@ public class ShardLimitsIT extends IntegTestCase {
                 .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
                 .hasMessageContaining(
                         "this action would add [4] total shards, but this cluster currently has [0]/[2] maximum shards open;");
+
+        // Bulk insert forcing creation of multiple partitions at once.
+        execute("set global \"cluster.max_shards_per_node\" = 4");
+        Asserts.assertSQLError(() -> execute("insert into tbl (x, p) values (1, 1), (2, 2), (3, 3)"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(
+                "this action would add [12] total shards, but this cluster currently has [0]/[8] maximum shards open");
     }
 
     @Test

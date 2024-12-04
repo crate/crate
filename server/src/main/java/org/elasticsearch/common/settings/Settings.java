@@ -62,12 +62,13 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.common.Booleans;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -78,7 +79,7 @@ import io.crate.sql.tree.GenericProperties;
 /**
  * An immutable settings implementation.
  */
-public final class Settings implements ToXContentFragment {
+public final class Settings {
 
     public static final Settings EMPTY = new Builder().build();
 
@@ -250,7 +251,7 @@ public final class Settings implements ToXContentFragment {
             return defaultValue;
         }
         try {
-            return Float.parseFloat(sValue);
+            return JavaFloatParser.parseFloat(sValue);
         } catch (NumberFormatException e) {
             throw new SettingsException("Failed to parse float setting [" + setting + "] with value [" + sValue + "]", e);
         }
@@ -266,7 +267,7 @@ public final class Settings implements ToXContentFragment {
             return defaultValue;
         }
         try {
-            return Double.parseDouble(sValue);
+            return JavaDoubleParser.parseDouble(sValue);
         } catch (NumberFormatException e) {
             throw new SettingsException("Failed to parse double setting [" + setting + "] with value [" + sValue + "]", e);
         }
@@ -545,14 +546,13 @@ public final class Settings implements ToXContentFragment {
         return new Builder();
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        if (!params.paramAsBoolean("flat_settings", false)) {
-            for (Map.Entry<String, Object> entry : getAsStructuredMap().entrySet()) {
+    public XContentBuilder toXContent(XContentBuilder builder, boolean flat) throws IOException {
+        if (flat) {
+            for (Map.Entry<String, Object> entry : settings.entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         } else {
-            for (Map.Entry<String, Object> entry : settings.entrySet()) {
+            for (Map.Entry<String, Object> entry : getAsStructuredMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         }
@@ -696,8 +696,6 @@ public final class Settings implements ToXContentFragment {
      * construct it.
      */
     public static class Builder {
-
-        public static final Settings EMPTY_SETTINGS = new Builder().build();
 
         // we use a sorted map for consistent serialization when using getAsMap()
         private final Map<String, Object> map = new TreeMap<>();
@@ -895,7 +893,7 @@ public final class Settings implements ToXContentFragment {
         }
 
         public Builder put(GenericProperties<Object> properties) {
-            for (Entry<String,Object> entry : properties.properties().entrySet()) {
+            for (Entry<String,Object> entry : properties) {
                 String settingName = entry.getKey();
                 putStringOrList(settingName, entry.getValue());
             }
@@ -1320,7 +1318,7 @@ public final class Settings implements ToXContentFragment {
     public String toString() {
         try (XContentBuilder builder = XContentBuilder.builder(XContentType.JSON.xContent())) {
             builder.startObject();
-            toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
+            toXContent(builder, true);
             builder.endObject();
             return Strings.toString(builder);
         } catch (IOException e) {

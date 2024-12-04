@@ -21,14 +21,9 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.RepositoryDataTests.generateRandomRepoData;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -91,7 +86,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
                 new Object[]{defaultRepositoryLocation.getAbsolutePath()});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -134,11 +129,11 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         });
         Map<String, BlobMetadata> foundBlobs = future.get();
         if (blobs.isEmpty()) {
-            assertThat(foundBlobs.keySet(), empty());
+            assertThat(foundBlobs.keySet()).isEmpty();
         } else {
-            assertThat(foundBlobs.keySet(), containsInAnyOrder(blobs.keySet().toArray(Strings.EMPTY_ARRAY)));
+            assertThat(foundBlobs).containsOnlyKeys(blobs.keySet().toArray(Strings.EMPTY_ARRAY));
             for (Map.Entry<String, BlobMetadata> entry : foundBlobs.entrySet()) {
-                assertEquals(entry.getValue().length(), blobs.get(entry.getKey()).length());
+                assertThat(blobs.get(entry.getKey()).length()).isEqualTo(entry.getValue().length());
             }
         }
     }
@@ -155,9 +150,9 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         });
         Set<String> foundChildren = future.get();
         if (children.isEmpty()) {
-            assertThat(foundChildren, empty());
+            assertThat(foundChildren).isEmpty();
         } else {
-            assertThat(foundChildren, containsInAnyOrder(children.toArray(Strings.EMPTY_ARRAY)));
+            assertThat(foundChildren).containsExactlyInAnyOrder(children.toArray(Strings.EMPTY_ARRAY));
         }
     }
 
@@ -166,25 +161,25 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         final BlobStoreRepository repository = getRepository();
 
         // write to and read from a index file with no entries
-        assertThat(ESBlobStoreTestCase.getRepositoryData(repository).getSnapshotIds().size(), equalTo(0));
+        assertThat(ESBlobStoreTestCase.getRepositoryData(repository).getSnapshotIds()).hasSize(0);
         final RepositoryData emptyData = RepositoryData.EMPTY;
         writeIndexGen(repository, emptyData, emptyData.getGenId());
         RepositoryData repoData = ESBlobStoreTestCase.getRepositoryData(repository);
-        assertEquals(repoData, emptyData);
-        assertEquals(repoData.getIndices().size(), 0);
-        assertEquals(repoData.getSnapshotIds().size(), 0);
-        assertEquals(0L, repoData.getGenId());
+        assertThat(repoData).isEqualTo(emptyData);
+        assertThat(repoData.getIndices()).isEmpty();
+        assertThat(repoData.getSnapshotIds()).isEmpty();
+        assertThat(repoData.getGenId()).isZero();
 
         // write to and read from an index file with snapshots but no indices
         repoData = addRandomSnapshotsToRepoData(repoData, false);
         writeIndexGen(repository, repoData, repoData.getGenId());
-        assertEquals(repoData, ESBlobStoreTestCase.getRepositoryData(repository));
+        assertThat(repoData).isEqualTo(ESBlobStoreTestCase.getRepositoryData(repository));
 
         // write to and read from an index file with random repository data
         repoData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
         writeIndexGen(repository, repoData, repoData.getGenId());
         RepositoryData actual = ESBlobStoreTestCase.getRepositoryData(repository);
-        assertEquals(repoData, actual);
+        assertThat(actual).isEqualTo(repoData);
     }
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) throws Exception {
@@ -200,24 +195,24 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         // write to index generational file
         RepositoryData repositoryData = generateRandomRepoData();
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
-        assertThat(ESBlobStoreTestCase.getRepositoryData(repository), equalTo(repositoryData));
-        assertThat(repository.latestIndexBlobId(), equalTo(0L));
-        assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(0L));
+        assertThat(ESBlobStoreTestCase.getRepositoryData(repository)).isEqualTo(repositoryData);
+        assertThat(repository.latestIndexBlobId()).isEqualTo(0L);
+        assertThat(repository.readSnapshotIndexLatestBlob()).isEqualTo(0L);
 
         // adding more and writing to a new index generational file
         repositoryData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
-        assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
-        assertThat(repository.latestIndexBlobId(), equalTo(1L));
-        assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(1L));
+        assertThat(repositoryData).isEqualTo(ESBlobStoreTestCase.getRepositoryData(repository));
+        assertThat(repository.latestIndexBlobId()).isEqualTo(1L);
+        assertThat(repository.readSnapshotIndexLatestBlob()).isEqualTo(1L);
 
         // removing a snapshot and writing to a new index generational file
         repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshots(
             repositoryData.getSnapshotIds(), ShardGenerations.EMPTY);
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
-        assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
-        assertThat(repository.latestIndexBlobId(), equalTo(2L));
-        assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(2L));
+        assertThat(repositoryData).isEqualTo(ESBlobStoreTestCase.getRepositoryData(repository));
+        assertThat(repository.latestIndexBlobId()).isEqualTo(2L);
+        assertThat(repository.readSnapshotIndexLatestBlob()).isEqualTo(2L);
     }
 
     @Test

@@ -141,12 +141,12 @@ public class RetentionLeaseSyncAction extends
     }
 
     @Override
-    protected WriteReplicaResult<Request> shardOperationOnReplica(final Request request, final IndexShard replica) throws WriteStateException {
+    protected WriteReplicaResult shardOperationOnReplica(final Request request, final IndexShard replica) throws WriteStateException {
         Objects.requireNonNull(request);
         Objects.requireNonNull(replica);
         replica.updateRetentionLeasesOnReplica(request.getRetentionLeases());
         replica.persistRetentionLeases();
-        return new WriteReplicaResult<>(null, null, replica);
+        return new WriteReplicaResult(null, null, replica);
     }
 
     @Override

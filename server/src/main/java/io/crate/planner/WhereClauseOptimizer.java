@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
@@ -40,13 +42,12 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
@@ -112,7 +113,8 @@ public final class WhereClauseOptimizer {
                                               Row params,
                                               SubQueryResults subQueryResults,
                                               CoordinatorTxnCtx txnCtx,
-                                              NodeContext nodeCtx) {
+                                              NodeContext nodeCtx,
+                                              Metadata metadata) {
             SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol boundQuery = binder.apply(query);
             HashSet<Symbol> clusteredBy = HashSet.newHashSet(clusteredByValues.size());
@@ -120,11 +122,11 @@ public final class WhereClauseOptimizer {
                 clusteredBy.add(binder.apply(clusteredByValue));
             }
             if (table.isPartitioned()) {
-                if (table.partitions().isEmpty()) {
+                if (table.getPartitionNames(metadata).isEmpty()) {
                     return WhereClause.NO_MATCH;
                 }
                 WhereClauseAnalyzer.PartitionResult partitionResult =
-                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx);
+                    WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx, metadata);
                 return new WhereClause(
                     partitionResult.query,
                     partitionResult.partitions,
@@ -159,9 +161,9 @@ public final class WhereClauseOptimizer {
         }
         WhereClause.validateVersioningColumnsUsage(query);
 
-        boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
-        boolean sequenceVersioningInQuery = Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
-                                            Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
+        boolean versionInQuery = query.hasColumn(SysColumns.VERSION);
+        boolean sequenceVersioningInQuery = query.hasColumn(SysColumns.SEQ_NO) &&
+                                            query.hasColumn(SysColumns.PRIMARY_TERM);
         List<ColumnIdent> pkCols = pkColsInclVersioning(table, versionInQuery, sequenceVersioningInQuery);
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
@@ -186,11 +188,11 @@ public final class WhereClauseOptimizer {
         int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
         final DocKeys docKeys;
         final boolean shouldUseDocKeys = table.isPartitioned() == false && (
-                DocSysColumns.ID.equals(table.clusteredBy()) || (
+                SysColumns.ID.COLUMN.equals(table.clusteredBy()) || (
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().getFirst())));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
-            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), optimizedCastsQuery, txnCtx);
+            pkMatches = eqExtractor.extractMatches(List.of(SysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx);
         }
 
         if (pkMatches.matches() == null) {
@@ -238,13 +240,13 @@ public final class WhereClauseOptimizer {
         if (versionInQuery) {
             ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 1);
             pkCols.addAll(table.primaryKey());
-            pkCols.add(DocSysColumns.VERSION);
+            pkCols.add(SysColumns.VERSION);
             return pkCols;
         } else if (seqNoAndPrimaryTermInQuery) {
             ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 2);
             pkCols.addAll(table.primaryKey());
-            pkCols.add(DocSysColumns.SEQ_NO);
-            pkCols.add(DocSysColumns.PRIMARY_TERM);
+            pkCols.add(SysColumns.SEQ_NO);
+            pkCols.add(SysColumns.PRIMARY_TERM);
             return pkCols;
         }
         return table.primaryKey();

@@ -71,7 +71,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         repositoryParamValidator = new RepositoryParamValidator(Map.of(
             "fs", new TypeSettings(FsRepository.mandatorySettings(), FsRepository.optionalSettings())
         ));

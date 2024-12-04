@@ -39,7 +39,7 @@ import io.crate.common.unit.TimeValue;
 public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest.Replaceable {
 
     private String[] indices = Strings.EMPTY_ARRAY;
-    private IndicesOptions indicesOptions = IndicesOptions.lenientExpand();
+    private IndicesOptions indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
     private TimeValue timeout = new TimeValue(30, TimeUnit.SECONDS);
     private ClusterHealthStatus waitForStatus;
     private boolean waitForNoRelocatingShards = false;
@@ -233,7 +233,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
             indicesOptions = IndicesOptions.readIndicesOptions(in);
         } else {
-            indicesOptions = IndicesOptions.lenientExpandOpen();
+            indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN;
         }
     }
 

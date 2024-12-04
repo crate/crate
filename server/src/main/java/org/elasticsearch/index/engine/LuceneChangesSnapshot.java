@@ -44,14 +44,11 @@ import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.common.io.IOUtils;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * A {@link Translog.Snapshot} from changes in a Lucene index
@@ -77,13 +74,12 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
      * Creates a new "translog" snapshot from Lucene for reading operations whose seq# in the specified range.
      *
      * @param engineSearcher    the internal engine searcher which will be taken over if the snapshot is opened successfully
-     * @param mapperService     the mapper service which will be mainly used to resolve the document's type and uid
      * @param searchBatchSize   the number of documents should be returned by each search
      * @param fromSeqNo         the min requesting seq# - inclusive
      * @param toSeqNo           the maximum requesting seq# - inclusive
      * @param requiredFullRange if true, the snapshot will strictly check for the existence of operations between fromSeqNo and toSeqNo
      */
-    LuceneChangesSnapshot(Engine.Searcher engineSearcher, MapperService mapperService, int searchBatchSize,
+    LuceneChangesSnapshot(Engine.Searcher engineSearcher, int searchBatchSize,
                           long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
         if (fromSeqNo < 0 || toSeqNo < 0 || fromSeqNo > toSeqNo) {
             throw new IllegalArgumentException("Invalid range; from_seqno [" + fromSeqNo + "], to_seqno [" + toSeqNo + "]");
@@ -216,11 +212,11 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
 
     private TopDocs searchOperations(ScoreDoc after) throws IOException {
         final Query rangeQuery = new BooleanQuery.Builder()
-            .add(LongPoint.newRangeQuery(DocSysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
+            .add(LongPoint.newRangeQuery(SysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new FieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
+            .add(new FieldExistsQuery(SysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
-        final Sort sortedBySeqNo = new Sort(new SortField(DocSysColumns.Names.SEQ_NO, SortField.Type.LONG));
+        final Sort sortedBySeqNo = new Sort(new SortField(SysColumns.Names.SEQ_NO, SortField.Type.LONG));
         return indexSearcher.searchAfter(after, rangeQuery, searchBatchSize, sortedBySeqNo);
     }
 
@@ -236,8 +232,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             return null;
         }
         final long version = parallelArray.version[docIndex];
-        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? SourceFieldMapper.RECOVERY_SOURCE_NAME :
-            SourceFieldMapper.NAME;
+        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? SysColumns.Source.RECOVERY_NAME :
+            SysColumns.Source.NAME;
         final FieldsVisitor fields = new FieldsVisitor(true, sourceField);
         StoredFields storedFields = leaf.reader().storedFields();
         storedFields.document(segmentDocID, fields);
@@ -250,7 +246,7 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Noop but soft_deletes field is not set [" + op + "]";
         } else {
             final String id = fields.id();
-            final Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
+            final Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(id));
             if (isTombstone) {
                 op = new Translog.Delete(id, uid, seqNo, primaryTerm, version);
                 assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Delete op but soft_deletes field is not set [" + op + "]";

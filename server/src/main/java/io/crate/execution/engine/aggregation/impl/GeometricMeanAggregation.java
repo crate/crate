@@ -45,8 +45,10 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -75,12 +77,12 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public static void register(Functions.Builder builder) {
         for (var supportedType : SUPPORTED_TYPES) {
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                GeometricMeanAggregation::new
+                    Signature.builder(NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(supportedType.getTypeSignature())
+                            .returnType(DataTypes.DOUBLE.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    GeometricMeanAggregation::new
             );
         }
     }
@@ -304,8 +306,12 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (!reference.hasDocValues()) {
             return null;
         }

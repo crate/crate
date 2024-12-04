@@ -21,9 +21,9 @@
 
 package io.crate.metadata;
 
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOHASH;
 
 import java.io.IOException;
 import java.util.Map;
@@ -38,7 +38,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class GeoReference extends SimpleReference {
@@ -56,7 +55,6 @@ public class GeoReference extends SimpleReference {
 
     public GeoReference(ReferenceIdent ident,
                         DataType<?> type,
-                        ColumnPolicy columnPolicy,
                         IndexType indexType,
                         boolean nullable,
                         int position,
@@ -70,7 +68,6 @@ public class GeoReference extends SimpleReference {
         super(ident,
             RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
             type,
-            columnPolicy,
             indexType,
             nullable,
             false, //Geo shapes don't have doc values
@@ -166,7 +163,6 @@ public class GeoReference extends SimpleReference {
         return new GeoReference(
             newIdent,
             type,
-            columnPolicy,
             indexType,
             nullable,
             position,
@@ -190,7 +186,6 @@ public class GeoReference extends SimpleReference {
         return new GeoReference(
             ident,
             type,
-            columnPolicy,
             indexType,
             nullable,
             newPosition,
@@ -209,7 +204,6 @@ public class GeoReference extends SimpleReference {
         return new GeoReference(
             ident,
             newType,
-            columnPolicy,
             indexType,
             nullable,
             position,

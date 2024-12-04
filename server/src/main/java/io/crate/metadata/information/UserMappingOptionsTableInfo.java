@@ -34,13 +34,11 @@ public class UserMappingOptionsTableInfo {
     public record UserMappingOptions(String userName, String serverName, String optionName, String optionValue) {
     }
 
-    public static SystemTable<UserMappingOptions> create() {
-        return SystemTable.<UserMappingOptions>builder(IDENT)
-            .add("authorization_identifier", DataTypes.STRING, UserMappingOptions::userName)
-            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_server_name", DataTypes.STRING, UserMappingOptions::serverName)
-            .add("option_name", DataTypes.STRING, UserMappingOptions::optionName)
-            .add("option_value", DataTypes.STRING, UserMappingOptions::optionValue)
-            .build();
-    }
+    public static SystemTable<UserMappingOptions> INSTANCE = SystemTable.<UserMappingOptions>builder(IDENT)
+        .add("authorization_identifier", DataTypes.STRING, UserMappingOptions::userName)
+        .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_server_name", DataTypes.STRING, UserMappingOptions::serverName)
+        .add("option_name", DataTypes.STRING, UserMappingOptions::optionName)
+        .add("option_value", DataTypes.STRING, UserMappingOptions::optionValue)
+        .build();
 }

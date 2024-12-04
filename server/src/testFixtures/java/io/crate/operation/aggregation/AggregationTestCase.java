@@ -26,7 +26,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -40,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.index.Term;
@@ -61,15 +59,14 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -131,6 +128,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
@@ -189,6 +187,20 @@ public abstract class AggregationTestCase extends ESTestCase {
             Lists.map(actualArgumentTypes, t -> new InputColumn(0, t)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
+
+        // Lookup the flavor of the aggregation function which operates on partial states and executes the final merge.
+        // Especially useful for aggregations like TopkAggregation where the final result is different from the partial
+        // states.
+        AggregationFunction terminatePartialAggFunction = (AggregationFunction) nodeCtx.functions().getQualified(
+            maybeUnboundSignature,
+            List.of(aggregationFunction.partialType()),
+            actualReturnType);
+
+        // For ArbitraryAggregationTest, where the signature with partial type is not defined
+        if (terminatePartialAggFunction == null) {
+            terminatePartialAggFunction = aggregationFunction;
+        }
+
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -200,19 +212,16 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         for (var argType : actualArgumentTypes) {
             if (argType.storageSupport() == null) {
-                return aggregationFunction.terminatePartial(
-                    RAM_ACCOUNTING,
-                    partialResultWithoutDocValues
-                );
+                return assertAndGetMergedIterAndPartial(
+                    aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
             }
         }
         List<Reference> targetColumns = toReference(actualArgumentTypes);
-        var shard = newStartedPrimaryShard(targetColumns, threadPool);
-        var mapperService = shard.mapperService();
+        var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
-            mapperService::fieldType,
-            List.of()
+            List.of(),
+            (_) -> false
         );
 
         try {
@@ -228,30 +237,49 @@ public abstract class AggregationTestCase extends ESTestCase {
                 minNodeVersion,
                 optionalParams
             );
+            var resultWithoutDocValues = assertAndGetMergedIterAndPartial(
+                aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
+
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
                 assertThat(partialResultWithDocValues).hasSize(1);
-                assertThat(partialResultWithoutDocValues).isEqualTo(
-                    partialResultWithDocValues.get(0).get(0));
+                var resultWithDocValues = assertAndGetMergedIterAndPartial(
+                    aggregationFunction, terminatePartialAggFunction, partialResultWithDocValues.get(0).get(0));
+
+                assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     refResolver,
                     targetColumns,
                     mock(DocTableInfo.class),
+                    Version.CURRENT,
                     List.of()
                 );
                 if (docValueAggregator != null) {
                     throw new IllegalStateException("DocValueAggregator is implemented but partialResultWithDocValues is null.");
                 }
             }
+            return resultWithoutDocValues;
         } finally {
             closeShard(shard);
         }
-        return aggregationFunction.terminatePartial(
+    }
+
+    private static <T> Object assertAndGetMergedIterAndPartial(AggregationFunction<T, ?> aggregationFunction,
+                                                               AggregationFunction<T ,?> terminatePartialAggFunction,
+                                                               T partialResultWithoutDocValues) {
+        Object result1 = terminatePartialAggFunction.terminatePartial(
             RAM_ACCOUNTING,
             partialResultWithoutDocValues
         );
+        Object result2 = aggregationFunction.terminatePartial(
+            RAM_ACCOUNTING,
+            partialResultWithoutDocValues
+        );
+        assertThat(result2).as("iter->final should have the same result as partial->final")
+            .isEqualTo(result1);
+        return result1;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -292,7 +320,8 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                           IndexShard shard,
                                                           Version minNodeVersion,
                                                           List<Literal<?>> optionalParams) throws Exception {
-        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes);
+        // Make sure optional parameters do not become references
+        List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes.subList(0, argumentTypes.size() - optionalParams.size()));
         inputs.addAll(optionalParams);
         var aggregation = new Aggregation(
             signature,
@@ -309,7 +338,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                     ident,
                     RowGranularity.DOC,
                     argumentTypes.get(i),
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     true,
                     true,
@@ -358,30 +386,27 @@ public abstract class AggregationTestCase extends ESTestCase {
             new RelationName("doc", shard.shardId().getIndexName()),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
-            Map.of(),
             null,
             List.of(),
             List.of(),
             null,
-            new String[] { shard.shardId().getIndexName() },
-            new String[] { shard.shardId().getIndexName() },
             Settings.builder()
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                 .build(),
-            List.of(),
             List.of(),
             ColumnPolicy.STRICT,
             Version.CURRENT,
             null,
             false,
-            Set.of()
+            Set.of(),
+            0
         );
         Indexer indexer = new Indexer(
             shard.shardId().getIndexName(),
             table,
+            Version.CURRENT,
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
-            column -> shard.mapperService().getLuceneFieldType(column),
             targetColumns,
             null
         );
@@ -394,7 +419,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
             IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
             ParsedDocument parsedDoc = indexer.index(item);
-            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             Engine.Index index = new Engine.Index(
                 uid,
                 parsedDoc,
@@ -431,10 +456,11 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    public static IndexShard newStartedPrimaryShard(List<Reference> targetColumns,
+    public static IndexShard newStartedPrimaryShard(NodeContext nodeCtx,
+                                                    List<Reference> targetColumns,
                                                     ThreadPool threadPool) throws Exception {
         var mapping = buildMapping(targetColumns);
-        IndexShard shard = newPrimaryShard(mapping, threadPool);
+        IndexShard shard = newPrimaryShard(nodeCtx, mapping, threadPool);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -473,7 +499,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private static IndexShard newPrimaryShard(XContentBuilder mapping, ThreadPool threadPool) throws IOException {
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx, XContentBuilder mapping, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId("index", UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -500,14 +526,18 @@ public abstract class AggregationTestCase extends ESTestCase {
             nodePath.resolve(shardId),
             shardId
         );
-        return newPrimaryShard(routing, shardPath, indexMetadata, threadPool);
+        return newPrimaryShard(nodeCtx, routing, shardPath, indexMetadata, threadPool);
     }
 
-    private static IndexShard newPrimaryShard(ShardRouting routing,
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx,
+                                              ShardRouting routing,
                                               ShardPath shardPath,
                                               IndexMetadata indexMetadata,
                                               ThreadPool threadPool) throws IOException {
-        var indexSettings = new IndexSettings(indexMetadata, Settings.EMPTY);
+        Settings settings = Settings.builder()
+            .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
+        var indexSettings = new IndexSettings(indexMetadata, settings);
         var queryCache = DisabledQueryCache.instance();
         var store = new Store(
             shardPath.getShardId(),
@@ -515,30 +545,25 @@ public abstract class AggregationTestCase extends ESTestCase {
             newFSDirectory(shardPath.resolveIndex()),
             new DummyShardLock(shardPath.getShardId())
         );
-        var mapperService = MapperTestUtils.newMapperService(
-            DEFAULT_NAMED_X_CONTENT_REGISTRY,
-            createTempDir(),
-            indexSettings.getSettings(),
-            routing.getIndexName()
-        );
-        mapperService.merge(indexMetadata, MAPPING_RECOVERY);
+        TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
         IndexShard shard = null;
         try {
             shard = new IndexShard(
+                nodeCtx,
                 routing,
                 indexSettings,
                 shardPath,
                 store,
                 queryCache,
-                mapperService,
+                testAnalysis.indexAnalyzers.getDefaultIndexAnalyzer(),
+                () -> null,
                 List.of(),
                 EMPTY_EVENT_LISTENER,
                 threadPool,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 List.of(),
                 () -> { },
-                RetentionLeaseSyncer.EMPTY,
-                new NoneCircuitBreakerService()
+                RetentionLeaseSyncer.EMPTY, new NoneCircuitBreakerService()
             );
         } catch (IOException e) {
             IOUtils.close(store);
@@ -584,6 +609,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             mock(LuceneReferenceResolver.class),
             toReference(argumentTypes),
             mock(DocTableInfo.class),
+            Version.CURRENT,
             List.of()
         );
         assertThat(docValueAggregator)
@@ -604,7 +630,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                     new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
                     type,
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     true,
                     storageSupport.docValuesDefault(),
@@ -631,7 +656,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             RAM_ACCOUNTING,
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
-            new SharedShardContexts(indexServices, UnaryOperator.identity()),
+            new SharedShardContexts(indexServices, (ignored, searcher) -> searcher),
             minNodeVersion,
             4096
         );

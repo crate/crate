@@ -24,22 +24,20 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
@@ -47,15 +45,24 @@ import io.crate.sql.tree.JoinType;
 public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
 
     private final Pattern<JoinPlan> pattern;
+    private final EnumSet<JoinType> SUPPORTED_JOIN_TYPE = EnumSet.of(
+        JoinType.INNER,
+        JoinType.LEFT,
+        JoinType.RIGHT,
+        JoinType.CROSS
+    );
 
     public MoveConstantJoinConditionsBeneathJoin() {
         this.pattern = typeOf(JoinPlan.class)
-            .with(join -> join.joinType() == JoinType.INNER &&
+            .with(join -> SUPPORTED_JOIN_TYPE.contains(join.joinType()) &&
                 !join.moveConstantJoinConditionRuleApplied() &&
                 hasConstantJoinConditions(join.joinCondition()));
     }
 
     private static boolean hasConstantJoinConditions(Symbol joinCondition) {
+        if (joinCondition == null) {
+            return false;
+        }
         for (var condition : QuerySplitter.split(joinCondition).values()) {
             if (numberOfRelationsUsed(condition) <= 1) {
                 return true;
@@ -72,10 +79,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
     @Override
     public LogicalPlan apply(JoinPlan joinPlan,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
+        var resolvePlan = context.resolvePlan();
         var conditions = joinPlan.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
@@ -88,27 +93,57 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
             }
         }
         if (!constantConditions.isEmpty() && !nonConstantConditions.isEmpty()) {
-            // Push constant join condition down to source
-            var lhs = resolvePlan.apply(joinPlan.lhs());
-            var rhs = resolvePlan.apply(joinPlan.rhs());
-            var queryForLhs = constantConditions.remove(new HashSet<>(lhs.getRelationNames()));
-            var queryForRhs = constantConditions.remove(new HashSet<>(rhs.getRelationNames()));
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
-            joinPlan = new JoinPlan(
+            var lhsRelations = new HashSet<>(joinPlan.lhs().relationNames());
+            var rhsRelations = new HashSet<>(joinPlan.rhs().relationNames());
+            final LogicalPlan newLhs;
+            final LogicalPlan newRhs;
+            if (joinPlan.joinType() == JoinType.INNER || joinPlan.joinType() == JoinType.CROSS) {
+                // Cross/Inner-join will filter on both sides
+                // therefore constant filters can be pushed down to both sides
+                var lhs = resolvePlan.apply(joinPlan.lhs());
+                var rhs = resolvePlan.apply(joinPlan.rhs());
+                var queryForLhs = constantConditions.remove(lhsRelations);
+                var queryForRhs = constantConditions.remove(rhsRelations);
+                newLhs = getNewSource(queryForLhs, lhs);
+                newRhs = getNewSource(queryForRhs, rhs);
+            } else if (joinPlan.joinType() == JoinType.RIGHT) {
+                // Right-join will only filter on the lhs
+                // therefore constant filters can be pushed down to the lhs
+                var lhs = resolvePlan.apply(joinPlan.lhs());
+                var queryForLhs = constantConditions.remove(lhsRelations);
+                newLhs = getNewSource(queryForLhs, lhs);
+                newRhs = joinPlan.rhs();
+            } else if (joinPlan.joinType() == JoinType.LEFT) {
+                // Left-join will only filter on the rhs
+                // therefore constant filters can be pushed down to the rhs
+                var rhs = resolvePlan.apply(joinPlan.rhs());
+                var queryForRhs = constantConditions.remove(rhsRelations);
+                newRhs = getNewSource(queryForRhs, rhs);
+                newLhs = joinPlan.lhs();
+            } else {
+                return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
+            }
+
+            var newJoinConditions = new LinkedHashSet<>(nonConstantConditions);
+            newJoinConditions.addAll(constantConditions.values());
+
+            return new JoinPlan(
                 newLhs,
                 newRhs,
                 joinPlan.joinType(),
-                AndOperator.join(nonConstantConditions),
+                AndOperator.join(newJoinConditions),
                 joinPlan.isFiltered(),
                 joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                joinPlan.isLookUpJoinRuleApplied()
+                joinPlan.isLookUpJoinRuleApplied(),
+                true,
+                joinPlan.lookUpJoin()
             );
+        } else {
+            return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
         }
-        return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
     }
 
     private static int numberOfRelationsUsed(Symbol joinCondition) {
-        return RelationNameCollector.collect(joinCondition).size();
+        return RelationNames.getShallow(joinCondition).size();
     }
 }

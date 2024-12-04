@@ -217,7 +217,7 @@ column to the ``numeric`` data type::
     cr> select avg(t.val :: numeric) from
     ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
     +---------------------------+
-    | avg(cast(val AS numeric)) |
+    | avg(cast(val AS NUMERIC)) |
     +---------------------------+
     |       9223372036854775807 |
     +---------------------------+
@@ -314,6 +314,11 @@ number of distinct values in this column that are not ``NULL``::
     |        3 |
     +----------+
     SELECT 1 row in set (... sec)
+
+.. SEEALSO::
+
+    :ref:`aggregation-hyperloglog-distinct` for an alternative that trades some
+    accuracy for improved performance.
 
 
 .. _aggregation-count-star:
@@ -744,7 +749,7 @@ exceeded an ``ArithmeticException`` will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLParseException[Cannot cast value `North West Ripple` to type `byte`]
+    SQLParseException[Cannot cast value `Aldebaran` to type `byte`]
 
 If the ``sum`` aggregation on a numeric data type with the fixed length can
 potentially exceed its range it is possible to handle the overflow by casting
@@ -760,7 +765,7 @@ the :ref:`function <gloss-function>` argument to the :ref:`numeric type
 
 .. Hidden: insert into uservisits table
 
-    cr> INSERT INTO uservisits VALUES (1, 9223372036854775807), (2, 10);
+    cr> INSERT INTO uservisits VALUES (1, 9223372036854775806), (2, 10);
     INSERT OK, 2 rows affected  (... sec)
 
 .. Hidden: refresh uservisits table
@@ -781,9 +786,9 @@ the aggregation column to the ``numeric`` data type::
     cr> SELECT sum(count::numeric)
     ... FROM uservisits;
     +-----------------------------+
-    | sum(cast(count AS numeric)) |
+    | sum(cast(count AS NUMERIC)) |
     +-----------------------------+
-    |         9223372036854775817 |
+    |         9223372036854775816 |
     +-----------------------------+
     SELECT 1 row in set (... sec)
 
@@ -825,6 +830,134 @@ Example::
     executions of the aggregate function on the same data produce slightly
     differing results.
 
+.. _aggregation-topk:
+
+``topk(column, [k], [max_capacity])``
+-------------------------------------
+
+
+The ``topk`` aggregate function computes ``k`` most frequent values. The result
+is an ``OBJECT`` in the following format::
+
+    {
+        "frequencies": [
+            {
+                "estimate": <estimated_frequency>,
+                "item": <value_of_column>,
+                "lower_bound": <lower_bound>,
+                "upper_bound": <upper_bound>"
+            },
+            ...
+        ],
+        "maximum_error": <max_error>
+    }
+
+The ``frequencies`` list is ordered by the estimated frequency, with the most
+common items listed first.
+
+``k`` defaults to 8 and can't exceed 5000. The ``max_capacity`` parameter is
+optional and describes the maximum number of tracked items and must be in the
+power of 2 and defaults to 8192.
+
+Example::
+
+    cr> select topk(country, 3) from sys.summits;
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | topk(country, 3)                                                                                                                                                                                                                                                 |
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | {"frequencies": [{"estimate": 436, "item": "IT", "lower_bound": 436, "upper_bound": 436}, {"estimate": 401, "item": "AT", "lower_bound": 401, "upper_bound": 401}, {"estimate": 320, "item": "CH", "lower_bound": 320, "upper_bound": 320}], "maximum_error": 0} |
+    +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+Internally a `Frequency Sketch`_ is used to track the frequencies of the most
+common values. Higher values in ``max_capacity`` provide better accuracy at the
+cost of increased memory usage. If less different items than 75 % of the
+``max_capacity`` are processed the frequencies of the result are exact, otherwise
+they will be an approximation. The result contains all values with their
+frequencies above the error threshold and may also include false positives.
+The error threshold indicates the minimum frequency which can be detected
+reliably and is defined as followed::
+
+    M = max_capacity, always a power of 2
+    N = Total counts of items
+    e = Epsilon = 3.5/M (minimum detectable frequency)
+
+    error threshold = (N < 0.75 * M)? 0 : e * N.
+
+The following table is an
+extract of the `Error Threshold Table`_ and shows the error threshold in relation
+to the ``max_capacity`` and the number of processed items. A threshold of 0
+indicates that the frequencies are exact.
+
+.. list-table:: Error Threshold
+   :widths: 20 20 20 20 20 20 20 20
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - max_capacity vs. items
+     - 8192
+     - 16384
+     - 32768
+     - 65536
+     - 131072
+     - 262144
+     - 524288
+   * - 10000
+     - 4
+     - 0
+     - 0
+     - 0
+     - 0
+     - 0
+     - 0
+   * - 100000
+     - 43
+     - 21
+     - 11
+     - 5
+     - 3
+     - 0
+     - 0
+   * - 1000000
+     - 427
+     - 214
+     - 107
+     - 53
+     - 27
+     - 13
+     - 7
+   * - 10000000
+     - 4272
+     - 2136
+     - 1068
+     - 534
+     - 267
+     - 134
+     - 67
+   * - 100000000
+     - 42725
+     - 21362
+     - 10681
+     - 5341
+     - 2670
+     - 1335
+     - 668
+   * - 1000000000
+     - 427246
+     - 213623
+     - 106812
+     - 53406
+     - 26703
+     - 13351
+     - 6676
+
+
+The error threshold shows which ranges of frequencies can be tracked depending
+on the number of items and capacity. E.g. Processing 10,000 items with the
+``max_capacity`` of 8192 indicates a error threshold of 4. Therefore all items
+with frequencies greater 4 will be included. Some items with frequencies below
+the threshold 4 may also appear in the result.
 
 .. _aggregation-limitations:
 
@@ -840,8 +973,10 @@ Limitations
 
 .. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
-.. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
+.. _HyperLogLog++: https://research.google.com/pubs/archive/40671.pdf
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
 .. _Variance: https://en.wikipedia.org/wiki/Variance
+.. _Frequency Sketch: https://datasketches.apache.org/docs/Frequency/FrequencySketches.html
+.. _Error Threshold Table: https://datasketches.apache.org/docs/Frequency/FrequentItemsErrorTable.html

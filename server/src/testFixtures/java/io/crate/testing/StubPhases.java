@@ -21,16 +21,18 @@
 
 package io.crate.testing;
 
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.UpstreamPhase;
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.planner.distribution.DistributionInfo;
 
 public class StubPhases {
 
@@ -72,6 +74,11 @@ public class StubPhases {
         @Override
         public Collection<String> nodeIds() {
             return executionNodes;
+        }
+
+        @Override
+        public Streamer<?>[] getStreamers() {
+            return new Streamer[0];
         }
 
         @Override

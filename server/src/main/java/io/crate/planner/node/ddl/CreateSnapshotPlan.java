@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
@@ -34,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -94,7 +94,8 @@ public class CreateSnapshotPlan implements Plan {
             dependencies.nodeContext(),
             parameters,
             subQueryResults,
-            dependencies.schemas());
+            dependencies.schemas(),
+            plannerContext.clusterState().metadata());
 
         dependencies.client().execute(CreateSnapshotAction.INSTANCE, request)
             .whenComplete(
@@ -127,7 +128,8 @@ public class CreateSnapshotPlan implements Plan {
                                                       NodeContext nodeCtx,
                                                       Row parameters,
                                                       SubQueryResults subQueryResults,
-                                                      Schemas schemas) {
+                                                      Schemas schemas,
+                                                      Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -156,7 +158,7 @@ public class CreateSnapshotPlan implements Plan {
             }
             snapshotIndices = new HashSet<>(AnalyzedCreateSnapshot.ALL_INDICES);
         } else {
-            snapshotIndices = new HashSet<>(createSnapshot.tables().size());
+            snapshotIndices = HashSet.newHashSet(createSnapshot.tables().size());
             for (Table<Symbol> table : createSnapshot.tables()) {
                 DocTableInfo docTableInfo;
                 try {
@@ -182,23 +184,22 @@ public class CreateSnapshotPlan implements Plan {
                     );
                 }
 
+
                 if (table.partitionProperties().isEmpty()) {
-                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
+                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices(metadata)));
                 } else {
-                    var partitionName = toPartitionName(
-                        docTableInfo,
-                        Lists.map(table.partitionProperties(), x -> x.map(eval)));
-                    if (!docTableInfo.partitions().contains(partitionName)) {
-                        if (!ignoreUnavailable) {
-                            throw new PartitionUnknownException(partitionName);
-                        } else {
+                    try {
+                        PartitionName partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(table.partitionProperties(), x -> x.map(eval)), metadata);
+                        snapshotIndices.add(partitionName.asIndexName());
+                    } catch (PartitionUnknownException ex) {
+                        if (ignoreUnavailable) {
                             LOGGER.info(
                                 "ignoring unknown partition of table '{}' with ident '{}'",
-                                partitionName.relationName(),
-                                partitionName.ident());
+                                ex.partitionName().relationName(),
+                                ex.partitionName().ident());
+                        } else {
+                            throw ex;
                         }
-                    } else {
-                        snapshotIndices.add(partitionName.asIndexName());
                     }
                 }
             }
@@ -214,7 +215,7 @@ public class CreateSnapshotPlan implements Plan {
                     true,
                     true,
                     false,
-                    IndicesOptions.lenientExpandOpen()))
+                    IndicesOptions.LENIENT_EXPAND_OPEN))
             .templates(templates.stream().toList())
             .settings(settings);
     }

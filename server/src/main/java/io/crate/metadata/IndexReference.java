@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -144,7 +143,7 @@ public class IndexReference extends SimpleReference {
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType,
+        super(ident, RowGranularity.DOC, DataTypes.STRING, indexType,
               false, false, position, oid, isDropped, null);
         this.columns = columns;
         this.analyzer = analyzer;
@@ -153,7 +152,6 @@ public class IndexReference extends SimpleReference {
     public IndexReference(ReferenceIdent ident,
                           RowGranularity granularity,
                           DataType<?> type,
-                          ColumnPolicy columnPolicy,
                           IndexType indexType,
                           boolean nullable,
                           boolean hasDocValues,
@@ -166,7 +164,6 @@ public class IndexReference extends SimpleReference {
         super(ident,
               granularity,
               type,
-              columnPolicy,
               indexType,
               nullable,
               hasDocValues,
@@ -230,7 +227,6 @@ public class IndexReference extends SimpleReference {
             newIdent,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -254,7 +250,6 @@ public class IndexReference extends SimpleReference {
             ident,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -273,7 +268,6 @@ public class IndexReference extends SimpleReference {
             ident,
             granularity,
             type,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -292,7 +286,6 @@ public class IndexReference extends SimpleReference {
             ident,
             granularity,
             newType,
-            columnPolicy,
             indexType,
             nullable,
             hasDocValues,
@@ -325,7 +318,6 @@ public class IndexReference extends SimpleReference {
                 ident,
                 granularity,
                 type,
-                columnPolicy,
                 indexType,
                 nullable,
                 hasDocValues,

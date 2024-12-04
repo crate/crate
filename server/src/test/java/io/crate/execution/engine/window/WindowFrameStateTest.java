@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.window;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -44,39 +42,39 @@ public class WindowFrameStateTest {
     @Test
     public void testGetRowWithinRangeInSinglePartition() {
         wfs.updateBounds(0, 6, 0, 6);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(1), is(rows.get(1)));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(1)).isEqualTo(rows.get(1));
     }
 
     @Test
     public void testGetRowOutOfRangeInSinglePartition() {
         wfs.updateBounds(0, 6, 0, 6);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1), is(nullValue()));
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(rows.size()), is(nullValue()));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(rows.size())).isNull();
     }
 
     @Test
     public void testGetRowsWithinRangeInTwoPartitionReturnsNull() {
         // Partition 1 index range: [0, 3); frame [0, 1)
         wfs.updateBounds(0, 3, 0, 1);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(0), is(rows.get(0)));
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(2), is(rows.get(2)));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(0)).isEqualTo(rows.get(0));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(2)).isEqualTo(rows.get(2));
 
         // Partition 2 index range: [3, 6); frame [3, 6)
         wfs.updateBounds(3, 6, 3, 6);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(0), is(rows.get(3)));
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(2), is(rows.get(5)));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(0)).isEqualTo(rows.get(3));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(2)).isEqualTo(rows.get(5));
     }
 
     @Test
     public void testGetRowsOutOfRangeInTwoPartitionReturnsNull() {
         // Partition 1 index range: [0, 3); frame [0, 1)
         wfs.updateBounds(0, 3, 0, 1);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1), is(nullValue()));
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(3), is(nullValue()));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(3)).isNull();
 
         // Partition 2 index range: [3, 6); frame [3, 6)
         wfs.updateBounds(3, 6, 3, 6);
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1), is(nullValue()));
-        assertThat(wfs.getRowInPartitionAtIndexOrNull(3), is(nullValue()));
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
+        assertThat(wfs.getRowInPartitionAtIndexOrNull(3)).isNull();
     }
 }

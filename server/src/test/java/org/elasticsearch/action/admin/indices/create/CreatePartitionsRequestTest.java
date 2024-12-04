@@ -21,32 +21,27 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
+
+import io.crate.metadata.RelationName;
 
 
 public class CreatePartitionsRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
-        CreatePartitionsRequest request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"));
+        RelationName tbl = new RelationName("doc", "tbl");
+        CreatePartitionsRequest request = new CreatePartitionsRequest(tbl, List.of(List.of("1"), List.of("2")));
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
-        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
-
-        request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"));
-        out = new BytesStreamOutput();
-        request.writeTo(out);
-        requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
-
-        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        assertThat(requestDeserialized.partitionValuesList()).containsExactly(List.of("1"), List.of("2"));
+        assertThat(requestDeserialized.relationName()).isEqualTo(tbl);
     }
-
 }

@@ -22,12 +22,13 @@
 package io.crate.sql;
 
 
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.IntervalLiteral;
-import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
+
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.IntervalLiteral;
 
 public class IntervalLiteralTest {
 
@@ -82,6 +83,15 @@ public class IntervalLiteralTest {
         assertThat(interval.getValue()).isEqualTo("1");
         assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
         assertThat(interval.getStartField()).isEqualTo(IntervalLiteral.IntervalField.SECOND);
+        assertThat(interval.getEndField()).isNull();
+    }
+
+    @Test
+    public void test_millisecond() {
+        IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MILLISECOND");
+        assertThat(interval.getValue()).isEqualTo("1");
+        assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
+        assertThat(interval.getStartField()).isEqualTo(IntervalLiteral.IntervalField.MILLISECOND);
         assertThat(interval.getEndField()).isNull();
     }
 

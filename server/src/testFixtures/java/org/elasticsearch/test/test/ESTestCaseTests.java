@@ -19,13 +19,7 @@
 
 package org.elasticsearch.test.test;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -57,13 +51,13 @@ public class ESTestCaseTests extends ESTestCase {
             Set<List<String>> distinctKeys = new HashSet<>();
             for (int i = 0; i < 10; i++) {
                 LinkedHashMap<String, Object> shuffledMap = shuffleMap(initialMap, Collections.emptySet());
-                assertEquals("both maps should contain the same mappings", initialMap, shuffledMap);
+                assertThat(shuffledMap).as("both maps should contain the same mappings").isEqualTo(initialMap);
                 List<String> shuffledKeys = new ArrayList<>(shuffledMap.keySet());
                 distinctKeys.add(shuffledKeys);
             }
             //out of 10 shuffling runs we expect to have at least more than 1 distinct output.
             //This is to make sure that we actually do the shuffling
-            assertThat(distinctKeys.size(), greaterThan(1));
+            assertThat(distinctKeys).hasSizeGreaterThan(1);
         }
     }
 
@@ -108,13 +102,13 @@ public class ESTestCaseTests extends ESTestCase {
                     try (XContentBuilder shuffledBuilder = shuffleXContent(parser, randomBoolean(), "object1")) {
                         try (XContentParser shuffledParser = createParser(shuffledBuilder)) {
                             Map<String, Object> shuffledMap = shuffledParser.mapOrdered();
-                            assertEquals("both maps should contain the same mappings", initialMap, shuffledMap);
+                            assertThat(shuffledMap).as("both maps should contain the same mappings").isEqualTo(initialMap);
                             List<String> shuffledKeys = new ArrayList<>(shuffledMap.keySet());
                             distinctTopLevelKeys.add(shuffledKeys);
                             @SuppressWarnings("unchecked")
                             Map<String, Object> innerMap1 = (Map<String, Object>)shuffledMap.get("object1");
                             List<String> actualInnerKeys1 = new ArrayList<>(innerMap1.keySet());
-                            assertEquals("object1 should have been left untouched", expectedInnerKeys1, actualInnerKeys1);
+                            assertThat(actualInnerKeys1).as("object1 should have been left untouched").isEqualTo(expectedInnerKeys1);
                             @SuppressWarnings("unchecked")
                             Map<String, Object> innerMap2 = (Map<String, Object>)shuffledMap.get("object2");
                             List<String> actualInnerKeys2 = new ArrayList<>(innerMap2.keySet());
@@ -125,28 +119,28 @@ public class ESTestCaseTests extends ESTestCase {
             }
 
             //out of 10 shuffling runs we expect to have at least more than 1 distinct output for both top level keys and inner object2
-            assertThat(distinctTopLevelKeys.size(), greaterThan(1));
-            assertThat(distinctInnerKeys2.size(), greaterThan(1));
+            assertThat(distinctTopLevelKeys).hasSizeGreaterThan(1);
+            assertThat(distinctInnerKeys2).hasSizeGreaterThan(1);
         }
     }
 
     public void testRandomUniqueNotUnique() {
-        assertThat(randomUnique(() -> 1, 10), hasSize(1));
+        assertThat(randomUnique(() -> 1, 10)).hasSize(1);
     }
 
     public void testRandomUniqueTotallyUnique() {
         AtomicInteger i = new AtomicInteger();
-        assertThat(randomUnique(i::incrementAndGet, 100), hasSize(100));
+        assertThat(randomUnique(i::incrementAndGet, 100)).hasSize(100);
     }
 
     public void testRandomUniqueNormalUsageAlwayMoreThanOne() {
-        assertThat(randomUnique(() -> randomAlphaOfLengthBetween(1, 20), 10), hasSize(greaterThan(0)));
+        assertThat(randomUnique(() -> randomAlphaOfLengthBetween(1, 20), 10)).hasSizeGreaterThan(0);
     }
 
     public void testRandomValueOtherThan() {
         // "normal" way of calling where the value is not null
         int bad = randomInt();
-        assertNotEquals(bad, (int) randomValueOtherThan(bad, ESTestCase::randomInt));
+        assertThat((int) randomValueOtherThan(bad, ESTestCase::randomInt)).isNotEqualTo(bad);
 
         /*
          * "funny" way of calling where the value is null. This once
@@ -154,7 +148,7 @@ public class ESTestCaseTests extends ESTestCase {
          * like any other value.
          */
         Supplier<Object> usuallyNull = () -> usually() ? null : randomInt();
-        assertNotNull(randomValueOtherThan(null, usuallyNull));
+        assertThat(randomValueOtherThan(null, usuallyNull)).isNotNull();
     }
 
     public void testWorkerSystemProperty() {
@@ -162,7 +156,7 @@ public class ESTestCaseTests extends ESTestCase {
             "requires running tests with Maven",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) != null);
 
-        assertThat(ESTestCase.TEST_WORKER_VM_ID, not(equals(ESTestCase.DEFAULT_TEST_WORKER_ID)));
+        assertThat(ESTestCase.TEST_WORKER_VM_ID).isNotEqualTo(ESTestCase.DEFAULT_TEST_WORKER_ID);
     }
 
     public void testBasePortMaven() {
@@ -170,13 +164,13 @@ public class ESTestCaseTests extends ESTestCase {
             "requires running tests with Maven",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) != null);
         // Maven worker IDs are 1 based
-        assertNotEquals(10300, ESTestCase.getBasePort());
+        assertThat(ESTestCase.getBasePort()).isNotEqualTo(10300);
     }
 
     public void testBasePortIDE() {
         assumeTrue(
             "requires running tests without maven/forkCount",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) == null);
-        assertEquals(10300, ESTestCase.getBasePort());
+        assertThat(ESTestCase.getBasePort()).isEqualTo(10300);
     }
 }

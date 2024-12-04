@@ -31,11 +31,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -67,6 +65,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -143,7 +142,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                     () -> 1,
                     true
                 );
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
@@ -247,7 +246,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
-        CollectorContext collectorContext = new CollectorContext(Set.of(), UnaryOperator.identity());
+        CollectorContext collectorContext = new CollectorContext(() -> null);
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(

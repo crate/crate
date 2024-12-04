@@ -247,6 +247,46 @@ are likely to be larger due to additional metadata.
          defining a column to not use the column store or by :ref:`turning off indexing
          <sql_ddl_index_off>`.
 
+Precedence and type conversion
+------------------------------
+
+When expressions of different data types are combined by operators or scalars,
+the data type with the lower precedence is converted to the data type
+with the higher precedence. If an implicit conversion between the types isn't
+supported, an error is returned.
+
+The following precedence order is used for data types (highest to lowest):
+
+1. Custom (complex) types (currently: :ref:`bitstring <data-types-bit-strings>`,
+   :ref:`float_vector <type-float_vector>`) (highest)
+2. :ref:`GEO_SHAPE <data-types-geo-shape>`
+3. :ref:`JSON <data-type-json>`
+4. :ref:`OBJECT <data-types-objects>`
+5. :ref:`GEO_POINT <data-types-geo-point>`
+6. ``Record`` (internal type, return type of
+   :ref:`table functions <table-functions>`)
+7. :ref:`Array <data-types-arrays>`
+8. :ref:`Numeric <data-types-numeric>`
+9. :ref:`Double precision <type-double-precision>`
+10. :ref:`Real <type-real>`
+11. :ref:`IP <data-types-ip-addresses>`
+12. :ref:`Bigint <type-bigint>`
+13. :ref:`Timestamp without time zone <type-timestamp-without-tz>`
+14. :ref:`Timestamp with time zone <type-timestamp-with-tz>`
+15. :ref:`Date <type-date>`
+16. :ref:`Interval <type-interval>`
+17. :ref:`Regclass <type-regclass>`
+18. :ref:`Regproc <type-regproc>`
+19. :ref:`Integer <type-integer>`
+20. :ref:`Time with time zone <type-time>`
+21. :ref:`Smallint <type-smallint>`
+22. :ref:`Boolean <type-boolean>`
+23. :ref:`"Char" <type-char>`
+24. :ref:`Text <type-text>`
+25. :ref:`Character <data-type-character>`
+26. :ref:`NULL <type-null>` (lowest)
+
+
 .. _data-types-primitive:
 
 Primitive types
@@ -953,7 +993,7 @@ Example::
 
 A large integer.
 
-Limited to eight bytes, with a range from -2^63 to 2^63-1.
+Limited to eight bytes, with a range from -2^63 + 1 to 2^63-2.
 
 Example:
 
@@ -969,7 +1009,7 @@ Example:
     cr> INSERT INTO my_table (
     ...     number
     ... ) VALUES (
-    ...     9223372036854775807
+    ...     9223372036854775806
     ... );
     INSERT OK, 1 row affected (... sec)
 
@@ -984,7 +1024,7 @@ Example:
     +---------------------+
     | number              |
     +---------------------+
-    | 9223372036854775807 |
+    | 9223372036854775806 |
     +---------------------+
     SELECT 1 row in set (... sec)
 
@@ -1002,8 +1042,10 @@ Example:
 An exact `fixed-point fractional number`_ with an arbitrary, user-specified
 precision.
 
-Variable size, with up to 131072 digits before the decimal point and up to
-16383 digits after the decimal point.
+Variable size, with up to 38 digits for storage.
+
+If using ``NUMERIC`` only for type casts up to 131072 digits before the decimal
+point and up to 16383 digits after the decimal point are supported.
 
 For example, using a :ref:`cast from a string literal
 <data-types-casting-str>`::
@@ -1016,13 +1058,6 @@ For example, using a :ref:`cast from a string literal
     +--------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
-
-    The ``NUMERIC`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
-    <data-types-casting-exp>`, as above).
-
-    You cannot create table columns of type ``NUMERIC``.
 
 This type is usually used when it is important to preserve exact precision
 or handle values that exceed the range of the numeric types of the fixed
@@ -1035,6 +1070,7 @@ significant digits in the unscaled numeric value. The ``scale`` value of a
 numeric is the count of decimal digits in the fractional part, to the right of
 the decimal point. For example, the number 123.45 has a precision of ``5`` and
 a scale of ``2``. Integers have a scale of zero.
+The scale must be smaller than the precision and greater or equal to zero.
 
 To declare the ``NUMERIC`` type with the precision and scale, use the syntax::
 
@@ -1049,6 +1085,18 @@ Without configuring the precision and scale the ``NUMERIC`` type value will be
 represented by an unscaled value of the unlimited precision::
 
     NUMERIC
+
+.. NOTE::
+
+    ``NUMERIC`` without precision and scale cannot be used in CREATE TABLE
+    statements. To store values of type NUMERIC it is required to define the
+    precision and scale.
+
+.. NOTE::
+
+    ``NUMERIC`` values returned as results of an SQL query might loose precision
+     when using the :ref:`HTTP interface<interface-http>`, because of limitation
+     of `JSON Data Types`_ for numbers with higher than 53-bits precision.
 
 The ``NUMERIC`` type is internally backed by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
@@ -1926,6 +1974,7 @@ Where ``unit`` can be any of the following:
 - ``HOUR``
 - ``MINUTE``
 - ``SECOND``
+- ``MILLISECOND``
 
 For example::
 
@@ -1961,7 +2010,7 @@ of zero to six digits)::
 .. CAUTION::
 
     The ``INTERVAL`` data type does not currently support the input units
-    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
+    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, or
     ``MICROSECOND``.
 
     This behaviour does not comply with standard SQL and is incompatible with
@@ -2167,7 +2216,7 @@ For example::
     ...     '127.0.0.1'
     ... ), (
     ...     'router.local',
-    ...     '0:0:0:0:0:ffff:c0a8:64'
+    ...     'ff:0:ff:ff:0:ffff:c0a8:64'
     ... );
     INSERT OK, 2 rows affected (... sec)
 
@@ -2179,12 +2228,12 @@ For example::
 ::
 
     cr> SELECT fqdn, ip_addr FROM my_table ORDER BY fqdn;
-    +--------------+------------------------+
-    | fqdn         | ip_addr                |
-    +--------------+------------------------+
-    | localhost    | 127.0.0.1              |
-    | router.local | 0:0:0:0:0:ffff:c0a8:64 |
-    +--------------+------------------------+
+    +--------------+---------------------------+
+    | fqdn         | ip_addr                   |
+    +--------------+---------------------------+
+    | localhost    | 127.0.0.1                 |
+    | router.local | ff:0:ff:ff:0:ffff:c0a8:64 |
+    +--------------+---------------------------+
     SELECT 2 rows in set (... sec)
 
 The ``fqdn`` column (see `Fully Qualified Domain Name`_) will accept any value
@@ -3719,3 +3768,4 @@ However, you cannot use it with any :ref:`scalar functions
 .. _UTC: `Coordinated Universal Time`_
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
 .. _Year.parse Javadoc: https://docs.oracle.com/javase/8/docs/api/java/time/Year.html#parse-java.lang.CharSequence-
+.. _JSON Data Types: https://en.wikipedia.org/wiki/JSON#Data_types

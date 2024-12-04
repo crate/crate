@@ -50,9 +50,7 @@ import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -123,7 +121,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                              List<Symbol> collect,
                                                              Symbol query) {
         SessionSettings sessionSettings = txnCtx.sessionSettings();
-        Settings userOptions = server.users().get(sessionSettings.userName());
+        Settings userOptions = server.users().get(currentUser.name());
         if (userOptions == null) {
             userOptions = Settings.EMPTY;
         }
@@ -139,7 +137,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         // Evaluate them locally and only fetch columns
         List<Reference> refs = new ArrayList<>(collect.size());
         for (var symbol : collect) {
-            RefVisitor.visitRefs(symbol, ref -> refs.add(ref));
+            symbol.visit(Reference.class, refs::add);
         }
 
         Settings options = server.options();
@@ -190,9 +188,6 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
-        return !SymbolVisitors.any(
-            x -> x instanceof Function fn && !SAFE_FUNCTIONS.contains(fn.name()),
-            query
-        );
+        return !query.any(x -> x instanceof Function fn && !SAFE_FUNCTIONS.contains(fn.name()));
     }
 }

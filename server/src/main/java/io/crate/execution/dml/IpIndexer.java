@@ -23,59 +23,47 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
+import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.SysColumns;
 
 public class IpIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public IpIndexer(Reference ref, FieldType fieldType) {
+    public IpIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType;
     }
 
     @Override
-    public void indexValue(String value,
-                           XContentBuilder xContentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.value(value);
+    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
         InetAddress address = InetAddresses.forString(value);
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new InetAddressPoint(name, address));
+            docBuilder.addField(new InetAddressPoint(name, address));
         }
         if (ref.hasDocValues()) {
-            addField.accept(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
+            docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
         } else {
-            addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+            docBuilder.addField(new Field(
+                SysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                SysColumns.FieldNames.FIELD_TYPE));
         }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, new BytesRef(InetAddressPoint.encode(address))));
-        }
+        docBuilder.translogWriter().writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

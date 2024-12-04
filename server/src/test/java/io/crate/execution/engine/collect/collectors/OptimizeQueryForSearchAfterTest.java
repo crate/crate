@@ -40,7 +40,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.CharacterType;
 import io.crate.types.DataTypes;
 
 public class OptimizeQueryForSearchAfterTest {
@@ -58,10 +58,22 @@ public class OptimizeQueryForSearchAfterTest {
     }
 
     @Test
+    public void test_char_range_query_can_handle_byte_ref_values() {
+        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
+        OrderBy orderBy = new OrderBy(List.of(
+            new SimpleReference(referenceIdent, RowGranularity.DOC, CharacterType.of(3), 1, null)
+        ));
+        var optimize = new OptimizeQueryForSearchAfter(orderBy);
+        FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
+        Query query = optimize.apply(lastCollected);
+        assertThat(query).hasToString("+x:{* TO foobar}");
+    }
+
+    @Test
     public void test_short_range_query_with_and_without_docvalues() {
         ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
                                     IndexType.PLAIN, true, true, 1, COLUMN_OID_UNASSIGNED, false, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
@@ -75,7 +87,7 @@ public class OptimizeQueryForSearchAfterTest {
                 x -> assertThat(x.getQuery().getClass().getName()).endsWith("IntPoint$1")); // the query class is anonymous
 
         orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC,
+                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
                                     IndexType.PLAIN, true, false, 1, COLUMN_OID_UNASSIGNED, false, null)
         ));
         optimize = new OptimizeQueryForSearchAfter(orderBy);
@@ -97,7 +109,7 @@ public class OptimizeQueryForSearchAfterTest {
                     List.of(
                         new SimpleReference(
                             new ReferenceIdent(new RelationName("doc", "dummy"), "x1"),
-                            RowGranularity.DOC, DataTypes.SHORT, ColumnPolicy.DYNAMIC, IndexType.NONE, true,
+                            RowGranularity.DOC, DataTypes.SHORT, IndexType.NONE, true,
                             false, 1, COLUMN_OID_UNASSIGNED, false, null)),
                     new boolean[]{reverseFlag},
                     new boolean[]{nullsFirst}

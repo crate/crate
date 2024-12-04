@@ -43,7 +43,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
@@ -161,7 +160,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
         Consumer<Symbol> keep = toKeep::add;
         // Pruning unused outputs would change semantics. Need to keep all in any case
         for (var output : outputs) {
-            SymbolVisitors.intersection(output, source.outputs(), keep);
+            Symbols.intersection(output, source.outputs(), keep);
         }
         LogicalPlan prunedSource = source.pruneOutputsExcept(toKeep);
         if (prunedSource == source) {

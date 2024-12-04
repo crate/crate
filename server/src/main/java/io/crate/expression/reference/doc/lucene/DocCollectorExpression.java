@@ -23,79 +23,85 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
-public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
+public abstract class DocCollectorExpression<T> extends LuceneCollectorExpression<T> {
 
-    private SourceLookup sourceLookup;
+    protected final Reference ref;
+
+    private StoredRowLookup storedRowLookup;
     private ReaderContext context;
 
-    public DocCollectorExpression() {
-        super();
+    protected StoredRow source;
+
+    protected DocCollectorExpression(Reference ref) {
+        this.ref = ref;
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        sourceLookup = context.sourceLookup();
-    }
-
-
-    @Override
-    public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc);
+    public final void startCollect(CollectorContext context) {
+        storedRowLookup = context.storedRowLookup(ref);
     }
 
     @Override
-    public void setNextReader(ReaderContext context) throws IOException {
+    public final void setNextDocId(int doc) {
+        this.source = storedRowLookup.getStoredRow(context, doc);
+    }
+
+    @Override
+    public final void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
     }
 
-    @Override
-    public Map<String, Object> value() {
-        return sourceLookup.sourceAsMap();
-    }
-
-    public static LuceneCollectorExpression<?> create(final Reference reference) {
-        assert reference.column().name().equals(DocSysColumns.DOC.name()) :
-            "column name must be " + DocSysColumns.DOC.name();
+    public static LuceneCollectorExpression<?> create(final Reference reference,
+                                                      Predicate<Reference> isParentReferenceIgnored) {
+        assert reference.column().name().equals(SysColumns.DOC.name()) :
+            "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
-            return new DocCollectorExpression();
+            return new RootDocCollectorExpression(reference);
         }
-        return new ChildDocCollectorExpression(reference);
+
+        Function<Object, Object> valueConverter;
+        if (isParentReferenceIgnored.test(reference)) {
+            // If the parent reference is ignored, the child column may have been ignored as well before and may contain
+            // a value that does not fit the current defined child column data type.
+            valueConverter = val -> reference.valueType().sanitizeValueLenient(val);
+        } else {
+            valueConverter = val -> val;
+        }
+
+        return new ChildDocCollectorExpression(reference, valueConverter);
     }
 
-    static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
+    static final class RootDocCollectorExpression extends DocCollectorExpression<Map<String, Object>> {
 
-        private final Reference ref;
-        private SourceLookup sourceLookup;
-        private ReaderContext context;
-
-        ChildDocCollectorExpression(Reference ref) {
-            this.ref = ref;
+        private RootDocCollectorExpression(Reference ref) {
+            super(ref);
         }
 
         @Override
-        public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, doc);
+        public Map<String, Object> value() {
+            return source.asMap();
         }
+    }
 
-        @Override
-        public void setNextReader(ReaderContext context) throws IOException {
-            this.context = context;
-        }
+    static final class ChildDocCollectorExpression extends DocCollectorExpression<Object> {
 
-        @Override
-        public void startCollect(CollectorContext context) {
-            sourceLookup = context.sourceLookup(ref);
+        private final Function<Object, Object> valueConverter;
+
+        private ChildDocCollectorExpression(Reference ref, Function<Object, Object> valueConverter) {
+            super(ref);
+            this.valueConverter = valueConverter;
         }
 
         @Override
         public Object value() {
-            // correct type detection is ensured by the source parser
-            return sourceLookup.get(ref.column().path());
+            return valueConverter.apply(source.get(ref.column().path()));
         }
     }
 }

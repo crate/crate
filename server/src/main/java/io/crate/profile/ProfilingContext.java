@@ -21,15 +21,19 @@
 
 package io.crate.profile;
 
-import org.elasticsearch.search.profile.ProfileResult;
-import org.elasticsearch.search.profile.query.QueryProfiler;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.search.profile.ProfileResult;
+import org.elasticsearch.search.profile.query.QueryProfiler;
+
+import io.crate.metadata.IndexName;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -42,9 +46,9 @@ public class ProfilingContext {
 
     private static final double NS_TO_MS_FACTOR = 1_000_000.0d;
     private final HashMap<String, Double> durationInMSByTimer;
-    private final List<QueryProfiler> profilers;
+    private final Map<ShardId, QueryProfiler> profilers;
 
-    public ProfilingContext(List<QueryProfiler> profilers) {
+    public ProfilingContext(Map<ShardId, QueryProfiler> profilers) {
         this.profilers = profilers;
         this.durationInMSByTimer = new HashMap<>();
     }
@@ -52,9 +56,10 @@ public class ProfilingContext {
     public Map<String, Object> getDurationInMSByTimer() {
         HashMap<String, Object> builder = new HashMap<>(durationInMSByTimer);
         ArrayList<Map<String, Object>> queryTimings = new ArrayList<>();
-        for (var profiler : profilers) {
+        for (var entry : profilers.entrySet()) {
+            var profiler = entry.getValue();
             for (var profileResult : profiler.getTree()) {
-                queryTimings.add(resultAsMap(profileResult));
+                queryTimings.add(resultAsMap(entry.getKey(), profileResult));
             }
         }
         if (!queryTimings.isEmpty()) {
@@ -63,18 +68,28 @@ public class ProfilingContext {
         return Collections.unmodifiableMap(builder);
     }
 
-    private static Map<String, Object> resultAsMap(ProfileResult profileResult) {
-        HashMap<String, Object> queryTimingsBuilder = new HashMap<>();
+    private static Map<String, Object> resultAsMap(ShardId shardId, ProfileResult profileResult) {
+        TreeMap<String, Object> queryTimingsBuilder = new TreeMap<>();
+        var indexParts = IndexName.decode(shardId.getIndexName());
+        queryTimingsBuilder.put("SchemaName", indexParts.schema());
+        queryTimingsBuilder.put("TableName", indexParts.table());
+        if (indexParts.isPartitioned()) {
+            queryTimingsBuilder.put("PartitionIdent", indexParts.partitionIdent());
+        }
+        queryTimingsBuilder.put("ShardId", shardId.id());
         queryTimingsBuilder.put("QueryName", profileResult.getQueryName());
         queryTimingsBuilder.put("QueryDescription", profileResult.getLuceneDescription());
         queryTimingsBuilder.put("Time", profileResult.getTime() / NS_TO_MS_FACTOR);
         queryTimingsBuilder.put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
-                e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR))
+                e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR,
+                (v1, ignored) -> v1,    // ignore duplicate keys, use the existing first one
+                TreeMap::new
+            ))
         );
         List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
-            .map(ProfilingContext::resultAsMap)
+            .map((ProfileResult pr) -> resultAsMap(shardId, pr))
             .collect(Collectors.toList());
         if (!children.isEmpty()) {
             queryTimingsBuilder.put("Children", children);

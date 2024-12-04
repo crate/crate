@@ -24,22 +24,40 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 public class CeilFunctionTest extends ScalarTestCase {
 
     @Test
+    public void testEvaluateOnNumeric() {
+        assertNormalize("ceil(cast(123.456789 as numeric(9, 6)))", isLiteral(new BigDecimal(124)));
+        assertNormalize("ceil(cast(-123.456789 as numeric(9, 6)))", isLiteral(new BigDecimal(-123)));
+        assertNormalize("ceil(cast(null as numeric))", isLiteral(null, DataTypes.NUMERIC));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("ceil(cast(null as numeric(10, 5)))", isLiteral(null, NumericType.of(List.of(10, 5))));
+    }
+
+    @Test
     public void testEvaluateOnDouble() throws Exception {
         assertNormalize("ceil(29.9)", isLiteral(30L));
+        assertNormalize("ceil(-29.9)", isLiteral(-29L));
         assertNormalize("ceil(null)", isLiteral(null));
     }
 
     @Test
     public void testEvaluateOnFloat() throws Exception {
         assertNormalize("ceil(cast(29.9 as float))", isLiteral(30));
+        assertNormalize("ceil(cast(-29.9 as float))", isLiteral(-29));
         assertNormalize("ceil(cast(null as float))", isLiteral(null, DataTypes.INTEGER));
     }
 

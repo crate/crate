@@ -22,6 +22,7 @@
 package io.crate.expression.operator.any;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -30,7 +31,7 @@ import io.crate.expression.scalar.ScalarTestCase;
 public class AnyNotLikeOperatorTest extends ScalarTestCase {
 
     @Test
-    public void testNormalizeSingleSymbolEqual() {
+    public void testNormalizeSimpleSymbolEqual() {
         assertNormalize("'foo' not like any (['foo'])", isLiteral(false));
         assertNormalize("'notFoo' not like any (['foo'])", isLiteral(true));
 
@@ -146,5 +147,15 @@ public class AnyNotLikeOperatorTest extends ScalarTestCase {
     public void test_wildcard_escaped_in_c_style_string() {
         assertEvaluate("'TextToMatch' NOT LIKE ANY ([E'Te\\%tch'])", false);
         assertEvaluate("'TextToMatch' NOT ILIKE ANY ([E'te\\%tch'])", false);
+    }
+
+    @Test
+    public void test_any_not_like_ilike_with_trailing_escape_character() {
+        assertThatThrownBy(() -> assertEvaluate("'TextToMatch' NOT LIKE ANY (['TextToMatch', 'ab\\'])", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
+        assertThatThrownBy(() -> assertEvaluate("'TextToMatch' NOT ILIKE ANY (['texttomatch', 'ab\\'])", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
     }
 }

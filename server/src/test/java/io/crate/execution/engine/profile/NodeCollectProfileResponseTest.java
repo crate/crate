@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.profile;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +45,6 @@ public class NodeCollectProfileResponseTest {
 
         NodeCollectProfileResponse streamed = new NodeCollectProfileResponse(in);
 
-        assertThat(originalResponse.durationByContextIdent(), is(streamed.durationByContextIdent()));
+        assertThat(originalResponse.durationByContextIdent()).isEqualTo(streamed.durationByContextIdent());
     }
 }

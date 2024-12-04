@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.expression.symbol.Symbols.unwrapReferenceFromCast;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,11 +101,15 @@ public final class UpdateAnalyzer {
         MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
         relation = maybeAliasedStatement.nonAliasedRelation();
 
-        if (!(relation instanceof AbstractTableRelation)) {
+        if (!(relation instanceof AbstractTableRelation<?> table)) {
             throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
         }
-        AbstractTableRelation<?> table = (AbstractTableRelation<?>) relation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, table);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            nodeCtx,
+            RowGranularity.CLUSTER,
+            null,
+            table,
+            f -> f.signature().isDeterministic());
         SubqueryAnalyzer subqueryAnalyzer =
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnCtx));
 
@@ -203,7 +205,6 @@ public final class UpdateAnalyzer {
                             targetCol.ident(),
                             targetCol.granularity(),
                             ((ArrayType<?>) targetCol.valueType()).innerType(),
-                            targetCol.columnPolicy(),
                             targetCol.indexType(),
                             targetCol.isNullable(),
                             targetCol.hasDocValues(),
@@ -221,7 +222,7 @@ public final class UpdateAnalyzer {
 
                     arraySetFunctionAllocator.put(targetCol, indexToUpdate, targetValue);
                     continue;
-                } else if (unwrapReferenceFromCast(baseCol) instanceof Reference targetCol) {
+                } else if (baseCol.uncast() instanceof Reference targetCol) {
                     rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
                 }
             }

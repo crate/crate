@@ -300,6 +300,11 @@ Both ``LIKE`` and ``ILIKE`` support optional ``ESCAPE`` character. When no
 value is provided, backslash character ``\`` is used as the escape character.
 Providing an empty value disables escaping.
 
+.. NOTE::
+
+    The pattern for ``LIKE`` and ``ILIKE`` operators cannot end with the
+    ``ESCAPE`` character.
+
 Example of query with custom ESCAPE::
 
     cr> SELECT 'test' LIKE 'te%' escape 'e' as res;
@@ -449,7 +454,7 @@ does always return ``NULL`` when comparing ``NULL``.
    don't have indices. They only exist for their child columns.
 
    You can either query on inner columns or try the :ref:`null_or_empty
-   <scalar-null-or-empty>` scalar for improved performance.
+   <scalar-null-or-empty-object>` scalar for improved performance.
 
 
 .. _sql_dql_is_not_null:
@@ -474,13 +479,14 @@ does always return ``NULL`` when comparing ``NULL``.
 
 ::
 
-    cr> select name from locations where inhabitants['interests'] is not null;
+    cr> select name from locations where inhabitants['interests'] is not null
+    ... order by name;
     +-------------------+
     | name              |
     +-------------------+
+    | Argabuthon        |
     | Arkintoofle Minor |
     | Bartledan         |
-    | Argabuthon        |
     +-------------------+
     SELECT 3 rows in set (... sec)
 
@@ -500,7 +506,45 @@ does always return ``NULL`` when comparing ``NULL``.
    themselves don't have indices. They only exist for their child columns.
 
    You can either query on inner columns or try the :ref:`null_or_empty
-   <scalar-null-or-empty>` scalar for improved performance.
+   <scalar-null-or-empty-object>` scalar for improved performance.
+
+
+.. _sql_dql_is_distinct_from:
+
+``IS DISTINCT FROM``
+--------------------
+
+Returns ``TRUE`` if ``expr`` is not equal to :ref:`evaluate <gloss-evaluation>`.
+If both expressions are ``NULL`` the result is false. Comparing a non-NULL value
+to ``NULL`` returns ``TRUE`` - ``NULL`` is considered distinct from any value.
+
+Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+.. vale off
+
+:expr:
+  :ref:`Expression <gloss-expression>` of one of the supported
+  :ref:`data types <data-types>` supported by CrateDB.
+
+.. vale on
+
+::
+
+    cr> SELECT
+    ...   name,
+    ...   name IS DISTINCT FROM 'Trillian' as is_distinct,
+    ...   name != 'Trillian' as not_eq
+    ... FROM unnest(['Arthur', 'Trillian', null]) as t(name)
+    ... ORDER BY 1;
+    +----------+-------------+--------+
+    | name     | is_distinct | not_eq |
+    +----------+-------------+--------+
+    | Arthur   | TRUE        | TRUE   |
+    | Trillian | FALSE       | FALSE  |
+    | NULL     | TRUE        | NULL   |
+    +----------+-------------+--------+
+    SELECT 3 rows in set (... sec)
 
 
 .. _sql_dql_array_comparisons:
@@ -658,12 +702,12 @@ The following query negates ``ANY`` using ``!=`` to return all rows where
 element that is not ``netball``::
 
     cr> select inhabitants['name'], inhabitants['interests'] from locations
-    ... where 'netball' != ANY(inhabitants['interests']);
+    ... where 'netball' != ANY(inhabitants['interests']) order by 1;
     +---------------------+------------------------------+
     | inhabitants['name'] | inhabitants['interests']     |
     +---------------------+------------------------------+
-    | Minories            | ["netball", "short stories"] |
     | Argabuthonians      | ["science", "reason"]        |
+    | Minories            | ["netball", "short stories"] |
     +---------------------+------------------------------+
     SELECT 2 rows in set (... sec)
 

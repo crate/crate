@@ -29,15 +29,13 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.netty.channel.PipelineRegistry;
-import io.crate.protocols.http.HttpBlobHandler;
+import io.crate.blob.v2.BlobShard;
 
 public class BlobService extends AbstractLifecycleComponent {
 
@@ -45,19 +43,15 @@ public class BlobService extends AbstractLifecycleComponent {
     private final BlobHeadRequestHandler blobHeadRequestHandler;
     private final ClusterService clusterService;
     private final Client client;
-    private final PipelineRegistry pipelineRegistry;
 
-    @Inject
     public BlobService(ClusterService clusterService,
                        BlobIndicesService blobIndicesService,
                        BlobHeadRequestHandler blobHeadRequestHandler,
-                       Client client,
-                       PipelineRegistry pipelineRegistry) {
+                       Client client) {
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
         this.client = client;
-        this.pipelineRegistry = pipelineRegistry;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -70,10 +64,6 @@ public class BlobService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        pipelineRegistry.addBefore(
-            new PipelineRegistry.ChannelPipelineItem(
-                "aggregator", "blob_handler", netty4CorsConfig -> new HttpBlobHandler(this, blobIndicesService, netty4CorsConfig))
-        );
         blobHeadRequestHandler.registerHandler();
     }
 
@@ -115,4 +105,7 @@ public class BlobService extends AbstractLifecycleComponent {
         throw new MissingHTTPEndpointException("Can't find a suitable http server to serve the blob");
     }
 
+    public BlobShard localBlobShard(String index, String digest) {
+        return blobIndicesService.localBlobShard(index, digest);
+    }
 }

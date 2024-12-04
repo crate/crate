@@ -46,7 +46,7 @@ public class JdbcBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.summits");
         Symbol query = e.asSymbol("x > 10 and x < 40");
         List<Reference> columns = List.of(
-            table.getReadReference(new ColumnIdent("x"))
+            table.getReadReference(ColumnIdent.of("x"))
         );
         String statement = JdbcBatchIterator.generateStatement(
             table.ident(),

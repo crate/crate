@@ -22,16 +22,17 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -39,11 +40,11 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatVectorIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -87,9 +88,15 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         @Override
         public ValueIndexer<? super float[]> valueIndexer(RelationName table,
                                                           Reference ref,
-                                                          Function<String, FieldType> getFieldType,
                                                           Function<ColumnIdent, Reference> getRef) {
-            return new FloatVectorIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new FloatVectorIndexer(ref);
+        }
+
+        @Override
+        public float[] decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+            float[] floats = new float[bytes.length / Float.BYTES];
+            ByteBuffer.wrap(bytes).asFloatBuffer().get(floats);
+            return floats;
         }
     };
 
@@ -166,6 +173,9 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
 
     @Override
     public TypeSignature getTypeSignature() {
+        if (dimensions == 1) {
+            return new TypeSignature(NAME);
+        }
         return new TypeSignature(getName(), List.of(TypeSignature.of(dimensions)));
     }
 
@@ -180,8 +190,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(getName(), List.of(dimensions));
     }
 

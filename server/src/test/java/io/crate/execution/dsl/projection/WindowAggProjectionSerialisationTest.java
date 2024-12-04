@@ -21,10 +21,9 @@
 
 package io.crate.execution.dsl.projection;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Set;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
@@ -42,7 +40,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -52,6 +52,7 @@ public class WindowAggProjectionSerialisationTest {
     private Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testWindowAggProjectionSerialisation() throws IOException {
         FunctionImplementation sumFunctionImpl = getSumFunction();
 
@@ -90,12 +91,12 @@ public class WindowAggProjectionSerialisationTest {
         var actualWindowAggProjection = new WindowAggProjection(in);
 
         assertThat(
-            actualWindowAggProjection.outputs(),
-            contains(standaloneInput, firstWindowFunction, secondWindowFunction));
-        assertThat(actualWindowAggProjection, is(expectedWindowAggProjection));
+            (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, firstWindowFunction, secondWindowFunction);
+        assertThat(actualWindowAggProjection).isEqualTo(expectedWindowAggProjection);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_window_agg_projection_serialization_with_filter_before_4_1_0()
         throws IOException {
         FunctionImplementation sumFunctionImpl = getSumFunction();
@@ -126,22 +127,19 @@ public class WindowAggProjectionSerialisationTest {
         var actualWindowAggProjection = new WindowAggProjection(input);
 
         assertThat(
-            actualWindowAggProjection.outputs(),
-            contains(standaloneInput, windowFunction));
-        assertThat(
-            actualWindowAggProjection.windowFunctions().get(0).filter(),
-            Matchers.nullValue()
-        );
+            (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, windowFunction);
+        assertThat(actualWindowAggProjection.windowFunctions().get(0).filter()).isNull();
     }
 
     private FunctionImplementation getSumFunction() {
         return functions.getQualified(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()),
-            List.of(DataTypes.LONG),
-            DataTypes.LONG
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG),
+                DataTypes.LONG
         );
     }
 }

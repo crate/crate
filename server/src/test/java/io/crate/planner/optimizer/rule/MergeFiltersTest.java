@@ -24,46 +24,36 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
-import java.util.Map;
-import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.RelationName;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.optimizer.costs.PlanStats;
+
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SqlExpressions;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
 public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
-    private SqlExpressions e;
-    private AbstractTableRelation<?> tr1;
-    private PlanStats planStats;
+    private SQLExecutor e;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
-        e = new SqlExpressions(sources);
-        planStats = new PlanStats(e.nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
-        tr1 = (AbstractTableRelation<?>) sources.get(T3.T1);
-
+        e = SQLExecutor.of(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION);
     }
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect source = new Collect(new DocTableRelation(e.schemas().getTableInfo(T3.T1)), Collections.emptyList(), WhereClause.MATCH_ALL);
         Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 
@@ -74,11 +64,8 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isSameAs(parentFilter);
 
         Filter mergedFilter = mergeFilters.apply(match.value(),
-                                                 match.captures(),
-                                                 planStats,
-                                                 CoordinatorTxnCtx.systemTransactionContext(),
-                                                 e.nodeCtx,
-                                                 UnaryOperator.identity());
+            match.captures(),
+            e.ruleContext());
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

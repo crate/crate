@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
@@ -47,8 +47,6 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
@@ -69,6 +67,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
@@ -382,16 +381,13 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(finalSnapshotsInProgress.entries().stream().anyMatch(entry -> entry.state().completed() == false))
             .isFalse();
 
-        ImmutableOpenMap<String, IndexMetadata> state = clusterService().state().metadata().indices();
-        IndexMetadata indexMetadata = state.values().iterator().next().value;
-        int sizeOfProperties = ((Map<?, ?>) indexMetadata.mapping().sourceAsMap().get("properties")).size();
-
+        DocTableInfo table = getTable("test");
         execute("select count(*) from test");
 
         assertThat((Long)response.rows()[0][0])
             .as("Documents were restored but the restored index mapping was older than some " +
                 "documents and misses some of their fields")
-            .isLessThanOrEqualTo(sizeOfProperties);
+            .isLessThanOrEqualTo(table.columns().size());
     }
 
     @Test
@@ -596,6 +592,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             .hasMessageContaining("cannot create snapshot in a readonly repository");
     }
 
+    @Test
     public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
         execute("CREATE TABLE t1 (x int)");
         int numberOfDocs = randomIntBetween(0, 10);
@@ -1096,6 +1093,24 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         restoreWithDifferentName();
         restoreIntoDifferentSchema();
+
+        execute("select * from source.my_table_1 order by id");
+        assertThat(response)
+            .as("Original table must not contain records of the renamed table")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
+
+        execute("select * from source.my_prefix_my_table_1 order by id");
+        assertThat(response)
+            .as("Renamed table must have new records")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
     }
 
     private void restoreWithDifferentName() {

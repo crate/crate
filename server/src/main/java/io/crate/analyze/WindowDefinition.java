@@ -58,7 +58,7 @@ public class WindowDefinition implements Writeable {
     private final WindowFrameDefinition windowFrameDefinition;
 
     public WindowDefinition(StreamInput in) throws IOException {
-        partitions = Symbols.listFromStream(in);
+        partitions = Symbols.fromStream(in);
         orderBy = in.readOptionalWriteable(OrderBy::new);
         windowFrameDefinition = new WindowFrameDefinition(in);
     }
@@ -96,7 +96,7 @@ public class WindowDefinition implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(partitions.size());
         for (Symbol partition : partitions) {
-            Symbols.toStream(partition, out);
+            Symbol.toStream(partition, out);
         }
         out.writeOptionalWriteable(orderBy);
         windowFrameDefinition.writeTo(out);

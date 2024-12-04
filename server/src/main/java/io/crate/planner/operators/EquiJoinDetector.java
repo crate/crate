@@ -47,27 +47,29 @@ import io.crate.sql.tree.JoinType;
  * <li>at least one argument of the {@link EqOperator} must NOT contain fields to multiple tables</li>
  * </ul>
  */
-public class EquiJoinDetector {
+public final class EquiJoinDetector {
+
+    private EquiJoinDetector() {}
 
     private static final Visitor VISITOR = new Visitor();
 
-    public static boolean isHashJoinPossible(JoinType joinType, Symbol joinCondition) {
-        if (joinType != JoinType.INNER) {
+    public static boolean isEquiJoin(Symbol joinCondition) {
+        if (joinCondition == null) {
             return false;
         }
-        return isEquiJoin(joinCondition);
-    }
-
-    public static boolean isEquiJoin(Symbol joinCondition) {
-        assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         joinCondition.accept(VISITOR, context);
         return context.isHashJoinPossible;
     }
 
+    /**
+     * insideEqualOperand is used to mark starting point of the computation of the either sides of equality.
+     *
+     */
     private static class Context {
         boolean exit = false;
         boolean isHashJoinPossible = false;
+        boolean insideEqualOperand = false;
         Set<RelationName> relations = new HashSet<>();
     }
 
@@ -81,27 +83,55 @@ public class EquiJoinDetector {
             String functionName = function.name();
             switch (functionName) {
                 case NotPredicate.NAME -> {
-                    return null;
+                    if (context.insideEqualOperand) {
+                        // Not a top-level expression but inside EQ operator.
+                        // We need to collect all relations.
+                        for (Symbol arg : function.arguments()) {
+                            arg.accept(this, context);
+                        }
+                    } else {
+                        return null;
+                    }
                 }
                 case OrOperator.NAME -> {
-                    context.isHashJoinPossible = false;
-                    context.exit = true;
-                    return null;
+                    if (context.insideEqualOperand) {
+                        // Not a top-level OR.
+                        // It's OR inside either side of the top level EQ operator, keep collecting relations.
+                        for (Symbol arg : function.arguments()) {
+                            arg.accept(this, context);
+                        }
+                    } else {
+                        context.isHashJoinPossible = false;
+                        context.exit = true;
+                        return null;
+                    }
                 }
                 case EqOperator.NAME -> {
                     List<Symbol> arguments = function.arguments();
-
                     var left = arguments.get(0);
-                    var leftContext = new Context();
-                    left.accept(this, leftContext);
-
                     var right = arguments.get(1);
-                    var rightContext = new Context();
-                    right.accept(this, rightContext);
-                    if (leftContext.relations.size() == 1 &&
-                        rightContext.relations.size() == 1 &&
-                        !leftContext.relations.equals(rightContext.relations)) {
-                        context.isHashJoinPossible = true;
+                    if (context.insideEqualOperand) {
+                        // EQ operator inside either side of the top level EQ operator
+                        // We need to re-use the same context to ensure that we keep counting all relations of each JOIN side.
+                        left.accept(this, context);
+                        right.accept(this, context);
+                    } else {
+                        // Top level EQ operator of the JOIN condition.
+                        // There can be nested EQ operators but this is top level equal.
+                        // Start collecting relations for both sides.
+                        var leftContext = new Context();
+                        leftContext.insideEqualOperand = true;
+                        left.accept(this, leftContext);
+
+                        var rightContext = new Context();
+                        rightContext.insideEqualOperand = true;
+                        right.accept(this, rightContext);
+
+                        if (leftContext.relations.size() == 1 &&
+                            rightContext.relations.size() == 1 &&
+                            !leftContext.relations.equals(rightContext.relations)) {
+                            context.isHashJoinPossible = true;
+                        }
                     }
                 }
                 default -> {

@@ -21,7 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class OrderByPositionVisitorTest extends ESTestCase {
             List.<Symbol>of(new InputColumn(0), new InputColumn(1), new InputColumn(0)),
             List.<Symbol>of(Literal.BOOLEAN_TRUE, Literal.of(1))
         );
-        assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
+        assertThat(orderByPositions).isEqualTo(new int[]{0, 1, 0});
     }
 
     @Test
@@ -53,6 +53,6 @@ public class OrderByPositionVisitorTest extends ESTestCase {
             List.of(ref, new InputColumn(1), new InputColumn(0)),
             List.of(ref, Literal.of(1))
         );
-        assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
+        assertThat(orderByPositions).isEqualTo(new int[]{0, 1, 0});
     }
 }

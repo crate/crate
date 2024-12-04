@@ -21,12 +21,12 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
+import io.crate.types.GeoShapeType;
 
 public class PrefixTreeGeoMatchIntegrationTest extends BaseGeoMatchIntegrationTest {
 
     @Override
     String indexType() {
-        return GeoShapeFieldMapper.Names.TREE_GEOHASH;
+        return GeoShapeType.Names.TREE_GEOHASH;
     }
 }

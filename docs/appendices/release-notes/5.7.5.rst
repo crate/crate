@@ -1,0 +1,46 @@
+.. _version_5.7.5:
+
+=============
+Version 5.7.5
+=============
+
+Released on 2024-09-09.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.7.5.
+
+    We recommend that you upgrade to the latest 5.6 release before moving to
+    5.7.5.
+
+    A rolling upgrade from 5.6.x to 5.7.5 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.7.0` release notes for a full list of changes in the
+5.7 series.
+
+
+Fixes
+=====
+
+- Fixed a regression introduced with :ref:`version_5.6.0` that caused an
+  exception when altering a partitioned table where the current number of shards
+  differs from the number of shards of existing partitions.

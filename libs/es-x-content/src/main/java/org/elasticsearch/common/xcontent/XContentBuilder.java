@@ -41,6 +41,8 @@ import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.function.UnaryOperator;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * A utility to build XContent (ie json).
  */
@@ -152,8 +154,16 @@ public final class XContentBuilder implements Closeable, Flushable {
      * to call {@link #close()} when the builder is done with.
      */
     public XContentBuilder(XContent xContent, OutputStream bos) throws IOException {
+        this(xContent, bos, null);
+    }
+
+    /**
+     * Constructs a new builder using the provided XContent and an OutputStream. Make sure
+     * to call {@link #close()} when the builder is done with.
+     */
+    public XContentBuilder(XContent xContent, OutputStream bos, @Nullable String rootValueSeparator) throws IOException {
         this.bos = bos;
-        this.generator = xContent.createGenerator(bos);
+        this.generator = xContent.createGenerator(bos, rootValueSeparator);
     }
 
     public XContentType contentType() {
@@ -786,38 +796,12 @@ public final class XContentBuilder implements Closeable, Flushable {
             value((Iterable<?>) value, writerOverrides);
         } else if (value instanceof Object[]) {
             values((Object[]) value, writerOverrides);
-        } else if (value instanceof ToXContent) {
-            value((ToXContent) value);
         } else if (value instanceof Enum<?>) {
             // Write out the Enum toString
             value(Objects.toString(value));
         } else {
             throw new IllegalArgumentException("cannot write xcontent for unknown value of type " + value.getClass());
         }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // ToXContent
-    //////////////////////////////////
-
-    public XContentBuilder field(String name, ToXContent value) throws IOException {
-        return field(name).value(value);
-    }
-
-    public XContentBuilder field(String name, ToXContent value, ToXContent.Params params) throws IOException {
-        return field(name).value(value, params);
-    }
-
-    private XContentBuilder value(ToXContent value) throws IOException {
-        return value(value, ToXContent.EMPTY_PARAMS);
-    }
-
-    private XContentBuilder value(ToXContent value, ToXContent.Params params) throws IOException {
-        if (value == null) {
-            return nullValue();
-        }
-        value.toXContent(this, params);
-        return this;
     }
 
     ////////////////////////////////////////////////////////////////////////////

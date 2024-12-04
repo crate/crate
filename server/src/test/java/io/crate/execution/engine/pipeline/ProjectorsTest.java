@@ -22,9 +22,7 @@
 package io.crate.execution.engine.pipeline;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -69,7 +67,6 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
         memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
@@ -106,9 +103,9 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             projectorFactory
         );
 
-        assertThat(projectors.providesIndependentScroll(), is(true));
-        assertThat(projectors.projectors.size(), is(1));
-        assertThat(projectors.projectors.get(0), instanceOf(GroupingProjector.class));
+        assertThat(projectors.providesIndependentScroll()).isTrue();
+        assertThat(projectors.projectors).hasSize(1);
+        assertThat(projectors.projectors.get(0)).isExactlyInstanceOf(GroupingProjector.class);
     }
 
 }

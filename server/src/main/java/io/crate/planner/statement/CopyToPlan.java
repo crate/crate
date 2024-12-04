@@ -23,30 +23,30 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -56,16 +56,15 @@ import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -74,22 +73,21 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.sql.tree.Assignment;
-import io.crate.statistics.TableStats;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
 public final class CopyToPlan implements Plan {
 
     private final AnalyzedCopyTo copyTo;
-    private final TableStats tableStats;
 
-    public CopyToPlan(AnalyzedCopyTo copyTo, TableStats tableStats) {
+    public CopyToPlan(AnalyzedCopyTo copyTo) {
         this.copyTo = copyTo;
-        this.tableStats = tableStats;
     }
 
     @VisibleForTesting
@@ -114,7 +112,9 @@ public final class CopyToPlan implements Plan {
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
         ExecutionPlan executionPlan = planCopyToExecution(
             executor,
@@ -135,7 +135,8 @@ public final class CopyToPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyTo.withClauseOptions())
+        );
     }
 
     @VisibleForTesting
@@ -183,11 +184,13 @@ public final class CopyToPlan implements Plan {
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
-                                                         match.captures(),
-                                                         planStats,
-                                                         context.transactionContext(),
-                                                         context.nodeContext(),
-                                                         UnaryOperator.identity());
+                match.captures(),
+                new Rule.Context(
+                    planStats,
+                    context.transactionContext(),
+                    context.nodeContext(),
+                    UnaryOperator.identity()
+                ));
             return plan == null ? collect : plan;
         }
         return collect;
@@ -198,7 +201,8 @@ public final class CopyToPlan implements Plan {
                                    CoordinatorTxnCtx txnCtx,
                                    NodeContext nodeCtx,
                                    Row parameters,
-                                   SubQueryResults subQueryResults) {
+                                   SubQueryResults subQueryResults,
+                                   Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -210,47 +214,29 @@ public final class CopyToPlan implements Plan {
 
         List<String> partitions = resolvePartitions(
             Lists.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
-            table
-        );
+            table,
+            metadata);
 
         List<Symbol> outputs = new ArrayList<>();
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
         final List<String> outputNames = new ArrayList<>(copyTo.columns().size());
-        if (!copyTo.columns().isEmpty()) {
+        if (copyTo.columns().isEmpty() == false) {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
-                RefVisitor.visitRefs(symbol, r -> outputNames.add(r.column().sqlFqn()));
-                outputs.add(DocReferences.toSourceLookup(symbol));
+                symbol.visit(Reference.class, r -> outputNames.add(r.column().sqlFqn()));
+                outputs.add(DocReferences.toDocLookup(symbol));
             }
             columnsDefined = true;
         } else {
-            Symbol toCollect;
-            if (table.isPartitioned() && partitions.isEmpty()) {
-                // table is partitioned, insert partitioned columns into the output
-                overwrites = new HashMap<>();
-                for (Reference reference : table.partitionedByColumns()) {
-                    if (!(reference instanceof GeneratedReference)) {
-                        overwrites.put(reference.column(), reference);
-                    }
-                }
-                if (overwrites.size() > 0) {
-                    toCollect = table.getReference(DocSysColumns.DOC);
-                } else {
-                    var docRef = table.getReference(DocSysColumns.DOC);
-                    assert docRef != null : "_doc reference must be resolvable";
-                    toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
-                }
-            } else {
-                var docRef = table.getReference(DocSysColumns.DOC);
-                assert docRef != null : "_doc reference must be resolvable";
-                toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
-            }
-            outputs = List.of(toCollect);
+            var docRef = table.getReference(SysColumns.DOC);
+            assert docRef != null : "_doc reference must be resolvable";
+            outputs = List.of(docRef.cast(DataTypes.STRING, CastMode.EXPLICIT));
         }
 
-        Settings settings = Settings.builder().put(copyTo.properties().map(eval)).build();
+        GenericProperties<Object> properties = copyTo.properties().map(eval);
+        Settings settings = Settings.builder().put(properties).build();
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
@@ -262,11 +248,17 @@ public final class CopyToPlan implements Plan {
         }
 
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
+        String uri = DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()));
+        if (uri.startsWith("/") || uri.startsWith("file:")) {
+            // Settings of other schemes are validated later in plugins
+            // as only plugins are aware of scheme specific properties.
+            properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_TO_SETTINGS);
+        }
         return new BoundCopyTo(
             outputs,
             table,
             whereClause,
-            Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
+            Literal.of(uri),
             compressionType,
             outputFormat,
             outputNames.isEmpty() ? null : outputNames,
@@ -276,16 +268,12 @@ public final class CopyToPlan implements Plan {
     }
 
     private static List<String> resolvePartitions(List<Assignment<Object>> partitionProperties,
-                                                  DocTableInfo table) {
+                                                  DocTableInfo table,
+                                                  Metadata metadata) {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
-        var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-            table,
-            partitionProperties);
-        if (!table.partitions().contains(partitionName)) {
-            throw new PartitionUnknownException(partitionName);
-        }
+        var partitionName = PartitionName.ofAssignments(table, partitionProperties, metadata);
         return List.of(partitionName.asIndexName());
     }
 }

@@ -63,7 +63,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
-        ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
+        ColumnIdent columnIdent = ColumnIdent.of(parts.get(parts.size() - 1), path);
         switch (parts.size()) {
             case 1:
                 break;

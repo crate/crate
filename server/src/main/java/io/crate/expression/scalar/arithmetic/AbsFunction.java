@@ -21,11 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
+import java.math.MathContext;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -33,12 +35,17 @@ public final class AbsFunction {
 
     public static final String NAME = "abs";
 
+    private AbsFunction() {}
+
     public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             builder.add(
-                scalar(NAME, typeSignature, typeSignature)
-                    .withFeature(Scalar.Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(typeSignature)
+                    .returnType(typeSignature)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .build(),
                 (signature, boundSignature) -> {
                     DataType<?> argType = boundSignature.argTypes().get(0);
                     return new UnaryScalar<>(
@@ -50,5 +57,18 @@ public final class AbsFunction {
                 }
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(
+                signature,
+                boundSignature,
+                DataTypes.NUMERIC,
+                x -> x.abs(MathContext.DECIMAL128)
+            )
+        );
     }
 }

@@ -34,11 +34,9 @@ public class UserMappingsTableInfo {
     public record UserMapping(String userName, String serverName) {
     }
 
-    public static SystemTable<UserMapping> create() {
-        return SystemTable.<UserMapping>builder(IDENT)
-            .add("authorization_identifier", DataTypes.STRING, UserMapping::userName)
-            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_server_name", DataTypes.STRING, UserMapping::serverName)
-            .build();
-    }
+    public static SystemTable<UserMapping> INSTANCE = SystemTable.<UserMapping>builder(IDENT)
+        .add("authorization_identifier", DataTypes.STRING, UserMapping::userName)
+        .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_server_name", DataTypes.STRING, UserMapping::serverName)
+        .build();
 }

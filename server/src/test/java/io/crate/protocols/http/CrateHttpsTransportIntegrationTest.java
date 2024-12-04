@@ -22,20 +22,15 @@
 package io.crate.protocols.http;
 
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.AfterClass;
@@ -87,25 +82,24 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCheckEncryptedConnection() throws Throwable {
-        CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}");
-        assertThat(response, not(nullValue()));
-        assertEquals(200, response.getStatusLine().getStatusCode());
-        String result = EntityUtils.toString(response.getEntity());
-        assertThat(result, containsString("\"rowcount\":1"));
-        assertThat(result, containsString("sslWorks"));
+        HttpResponse<String> response = post("{\"stmt\": \"select 'sslWorks'\"}");
+        assertThat(response).isNotNull();
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("\"rowcount\":1");
+        assertThat(response.body()).contains("sslWorks");
     }
 
     @Test
-    public void testBlobLayer() throws IOException {
+    public void testBlobLayer() throws Exception {
         try {
             execute("create blob table test");
-            String blob = "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600);
-            String blobUrl = upload("test", blob);
-            assertThat(blobUrl, not(isEmptyOrNullString()));
-            HttpGet httpGet = new HttpGet(blobUrl);
-            CloseableHttpResponse response = httpClient.execute(httpGet);
-            assertEquals(200, response.getStatusLine().getStatusCode());
-            assertThat(response.getEntity().getContentLength(), is((long) blob.length()));
+            String blob = "abcdefghijklmnopqrstuvwxyz".repeat(600);
+            URI blobUrl = upload("test", blob);
+            HttpRequest httpRequest = HttpRequest.newBuilder(blobUrl)
+                .build();
+            var response = httpClient.send(httpRequest, BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body().length()).isEqualTo(blob.length());
         } finally {
             execute("drop table if exists test");
         }

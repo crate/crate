@@ -27,17 +27,21 @@ import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -120,10 +124,13 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        RepositoryService repositoryService = new RepositoryService(
-            clusterService,
-            deleteRepositoryAction,
-            putRepo);
+        NodeClient nodeClient = new NodeClient(Settings.EMPTY, THREAD_POOL);
+        nodeClient.initialize(Map.of(
+            PutRepositoryAction.INSTANCE, putRepo,
+            DeleteRepositoryAction.INSTANCE, deleteRepositoryAction
+        ));
+
+        RepositoryService repositoryService = new RepositoryService(clusterService, nodeClient);
         PutRepositoryRequest request = new PutRepositoryRequest("repo1");
         request.type("fs");
         assertThatThrownBy(() -> repositoryService.execute(request).get(10, TimeUnit.SECONDS))

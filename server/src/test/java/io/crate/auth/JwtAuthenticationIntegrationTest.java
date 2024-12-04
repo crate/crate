@@ -21,12 +21,18 @@
 
 package io.crate.auth;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.auth.RsaKeys.PRIVATE_KEY_256;
 import static io.crate.testing.auth.RsaKeys.PUBLIC_KEY_256;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.net.ServerSocket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -36,13 +42,9 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
@@ -57,7 +59,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.crate.http.HttpTestServer;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpRequest;
 
 @UseJdbc(value = 0) // jwt is supported only for http
 public class JwtAuthenticationIntegrationTest extends IntegTestCase {
@@ -85,9 +86,15 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
      *    ]
      * }
      */
-    private static final BiConsumer<HttpRequest, JsonGenerator> jwkRequestHandler =
-        (HttpRequest msg, JsonGenerator generator) -> {
+
+    private final class RequestHandler implements BiConsumer<io.netty.handler.codec.http.HttpRequest, JsonGenerator> {
+
+        AtomicInteger numberOfInvocation = new AtomicInteger(0);
+
+        @Override
+        public void accept(io.netty.handler.codec.http.HttpRequest httpRequest, com.fasterxml.jackson.core.JsonGenerator generator) {
             try {
+                numberOfInvocation.incrementAndGet();
                 KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                 EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(BASE_64_DECODER.decode(PUBLIC_KEY_256));
                 RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
@@ -106,7 +113,9 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
             } catch (Exception e) {
                 throw new RuntimeException(e.getCause());
             }
-        };
+        }
+    }
+
     private HttpTestServer testServer;
     private RSAPrivateKey privateKey;
 
@@ -124,6 +133,10 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                 "a", new String[]{"user", "method", "protocol"}, new String[]{"John", "jwt", "http"})
             .put("auth.host_based.config",
                 "b", new String[]{"user", "method"}, new String[]{"John", "password"})
+            .put("auth.host_based.config",
+                "c", new String[]{"user", "method", "protocol"}, new String[]{"Joe", "jwt", "http"})
+            .put("auth.host_based.config",
+                "d", new String[]{"user", "method"}, new String[]{"Joe", "password"})
             .build();
     }
 
@@ -138,26 +151,42 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
     @After
     public void cleanUp() {
         execute("DROP USER IF EXISTS \"John\"");
+        execute("DROP USER IF EXISTS \"Joe\"");
         if (testServer != null) {
             testServer.shutDown();
         }
     }
 
-    @Test
-    public void test_can_authenticate_with_jwt_token() throws Exception {
-        testServer = new HttpTestServer(0, false, jwkRequestHandler);
-        testServer.run();
+    HttpResponse<String> sendRequest(URI uri, String jwt) throws IOException, InterruptedException {
+        try (var client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt)
+                .header(HttpHeaderNames.ORIGIN.toString(), "http://example.com")
+                .header(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+                .build();
+            return client.send(request, BodyHandlers.ofString());
+        }
+    }
 
+    String jwt(String appUsername, String iss, RSAPrivateKey privateKey) {
         // We use random port for the test suite (assigned by kernel)
         // Port affects url --> affects signature --> need to re-compute payload.
-        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", testServer.boundPort());
-        String appUsername = "cloud_user";
-        String jwt = JWT.create()
+        return JWT.create()
             .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
             .withIssuer(iss)
             .withAudience(clusterService().state().metadata().clusterUUID())
             .withClaim("username", appUsername)
             .sign(Algorithm.RSA256(null, privateKey));
+    }
+
+    @Test
+    public void test_can_authenticate_with_jwt_token() throws Exception {
+        testServer = new HttpTestServer(0, false, new RequestHandler(), Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
+        testServer.run();
+
+        String appUsername = "cloud_user";
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys",testServer.boundPort());
+        String jwt = jwt(appUsername, iss, privateKey);
 
         // Important to surround name with quotes if name used in HBA is not in lowercase
         // Otherwise CREATE USER saves it in lowercase whereas HBA entry was created for "John"
@@ -165,36 +194,76 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
             "WITH (jwt = {\"iss\" = '" + iss + "', \"username\" = '" + appUsername + "'})"
         );
 
+        HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
+        InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+
+        var resp = sendRequest(uri, jwt);
+        assertThat(resp.body()).containsIgnoringWhitespaces("""
+            {
+              "ok" : true,
+              "status" : 200
+            """);
+    }
+
+
+    @Test
+    public void test_can_authenticate_with_jwt_token_cached() throws Exception {
+        RequestHandler requestHandler = new RequestHandler();
+        testServer = new HttpTestServer(0, false, requestHandler, Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
+        testServer.run();
+
+        String appUsername = "cloud_user";
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys",testServer.boundPort());
+        String jwt = jwt(appUsername, iss, privateKey);
+
+        // Important to surround name with quotes if name used in HBA is not in lowercase
+        // Otherwise CREATE USER saves it in lowercase whereas HBA entry was created for "John"
+        execute("CREATE USER \"John\" " +
+            "WITH (jwt = {\"iss\" = '" + iss + "', \"username\" = '" + appUsername + "'})"
+        );
 
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
-        String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpGet request = new HttpGet(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).containsIgnoringWhitespaces("""
-                                                {
-                                                  "ok" : true,
-                                                  "status" : 200
-                                                  """);
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+
+        var resp = sendRequest(uri, jwt);
+        assertThat(resp.body()).containsIgnoringWhitespaces("""
+                {
+                  "ok" : true,
+                  "status" : 200
+                  """);
+
+        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
+
+        // Now try a second time, same domain different user
+        appUsername = "cloud_user_1";
+        jwt = jwt(appUsername, iss, privateKey);
+
+        execute("CREATE USER \"Joe\" " +
+            "WITH (jwt = {\"iss\" = '" + iss + "', \"username\" = '" + appUsername + "'})"
+        );
+
+        resp = sendRequest(uri, jwt);
+        assertThat(resp.body()).containsIgnoringWhitespaces("""
+                {
+                  "ok" : true,
+                  "status" : 200
+                  """);
+
+        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
 
     }
 
     @Test
     public void test_body_jwk_endpoint_not_responding_contains_error() throws Exception {
-        // HttpTestServer is not started in this test, use dummy port
-        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", 1234);
+        int port;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            port = socket.getLocalPort();
+        }
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", port);
         String appUsername = "cloud_user";
-        String jwt = JWT.create()
-            .withHeader(Map.of("typ", "JWT", "alg", "RS256", "kid", KID))
-            .withIssuer(iss)
-            .withAudience(clusterService().state().metadata().clusterUUID())
-            .withClaim("username", appUsername)
-            .sign(Algorithm.RSA256(null, privateKey));
+        String jwt = jwt(appUsername, iss, privateKey);
 
         execute("CREATE USER \"John\" " +
             "WITH (jwt = {\"iss\" = '" + iss + "', \"username\" = '" + appUsername + "'})"
@@ -202,14 +271,9 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
-        String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpGet request = new HttpGet(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+        var resp = sendRequest(uri, jwt);
+        assertThat(resp.body()).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+
     }
 }

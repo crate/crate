@@ -106,6 +106,7 @@ Collecting stats
   execute::
 
     cr> SET GLOBAL "stats.jobs_log_filter" = $$ended - started > '5 minutes'::interval$$;
+    SET OK, 1 row affected (... sec)
 
 .. _stats.jobs_log_persistent_filter:
 
@@ -201,7 +202,12 @@ Shard limits
   | *Default:* 1000
   | *Runtime:* ``yes``
 
-  The maximum amount of shards per node.
+  The maximum number of open primary and replica shards per node. This setting
+  is checked on a shard creation and doesn't limit shards for individual nodes.
+  To limit the number of shards for each node, use
+  :ref:`cluster.routing.allocation.total_shards_per_node
+  <cluster.routing.allocation.total_shards_per_node>` setting.
+  The actual limit being checked is ``max_shards_per_node * number of data nodes``.
 
   Any operations that would result in the creation of additional shard copies
   that would exceed this limit are rejected.
@@ -218,8 +224,15 @@ Shard limits
 
 .. NOTE::
 
-   The maximum amount of shards per node setting is also used for the
+   The maximum number of shards per node setting is also used for the
    :ref:`sys-node_checks_max_shards_per_node` check.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 
 .. _conf_usage_data_collector:
@@ -693,6 +706,12 @@ each node closer together.
   <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
   to equalize the number of shards across all nodes in the cluster.
 
+.. NOTE::
+
+    :ref:`cluster.routing.allocation.balance.shard` and
+    :ref:`cluster.routing.allocation.balance.index` cannot be both set to
+    ``0.0f``.
+
 .. _cluster.routing.allocation.balance.index:
 
 **cluster.routing.allocation.balance.index**
@@ -703,6 +722,12 @@ each node closer together.
   <gloss-shard-allocation>` on a specific node (float). Increasing this value
   raises the tendency to equalize the number of shards per index across all
   nodes in the cluster.
+
+.. NOTE::
+
+    :ref:`cluster.routing.allocation.balance.shard` and
+    :ref:`cluster.routing.allocation.balance.index` cannot be both set to
+    ``0.0f``.
 
 .. _cluster.routing.allocation.balance.threshold:
 
@@ -812,6 +837,9 @@ attribute filtering*.
 
       cluster.routing.allocation.include.zone: "zone1,zone2"`
 
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-include>`.
+
 .. _cluster.routing.allocation.exclude.*:
 
 **cluster.routing.allocation.exclude.***
@@ -824,6 +852,12 @@ attribute filtering*.
 
       cluster.routing.allocation.exclude.zone: "zone1"
 
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-exclude>`.
+
+  Therefore, if a node is excluded from shard allocation by this cluster level
+  setting, the node can still allocate shards if the table setting allows it.
+
 .. _cluster.routing.allocation.require.*:
 
 **cluster.routing.allocation.require.***
@@ -831,6 +865,9 @@ attribute filtering*.
 
   Used to specify a number of rules, which **all** of them must match for a node
   in order to :ref:`allocate a shard  <gloss-shard-allocation>` on it.
+
+  This setting can be overridden for individual tables by the related
+  :ref:`table setting <sql-create-table-routing-allocation-require>`.
 
 
 .. _conf-routing-allocation-disk:
@@ -911,13 +948,20 @@ nodes every 30 seconds. This can also be changed by setting the
    | *Default*: ``-1``
    | *Runtime*: ``yes``
 
-   Limits the number of shards that can be :ref:`allocated
+   Limits the number of primary and replica shards that can be :ref:`allocated
    <gloss-shard-allocation>` per node. A value of ``-1`` means unlimited.
 
    Setting this to ``1000``, for example, will prevent CrateDB from assigning
    more than 1000 shards per node. A node with 1000 shards would be excluded
    from allocation decisions and CrateDB would attempt to allocate shards to
    other nodes, or leave shards unassigned if no suitable node can be found.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 .. _indices.recovery:
 
@@ -1031,6 +1075,15 @@ be allowed to utilize off heap buffers.
 Default value for the :ref:`memory.operation_limit
 session setting <conf-session-memory-operation-limit>`. Changing the cluster
 setting will only affect new sessions, not existing sessions.
+
+Example statement to update the default value to 1 GB, i.e. 1073741824 bytes::
+
+    cr> SET GLOBAL "memory.operation_limit" = 1073741824;
+    SET OK, 1 row affected (... sec)
+
+Operations that hit this memory limit will trigger a ``CircuitBreakingException``
+that can be handled in the application to inform the user about too much memory
+consumption for the particular query.
 
 Query circuit breaker
 ---------------------
@@ -1432,6 +1485,14 @@ Chunk size to transfer files during the initial recovery of a replicating table.
 
 Controls the number of file chunk requests that can be sent in parallel between
 clusters during the recovery.
+
+.. hide:
+
+   cr> RESET GLOBAL "stats.jobs_log_filter"
+   RESET OK, 1 row affected (... sec)
+
+   cr> RESET GLOBAL "memory.operation_limit"
+   RESET OK, 1 row affected (... sec)
 
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

@@ -151,10 +151,12 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             @Override
             public void onResponse(ShardResponse response) {
                 nodeLimit.onSample(startTime, false);
+                long totalBytesUsed = 0;
+                for (var item : request.items()) {
+                    totalBytesUsed += item.ramBytesUsed();
+                }
                 synchronized (ramAccounting) {
-                    for (var item : request.items()) {
-                        ramAccounting.addBytes(- item.ramBytesUsed());
-                    }
+                    ramAccounting.addBytes(- totalBytesUsed);
                 }
                 TAcc acc = collector.supplier().get();
                 try {
@@ -168,10 +170,12 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             @Override
             public void onFailure(Exception e) {
                 nodeLimit.onSample(startTime, true);
+                long totalBytesUsed = 0;
+                for (var item : request.items()) {
+                    totalBytesUsed += item.ramBytesUsed();
+                }
                 synchronized (ramAccounting) {
-                    for (var item : request.items()) {
-                        ramAccounting.addBytes(- item.ramBytesUsed());
-                    }
+                    ramAccounting.addBytes(- totalBytesUsed);
                 }
                 future.completeExceptionally(e);
             }

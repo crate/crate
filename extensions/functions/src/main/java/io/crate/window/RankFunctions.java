@@ -23,6 +23,7 @@ package io.crate.window;
 
 import java.util.List;
 import java.util.function.IntBinaryOperator;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +32,9 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -65,7 +68,8 @@ public class RankFunctions implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
@@ -89,10 +93,11 @@ public class RankFunctions implements WindowFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.window(
-                RANK_NAME,
-                DataTypes.INTEGER.getTypeSignature()
-                ),
+            Signature.builder(RANK_NAME, FunctionType.WINDOW)
+                .argumentTypes()
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new RankFunctions(
                     signature,
@@ -102,10 +107,11 @@ public class RankFunctions implements WindowFunction {
         );
 
         builder.add(
-            Signature.window(
-                DENSE_RANK_NAME,
-                DataTypes.INTEGER.getTypeSignature()
-            ),
+            Signature.builder(DENSE_RANK_NAME, FunctionType.WINDOW)
+                .argumentTypes()
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new RankFunctions(
                     signature,

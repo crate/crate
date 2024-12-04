@@ -21,21 +21,22 @@
 
 package io.crate.testing;
 
-import io.crate.types.DataType;
+import java.util.Arrays;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.Arrays;
+
+import io.crate.types.DataType;
 
 public class SQLResponse {
 
     private String[] cols;
-    private DataType[] colTypes;
+    private DataType<?>[] colTypes;
     private Object[][] rows;
     private long rowCount;
 
     SQLResponse(String[] cols,
                 Object[][] rows,
-                DataType[] colTypes,
+                DataType<?>[] colTypes,
                 long rowCount) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
         this.cols = cols;
@@ -48,7 +49,7 @@ public class SQLResponse {
         return cols;
     }
 
-    public DataType[] columnTypes() {
+    public DataType<?>[] columnTypes() {
         return colTypes;
     }
 

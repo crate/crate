@@ -33,6 +33,7 @@ import io.crate.data.CloseableIterator;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -75,7 +76,11 @@ public final class CorrelatedJoinProjector implements Projector {
         private final Collector<Row, ?, ?> collector;
 
         public BindAndExecuteSubQuery() {
-            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType());
+            this.collector = FirstColumnConsumers.getCollector(
+                correlatedSubQuery.getResultType(),
+                correlatedSubQuery.innerType(),
+                RamAccounting.NO_ACCOUNTING
+            );
         }
 
         @Override

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 
 import org.elasticsearch.Version;
 import org.junit.Before;
@@ -102,11 +103,28 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    protected void assertEvaluate(String functionExpression,
+                   Object[] expectedValue,
+                   List<ColumnIdent> rowsColumnDescription,
+                   LongConsumer allocateBytes,
+                   Object[]... inputRows
+                   ) throws Throwable {
+        evaluate(functionExpression, expectedValue, rowsColumnDescription, allocateBytes, inputRows);
+    }
+
     protected void assertEvaluate(String functionExpression,
                                   Object[] expectedValue,
                                   List<ColumnIdent> rowsColumnDescription,
                                   Object[]... inputRows) throws Throwable {
+        evaluate(functionExpression, expectedValue, rowsColumnDescription, ignored -> {}, inputRows);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private void evaluate(String functionExpression,
+                          Object[] expectedValue,
+                          List<ColumnIdent> rowsColumnDescription,
+                          LongConsumer allocateBytes,
+                          Object[]... inputRows) throws Throwable {
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
@@ -153,7 +171,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         var mappedWindowDef = windowDef.map(s -> InputColumns.create(s, inputColSources));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).toList(), SENTINEL,
-                                     true),
+                true),
+            allocateBytes,
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
             WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),

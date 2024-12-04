@@ -21,14 +21,12 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.common.exceptions.Exceptions;
-import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.InputRow;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -38,14 +36,17 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
+
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.InputRow;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 
 /**
  * BatchIterator implementation which exposes the data stored in a lucene index.
@@ -59,7 +60,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     private final Query query;
     private final CollectorContext collectorContext;
     private final boolean doScores;
-    private final LuceneCollectorExpression[] expressions;
+    private final LuceneCollectorExpression<?>[] expressions;
     private final List<LeafReaderContext> leaves;
     private final InputRow row;
     private Weight weight;

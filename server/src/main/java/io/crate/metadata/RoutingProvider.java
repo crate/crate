@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -48,6 +46,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -121,13 +120,13 @@ public final class RoutingProvider {
 
     public Routing forIndices(ClusterState state,
                               String[] concreteIndices,
-                              Map<String, Set<String>> routingValuesByIndex,
+                              Set<String> routingValues,
                               boolean ignoreMissingShards,
                               ShardSelection shardSelection) {
 
         Set<IndexShardRoutingTable> shards;
         try {
-            shards = computeTargetedShards(state, concreteIndices, routingValuesByIndex);
+            shards = computeTargetedShards(state, concreteIndices, routingValues);
         } catch (IndexNotFoundException e) {
             return new Routing(Collections.emptyMap());
         }
@@ -190,14 +189,13 @@ public final class RoutingProvider {
 
     private static Set<IndexShardRoutingTable> computeTargetedShards(ClusterState clusterState,
                                                                      String[] concreteIndices,
-                                                                     Map<String, Set<String>> routing) {
+                                                                     Set<String> routingValues) {
         LinkedHashSet<IndexShardRoutingTable> set = new LinkedHashSet<>();
         for (String index : concreteIndices) {
             final IndexRoutingTable indexRouting = indexRoutingTable(clusterState, index);
             final IndexMetadata indexMetadata = indexMetadata(clusterState, index);
-            final Set<String> effectiveRouting = routing.get(index);
-            if (effectiveRouting != null) {
-                for (String r : effectiveRouting) {
+            if (!routingValues.isEmpty()) {
+                for (String r : routingValues) {
                     final int routingPartitionSize = indexMetadata.getRoutingPartitionSize();
                     for (int partitionOffset = 0; partitionOffset < routingPartitionSize; partitionOffset++) {
                         set.add(shardRoutingTable(indexRouting, calculateScaledShardId(indexMetadata, r, partitionOffset)));

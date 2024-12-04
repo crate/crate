@@ -21,15 +21,16 @@
 
 package io.crate.expression;
 
+import java.util.List;
+import java.util.function.Predicate;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.function.Predicate;
 
 public class RowFilter implements Predicate<Row> {
 
@@ -43,10 +44,10 @@ public class RowFilter implements Predicate<Row> {
         return new RowFilter(txnCtx, inputFactory, filterSymbol);
     }
 
+    @SuppressWarnings("unchecked")
     private RowFilter(TransactionContext txnCtx, InputFactory inputFactory, Symbol filterSymbol) {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
-        //noinspection unchecked
-        filterCondition = (Input) ctx.add(filterSymbol);
+        filterCondition = (Input<Boolean>) ctx.add(filterSymbol);
         expressions = ctx.expressions();
     }
 

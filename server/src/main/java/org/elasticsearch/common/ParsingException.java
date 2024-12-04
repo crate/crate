@@ -19,15 +19,14 @@
 
 package org.elasticsearch.common;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentLocation;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
-
-import java.io.IOException;
 
 /**
  * Exception that can be used when parsing queries with a given {@link
@@ -41,11 +40,7 @@ public class ParsingException extends ElasticsearchException {
     private final int columnNumber;
 
     public ParsingException(XContentLocation contentLocation, String msg, Object... args) {
-        this(contentLocation, msg, null, args);
-    }
-
-    public ParsingException(XContentLocation contentLocation, String msg, Throwable cause, Object... args) {
-        super(msg, cause, args);
+        super(msg, null, args);
         int lineNumber = UNKNOWN_POSITION;
         int columnNumber = UNKNOWN_POSITION;
         if (contentLocation != null) {
@@ -56,15 +51,6 @@ public class ParsingException extends ElasticsearchException {
         this.lineNumber = lineNumber;
     }
 
-    /**
-     * This constructor is provided for use in unit tests where a
-     * {@link XContentParser} may not be available
-     */
-    public ParsingException(int line, int col, String msg, Throwable cause) {
-        super(msg, cause);
-        this.lineNumber = line;
-        this.columnNumber = col;
-    }
 
     public ParsingException(StreamInput in) throws IOException {
         super(in);
@@ -93,14 +79,6 @@ public class ParsingException extends ElasticsearchException {
     @Override
     public RestStatus status() {
         return RestStatus.BAD_REQUEST;
-    }
-
-    @Override
-    protected void metadataToXContent(XContentBuilder builder, Params params) throws IOException {
-        if (lineNumber != UNKNOWN_POSITION) {
-            builder.field("line", lineNumber);
-            builder.field("col", columnNumber);
-        }
     }
 
     @Override

@@ -1,0 +1,121 @@
+.. _version_5.8.5:
+
+=============
+Version 5.8.5
+=============
+
+Released on 2024-10-28.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.8.5.
+
+    We recommend that you upgrade to the latest 5.7 release before moving to
+    5.8.5.
+
+    A rolling upgrade from 5.7.x to 5.8.5 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.8.0` release notes for a full list of changes in the
+5.8 series.
+
+Fixes
+=====
+
+- Fixed an issue which would allow to cast a number to a
+  :ref:`NUMERIC<type-numeric>`, even if the ``NUMERIC``'s' precision and scale
+  would not be sufficient to fit the number without loosing precision, instead
+  of throwing an error, e.g.::
+
+      SELECT CAST(123.45 as NUMERIC(4, 2))
+
+- Fixed and issue that would cause error to be thrown when using correlated
+  subquery with join on a primary key column, e.g.::
+
+      CREATE TABLE tbl(x int PRIMARY KEY);
+      SELECT (
+          SELECT x FROM tbl a WHERE a.x = b.x LIMIT 1
+      ) AS t
+      FROM (SELECT x FROM tbl) as b;
+
+- Fixed an issue that would cause an error to be thrown when trying to get ``0``
+  numeric value from a query when using
+  :ref:`PostgreSQL wire protocol<interface-postgresql>`,  e.g.::
+
+      SELECT 0::numeric;
+
+- Fixed behavior of comparing (``=``, ``>``, etc. ) a column of type
+  :ref:`CHAR<type-char>` with string literals, so that any trailing whitespaces
+  are ignored for both sides of the comparison, thus matching PostgreSQL
+  behavior.
+
+- Fixed an issue that could cause comparisons (``=``, ``>``, etc. ) of columns
+  of :ref:`CHAR<type-char>` type to yield different results when in the
+  ``WHERE`` clause, than in any other part of a query, e.g. in the ``SELECT``
+  clause.
+
+- Fixed an issue that led to a ``NullPointerException`` when the same filter
+  expression was used multiple times in an aggregation on an aliased table. For
+  example::
+
+      SELECT
+          alias1.country,
+          MAX(height) FILTER (WHERE height>0) as max_height,
+          MAX(prominence) FILTER (WHERE height>0) as max_prominence
+      FROM
+          sys.summits alias1
+      GROUP BY
+          alias1.country
+      LIMIT 100;
+
+- Fixed an issue that would cause users and roles to loose irrelevant
+  privileges, like: ``Administration Language (AL)``, when a table or a view
+  is dropped.
+
+- Improved the memory accounting for values of type ``geo_shape`` to avoid
+  running into out of memory errors or higher than expected GC load when running
+  queries like ``INSERT INTO ... (query)``.
+
+- Fixed a regression introduced in 5.8.4 leading to a rejection of writes into
+  a column of the ``OBJECT(IGNORED)`` type if it had an array sub-column with
+  mixed types.
+
+- Fixed an issue resulting in different (and partly wrong)
+  ``sys.allocations.decisions`` results when querying the table on different
+  nodes.
+
+- Fixed an incorrect optimization of comparison operators in combination with
+  array subscript expression, :ref:`ANY <sql_any_array_comparison>`,
+  :ref:`ARRAY_UPPER <scalar-array_upper>` and
+  :ref:`ARRAY_LENGTH <scalar-array_length>` function argument whereas the array
+  (or array element) column has an explicit cast. Such queries may return wrong
+  results as the explicit cast was removed. Example:
+
+  ``WHERE my_array[1]::timestamptz > 3::timestamptz``
+
+- Fixed an issue that caused ``=`` comparison on
+  :ref:`NUMERIC <type-numeric>` types with unmatched precisions and scales to
+  return invalid results or throw an ``IllegalStateException``.
+
+- Fixed an issue that caused write operations to fail if a table contains a
+  generated ``geo_shape`` column with type ``Polygon``, ``MultiPolygon``,
+  ``LineString`` or ``MultiLineString`` and a user provides a correct value for
+  this generated column.

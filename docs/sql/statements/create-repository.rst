@@ -434,6 +434,25 @@ Parameters
       CrateDB masks this parameter. You cannot query the parameter value from
       the :ref:`sys.repositories <sys-repositories>` table.
 
+.. _sql-create-repo-azure-sas-token:
+
+**sas_token**
+  | *Type:*    ``text``
+
+  The Shared Access Signatures (SAS) token used for authentication for the Azure
+  Storage account. This can be used as an alternative to the Azure Storage
+  account secret key.
+
+  The SAS token must have read, write, list, and delete permissions for the
+  repository base path and all its contents. These permissions need to be
+  granted for the blob service and apply to resource types service, container,
+  and object.
+
+  .. NOTE::
+
+      CrateDB masks this parameter. You cannot query the parameter value from
+      the :ref:`sys.repositories <sys-repositories>` table.
+
 .. _sql-create-repo-azure-endpoint:
 
 **endpoint**
@@ -777,6 +796,6 @@ Parameters
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
 .. _Google Cloud Storage: https://cloud.google.com/storage/
-.. _Google Service account: https://cloud.google.com/iam/docs/overview#service_account
+.. _Google Service account: https://cloud.google.com/iam/docs/overview#service-account
 .. _Google Service account credentials: https://cloud.google.com/storage/docs/authentication?hl=en
 .. _PKCS 8: https://en.wikipedia.org/wiki/PKCS_8

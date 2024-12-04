@@ -19,8 +19,7 @@
 
 package org.elasticsearch.test;
 
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -37,13 +36,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Assert;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
@@ -259,7 +257,9 @@ public class BackgroundIndexer implements AutoCloseable {
 
     public void awaitStopped() throws InterruptedException {
         assert stop.get();
-        Assert.assertThat("timeout while waiting for indexing threads to stop", stopLatch.await(6, TimeUnit.MINUTES), equalTo(true));
+        assertThat(stopLatch.await(6, TimeUnit.MINUTES))
+            .as("timeout while waiting for indexing threads to stop")
+            .isTrue();
         if (failureAssertion == null) {
             assertNoFailures();
         }
@@ -277,7 +277,7 @@ public class BackgroundIndexer implements AutoCloseable {
 
     public void assertNoFailures() {
         synchronized (failures) {
-            Assert.assertThat(failures, emptyIterable());
+            assertThat(failures).isEmpty();
         }
     }
 

@@ -222,8 +222,11 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
         if (node.getWhere().isPresent()) {
             node.getWhere().get().accept(this, context);
         }
-        for (Expression expression : node.getGroupBy()) {
-            expression.accept(this, context);
+        if (node.getGroupBy().isPresent()) {
+            GroupBy groupBy = node.getGroupBy().get();
+            for (Expression expression : groupBy.getExpressions()) {
+                expression.accept(this, context);
+            }
         }
         if (node.getHaving().isPresent()) {
             node.getHaving().get().accept(this, context);
@@ -270,8 +273,8 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
         node.getLeft().accept(this, context);
         node.getRight().accept(this, context);
 
-        if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn) {
-            ((JoinOn) node.getCriteria().get()).getExpression().accept(this, context);
+        if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn joinOn) {
+            joinOn.getExpression().accept(this, context);
         }
 
         return null;

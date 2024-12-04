@@ -50,7 +50,7 @@ public class LimitAndOffsetProjection extends Projection {
     public LimitAndOffsetProjection(StreamInput in) throws IOException {
         offset = in.readVInt();
         limit = in.readVInt();
-        outputs = Symbols.listFromStream(in);
+        outputs = Symbols.fromStream(in);
     }
 
     @Override

@@ -34,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -44,14 +45,18 @@ import io.crate.types.ObjectType;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
-    private QueryTester tester;
+    protected QueryTester tester;
+
+    protected Version tableVersionCreatedToTest() {
+        return Version.CURRENT;
+    }
 
     @Before
     public void setUpTester() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
             THREAD_POOL,
             clusterService,
-            Version.CURRENT,
+            tableVersionCreatedToTest(),
             "create table t (xs array(integer))"
         );
         tester = builder
@@ -65,7 +70,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 List.of(10, 10),
                 List.of(10, 20),
                 List.of(10, 10, 20),
-                List.of(10, 20, 30)
+                List.of(10, 20, 30),
+                Arrays.asList(new Integer[] { null }),
+                Arrays.asList(null, null),
+                Arrays.asList(null, null, null),
+                Arrays.asList(null, 1),
+                Arrays.asList(null, null, 1),
+                Arrays.asList(null, 1, 1)
             )
             .build();
     }
@@ -84,7 +95,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(new Integer[] { null }),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -98,7 +115,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(new Integer[] { null }),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -109,7 +132,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -122,7 +150,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(new Integer[] { null }),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -131,7 +165,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -142,7 +179,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -171,7 +213,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            Arrays.asList(new Integer[] { null })
         );
     }
 
@@ -184,7 +227,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            Arrays.asList(new Integer[] { null }),
+            Arrays.asList(null, null),
+            Arrays.asList(null, null, null),
+            Arrays.asList(null, 1),
+            Arrays.asList(null, null, 1),
+            Arrays.asList(null, 1, 1)
         );
     }
 
@@ -195,7 +244,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10),
             List.of(20),
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            Arrays.asList(new Integer[] { null }),
+            Arrays.asList(null, null),
+            Arrays.asList(null, 1)
         );
     }
 
@@ -204,7 +256,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            Arrays.asList(new Integer[] { null })
         );
     }
 
@@ -213,7 +266,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            Arrays.asList(null, null),
+            Arrays.asList(null, 1)
         );
     }
 
@@ -227,7 +282,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             // This is temporary as long as interval is not fully implemented
             if (type.storageSupport() == null || type instanceof FloatVectorType) {
                 continue;
@@ -237,7 +292,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 while (innerType instanceof FloatVectorType || innerType instanceof ObjectType) {
                     innerType = DataTypeTesting.randomType();
                 }
-                type = ObjectType.builder()
+                type = ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("x", innerType)
                     .build();
             }
@@ -277,7 +332,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
                 if (type.id() != ObjectType.ID) {
-                    assertThat(arrayType.compare((List<?>) result.get(0), arr)).isEqualTo(0);
+                    assertThat(arrayType.compare((List<?>) result.get(0), arr))
+                        .as("unexpected lists for type " + type + ":" + result.get(0) + " vs " + arr)
+                        .isEqualTo(0);
                 }
             }
         }

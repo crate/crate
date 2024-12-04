@@ -37,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
@@ -50,9 +51,7 @@ import io.crate.types.TypeSignature;
 public class SignatureBinderTest extends ESTestCase {
 
     private static Signature.Builder functionSignature() {
-        return Signature.builder()
-            .name("function")
-            .kind(SCALAR);
+        return Signature.builder("function", SCALAR);
     }
 
     @Test
@@ -245,7 +244,7 @@ public class SignatureBinderTest extends ESTestCase {
 
         assertThatSignature(getValueFunction)
             .boundTo(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("V", DataTypes.LONG).build(),
                 DataTypes.STRING)
             .produces(new BoundVariables(
@@ -256,7 +255,7 @@ public class SignatureBinderTest extends ESTestCase {
 
         assertThatSignature(getValueFunction)
             .boundTo(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("V", DataTypes.LONG).build(),
                 DataTypes.LONG)
             .withoutCoercion()
@@ -555,7 +554,7 @@ public class SignatureBinderTest extends ESTestCase {
 
     @Test
     public void testNumericParameters() {
-        NumericType dt = NumericType.of(10, 2);
+        NumericType dt = new NumericType(10, 2);
         assertThatSignature(NumericSumAggregation.SIGNATURE)
             .boundTo(dt)
             .hasReturnType(dt);
@@ -568,13 +567,14 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(TypeSignature.parse("numeric"), TypeSignature.parse("numeric"))
             .build();
 
+        NumericType numericType = new NumericType(10, 2);
         BoundSignature expected = new BoundSignature(
             List.of(NumericType.INSTANCE, NumericType.INSTANCE),
-            NumericType.of(10, 2)
+            numericType
         );
 
         assertThatSignature(foo)
-            .boundTo(NumericType.INSTANCE, NumericType.of(10, 2))
+            .boundTo(NumericType.INSTANCE, numericType)
             .hasBoundSignature(expected);
     }
 

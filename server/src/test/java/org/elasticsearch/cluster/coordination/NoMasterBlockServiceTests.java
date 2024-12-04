@@ -18,13 +18,12 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_ALL;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_SETTING;
 import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_WRITES;
 import static org.elasticsearch.common.settings.ClusterSettings.BUILT_IN_CLUSTER_SETTINGS;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -42,17 +41,17 @@ public class NoMasterBlockServiceTests extends ESTestCase {
 
     public void testBlocksWritesByDefault() {
         createService(Settings.EMPTY);
-        assertThat(noMasterBlockService.getNoMasterBlock(), sameInstance(NO_MASTER_BLOCK_WRITES));
+        assertThat(noMasterBlockService.getNoMasterBlock()).isSameAs(NO_MASTER_BLOCK_WRITES);
     }
 
     public void testBlocksWritesIfConfiguredBySetting() {
         createService(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "write").build());
-        assertThat(noMasterBlockService.getNoMasterBlock(), sameInstance(NO_MASTER_BLOCK_WRITES));
+        assertThat(noMasterBlockService.getNoMasterBlock()).isSameAs(NO_MASTER_BLOCK_WRITES);
     }
 
     public void testBlocksAllIfConfiguredBySetting() {
         createService(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "all").build());
-        assertThat(noMasterBlockService.getNoMasterBlock(), sameInstance(NO_MASTER_BLOCK_ALL));
+        assertThat(noMasterBlockService.getNoMasterBlock()).isSameAs(NO_MASTER_BLOCK_ALL);
     }
 
     public void testRejectsInvalidSetting() {
@@ -63,9 +62,9 @@ public class NoMasterBlockServiceTests extends ESTestCase {
 
     public void testSettingCanBeUpdated() {
         createService(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "all").build());
-        assertThat(noMasterBlockService.getNoMasterBlock(), sameInstance(NO_MASTER_BLOCK_ALL));
+        assertThat(noMasterBlockService.getNoMasterBlock()).isSameAs(NO_MASTER_BLOCK_ALL);
 
         clusterSettings.applySettings(Settings.builder().put(NO_MASTER_BLOCK_SETTING.getKey(), "write").build());
-        assertThat(noMasterBlockService.getNoMasterBlock(), sameInstance(NO_MASTER_BLOCK_WRITES));
+        assertThat(noMasterBlockService.getNoMasterBlock()).isSameAs(NO_MASTER_BLOCK_WRITES);
     }
 }

@@ -191,7 +191,7 @@ public class SelectivityFunctions {
         }
 
         Scalar<Boolean, Object> operator = (Scalar<Boolean, Object>) nodeCtx.functions().getQualified(function);
-        MostCommonValues mostCommonValues = lhsStats.mostCommonValues();
+        MostCommonValues<?> mostCommonValues = lhsStats.mostCommonValues();
         double selectivity = 0.0;
         for (int i = 0; i < mostCommonValues.length(); i++) {
             Object value = mostCommonValues.value(i);
@@ -245,8 +245,8 @@ public class SelectivityFunctions {
                 return 1.0 / lhsStats.approxDistinct();
             }
 
-            MostCommonValues lhsMcv = lhsStats.mostCommonValues();
-            MostCommonValues rhsMcv = rhsStats.mostCommonValues();
+            MostCommonValues<?> lhsMcv = lhsStats.mostCommonValues();
+            MostCommonValues<?> rhsMcv = rhsStats.mostCommonValues();
 
             if (!lhsMcv.isEmpty() && !rhsMcv.isEmpty()) {
                 return selectivityFromMvcMatches(lhsStats, rhsStats);
@@ -267,15 +267,15 @@ public class SelectivityFunctions {
     }
 
     private static double clamp(double value) {
-        return Math.min(Math.max(value, 0.0), 1.0);
+        return Math.clamp(value, 0.0, 1.0);
     }
 
     /**
      * See PostgreSQL src/backend/utils/adt/selfuncs.c  `eqjoinsel_inner`
      */
     private static double selectivityFromMvcMatches(ColumnStats<?> lhsStats, ColumnStats<?> rhsStats) {
-        MostCommonValues lhsMcv = lhsStats.mostCommonValues();
-        MostCommonValues rhsMcv = rhsStats.mostCommonValues();
+        MostCommonValues<?> lhsMcv = lhsStats.mostCommonValues();
+        MostCommonValues<?> rhsMcv = rhsStats.mostCommonValues();
         boolean[] hasmatch1 = new boolean[lhsMcv.length()];
         boolean[] hasmatch2 = new boolean[rhsMcv.length()];
 
@@ -346,7 +346,7 @@ public class SelectivityFunctions {
             totalsel2 += otherfreq2 * (otherfreq1 + unmatchfreq1) / (nd1 - numMatches);
         }
 
-        return (totalsel1 < totalsel2) ? totalsel1 : totalsel2;
+        return Math.min(totalsel1, totalsel2);
     }
 
     private static double eqSelectivityFromValueAndStats(Object value, ColumnStats<?> columnStats) {
@@ -365,12 +365,10 @@ public class SelectivityFunctions {
 
     @Nullable
     private static ColumnIdent getColumn(Symbol symbol) {
-        if (symbol instanceof Reference ref) {
-            return ref.column();
-        } else if (symbol instanceof ScopedSymbol) {
-            return ((ScopedSymbol) symbol).column();
-        } else {
-            return null;
-        }
+        return switch (symbol) {
+            case Reference ref -> ref.column();
+            case ScopedSymbol scopedSymbol -> scopedSymbol.column();
+            default -> null;
+        };
     }
 }

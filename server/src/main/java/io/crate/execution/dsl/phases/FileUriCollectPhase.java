@@ -21,23 +21,24 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.projection.Projection;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.planner.distribution.DistributionInfo;
 
 public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
@@ -127,7 +128,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         super(in);
         compression = in.readOptionalString();
         sharedStorage = in.readOptionalBoolean();
-        targetUri = Symbols.fromStream(in);
+        targetUri = Symbol.fromStream(in);
         int numNodes = in.readVInt();
         List<String> nodes = new ArrayList<>(numNodes);
         for (int i = 0; i < numNodes; i++) {
@@ -139,7 +140,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         } else {
             targetColumns = List.of();
         }
-        toCollect = Symbols.listFromStream(in);
+        toCollect = Symbols.fromStream(in);
         inputFormat = InputFormat.values()[in.readVInt()];
         if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
             parserProperties = new CopyFromParserProperties(in);
@@ -158,7 +159,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         super.writeTo(out);
         out.writeOptionalString(compression);
         out.writeOptionalBoolean(sharedStorage);
-        Symbols.toStream(targetUri, out);
+        Symbol.toStream(targetUri, out);
         out.writeVInt(executionNodes.size());
         for (String node : executionNodes) {
             out.writeString(node);

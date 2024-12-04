@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -134,8 +135,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
         assertThat(jwtAuth.name()).isEqualTo("jwt");
 
@@ -164,8 +166,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> clusterId
+            Settings.EMPTY,
+            () -> clusterId,
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -191,8 +194,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         );
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> clusterId
+            Settings.EMPTY,
+            () -> clusterId,
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -225,8 +229,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -256,8 +261,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(jwt);
@@ -275,8 +281,9 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Roles roles = () -> List.of(JWT_USER);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction("RS384"),
-            () -> "dummy"
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction("RS384")
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -290,11 +297,49 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     }
 
     @Test
+    public void test_token_issuer_and_resolved_issuer_mistmatch_throws_error() throws Exception {
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
+        String jwt = JWT.create()
+            .withHeader(
+                Map.of(
+                    "typ","JWT",
+                    "alg", "RS256",
+                    "kid", "1",
+                    "aud", "test_cluster_id" // Aligned with JWT_USER's properties.
+                )
+            )
+            .withIssuer("https://malicious.server") // Different from JWT_USER's properties.
+            .withClaim("username", "cloud_user") // Aligned with JWT_USER's properties.
+            .sign(Algorithm.RSA256(null, privateKey));
+
+        Credentials credentials = new Credentials(jwt);
+        credentials.setUsername(JWT_USER.name());
+
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            () -> List.of(JWT_USER),
+            Settings.EMPTY,
+            () -> null,
+            jwkProviderFunction(null)
+        );
+
+        assertThatThrownBy(
+            () -> jwtAuth.authenticate(credentials, null))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("jwt authentication failed for user John. Reason: The Claim 'iss' value doesn't match the required issuer.");
+    }
+
+    @Test
     @SuppressWarnings("resource")
     public void test_jwt_authentication_user_not_found_throws_error() throws Exception {
         // Testing a scenario when user is looked up by iss/username, name is set to Credentials
         // but during authentication user cannot be found by name (for example, could be dropped in a meantime).
-        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(List::of, null, () -> "dummy");
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            List::of,
+            Settings.EMPTY,
+            () -> "dummy"
+        );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
         credentials.setUsername(JWT_USER.name());
@@ -307,34 +352,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     @SuppressWarnings("resource")
-    public void test_jwt_authentication_malformed_endpoint_throws_error() throws Exception {
-        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(PRIVATE_KEY_256));
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        RSAPrivateKey privateKey = (RSAPrivateKey) kf.generatePrivate(privateKeySpec);
-        // Not using pre-generated JWT_TOKEN as it has a valid url.
-        String jwt = JWT.create()
-            .withHeader(Map.of("typ", "JWT", "kid", "1"))
-            .withIssuer("https-:\\bad_url")
-            .withClaim("username", "app_user")
-            .sign(Algorithm.RSA256(null, privateKey));
-
-        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
-            () -> List.of(JWT_USER),
-            JWTAuthenticationMethod::jwkProvider,
-            () -> "dummy"
-        );
-
-        Credentials credentials = new Credentials(jwt);
-        credentials.setUsername(JWT_USER.name());
-
-        assertThatThrownBy(
-            () -> jwtAuth.authenticate(credentials, null))
-            .isExactlyInstanceOf(RuntimeException.class)
-            .hasMessage("jwt authentication failed for user John. Reason: Invalid jwks uri");
-    }
-
-    @Test
-    @SuppressWarnings("resource")
     public void test_jwt_authentication_claim_mismatch_throws_error() throws Exception {
         Role userWithModifiedJwtProperty = new Role(
             JWT_USER.name(),
@@ -342,13 +359,15 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             Set.of(),
             Set.of(),
             null,
-            new JwtProperties("dummy", "dummy", null)
+            new JwtProperties("dummy", "dummy", null),
+            Map.of()
         );
         Roles roles = () -> List.of(userWithModifiedJwtProperty);
         JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
             roles,
-            jwkProviderFunction(null),
-            () -> "dummy"
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction(null)
         );
 
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -358,6 +377,38 @@ public class UserAuthenticationMethodTest extends ESTestCase {
             () -> jwtAuth.authenticate(credentials, null))
             .isExactlyInstanceOf(RuntimeException.class)
             .hasMessage("jwt authentication failed for user John. Reason: The Claim 'iss' value doesn't match the required issuer.");
+    }
+
+    @Test
+    public void test_jwt_authentication_user_has_no_jwt_properties_default_is_used() throws Exception {
+        String tokenUsername = "cloud_user"; // Token payload dictates CrateDB username.
+        Roles roles = () -> List.of(
+            userOf(
+                tokenUsername,
+                Set.of(),
+                new HashSet<>(),
+                getSecureHash("pwd")
+            )
+        );
+        var settings = Settings.builder()
+            // Matches JWT_TOKEN payload.
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING.getKey(), "https://console.cratedb-dev.cloud/api/v2/meta/jwk/")
+            // Matches JWT_TOKEN payload.
+            .put(AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING.getKey(), "test_cluster_id")
+            .build();
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            settings,
+            () -> null, // ClusterId supplier is not used, aud is taken from defaults
+            jwkProviderFunction(null)
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        credentials.setUsername(tokenUsername);
+
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        assertThat(authenticatedRole).isNotNull();
+        assertThat(authenticatedRole.name()).isEqualTo(tokenUsername);
     }
 
     private static Function<String, JwkProvider> jwkProviderFunction(String algorithm) throws Exception {
@@ -372,6 +423,6 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         when(mockJwkProvider.get(KID)).thenReturn(mockJwk);
         when(mockJwk.getPublicKey()).thenReturn(publicKey);
         when(mockJwk.getAlgorithm()).thenReturn(algorithm);
-        return ignored -> mockJwkProvider;
+        return _ -> mockJwkProvider;
     }
 }

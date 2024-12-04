@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -113,7 +113,7 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
                 remainingBytes -= bytesRead;
 
-                var listener = new PlainActionFuture<TransportResponse>();
+                var listener = new PlainFuture<TransportResponse>();
                 transportService.sendRequest(
                     recipientNode,
                     BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,

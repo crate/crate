@@ -26,10 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -39,7 +37,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -47,9 +44,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -64,7 +59,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.IndexItem;
@@ -76,7 +70,6 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -84,8 +77,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -94,7 +87,6 @@ import io.crate.metadata.doc.DocTableInfo;
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
-
     private final Schemas schemas;
     private final NodeContext nodeCtx;
     private final TransportAddColumnAction addColumnAction;
@@ -109,8 +101,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
-                                      NodeContext nodeCtx,
-                                      Schemas schemas) {
+                                      NodeContext nodeCtx) {
         super(
             settings,
             ShardUpsertAction.NAME,
@@ -122,8 +113,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             shardStateAction,
             ShardUpsertRequest::new
         );
-        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
+        this.schemas = nodeCtx.schemas();
         this.addColumnAction = addColumnAction;
         tasksService.addListener(this);
     }
@@ -135,8 +126,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
-        var mapperService = indexShard.mapperService();
-        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from table, they could be stale (dynamic references already added)
@@ -161,9 +150,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Indexer indexer = new Indexer(
             indexName,
             tableInfo,
+            indexShard.getVersionCreated(),
             txnCtx,
             nodeCtx,
-            getFieldType,
             insertColumns,
             request.returnValues()
         );
@@ -173,9 +162,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             updatingIndexer = new Indexer(
                 request.index(),
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 updateToInsert.columns(),
                 request.returnValues()
             );
@@ -201,13 +190,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         RawIndexer rawIndexer = null;
 
-        if (firstColumnIdent.equals(DocSysColumns.RAW)) {
+        if (firstColumnIdent.equals(SysColumns.RAW)) {
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 request.returnValues(),
                 List.of() // Non deterministic synthetics is not needed on primary
             );
@@ -251,20 +240,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     logger.debug("Failed to execute upsert on nodeName={}, shardId={} id={} error={}", clusterService.localNode().getName(), request.shardId(), item.id(), e);
                 }
 
-                // *mark* the item as failed by setting the source to null
+                // *mark* the item as failed by setting the sequence number
                 // to prevent the replica operation from processing this concrete item
-                item.source(null);
                 item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
                 if (!request.continueOnError()) {
                     shardResponse.failure(e);
                     break;
                 }
-                shardResponse.add(location,
-                    new ShardResponse.Failure(
-                        item.id(),
-                        getExceptionMessage(e),
-                        (e instanceof VersionConflictEngineException)));
+                shardResponse.add(
+                    location,
+                    item.id(),
+                    e,
+                    (e instanceof VersionConflictEngineException)
+                );
             } catch (AssertionError e) {
                 // Shouldn't happen in production but helps during development
                 // where bugs may trigger assertions
@@ -276,83 +265,32 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
-    private static String getExceptionMessage(Throwable e) {
-        if (SQLExceptions.isDocumentAlreadyExistsException(e)) {
-            return "A document with the same primary key exists already";
-        }
-        var message = e.getMessage();
-        return message != null ? message : e.getClass().getName();
-    }
-
-    private WriteReplicaResult<ShardUpsertRequest> legacyReplicaOp(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
-        boolean traceEnabled = logger.isTraceEnabled();
-        Translog.Location location = null;
-        for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA || item.source() == null) {
-                if (traceEnabled) {
-                    logger.trace(
-                        "[{} (R)] Document with id={}, marked as skip_on_replica",
-                        indexShard.shardId(),
-                        item.id()
-                    );
-                }
-                continue;
+    private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
+        for (ShardUpsertRequest.Item item : req.items()) {
+            if (item.seqNo() != SequenceNumbers.SKIP_ON_REPLICA) {
+                return false;
             }
-            SourceToParse sourceToParse = new SourceToParse(
-                request.index(),
-                item.id(),
-                item.source(),
-                XContentType.JSON
-            );
-            IndexResult result = indexShard.applyIndexOperationOnReplica(
-                item.seqNo(),
-                item.primaryTerm(),
-                item.version(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                false,
-                sourceToParse
-            );
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                // Even though the primary waits on all nodes to ack the mapping changes to the master
-                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                // applied the new mapping, so there is no other option than to wait.
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
-            }
-            location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(location, null, indexShard);
+        return true;
     }
 
     @Override
-    protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
+    protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Reference[] insertColumns = request.insertColumns();
         if (insertColumns == null) {
-            return legacyReplicaOp(indexShard, request);
+            // On the primary, update columns get converted to insert columns, so
+            // if we encounter a request on the replica that has no insert columns,
+            // this should mean that there are either no items to index, or that
+            // all items on the primary errored out and so should be ignored.
+            assert noItemsToIndexOnReplica(request);
+            return new WriteReplicaResult(null, null, indexShard);
         }
-        // If an item has a source, parse it instead of using Indexer
-        // The request may come from an older node in a mixed cluster.
-        // In that case the insertColumns/values won't always include undeterministic generated columns
-        // and we'd risk generating new diverging values on the replica
-        for (var item : request.items()) {
-            if (item.source() != null) {
-                return legacyReplicaOp(indexShard, request);
-            }
-        }
-
 
         Translog.Location location = null;
         String indexName = request.index();
         boolean traceEnabled = logger.isTraceEnabled();
         RelationName relationName = RelationName.fromIndexName(indexName);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName);
-        var mapperService = indexShard.mapperService();
-        Function<String, FieldType> getFieldType = mapperService::getLuceneFieldType;
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from cluster state because ObjectType
@@ -367,7 +305,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         RawIndexer rawIndexer;
         Indexer indexer;
-        if (insertColumns[0].column().equals(DocSysColumns.RAW)) {
+        if (insertColumns[0].column().equals(SysColumns.RAW)) {
             // Even if insertColumns supposed to have a single column _raw,
             // insertColumns can be expanded to add non-deterministic synthetics.
             // We must not check that insertColumns.length is 1
@@ -376,9 +314,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             rawIndexer = new RawIndexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 null,
                 targetColumns.subList(1, targetColumns.size()) // expanded refs (non-deterministic synthetics)
             );
@@ -387,9 +325,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indexer = new Indexer(
                 indexName,
                 tableInfo,
+                indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 targetColumns,
                 null
             );
@@ -410,9 +348,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
             if (!newColumns.isEmpty()) {
-                // this forces clearing the cache
-                schemas.tableExists(relationName);
-
                 // Even though the primary waits on all nodes to ack the mapping changes to the master
                 // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
                 // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
@@ -428,7 +363,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
             ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
 
-            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
                 uid,
@@ -449,7 +384,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
             location = result.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(location, null, indexShard);
+        return new WriteReplicaResult(location, null, indexShard);
     }
 
     /**
@@ -485,32 +420,25 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         ? Versions.MATCH_ANY
                         : Versions.MATCH_DELETED;
                 } else {
-                    SourceParser sourceParser;
                     DocTableInfo actualTable = tableInfo;
                     if (isRetry) {
                         // Get most-recent table info, could have changed (new columns, dropped columns)
                         actualTable = schemas.getTableInfo(tableInfo.ident());
                     }
-                    if (item.updateAssignments() != null && item.updateAssignments().length > 0) {
-                        // Use the source parser without registering any concrete column to get the complete
-                        // source which is required to write a new document with the updated values
-                        sourceParser = new SourceParser(actualTable.droppedColumns(), actualTable.lookupNameBySourceKey());
-                    } else {
-                        // No source is required for simple inserts and duplicate detection
-                        sourceParser = null;
-                    }
+                    assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
+                    assert updateToInsert != null;
+                    assert item.updateAssignments() != null && item.updateAssignments().length > 0;
                     Doc doc = getDocument(
                         indexShard,
                         item.id(),
                         item.version(),
                         item.seqNo(),
                         item.primaryTerm(),
-                        sourceParser);
+                        actualTable);
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
-                    assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
                 return insert(
@@ -527,7 +455,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
                     item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
-                    item.source(null);
                     return null;
                 }
                 Symbol[] updateAssignments = item.updateAssignments();
@@ -573,11 +500,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        @Nullable RawIndexer rawIndexer,
                                        long version) throws Exception {
         final long startTime = System.nanoTime();
-
         List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
         var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        if (!newColumns.isEmpty()) {
+        if (newColumns.isEmpty() == false) {
             var addColumnRequest = new AddColumnRequest(
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
                 newColumns,
@@ -585,7 +511,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
-            schemas.tableExists(relationName); // triggers cache invalidation
             DocTableInfo actualTable = schemas.getTableInfo(relationName);
             if (rawIndexer != null) {
                 rawIndexer.updateTargets(actualTable::getReference);
@@ -604,7 +529,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.insertValues(rawIndexer.addGeneratedValues(item));
         }
 
-        Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+        Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,
@@ -648,10 +573,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                    long version,
                                    long seqNo,
                                    long primaryTerm,
-                                   @Nullable SourceParser sourceParser) {
+                                   DocTableInfo table) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(
-                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, sourceParser);
+                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, table, null);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

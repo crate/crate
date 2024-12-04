@@ -21,6 +21,13 @@
 
 package io.crate.license;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.NamedDiff;
@@ -30,15 +37,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Kept for BWC so it can still be streamed when coming from a CrateDB < 4.5 node
@@ -77,14 +76,6 @@ public class License extends AbstractNamedDiffable<Metadata.Custom> implements M
      *     }
      * </pre>
      */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder
-            .startObject(WRITEABLE_TYPE)
-            .field("license_key", licenseKey)
-            .endObject();
-    }
-
     public static License fromXContent(XContentParser parser) throws IOException {
         String licenseKey = null;
         // advance from metadata START_OBJECT

@@ -26,11 +26,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.SequencedSet;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -99,6 +101,18 @@ public final class Lists {
         for (T item : list2) {
             if (!list1.contains(item)) {
                 result.add(item);
+            }
+        }
+        return result;
+    }
+
+    public static SequencedSet<?> flattenUnique(Iterable<?> items) {
+        LinkedHashSet<Object> result = new LinkedHashSet<>();
+        for (var element : items) {
+            if (element instanceof Iterable<?> l) {
+                result.addAll(flattenUnique(l));
+            } else {
+                result.add(element);
             }
         }
         return result;

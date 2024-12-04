@@ -20,113 +20,91 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+
 
 /**
- * Request class to shrink an index into a single shard
+ * Request resize of a table or partition
  */
-public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements IndicesRequest {
+public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
-    private CreateIndexRequest targetIndexRequest;
-    private String sourceIndex;
-    private ResizeType type = ResizeType.SHRINK;
-    private Boolean copySettings;
+    private final RelationName table;
+    private final List<String> partitionValues;
+    private final int newNumShards;
 
-    public ResizeRequest(String targetIndex, String sourceIndex) {
-        this.targetIndexRequest = new CreateIndexRequest(targetIndex);
-        this.sourceIndex = sourceIndex;
+    public ResizeRequest(RelationName table, List<String> partitionValues, int newNumShards) {
+        this.table = table;
+        this.partitionValues = partitionValues;
+        this.newNumShards = newNumShards;
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
         super(in);
-        targetIndexRequest = new CreateIndexRequest(in);
-        sourceIndex = in.readString();
-        type = in.readEnum(ResizeType.class);
-        copySettings = in.readOptionalBoolean();
+        if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+            table = new RelationName(in);
+            int numValues = in.readVInt();
+            partitionValues = new ArrayList<>(numValues);
+            for (int i = 0; i < numValues; i++) {
+                partitionValues.add(in.readOptionalString());
+            }
+            newNumShards = in.readVInt();
+        } else {
+            CreateIndexRequest targetIndexRequest = new CreateIndexRequest(in);
+            String sourceIndex = in.readString();
+            in.readEnum(ResizeType.class);
+            in.readOptionalBoolean();
+
+            IndexParts indexParts = IndexName.decode(sourceIndex);
+            table = indexParts.toRelationName();
+            if (indexParts.isPartitioned()) {
+                partitionValues = PartitionName.decodeIdent(indexParts.partitionIdent());
+            } else {
+                partitionValues = List.of();
+            }
+            newNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexRequest.settings());
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        targetIndexRequest.writeTo(out);
-        out.writeString(sourceIndex);
-        out.writeEnum(type);
-        out.writeOptionalBoolean(copySettings);
-    }
-
-    @Override
-    public String[] indices() {
-        return new String[] {sourceIndex};
-    }
-
-    @Override
-    public IndicesOptions indicesOptions() {
-        return IndicesOptions.lenientExpandOpen();
-    }
-
-    /**
-     * Returns the {@link CreateIndexRequest} for the shrink index
-     */
-    public CreateIndexRequest getTargetIndexRequest() {
-        return targetIndexRequest;
-    }
-
-    /**
-     * Returns the source index name
-     */
-    public String getSourceIndex() {
-        return sourceIndex;
-    }
-
-    /**
-     * Sets the number of shard copies that should be active for creation of the
-     * new shrunken index to return. Defaults to {@link ActiveShardCount#DEFAULT}, which will
-     * wait for one shard copy (the primary) to become active. Set this value to
-     * {@link ActiveShardCount#ALL} to wait for all shards (primary and all replicas) to be active
-     * before returning. Otherwise, use {@link ActiveShardCount#from(int)} to set this value to any
-     * non-negative integer, up to the number of copies per shard (number of replicas + 1),
-     * to wait for the desired amount of shard copies to become active before returning.
-     * Index creation will only wait up until the timeout value for the number of shard copies
-     * to be active before returning.  Check {@link ResizeResponse#isShardsAcknowledged()} to
-     * determine if the requisite shard copies were all started before returning or timing out.
-     *
-     * @param waitForActiveShards number of active shard copies to wait on
-     */
-    public void setWaitForActiveShards(ActiveShardCount waitForActiveShards) {
-        this.getTargetIndexRequest().waitForActiveShards(waitForActiveShards);
-    }
-
-    /**
-     * The type of the resize operation
-     */
-    public void setResizeType(ResizeType type) {
-        this.type = Objects.requireNonNull(type);
-    }
-
-    /**
-     * Returns the type of the resize operation
-     */
-    public ResizeType getResizeType() {
-        return type;
-    }
-
-    public void setCopySettings(final Boolean copySettings) {
-        if (copySettings != null && copySettings == false) {
-            throw new IllegalArgumentException("[copySettings] can not be explicitly set to [false]");
+        if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+            table.writeTo(out);
+            out.writeVInt(partitionValues.size());
+            for (String value : partitionValues) {
+                out.writeOptionalString(value);
+            }
+            out.writeVInt(newNumShards);
+        } else {
+            // Without knowing the current number of shards it's not possible to infer if
+            // the request should use SPLIT or SHRINK
+            // 5.10 nodes can handle resize sent from older nodes but not the other way around
+            throw new UnsupportedOperationException("Cannot resize tables if older nodes are in the cluster");
         }
-        this.copySettings = copySettings;
     }
 
-    public Boolean getCopySettings() {
-        return copySettings;
+    public RelationName table() {
+        return table;
+    }
+
+    public List<String> partitionValues() {
+        return partitionValues;
+    }
+
+    public int newNumShards() {
+        return newNumShards;
     }
 }

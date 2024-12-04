@@ -23,20 +23,22 @@ package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
 import static io.crate.testing.Asserts.assertSQLError;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
@@ -92,13 +94,18 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
         String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpOptions request = new HttpOptions(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.getStatusLine().getReasonPhrase()).isEqualTo("OK");
+
+        try (var httpClient = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(uri))
+                .method("OPTIONS", BodyPublishers.noBody())
+                .setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==")
+                .setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com")
+                .setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+        }
     }
 
     @Test

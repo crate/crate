@@ -24,6 +24,7 @@ package io.crate.metadata;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -56,7 +58,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference reference1 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType1,
-                                                         ColumnPolicy.IGNORED,
                                                          IndexType.PLAIN,
                                                          false,
                                                          true,
@@ -67,7 +68,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference reference2 = new SimpleReference(referenceIdent,
                                                          RowGranularity.DOC,
                                                          dataType2,
-                                                         ColumnPolicy.IGNORED,
                                                          IndexType.PLAIN,
                                                          false,
                                                          true,
@@ -88,7 +88,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -117,7 +116,6 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -144,7 +142,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs varchar(40))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
@@ -163,7 +161,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -182,7 +180,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table tbl (xs float storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -197,11 +195,47 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_streaming_column_policy_removed_on_or_after_5_10_0() throws IOException {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "o");
+        var dataType = new ArrayType<>(ObjectType.of(ColumnPolicy.IGNORED)
+            .setInnerType("o2", ObjectType.of(ColumnPolicy.STRICT).build())
+            .build());
+        SimpleReference reference = new SimpleReference(
+            referenceIdent,
+            RowGranularity.DOC,
+            dataType,
+            IndexType.FULLTEXT,
+            false,
+            true,
+            0,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null
+        );
+        var expectedType = new ArrayType<>(ObjectType.of(ColumnPolicy.IGNORED)
+            // inner object's column policy cannot be recovered, STRICT > DYNAMIC
+            .setInnerType("o2", ObjectType.of(ColumnPolicy.DYNAMIC).build())
+            .build());
+        SimpleReference expectedRef = (SimpleReference) reference.withValueType(expectedType);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_9_0);
+        Reference.toStream(out, reference);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_5_9_0);
+        Reference reference2 = Reference.fromStream(in);
+
+        assertThat(reference2).isEqualTo(expectedRef);
+    }
+
+    @Test
     public void test_mapping_generation_default_expression() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string default 'foo')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)

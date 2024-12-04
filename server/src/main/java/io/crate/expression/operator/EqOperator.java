@@ -21,17 +21,17 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.common.collections.Lists.flattenUnique;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -40,23 +40,26 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.scalar.NumTermsPerDocQuery;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -72,13 +75,13 @@ public final class EqOperator extends Operator<Object> {
 
     public static final String NAME = "op_=";
 
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            TypeSignature.parse("E"),
-            TypeSignature.parse("E"),
-            Operator.RETURN_TYPE.getTypeSignature()
-        ).withFeature(Feature.NULLABLE)
-        .withTypeVariableConstraints(typeVariable("E"));
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"),
+            TypeSignature.parse("E"))
+        .returnType(Operator.RETURN_TYPE.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, EqOperator::new);
@@ -131,7 +134,7 @@ public final class EqOperator extends Operator<Object> {
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
                 storageIdentifier,
-                ArrayType.unnest(dataType),
+                dataType,
                 (Collection<?>) value,
                 context,
                 ref.hasDocValues(),
@@ -143,17 +146,18 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
+        if (column.equals(SysColumns.ID.COLUMN.name())) {
+            ArrayList<BytesRef> bytesRefs = new ArrayList<>(values.size());
+            for (Object value : values) {
+                if (value != null) {
+                    bytesRefs.add(Uid.encodeId(value.toString()));
+                }
+            }
+            return bytesRefs.isEmpty() ? null : new TermInSetQuery(column, bytesRefs);
+        }
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
             return null;
-        }
-        if (column.equals(DocSysColumns.ID.name())) {
-            BytesRef[] bytesRefs = new BytesRef[nonNullValues.size()];
-            for (int i = 0; i < bytesRefs.length; i++) {
-                Object idObject = nonNullValues.get(i);
-                bytesRefs[i] = Uid.encodeId(idObject.toString());
-            }
-            return new TermInSetQuery(column, bytesRefs);
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
@@ -186,47 +190,75 @@ public final class EqOperator extends Operator<Object> {
 
     private static Query termsAndGenericFilter(Function function,
                                                String column,
-                                               DataType<?> elementType,
+                                               DataType<?> arrayType,
                                                Collection<?> values,
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(column);
-        if (fieldType == null) {
-            if (elementType.id() == ObjectType.ID) {
-                return null; // Fallback to generic filter on ARRAY(OBJECT)
-            }
-            // field doesn't exist, can't match
-            return newUnmappedFieldQuery(column);
-        }
+        return termsAndGenericFilter(
+            function,
+            column,
+            arrayType,
+            values,
+            context,
+            hasDocValues,
+            indexType,
+            Occur.MUST
+        );
+    }
 
+    /**
+     *
+     * @param termQueryOccur Defines how the inner type termQuery is build to satisfy a possible negation of the
+     *                       whole query. This is used for cases like IS DISTINCT FROM.
+     */
+    public static Query termsAndGenericFilter(Function function,
+                                              String column,
+                                              DataType<?> arrayType,
+                                              Collection<?> values,
+                                              Context context,
+                                              boolean hasDocValues,
+                                              IndexType indexType,
+                                              Occur termQueryOccur) {
+        var canUseArrayLengthIndex = context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
         if (values.isEmpty()) {
-            // `arrayRef = []` - termsQuery would be null
+            if (canUseArrayLengthIndex) {
+                var arrayLengthTermQuery = ArrayIndexer.arrayLengthTermQuery(
+                    context.tableInfo().getReference(column),
+                    0,
+                    context.tableInfo()::getReference);
+                return termQueryOccur == Occur.MUST_NOT ? Queries.not(arrayLengthTermQuery) : arrayLengthTermQuery;
+            } else {
+                // `arrayRef = []` - termsQuery would be null
 
-            if (fieldType.hasDocValues() == false) {
-                //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
-                return genericFunctionFilter;
+                if (hasDocValues == false) {
+                    //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
+                    return genericFunctionFilter;
+                }
+
+                filterClauses.add(
+                    NumTermsPerDocQuery.forColumn(column, arrayType, numDocs -> numDocs == 0),
+                    termQueryOccur
+                );
+                // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
+                // NULL values are not in the index.
+                filterClauses.add(genericFunctionFilter, Occur.MUST);
             }
-
-            filterClauses.add(
-                NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),
-                BooleanClause.Occur.MUST
-            );
-            // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
-            // NULL values are not in the index.
-            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         } else {
+            // There is no benefit of using array length queries for eqOperator on non-empty arrays,
+            // see https://github.com/crate/crate/pull/16479#issuecomment-2310825868
+
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
+            Query termsQuery = termsQuery(column, arrayType, flattenUnique(values), hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
-            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
+            filterClauses.add(termsQuery, termQueryOccur);
+            filterClauses.add(genericFunctionFilter, Occur.MUST);
         }
         return filterClauses.build();
     }
@@ -234,7 +266,7 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query fromPrimitive(DataType<?> type, String column, Object value, boolean hasDocValues, IndexType indexType) {
-        if (column.equals(DocSysColumns.ID.name())) {
+        if (column.equals(SysColumns.ID.COLUMN.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         StorageSupport<?> storageSupport = type.storageSupport();
@@ -259,12 +291,16 @@ public final class EqOperator extends Operator<Object> {
      *      o = {x=10, y=20}    -> generic(o == {x=10, y=20})
      * }
      * </pre>
+     *
+     * @param termQueryOccur Defines how each object children termQuery is build to satisfy a possible negation of the
+     *                       whole query. This is used for cases like IS DISTINCT FROM.
      **/
-    private static Query refEqObject(Function eq,
-                                     ColumnIdent columnIdent,
-                                     ObjectType type,
-                                     Map<String, Object> value,
-                                     Context context) {
+    public static Query refEqObject(Function eq,
+                                    ColumnIdent columnIdent,
+                                    ObjectType type,
+                                    Map<String, Object> value,
+                                    Context context,
+                                    Occur termQueryOccur) {
         BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
         int preFilters = 0;
         for (Map.Entry<String, Object> entry : value.entrySet()) {
@@ -280,16 +316,20 @@ public final class EqOperator extends Operator<Object> {
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
                 innerQuery = termsAndGenericFilter(
-                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
+                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType(), termQueryOccur);
             } else {
                 innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
+                // instead of adding a MUST_NOT clause for the negation, we negate the innerQuery to also match null values
+                if (termQueryOccur == Occur.MUST_NOT) {
+                    innerQuery = Queries.not(innerQuery);
+                }
             }
             if (innerQuery == null) {
                 continue;
             }
 
             preFilters++;
-            boolBuilder.add(innerQuery, BooleanClause.Occur.MUST);
+            boolBuilder.add(innerQuery, Occur.MUST);
         }
         if (preFilters > 0 && preFilters == value.size()) {
             return boolBuilder.build();
@@ -298,9 +338,17 @@ public final class EqOperator extends Operator<Object> {
             if (preFilters == 0) {
                 return genericEqFilter;
             } else {
-                boolBuilder.add(genericFunctionFilter(eq, context), BooleanClause.Occur.FILTER);
+                boolBuilder.add(genericFunctionFilter(eq, context), Occur.FILTER);
                 return boolBuilder.build();
             }
         }
+    }
+
+    private static Query refEqObject(Function eq,
+                                    ColumnIdent columnIdent,
+                                    ObjectType type,
+                                    Map<String, Object> value,
+                                    Context context) {
+        return refEqObject(eq, columnIdent, type, value, context, Occur.MUST);
     }
 }

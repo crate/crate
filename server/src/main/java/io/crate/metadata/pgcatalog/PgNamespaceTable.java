@@ -21,14 +21,14 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.SchemaInfo;
-
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.table.SchemaInfo;
 
 public final class PgNamespaceTable {
 
@@ -36,14 +36,12 @@ public final class PgNamespaceTable {
 
     private PgNamespaceTable() {}
 
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("oid", INTEGER, s -> schemaOid(s.name()))
-            .add("nspname", STRING, SchemaInfo::name)
-            .add("nspowner", INTEGER, c -> 0)
-            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
-            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L508
-            .add("nspacl", STRING_ARRAY, c -> null)
-            .build();
-    }
+    public static SystemTable<SchemaInfo> INSTANCE = SystemTable.<SchemaInfo>builder(IDENT)
+        .add("oid", INTEGER, s -> schemaOid(s.name()))
+        .add("nspname", STRING, SchemaInfo::name)
+        .add("nspowner", INTEGER, c -> 0)
+        // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+        // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L508
+        .add("nspacl", STRING_ARRAY, c -> null)
+        .build();
 }

@@ -21,54 +21,17 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-
-public class FloatColumnReference extends LuceneCollectorExpression<Float> {
-
-    private final String columnName;
-    private SortedNumericDocValues values;
-    private int docId;
+public class FloatColumnReference extends NumericColumnReference<Float> {
 
     public FloatColumnReference(String columnName) {
-        this.columnName = columnName;
+        super(columnName);
     }
 
     @Override
-    public Float value() {
-        try {
-            if (values.advanceExact(docId)) {
-                switch (values.docValueCount()) {
-                    case 1:
-                        return NumericUtils.sortableIntToFloat((int) values.nextValue());
-
-                    default:
-                        throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    protected Float convert(long input) {
+        return NumericUtils.sortableIntToFloat((int) input);
     }
 
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
-    }
 }

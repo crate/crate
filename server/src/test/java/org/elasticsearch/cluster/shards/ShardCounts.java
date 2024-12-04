@@ -19,10 +19,9 @@
 
 package org.elasticsearch.cluster.shards;
 
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
-import org.junit.Assert;
 
 public class ShardCounts {
     private final int shardsPerNode;
@@ -46,8 +45,10 @@ public class ShardCounts {
     }
 
     public static ShardCounts forDataNodeCount(int dataNodes) {
-        Assert.assertThat("this method will not work reliably with this many data nodes due to the limit of shards in a single index," +
-            "use fewer data nodes or multiple indices", dataNodes, lessThanOrEqualTo(90));
+        assertThat(dataNodes)
+            .as("this method will not work reliably with this many data nodes due to the limit of shards in a single index," +
+                "use fewer data nodes or multiple indices")
+            .isLessThanOrEqualTo(90);
         int mainIndexReplicas = ESTestCase.between(0, dataNodes - 1);
         int mainIndexShards = ESTestCase.between(1, 10);
         int totalShardsInIndex = (mainIndexReplicas + 1) * mainIndexShards;

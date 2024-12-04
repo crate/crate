@@ -21,9 +21,11 @@
 
 package io.crate.execution.engine.export;
 
+import java.net.URI;
+
 import org.elasticsearch.common.settings.Settings;
 
 public interface FileOutputFactory {
 
-    FileOutput create(Settings withClauseOptions);
+    FileOutput create(URI uri, Settings withClauseOptions);
 }

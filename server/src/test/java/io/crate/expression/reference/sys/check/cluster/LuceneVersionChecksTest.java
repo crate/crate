@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -31,15 +31,15 @@ public class LuceneVersionChecksTest extends ESTestCase {
 
     @Test
     public void testUpgradeRequired() {
-        assertThat(LuceneVersionChecks.isUpgradeRequired(null), is(false));
-        assertThat(LuceneVersionChecks.isUpgradeRequired("4.9.0"), is(true));
-        assertThat(LuceneVersionChecks.isUpgradeRequired("5.0.0"), is(true));
+        assertThat(LuceneVersionChecks.isUpgradeRequired(null)).isFalse();
+        assertThat(LuceneVersionChecks.isUpgradeRequired("4.9.0")).isTrue();
+        assertThat(LuceneVersionChecks.isUpgradeRequired("5.0.0")).isTrue();
     }
 
     @Test
     public void testUpgradeRequiredInvalidArg() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'invalidVersion' is not a valid Lucene version");
-        LuceneVersionChecks.isUpgradeRequired("invalidVersion");
+        assertThatThrownBy(() -> LuceneVersionChecks.isUpgradeRequired("invalidVersion"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'invalidVersion' is not a valid Lucene version");
     }
 }

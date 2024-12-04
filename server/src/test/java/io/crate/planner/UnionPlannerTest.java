@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -201,8 +200,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         UnionExecutionPlan union = e.plan("SELECT null UNION ALL SELECT id FROM users");
         Collect left = (Collect) union.left();
         assertThat(left.collectPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // returns NULL
         );
         Collect right = (Collect) union.right();
         assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
@@ -215,8 +213,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
         assertThat(right.streamOutputs()).satisfiesExactly(o -> assertThat(o).isEqualTo(DataTypes.LONG));
         assertThat(right.collectPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class)  // casts NULL to long to match `id`
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // returns NULL
         );
     }
 
@@ -229,7 +226,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
-        var context = e.getPlannerContext(clusterService.state());
+        var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
@@ -262,9 +259,23 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                     │    │  └ Collect[doc.users | [id] | true]
                     │    └ Rename[id] AS y
                     │      └ Collect[doc.users | [id] | true]
-                    └ Eval[1, 1]
-                      └ TableFunction[empty_row | [] | true]
+                    └ TableFunction[empty_row | [1, 1] | true]
                 """
+        );
+    }
+
+    @Test
+    public void test_union_works_when_both_sides_have_no_outputs_to_keep_on_prunning() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t");
+
+        assertThat(plan).isEqualTo("""
+            HashAggregate[count(*)]
+              └ Rename[] AS t
+                └ Union[]
+                  ├ Collect[doc.users | [] | true]
+                  └ TableFunction[empty_row | [] | true]
+            """
         );
     }
 

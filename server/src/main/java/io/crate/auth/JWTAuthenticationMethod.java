@@ -21,23 +21,24 @@
 
 package io.crate.auth;
 
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_AUD_SETTING;
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
+
 import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.JwkProviderBuilder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -54,17 +55,26 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
 
     private final Roles roles;
 
-    private final Function<String, JwkProvider> urlToJwkProvider;
+    private final Function<String, JwkProvider> createProvider;
+    private final ConcurrentHashMap<String, JwkProvider> cachedJwkProviders = new ConcurrentHashMap<>();
 
     private final Supplier<String> clusterId;
 
+    private final Settings settings;
 
-    public JWTAuthenticationMethod(Roles roles,
-                                   Function<String, JwkProvider> urlToJwkProvider,
-                                   Supplier<String> clusterId) {
+    public JWTAuthenticationMethod(Roles roles, Settings settings, Supplier<String> clusterId) {
+        this(roles, settings, clusterId, CachingJwkProvider::new);
+    }
+
+    @VisibleForTesting
+    JWTAuthenticationMethod(Roles roles,
+                            Settings settings,
+                            Supplier<String> clusterId,
+                            Function<String, JwkProvider> createProvider) {
         this.roles = roles;
-        this.urlToJwkProvider = urlToJwkProvider;
+        this.settings = settings;
         this.clusterId = clusterId;
+        this.createProvider = createProvider;
     }
 
     @Override
@@ -80,18 +90,29 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
         }
 
         try {
-            JwkProvider jwkProvider = urlToJwkProvider.apply(decodedJWT.getIssuer());
-            Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
-
-            var jwtProperties = user.jwtProperties();
-            assert jwtProperties != null : "Resolved user must have jwt properties";
+            String issuer = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey());
+            String audience = settings.get(AUTH_HOST_BASED_JWT_AUD_SETTING.getKey(), clusterId.get());
+            String name;
+            if (issuer != null) {
+                // Ignore user specific configs if default 'iss' is defined.
+                name = username; // Token dictates CrateDB user.
+            } else {
+                var jwtProperties = user.jwtProperties();
+                assert jwtProperties != null : "credentials.username was matched using jwt properties, properties cannot be null.";
+                issuer = jwtProperties.iss();
+                name = jwtProperties.username();
+                audience = jwtProperties.aud() != null ? jwtProperties.aud() : audience;
+            }
+            JwkProvider jwkProvider = cachedJwkProviders.computeIfAbsent(issuer, this.createProvider::apply);
             // Expiration date is checked by default(if provided in token)
+            Algorithm algorithm = resolveAlgorithm(jwkProvider, decodedJWT);
             Verification verification = JWT.require(algorithm)
                 // withers below are not needed for payload signature check.
-                // It's an extra step on top of signature verification to double check that user metadata matches token payload.
-                .withIssuer(jwtProperties.iss())
-                .withClaim("username", jwtProperties.username())
-                .withAudience(jwtProperties.aud() == null ? clusterId.get() : jwtProperties.aud());
+                // It's an extra step on top of signature verification to double check
+                // that user metadata (or default values) match token payload.
+                .withIssuer(issuer)
+                .withClaim("username", name)
+                .withAudience(audience);
 
             JWTVerifier verifier = verification.build();
             verifier.verify(decodedJWT);
@@ -108,29 +129,6 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
         }
 
         return user;
-    }
-
-
-    public static JwkProvider jwkProvider(@NotNull String issuer) {
-        URL jwkUrl;
-        try {
-            /*
-             We cannot use JwkProviderBuilder constructor with String.
-             It adds hard coded WELL_KNOWN_JWKS_PATH (/.well-known/jwks.json) to the url.
-             JWK URL not necessarily ends with that suffix, for example:
-             Microsoft: "jwks_uri":" https://login.microsoftonline.com/common/discovery/v2.0/keys"
-             Google: "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
-             Taken from https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration
-             and https://accounts.google.com/.well-known/openid-configuration correspondingly
-            */
-
-            URI uri = new URI(issuer).normalize();
-            jwkUrl = uri.toURL();
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid jwks uri", e);
-        }
-
-        return new JwkProviderBuilder(jwkUrl).build();
     }
 
     @Override

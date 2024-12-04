@@ -21,8 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -40,14 +39,14 @@ public class TypeCompatibilityTest {
 
     @Test
     public void test_numeric_highest_precision_wins() {
-        assertCommonType(NumericType.INSTANCE, NumericType.of(2, 1), NumericType.of(2, 1));
-        assertCommonType(NumericType.of(2, 1), NumericType.INSTANCE, NumericType.of(2, 1));
-        assertCommonType(NumericType.of(2, 1), NumericType.of(3, 1), NumericType.of(3, 1));
+        assertCommonType(NumericType.INSTANCE, new NumericType(2, 1), NumericType.INSTANCE);
+        assertCommonType(new NumericType(2, 1), NumericType.INSTANCE, NumericType.INSTANCE);
+        assertCommonType(new NumericType(2, 1), new NumericType(3, 1), NumericType.INSTANCE);
     }
 
     private static void assertCommonType(DataType<?> first, DataType<?> second, DataType<?> expected) {
         var actual = TypeCompatibility.getCommonType(first, second);
-        assertThat(actual, is(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
 }

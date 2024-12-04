@@ -75,8 +75,6 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVers
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -309,7 +307,6 @@ public abstract class Engine implements Closeable {
         private final long seqNo;
         private final Exception failure;
         private final SetOnce<Boolean> freeze = new SetOnce<>();
-        private final Mapping requiredMappingUpdate;
         private Translog.Location translogLocation;
 
         protected Result(Exception failure, long version, long term, long seqNo) {
@@ -317,7 +314,6 @@ public abstract class Engine implements Closeable {
             this.version = version;
             this.term = term;
             this.seqNo = seqNo;
-            this.requiredMappingUpdate = null;
             this.resultType = Type.FAILURE;
         }
 
@@ -326,16 +322,14 @@ public abstract class Engine implements Closeable {
             this.seqNo = seqNo;
             this.term = term;
             this.failure = null;
-            this.requiredMappingUpdate = null;
             this.resultType = Type.SUCCESS;
         }
 
-        protected Result(Mapping requiredMappingUpdate) {
+        protected Result() {
             this.version = Versions.NOT_FOUND;
             this.seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
             this.term = 0L;
             this.failure = null;
-            this.requiredMappingUpdate = requiredMappingUpdate;
             this.resultType = Type.MAPPING_UPDATE_REQUIRED;
         }
 
@@ -360,14 +354,6 @@ public abstract class Engine implements Closeable {
 
         public long getTerm() {
             return term;
-        }
-
-        /**
-         * If the operation was aborted due to missing mappings, this method will return the mappings
-         * that are required to complete the operation.
-         */
-        public Mapping getRequiredMappingUpdate() {
-            return requiredMappingUpdate;
         }
 
         /** get the translog location after executing the operation */
@@ -420,8 +406,8 @@ public abstract class Engine implements Closeable {
             this.created = false;
         }
 
-        public IndexResult(Mapping requiredMappingUpdate) {
-            super(requiredMappingUpdate);
+        public IndexResult() {
+            super();
             this.created = false;
         }
 
@@ -634,7 +620,7 @@ public abstract class Engine implements Closeable {
     /**
      * Creates a new history snapshot from Lucene for reading operations whose seqno in the requesting seqno range (both inclusive)
      */
-    public abstract Translog.Snapshot newChangesSnapshot(String source, MapperService mapperService,
+    public abstract Translog.Snapshot newChangesSnapshot(String source,
                                                          long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException;
 
     /**
@@ -642,19 +628,19 @@ public abstract class Engine implements Closeable {
      * The returned snapshot can be retrieved from either Lucene index or translog files.
      */
     public abstract Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
-                                                            MapperService mapperService, long startingSeqNo) throws IOException;
+                                                            long startingSeqNo) throws IOException;
 
     /**
      * Returns the estimated number of history operations whose seq# at least {@code startingSeqNo}(inclusive) in this engine.
      */
     public abstract int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
-                                                          MapperService mapperService, long startingSeqNo) throws IOException;
+                                                          long startingSeqNo) throws IOException;
 
     /**
      * Checks if this engine has every operations since  {@code startingSeqNo}(inclusive) in its history (either Lucene or translog)
      */
     public abstract boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
-                                                        MapperService mapperService, long startingSeqNo) throws IOException;
+                                                        long startingSeqNo) throws IOException;
 
     /**
      * Gets the minimum retained sequence number for this engine.
@@ -1417,6 +1403,10 @@ public abstract class Engine implements Closeable {
         @Nullable
         public DocIdAndVersion docIdAndVersion() {
             return docIdAndVersion;
+        }
+
+        public boolean fromTranslog() {
+            return docIdAndVersion != null && docIdAndVersion.reader instanceof TranslogLeafReader;
         }
 
         @Override

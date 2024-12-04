@@ -18,11 +18,7 @@
  */
 package org.elasticsearch.index.shard;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,7 +34,7 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -99,40 +95,41 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             new IndexShardRoutingTable.Builder(shard.shardId()).addShard(shard.routingEntry()).build()
         );
         shard.updateLocalCheckpointForShard(allocationId, globalCheckPoint);
-        assertEquals(globalCheckPoint, shard.getLastKnownGlobalCheckpoint());
+        assertThat(shard.getLastKnownGlobalCheckpoint()).isEqualTo(globalCheckPoint);
 
         logger.info("Total ops: {}, global checkpoint: {}", numDocs, globalCheckPoint);
 
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<>();
         syncer.resync(shard, fut);
         PrimaryReplicaSyncer.ResyncTask resyncTask = fut.get();
 
         if (syncNeeded) {
-            assertTrue("Sync action was not called", syncActionCalled.get());
+            assertThat(syncActionCalled.get()).as("Sync action was not called").isTrue();
             ResyncReplicationRequest resyncRequest = resyncRequests.remove(0);
-            assertThat(resyncRequest.getTrimAboveSeqNo(), equalTo(numDocs - 1L));
+            assertThat(resyncRequest.getTrimAboveSeqNo()).isEqualTo(numDocs - 1L);
 
-            assertThat("trimAboveSeqNo has to be specified in request #0 only", resyncRequests.stream()
+            assertThat(resyncRequests.stream()
                     .mapToLong(ResyncReplicationRequest::getTrimAboveSeqNo)
                     .filter(seqNo -> seqNo != SequenceNumbers.UNASSIGNED_SEQ_NO)
                     .findFirst()
-                    .isPresent(),
-                is(false));
+                    .isPresent())
+              .as("trimAboveSeqNo has to be specified in request #0 only")
+              .isFalse();
 
-            assertThat(resyncRequest.getMaxSeenAutoIdTimestampOnPrimary(), equalTo(shard.getMaxSeenAutoIdTimestamp()));
+            assertThat(resyncRequest.getMaxSeenAutoIdTimestampOnPrimary()).isEqualTo(shard.getMaxSeenAutoIdTimestamp());
         }
         if (syncNeeded && globalCheckPoint < numDocs - 1) {
-            assertThat(resyncTask.getSkippedOperations(), equalTo(0));
-            assertThat(resyncTask.getResyncedOperations(), equalTo(Math.toIntExact(numDocs - 1 - globalCheckPoint)));
+            assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
+            assertThat(resyncTask.getResyncedOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
             if (shard.indexSettings.isSoftDeleteEnabled()) {
-                assertThat(resyncTask.getTotalOperations(), equalTo(Math.toIntExact(numDocs - 1 - globalCheckPoint)));
+                assertThat(resyncTask.getTotalOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
             } else {
-                assertThat(resyncTask.getTotalOperations(), equalTo(numDocs));
+                assertThat(resyncTask.getTotalOperations()).isEqualTo(numDocs);
             }
          } else {
-             assertThat(resyncTask.getSkippedOperations(), equalTo(0));
-             assertThat(resyncTask.getResyncedOperations(), equalTo(0));
-             assertThat(resyncTask.getTotalOperations(), equalTo(0));
+             assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
+             assertThat(resyncTask.getResyncedOperations()).isEqualTo(0);
+             assertThat(resyncTask.getTotalOperations()).isEqualTo(0);
          }
         closeShards(shard);
     }
@@ -174,7 +171,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         );
 
         CountDownLatch syncCalledLatch = new CountDownLatch(1);
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<PrimaryReplicaSyncer.ResyncTask>() {
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<PrimaryReplicaSyncer.ResyncTask>() {
             @Override
             public void onFailure(Exception e) {
                 try {
@@ -183,6 +180,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
                     syncCalledLatch.countDown();
                 }
             }
+
             @Override
             public void onResponse(PrimaryReplicaSyncer.ResyncTask result) {
                 try {
@@ -201,7 +199,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         closeShards(shard);
         try {
             FutureUtils.get(fut);
-            assertTrue("Sync action was not called", syncActionCalled.get());
+            assertThat(syncActionCalled.get()).as("Sync action was not called").isTrue();
         } catch (AlreadyClosedException | IndexShardClosedException ignored) {
             // ignore
         }
@@ -227,10 +225,10 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         };
         PrimaryReplicaSyncer syncer = new PrimaryReplicaSyncer(syncAction);
         syncer.setChunkSize(new ByteSizeValue(randomIntBetween(1, 10)));
-        PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
+        PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<>();
         syncer.resync(shard, fut);
         FutureUtils.get(fut);
-        assertThat(sentOperations, equalTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList())));
+        assertThat(sentOperations).isEqualTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList()));
         closeShards(shard);
     }
 }

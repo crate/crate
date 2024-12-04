@@ -43,10 +43,12 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -74,7 +76,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  idx int," +
             "  s_arr array(text)," +
             "  a array(object as (b object as (c int)))," +
-            "  \"OBJ\" object as (intarray int[])" +
+            "  \"OBJ\" object as (intarray int[])," +
+            "  point geo_point" +
             ")";
         RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
@@ -135,11 +138,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFormatAggregation() {
-        Signature signature = Signature.aggregate(
-            "agg",
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.LONG.getTypeSignature()
-        );
+        Signature signature = Signature.builder("agg", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Aggregation a = new Aggregation(
             signature,
             DataTypes.LONG,
@@ -154,7 +157,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("sys", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
@@ -168,7 +171,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("doc", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -181,7 +184,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDynamicReference() {
         Reference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
@@ -191,8 +194,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testVoidReference() {
         Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC,
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
@@ -201,7 +203,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReferenceEscaped() {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(new RelationName("doc", "table"),
-                               new ColumnIdent("colum\"n")),
+                               ColumnIdent.of("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -326,9 +328,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testStyles() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
         assertThat(nestedFn.toString(Style.UNQUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
     }
 
     @Test
@@ -384,6 +386,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_concat_operator() {
+        assertPrintingRoundTrip("foo || 'bar'", "(doc.formatter.foo || 'bar')");
+    }
+
+    @Test
     public void testNot() {
         assertPrintingRoundTrip("not foo = 'bar'", "(NOT (doc.formatter.foo = 'bar'))");
     }
@@ -418,5 +425,25 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = sqlExpressions.asSymbol("\"OBJ\"[1]['intarray']");
         assertThat(symbol).isFunction("subscript");
         assertPrint(symbol, "\"OBJ\"[1]['intarray']");
+    }
+
+    @Test
+    public void test_all_operator() {
+        assertPrintingRoundTrip("foo = ALL (['a', 'b', 'c'])", "(doc.formatter.foo = ALL(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo NOT LIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ALL(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo ILIKE ALL (['a', 'b', 'c'])", "(doc.formatter.foo ILIKE ALL(['a', 'b', 'c']))");
+    }
+
+    @Test
+    public void test_case_expression() {
+        assertPrintingRoundTrip("case when foo = 'bar' then 1 when foo = 'foo' then 2 else 3 end",
+                                "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
+        assertPrintingRoundTrip("case foo when 'bar' then 1 when 'foo' then 2 else 3 end",
+                                "CASE WHEN (doc.formatter.foo = 'bar') THEN 1 WHEN (doc.formatter.foo = 'foo') THEN 2 ELSE 3 END");
+    }
+
+    @Test
+    public void test_cast_to_array() {
+        assertPrintingRoundTrip("point::ARRAY(DOUBLE)", "cast(doc.formatter.point AS ARRAY(DOUBLE PRECISION))");
     }
 }

@@ -36,6 +36,7 @@ import java.util.Set;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -52,11 +53,11 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -64,8 +65,13 @@ import io.crate.types.DataTypes;
 
 public class EqualityExtractor {
 
+    private static final int MAX_ITERATIONS = 10_000;
     private static final Function NULL_MARKER = new Function(
-        Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature()),
+        Signature.builder("null_marker", FunctionType.SCALAR)
+            .argumentTypes()
+            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build(),
         List.of(),
         DataTypes.UNDEFINED
     );
@@ -80,6 +86,11 @@ public class EqualityExtractor {
     public record EqMatches(@Nullable List<List<Symbol>> matches, Set<Symbol> unknowns) {
 
         public static final EqMatches NONE = new EqMatches(null, Set.of());
+    }
+
+    @VisibleForTesting
+    protected int maxIterations() {
+        return MAX_ITERATIONS;
     }
 
     public EqMatches extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext coordinatorTxnCtx) {
@@ -136,7 +147,13 @@ public class EqualityExtractor {
         List<List<EqProxy>> cp = CartesianList.of(comparisons);
 
         List<List<Symbol>> result = new ArrayList<>();
+        int iterations = 0;
         for (List<EqProxy> proxies : cp) {
+            // Protect against large queries, where the number of combinations to check grows large
+            if (++iterations >= maxIterations()) {
+                // Fallback to lucene query (collect)
+                return EqMatches.NONE;
+            }
             boolean anyNull = false;
             for (EqProxy proxy : proxies) {
                 if (proxy != NULL_MARKER_PROXY) {
@@ -419,7 +436,7 @@ public class EqualityExtractor {
 
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
-                if (firstArg instanceof Reference ref && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
+                if (firstArg instanceof Reference ref && arguments.get(1).any(Symbol.IS_COLUMN) == false) {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;

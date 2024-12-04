@@ -21,35 +21,57 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.UnaryOperator;
 
+import ch.obermuhlner.math.big.BigDecimalMath;
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.expression.scalar.DoubleScalar;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
 public final class TrigonometricFunctions {
 
+    private TrigonometricFunctions() {}
+
     public static void register(Functions.Builder builder) {
         register(builder, "sin", Math::sin);
+        registerNumeric(builder, "sin", x -> BigDecimalMath.sin(x, MathContext.DECIMAL128));
+
         register(builder, "asin", x -> Math.asin(checkRange(x)));
+        registerNumeric(builder, "asin", x -> BigDecimalMath.asin(checkRange(x), MathContext.DECIMAL128));
+
         register(builder, "cos", Math::cos);
+        registerNumeric(builder, "cos", x -> BigDecimalMath.sin(x, MathContext.DECIMAL128));
+
         register(builder, "acos", x -> Math.acos(checkRange(x)));
+        registerNumeric(builder, "acos", x -> BigDecimalMath.acos(checkRange(x), MathContext.DECIMAL128));
+
         register(builder, "tan", Math::tan);
+        registerNumeric(builder, "tan", x -> BigDecimalMath.tan(x, MathContext.DECIMAL128));
+
         register(builder, "cot", x -> 1 / Math.tan(x));
-        register(builder, "atan", x -> Math.atan(x));
+        registerNumeric(builder, "cot", x -> BigDecimalMath.cot(x, MathContext.DECIMAL128));
+
+        register(builder, "atan", Math::atan);
+        registerNumeric(builder, "atan", x -> BigDecimalMath.atan(x, MathContext.DECIMAL128));
 
         builder.add(
-            scalar(
-                "atan2",
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature())
-                .withFeatures(Scalar.DETERMINISTIC_ONLY)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("atan2", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
@@ -58,17 +80,50 @@ public final class TrigonometricFunctions {
                     DoubleType.INSTANCE
                 )
         );
+
+        builder.add(
+            Signature.builder("atan2", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, ignoredBoundSignature) ->
+                new BinaryScalar<>(
+                    (y, x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
+                    signature,
+                    BoundSignature.sameAsUnbound(signature),
+                    DataTypes.NUMERIC
+            )
+        );
     }
 
     private static void register(Functions.Builder builder, String name, DoubleUnaryOperator func) {
         builder.add(
-            scalar(
-                name,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
+        );
+    }
+
+    private static void registerNumeric(Functions.Builder builder, String name, UnaryOperator<BigDecimal> func) {
+        builder.add(
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, ignoredBoundSignature) ->
+                new UnaryScalar<>(
+                    signature,
+                    BoundSignature.sameAsUnbound(signature),
+                    DataTypes.NUMERIC,
+                    func
+                )
         );
     }
 
@@ -79,4 +134,14 @@ public final class TrigonometricFunctions {
         }
         return value;
     }
+
+    private static BigDecimal checkRange(BigDecimal value) {
+        if (value.compareTo(BigDecimal.ONE) > 0 || value.compareTo(MINUS_ONE) < 0) {
+            throw new IllegalArgumentException("input value " + value + " is out of range. " +
+                "Values must be in range of [-1.0, 1.0]");
+        }
+        return value;
+    }
+
+    private static final BigDecimal MINUS_ONE = BigDecimal.valueOf(-1L);
 }

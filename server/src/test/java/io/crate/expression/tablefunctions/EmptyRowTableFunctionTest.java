@@ -21,8 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.StreamSupport;
 
@@ -41,6 +40,6 @@ public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void testEmptyRowReturnsOneRow() {
         Iterable<Row> result = execute("empty_row()");
-        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(1L));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count()).isEqualTo(1L);
     }
 }

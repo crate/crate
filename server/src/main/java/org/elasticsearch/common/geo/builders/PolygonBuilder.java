@@ -19,10 +19,21 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import io.crate.common.collections.Tuple;
+import static org.apache.lucene.geo.GeoUtils.orient;
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -32,21 +43,7 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.apache.lucene.geo.GeoUtils.orient;
-import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
-import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
+import io.crate.common.collections.Tuple;
 
 /**
  * The {@link PolygonBuilder} implements the groundwork to create polygons. This contains
@@ -88,10 +85,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         this(coordinates, Orientation.RIGHT);
     }
 
-    public Orientation orientation() {
-        return this.orientation;
-    }
-
     /**
      * Add a new hole to the polygon
      * @param hole linear ring defining the hole
@@ -128,14 +121,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
      */
     public LineStringBuilder shell() {
         return this.shell;
-    }
-
-    /**
-     * Close the shell of the polygon
-     */
-    public PolygonBuilder close() {
-        shell.close();
-        return this;
     }
 
     private static void validateLinearRing(LineStringBuilder lineString) {
@@ -205,7 +190,7 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
 
     @Override
     public JtsGeometry buildS4J() {
-        return jtsGeometry(buildS4JGeometry(FACTORY, wrapdateline));
+        return jtsGeometry(buildS4JGeometry(GEO_FACTORY, wrapdateline));
     }
 
     @Override
@@ -219,26 +204,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         return toPolygonLucene();
     }
 
-    protected XContentBuilder coordinatesArray(XContentBuilder builder, Params params) throws IOException {
-        shell.coordinatesToXcontent(builder, true);
-        for (LineStringBuilder hole : holes) {
-            hole.coordinatesToXcontent(builder, true);
-        }
-        return builder;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_ORIENTATION.getPreferredName(), orientation.name().toLowerCase(Locale.ROOT));
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        coordinatesArray(builder, params);
-        builder.endArray();
-        builder.endObject();
-        return builder;
-    }
-
     public Geometry buildS4JGeometry(GeometryFactory factory, boolean fixDateline) {
         if (fixDateline) {
             Coordinate[][][] polygons = coordinates();
@@ -246,10 +211,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         } else {
             return toPolygonS4J(factory);
         }
-    }
-
-    public Polygon toPolygonS4J() {
-        return toPolygonS4J(FACTORY);
     }
 
     protected Polygon toPolygonS4J(GeometryFactory factory) {
@@ -278,20 +239,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
 
     protected static LinearRing linearRingS4J(GeometryFactory factory, List<Coordinate> coordinates) {
         return factory.createLinearRing(coordinates.toArray(new Coordinate[coordinates.size()]));
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
-    public int numDimensions() {
-        if (shell == null) {
-            throw new IllegalStateException("unable to get number of dimensions, " +
-                "Polygon has not yet been initialized");
-        }
-        return shell.numDimensions();
     }
 
     protected static Polygon polygonS4J(GeometryFactory factory, Coordinate[][] polygon) {
@@ -834,19 +781,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
                 c.x += 2 * DATELINE;
             }
         }
-    }
-
-    @Override
-    protected StringBuilder contentToWKT() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append(ShapeBuilder.coordinateListToWKT(shell.coordinates));
-        for (LineStringBuilder hole : holes) {
-            sb.append(", ");
-            sb.append(ShapeBuilder.coordinateListToWKT(hole.coordinates));
-        }
-        sb.append(')');
-        return sb;
     }
 
     @Override

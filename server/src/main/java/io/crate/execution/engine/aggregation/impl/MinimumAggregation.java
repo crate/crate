@@ -42,8 +42,10 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -66,14 +68,15 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature()),
-                (signature, boundSignature) ->
-                    fixedWidthType
-                    ? new FixedMinimumAggregation(signature, boundSignature)
-                    : new VariableMinimumAggregation(signature, boundSignature)
+                    Signature.builder(NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(supportedType.getTypeSignature())
+                            .returnType(supportedType.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    (signature, boundSignature) ->
+                            fixedWidthType
+                                    ? new FixedMinimumAggregation(signature, boundSignature)
+                                    : new VariableMinimumAggregation(signature, boundSignature)
             );
         }
     }
@@ -251,8 +254,12 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                            List<Reference> aggregationReferences,
                                                            DocTableInfo table,
+                                                           Version shardCreatedVersion,
                                                            List<Literal<?>> optionalParams) {
             Reference reference = aggregationReferences.get(0);
+            if (reference == null) {
+                return null;
+            }
             if (!reference.hasDocValues()) {
                 return null;
             }

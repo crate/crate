@@ -56,7 +56,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
-@IntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
@@ -66,7 +66,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table test (\"firstName\" text, \"lastName\" text)");
         execute("insert into test (\"firstName\", \"lastName\") values ('Youri', 'Zoon')");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test where \"firstName\" = 'Youri'");
 
@@ -81,7 +81,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test values('Youri', 'Zoon')");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test where \"firstName\" = 'Youri'");
 
@@ -103,11 +103,11 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "   string text" +
                 ")");
 
-        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
+        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775806, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-            new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
+            new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775806L, 32767, "Youri"});
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test");
 
@@ -117,7 +117,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][2]).isEqualTo(1.79769313486231570e+308);
         assertThat(((Number) response.rows()[0][3]).floatValue()).isCloseTo(3.402f, offset(0.002f));
         assertThat(response.rows()[0][4]).isEqualTo(2147483647);
-        assertThat(response.rows()[0][5]).isEqualTo(9223372036854775807L);
+        assertThat(response.rows()[0][5]).isEqualTo(9223372036854775806L);
         assertThat(response.rows()[0][6]).isEqualTo((short) 32767);
         assertThat(response.rows()[0][7]).isEqualTo("Youri");
 
@@ -126,7 +126,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[1][2]).isEqualTo(1.79769313486231570e+308);
         assertThat(((Number) response.rows()[1][3]).floatValue()).isCloseTo(3.402f, offset(0.002f));
         assertThat(response.rows()[1][4]).isEqualTo(2147483647);
-        assertThat(response.rows()[1][5]).isEqualTo(9223372036854775807L);
+        assertThat(response.rows()[1][5]).isEqualTo(9223372036854775806L);
         assertThat(response.rows()[1][6]).isEqualTo((short) 32767);
         assertThat(response.rows()[1][7]).isEqualTo("Youri");
     }
@@ -154,12 +154,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
                 new Float[]{3.402f, 3.403f, null},
                 new Integer[]{2147483647, 234583},
-                new Long[]{9223372036854775807L, 4L},
+                new Long[]{9223372036854775806L, 4L},
                 new Short[]{32767, 2},
                 new String[]{"Youri", "Juri"}
             }
         );
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test");
         Object[] row = response.rows()[0];
@@ -182,7 +182,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(((List<?>) row[4]).get(0)).isEqualTo(2147483647);
         assertThat(((List<?>) row[4]).get(1)).isEqualTo(234583);
 
-        assertThat(((List<?>) row[5]).get(0)).isEqualTo(9223372036854775807L);
+        assertThat(((List<?>) row[5]).get(0)).isEqualTo(9223372036854775806L);
         assertThat(((List<?>) row[5]).get(1)).isEqualTo(4L);
 
         assertThat(((List<?>) row[6]).get(0)).isEqualTo((short) 32767);
@@ -208,7 +208,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
         assertThat(response).hasRowCount(2);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test order by \"name\"");
 
@@ -224,7 +224,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         Object[] args = new Object[]{32, "Youri"};
         execute("insert into test values(?, ?)", args);
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test where name = 'Youri'");
 
@@ -238,7 +238,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         Object[] args = new Object[]{"Youri"};
         execute("insert into test values(32, substr(?, 0, 2))", args);
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test");
         assertThat(response).hasRows("32| Yo");
@@ -252,7 +252,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         Object[] args = new Object[]{32, "Youri", 42, "Ruben"};
         execute("insert into test values(?, ?), (?, ?)", args);
         assertThat(response).hasRowCount(2);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test order by \"name\"");
 
@@ -273,7 +273,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into test values(?, ?)", args);
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table test");
 
         execute("select * from test");
 
@@ -289,7 +289,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 ")");
         ensureYellow();
         execute("insert into test (id, details) values (?, ?)", new Object[]{1, new Map[0]});
-        refresh();
+        execute("refresh table test");
         execute("select id, details from test");
         assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo(1);
@@ -306,7 +306,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         Object[] args = new Object[]{"1",
             "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
         execute("insert into test (pk_col, message) values (?, ?)", args);
-        refresh();
+        execute("refresh table test");
 
         execute("select message from test where pk_col = '1'");
         assertThat((String) response.rows()[0][0]).startsWith("A towel is about the most");
@@ -318,7 +318,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into test (pk_col, message) values (?, ?)", new Object[] {"1",
             "A towel is about the most massively useful thing an interstellar hitch hiker can have."});
-        refresh();
+        execute("refresh table test");
 
         assertSQLError(() -> execute(
             "insert into test (pk_col, message) values (?, ?)",
@@ -340,7 +340,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "2", "I always thought something was fundamentally wrong with the universe"
         };
         execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
-        refresh();
+        execute("refresh table test");
 
         execute("select message from test where pk_col = '1'");
         assertThat((String) response.rows()[0][0]).startsWith("All the doors");
@@ -531,7 +531,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("INSERT INTO parted (id, name) VALUES (?, ?)", new Object[]{1, "Trillian"});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table parted");
 
         execute("SELECT table_name, partition_ident, values " +
                 "FROM information_schema.table_partitions");
@@ -546,7 +546,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("INSERT INTO parted (id, name) (SELECT ?, ?)", new Object[]{1, "Trillian"});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table parted");
 
         execute("SELECT table_name, partition_ident, values " +
                 "FROM information_schema.table_partitions");
@@ -691,7 +691,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (count int, id int) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (count, id) (select (count(*) + 1), id from characters group by id)");
-        refresh();
+        execute("refresh table t");
         execute("select count, id from t order by id");
         assertThat(response).hasRowCount(4L);
         assertThat((int) response.rows()[0][0]).isEqualTo(2);
@@ -713,7 +713,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table nodes (count integer, name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into nodes (count, name) (select count(*), name from sys.nodes group by name)");
-        refresh();
+        execute("refresh table nodes");
         execute("select * from nodes");
         assertThat(response).hasRowCount(numNodes);
     }
@@ -725,7 +725,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (id, name) (select id, name from characters group by id, name)");
         assertThat(response).hasRowCount(4L);
-        refresh();
+        execute("refresh table t");
         execute("select id, name from t order by id");
         assertThat(response).hasRowCount(4L);
         assertThat((int) response.rows()[3][0]).isEqualTo(4);
@@ -740,7 +740,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (id) values (1) ON CONFLICT (id) DO UPDATE SET other = 'updated_once'");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table t1");
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
@@ -750,7 +750,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated_twice'");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table t1");
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
@@ -760,7 +760,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (id, other) values (1, 'updated_again'), (3, 'new') ON CONFLICT (id) DO UPDATE SET other = excluded.other");
         assertThat(response).hasRowCount(2L);
-        refresh();
+        execute("refresh table t1");
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
@@ -778,7 +778,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         // copy all over from 'characters' table
         execute("insert into t (id, name, female) (select id, name, female from characters)");
         assertThat(response).hasRowCount(4L);
-        refresh();
+        execute("refresh table t");
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response).hasRowCount(2L);
@@ -789,7 +789,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "on conflict (id) do update set female = ?",
             new Object[]{true});
         assertThat(response).hasRowCount(4L);
-        refresh();
+        execute("refresh table t");
 
         execute("select female, count(*) from t group by female");
         assertThat(response).hasRowCount(1L);
@@ -799,7 +799,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
                 "on conflict (id) do update set female = excluded.female");
         assertThat(response).hasRowCount(4L);
-        refresh();
+        execute("refresh table t");
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response).hasRowCount(2L);
@@ -821,7 +821,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         // the statement below also succeeds without ON CONFLICT DO NOTHING because we allow errors for multiple values
         execute("insert into t1 (id, other) values (1, 'updated'), (3, 'new') ON CONFLICT DO NOTHING");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table t1");
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
@@ -840,7 +840,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
         execute("insert into t1 (id, other) (select * from unnest([1, 4], ['updated', 'another'])) ON CONFLICT (id) DO NOTHING");
         assertThat(response).hasRowCount(0L);
-        refresh();
+        execute("refresh table t1");
 
         execute("select id, other from t1 order by id");
         assertThat(response).hasRows(
@@ -881,7 +881,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             {"Foo", "10243", "Musterhausen"}
         });
         ensureYellow();
-        refresh();
+        execute("refresh table custom.source");
+        execute("refresh table custom.destination");
 
         execute("select table_name, table_schema, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where table_schema='custom' and table_name='source' order by partition_ident");
@@ -893,7 +894,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("insert into custom.destination (select * from custom.source)");
         assertThat(response).hasRowCount(3L);
         ensureYellow();
-        refresh();
+        execute("refresh table custom.destination");
 
         execute("select city, name, zipcode from custom.destination order by city");
         assertThat(response).hasRows(
@@ -938,18 +939,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (x int)");
 
         Object[][] bulkArgs = new Object[][]{new Object[]{null}};
-        long[] rowCounts = execute("insert into t values (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 1L });
+        var bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L });
 
         bulkArgs = new Object[][]{
             new Object[]{10},
             new Object[]{null},
             new Object[]{20}
         };
-        rowCounts = execute("insert into t values (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 1L, 1L, 1L });
+        bulkResponse = execute("insert into t values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L, 1L, 1L });
 
-        refresh();
+        execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRowCount(4L);
     }
@@ -962,8 +963,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             new Object[]{20, 21},
             new Object[]{30, 31}
         };
-        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 2L, 2L, 2L });
+        var bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 2L, 2L, 2L });
     }
 
     @Test
@@ -973,15 +974,15 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             new Object[]{10, 11},
             new Object[]{20, 21},
         };
-        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { 2L, 2L });
+        var bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 2L, 2L });
 
         bulkArgs = new Object[][]{
             new Object[]{20, 21},
             new Object[]{30, 31},
         };
-        rowCounts = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(rowCounts).isEqualTo(new long[] { -2L, 2L });
+        bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { -2L, 2L });
     }
 
     @Test
@@ -998,8 +999,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{System.currentTimeMillis() +
                                        i, new String[]{randomAsciiLettersOfLength(5), randomAsciiLettersOfLength(2)}, (short) i};
         }
-        long[] rowCounts = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
-        assertThat(rowCounts.length).isEqualTo(bulkSize);
+        var rowCounts = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
+        assertThat(rowCounts.size()).isEqualTo(bulkSize);
         execute("refresh table giveittome");
         // assert that bulk insert has inserted everything it said it has
         execute("select sum(lashes), date from giveittome group by date");
@@ -1009,8 +1010,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @Test
     public void testBulkInsertWithFailing() throws Exception {
         execute("create table locations (id integer primary key, name string) with (number_of_replicas=0)");
-        long[] rowCounts = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
-        assertThat(rowCounts).isEqualTo(new long[] { 1L, -2L });
+        var bulkResponse = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
+        assertThat(bulkResponse.rowCounts()).isEqualTo(new long[] { 1L, -2L });
     }
 
     @Test
@@ -1018,7 +1019,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
         execute("insert into import (col1, col2) values (1, 1)");
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table import");
         execute("select * from import");
         assertThat(printedTable(response.rows())).isEqualTo("1| 1\n");
     }
@@ -1036,7 +1037,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
             new Object[]{"2015-11-18T17:41:00", null},
         });
-        refresh();
+        execute("refresh table test_generated_column");
         execute("select ts, day, name from test_generated_column order by ts");
         assertThat(response.rows()[0][0]).isEqualTo(1447845060000L);
         assertThat(response.rows()[0][1]).isEqualTo(1447804800000L);
@@ -1078,12 +1079,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00Z"});
-        refresh();
+        execute("refresh table test_generated_column");
 
         execute("insert into test_generated_column (id, ts) values (?, ?)" +
                 "on conflict (id) do update set ts = ?",
             new Object[]{1, "2015-11-18T11:11:00Z", "2015-11-23T14:43:00Z"});
-        refresh();
+        execute("refresh table test_generated_column");
 
         execute("select ts, day from test_generated_column");
         assertThat(response.rows()[0][0]).isEqualTo(1448289780000L);
@@ -1166,10 +1167,10 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00"});
-        refresh();
+        execute("refresh table source_table");
 
         execute("insert into target_table (id, ts) (select id, ts from source_table)");
-        refresh();
+        execute("refresh table target_table");
 
         execute("select day from target_table");
         assertThat(response.rows()[0][0]).isEqualTo(1447804800000L);
@@ -1190,10 +1191,10 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00"});
-        refresh();
+        execute("refresh table source_table");
 
         execute("insert into target_table (id, ts) (select id, ts from source_table)");
-        refresh();
+        execute("refresh table target_table");
 
         execute("select day from target_table");
         assertThat(response.rows()[0][0]).isEqualTo(1447804800000L);
@@ -1215,7 +1216,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into source_table (id, ts, day) values (?, ?, ?)", new Object[]{
             1, "2015-11-18T11:11:00", "2015-11-18T11:11:00"});
-        refresh();
+        execute("refresh table source_table");
 
         // will fail because `day` column has invalid value at source table
         execute("insert into target_table (id, ts, day) (select id, ts, day from source_table)");
@@ -1234,9 +1235,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """);
         ensureYellow();
         execute("insert into export (col1, col2) values (1, 2)");
-        refresh();
+        execute("refresh table export");
         execute("insert into import (col1, col2, gen_new) (select col1, col2, col1+col2 from export)");
-        refresh();
+        execute("refresh table import");
         execute("select gen_new from import");
         assertThat(response.rows()[0][0]).isEqualTo(3);
     }
@@ -1246,7 +1247,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table test(col1 as 3 * col2 primary key, col2 integer)");
         ensureYellow();
         execute("insert into test (col2) values (1)");
-        refresh();
+        execute("refresh table test");
         execute("select col1 from test");
         assertThat(response.rows()[0][0]).isEqualTo(3);
     }
@@ -1257,7 +1258,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "partitioned by (col2)");
         ensureYellow();
         execute("insert into test (col1) values(1)");
-        refresh();
+        execute("refresh table test");
         execute("select col2 from test");
         assertThat(response.rows()[0][0]).isEqualTo(2);
     }
@@ -1266,7 +1267,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void testInsertGeneratedPrimaryKeyValueGiven() throws Exception {
         execute("create table test(col1 integer primary key, col2 as col1 + 3 primary key)");
         execute("insert into test(col1, col2) values (1, 4)");
-        refresh();
+        execute("refresh table test");
         execute("select col2 from test");
         assertThat(response.rows()[0][0]).isEqualTo(4);
 
@@ -1289,7 +1290,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table target(col1 integer primary key, col2 integer primary key)");
         ensureYellow();
         execute("insert into source (col1) values (1)");
-        refresh();
+        execute("refresh table source");
         assertSQLError(() -> execute("insert into target (col1) (select col1 from source)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -1302,7 +1303,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table target(col1 integer primary key, col2 integer not null)");
         ensureYellow();
         execute("insert into source (col1) values (1)");
-        refresh();
+        execute("refresh table source");
 
         execute("insert into target (col1, col2) (select col1, col2 from source)");
         assertThat(response).hasRowCount(0);
@@ -1314,7 +1315,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table target(col1 integer primary key, col2 integer not null)");
         ensureYellow();
         execute("insert into source (col1) values (1)");
-        refresh();
+        execute("refresh table source");
 
         execute("insert into target (col1) (select col1 from source)");
         assertThat(response).hasRowCount(0);
@@ -1331,7 +1332,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into source (id) values (1)");
-        refresh();
+        execute("refresh table source");
 
         execute("insert into target (id, ts) (select id, ts from source)");
         assertThat(response).hasRowCount(0);
@@ -1343,9 +1344,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table target(col1 integer primary key)");
         ensureYellow();
         execute("insert into source (col1) values (1)");
-        refresh();
+        execute("refresh table source");
         execute("insert into target (col1) (select col1 from source)");
-        refresh();
+        execute("refresh table target");
         execute("select col1 from target");
         assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
     }
@@ -1364,7 +1365,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table dyn_ts (id integer primary key) with (column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into dyn_ts (id, ts) values (0, '2015-01-01')");
-        refresh();
+        execute("refresh table dyn_ts");
         execute("insert into dyn_ts (id, ts) values (1, '2015-02-01')");
         // string is not converted to timestamp
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
@@ -1415,7 +1416,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             .hasPGError(UNIQUE_VIOLATION)
             .hasHTTPError(CONFLICT, 4091)
             .hasMessageContaining("A document with the same primary key exists already");
-        refresh();
+        execute("refresh table test");
         // we want to read from the replica but cannot force it, lets select twice to increase chances
         execute("select _version, name from test");
         assertThat((String) response.rows()[0][1]).isEqualTo("foo");
@@ -1433,7 +1434,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "   num_docs long)" +
                 " clustered into 1 shards with (number_of_replicas=0)");
         execute("insert into shard_stats (log_date, shard_id, num_docs) (select CURRENT_TIMESTAMP as log_date, id, num_docs from sys.shards)");
-        refresh();
+        execute("refresh table shard_stats");
         execute("select * from shard_stats");
         assertThat(response).hasRowCount(1L);
     }
@@ -1606,9 +1607,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
         execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
 
+        execute("refresh table t1");
         execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated' returning id, other");
         assertThat(response).hasRowCount(1L);
-        refresh();
 
         assertThat(response.cols()[0]).isEqualTo("id");
         assertThat(response.rows()[0][0]).isEqualTo(1);
@@ -1618,7 +1619,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (id, other) values (1, 'updated_again'), (3, 'new') ON CONFLICT (id) DO UPDATE SET other = excluded.other returning id, other");
         assertThat(response).hasRowCount(2L);
-        refresh();
 
         assertThat(response.cols()[0]).isEqualTo("id");
         assertThat(response.cols()[1]).isEqualTo("other");
@@ -1743,8 +1743,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("CREATE TABLE new_lines (obj OBJECT);");
         assertSQLError(() -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4003)
-                .hasMessageContaining("Column name 'a\nb' contains illegal whitespace character");
+                .hasHTTPError(BAD_REQUEST, 4008)
+                .hasMessageContaining("\"a\nb\" contains illegal whitespace character");
     }
 
 
@@ -1775,7 +1775,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "xyz"
             },
         };
-        long[] counts = execute("""
+        var bulkResponse = execute("""
             insert into tbl
                 (company_id, enabled, options, system)
                 values
@@ -1784,7 +1784,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """,
             bulkArgs
         );
-        assertThat(counts).containsExactly(1);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L);
         execute("refresh table tbl");
         execute("select company_id, enabled, options, system from tbl");
         assertThat(response).hasRows(
@@ -1792,7 +1792,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
 
         bulkArgs[0][1] = false;
-        counts = execute("""
+        bulkResponse = execute("""
             insert into tbl
                 (company_id, enabled, options, system)
                 values
@@ -1801,7 +1801,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """,
             bulkArgs
         );
-        assertThat(counts).containsExactly(1);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L);
         execute("refresh table tbl");
         execute("select company_id, enabled, options, system from tbl");
         assertThat(response).hasRows(
@@ -1849,7 +1849,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             .hasMessage("\".invalid\" contains a dot");
         execute("insert into foo(id, _invalid) (select 1, 1);");
         assertThat(response.rowCount()).isEqualTo(0L);
-        refresh();
+        execute("refresh table foo");
         execute("select * from foo");
         assertThat(response.rowCount()).isEqualTo(0L);
     }
@@ -1924,7 +1924,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "nested_gen object as (a int, gen object generated always as {\"a2\" = {\"b2\" = 'test2'}})) " +
             "with (number_of_replicas=0, column_policy='dynamic')");
         execute("insert into t (id, nested_gen) values (1, {\"a\" = 1})");
-        refresh();
+        execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows(
             "1| {a1={b1=test}}| {a=1, gen={a2={b2=test2}}}"
@@ -1951,7 +1951,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             execute("insert into tbl(a, o) values (?, {}) returning b, o['c']", new Object[]{i});
             String returningTopLevel = (String) response.rows()[0][0];
             Integer returningSubColumn = (Integer) response.rows()[0][1];
-            refresh();
+            execute("refresh table tbl");
             execute("select b, o['c'] from tbl where a = ?", new Object[]{i});
             String persistedTopLevel = (String) response.rows()[0][0];
             Integer persistedSubColumn = (Integer) response.rows()[0][1];
@@ -2007,7 +2007,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
         ensureGreen();
         execute("INSERT INTO tbl(a) VALUES (1)");
-        refresh();
+        execute("refresh table tbl");
 
         // Replication of non-deterministic sub-columns had 2 issues:
         // 1. Used to fail with IndexOutOfBoundsException when preparing replica request
@@ -2023,7 +2023,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("INSERT INTO tbl(a) VALUES (1) " +
             "ON CONFLICT (a) DO UPDATE SET b = 'updated'"
         );
-        refresh();
+        execute("refresh table tbl");
 
         // Some iterations to ensure it hits both primary and replica
         // Ensure that non-deterministic sub-column is not re-genrated on replicas.
@@ -2052,9 +2052,31 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             "VALUES (1, 99999) " +
             "ON CONFLICT (id) DO UPDATE SET value = excluded.value");
         assertThat(response.rowCount()).isEqualTo(1);
-        refresh();
+        execute("refresh table tbl");
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
         assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+    }
+
+    @Test
+    public void test_insert_into_from_query_with_order_by() throws Exception {
+        execute("CREATE TABLE tsrc (x int, y int) CLUSTERED INTO 6 SHARDS");
+        execute("insert into tsrc (x, y) values (1, 1), (2, 2), (3, 3)");
+        execute("refresh table tsrc");
+
+        execute("create table tdst (x long, y long)");
+        // ordering on the second column is important here; ordering on the first happened to
+        // work by coincidence. See commit msg for details
+        execute("insert into tdst (x, y) (select x, y from tsrc order by y)");
+        assertThat(response).hasRowCount(3);
+    }
+
+    @Test
+    public void test_can_write_ignored_object_with_array_column_with_mixed_types() throws Exception {
+        execute("CREATE TABLE t (data OBJECT(IGNORED))");
+        execute("insert into t (data) VALUES ('{\"items\": [42.42, \"foo\"]}'::json)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("{items=[42.42, foo]}");
     }
 }

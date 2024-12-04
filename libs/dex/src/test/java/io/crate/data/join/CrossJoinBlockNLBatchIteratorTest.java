@@ -39,6 +39,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -139,7 +140,8 @@ public class CrossJoinBlockNLBatchIteratorTest {
                 new CombinedRow(1, 1),
                 params.blockSizeCalculator,
                 params.testingRowAccounting
-            )
+            ),
+            ResultOrder.ANY
         );
         tester.verifyResultAndEdgeCaseBehaviour(params.expectedResults,
             it -> {
@@ -169,7 +171,8 @@ public class CrossJoinBlockNLBatchIteratorTest {
                 new CombinedRow(1, 1),
                 params.blockSizeCalculator,
                 params.testingRowAccounting
-            )
+            ),
+            ResultOrder.ANY
         );
         tester.verifyResultAndEdgeCaseBehaviour(params.expectedResults,
             it -> {

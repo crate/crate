@@ -29,6 +29,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingBatchIterators;
 
 class FilteringBatchIteratorTest {
@@ -42,7 +43,7 @@ class FilteringBatchIteratorTest {
             l -> new Object[]{l}).collect(Collectors.toList());
 
         var tester = BatchIteratorTester.forRows(
-            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), EVEN_ROW));
+            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), EVEN_ROW), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

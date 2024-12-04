@@ -208,7 +208,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 assertThat(rangeStart).isLessThan(bytes.length);
                 assertThat(getRangeEnd(exchange).isPresent()).isTrue();
                 final int rangeEnd = getRangeEnd(exchange).get();
-                assertThat(rangeEnd).isGreaterThan(rangeStart);
+                assertThat(rangeEnd).isGreaterThanOrEqualTo(rangeStart);
                 // adapt range end to be compliant to https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
                 final int effectiveRangeEnd = Math.min(bytes.length - 1, rangeEnd);
                 final int length = (effectiveRangeEnd - rangeStart) + 1;
@@ -611,9 +611,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
         if (bytesToSend > 0) {
             exchange.getResponseBody().write(bytes, rangeStart, bytesToSend);
         }
-        if (randomBoolean()) {
-            exchange.getResponseBody().flush();
-        }
+        exchange.getResponseBody().flush(); // Required after JDK 23, see https://bugs.openjdk.org/browse/JDK-8331847
     }
 
     private String httpServerUrl() {

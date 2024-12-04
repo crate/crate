@@ -25,16 +25,11 @@ import java.util.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
  * SnapshotId - snapshot name + snapshot UUID
  */
-public final class SnapshotId implements Comparable<SnapshotId>, Writeable, ToXContentObject {
-
-    private static final String NAME = "name";
-    private static final String UUID = "uuid";
+public final class SnapshotId implements Comparable<SnapshotId>, Writeable {
 
     private final String name;
     private final String uuid;
@@ -118,14 +113,5 @@ public final class SnapshotId implements Comparable<SnapshotId>, Writeable, ToXC
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeString(uuid);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(NAME, name);
-        builder.field(UUID, uuid);
-        builder.endObject();
-        return builder;
     }
 }

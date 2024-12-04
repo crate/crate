@@ -22,14 +22,12 @@
 package io.crate.execution.engine.pipeline;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +41,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -52,21 +52,19 @@ public class MapRowUsingInputsTest extends ESTestCase {
 
     private List<Input<?>> inputs;
     private List<CollectExpression<Row, ?>> expressions;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void createInputs() throws Exception {
         InputFactory inputFactory = new InputFactory(createNodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         var addFunction = new Function(
-            Signature.scalar(
-                    ArithmeticFunctions.Names.ADD,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                )
-                .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.STRICTNULL)
+                .build(),
             List.of(new InputColumn(0, DataTypes.LONG), Literal.of(2L)),
             DataTypes.LONG
         );
@@ -78,8 +76,8 @@ public class MapRowUsingInputsTest extends ESTestCase {
     public void testAdd2IsAppliedToFirstColumnOfArgumentRow() throws Exception {
         MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
         Row result = mapRowUsingInputs.apply(new Row1(2L));
-        assertThat(result.numColumns(), is(1));
-        assertThat(result.get(0), is(4L));
+        assertThat(result.numColumns()).isEqualTo(1);
+        assertThat(result.get(0)).isEqualTo(4L);
     }
 
     @Test
@@ -87,6 +85,6 @@ public class MapRowUsingInputsTest extends ESTestCase {
         MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
         Row fst = mapRowUsingInputs.apply(new Row1(2L));
         Row snd = mapRowUsingInputs.apply(new Row1(2L));
-        assertThat(fst, Matchers.sameInstance(snd));
+        assertThat(fst).isSameAs(snd);
     }
 }

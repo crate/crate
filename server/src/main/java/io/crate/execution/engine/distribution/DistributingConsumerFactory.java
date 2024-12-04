@@ -41,7 +41,6 @@ import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.StreamerVisitor;
 
 @Singleton
 public class DistributingConsumerFactory {
@@ -66,7 +65,7 @@ public class DistributingConsumerFactory {
                               DistributionInfo distributionInfo,
                               UUID jobId,
                               int pageSize) {
-        Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
+        Streamer<?>[] streamers = nodeOperation.executionPhase().getStreamers();
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";

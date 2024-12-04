@@ -23,8 +23,8 @@ package io.crate.execution.engine.pipeline;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -35,14 +35,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -89,7 +88,6 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
@@ -154,7 +152,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             projectorFactory
         );
 
-        assertThat(projectingConsumer.requiresScroll(), is(true));
+        assertThat(projectingConsumer.requiresScroll()).isTrue();
     }
 
     @Test
@@ -174,7 +172,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             projectorFactory
         );
 
-        assertThat(projectingConsumer.requiresScroll(), is(false));
+        assertThat(projectingConsumer.requiresScroll()).isFalse();
     }
 
     @Test
@@ -193,7 +191,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             projectorFactory
         );
 
-        assertThat(projectingConsumer.requiresScroll(), is(false));
+        assertThat(projectingConsumer.requiresScroll()).isFalse();
     }
 
     @Test
@@ -215,13 +213,12 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             txnCtx,
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
-            projectorFactory
-        );
+            projectorFactory);
 
         rowConsumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
 
-        expectedException.expect(UnhandledServerException.class);
-        expectedException.expectMessage("Failed to open output");
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(UnhandledServerException.class)
+            .hasMessageStartingWith("Failed to open output");
     }
 }

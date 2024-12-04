@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.8.0</version>
+    <version>5.10.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -68,6 +68,14 @@
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>crate-libs-dex</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+      <classifier>tests</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-libs-azure-testing</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>

@@ -1,7 +1,6 @@
 package org.elasticsearch.common.util.concurrent;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -18,7 +17,7 @@ public class ThreadContextTest {
         var in = out.bytes().streamInput();
         in.setVersion(Version.V_4_0_0);
         ThreadContext.bwcReadHeaders(in);
-        assertThat(in.available(), is(0));
+        assertThat(in.available()).isEqualTo(0);
     }
 
     @Test
@@ -28,6 +27,6 @@ public class ThreadContextTest {
 
         var in = out.bytes().streamInput();
         ThreadContext.bwcReadHeaders(in);
-        assertThat(in.available(), is(0));
+        assertThat(in.available()).isEqualTo(0);
     }
 }

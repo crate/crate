@@ -42,6 +42,7 @@ import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -55,6 +56,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -69,10 +71,10 @@ import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -80,7 +82,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
-import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -89,6 +91,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
@@ -119,16 +122,14 @@ import io.crate.types.RowType;
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final NodeContext nodeCtx;
-    private final Schemas schemas;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = List.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
     @Inject
-    public RelationAnalyzer(NodeContext nodeCtx, Schemas schemas) {
+    public RelationAnalyzer(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
-        this.schemas = schemas;
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
@@ -183,7 +184,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
         for (Symbol field : childRelationFields) {
-            selectAnalysis.add(Symbols.pathFromSymbol(field), field);
+            selectAnalysis.add(field.toColumn(), field);
         }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
@@ -258,7 +259,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 expression = validateAndExtractFromUsing(leftRel.outputs(), rightRel.outputs(), joinUsing);
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                        joinCriteria.getClass().getSimpleName()));
+                    joinCriteria.getClass().getSimpleName()));
             }
             try {
                 RelationAnalysisContext relationContext = statementContext.currentRelationContext();
@@ -292,7 +293,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var joinCondition = joinRelation.joinCondition();
         if (joinCondition != null) {
-            Set<RelationName> relationsInJoinConditions = RelationNameCollector.collect(joinCondition);
+            Set<RelationName> relationsInJoinConditions = RelationNames.getShallow(joinCondition);
             if (relationsInJoinConditions.size() > 1) {
                 // We have join conditions with two relations or more. The join conditions such as
                 // `t1.x = t2.x` determines which relations are joined together.
@@ -317,35 +318,35 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             boolean joinColumnExistsInLeft = false;
             for (var leftOutput : leftOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(leftOutput);
+                var columnIdent = leftOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
                     joinColumnExistsInLeft = true;
                     if (lhsOutputs.put(joinColumn, leftOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                         "common column name %s appears more than once in left table", joinColumn));
+                            "common column name %s appears more than once in left table", joinColumn));
                     }
                 }
             }
 
             if (!joinColumnExistsInLeft) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                 "column %s specified in USING clause does not exist in left table", joinColumn));
+                    "column %s specified in USING clause does not exist in left table", joinColumn));
             }
 
             boolean joinColumnExistsInRight = false;
             for (Symbol rightOutput : rightOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(rightOutput);
+                var columnIdent = rightOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
                     joinColumnExistsInRight = true;
                     if (rhsOutputs.put(joinColumn, rightOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                         "common column name %s appears more than once in right table", joinColumn));
+                            "common column name %s appears more than once in right table", joinColumn));
                     } else {
                         var lhsType = lhsOutputs.get(joinColumn).valueType();
                         var rhsType = rightOutput.valueType();
                         if (lhsType.equals(rhsType) == false) {
                             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                             "JOIN/USING types %s and %s varying cannot be matched", lhsType.getName(), rhsType.getName())
+                                "JOIN/USING types %s and %s varying cannot be matched", lhsType.getName(), rhsType.getName())
                             );
                         }
                     }
@@ -354,7 +355,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             if (!joinColumnExistsInRight) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                 "column %s specified in USING clause does not exist in right table", joinColumn));
+                    "column %s specified in USING clause does not exist in right table", joinColumn));
             }
         }
 
@@ -362,11 +363,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var rhsRelationNames = new HashSet<RelationName>();
 
         for (Symbol symbol : lhsOutputs.values()) {
-            lhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            lhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         for (Symbol symbol : rhsOutputs.values()) {
-            rhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            rhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         return JoinUsing.toExpression(
@@ -417,9 +418,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         List<Symbol> groupBy = analyzeGroupBy(
             selectAnalysis,
-            node.getGroupBy(),
+            node.getGroupBy().map(GroupBy::getExpressions).orElse(List.of()),
             expressionAnalyzer,
-            expressionAnalysisContext);
+            expressionAnalysisContext,
+            node.getGroupBy().map(GroupBy::isAll).orElse(false));
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
             GroupAndAggregateSemantics.validate(selectAnalysis.outputSymbols(), groupBy);
@@ -510,13 +512,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis,
                                         List<Expression> groupBy,
                                         ExpressionAnalyzer expressionAnalyzer,
-                                        ExpressionAnalysisContext expressionAnalysisContext) {
+                                        ExpressionAnalysisContext expressionAnalysisContext,
+                                        boolean isGroupByAll) {
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
-        for (Expression expression : groupBy) {
-            Symbol symbol = symbolFromExpressionFallbackOnSelectOutput(
-                expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
-            GroupBySymbolValidator.validate(symbol);
-            groupBySymbols.add(symbol);
+        if (groupBy.isEmpty() && isGroupByAll) {
+            for (Symbol symbol : selectAnalysis.outputSymbols()) {
+                if (!symbol.hasFunctionType(FunctionType.AGGREGATE) && !symbol.hasFunctionType(FunctionType.TABLE)) {
+                    GroupBySymbolValidator.validate(symbol);
+                    groupBySymbols.add(symbol);
+                }
+            }
+        } else {
+            for (Expression expression : groupBy) {
+                Symbol symbol = symbolFromExpressionFallbackOnSelectOutput(
+                    expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
+                GroupBySymbolValidator.validate(symbol);
+                groupBySymbols.add(symbol);
+            }
         }
         return groupBySymbols;
     }
@@ -572,8 +584,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (ord > -1) {
             return ordinalOutputReference(selectAnalysis.outputSymbols(), ord, clause);
         }
-        Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        return symbol;
+        return expressionAnalyzer.convert(expression, expressionAnalysisContext);
     }
 
     @Nullable
@@ -604,8 +615,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             return symbol;
         } catch (ColumnUnknownException e) {
-            if (expression instanceof QualifiedNameReference) {
-                Symbol symbol = tryGetFromSelectList((QualifiedNameReference) expression, selectAnalysis);
+            if (expression instanceof QualifiedNameReference qnr) {
+                Symbol symbol = tryGetFromSelectList(qnr, selectAnalysis);
                 if (symbol != null) {
                     return symbol;
                 }
@@ -702,7 +713,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (withQuery != null) {
             relation = withQuery;
         } else {
-            RelationInfo relationInfo = schemas.findRelation(
+            RelationInfo relationInfo = nodeCtx.schemas().findRelation(
                 tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
             switch (relationInfo) {
                 case DocTableInfo docTable ->
@@ -713,10 +724,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 case ViewInfo viewInfo -> {
                     Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
                     AnalyzedRelation resolvedView = context.withSearchPath(
-                            viewInfo.searchPath(),
-                            newContext -> viewQuery.accept(this, newContext)
+                        viewInfo.searchPath(),
+                        newContext -> viewQuery.accept(this, newContext)
                     );
-                    relation = new AnalyzedView(viewInfo.ident(), viewInfo.owner(), resolvedView);
+                    Role owner = nodeCtx.roles().findRole(viewInfo.owner());
+                    if (owner == null) {
+                        throw new UnauthorizedException(
+                            "Owner \"" + owner + "\" of the view \"" + viewInfo.owner() + "\" not found");
+                    }
+                    relation = new AnalyzedView(viewInfo.ident(), owner, resolvedView);
                 }
                 default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
             }
@@ -744,13 +760,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         Symbol symbol = expressionAnalyzer.convert(node.functionCall(), expressionContext);
         expressionContext.allowEagerNormalize(allowEagerNormalizeOriginalValue);
 
-        if (!(symbol instanceof Function)) {
+        if (!(symbol instanceof Function function)) {
             throw new UnsupportedOperationException(
                 String.format(
                     Locale.ENGLISH,
                     "Symbol '%s' is not supported in FROM clause", node.name()));
         }
-        Function function = (Function) symbol;
         FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(function);
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
@@ -789,7 +804,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // At the same time we determine the column type with the highest precedence,
         // so that we don't fail with slight type miss-matches (long vs. int)
         List<ValuesList> rows = values.rows();
-        assert rows.size() > 0 : "Parser grammar enforces at least 1 row";
+        assert !rows.isEmpty() : "Parser grammar enforces at least 1 row";
         ValuesList firstRow = rows.get(0);
         int numColumns = firstRow.values().size();
 
@@ -811,7 +826,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 if (row.size() != numColumns) {
                     throw new IllegalArgumentException(
                         "VALUES lists must all be the same length. " +
-                        "Found row with " + numColumns + " items and another with " + columns.size() + " items");
+                            "Found row with " + numColumns + " items and another with " + columns.size() + " items");
                 }
                 Symbol cell = expressionToSymbol.apply(row.get(c));
                 columnValues.add(cell);
@@ -819,14 +834,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 var cellType = cell.valueType();
                 if (r > 0 // skip first cell, we don't have to check for self-conversion
                     && !cellType.isConvertableTo(targetType, false)
-                    && targetType.id() != DataTypes.UNDEFINED.id()) {
+                    && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
                     throw new IllegalArgumentException(
                         "The types of the columns within VALUES lists must match. " +
-                        "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
+                            "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
                 }
-                if (usePrecedence && cellType.precedes(targetType)) {
-                    targetType = cellType;
-                } else if (targetType == DataTypes.UNDEFINED) {
+                if ((usePrecedence && cellType.precedes(targetType)) || (targetType == DataTypes.UNDEFINED)) {
                     targetType = cellType;
                 }
             }

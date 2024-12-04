@@ -42,7 +42,7 @@ public class GroupBySymbolValidator {
 
         @Override
         public Void visitFunction(Function function, Boolean insideScalar) {
-            switch (function.signature().getKind()) {
+            switch (function.signature().getType()) {
                 case SCALAR:
                     for (Symbol argument : function.arguments()) {
                         argument.accept(this, true);
@@ -57,7 +57,7 @@ public class GroupBySymbolValidator {
                     break;
                 default:
                     throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.signature().getKind()));
+                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.signature().getType()));
             }
             return null;
         }

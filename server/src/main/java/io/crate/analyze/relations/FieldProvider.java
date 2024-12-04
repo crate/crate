@@ -48,5 +48,5 @@ public interface FieldProvider<T extends Symbol> {
     ));
 
     FieldProvider<Literal<?>> TO_LITERAL_UNSAFE = ((qualifiedName, path, operation, errorOnUnknownObjectKey) ->
-        Literal.of(new ColumnIdent(qualifiedName.toString(), path).fqn()));
+        Literal.of(ColumnIdent.of(qualifiedName.toString(), path).fqn()));
 }

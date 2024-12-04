@@ -25,21 +25,21 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.CreationException;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -49,16 +49,12 @@ public class RepositoryService {
     private static final Logger LOGGER = LogManager.getLogger(RepositoryService.class);
 
     private final ClusterService clusterService;
-    private final TransportDeleteRepositoryAction deleteRepositoryAction;
-    private final TransportPutRepositoryAction putRepositoryAction;
 
-    @Inject
-    public RepositoryService(ClusterService clusterService,
-                             TransportDeleteRepositoryAction deleteRepositoryAction,
-                             TransportPutRepositoryAction putRepositoryAction) {
+    private final NodeClient client;
+
+    public RepositoryService(ClusterService clusterService, NodeClient client) {
         this.clusterService = clusterService;
-        this.deleteRepositoryAction = deleteRepositoryAction;
-        this.putRepositoryAction = putRepositoryAction;
+        this.client = client;
     }
 
     @Nullable
@@ -77,7 +73,7 @@ public class RepositoryService {
     }
 
     public CompletableFuture<Long> execute(DeleteRepositoryRequest request) {
-        return deleteRepositoryAction.execute(request).thenApply(response -> {
+        return client.execute(DeleteRepositoryAction.INSTANCE, request).thenApply(response -> {
             if (!response.isAcknowledged()) {
                 LOGGER.info("delete repository '{}' not acknowledged", request.name());
             }
@@ -86,7 +82,7 @@ public class RepositoryService {
     }
 
     public CompletableFuture<Long> execute(PutRepositoryRequest request) {
-        return putRepositoryAction.execute(request, r -> 1L)
+        return client.execute(PutRepositoryAction.INSTANCE, request).thenApply(r -> 1L)
             .exceptionallyCompose(err -> {
                 final Throwable t = convertRepositoryException(err);
                 // in case the put repo action fails in the verificationPhase the repository got already created

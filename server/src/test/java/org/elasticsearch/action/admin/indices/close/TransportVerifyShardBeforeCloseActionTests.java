@@ -23,13 +23,10 @@ package org.elasticsearch.action.admin.indices.close;
 import static io.crate.execution.ddl.tables.TransportCloseTable.INDEX_CLOSED_BLOCK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -48,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -192,7 +189,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             indexShard,
             ActionListener.wrap(
                 r -> {
-                    assertNotNull(r);
+                    assertThat(r).isNotNull();
                     res.complete(null);
                 },
                 res::completeExceptionally
@@ -291,7 +288,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             0);
         assertThat(replicationGroup.getUnavailableInSyncShards()).hasSizeGreaterThan(0);
 
-        PlainActionFuture<PrimaryResult> listener = new PlainActionFuture<>();
+        PlainFuture<PrimaryResult> listener = new PlainFuture<>();
         TransportVerifyShardBeforeCloseAction.ShardRequest request =
             new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, clusterBlock);
         ReplicationOperation.Replicas<TransportVerifyShardBeforeCloseAction.ShardRequest> proxy =
@@ -318,17 +315,17 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             if (actionName.startsWith(ShardStateAction.SHARD_FAILED_ACTION_NAME)) {
                 assertThat(capturedRequest.request).isExactlyInstanceOf(ShardStateAction.FailedShardEntry.class);
                 String allocationId = ((ShardStateAction.FailedShardEntry) capturedRequest.request).getAllocationId();
-                assertTrue(unavailableShards.stream()
-                               .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
+                assertThat(unavailableShards.stream()
+                               .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isTrue();
                 transport.handleResponse(capturedRequest.requestId, TransportResponse.Empty.INSTANCE);
 
             } else if (actionName.startsWith(TransportVerifyShardBeforeCloseAction.NAME)) {
                 assertThat(capturedRequest.request).isInstanceOf(ConcreteShardRequest.class);
                 String allocationId = ((ConcreteShardRequest<?>) capturedRequest.request).getTargetAllocationID();
-                assertFalse(unavailableShards.stream()
-                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
-                assertTrue(inSyncAllocationIds.stream()
-                               .anyMatch(inSyncAllocationId -> inSyncAllocationId.equals(allocationId)));
+                assertThat(unavailableShards.stream()
+                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isFalse();
+                assertThat(inSyncAllocationIds.stream()
+                               .anyMatch(inSyncAllocationId -> inSyncAllocationId.equals(allocationId))).isTrue();
                 transport.handleResponse(
                     capturedRequest.requestId,
                     new TransportReplicationAction.ReplicaResponse(0L, 0L));

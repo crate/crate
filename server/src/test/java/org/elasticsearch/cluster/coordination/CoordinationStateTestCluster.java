@@ -22,13 +22,12 @@ package org.elasticsearch.cluster.coordination;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.rarely;
 import static io.crate.lucene.CrateLuceneTestCase.random;
 import static java.util.stream.Collectors.toSet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
 import static org.elasticsearch.test.ESTestCase.randomIntBetween;
 import static org.elasticsearch.test.ESTestCase.randomLong;
 import static org.elasticsearch.test.ESTestCase.randomLongBetween;
 import static org.elasticsearch.test.ESTestCase.randomSubsetOf;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -236,7 +235,9 @@ public class CoordinationStateTestCluster {
             .collect(Collectors.groupingBy(m -> ((PublishRequest) m.payload).getAcceptedState().term()))
             .forEach((term, publishMessages) -> {
                 Set<DiscoveryNode> mastersForTerm = publishMessages.stream().collect(Collectors.groupingBy(m -> m.sourceNode)).keySet();
-                assertThat("Multiple masters " + mastersForTerm + " for term " + term, mastersForTerm, hasSize(1));
+                assertThat(mastersForTerm)
+                    .as("Multiple masters " + mastersForTerm + " for term " + term)
+                    .hasSize(1);
             });
 
         // unique cluster state per (term, version) pair
@@ -249,15 +250,17 @@ public class CoordinationStateTestCluster {
                         Set<String> clusterStateUUIDsForTermAndVersion = clusterStates1.stream().collect(Collectors.groupingBy(
                             ClusterState::stateUUID
                         )).keySet();
-                        assertThat("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version,
-                                   clusterStateUUIDsForTermAndVersion, hasSize(1));
+                        assertThat(clusterStateUUIDsForTermAndVersion)
+                            .as("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version)
+                            .hasSize(1);
 
                         Set<Long> clusterStateValuesForTermAndVersion = clusterStates1.stream().collect(Collectors.groupingBy(
                             CoordinationStateTestCluster::value
                         )).keySet();
 
-                        assertThat("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version,
-                                   clusterStateValuesForTermAndVersion, hasSize(1));
+                        assertThat(clusterStateValuesForTermAndVersion)
+                            .as("Multiple cluster states " + clusterStates1 + " for term " + term + " and version " + version)
+                            .hasSize(1);
                     });
             });
     }

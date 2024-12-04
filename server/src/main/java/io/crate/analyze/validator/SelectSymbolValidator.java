@@ -24,6 +24,7 @@ package io.crate.analyze.validator;
 import java.util.Collection;
 import java.util.Locale;
 
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
@@ -43,14 +44,14 @@ public class SelectSymbolValidator {
 
         @Override
         public Void visitFunction(Function symbol, Void context) {
-            switch (symbol.signature().getKind()) {
+            switch (symbol.signature().getType()) {
                 case SCALAR:
                 case AGGREGATE:
                 case TABLE:
                     break;
                 default:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "FunctionInfo.Type %s not handled", symbol.signature().getKind()));
+                        "FunctionInfo.Type %s not handled", symbol.signature().getType()));
             }
             for (Symbol arg : symbol.arguments()) {
                 arg.accept(this, context);
@@ -66,6 +67,11 @@ public class SelectSymbolValidator {
         @Override
         public Void visitSymbol(Symbol symbol, Void context) {
             return null;
+        }
+
+        @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
+            return aliasSymbol.symbol().accept(this, context);
         }
     }
 }

@@ -35,6 +35,7 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -54,15 +55,13 @@ public class UnnestFunction {
 
     public static void register(Functions.Builder builder, Settings settings) {
         builder.add(
-            Signature
-                .table(
-                    NAME,
-                    TypeSignature.parse("array(N)"),
-                    RowType.EMPTY.getTypeSignature()
-                )
-                .withTypeVariableConstraints(typeVariableOfAnyType("N"))
-                .withFeature(Scalar.Feature.NON_NULLABLE)
-                .withVariableArity(),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(TypeSignature.parse("array(N)"))
+                .returnType(RowType.EMPTY.getTypeSignature())
+                .features(Scalar.Feature.NOTNULL, Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariableOfAnyType("N"))
+                .setVariableArity(true)
+                .build(),
             (signature, boundSignature) -> {
                 List<DataType<?>> fieldTypes = Lists.map(boundSignature.argTypes(), ArrayType::unnest);
                 Boolean useLegacyName = LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(settings);
@@ -88,10 +87,11 @@ public class UnnestFunction {
         );
         // unnest() to keep it compatible with previous versions
         builder.add(
-            Signature.table(
-                NAME,
-                DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ).withFeature(Scalar.Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes()
+                .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
+                .build(),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,

@@ -75,7 +75,7 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = asSymbol("t1.a = 10::text and t1.x = t2.y and (false)");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
         assertThat(split).hasSize(2);
-        assertThat(split.get(Set.of(tr1))).isSQL("(doc.t1.a = cast(10 AS text))");
+        assertThat(split.get(Set.of(tr1))).isSQL("(doc.t1.a = cast(10 AS TEXT))");
         assertThat(split.get(Set.of(tr1, tr2))).isSQL("((doc.t1.x = doc.t2.y) AND false)");
     }
 
@@ -142,7 +142,7 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
             1,
             null
         );
-        ScopedSymbol scopedSymbol = new ScopedSymbol(tr1, new ColumnIdent("c"), DataTypes.BOOLEAN);
+        ScopedSymbol scopedSymbol = new ScopedSymbol(tr1, ColumnIdent.of("c"), DataTypes.BOOLEAN);
         Symbol matchPredicate = asSymbol("Match(t1.a, 'abc')");
 
         Symbol query = AndOperator.join(List.of(bool_a, bool_b, scopedSymbol, matchPredicate));

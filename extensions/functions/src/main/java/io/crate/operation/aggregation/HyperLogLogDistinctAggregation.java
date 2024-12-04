@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -37,15 +38,13 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.common.network.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -55,8 +54,10 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -85,20 +86,21 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
@@ -164,14 +166,25 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return null;
     }
 
+
+
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        if (aggregationReferences.stream().anyMatch(x -> !x.hasDocValues())) {
+        if (aggregationReferences.stream().anyMatch(x -> x != null && !x.hasDocValues())) {
             return null;
+        }
+
+        final int precision;
+        if (optionalParams.isEmpty()) {
+            precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
+        } else {
+            Literal<?> value = optionalParams.getLast();
+            precision = value == null ? HyperLogLogPlusPlus.DEFAULT_PRECISION : (int) value.value();
         }
         Reference reference = aggregationReferences.get(0);
         var dataType = reference.valueType();
@@ -186,7 +199,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -199,7 +211,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -218,7 +229,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -233,12 +243,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case StringType.ID:
             case CharacterType.ID:
-                var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                 return new HllAggregator(reference.storageIdent(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.nextValue();
+                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             var hash = state.isAllOn4_1() ?
                                 MurmurHash3.hash64(ref.bytes, ref.offset, ref.length)
                                 : MurmurHash3.hash128(ref.bytes, ref.offset, ref.length, 0, super.hash128).h1;
@@ -248,13 +257,12 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     }
                 };
             case IpType.ID:
-                var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(reference.storageIdent(), dataType, ipPrecision) {
+                return new HllAggregator(reference.storageIdent(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.nextValue();
-                            byte[] bytes = ((String) DocValueFormat.IP.format(ref)).getBytes(StandardCharsets.UTF_8);
+                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
+                            byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
 
                             var hash = state.isAllOn4_1() ?
                                 MurmurHash3.hash64(bytes, 0, bytes.length)
@@ -274,7 +282,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         private final DataType<?> dataType;
         private final Integer precision;
         private final MurmurHash3.Hash128 hash128 = new MurmurHash3.Hash128();
-        private SortedBinaryDocValues values;
+        private SortedSetDocValues values;
 
         public HllAggregator(String columnName, DataType<?> dataType, Integer precision) {
             this.columnName = columnName;
@@ -290,7 +298,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
+            values = DocValues.getSortedSet(reader.reader(), columnName);
         }
 
         @Override

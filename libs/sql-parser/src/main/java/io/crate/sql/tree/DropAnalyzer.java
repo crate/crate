@@ -37,10 +37,8 @@ public class DropAnalyzer extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DropAnalyzer that = (DropAnalyzer) o;
-        return Objects.equals(name, that.name);
+        return o instanceof DropAnalyzer that
+            && name.equals(that.name);
     }
 
     @Override

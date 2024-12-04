@@ -228,6 +228,10 @@ public abstract class AstVisitor<R, C> {
         return visitQueryBody(node, context);
     }
 
+    protected R visitGroupBy(GroupBy node, C context) {
+        return visitNode(node, context);
+    }
+
     protected R visitAliasedRelation(AliasedRelation node, C context) {
         return visitRelation(node, context);
     }
@@ -464,15 +468,15 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterBlobTable(AlterBlobTable<?> node, C context) {
-        return visitStatement(node, context);
-    }
-
     public R visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitAlterRole(AlterRole<?> node, C context) {
+    public R visitAlterRoleSet(AlterRoleSet<?> node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitAlterRoleReset(AlterRoleReset node, C context) {
         return visitStatement(node, context);
     }
 
@@ -738,5 +742,9 @@ public abstract class AstVisitor<R, C> {
 
     public R visitDropUserMapping(DropUserMapping dropUserMapping, C context) {
         return visitStatement(dropUserMapping, context);
+    }
+
+    public R visitNumericLiteral(NumericLiteral numericLiteral, C context) {
+        return visitLiteral(numericLiteral, context);
     }
 }

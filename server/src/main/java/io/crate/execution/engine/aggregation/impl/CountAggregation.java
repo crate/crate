@@ -44,9 +44,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -72,14 +74,19 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
-        Signature.aggregate(
-            NAME,
-            TypeSignature.parse("V"),
-            DataTypes.LONG.getTypeSignature()
-        ).withTypeVariableConstraints(typeVariable("V"));
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(TypeSignature.parse("V"))
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .typeVariableConstraints(typeVariable("V"))
+                    .build();
 
     public static final Signature COUNT_STAR_SIGNATURE =
-        Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature());
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes()
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
 
     static {
         DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
@@ -292,11 +299,15 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {
             return null;
         }
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.

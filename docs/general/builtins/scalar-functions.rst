@@ -52,10 +52,17 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     +--------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    The ``||`` operator differs from the ``concat`` function regarding the
+    handling of ``NULL`` arguments. It will return ``NULL`` if any of the
+    operands is ``NULL`` while the ``concat`` scalar will return an empty
+    string if both arguments are ``NULL`` and the non-null argument otherwise.
+
 .. TIP::
 
     The ``concat`` function can also be used for merging objects:
-    :ref:`concat(object, object) <scalar-concat-object>`
+    :ref:`concat(object, object) <scalar-concat-object>`.
 
 
 .. _scalar-concat-ws:
@@ -817,6 +824,16 @@ Returns: ``integer``
     | 3 |
     +---+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-position:
+
+``position(substring in string)``
+---------------------------------
+
+The ``position()`` scalar function is an alias of the :ref:`scalar-strpos`
+scalar function. Note that the order of the arguments is reversed.
+
 
 .. _scalar-reverse:
 
@@ -2013,7 +2030,9 @@ clauses.
 ---------------
 
 Returns the absolute value of the given number in the datatype of the given
-number::
+number.
+
+Example::
 
     cr> select abs(214748.0998) AS a, abs(0) AS b, abs(-214748) AS c;
     +-------------+---+--------+
@@ -2056,13 +2075,17 @@ For example::
 ``ceil(number)``
 ----------------
 
-Returns the smallest integer or long value that is not less than the argument.
+Returns the smallest integral value that is not less than the argument.
 
-Returns: ``bigint`` or ``integer``
+Returns: ``numeric``, ``bigint`` or ``integer``
 
-Return value will be of type ``integer`` if the input value is an integer or
-float. If the input value is of type ``bigint`` or ``double precision`` the
-return value will be of type ``bigint``::
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type, with the same precision and scale as the input type. It will be of
+``integer`` if the input value is an ``integer``` or ``float```.  If the input
+value is of type ``bigint`` or ``double precision`` the return value will be of
+type ``bigint``.
+
+Example::
 
     cr> select ceil(29.9) AS col;
     +-----+
@@ -2107,11 +2130,14 @@ Returns: ``double precision``
 ---------------
 
 Returns Euler's number ``e`` raised to the power of the given numeric value.
-The output will be cast to the given input type and thus may loose precision.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     > select exp(1.0) AS exp;
     +-------------------+
@@ -2129,16 +2155,17 @@ Returns: ``double precision``
 ``floor(number)``
 -----------------
 
-Returns the largest integer or long value that is not greater than the
-argument.
+Returns the largest integral value that is not less than the argument.
 
-Returns: ``bigint`` or ``integer``
+Returns: ``numeric``, ``bigint`` or ``integer``
 
-Return value will be an integer if the input value is an integer or a float. If
-the input value is of type ``bigint`` or ``double precision`` the return value
-will be of type ``bigint``.
+Return value will be of type ``numeric`` if the input value is of ``numeric``
+type, with the same precision and scale as the input type. It will be of
+``integer`` if the input value is an ``integer``` or ``float```.  If the input
+value is of type ``bigint`` or ``double precision`` the return value will be of
+type ``bigint``.
 
-See below for an example::
+Example::
 
     cr> select floor(29.9) AS floor;
     +-------+
@@ -2156,9 +2183,13 @@ See below for an example::
 
 Returns the natural logarithm of given ``number``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT ln(1) AS ln;
     +-----+
@@ -2177,14 +2208,21 @@ See below for an example::
 
 .. _scalar-log:
 
-``log(x : number, b : number)``
--------------------------------
+``log(x : number[, b : number])``
+---------------------------------
 
 Returns the logarithm of given ``x`` to base ``b``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example, which essentially is the same as above::
+When the second argument (``b``) is provided it returns a value of type
+``double precision``, even if ``x`` is of type ``numeric``, as it's implicitly
+casted to ``double precision`` (thus, possibly loosing precision). When it's not
+provided, then the return value will be of type ``numeric`` with unspecified
+precision and scale, if the input value is of ``numeric`` type and of
+`double precision`` for any other arithmetic type.
+
+Examples::
 
     cr> SELECT log(100, 10) AS log;
     +-----+
@@ -2314,24 +2352,43 @@ and the implementation is free to change.
 
 .. _scalar-round:
 
-``round(number)``
------------------
+``round(number[, precision])``
+------------------------------
 
-If the input is of type ``double precision`` or ``bigint`` the result is the
-closest ``bigint`` to the argument, with ties rounding up.
+Returns ``number`` rounded to the specified ``precision`` (decimal places).
 
-If the input is of type ``real`` or ``integer`` the result is the closest
-integer to the argument, with ties rounding up.
+When ``precision`` is not specified, the ``round`` function rounds the input
+value to the closest integer for ``real`` and ``integer`` data types with ties
+rounding up, and to the closest ``bigint`` value for ``double precision`` and
+``bigint`` data types with ties rounding up. When the data type of the argument
+is ``numeric``, then it returns the closest ``numeric`` value with the same
+precision and scale as the input type, with all decimal digits zeroed out, and
+with ties rounding up.
 
-Returns: ``bigint`` or ``integer``
+When it is specified, the result's type is ``numeric``. If ``number`` is of
+``numeric`` datatype, then the ``numeric`` type of the result has the same
+precision and scale with the input. If it's of any other arithmetic type, the
+``numeric`` datatype of the result has unspecified precision and scale.
 
-See below for an example::
+Notice that ``round(number)`` and ``round(number, 0)`` may return different
+result types.
+
+
+Examples::
 
     cr> select round(42.2) AS round;
     +-------+
     | round |
     +-------+
     |    42 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+    cr> select round(42.21, 1) AS round;
+    +-------+
+    | round |
+    +-------+
+    |  42.2 |
     +-------+
     SELECT 1 row in set (... sec)
 
@@ -2374,9 +2431,13 @@ See below for examples::
 
 Returns the square root of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> select sqrt(25.0) AS sqrt;
     +------+
@@ -2394,9 +2455,13 @@ See below for an example::
 
 Returns the sine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT sin(1) AS sin;
     +--------------------+
@@ -2414,9 +2479,13 @@ See below for an example::
 
 Returns the arcsine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT asin(1) AS asin;
     +--------------------+
@@ -2434,9 +2503,13 @@ See below for an example::
 
 Returns the cosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT cos(1) AS cos;
     +--------------------+
@@ -2454,9 +2527,13 @@ See below for an example::
 
 Returns the arccosine of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT acos(-1) AS acos;
     +-------------------+
@@ -2474,9 +2551,13 @@ See below for an example::
 
 Returns the tangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT tan(1) AS tan;
     +--------------------+
@@ -2496,9 +2577,13 @@ Returns the cotangent of the argument that represents the angle expressed in
 radians. The range of the argument is all real numbers. The cotangent of zero
 is undefined and returns ``Infinity``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> select cot(1) AS cot;
     +--------------------+
@@ -2516,9 +2601,13 @@ See below for an example::
 
 Returns the arctangent of the argument.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-See below for an example::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` for any
+other arithmetic type.
+
+Example::
 
     cr> SELECT atan(1) AS atan;
     +--------------------+
@@ -2536,9 +2625,13 @@ See below for an example::
 
 Returns the arctangent of ``y/x``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-::
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value ``y`` or ``x`` is of ``numeric`` type, and
+``double precision`` for any other arithmetic type.
+
+Example::
 
     cr> SELECT atan2(2, 1) AS atan2;
     +--------------------+
@@ -2725,6 +2818,25 @@ Returns: ``array``
     | [1, 2, 3, 4] |
     +--------------+
     SELECT 1 row in set (... sec)
+
+
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` to append
+values to an array::
+
+    cr> select
+    ...    [1,2,3] || 4 AS array_append;
+    +--------------+
+    | array_append |
+    +--------------+
+    | [1, 2, 3, 4] |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The ``||`` operator differs from the ``array_append`` function regarding
+    the handling of ``NULL`` arguments. It will ignore a ``NULL`` value while
+    the ``array_append`` function will append a ``NULL`` value to the array.
 
 
 .. _scalar-array_cat:
@@ -3220,6 +3332,45 @@ Begin the search from given position (optional).
     ``array_position`` won't even when used inside the ``WHERE`` clause.
 
 
+.. _scalar-array_prepend:
+
+``array_prepend(value, anyarray)``
+----------------------------------
+
+The ``array_prepend`` function prepends a value to the beginning of the array.
+
+Returns: ``array``
+
+::
+
+    cr> select
+    ...     array_prepend(1, [2,3,4]) AS array_prepend;
+    +---------------+
+    | array_prepend |
+    +---------------+
+    | [1, 2, 3, 4]  |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` to prepend
+values to an array::
+
+    cr> select
+    ...    1 || [2,3,4] AS array_prepend;
+    +---------------+
+    | array_prepend |
+    +---------------+
+    | [1, 2, 3, 4]  |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The ``||`` operator differs from the ``array_prepend`` function regarding the
+    handling of ``NULL`` arguments. It will ignore a ``NULL`` value while the
+    ``array_prepend`` function will prepend a ``NULL`` value to the array.
+
 .. _scalar-array_max:
 
 ``array_max(array)``
@@ -3353,6 +3504,31 @@ skipped and ``NULL`` leaf elements within arrays are preserved.
     :ref:`UNNEST table function <unnest>`
 
 
+.. _scalar-null-or-empty-array:
+
+``null_or_empty(array)``
+-------------------------
+
+The ``null_or_empty(array)`` function returns a Boolean indicating if an array
+is ``NULL`` or empty (``[]``).
+
+This can serve as a faster alternative to ``IS NULL`` if matching on empty
+array is acceptable. It makes better use of indices.
+
+::
+
+    cr> SELECT null_or_empty([]) w,
+    ...        null_or_empty([[]]) x,
+    ...        null_or_empty(NULL) y,
+    ...        null_or_empty([1]) z;
+    +------+-------+------+-------+
+    | w    | x     | y    | z     |
+    +------+-------+------+-------+
+    | TRUE | FALSE | TRUE | FALSE |
+    +------+-------+------+-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-objects:
 
 Object functions
@@ -3431,13 +3607,13 @@ objects::
         SELECT 1 row in set (... sec)
 
 
-.. _scalar-null-or-empty:
+.. _scalar-null-or-empty-object:
 
 
 ``null_or_empty(object)``
 -------------------------
 
-The ``null_or_empty(object)`` function returns a boolean indicating if an object
+The ``null_or_empty(object)`` function returns a Boolean indicating if an object
 is ``NULL`` or empty (``{}``).
 
 This can serve as a faster alternative to ``IS NULL`` if matching on empty
@@ -3962,6 +4138,71 @@ Example::
     +----------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    For unknown schemas:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``USAGE``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``CREATE``.
+
+    - Returns ``FALSE`` otherwise.
+
+.. _scalar-has-table-priv:
+
+``has_table_privilege([user,] table, privilege text)``
+------------------------------------------------------
+
+Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
+
+First argument is ``TEXT`` user name or ``INTEGER`` user OID. If user is not
+specified current user is used as an argument.
+
+Second argument is ``TEXT`` table name or ``INTEGER`` table OID.
+
+Third argument is privilege(s) to check. Multiple privileges can be provided as
+a comma separated list, in which case the result will be ``true`` if any of the
+listed privileges is held. Allowed privilege types are ``SELECT`` which
+corresponds to CrateDB's ``DQL`` and ``INSERT``, ``UPDATE``, ``DELETE`` which
+all correspond to CrateDB's ``DML``. Privilege string is case insensitive and
+extra whitespace is allowed between privilege names. Duplicate entries in
+privilege string are allowed.
+
+Example::
+
+    cr> select has_table_privilege('sys.summits', ' Select  ')
+    ... as has_priv;
+    +----------+
+    | has_priv |
+    +----------+
+    | TRUE     |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    For unknown tables:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``SELECT``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - For a user with ``DQL`` on the schema, returns ``TRUE`` if the privilege
+      type is ``SELECT``.
+
+    - For a user with ``DML`` on the schema, returns ``TRUE`` if the privilege
+      type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - Returns ``FALSE`` otherwise.
+
 .. _scalar-pg_backend_pid:
 
 ``pg_backend_pid()``
@@ -4169,7 +4410,7 @@ Synopsis::
 
 Example::
 
-    cr> select pg_get_userbyid(1) AS name;
+    cr> select pg_get_userbyid(-450373579) AS name;
     +-------+
     | name  |
     +-------+
@@ -4229,6 +4470,32 @@ Example:
     +------------------------+
     | TRUE                   |
     +------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_table_is_visible:
+
+``pg_table_is_visible()``
+-------------------------
+
+The function ``pg_table_is_visible`` accepts an OID as an argument. It returns
+``true`` if the current user holds at least one of ``DQL``, ``DDL`` or ``DML``
+privilege on the table or view referred by the OID and there are no other
+tables or views with the same name and privileges but with different schema
+names appearing earlier in the search path.
+
+Returns: ``boolean``
+
+Example:
+
+::
+
+    cr> select pg_table_is_visible(912037690) as is_visible;
+    +------------+
+    | is_visible |
+    +------------+
+    | TRUE       |
+    +------------+
     SELECT 1 row in set (... sec)
 
 
@@ -4341,7 +4608,7 @@ Example:
 ---------------------------------
 
 Returns the type name of a type. The first argument is the ``OID`` of the type.
-The second argument is the type modifier. This function exits for PostgreSQL
+The second argument is the type modifier. This function exists for PostgreSQL
 compatibility and the type modifier is always ignored.
 
 Returns: ``text``
@@ -4529,6 +4796,36 @@ Example::
     +------+-------+-------+
     | TRUE | FALSE | FALSE |
     +------+-------+-------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-vector:
+
+Vector functions
+================
+
+.. _scalar_vector_similarity:
+
+
+``vector_similarity(float_vector, float_vector)``
+--------------------------------------------------------
+
+Returns similarity of 2 :ref:`FLOAT_VECTORS <type-float_vector>`
+as a :ref:`FLOAT <type-real>` typed value.
+Similarity is based on euclidean distance and belongs to range ``(0,1]``.
+If 2 vectors coincide, function returns maximal possible similarity 1.
+The more distance between vectors is, the closer similarity gets to 0.
+If at least one argument is ``NULL``, function returns ``NULL``.
+
+An example::
+
+
+    cr> SELECT vector_similarity([1.2, 1.3], [10.2, 10.3]) AS vs;
+    +-------------+
+    |          vs |
+    +-------------+
+    | 0.006134969 |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 

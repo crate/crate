@@ -20,20 +20,14 @@
  */
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -72,7 +65,7 @@ public class ScopedSettingsTests extends ESTestCase {
         Settings currentSettings = Settings.builder().put("some.dyn.setting", 5).put("some.static.setting", 6).put("archived.foo.bar", 9)
             .build();
         ClusterSettings service = new ClusterSettings(currentSettings
-            , new HashSet<>(Arrays.asList(dynamicSetting, staticSetting)));
+            , new HashSet<>(List.of(dynamicSetting, staticSetting)));
 
         assertThatThrownBy(() -> service.updateDynamicSettings(
                 Settings.builder().put("some.dyn.setting", 8).putNull("some.static.setting").build(),
@@ -81,43 +74,43 @@ public class ScopedSettingsTests extends ESTestCase {
 
         Settings.Builder target = Settings.builder().put(currentSettings);
         Settings.Builder update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().put("some.dyn.setting", 8).build(),
-            target, update, "node"));
-        assertEquals(8, dynamicSetting.get(target.build()).intValue());
-        assertEquals(6, staticSetting.get(target.build()).intValue());
-        assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
+        assertThat(service.updateDynamicSettings(Settings.builder().put("some.dyn.setting", 8).build(),
+            target, update, "node")).isTrue();
+        assertThat(dynamicSetting.get(target.build()).intValue()).isEqualTo(8);
+        assertThat(staticSetting.get(target.build()).intValue()).isEqualTo(6);
+        assertThat(target.build().getAsInt("archived.foo.bar", null).intValue()).isEqualTo(9);
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("some.dyn.setting").build(),
-            target, update, "node"));
-        assertEquals(1, dynamicSetting.get(target.build()).intValue());
-        assertEquals(6, staticSetting.get(target.build()).intValue());
-        assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("some.dyn.setting").build(),
+            target, update, "node")).isTrue();
+        assertThat(dynamicSetting.get(target.build()).intValue()).isEqualTo(1);
+        assertThat(staticSetting.get(target.build()).intValue()).isEqualTo(6);
+        assertThat(target.build().getAsInt("archived.foo.bar", null).intValue()).isEqualTo(9);
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("archived.foo.bar").build(),
-            target, update, "node"));
-        assertEquals(5, dynamicSetting.get(target.build()).intValue());
-        assertEquals(6, staticSetting.get(target.build()).intValue());
-        assertNull(target.build().getAsInt("archived.foo.bar", null));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("archived.foo.bar").build(),
+            target, update, "node")).isTrue();
+        assertThat(dynamicSetting.get(target.build()).intValue()).isEqualTo(5);
+        assertThat(staticSetting.get(target.build()).intValue()).isEqualTo(6);
+        assertThat(target.build().getAsInt("archived.foo.bar", null)).isNull();
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("some.*").build(),
-            target, update, "node"));
-        assertEquals(1, dynamicSetting.get(target.build()).intValue());
-        assertEquals(6, staticSetting.get(target.build()).intValue());
-        assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("some.*").build(),
+            target, update, "node")).isTrue();
+        assertThat(dynamicSetting.get(target.build()).intValue()).isEqualTo(1);
+        assertThat(staticSetting.get(target.build()).intValue()).isEqualTo(6);
+        assertThat(target.build().getAsInt("archived.foo.bar", null).intValue()).isEqualTo(9);
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("*").build(),
-            target, update, "node"));
-        assertEquals(1, dynamicSetting.get(target.build()).intValue());
-        assertEquals(6, staticSetting.get(target.build()).intValue());
-        assertNull(target.build().getAsInt("archived.foo.bar", null));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("*").build(),
+            target, update, "node")).isTrue();
+        assertThat(dynamicSetting.get(target.build()).intValue()).isEqualTo(1);
+        assertThat(staticSetting.get(target.build()).intValue()).isEqualTo(6);
+        assertThat(target.build().getAsInt("archived.foo.bar", null)).isNull();
     }
 
     @Test
@@ -128,10 +121,10 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Integer> dynamicSetting = Setting.intSetting("index.some.dyn.setting", 1, Property.Dynamic, Property.IndexScope);
 
         IndexScopedSettings settings = new IndexScopedSettings(currentSettings,
-            new HashSet<>(Arrays.asList(dynamicSetting, IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING)));
+            new HashSet<>(List.of(dynamicSetting, IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING)));
         Map<String, String> s = IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
-        assertEquals(1, s.size());
-        assertEquals("192.168.0.1,127.0.0.1", s.get("_ip"));
+        assertThat(s.size()).isEqualTo(1);
+        assertThat(s.get("_ip")).isEqualTo("192.168.0.1,127.0.0.1");
         Settings.Builder builder = Settings.builder();
         Settings updates = Settings.builder().putNull("index.routing.allocation.require._ip")
             .put("index.some.dyn.setting", 1).build();
@@ -140,9 +133,9 @@ public class ScopedSettingsTests extends ESTestCase {
             Settings.builder().put(currentSettings), builder, "node");
         currentSettings = builder.build();
         s = IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING.getAsMap(currentSettings);
-        assertEquals(0, s.size());
-        assertEquals(1, dynamicSetting.get(currentSettings).intValue());
-        assertEquals(1, currentSettings.size());
+        assertThat(s.size()).isEqualTo(0);
+        assertThat(dynamicSetting.get(currentSettings).intValue()).isEqualTo(1);
+        assertThat(currentSettings.size()).isEqualTo(1);
     }
 
     @Test
@@ -158,7 +151,7 @@ public class ScopedSettingsTests extends ESTestCase {
             service.addSettingsUpdateConsumer(testSetting2, consumer2::set);
             fail("setting not registered");
         } catch (IllegalArgumentException ex) {
-            assertEquals("Setting is not registered for key [foo.bar.baz]", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("Setting is not registered for key [foo.bar.baz]");
         }
 
         try {
@@ -168,23 +161,23 @@ public class ScopedSettingsTests extends ESTestCase {
             });
             fail("setting not registered");
         } catch (IllegalArgumentException ex) {
-            assertEquals("Setting is not registered for key [foo.bar.baz]", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("Setting is not registered for key [foo.bar.baz]");
         }
-        assertEquals(0, consumer.get());
-        assertEquals(0, consumer2.get());
+        assertThat(consumer.get()).isEqualTo(0);
+        assertThat(consumer2.get()).isEqualTo(0);
         service.applySettings(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", 15).build());
-        assertEquals(2, consumer.get());
-        assertEquals(0, consumer2.get());
+        assertThat(consumer.get()).isEqualTo(2);
+        assertThat(consumer2.get()).isEqualTo(0);
     }
 
     @Test
     public void testDependentSettings() {
         Setting.AffixSetting<String> stringSetting = Setting.affixKeySetting("foo.", "name",
-            (k) -> Setting.simpleString(k, Property.Dynamic, Property.NodeScope));
+            k -> Setting.simpleString(k, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting("foo.", "bar",
-            (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope), () -> stringSetting);
+            k ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope), () -> stringSetting);
 
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(intSetting, stringSetting)));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(List.of(intSetting, stringSetting)));
 
         assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -203,15 +196,15 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting.AffixSetting<String> stringSetting = Setting.affixKeySetting(
             "foo.",
             "name",
-            (k) -> Setting.simpleString(k, Property.Dynamic, Property.NodeScope));
+            k -> Setting.simpleString(k, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting(
             "foo.",
             "bar",
-            (k) -> Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope),
+            k -> Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope),
             new Setting.AffixSettingDependency() {
 
                 @Override
-                public Setting.AffixSetting getSetting() {
+                public Setting.AffixSetting<?> getSetting() {
                     return stringSetting;
                 }
 
@@ -223,7 +216,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 }
             });
 
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(intSetting, stringSetting)));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(List.of(intSetting, stringSetting)));
 
         assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).put("foo.test.name", "invalid").build(), true))
             .isExactlyInstanceOf(SettingsException.class)
@@ -262,7 +255,7 @@ public class ScopedSettingsTests extends ESTestCase {
             () -> nameSetting);
 
         final AbstractScopedSettings service =
-                new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(nameFallbackSetting, nameSetting, barSetting)));
+                new ClusterSettings(Settings.EMPTY,new HashSet<>(List.of(nameFallbackSetting, nameSetting, barSetting)));
 
         assertThatThrownBy(() -> service.validate(Settings.builder().put("foo.test.bar", 7).build(), true))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -275,10 +268,10 @@ public class ScopedSettingsTests extends ESTestCase {
     @Test
     public void testAddConsumerAffix() {
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting("foo.", "bar",
-            (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
+            k ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<List<Integer>> listSetting = Setting.affixKeySetting("foo.", "list",
-            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, new ArrayType<>(DataTypes.INTEGER), Property.Dynamic, Property.NodeScope));
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(intSetting, listSetting)));
+            k -> Setting.listSetting(k, List.of("1"), Integer::parseInt, new ArrayType<>(DataTypes.INTEGER), Property.Dynamic, Property.NodeScope));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(List.of(intSetting, listSetting)));
         Map<String, List<Integer>> listResults = new HashMap<>();
         Map<String, Integer> intResults = new HashMap<>();
 
@@ -287,20 +280,20 @@ public class ScopedSettingsTests extends ESTestCase {
 
         service.addAffixUpdateConsumer(listSetting, listConsumer, (s, k) -> {});
         service.addAffixUpdateConsumer(intSetting, intConsumer, (s, k) -> {});
-        assertEquals(0, listResults.size());
-        assertEquals(0, intResults.size());
+        assertThat(listResults.size()).isEqualTo(0);
+        assertThat(intResults.size()).isEqualTo(0);
         service.applySettings(Settings.builder()
             .put("foo.test.bar", 2)
             .put("foo.test_1.bar", 7)
             .putList("foo.test_list.list", "16", "17")
             .putList("foo.test_list_1.list", "18", "19", "20")
             .build());
-        assertEquals(2, intResults.get("test").intValue());
-        assertEquals(7, intResults.get("test_1").intValue());
-        assertEquals(Arrays.asList(16, 17), listResults.get("test_list"));
-        assertEquals(Arrays.asList(18, 19, 20), listResults.get("test_list_1"));
-        assertEquals(2, listResults.size());
-        assertEquals(2, intResults.size());
+        assertThat(intResults.get("test").intValue()).isEqualTo(2);
+        assertThat(intResults.get("test_1").intValue()).isEqualTo(7);
+        assertThat(listResults.get("test_list")).isEqualTo(List.of(16, 17));
+        assertThat(listResults.get("test_list_1")).isEqualTo(List.of(18, 19, 20));
+        assertThat(listResults.size()).isEqualTo(2);
+        assertThat(intResults.size()).isEqualTo(2);
 
         listResults.clear();
         intResults.clear();
@@ -311,49 +304,48 @@ public class ScopedSettingsTests extends ESTestCase {
             .putList("foo.test_list.list", "16", "17")
             .putNull("foo.test_list_1.list")
             .build());
-        assertNull("test wasn't changed", intResults.get("test"));
-        assertEquals(8, intResults.get("test_1").intValue());
-        assertNull("test_list wasn't changed", listResults.get("test_list"));
-        assertEquals(Arrays.asList(1), listResults.get("test_list_1")); // reset to default
-        assertEquals(1, listResults.size());
-        assertEquals(1, intResults.size());
+        assertThat(intResults.get("test")).as("test wasn't changed").isNull();
+        assertThat(intResults.get("test_1").intValue()).isEqualTo(8);
+        assertThat(listResults.get("test_list")).as("test_list wasn't changed").isNull();
+        assertThat(listResults.get("test_list_1")).isEqualTo(List.of(1)); // reset to default
+        assertThat(listResults.size()).isEqualTo(1);
+        assertThat(intResults.size()).isEqualTo(1);
     }
-
 
     @Test
     public void testAddConsumerAffixMap() {
         Setting.AffixSetting<Integer> intSetting = Setting.affixKeySetting("foo.", "bar",
-            (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
+            k ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<List<Integer>> listSetting = Setting.affixKeySetting("foo.", "list",
-            (k) -> Setting.listSetting(k, Arrays.asList("1"), Integer::parseInt, DataTypes.INTEGER_ARRAY, Property.Dynamic, Property.NodeScope));
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(intSetting, listSetting)));
+            k -> Setting.listSetting(k, List.of("1"), Integer::parseInt, DataTypes.INTEGER_ARRAY, Property.Dynamic, Property.NodeScope));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(List.of(intSetting, listSetting)));
         Map<String, List<Integer>> listResults = new HashMap<>();
         Map<String, Integer> intResults = new HashMap<>();
 
-        Consumer<Map<String,Integer>> intConsumer = (map) -> {
+        Consumer<Map<String,Integer>> intConsumer = map -> {
             intResults.clear();
             intResults.putAll(map);
         };
-        Consumer<Map<String, List<Integer>>> listConsumer = (map) -> {
+        Consumer<Map<String, List<Integer>>> listConsumer = map -> {
             listResults.clear();
             listResults.putAll(map);
         };
         service.addAffixMapUpdateConsumer(listSetting, listConsumer, (s, k) -> {});
         service.addAffixMapUpdateConsumer(intSetting, intConsumer, (s, k) -> {});
-        assertEquals(0, listResults.size());
-        assertEquals(0, intResults.size());
+        assertThat(listResults.size()).isEqualTo(0);
+        assertThat(intResults.size()).isEqualTo(0);
         service.applySettings(Settings.builder()
             .put("foo.test.bar", 2)
             .put("foo.test_1.bar", 7)
             .putList("foo.test_list.list", "16", "17")
             .putList("foo.test_list_1.list", "18", "19", "20")
             .build());
-        assertEquals(2, intResults.get("test").intValue());
-        assertEquals(7, intResults.get("test_1").intValue());
-        assertEquals(Arrays.asList(16, 17), listResults.get("test_list"));
-        assertEquals(Arrays.asList(18, 19, 20), listResults.get("test_list_1"));
-        assertEquals(2, listResults.size());
-        assertEquals(2, intResults.size());
+        assertThat(intResults.get("test").intValue()).isEqualTo(2);
+        assertThat(intResults.get("test_1").intValue()).isEqualTo(7);
+        assertThat(listResults.get("test_list")).isEqualTo(List.of(16, 17));
+        assertThat(listResults.get("test_list_1")).isEqualTo(List.of(18, 19, 20));
+        assertThat(listResults.size()).isEqualTo(2);
+        assertThat(intResults.size()).isEqualTo(2);
 
         service.applySettings(Settings.builder()
             .put("foo.test.bar", 2)
@@ -362,12 +354,12 @@ public class ScopedSettingsTests extends ESTestCase {
             .putList("foo.test_list_1.list", "18", "19", "20")
             .build());
 
-        assertEquals(2, intResults.get("test").intValue());
-        assertEquals(7, intResults.get("test_1").intValue());
-        assertEquals(Arrays.asList(16, 17), listResults.get("test_list"));
-        assertEquals(Arrays.asList(18, 19, 20), listResults.get("test_list_1"));
-        assertEquals(2, listResults.size());
-        assertEquals(2, intResults.size());
+        assertThat(intResults.get("test").intValue()).isEqualTo(2);
+        assertThat(intResults.get("test_1").intValue()).isEqualTo(7);
+        assertThat(listResults.get("test_list")).isEqualTo(List.of(16, 17));
+        assertThat(listResults.get("test_list_1")).isEqualTo(List.of(18, 19, 20));
+        assertThat(listResults.size()).isEqualTo(2);
+        assertThat(intResults.size()).isEqualTo(2);
 
         listResults.clear();
         intResults.clear();
@@ -378,42 +370,42 @@ public class ScopedSettingsTests extends ESTestCase {
             .putList("foo.test_list.list", "16", "17")
             .putNull("foo.test_list_1.list")
             .build());
-        assertNull("test wasn't changed", intResults.get("test"));
-        assertEquals(8, intResults.get("test_1").intValue());
-        assertNull("test_list wasn't changed", listResults.get("test_list"));
-        assertEquals(Arrays.asList(1), listResults.get("test_list_1")); // reset to default
-        assertEquals(1, listResults.size());
-        assertEquals(1, intResults.size());
+        assertThat(intResults.get("test")).as("test wasn't changed").isNull();
+        assertThat(intResults.get("test_1").intValue()).isEqualTo(8);
+        assertThat(listResults.get("test_list")).as("test_list wasn't changed").isNull();
+        assertThat(listResults.get("test_list_1")).isEqualTo(List.of(1)); // reset to default
+        assertThat(listResults.size()).isEqualTo(1);
+        assertThat(intResults.size()).isEqualTo(1);
     }
 
     @Test
     public void testAffixMapConsumerNotCalledWithNull() {
         Setting.AffixSetting<Integer> prefixSetting = Setting.prefixKeySetting("eggplant.",
-                (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
+                k ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
         Setting.AffixSetting<Integer> otherSetting = Setting.prefixKeySetting("other.",
-                (k) ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(Arrays.asList(prefixSetting, otherSetting)));
+                k ->  Setting.intSetting(k, 1, Property.Dynamic, Property.NodeScope));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY,new HashSet<>(List.of(prefixSetting, otherSetting)));
         Map<String, Integer> affixResults = new HashMap<>();
 
-        Consumer<Map<String,Integer>> consumer = (map) -> {
+        Consumer<Map<String,Integer>> consumer = map -> {
             logger.info("--> consuming settings {}", map);
             affixResults.clear();
             affixResults.putAll(map);
         };
         service.addAffixMapUpdateConsumer(prefixSetting, consumer, (s, k) -> {});
-        assertEquals(0, affixResults.size());
+        assertThat(affixResults.size()).isEqualTo(0);
         service.applySettings(Settings.builder()
                 .put("eggplant._name", 2)
                 .build());
-        assertThat(affixResults.size(), equalTo(1));
-        assertThat(affixResults.get("_name"), equalTo(2));
+        assertThat(affixResults).hasSize(1);
+        assertThat(affixResults.get("_name")).isEqualTo(2);
 
         service.applySettings(Settings.builder()
                 .put("eggplant._name", 2)
                 .put("other.thing", 3)
                 .build());
 
-        assertThat(affixResults.get("_name"), equalTo(2));
+        assertThat(affixResults.get("_name")).isEqualTo(2);
     }
 
 
@@ -421,12 +413,12 @@ public class ScopedSettingsTests extends ESTestCase {
     public void testApply() {
         Setting<Integer> testSetting = Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope);
         Setting<Integer> testSetting2 = Setting.intSetting("foo.bar.baz", 1, Property.Dynamic, Property.NodeScope);
-        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(testSetting, testSetting2)));
+        AbstractScopedSettings service = new ClusterSettings(Settings.EMPTY, new HashSet<>(List.of(testSetting, testSetting2)));
 
         AtomicInteger consumer = new AtomicInteger();
         service.addSettingsUpdateConsumer(testSetting, consumer::set);
         AtomicInteger consumer2 = new AtomicInteger();
-        service.addSettingsUpdateConsumer(testSetting2, consumer2::set, (s) -> assertTrue(s > 0));
+        service.addSettingsUpdateConsumer(testSetting2, consumer2::set, s -> assertThat(s).isGreaterThan(0));
 
         AtomicInteger aC = new AtomicInteger();
         AtomicInteger bC = new AtomicInteger();
@@ -435,42 +427,68 @@ public class ScopedSettingsTests extends ESTestCase {
             bC.set(b);
         });
 
-        assertEquals(0, consumer.get());
-        assertEquals(0, consumer2.get());
-        assertEquals(0, aC.get());
-        assertEquals(0, bC.get());
+        assertThat(consumer.get()).isEqualTo(0);
+        assertThat(consumer2.get()).isEqualTo(0);
+        assertThat(aC.get()).isEqualTo(0);
+        assertThat(bC.get()).isEqualTo(0);
         try {
             service.applySettings(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build());
             fail("invalid value");
         } catch (IllegalArgumentException ex) {
-            assertEquals("illegal value can't update [foo.bar.baz] from [1] to [-15]", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("illegal value can't update [foo.bar.baz] from [1] to [-15]");
         }
-        assertEquals(0, consumer.get());
-        assertEquals(0, consumer2.get());
-        assertEquals(0, aC.get());
-        assertEquals(0, bC.get());
-        try {
-            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build());
-            fail("invalid value");
-        } catch (IllegalArgumentException ex) {
-            assertEquals("illegal value can't update [foo.bar.baz] from [1] to [-15]", ex.getMessage());
-        }
+        assertThat(consumer.get()).isEqualTo(0);
+        assertThat(consumer2.get()).isEqualTo(0);
+        assertThat(aC.get()).isEqualTo(0);
+        assertThat(bC.get()).isEqualTo(0);
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("illegal value can't update [foo.bar.baz] from [1] to [-15]");
 
-        assertEquals(0, consumer.get());
-        assertEquals(0, consumer2.get());
-        assertEquals(0, aC.get());
-        assertEquals(0, bC.get());
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                        "cannot both be set to 0.0");
+
+        AbstractScopedSettings serviceBalanceFactor1 = new ClusterSettings(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor1.validateUpdate(Settings.builder()
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
+        AbstractScopedSettings serviceBalanceFactor2 = new ClusterSettings(Settings.builder()
+            .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor2.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
+
+        assertThat(consumer.get()).isEqualTo(0);
+        assertThat(consumer2.get()).isEqualTo(0);
+        assertThat(aC.get()).isEqualTo(0);
+        assertThat(bC.get()).isEqualTo(0);
         service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", 15).build());
-        assertEquals(0, consumer.get());
-        assertEquals(0, consumer2.get());
-        assertEquals(0, aC.get());
-        assertEquals(0, bC.get());
+        assertThat(consumer.get()).isEqualTo(0);
+        assertThat(consumer2.get()).isEqualTo(0);
+        assertThat(aC.get()).isEqualTo(0);
+        assertThat(bC.get()).isEqualTo(0);
 
         service.applySettings(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", 15).build());
-        assertEquals(2, consumer.get());
-        assertEquals(15, consumer2.get());
-        assertEquals(2, aC.get());
-        assertEquals(15, bC.get());
+        assertThat(consumer.get()).isEqualTo(2);
+        assertThat(consumer2.get()).isEqualTo(15);
+        assertThat(aC.get()).isEqualTo(2);
+        assertThat(bC.get()).isEqualTo(15);
     }
 
     @Test
@@ -478,42 +496,41 @@ public class ScopedSettingsTests extends ESTestCase {
         ClusterSettings settings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         // affix setting - complex matcher
         Setting<?> setting = settings.get("cluster.routing.allocation.require.value");
-        assertEquals(setting,
-            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getConcreteSetting("cluster.routing.allocation.require.value"));
+        assertThat(FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getConcreteSetting("cluster.routing.allocation.require.value")).isEqualTo(setting);
 
         setting = settings.get("cluster.routing.allocation.total_shards_per_node");
-        assertEquals(setting, ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING);
+        assertThat(setting).isEqualTo(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING);
     }
 
     @Test
     public void testIsDynamic(){
         ClusterSettings settings =
             new ClusterSettings(Settings.EMPTY,
-                new HashSet<>(Arrays.asList(Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope),
+                new HashSet<>(List.of(Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope),
                     Setting.intSetting("foo.bar.baz", 1, Property.NodeScope))));
-        assertFalse(settings.isDynamicSetting("foo.bar.baz"));
-        assertTrue(settings.isDynamicSetting("foo.bar"));
-        assertNotNull(settings.get("foo.bar.baz"));
+        assertThat(settings.isDynamicSetting("foo.bar.baz")).isFalse();
+        assertThat(settings.isDynamicSetting("foo.bar")).isTrue();
+        assertThat(settings.get("foo.bar.baz")).isNotNull();
     }
 
     @Test
     public void testIsFinal() {
         ClusterSettings settings =
             new ClusterSettings(Settings.EMPTY,
-                new HashSet<>(Arrays.asList(Setting.intSetting("foo.int", 1, Property.Final, Property.NodeScope),
+                new HashSet<>(List.of(Setting.intSetting("foo.int", 1, Property.Final, Property.NodeScope),
                     Setting.groupSetting("foo.group.",  Property.Final, Property.NodeScope),
                     Setting.groupSetting("foo.list.",  Property.Final, Property.NodeScope),
                     Setting.intSetting("foo.int.baz", 1, Property.NodeScope))));
 
-        assertFalse(settings.isFinalSetting("foo.int.baz"));
-        assertTrue(settings.isFinalSetting("foo.int"));
+        assertThat(settings.isFinalSetting("foo.int.baz")).isFalse();
+        assertThat(settings.isFinalSetting("foo.int")).isTrue();
 
-        assertFalse(settings.isFinalSetting("foo.list"));
-        assertTrue(settings.isFinalSetting("foo.list.0.key"));
-        assertTrue(settings.isFinalSetting("foo.list.key"));
+        assertThat(settings.isFinalSetting("foo.list")).isFalse();
+        assertThat(settings.isFinalSetting("foo.list.0.key")).isTrue();
+        assertThat(settings.isFinalSetting("foo.list.key")).isTrue();
 
-        assertFalse(settings.isFinalSetting("foo.group"));
-        assertTrue(settings.isFinalSetting("foo.group.key"));
+        assertThat(settings.isFinalSetting("foo.group")).isFalse();
+        assertThat(settings.isFinalSetting("foo.group.key")).isTrue();
     }
 
     @Test
@@ -521,43 +538,43 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Integer> fooBarBaz = Setting.intSetting("foo.bar.baz", 1, Property.NodeScope);
         Setting<Integer> fooBar = Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope);
         Setting<Settings> someGroup = Setting.groupSetting("some.group.", Property.Dynamic, Property.NodeScope);
-        Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", (key) -> Setting.boolSetting(key, true,
+        Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", key -> Setting.boolSetting(key, true,
             Property.NodeScope));
         Setting<List<String>> foorBarQuux =
-                Setting.listSetting("foo.bar.quux", Arrays.asList("a", "b", "c"), Function.identity(), DataTypes.STRING, Property.NodeScope);
-        ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(fooBar, fooBarBaz, foorBarQuux,
+                Setting.listSetting("foo.bar.quux", List.of("a", "b", "c"), Function.identity(), DataTypes.STRING, Property.NodeScope);
+        ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(List.of(fooBar, fooBarBaz, foorBarQuux,
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
-        assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
+        assertThat(diff.size()).isEqualTo(2);
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(List.of("a", "b", "c")).isEqualTo(diff.getAsList("foo.bar.quux", null));
 
         diff = settings.diff(
                 Settings.builder().put("foo.bar", 5).build(),
                 Settings.builder().put("foo.bar.baz", 17).putList("foo.bar.quux", "d", "e", "f").build());
-        assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(17));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("d", "e", "f"));
+        assertThat(diff.size()).isEqualTo(2);
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(17);
+        assertThat(List.of("d", "e", "f")).isEqualTo(diff.getAsList("foo.bar.quux", null));
 
         diff = settings.diff(
             Settings.builder().put("some.group.foo", 5).build(),
             Settings.builder().put("some.group.foobar", 17).put("some.group.foo", 25).build());
-        assertEquals(4, diff.size());
-        assertThat(diff.getAsInt("some.group.foobar", null), equalTo(17));
-        assertNull(diff.get("some.group.foo"));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.size()).isEqualTo(4);
+        assertThat(diff.getAsInt("some.group.foobar", null)).isEqualTo(17);
+        assertThat(diff.get("some.group.foo")).isNull();
+        assertThat(List.of("a", "b", "c")).isEqualTo(diff.getAsList("foo.bar.quux", null));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
             Settings.builder().put("some.prefix.foobar.somekey", 17).put("some.prefix.foo.somekey", 18).build());
-        assertEquals(4, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
-        assertNull(diff.get("some.prefix.foo.somekey"));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.size()).isEqualTo(4);
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
+        assertThat(diff.get("some.prefix.foo.somekey")).isNull();
+        assertThat(List.of("a", "b", "c")).isEqualTo(diff.getAsList("foo.bar.quux", null));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
     }
 
     @Test
@@ -565,43 +582,43 @@ public class ScopedSettingsTests extends ESTestCase {
         Setting<Integer> fooBarBaz = Setting.intSetting("foo.bar.baz", 1, Property.NodeScope);
         Setting<Integer> fooBar = Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope);
         Setting<Settings> someGroup = Setting.groupSetting("some.group.", Property.Dynamic, Property.NodeScope);
-        Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", (key) -> Setting.boolSetting(key, true,
+        Setting<Boolean> someAffix = Setting.affixKeySetting("some.prefix.", "somekey", key -> Setting.boolSetting(key, true,
             Property.NodeScope));
         Setting<List<String>> foorBarQuux = Setting.affixKeySetting("foo.", "quux",
-            (key) -> Setting.listSetting(key,  Arrays.asList("a", "b", "c"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
-        ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(Arrays.asList(fooBar, fooBarBaz, foorBarQuux,
+            key -> Setting.listSetting(key,  List.of("a", "b", "c"), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope));
+        ClusterSettings settings = new ClusterSettings(Settings.EMPTY, new HashSet<>(List.of(fooBar, fooBarBaz, foorBarQuux,
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
-        assertEquals(1, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
+        assertThat(diff.size()).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsList("foo.bar.quux", null)).isNull(); // affix settings don't know their concrete keys
 
         diff = settings.diff(
             Settings.builder().put("foo.bar", 5).build(),
             Settings.builder().put("foo.bar.baz", 17).putList("foo.bar.quux", "d", "e", "f").build());
-        assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(17));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("d", "e", "f"));
+        assertThat(diff.size()).isEqualTo(2);
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(17);
+        assertThat(List.of("d", "e", "f")).isEqualTo(diff.getAsList("foo.bar.quux", null));
 
         diff = settings.diff(
             Settings.builder().put("some.group.foo", 5).build(),
             Settings.builder().put("some.group.foobar", 17).put("some.group.foo", 25).build());
-        assertEquals(3, diff.size());
-        assertThat(diff.getAsInt("some.group.foobar", null), equalTo(17));
-        assertNull(diff.get("some.group.foo"));
-        assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.size()).isEqualTo(3);
+        assertThat(diff.getAsInt("some.group.foobar", null)).isEqualTo(17);
+        assertThat(diff.get("some.group.foo")).isNull();
+        assertThat(diff.getAsList("foo.bar.quux", null)).isNull(); // affix settings don't know their concrete keys
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
             Settings.builder().put("some.prefix.foobar.somekey", 17).put("some.prefix.foo.somekey", 18).build());
-        assertEquals(3, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
-        assertNull(diff.get("some.prefix.foo.somekey"));
-        assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.size()).isEqualTo(3);
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
+        assertThat(diff.get("some.prefix.foo.somekey")).isNull();
+        assertThat(diff.getAsList("foo.bar.quux", null)).isNull(); // affix settings don't know their concrete keys
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
@@ -609,13 +626,13 @@ public class ScopedSettingsTests extends ESTestCase {
             .putList("foo.bar.quux", "x", "y", "z")
             .putList("foo.baz.quux", "d", "e", "f")
                 .build());
-        assertEquals(5, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
-        assertNull(diff.get("some.prefix.foo.somekey"));
-        assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("x", "y", "z"));
-        assertEquals(diff.getAsList("foo.baz.quux", null), Arrays.asList("d", "e", "f"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.size()).isEqualTo(5);
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
+        assertThat(diff.get("some.prefix.foo.somekey")).isNull();
+        assertThat(List.of("x", "y", "z")).isEqualTo(diff.getAsList("foo.bar.quux", null));
+        assertThat(List.of("d", "e", "f")).isEqualTo(diff.getAsList("foo.baz.quux", null));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
     }
 
     @Test
@@ -625,9 +642,9 @@ public class ScopedSettingsTests extends ESTestCase {
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
         IndexScopedSettings copy = settings.copy(Settings.builder().put("index.store.type", "boom").build(),
                 newIndexMeta("foo", Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 3).build()));
-        assertEquals(3, copy.get(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING).intValue());
-        assertEquals(1, copy.get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING).intValue());
-        assertEquals("boom", copy.get(IndexModule.INDEX_STORE_TYPE_SETTING)); // test fallback to node settings
+        assertThat(copy.get(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING).intValue()).isEqualTo(3);
+        assertThat(copy.get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING).intValue()).isEqualTo(1);
+        assertThat(copy.get(IndexModule.INDEX_STORE_TYPE_SETTING)).isEqualTo("boom"); // test fallback to node settings
     }
 
     @Test
@@ -635,9 +652,14 @@ public class ScopedSettingsTests extends ESTestCase {
         IndexScopedSettings settings = new IndexScopedSettings(
             Settings.EMPTY,
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
-        assertThatThrownBy(() -> settings.validate(Settings.builder().put("index.numbe_of_replica", "1").build(), false))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
+
+        assertThatThrownBy(() -> settings.validate(Settings.builder()
+            .put("index.numbe_of_replica", "1")
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+            .build(), false)
+        )
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
     }
 
     @Test
@@ -649,8 +671,17 @@ public class ScopedSettingsTests extends ESTestCase {
             " removed settings";
         settings.validate(Settings.builder().put("index.store.type", "boom").build(), false);
 
+        // Validation doesn't throw an error if a setting was created on on earlier version
+        settings.validate(Settings.builder()
+            .put("index.store.type", "boom")
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_7_3)
+            .put("i.am.not.a.setting", true).build(), false);
+
         assertThatThrownBy(() ->
-            settings.validate(Settings.builder().put("index.store.type", "boom").put("i.am.not.a.setting", true).build(), false)
+            settings.validate(Settings.builder()
+                .put("index.store.type", "boom")
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put("i.am.not.a.setting", true).build(), false)
         ).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("unknown setting [i.am.not.a.setting]" + unknownMsgSuffix);
 
@@ -665,32 +696,51 @@ public class ScopedSettingsTests extends ESTestCase {
             .hasMessage("Failed to parse value [true] for setting [index.number_of_replicas]");
     }
 
+    @Test
+    public void test_archived_and_private_settings_are_retained_after_removal_of_unknown_settings_created_on_earlier_versions_() {
+        IndexScopedSettings settings = new IndexScopedSettings(
+            Settings.EMPTY,
+            IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
+
+        String unknownKey = "dummy";
+        boolean archivedValue = true;
+        long created = System.currentTimeMillis();
+        Settings safeSettings = settings.removeUnknownSettings(Settings.builder()
+            .put(unknownKey, true) // Unknown, to be removed.
+            .put("archived.index.similarity.BM25.type", archivedValue) // Archived, must stay
+            .put(IndexMetadata.SETTING_CREATION_DATE, created) // Private, must stay
+            .build()
+        );
+        assertThat(safeSettings.get(unknownKey)).isNull();
+        assertThat(safeSettings.getAsLong(IndexMetadata.SETTING_CREATION_DATE, 0L)).isEqualTo(created);
+        assertThat(safeSettings.getAsBoolean("archived.index.similarity.BM25.type", false)).isEqualTo(archivedValue);
+    }
+
     public static IndexMetadata newIndexMeta(String name, Settings indexSettings) {
         Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(indexSettings)
             .build();
-        IndexMetadata metadata = IndexMetadata.builder(name).settings(build).build();
-        return metadata;
+        return IndexMetadata.builder(name).settings(build).build();
     }
 
     @Test
     public void testKeyPattern() {
-        assertTrue(AbstractScopedSettings.isValidKey("a.b.c-b.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a.b.c.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a.b_012.c_b.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a"));
-        assertFalse(AbstractScopedSettings.isValidKey("a b"));
-        assertFalse(AbstractScopedSettings.isValidKey(""));
-        assertFalse(AbstractScopedSettings.isValidKey("\""));
+        assertThat(AbstractScopedSettings.isValidKey("a.b.c-b.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a.b.c.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a.b_012.c_b.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a b")).isFalse();
+        assertThat(AbstractScopedSettings.isValidKey("")).isFalse();
+        assertThat(AbstractScopedSettings.isValidKey("\"")).isFalse();
 
         try {
             new IndexScopedSettings(
                 Settings.EMPTY, Collections.singleton(Setting.groupSetting("foo.bar.", Property.IndexScope)));
             fail();
         } catch (IllegalArgumentException e) {
-            assertEquals("illegal settings key: [foo.bar.] must start with [index.]", e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("illegal settings key: [foo.bar.] must start with [index.]");
         }
 
         try {
@@ -698,7 +748,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 Settings.EMPTY, Collections.singleton(Setting.simpleString("foo.bar", Property.IndexScope)));
             fail();
         } catch (IllegalArgumentException e) {
-            assertEquals("illegal settings key: [foo.bar] must start with [index.]", e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("illegal settings key: [foo.bar] must start with [index.]");
         }
 
         try {
@@ -706,7 +756,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 Settings.EMPTY, Collections.singleton(Setting.groupSetting("index. foo.", Property.IndexScope)));
             fail();
         } catch (IllegalArgumentException e) {
-            assertEquals("illegal settings key: [index. foo.]", e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("illegal settings key: [index. foo.]");
         }
         new IndexScopedSettings(
             Settings.EMPTY, Collections.singleton(Setting.groupSetting("index.", Property.IndexScope)));
@@ -715,7 +765,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 Settings.EMPTY, Collections.singleton(Setting.boolSetting("index.", true, Property.IndexScope)));
             fail();
         } catch (IllegalArgumentException e) {
-            assertEquals("illegal settings key: [index.]", e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("illegal settings key: [index.]");
         }
         new IndexScopedSettings(
             Settings.EMPTY, Collections.singleton(Setting.boolSetting("index.boo", true, Property.IndexScope)));
@@ -726,14 +776,14 @@ public class ScopedSettingsTests extends ESTestCase {
 
     @Test
     public void testAffixKeyPattern() {
-        assertTrue(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix"));
-        assertTrue(AbstractScopedSettings.isValidAffixKey("prefix.*.split.suffix"));
-        assertTrue(AbstractScopedSettings.isValidAffixKey("split.prefix.*.split.suffix"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix."));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("prefix.*"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("*.suffix"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("*"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey(""));
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.split.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("split.prefix.*.split.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix.")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("*.suffix")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("*")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("")).isFalse();
     }
 
     @Test
@@ -747,15 +797,15 @@ public class ScopedSettingsTests extends ESTestCase {
             assertThatThrownBy(() -> settings.validate(Settings.builder().put("logger._root", "boom").build(), false))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unknown level constant [BOOM].");
-            assertEquals(level, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(level);
             settings.applySettings(Settings.builder().put("logger._root", "TRACE").build());
-            assertEquals(Level.TRACE, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(Level.TRACE);
             settings.applySettings(Settings.builder().build());
-            assertEquals(property, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(property);
             settings.applySettings(Settings.builder().put("logger.test", "TRACE").build());
-            assertEquals(Level.TRACE, LogManager.getLogger("test").getLevel());
+            assertThat(LogManager.getLogger("test").getLevel()).isEqualTo(Level.TRACE);
             settings.applySettings(Settings.builder().build());
-            assertEquals(property, LogManager.getLogger("test").getLevel());
+            assertThat(LogManager.getLogger("test").getLevel()).isEqualTo(property);
         } finally {
             Loggers.setLevel(LogManager.getRootLogger(), level);
             Loggers.setLevel(LogManager.getLogger("test"), testLevel);
@@ -768,11 +818,11 @@ public class ScopedSettingsTests extends ESTestCase {
         try {
             ClusterSettings settings =
                 new ClusterSettings(Settings.builder().put("logger.level", "ERROR").build(), ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-            assertEquals(level, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(level);
             settings.applySettings(Settings.builder().put("logger._root", "TRACE").build());
-            assertEquals(Level.TRACE, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(Level.TRACE);
             settings.applySettings(Settings.builder().build()); // here we fall back to 'logger.level' which is our default.
-            assertEquals(Level.ERROR, LogManager.getRootLogger().getLevel());
+            assertThat(LogManager.getRootLogger().getLevel()).isEqualTo(Level.ERROR);
         } finally {
             Loggers.setLevel(LogManager.getRootLogger(), level);
         }
@@ -793,9 +843,9 @@ public class ScopedSettingsTests extends ESTestCase {
             fail("an exception should have been thrown because settings overlap");
         } catch (IllegalArgumentException e) {
             if (groupFirst) {
-                assertEquals("complex setting key: [foo.bar] overlaps existing setting key: [foo.]", e.getMessage());
+                assertThat(e.getMessage()).isEqualTo("complex setting key: [foo.bar] overlaps existing setting key: [foo.]");
             } else {
-                assertEquals("complex setting key: [foo.] overlaps existing setting key: [foo.bar]", e.getMessage());
+                assertThat(e.getMessage()).isEqualTo("complex setting key: [foo.] overlaps existing setting key: [foo.bar]");
             }
         }
     }
@@ -819,7 +869,7 @@ public class ScopedSettingsTests extends ESTestCase {
             .put("some.final.group.foo", 7)
             .build();
         ClusterSettings service = new ClusterSettings(currentSettings
-            , new HashSet<>(Arrays.asList(finalSetting, finalGroupSetting)));
+            , new HashSet<>(List.of(finalSetting, finalGroupSetting)));
 
         assertThatThrownBy(() ->
             service.updateDynamicSettings(Settings.builder().put("some.final.setting", 8).build(),
@@ -900,7 +950,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 new ClusterSettings(
                         Settings.EMPTY,
                         List.of(),
-                        new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
+                        new HashSet<>(List.of(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
                             @Override
@@ -926,11 +976,11 @@ public class ScopedSettingsTests extends ESTestCase {
                         .put("foo.remaining", randomAlphaOfLength(8))
                         .build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertFalse(oldSetting.exists(upgradedSettings));
-        assertTrue(newSetting.exists(upgradedSettings));
-        assertThat(newSetting.get(upgradedSettings), equalTo("new." + oldSetting.get(settings)));
-        assertTrue(remainingSetting.exists(upgradedSettings));
-        assertThat(remainingSetting.get(upgradedSettings), equalTo(remainingSetting.get(settings)));
+        assertThat(oldSetting.exists(upgradedSettings)).isFalse();
+        assertThat(newSetting.exists(upgradedSettings)).isTrue();
+        assertThat(newSetting.get(upgradedSettings)).isEqualTo("new." + oldSetting.get(settings));
+        assertThat(remainingSetting.exists(upgradedSettings)).isTrue();
+        assertThat(remainingSetting.get(upgradedSettings)).isEqualTo(remainingSetting.get(settings));
     }
 
     @Test
@@ -943,7 +993,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 new ClusterSettings(
                         Settings.EMPTY,
                         List.of(),
-                        new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
+                        new HashSet<>(List.of(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
                             @Override
@@ -960,7 +1010,7 @@ public class ScopedSettingsTests extends ESTestCase {
 
         final Settings settings = Settings.builder().put("foo.remaining", randomAlphaOfLength(8)).build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertThat(upgradedSettings, sameInstance(settings));
+        assertThat(upgradedSettings).isSameAs(settings);
     }
 
     @Test
@@ -976,7 +1026,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 new ClusterSettings(
                         Settings.EMPTY,
                         List.of(),
-                        new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
+                        new HashSet<>(List.of(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
                             @Override
@@ -1008,15 +1058,13 @@ public class ScopedSettingsTests extends ESTestCase {
         final Settings settings = builder.build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
         for (final String concrete : concretes) {
-            assertFalse(oldSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
-            assertTrue(newSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
+            assertThat(oldSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isFalse();
+            assertThat(newSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isTrue();
             assertThat(
-                    newSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings),
-                    equalTo("new." + oldSetting.getConcreteSettingForNamespace(concrete).get(settings)));
-            assertTrue(remainingSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
+                    newSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo("new." + oldSetting.getConcreteSettingForNamespace(concrete).get(settings));
+            assertThat(remainingSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isTrue();
             assertThat(
-                    remainingSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings),
-                    equalTo(remainingSetting.getConcreteSettingForNamespace(concrete).get(settings)));
+                    remainingSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo(remainingSetting.getConcreteSettingForNamespace(concrete).get(settings));
         }
     }
 
@@ -1031,7 +1079,7 @@ public class ScopedSettingsTests extends ESTestCase {
                 new ClusterSettings(
                         Settings.EMPTY,
                         List.of(),
-                        new HashSet<>(Arrays.asList(oldSetting, newSetting)),
+                        new HashSet<>(List.of(oldSetting, newSetting)),
                         Collections.singleton(new SettingUpgrader<List<String>>() {
 
                             @Override
@@ -1046,7 +1094,7 @@ public class ScopedSettingsTests extends ESTestCase {
 
                             @Override
                             public List<String> getListValue(final List<String> value) {
-                                return value.stream().map(s -> "new." + s).collect(Collectors.toList());
+                                return value.stream().map(s -> "new." + s).toList();
                             }
                         }));
 
@@ -1058,11 +1106,10 @@ public class ScopedSettingsTests extends ESTestCase {
 
         final Settings settings = Settings.builder().putList("foo.old", values).build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertFalse(oldSetting.exists(upgradedSettings));
-        assertTrue(newSetting.exists(upgradedSettings));
+        assertThat(oldSetting.exists(upgradedSettings)).isFalse();
+        assertThat(newSetting.exists(upgradedSettings)).isTrue();
         assertThat(
-                newSetting.get(upgradedSettings),
-                equalTo(oldSetting.get(settings).stream().map(s -> "new." + s).collect(Collectors.toList())));
+                newSetting.get(upgradedSettings)).isEqualTo(oldSetting.get(settings).stream().map(s -> "new." + s).toList());
     }
 
     @Test

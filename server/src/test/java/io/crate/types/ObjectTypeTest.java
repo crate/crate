@@ -21,7 +21,8 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThat;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,17 +38,20 @@ import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.testing.DataTypeTesting;
 
 public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Override
-    public DataType<Map<String, Object>> getType() {
-        return ObjectType.UNTYPED;
-    }
-
-    @Override
-    protected boolean supportsDocValues() {
-        return false;
+    protected DataDef<Map<String, Object>> getDataDef() {
+        // float vectors will not compare properly so we exclude them here
+        DataType<?> innerType
+            = DataTypeTesting.randomTypeExcluding(Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED));
+        DataType<Map<String, Object>> objectType
+            = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("x", innerType).build();
+        String definition = "OBJECT AS (x " + innerType.getTypeSignature() + ")";
+        return new DataDef<>(objectType, definition, DataTypeTesting.getDataGenerator(objectType));
     }
 
     @Test
@@ -63,7 +68,7 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingWithEmptyInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder().build();
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC).build();
         BytesStreamOutput out = new BytesStreamOutput();
         type.writeTo(out);
 
@@ -75,9 +80,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -106,9 +111,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testStreamingOfNullValueWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -127,9 +132,9 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     @Test
     public void testStreamingOfValueWithInnerTypes() throws IOException {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -176,19 +181,19 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
     @Test
     public void testResolveInnerType() {
-        ObjectType type = ObjectType.builder()
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("inner", ObjectType.builder()
+            .setInnerType("inner", ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("i", DataTypes.INTEGER)
                 .build())
             .build();
 
-        assertThat(type.resolveInnerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
+        assertThat(type.innerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
     public void test_object_type_to_signature_to_object_type_round_trip() {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("inner field", DataTypes.STRING)
             .build();
         assertThat(objectType.getTypeSignature().createType()).isEqualTo(objectType);
@@ -199,5 +204,33 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
         assertThatThrownBy(() -> ObjectType.UNTYPED.implicitCast("foo"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `foo` to type `object`");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("ObjectType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("ObjectType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_off() throws Exception {
+        assumeFalse("ObjectType cannot disable index", true);
+    }
+
+    @Test
+    public void test_value_bytes_accounts_for_deep_objects() throws Exception {
+        String str = "a".repeat(1024);
+        long valueBytes = ObjectType.UNTYPED.valueBytes(
+            Map.of("a",
+                Map.of("b",
+                    Map.of("c", Map.of("d", str))
+                )
+            )
+        );
+        assertThat(valueBytes).isEqualTo(2504L);
     }
 }

@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 
-public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
+public class JsonTypeTest extends BasePGTypeTest<Object> {
 
     private Map<String, Object> map = MapBuilder.<String, Object>newMapBuilder()
         .put("foo", "bar")

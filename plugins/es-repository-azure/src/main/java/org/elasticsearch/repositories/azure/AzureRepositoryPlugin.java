@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -42,6 +43,7 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
+                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                            NamedXContentRegistry namedXContentRegistry,
                                                            ClusterService clusterService,
                                                            RecoverySettings recoverySettings) {
@@ -59,6 +61,7 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                 public Repository create(RepositoryMetadata metadata) throws Exception {
                     return new AzureRepository(
                         metadata,
+                        namedWriteableRegistry,
                         namedXContentRegistry,
                         clusterService,
                         recoverySettings
@@ -70,6 +73,6 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(AzureRepository.Repository.ACCOUNT_SETTING, AzureRepository.Repository.KEY_SETTING);
+        return List.of(AzureRepository.Repository.ACCOUNT_SETTING);
     }
 }

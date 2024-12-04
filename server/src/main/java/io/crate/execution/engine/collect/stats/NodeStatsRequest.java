@@ -63,7 +63,7 @@ public class NodeStatsRequest extends NodeRequest<NodeStatsRequest.StatsRequest>
             columns = new HashSet<>();
             int columnIdentsSize = in.readVInt();
             for (int i = 0; i < columnIdentsSize; i++) {
-                columns.add(new ColumnIdent(in));
+                columns.add(ColumnIdent.of(in));
             }
         }
 

@@ -22,10 +22,8 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,10 +69,10 @@ public class MetricsITest extends IntegTestCase {
                 "ORDER BY max DESC");
 
         for (Object[] row : response.rows()) {
-            assertThat((long) row[3], Matchers.greaterThanOrEqualTo(0L));
-            assertThat((long) row[4], Matchers.greaterThanOrEqualTo(0L));
-            assertThat((double) row[5], Matchers.greaterThanOrEqualTo(0.0d));
-            assertThat(row[13], Matchers.is(1L));
+            assertThat((long) row[3]).isGreaterThanOrEqualTo(0L);
+            assertThat((long) row[4]).isGreaterThanOrEqualTo(0L);
+            assertThat((double) row[5]).isGreaterThanOrEqualTo(0.0d);
+            assertThat(row[13]).isEqualTo(1L);
         }
     }
 
@@ -102,6 +100,6 @@ public class MetricsITest extends IntegTestCase {
         });
 
         execute("SELECT sum(total_count) FROM sys.jobs_metrics WHERE classification['type'] = 'SELECT'");
-        assertThat(response.rows()[0][0], Matchers.is((long) numQueries));
+        assertThat(response.rows()[0][0]).isEqualTo((long) numQueries);
     }
 }

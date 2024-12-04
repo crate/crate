@@ -19,13 +19,8 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -161,24 +156,24 @@ public class InboundPipelineTests extends ESTestCase {
                     final Tuple<MessageData, Exception> actualTuple = actual.get(j);
                     final MessageData expectedMessageData = expectedTuple.v1();
                     final MessageData actualMessageData = actualTuple.v1();
-                    assertEquals(expectedMessageData.requestId, actualMessageData.requestId);
-                    assertEquals(expectedMessageData.isRequest, actualMessageData.isRequest);
-                    assertEquals(expectedMessageData.isCompressed, actualMessageData.isCompressed);
-                    assertEquals(expectedMessageData.actionName, actualMessageData.actionName);
-                    assertEquals(expectedMessageData.value, actualMessageData.value);
+                    assertThat(actualMessageData.requestId).isEqualTo(expectedMessageData.requestId);
+                    assertThat(actualMessageData.isRequest).isEqualTo(expectedMessageData.isRequest);
+                    assertThat(actualMessageData.isCompressed).isEqualTo(expectedMessageData.isCompressed);
+                    assertThat(actualMessageData.actionName).isEqualTo(expectedMessageData.actionName);
+                    assertThat(actualMessageData.value).isEqualTo(expectedMessageData.value);
                     if (expectedTuple.v2() != null) {
-                        assertNotNull(actualTuple.v2());
-                        assertThat(actualTuple.v2(), instanceOf(expectedTuple.v2().getClass()));
+                        assertThat(actualTuple.v2()).isNotNull();
+                        assertThat(actualTuple.v2()).isExactlyInstanceOf(expectedTuple.v2().getClass());
                     }
                 }
 
                 for (ReleasableBytesReference released : toRelease) {
-                    assertEquals(0, released.refCount());
+                    assertThat(released.refCount()).isEqualTo(0);
                 }
             }
 
-            assertEquals(bytesReceived, statsTracker.getBytesRead());
-            assertEquals(totalMessages, statsTracker.getMessagesReceived());
+            assertThat(statsTracker.bytesReceived()).isEqualTo(bytesReceived);
+            assertThat(statsTracker.messagesReceived()).isEqualTo(totalMessages);
         }
     }
 
@@ -262,11 +257,11 @@ public class InboundPipelineTests extends ESTestCase {
             try (ReleasableBytesReference slice = new ReleasableBytesReference(partHeaderPartBody, releasable)) {
                 pipeline.handleBytes(fakeChannel(), slice);
             }
-            assertFalse(bodyReleased.get());
+            assertThat(bodyReleased.get()).isFalse();
             try (ReleasableBytesReference slice = new ReleasableBytesReference(reference.slice(reference.length() - 1, 1), releasable)) {
                 pipeline.handleBytes(fakeChannel(), slice);
             }
-            assertTrue(bodyReleased.get());
+            assertThat(bodyReleased.get()).isTrue();
         }
     }
 

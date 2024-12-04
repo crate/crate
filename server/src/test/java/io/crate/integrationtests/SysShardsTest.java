@@ -29,27 +29,13 @@ import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.Version;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -59,7 +45,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.metadata.PartitionName;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -90,7 +75,7 @@ public class SysShardsTest extends IntegTestCase {
                 "order by table_name asc");
         // b1
         // path + /blobs == blob_path without custom blob path
-        assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
+        assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs")).isEqualTo(response.rows()[0][1]);
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
         Metadata metadata = clusterService.state().metadata();
@@ -99,33 +84,35 @@ public class SysShardsTest extends IntegTestCase {
 
         // b2
         String b2Path = (String) response.rows()[1][0];
-        assertThat(b2Path, containsString(resolveCanonicalString("/nodes/")));
-        assertThat(b2Path, endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0")));
+        assertThat(b2Path)
+            .contains(resolveCanonicalString("/nodes/"))
+            .endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0"));
 
         String b2BlobPath = (String) response.rows()[1][1];
-        assertThat(b2BlobPath, containsString(resolveCanonicalString("/nodes/")));
-        assertThat(b2BlobPath, endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0/blobs")));
+        assertThat(b2BlobPath)
+            .contains(resolveCanonicalString("/nodes/"))
+            .endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0/blobs"));
         // t1
-        assertThat(response.rows()[2][1], nullValue());
+        assertThat(response.rows()[2][1]).isNull();
     }
 
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
-        SQLResponse response = execute("" +
-                                       "select count(*), num_docs from sys.shards where table_name = 'characters' " +
-                                       "group by num_docs order by count(*)");
-        assertThat(response.rowCount(), greaterThan(0L));
+        SQLResponse response = execute(
+            "select count(*), num_docs from sys.shards where table_name = 'characters' " +
+                 "group by num_docs order by count(*)");
+        assertThat(response.rowCount()).isGreaterThan(0L);
     }
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "group by table_name order by table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals("quotes", response.rows()[2][1]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(10L);
+        assertThat(response.rows()[0][1]).isEqualTo("blobs");
+        assertThat(response.rows()[1][1]).isEqualTo("characters");
+        assertThat(response.rows()[2][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -135,12 +122,11 @@ public class SysShardsTest extends IntegTestCase {
             ensureYellow();
 
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
-            assertThat(response.rowCount(), is(4L));
-            assertThat(TestingHelpers.printedTable(response.rows()),
-                is("0| t| 0\n" +
-                   "0| quotes| 0\n" +
-                   "14| characters| 14\n" +
-                   "0| blobs| 0\n"));
+            assertThat(response).hasRows(
+                "0| t| 0",
+                "0| quotes| 0",
+                "14| characters| 14",
+                "0| blobs| 0");
         } finally {
             execute("drop table t");
         }
@@ -150,13 +136,13 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectGroupByWhereNotLike() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "where table_name not like 'my_table%' group by table_name order by table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals(8L, response.rows()[1][0]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals(8L, response.rows()[2][0]);
-        assertEquals("quotes", response.rows()[2][1]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(10L);
+        assertThat(response.rows()[0][1]).isEqualTo("blobs");
+        assertThat(response.rows()[1][0]).isEqualTo(8L);
+        assertThat(response.rows()[1][1]).isEqualTo("characters");
+        assertThat(response.rows()[2][0]).isEqualTo(8L);
+        assertThat(response.rows()[2][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -164,22 +150,22 @@ public class SysShardsTest extends IntegTestCase {
         SQLResponse response = execute(
             "select id, size from sys.shards " +
             "where table_name = 'characters'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
-        assertEquals(26L, response.rowCount());
-        assertEquals(21, response.cols().length);
-        assertThat(response.cols(), arrayContaining(
+        assertThat(response.rowCount()).isEqualTo(26L);
+        assertThat(response.cols().length).isEqualTo(21);
+        assertThat(response.cols()).containsExactly(
             "blob_path",
             "closed",
             "flush_stats",
@@ -200,40 +186,41 @@ public class SysShardsTest extends IntegTestCase {
             "size",
             "state",
             "table_name",
-            "translog_stats"));
+            "translog_stats");
     }
 
     @Test
     public void testSelectStarLike() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarNotLike() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
-        assertEquals(18L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(18L);
     }
 
     @Test
     public void testSelectStarIn() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_translog_stats_can_be_retrieved() {
         execute("SELECT translog_stats, translog_stats['size'] FROM sys.shards " +
                 "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
         Object[] resultRow = response.rows()[0];
         Map<String, Object> translogStats = (Map<String, Object>) resultRow[0];
-        assertThat(((Number) translogStats.get("size")).longValue(), is(resultRow[1]));
-        assertThat(((Number) translogStats.get("uncommitted_size")).longValue(), greaterThanOrEqualTo(0L));
-        assertThat(((Number) translogStats.get("number_of_operations")).longValue(), greaterThanOrEqualTo(0L));
-        assertThat(((Number) translogStats.get("uncommitted_operations")).longValue(), greaterThanOrEqualTo(0L));
+        assertThat(((Number) translogStats.get("size")).longValue()).isEqualTo(resultRow[1]);
+        assertThat(((Number) translogStats.get("uncommitted_size")).longValue()).isGreaterThanOrEqualTo(0L);
+        assertThat(((Number) translogStats.get("number_of_operations")).longValue()).isGreaterThanOrEqualTo(0L);
+        assertThat(((Number) translogStats.get("uncommitted_operations")).longValue()).isGreaterThanOrEqualTo(0L);
     }
 
     @Test
@@ -248,51 +235,51 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectOrderBy() throws Exception {
         SQLResponse response = execute("select table_name, min_lucene_version, * " +
                                        "from sys.shards order by table_name");
-        assertEquals(26L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(26L);
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
-            assertThat(tableNames.contains(row[0]), is(true));
-            assertThat(row[1], is(Version.LATEST.toString()));
+            assertThat(tableNames.contains(row[0])).isTrue();
+            assertThat(row[1]).isEqualTo(Version.LATEST.toString());
         }
     }
 
     @Test
     public void testSelectGreaterThan() throws Exception {
         SQLResponse response = execute("select * from sys.shards where num_docs > 0");
-        assertThat(response.rowCount(), greaterThan(0L));
+        assertThat(response.rowCount()).isGreaterThan(0L);
     }
 
     @Test
     public void testSelectWhereBoolean() throws Exception {
         SQLResponse response = execute("select * from sys.shards where \"primary\" = false");
-        assertEquals(13L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(13L);
     }
 
     @Test
     public void testSelectGlobalAggregates() throws Exception {
         SQLResponse response = execute(
             "select sum(size), min(size), max(size), avg(size) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(4, response.rows()[0].length);
-        assertNotNull(response.rows()[0][0]);
-        assertNotNull(response.rows()[0][1]);
-        assertNotNull(response.rows()[0][2]);
-        assertNotNull(response.rows()[0][3]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0].length).isEqualTo(4);
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+        assertThat(response.rows()[0][2]).isNotNull();
+        assertThat(response.rows()[0][3]).isNotNull();
     }
 
     @Test
     public void testSelectGlobalCount() throws Exception {
         SQLResponse response = execute("select count(*) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(26L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(26L);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
         SQLResponse response = execute("select count(*), max(table_name) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(26L, response.rows()[0][0]);
-        assertEquals("quotes", response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(26L);
+        assertThat(response.rows()[0][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -351,8 +338,8 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
         SQLResponse response = execute("select id from sys.shards order by table_name limit 1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], instanceOf(Integer.class));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isExactlyInstanceOf(Integer.class);
     }
 
     @Test
@@ -361,45 +348,19 @@ public class SysShardsTest extends IntegTestCase {
                                        "from sys.shards " +
                                        "group by table_name " +
                                        "having table_name = 'quotes'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("8\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("8\n");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSelectNodeSysExpression() throws Exception {
         SQLResponse response = execute(
             "select node, node['name'], id from sys.shards order by node['name'], id  limit 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
-        assertEquals("node_s0", nodeName);
-        assertEquals("node_s0", fullNode.get("name"));
-    }
-
-    @Test
-    public void testOrphanedPartitionExpression() throws Exception {
-        try {
-            execute("create table c.orphan_test (id int primary key, p string primary key) " +
-                    "partitioned by (p) " +
-                    "clustered into 1 shards " +
-                    "with (number_of_replicas = 0)"
-            );
-            execute("insert into c.orphan_test (id, p) values (1, 'foo')");
-            ensureYellow();
-
-            SQLResponse response = execute(
-                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
-            assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
-
-            client().admin().indices()
-                .deleteTemplate(new DeleteIndexTemplateRequest(PartitionName.templateName("c", "orphan_test")))
-                .get(1, TimeUnit.SECONDS);
-
-            response = execute(
-                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
-            assertThat(TestingHelpers.printedTable(response.rows()), is("true\n"));
-        } finally {
-            execute("drop table c.orphan_test");
-        }
+        assertThat(nodeName).isEqualTo("node_s0");
+        assertThat(fullNode.get("name")).isEqualTo("node_s0");
     }
 
     @Test
@@ -412,13 +373,14 @@ public class SysShardsTest extends IntegTestCase {
                 "select node['name'], id from sys.shards where table_name = 'users' order by node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
-            assertEquals("node_s0", nodeName);
-            assertThat(response.rows()[12][0], is(nullValue()));
+            assertThat(nodeName).isEqualTo("node_s0");
+            assertThat(response.rows()[12][0]).isNull();
         } finally {
             execute("drop table users");
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSelectRecoveryExpression() throws Exception {
         SQLResponse response = execute("select recovery, " +
@@ -426,11 +388,11 @@ public class SysShardsTest extends IntegTestCase {
                                        "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
                                        "from sys.shards");
         for (Object[] row : response.rows()) {
-            Map recovery = (Map) row[0];
+            Map<String, Object> recovery = (Map<String, Object>) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
-            assertThat(((Map<String, Integer>) recovery.get("files")).entrySet(), equalTo(files.entrySet()));
+            assertThat(((Map<String, Integer>) recovery.get("files")).entrySet()).isEqualTo(files.entrySet());
             Map<String, Long> size = (Map<String, Long>) row[5];
-            assertThat(((Map<String, Long>) recovery.get("size")).entrySet(), equalTo(size.entrySet()));
+            assertThat(((Map<String, Long>) recovery.get("size")).entrySet()).isEqualTo(size.entrySet());
         }
     }
 
@@ -454,10 +416,10 @@ public class SysShardsTest extends IntegTestCase {
         logger.info("---> Closing table doc.tbl");
         execute("alter table doc.tbl close");
         execute("select id, closed from sys.shards where table_name = 'tbl' order by id asc");
-        assertThat(response.rows()[0][0], is(0));
-        assertThat(response.rows()[0][1], is(true));
-        assertThat(response.rows()[1][0], is(1));
-        assertThat(response.rows()[1][1], is(true));
+        assertThat(response).hasRows(
+            "0| true",
+            "1| true"
+        );
     }
 
     @UseJdbc(0)

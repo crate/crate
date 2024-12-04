@@ -23,12 +23,14 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
 import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;
@@ -132,16 +134,16 @@ public class DateFormatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidTimeZone() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid time zone value 'wrong timezone'");
-        assertEvaluateNull("date_format('%d.%m.%Y', 'wrong timezone', 0)");
+        assertThatThrownBy(() -> assertEvaluateNull("date_format('%d.%m.%Y', 'wrong timezone', 0)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid time zone value 'wrong timezone'");
     }
 
     @Test
     public void testInvalidTimestamp() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'NO TIMESTAMP'` of type `text` to type `timestamp with time zone`");
-        assertEvaluateNull("date_format('%d.%m.%Y', 'NO TIMESTAMP')");
+        assertThatThrownBy(() -> assertEvaluateNull("date_format('%d.%m.%Y', 'NO TIMESTAMP')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'NO TIMESTAMP'` of type `text` to type `timestamp with time zone`");
     }
 
     @Test

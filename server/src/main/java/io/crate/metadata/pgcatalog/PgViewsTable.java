@@ -21,12 +21,11 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.view.ViewInfo;
-
-
-import static io.crate.types.DataTypes.STRING;
 
 public final class PgViewsTable {
 
@@ -35,12 +34,10 @@ public final class PgViewsTable {
 
     private PgViewsTable() {}
 
-    public static SystemTable<ViewInfo> create() {
-        return SystemTable.<ViewInfo>builder(IDENT)
-            .add("schemaname", STRING, r -> r.ident().schema())
-            .add("viewname", STRING, r -> r.ident().name())
-            .add("viewowner", STRING, ViewInfo::owner)
-            .add("definition", STRING, ViewInfo::definition)
-            .build();
-    }
+    public static SystemTable<ViewInfo> INSTANCE = SystemTable.<ViewInfo>builder(IDENT)
+        .add("schemaname", STRING, r -> r.ident().schema())
+        .add("viewname", STRING, r -> r.ident().name())
+        .add("viewowner", STRING, ViewInfo::owner)
+        .add("definition", STRING, ViewInfo::definition)
+        .build();
 }

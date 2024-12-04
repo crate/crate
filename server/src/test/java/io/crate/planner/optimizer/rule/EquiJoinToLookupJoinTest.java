@@ -24,7 +24,6 @@ package io.crate.planner.optimizer.rule;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -32,7 +31,6 @@ import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -100,15 +98,13 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ MultiPhase",
-            "  │  └ Collect[doc.lhs | [x] | (x = ANY((SELECT y FROM (doc.rhs))))]",
+            "  │  └ Filter[(x = ANY((doc.rhs)))]",
+            "  │    └ Collect[doc.lhs | [x] | true]",
             "  │  └ Collect[doc.rhs | [y] | true]",
             "  └ Collect[doc.rhs | [y] | true]"
         );
@@ -138,16 +134,14 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ Collect[doc.lhs | [x] | true]",
             "  └ MultiPhase",
-            "    └ Collect[doc.rhs | [y] | (y = ANY((SELECT x FROM (doc.lhs))))]",
+            "    └ Filter[(y = ANY((doc.lhs)))]",
+            "      └ Collect[doc.rhs | [y] | true]",
             "    └ Collect[doc.lhs | [x] | true]"
         );
     }
@@ -178,16 +172,14 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ Collect[doc.lhs | [x] | (x > 0)]",
             "  └ MultiPhase",
-            "    └ Collect[doc.rhs | [y] | (y = ANY((SELECT x FROM (doc.lhs))))]",
+            "    └ Filter[(y = ANY((doc.lhs)))]",
+            "      └ Collect[doc.rhs | [y] | true]",
             "    └ Collect[doc.lhs | [x] | (x > 0)]"
         );
     }
@@ -218,15 +210,13 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ MultiPhase",
-            "  │  └ Collect[doc.lhs | [x] | ((x > 0) AND (x = ANY((SELECT y FROM (doc.rhs)))))]",
+            "  │  └ Filter[(x = ANY((doc.rhs)))]",
+            "  │    └ Collect[doc.lhs | [x] | (x > 0)]",
             "  │  └ Collect[doc.rhs | [y] | true]",
             "  └ Collect[doc.rhs | [y] | true]"
         );
@@ -267,10 +257,7 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -288,10 +275,7 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }

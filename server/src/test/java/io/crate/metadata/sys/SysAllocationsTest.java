@@ -21,11 +21,7 @@
 
 package io.crate.metadata.sys;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +30,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 
@@ -55,12 +50,13 @@ public class SysAllocationsTest extends IntegTestCase {
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
 
-        assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("t1| 0| false| UNASSIGNED| cannot allocate because allocation is not permitted to any of the nodes\n" +
-               "t1| 0| true| STARTED| rebalancing is not allowed\n"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response).hasRows(
+            "t1| 0| false| UNASSIGNED| cannot allocate because allocation is not permitted to any of the nodes",
+            "t1| 0| true| STARTED| rebalancing is not allowed");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testUnassignedShardDecisionsColumn() {
         execute("SELECT decisions " +
@@ -68,53 +64,54 @@ public class SysAllocationsTest extends IntegTestCase {
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
 
-        assertThat(response.columnTypes()[0].id(), is(ArrayType.ID));
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.columnTypes()[0].id()).isEqualTo(ArrayType.ID);
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         Object[] row;
 
         // first row: UNASSIGNED shard
         row = response.rows()[0];
-        List decisions = (List) row[0];
-        assertThat(decisions.size(), is(1));
-        Map decision = (Map) decisions.get(0);
-        assertNotNull("nodeId must not be null", decision.get("node_id"));
-        assertNotNull("nodeName must not be null", decision.get("node_name"));
-        assertThat(((List<String>) decision.get("explanations")).get(0),
-            startsWith("a copy of this shard is already allocated to this node"));
+        List<Map<String, Object>> decisions = (List<Map<String, Object>>) row[0];
+        assertThat(decisions).hasSize(1);
+        Map<String, Object> decision = decisions.getFirst();
+        assertThat(decision.get("node_id")).as("nodeId must not be null").isNotNull();
+        assertThat(decision.get("node_name")).as("nodeName must not be null").isNotNull();
+        assertThat(((List<String>) decision.get("explanations")).getFirst()).startsWith(
+            "a copy of this shard is already allocated to this node");
 
         // second row: STARTED shard
         row = response.rows()[1];
-        decisions = (List) row[0];
-        assertNull("for the stared shard decisions must be null", decisions);
+        decisions = (List<Map<String, Object>>) row[0];
+        assertThat(decisions).as("for the stared shard decisions must be null").isNull();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testUnassignedShardDecisionsColumnSubscript() {
         execute("SELECT decisions['node_id'], decisions['node_name'], decisions['explanations'] " +
                 "FROM sys.allocations " +
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         Object[] row;
 
         // first row: UNASSIGNED shard
         row = response.rows()[0];
-        List nodeIds = (List) row[0];
-        List nodeNames = (List) row[1];
-        List explanations = (List) row[2];
-        assertNotNull("first element of nodeId must not be null", nodeIds.get(0));
-        assertNotNull("first element of nodeName must not be null", nodeNames.get(0));
-        assertNotNull("first element of explanations must not be null", explanations.get(0));
+        List<Object> nodeIds = (List<Object>) row[0];
+        List<Object> nodeNames = (List<Object>) row[1];
+        List<Object> explanations = (List<Object>) row[2];
+        assertThat(nodeIds.getFirst()).as("first element of nodeId must not be null").isNotNull();
+        assertThat(nodeNames.getFirst()).as("first element of nodeName must not be null").isNotNull();
+        assertThat(explanations.getFirst()).as("first element of explanations must not be null").isNotNull();
 
         // second row: STARTED shard
         row = response.rows()[1];
-        nodeIds = (List) row[0];
-        nodeNames = (List) row[1];
-        explanations = (List) row[2];
-        assertNull("nodeId must be null", nodeIds);
-        assertNull("nodeName must be null", nodeNames);
-        assertNull("explanations must be null", explanations);
+        nodeIds = (List<Object>) row[0];
+        nodeNames = (List<Object>) row[1];
+        explanations = (List<Object>) row[2];
+        assertThat(nodeIds).as("nodeId must be null").isNull();
+        assertThat(nodeNames).as("nodeName must be null").isNull();
+        assertThat(explanations).as("explanations must be null").isNull();
     }
 }

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,9 +42,11 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -84,7 +87,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x")),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators)
             .satisfiesExactly(a -> assertThat(a).isExactlyInstanceOf((SumAggregation.SumLong.class)));
@@ -97,7 +101,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::real")),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators).isNull();
 
@@ -106,7 +111,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::numeric")),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators)
             .satisfiesExactly(a -> assertThat(a).isExactlyInstanceOf((SumAggregation.SumLong.class)));
@@ -118,16 +124,17 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             mock(LuceneReferenceResolver.class),
             List.of(new Aggregation(
-                Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
-                DataTypes.LONG,
-                List.of(Literal.of(1L)))
+                    Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(DataTypes.LONG.getTypeSignature())
+                            .returnType(DataTypes.LONG.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    DataTypes.LONG,
+                    List.of(Literal.of(1L)))
             ),
             Collections.emptyList(),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators).isNull();
     }
@@ -139,7 +146,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(Literal.of(1)),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators).isNull();
     }
@@ -152,7 +160,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(xRef),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators).isNotNull();
 
@@ -164,7 +173,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 xRef.ident(),
                 xRef.granularity(),
                 xRef.valueType(),
-                xRef.columnPolicy(),
                 xRef.indexType(),
                 xRef.isNullable(),
                 false,
@@ -173,7 +181,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 xRef.isDropped(),
                 xRef.defaultExpression())
             ),
-            table
+            table,
+            Version.CURRENT
         );
         assertThat(aggregators).isNull();
     }
@@ -188,7 +197,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                     longSumAggregation(2)
             ),
             List.of(e.asSymbol("tbl.Payload_subInt"), e.asSymbol("tbl.payload_subInt"),e.asSymbol("tbl.x")),
-            table
+            table,
+            Version.CURRENT
         );
         //select count(tbl.Payload_subInt), count(tbl.payload_subInt), sum(tbl.x) from tbl;
         assertThat(actualAggregators)
@@ -213,13 +223,13 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     private static Aggregation longSumAggregation(int inputCol) {
         return new Aggregation(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
-            DataTypes.LONG,
-            List.of(new InputColumn(inputCol, DataTypes.LONG))
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                DataTypes.LONG,
+                List.of(new InputColumn(inputCol, DataTypes.LONG))
         );
     }
 }

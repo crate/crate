@@ -50,7 +50,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     private SQLExecutor e;
 
     private AddColumnRequest analyze(String stmt) {
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
         AnalyzedAlterTableAddColumn analyze = e.analyze(stmt);
         return analyze.bind(
             plannerContext.nodeContext(),
@@ -194,7 +194,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
                 """);
 
         Map<ColumnIdent, RefBuilder> columns = analysis.columns();
-        RefBuilder rb = columns.get(new ColumnIdent("col3"));
+        RefBuilder rb = columns.get(ColumnIdent.of("col3"));
         assertThat(rb.isExplicitlyNull()).isTrue();
     }
 
@@ -221,9 +221,9 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         var addColumnRequest = analyze("alter table t add column o1 object as (o2 object as (b int check (o1['o2']['b'] > 100)))");
         assertThat(addColumnRequest.references()).satisfiesExactly(
-            o1 -> assertThat(o1).isReference().hasName("o1"),
-            o1 -> assertThat(o1).isReference().hasName("o1['o2']"),
-            o1 -> assertThat(o1).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER)
+            o1 -> assertThat(o1).hasName("o1"),
+            o1 -> assertThat(o1).hasName("o1['o2']"),
+            o1 -> assertThat(o1).hasName("o1['o2']['b']").hasType(DataTypes.INTEGER)
         );
         assertThat(addColumnRequest.checkConstraints()).containsValue("\"o1\"['o2']['b'] > 100");
     }

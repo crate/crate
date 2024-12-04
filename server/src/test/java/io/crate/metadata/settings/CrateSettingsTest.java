@@ -21,10 +21,8 @@
 
 package io.crate.metadata.settings;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -40,32 +38,31 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testValidSetting() {
-        assertThat(CrateSettings.isValidSetting(JobsLogService.STATS_ENABLED_SETTING.getKey()), is(true));
+        assertThat(CrateSettings.isValidSetting(JobsLogService.STATS_ENABLED_SETTING.getKey())).isTrue();
     }
 
     @Test
     public void testValidLoggingSetting() {
-        assertThat(CrateSettings.isValidSetting("logger.info"), is(true));
+        assertThat(CrateSettings.isValidSetting("logger.info")).isTrue();
     }
 
     @Test
     public void testValidPrefixSetting() {
-        assertThat(CrateSettings.isValidSetting("stats"), is(true));
+        assertThat(CrateSettings.isValidSetting("stats")).isTrue();
     }
 
     @Test
     public void testSettingsByNamePrefix() {
-        assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log"), containsInAnyOrder(
+        assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log")).containsExactlyInAnyOrder(
             JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(),
             JobsLogService.STATS_JOBS_LOG_FILTER.getKey(),
             JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER.getKey(),
-            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey()
-            ));
+            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey());
     }
 
     @Test
     public void testLoggingSettingsByNamePrefix() throws Exception {
-        assertThat(CrateSettings.settingNamesByPrefix("logger."), contains("logger."));
+        assertThat(CrateSettings.settingNamesByPrefix("logger.")).containsExactly("logger.");
     }
 
     @Test
@@ -76,10 +73,9 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIsNotRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.expected_nodes' cannot be set/reset at runtime");
-
-        CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey());
+        assertThatThrownBy(() -> CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey()))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Setting 'gateway.expected_nodes' cannot be set/reset at runtime");
     }
 
     @Test
@@ -101,6 +97,6 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
         CrateSettings.flattenSettings(builder, "stats", value);
-        assertThat(builder.build(), is(expected));
+        assertThat(builder.build()).isEqualTo(expected);
     }
 }

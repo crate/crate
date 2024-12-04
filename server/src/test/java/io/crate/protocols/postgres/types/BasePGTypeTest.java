@@ -21,8 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 
@@ -32,25 +31,25 @@ import io.netty.buffer.Unpooled;
 
 public abstract class BasePGTypeTest<T> extends ESTestCase {
 
-    PGType pgType;
+    PGType<T> pgType;
 
-    BasePGTypeTest(PGType pgType) {
+    BasePGTypeTest(PGType<T> pgType) {
         this.pgType = pgType;
     }
 
-    void assertBytesWritten(Object value, byte[] expectedBytes) {
+    void assertBytesWritten(T value, byte[] expectedBytes) {
         assertBytesWritten(value, expectedBytes, PGType.INT32_BYTE_SIZE + pgType.typeLen());
     }
 
-    void assertBytesWritten(Object value, byte[] expectedBytes, int expectedLength) {
+    void assertBytesWritten(T value, byte[] expectedBytes, int expectedLength) {
         ByteBuf buffer = Unpooled.buffer();
         try {
             int bytesWritten = pgType.writeAsBinary(buffer, value);
-            assertThat(bytesWritten, is(expectedLength));
+            assertThat(bytesWritten).isEqualTo(expectedLength);
 
             byte[] bytes = new byte[expectedLength];
             buffer.getBytes(0, bytes);
-            assertThat(bytes, is(expectedBytes));
+            assertThat(bytes).isEqualTo(expectedBytes);
         } finally {
             buffer.release();
         }
@@ -72,16 +71,15 @@ public abstract class BasePGTypeTest<T> extends ESTestCase {
         assertBytesRead(value, expectedValue, pos, FormatCodes.FormatCode.TEXT);
     }
 
-    @SuppressWarnings("unchecked")
     private void assertBytesRead(byte[] value, T expectedValue, int pos, FormatCodes.FormatCode formatCode) {
         ByteBuf buffer = Unpooled.wrappedBuffer(value);
         T readValue;
         if (formatCode == FormatCodes.FormatCode.BINARY) {
-            readValue = (T) pgType.readBinaryValue(buffer, pos);
+            readValue = pgType.readBinaryValue(buffer, pos);
         } else {
-            readValue = (T) pgType.readTextValue(buffer, pos);
+            readValue = pgType.readTextValue(buffer, pos);
         }
         buffer.release();
-        assertThat(readValue, is(expectedValue));
+        assertThat(readValue).isEqualTo(expectedValue);
     }
 }

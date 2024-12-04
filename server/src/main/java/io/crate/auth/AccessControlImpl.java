@@ -25,7 +25,6 @@ import static io.crate.role.Permission.READ_WRITE_DEFINE;
 
 import java.util.Locale;
 
-import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -70,7 +69,11 @@ import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPrivileges;
+import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
+import io.crate.analyze.AnalyzedRerouteCancelShard;
+import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedRerouteRetryFailed;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
@@ -103,11 +106,10 @@ import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
@@ -131,22 +133,20 @@ public final class AccessControlImpl implements AccessControl {
     private final Roles roles;
     private final MaskSensitiveExceptions maskSensitiveExceptions;
 
-    /**
-     * @param sessionSettings for user and defaultSchema information.
-     *                       The `sessionSettings` (instead of user and schema) is required to
-     *                       observe updates to the default schema.
-     *                       (Which can change at runtime within the life-time of a session)
-     */
-    public AccessControlImpl(Roles roles, CoordinatorSessionSettings sessionSettings) {
+    public AccessControlImpl(Roles roles, Role authenticatedUser, Role sessionUser) {
         this.roles = roles;
-        this.sessionUser = sessionSettings.sessionUser();
-        this.authenticatedUser = sessionSettings.authenticatedUser();
+        this.sessionUser = sessionUser;
+        this.authenticatedUser = authenticatedUser;
         this.maskSensitiveExceptions = new MaskSensitiveExceptions(roles);
     }
 
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
         if (!sessionUser.isSuperUser()) {
+            if (roles.findRole(sessionUser.name()) == null) {
+                // Check that user was not dropped in a meantime.
+                throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
+            }
             statement.accept(
                 new StatementVisitor(
                     roles,
@@ -256,11 +256,8 @@ public final class AccessControlImpl implements AccessControl {
             for (var source : relation.from()) {
                 source.accept(this, context);
             }
-            relation.visitSymbols(symbol -> {
-                for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
-                    rel.accept(this, context);
-                }
-            });
+            relation.visitSymbols(tree ->
+                tree.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context)));
             return null;
         }
 
@@ -273,13 +270,8 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.VIEW,
                 analyzedView.name().toString()
             );
-            Role owner = analyzedView.owner() == null ? null : roles.findUser(analyzedView.owner());
-            if (owner == null) {
-                throw new UnauthorizedException(
-                    "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
-            }
             Role currentUser = context.user;
-            context.user = owner;
+            context.user = analyzedView.owner();
             analyzedView.relation().accept(this, context);
             context.user = currentUser;
             return null;
@@ -365,22 +357,22 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, Role user) {
             // user is allowed to change it's own properties
-            if (!analysis.roleName().equals(user.name())) {
-                throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
-                                                "To modify other users superuser permissions are required.");
+            if (analysis.roleName().equals(user.name())) {
+                return null;
             }
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
             return null;
         }
 
         @Override
         public Void visitAlterTable(AnalyzedAlterTable alterTable, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                alterTable.tableInfo().ident().toString()
-            );
+            ensureDDLOnTable(user, alterTable.tableInfo().ident().fqn());
             return null;
         }
 
@@ -502,16 +494,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
-            TableInfo table = dropTable.table();
-            if (table != null) {
-                Privileges.ensureUserHasPrivilege(
-                    relationVisitor.roles,
-                    user,
-                    Permission.DDL,
-                    Securable.TABLE,
-                    table.ident().toString()
-                );
-            }
+            ensureDDLOnTable(user, dropTable.tableName().fqn());
             return null;
         }
 
@@ -555,25 +538,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.sourceName().fqn()
-            );
-            return null;
-        }
-
-        @Override
-        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.tableInfo().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.sourceName().fqn());
             return null;
         }
 
@@ -606,62 +571,32 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTableAddColumn(AnalyzedAlterTableAddColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableDropColumn(AnalyzedAlterTableDropColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
-                                                      Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                dropCheckConstraint.tableInfo().ident().toString()
-            );
+                                                       Role user) {
+            ensureDDLOnTable(user, dropCheckConstraint.tableInfo().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.tableInfo().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.tableInfo().ident().fqn());
             return null;
         }
 
@@ -825,6 +760,30 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
+        protected Void visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        public Void visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
         public Void visitDropView(AnalyzedDropView dropView, Role user) {
             for (RelationName name : dropView.views()) {
                 Privileges.ensureUserHasPrivilege(
@@ -851,13 +810,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitOptimizeTableStatement(AnalyzedOptimizeTable optimizeTable, Role user) {
             for (TableInfo table : optimizeTable.tables().values()) {
-                Privileges.ensureUserHasPrivilege(
-                    relationVisitor.roles,
-                    user,
-                    Permission.DDL,
-                    Securable.TABLE,
-                    table.ident().toString()
-                );
+                ensureDDLOnTable(user, table.ident().fqn());
             }
             return null;
         }
@@ -1042,6 +995,16 @@ public final class AccessControlImpl implements AccessControl {
                 );
             }
             return null;
+        }
+
+        private void ensureDDLOnTable(Role user, String tableFqn) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.TABLE,
+                tableFqn
+            );
         }
     }
 

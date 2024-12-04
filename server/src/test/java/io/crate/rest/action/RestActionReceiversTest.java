@@ -21,7 +21,7 @@
 
 package io.crate.rest.action;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,9 +30,12 @@ import java.util.List;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.auth.AccessControl;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -60,10 +63,9 @@ public class RestActionReceiversTest extends ESTestCase {
     private final Row row = new Row1(1L);
 
     private static void assertXContentBuilder(XContentBuilder expected, XContentBuilder actual) throws IOException {
-        assertEquals(
-            stripDuration(Strings.toString(expected)),
-            stripDuration(Strings.toString(actual))
-        );
+        assertThat(stripDuration(Strings.toString(actual))
+        ).isEqualTo(
+            stripDuration(Strings.toString(expected)));
     }
 
     private static String stripDuration(String s) {
@@ -117,13 +119,28 @@ public class RestActionReceiversTest extends ESTestCase {
     @Test
     public void testRestBulkRowCountReceiver() throws Exception {
         RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[] {
-            new RestBulkRowCountReceiver.Result(null, 1),
-            new RestBulkRowCountReceiver.Result(null, 2),
-            new RestBulkRowCountReceiver.Result(null, 3)
+            new RestBulkRowCountReceiver.Result(1, null),
+            new RestBulkRowCountReceiver.Result(-2, new IllegalArgumentException("invalid input")),
+            new RestBulkRowCountReceiver.Result(-2, new VersionConflictEngineException(new ShardId("dummy", "dummy", 1), "document already exists", null)),
         };
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
-            .bulkRows(results);
+            .bulkRows(results, AccessControl.DISABLED);
         String s = Strings.toString(builder.build());
-        assertEquals(s, "{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}");
+        assertThat("{\"results\":[" +
+            "{\"rowcount\":1}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[invalid input]\"}}," +
+            "{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}" +
+            "]}").isEqualTo(s);
+    }
+
+    @Test
+    public void test_rest_bulk_row_count_receiver_supports_single_column_row_on_single_bulk_arg() throws Exception {
+        var results = new RestBulkRowCountReceiver.Result[1];
+        var bulkRowCountReceiver = new RestBulkRowCountReceiver(results, 0);
+        // A row with a single column must not throw an exception on reading a possible second column
+        bulkRowCountReceiver.setNextRow(new Row1(1L));
+        bulkRowCountReceiver.allFinished();
+        assertThat(results[0].rowCount()).isEqualTo(1L);
+        assertThat(results[0].error()).isNull();
     }
 }

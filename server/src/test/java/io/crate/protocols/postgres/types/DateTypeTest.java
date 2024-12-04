@@ -22,8 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.format.DateTimeParseException;
 
@@ -46,9 +45,9 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
             Long value = 1467072000000L;
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
-            assertThat(written - 4, is(length));
+            assertThat(written - 4).isEqualTo(length);
             Long readValue = (Long) pgType.readBinaryValue(buffer, length);
-            assertThat(readValue, is(value));
+            assertThat(readValue).isEqualTo(value);
         } finally {
             buffer.release();
         }
@@ -56,10 +55,8 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8),
-            is("2016-06-28"));
-        assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8),
-            is("1000-12-22"));
+        assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28");
+        assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22");
     }
 
     @Test
@@ -71,8 +68,7 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8Text() {
-        assertThat(DateType.INSTANCE.decodeUTF8Text("2020-02-09".getBytes(UTF_8)),
-            is(1581206400000L));
+        assertThat(DateType.INSTANCE.decodeUTF8Text("2020-02-09".getBytes(UTF_8))).isEqualTo(1581206400000L);
     }
 
 }

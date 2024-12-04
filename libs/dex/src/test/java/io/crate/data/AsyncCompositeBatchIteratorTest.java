@@ -21,15 +21,15 @@
 
 package io.crate.data;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,6 +37,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -66,7 +67,7 @@ class AsyncCompositeBatchIteratorTest {
                         TestingBatchIterators.range(0, 5),
                         batchSimulatingItSupplier.get()
                     )
-                )
+                ), ResultOrder.EXACT
             );
             tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
         } finally {
@@ -77,36 +78,40 @@ class AsyncCompositeBatchIteratorTest {
 
     @Test
     void testIteratorDoesNotHandleRejectedExecutionException() throws Exception {
-        ThreadPoolExecutor executorService = new ThreadPoolExecutor(1, 1, 0L,
-            TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1));
+        AtomicBoolean first = new AtomicBoolean(true);
+        Executor executor = new Executor() {
 
-        try {
-            Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new BatchSimulatingIterator<>(
-                TestingBatchIterators.range(0, 5),
-                2,
-                2,
-                null
-            );
-            BatchIterator<Row> batchIterator = CompositeBatchIterator.asyncComposite(
-                executorService,
-                () -> 3,
-                List.of(
-                    batchSimulatingItSupplier.get(),
-                    batchSimulatingItSupplier.get(),
-                    batchSimulatingItSupplier.get(),
-                    batchSimulatingItSupplier.get()
-                )
-            );
+            @Override
+            public void execute(Runnable command) {
+                if (first.compareAndSet(true, false)) {
+                    command.run();
+                }
+                throw new RejectedExecutionException("Out of juice");
+            }
+        };
+        Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new BatchSimulatingIterator<>(
+            TestingBatchIterators.range(0, 10),
+            2,
+            2,
+            null
+        );
+        BatchIterator<Row> batchIterator = CompositeBatchIterator.asyncComposite(
+            executor,
+            () -> 5,
+            List.of(
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get()
+            )
+        );
 
-            TestingRowConsumer consumer = new TestingRowConsumer();
-            consumer.accept(batchIterator, null);
-            consumer.getResult();
-            fail("The AsyncBatchIterator should not handle the case when the executor rejects new tasks");
-        } catch (RejectedExecutionException ignored) {
-            // expected
-        } finally {
-            executorService.shutdown();
-            executorService.awaitTermination(10, TimeUnit.SECONDS);
-        }
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(batchIterator, null);
+        assertThat(consumer.completionFuture())
+            .failsWithin(100, TimeUnit.MILLISECONDS)
+            .withThrowableThat()
+                .havingCause()
+                .isExactlyInstanceOf(RejectedExecutionException.class);
     }
 }

@@ -52,7 +52,7 @@ public class DeflateCompressedXContentTests extends ESTestCase {
         CompressedXContent cstr2 = new CompressedXContent(str2);
         assertThat(cstr2.string()).isNotEqualTo(str);
         assertThat(new CompressedXContent(str2)).isNotEqualTo(cstr);
-        assertEquals(new CompressedXContent(str2), cstr2);
+        assertThat(cstr2).isEqualTo(new CompressedXContent(str2));
     }
 
     public void testRandom() throws IOException {
@@ -91,7 +91,7 @@ public class DeflateCompressedXContentTests extends ESTestCase {
         assertThat(BytesReference.toBytes(b1)).isEqualTo(new CompressedXContent(b1).compressed());
         assertThat(BytesReference.toBytes(b2)).isEqualTo(new CompressedXContent(b2).compressed());
         // but compressedstring instances are still equal
-        assertEquals(new CompressedXContent(b1), new CompressedXContent(b2));
+        assertThat(new CompressedXContent(b2)).isEqualTo(new CompressedXContent(b1));
     }
 
     public void testHashCode() throws IOException {

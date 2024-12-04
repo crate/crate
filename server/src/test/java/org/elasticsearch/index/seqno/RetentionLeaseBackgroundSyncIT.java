@@ -19,8 +19,7 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,7 +87,7 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
                     final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
-                    assertThat(replica.getRetentionLeases(), equalTo(primary.getRetentionLeases()));
+                    assertThat(replica.getRetentionLeases()).isEqualTo(primary.getRetentionLeases());
                 }
             });
         }

@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -42,7 +41,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.store.Store;
@@ -59,7 +57,7 @@ import io.crate.common.io.IOUtils;
  * Note: this engine can be opened side-by-side with a read-write engine but will not reflect any changes made to the read-write
  * engine.
  *
- * @see #ReadOnlyEngine(EngineConfig, SeqNoStats, TranslogStats, boolean, Function, boolean)
+ * @see #ReadOnlyEngine(EngineConfig, SeqNoStats, TranslogStats, boolean, UnaryOperator, boolean)
  */
 public class ReadOnlyEngine extends Engine {
 
@@ -282,7 +280,7 @@ public class ReadOnlyEngine extends Engine {
     }
 
     @Override
-    public Translog.Snapshot newChangesSnapshot(String source, MapperService mapperService, long fromSeqNo, long toSeqNo,
+    public Translog.Snapshot newChangesSnapshot(String source, long fromSeqNo, long toSeqNo,
                                                 boolean requiredFullRange) throws IOException {
         if (engineConfig.getIndexSettings().isSoftDeleteEnabled() == false) {
             throw new IllegalStateException("accessing changes snapshot requires soft-deletes enabled");
@@ -292,19 +290,19 @@ public class ReadOnlyEngine extends Engine {
 
     @Override
     public Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
-                                                   MapperService mapperService, long startingSeqNo) {
+                                                   long startingSeqNo) {
         return newEmptySnapshot();
     }
 
     @Override
     public int estimateNumberOfHistoryOperations(String reason, HistorySource historySource,
-                                                 MapperService mapperService, long startingSeqNo) {
+                                                 long startingSeqNo) {
         return 0;
     }
 
     @Override
     public boolean hasCompleteOperationHistory(String reason, HistorySource historySource,
-                                               MapperService mapperService, long startingSeqNo) {
+                                               long startingSeqNo) {
         // we can do operation-based recovery if we don't have to replay any operation.
         return startingSeqNo > seqNoStats.getMaxSeqNo();
     }

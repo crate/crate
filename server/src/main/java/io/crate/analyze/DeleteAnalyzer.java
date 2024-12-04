@@ -60,11 +60,15 @@ final class DeleteAnalyzer {
         MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
         relation = maybeAliasedStatement.nonAliasedRelation();
 
-        if (!(relation instanceof DocTableRelation)) {
+        if (!(relation instanceof DocTableRelation table)) {
             throw new UnsupportedOperationException("Cannot delete from relations other than base tables");
         }
-        DocTableRelation table = (DocTableRelation) relation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, table);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            nodeCtx,
+            RowGranularity.CLUSTER,
+            null,
+            table,
+            f -> f.signature().isDeterministic());
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             txnContext,
             nodeCtx,

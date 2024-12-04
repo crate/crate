@@ -88,8 +88,12 @@ auth.host_based.enabled: true
 #   Note that this authentication method is only available via Postgres
 #   Protocol, meaning that with this configuration, connecting from non-local
 #   hosts via HTTP would not be possible!
+
 auth:
   host_based:
+    jwt:
+#     iss: http://example.com
+#     aud: example_aud
     config:
       0:
         user: crate
@@ -527,6 +531,10 @@ auth:
 # Defines a factor to the number of shards per index allocated on a specific
 # node (float).
 #cluster.routing.allocation.balance.index: 0.5f
+
+## Note that cluster.routing.allocation.balance.shard & cluster.routing.allocation.balance.index
+## cannot be both set to 0.0f
+
 
 # Defines a weight factor for the number of primaries of a specific index
 # allocated on a node (float).

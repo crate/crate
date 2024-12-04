@@ -78,7 +78,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                 └ Collect[doc.users | [name] | true]
             """
         );
-        PlannerContext ctx = e.getPlannerContext(clusterService.state());
+        PlannerContext ctx = e.getPlannerContext();
         Merge merge = (Merge) plan.build(
             mock(DependencyCarrier.class),
             ctx,

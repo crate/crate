@@ -21,15 +21,15 @@
 
 package io.crate.expression.reference.file;
 
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.engine.collect.files.LineCollectorExpression;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
+import io.crate.metadata.doc.SysColumns;
+
 public class SourceAsMapLineExpression extends LineCollectorExpression<Map<String, Object>> {
 
-    public static final String COLUMN_NAME = DocSysColumns.DOC.name();
+    public static final String COLUMN_NAME = SysColumns.DOC.name();
     private LineContext context;
 
     @Override

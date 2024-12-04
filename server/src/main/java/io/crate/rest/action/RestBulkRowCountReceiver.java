@@ -24,15 +24,16 @@ package io.crate.rest.action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
+import io.crate.session.BaseResultReceiver;
 
 class RestBulkRowCountReceiver extends BaseResultReceiver {
 
     private final Result[] results;
     private final int resultIdx;
     private long rowCount;
+    @Nullable
+    private Throwable failure;
 
     RestBulkRowCountReceiver(Result[] results, int resultIdx) {
         this.results = results;
@@ -41,38 +42,29 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void setNextRow(Row row) {
-        rowCount = ((long) row.get(0));
+        rowCount = (long) row.get(0);
+        // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
+        if (results.length > 1) {
+            failure = (Throwable) row.get(1);
+        }
     }
 
     @Override
     public void allFinished() {
-        results[resultIdx] = new Result(null, rowCount);
+        if (failure == null) {
+            results[resultIdx] = new Result(rowCount, null);
+        } else {
+            results[resultIdx] = new Result(rowCount, failure);
+        }
         super.allFinished();
     }
 
     @Override
     public void fail(@NotNull Throwable t) {
-        results[resultIdx] = new Result(SQLExceptions.messageOf(t), rowCount);
+        results[resultIdx] = new Result(rowCount, t);
         super.fail(t);
     }
 
-    static class Result {
-
-        private String errorMessage;
-        private long rowCount;
-
-        Result(@Nullable String errorMessage, long rowCount) {
-            this.errorMessage = errorMessage;
-            this.rowCount = rowCount;
-        }
-
-        @Nullable
-        String errorMessage() {
-            return errorMessage;
-        }
-
-        long rowCount() {
-            return rowCount;
-        }
+    record Result(long rowCount, @Nullable Throwable error) {
     }
 }

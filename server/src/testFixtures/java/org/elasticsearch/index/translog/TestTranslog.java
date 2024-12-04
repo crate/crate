@@ -19,14 +19,9 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
 import static org.elasticsearch.index.translog.Translog.TRANSLOG_FILE_SUFFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -133,7 +128,9 @@ public class TestTranslog {
                 }
             }
         }
-        assertThat("no corruption candidates found in " + translogDir, candidates, is(not(empty())));
+        assertThat(candidates)
+            .as("no corruption candidates found in " + translogDir)
+            .isNotEmpty();
 
         final Path fileToCorrupt = RandomPicks.randomFrom(random, candidates);
 
@@ -148,9 +145,13 @@ public class TestTranslog {
      * to a random (strictly shorter) length, or by deleting the file.
      */
     static void corruptFile(Logger logger, Random random, Path fileToCorrupt, boolean maybeDelete) throws IOException {
-        assertThat(fileToCorrupt + " should be a regular file", Files.isRegularFile(fileToCorrupt));
+        assertThat(Files.isRegularFile(fileToCorrupt))
+            .as(fileToCorrupt + " should be a regular file")
+            .isTrue();
         final long fileSize = Files.size(fileToCorrupt);
-        assertThat(fileToCorrupt + " should not be an empty file", fileSize, greaterThan(0L));
+        assertThat(fileSize)
+            .as(fileToCorrupt + " should not be an empty file")
+            .isGreaterThan(0L);
 
         if (maybeDelete && random.nextBoolean() && random.nextBoolean()) {
             logger.info("corruptFile: deleting file {}", fileToCorrupt);
@@ -165,7 +166,7 @@ public class TestTranslog {
                 do {
                     // read
                     fileChannel.position(corruptPosition);
-                    assertThat(fileChannel.position(), equalTo(corruptPosition));
+                    assertThat(fileChannel.position()).isEqualTo(corruptPosition);
                     ByteBuffer bb = ByteBuffer.wrap(new byte[1]);
                     fileChannel.read(bb);
                     bb.flip();

@@ -21,8 +21,7 @@
 
 package org.elasticsearch.index.translog;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 
@@ -46,11 +45,11 @@ public class TranslogHistoryTest extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select translog_stats['number_of_operations'] from sys.shards where table_name='test' and primary=true");
-            assertThat(response.rows()[0][0], is(0));
+            assertThat(response.rows()[0][0]).isEqualTo(0);
         });
         assertBusy(() -> {
             execute("select translog_stats['number_of_operations'] from sys.shards where table_name='test' and primary=false");
-            assertThat(response.rows()[0][0], is(0));
+            assertThat(response.rows()[0][0]).isEqualTo(0);
         });
     }
 }

@@ -21,9 +21,10 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Optional;
+
+import org.jetbrains.annotations.Nullable;
 
 public final class Window extends Statement {
 
@@ -113,14 +114,10 @@ public final class Window extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Window window = (Window) o;
-
-        if (!partitions.equals(window.partitions)) return false;
-        if (!orderBy.equals(window.orderBy)) return false;
-        return windowFrame.equals(window.windowFrame);
+        return o instanceof Window that
+            && partitions.equals(that.partitions)
+            && orderBy.equals(that.orderBy)
+            && windowFrame.equals(that.windowFrame);
     }
 
     @Override

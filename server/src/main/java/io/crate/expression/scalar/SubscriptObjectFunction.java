@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -48,13 +49,13 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
 
     public static final String NAME = "subscript_obj";
 
-    public static final Signature SIGNATURE = Signature
-        .scalar(
-            NAME,
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.UNDEFINED.getTypeSignature())
-        .withVariableArity();
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature())
+        .returnType(DataTypes.UNDEFINED.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .setVariableArity(true)
+        .build();
 
     public static void register(Functions.Builder module) {
         module.add(
@@ -86,7 +87,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
         if (path == null) {
             return func;
         } else {
-            DataType<?> returnType = objectType.resolveInnerType(path);
+            DataType<?> returnType = objectType.innerType(path);
             return returnType.equals(DataTypes.UNDEFINED)
                 ? func
                 : new Function(

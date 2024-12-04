@@ -26,7 +26,6 @@ import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLU
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,38 +43,39 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.DropColumn;
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
@@ -83,16 +83,20 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceTree;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
@@ -105,6 +109,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 
@@ -162,8 +167,12 @@ import io.crate.types.ObjectType;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
+    public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
+        Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
+    public static final Setting<Long> DEPTH_LIMIT_SETTING =
+        Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
 
-    private final Collection<Reference> columns;
+    private final List<Reference> columns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
@@ -172,51 +181,42 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
     private final Map<String, String> leafNamesByOid;
-    private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     @Nullable
     private final String pkConstraintName;
     private final List<ColumnIdent> primaryKeys;
     private final List<CheckConstraint<Symbol>> checkConstraints;
     private final ColumnIdent clusteredBy;
-    private final String[] concreteIndices;
-    private final String[] concreteOpenIndices;
     private final List<ColumnIdent> partitionedBy;
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final Settings tableParameters;
     private final TableColumn docColumn;
     private final Set<Operation> supportedOperations;
-
-    private final List<PartitionName> partitions;
-
     private final boolean hasAutoGeneratedPrimaryKey;
     private final boolean isPartitioned;
     private final Version versionCreated;
     private final Version versionUpgraded;
-
     private final boolean closed;
-
     private final ColumnPolicy columnPolicy;
+    private ReferenceTree refTree;     // lazily initialised
+    private final long tableVersion;
 
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Map<ColumnIdent, String> analyzers,
                         @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
                         ColumnIdent clusteredBy,
-                        String[] concreteIndices,
-                        String[] concreteOpenIndices,
                         Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
-                        List<PartitionName> partitions,
                         ColumnPolicy columnPolicy,
                         Version versionCreated,
                         @Nullable Version versionUpgraded,
                         boolean closed,
-                        Set<Operation> supportedOperations) {
+                        Set<Operation> supportedOperations,
+                        long tableVersion) {
         this.notNullColumns = references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
@@ -230,7 +230,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.references = references.entrySet().stream()
             .filter(entry -> !entry.getValue().isDropped())
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-        DocSysColumns.forTable(ident, this.references::put);
+        SysColumns.forTable(ident, this.references::put);
         this.columns = this.references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> r.column().isRoot())
@@ -242,7 +242,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return ref;
         });
         this.generatedColumns = this.references.values().stream()
-            .filter(r -> r instanceof GeneratedReference)
+            .filter(r -> r instanceof GeneratedReference && !r.isDropped())
             .map(r -> (GeneratedReference) r)
             .toList();
         this.indexColumns = indexColumns;
@@ -250,7 +250,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
             .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
             .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
-        this.analyzers = analyzers;
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
 
@@ -258,40 +257,45 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         // because `select * from tbl where _id = ?` wouldn't uniquely identify a row on partitioned tables
         //
         // For the same reason, `hasAutoGeneratedPrimaryKey` is false in that case
-        boolean isClusteredBySysId = clusteredBy == null || clusteredBy.equals(DocSysColumns.ID);
+        boolean isClusteredBySysId = clusteredBy == null || clusteredBy.equals(SysColumns.ID.COLUMN);
         this.primaryKeys = primaryKeys.isEmpty() && isClusteredBySysId && partitionedBy.isEmpty()
-            ? List.of(DocSysColumns.ID)
+            ? List.of(SysColumns.ID.COLUMN)
             : primaryKeys;
         this.hasAutoGeneratedPrimaryKey =
             isClusteredBySysId
-            && (this.primaryKeys.size() == 1 && this.primaryKeys.get(0).equals(DocSysColumns.ID))
+            && (this.primaryKeys.size() == 1 && this.primaryKeys.get(0).equals(SysColumns.ID.COLUMN))
             && partitionedBy.isEmpty();
 
         this.checkConstraints = checkConstraints;
         this.clusteredBy = clusteredBy;
-        this.concreteIndices = concreteIndices;
-        this.concreteOpenIndices = concreteOpenIndices;
         Integer maybeNumberOfShards = tableParameters.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null);
         if (maybeNumberOfShards == null) {
             throw new IllegalArgumentException("must specify numberOfShards for " + ident);
         }
         this.numberOfShards = maybeNumberOfShards;
-        this.numberOfReplicas = NumberOfReplicas.fromSettings(tableParameters);
+        this.numberOfReplicas = NumberOfReplicas.getVirtualValue(tableParameters);
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;
-        this.partitions = partitions;
         this.columnPolicy = columnPolicy;
         assert versionCreated.after(Version.V_EMPTY) : "Table must have a versionCreated";
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
         this.supportedOperations = supportedOperations;
-        this.docColumn = new TableColumn(DocSysColumns.DOC, this.references);
+        this.docColumn = new TableColumn(SysColumns.DOC, this.references);
         this.defaultExpressionColumns = this.references.values()
             .stream()
             .filter(r -> r.defaultExpression() != null)
             .toList();
+        this.tableVersion = tableVersion;
+    }
+
+    /**
+     * Version of the template metadata if partitioned, otherwise of the index metadata
+     **/
+    public long tableVersion() {
+        return tableVersion;
     }
 
     @Nullable
@@ -303,8 +307,64 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return reference;
     }
 
+    @Nullable
+    public Reference getReference(String storageIdent) {
+        try {
+            long oid = Long.parseLong(storageIdent);
+            for (var ref : references.values()) {
+                if (ref.oid() == oid) {
+                    return ref;
+                }
+            }
+            for (var ref: indexColumns.values()) {
+                if (ref.oid() == oid) {
+                    return ref;
+                }
+            }
+            return null;
+        } catch (NumberFormatException ex) {
+            return getReference(ColumnIdent.fromPath(storageIdent));
+        }
+    }
+
+    public List<Reference> getChildReferences(Reference parent) {
+        return referenceTree().getChildren(parent);
+    }
+
+    public List<Reference> getLeafReferences(Reference parent) {
+        return referenceTree().findDescendants(parent);
+    }
+
+    public Reference findParentReferenceMatching(Reference child, Predicate<Reference> test) {
+        return referenceTree().findFirstParentMatching(child, test);
+    }
+
+    public Predicate<Reference> isParentReferenceIgnored() {
+        return ref -> findParentReferenceMatching(ref, r -> r.valueType().columnPolicy() == ColumnPolicy.IGNORED) != null;
+    }
+
+    public boolean isIgnoredOrImmediateChildOfIgnored(Reference ref) {
+        if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objectType) {
+            return objectType.columnPolicy() == ColumnPolicy.IGNORED;
+        }
+        for (Reference parent : getParents(ref.column())) {
+            if (parent == null) {
+                continue;
+            }
+            return parent.valueType().columnPolicy() == ColumnPolicy.IGNORED;
+        }
+        return false;
+    }
+
+    private ReferenceTree referenceTree() {
+        if (refTree == null) {
+            refTree = ReferenceTree.of(references.values());
+        }
+        return refTree;
+    }
+
     @Override
-    public Collection<Reference> columns() {
+    public List<Reference> columns() {
         return columns;
     }
 
@@ -353,27 +413,17 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                               CoordinatorSessionSettings sessionSettings) {
         String[] indices;
         if (whereClause.partitions().isEmpty()) {
-            indices = concreteOpenIndices;
+            indices = concreteOpenIndices(state.metadata());
         } else {
             indices = whereClause.partitions().toArray(new String[0]);
         }
-        Map<String, Set<String>> routingMap = null;
-        if (whereClause.clusteredBy().isEmpty() == false) {
-            Set<String> routing = whereClause.routingValues();
-            if (routing == null) {
-                routing = Collections.emptySet();
-            }
-            routingMap = IndexNameExpressionResolver.resolveSearchRouting(
-                state,
-                routing,
-                indices
-            );
-        }
-
-        if (routingMap == null) {
-            routingMap = Collections.emptyMap();
-        }
-        return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
+        return routingProvider.forIndices(
+            state,
+            indices,
+            whereClause.routingValues(),
+            isPartitioned,
+            shardSelection
+        );
     }
 
     @Override
@@ -410,12 +460,38 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return hasAutoGeneratedPrimaryKey;
     }
 
-    public String[] concreteIndices() {
-        return concreteIndices;
+    public String[] concreteIndices(Metadata metadata) {
+        try {
+            return IndexNameExpressionResolver.concreteIndexNames(
+                metadata,
+                isPartitioned
+                    ? IndicesOptions.LENIENT_EXPAND_OPEN
+                    : IndicesOptions.STRICT_EXPAND_OPEN,
+                ident.indexNameOrAlias()
+            );
+        } catch (IndexNotFoundException e) {
+            throw new RelationUnknown(ident.fqn(), e);
+        }
     }
 
-    public String[] concreteOpenIndices() {
-        return concreteOpenIndices;
+    public String[] concreteOpenIndices(Metadata metadata) {
+        if (!isPartitioned) {
+            IndexMetadata index = metadata.index(ident.indexNameOrAlias());
+            if (index == null) {
+                throw new RelationUnknown(ident);
+            }
+            String[] concreteIndices = concreteIndices(metadata);
+            if (concreteIndices.length == 0) {
+                throw new RelationUnknown(ident);
+            }
+            return concreteIndices;
+        } else {
+            return IndexNameExpressionResolver.concreteIndexNames(
+                metadata,
+                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED),
+                ident.indexNameOrAlias()
+            );
+        }
     }
 
     /**
@@ -440,15 +516,67 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return partitionedBy;
     }
 
-    public List<PartitionName> partitions() {
+    public List<PartitionName> getPartitionNames(Metadata metadata) {
+        if (!isPartitioned) {
+            throw new IllegalArgumentException("Relation " + ident + " isn't partitioned, cannot get partitions");
+        }
+        String[] concreteIndices = concreteIndices(metadata);
+        ArrayList<PartitionName> partitions = new ArrayList<>(concreteIndices.length);
+        for (String indexName : concreteIndices) {
+            partitions.add(PartitionName.fromIndexOrTemplate(indexName));
+        }
         return partitions;
     }
+
+    public List<PartitionInfo> getPartitions(Metadata metadata) {
+        if (!isPartitioned) {
+            return List.of();
+        }
+        Index[] indices = IndexNameExpressionResolver.concreteIndices(
+            metadata,
+            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
+            ident.indexNameOrAlias()
+        );
+        ArrayList<PartitionInfo> result = new ArrayList<>(indices.length);
+        for (Index index : indices) {
+            IndexMetadata indexMetadata = metadata.index(index);
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(index.getName());
+            List<String> values = partitionName.values();
+            Map<String, Object> valuesMap = HashMap.newHashMap(values.size());
+            assert values.size() == partitionedBy.size()
+                : "Number of values in partitionIdent must match number of partitionedBy columns";
+            for (int i = 0; i < values.size(); i++) {
+                String value = values.get(i);
+                Reference reference = partitionedByColumns.get(i);
+                valuesMap.put(
+                    reference.column().sqlFqn(),
+                    reference.valueType().implicitCast(value)
+                );
+            }
+            Settings settings = indexMetadata.getSettings();
+            // Not using numberOfShards/numberOfReplicas/... properties because PartitionInfo
+            // needs to show the values of the partition, not the table/template
+            PartitionInfo partitionInfo = new PartitionInfo(
+                partitionName,
+                indexMetadata.getNumberOfShards(),
+                NumberOfReplicas.getVirtualValue(settings),
+                IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
+                settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+                indexMetadata.getState() == State.CLOSE,
+                valuesMap,
+                settings
+            );
+            result.add(partitionInfo);
+        }
+        return result;
+    }
+
 
     /**
      * returns <code>true</code> if this table is a partitioned table,
      * <code>false</code> otherwise
      * <p>
-     * if so, {@linkplain #partitions()} returns infos about the concrete indices that make
+     * if so, {@linkplain #getPartitionNames(Metadata)} returns infos about the concrete indices that make
      * up this virtual partitioned table
      */
     public boolean isPartitioned() {
@@ -484,7 +612,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columnPolicy;
     }
 
-    @Nullable
+    @NotNull
     @Override
     public Version versionCreated() {
         return versionCreated;
@@ -515,8 +643,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return RelationType.BASE_TABLE;
     }
 
+    @Nullable
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
-        return analyzers.get(ident);
+        Reference reference = references.get(ident);
+        if (reference instanceof GeneratedReference gen) {
+            reference = gen.reference();
+        }
+        if (reference instanceof IndexReference indexRef) {
+            return indexRef.analyzer();
+        }
+        return null;
     }
 
     @Nullable
@@ -529,7 +665,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
         for (var parent : getParents(ident)) {
             if (parent != null) {
-                parentPolicy = parent.columnPolicy();
+                parentPolicy = parent.valueType().columnPolicy();
                 position = parent.position();
                 break;
             }
@@ -538,7 +674,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             case DYNAMIC:
                 if (!forWrite) {
                     if (!errorOnUnknownObjectKey) {
-                        return new VoidReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
+                        return new VoidReference(new ReferenceIdent(ident(), ident), position);
                     }
                     return null;
                 }
@@ -558,7 +694,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return new DynamicReference(
                 new ReferenceIdent(ident(), ident),
                 rowGranularity(),
-                ColumnPolicy.IGNORED,
                 position
             );
         }
@@ -597,7 +732,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
      * <ul>
      *  <li>OBJECT (IGNORED) sub-columns</li>
-     *  <li>Empty arrays, or arrays with only null values</li>
      *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
      * </ul>
      */
@@ -644,7 +778,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             for (var checkConstraint : checkConstraints()) {
                 Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));
+                checkConstraint.expression().visit(Reference.class, r -> columnsInConstraint.add(r.column()));
                 if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
                     throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                         "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
@@ -705,6 +839,32 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
+    public DocTableInfo dropConstraint(String constraint) {
+        List<CheckConstraint<Symbol>> newConstraints = checkConstraints.stream()
+            .filter(x -> !x.name().equals(constraint))
+            .toList();
+        if (newConstraints.size() == checkConstraints.size()) {
+            return this;
+        }
+        return new DocTableInfo(
+            ident,
+            references,
+            indexColumns,
+            pkConstraintName,
+            primaryKeys,
+            newConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations,
+            tableVersion
+        );
+    }
+
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
         HashSet<Reference> toDrop = HashSet.newHashSet(columns.size());
@@ -744,7 +904,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var constraint : checkConstraints) {
             boolean drop = false;
             for (var ref : toDrop) {
-                drop = Symbols.containsColumn(constraint.expression(), ref.column());
+                drop = constraint.expression().hasColumn(ref.column());
                 if (drop) {
                     break;
                 }
@@ -757,21 +917,18 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             newReferences,
             indexColumns,
-            analyzers,
             pkConstraintName,
             primaryKeys,
             newCheckConstraints,
             clusteredBy,
-            concreteIndices,
-            concreteOpenIndices,
             tableParameters,
             partitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
@@ -859,33 +1016,26 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         var renamedPrimaryKeys = Lists.map(primaryKeys, renameColumnIfMatch);
         var renamedPartitionedBy = Lists.map(partitionedBy, renameColumnIfMatch);
         var renamedCheckConstraints = Lists.map(checkConstraints, renameCheckConstraints);
-        var renamedAnalyzers = analyzers.entrySet().stream()
-            .collect(Collectors.toMap(e -> renameColumnIfMatch.apply(e.getKey()), Entry::getValue));
-
         return new DocTableInfo(
             ident,
             renamedReferences,
             renamedIndexColumns,
-            renamedAnalyzers,
             pkConstraintName,
             renamedPrimaryKeys,
             renamedCheckConstraints,
             renamedClusteredBy,
-            concreteIndices,
-            concreteOpenIndices,
             tableParameters,
             renamedPartitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
-    public Metadata.Builder writeTo(CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
-                                    Metadata metadata,
+    public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
         List<Reference> allColumns = Stream.concat(
                 Stream.concat(
@@ -915,21 +1065,31 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             allColumns,
             pKeyIndices,
             checkConstraintMap,
-            Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
+            Lists.map(partitionedByColumns, Reference::column),
             columnPolicy,
-            clusteredBy == DocSysColumns.ID ? null : clusteredBy.fqn()
+            clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));
-        for (String indexName : concreteIndices) {
+        for (String indexName : concreteIndices(metadata)) {
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
-            MapperService mapperService = createMapperService.apply(indexMetadata);
-            DocumentMapper mapper = mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
+
+            long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
+            if (allColumns.size() > allowedTotalColumns) {
+                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
+            }
+            var indexNumberOfShards = numberOfShards;
+            if (isPartitioned && IndexName.isPartitioned(indexName)) {
+                // if the index is a part of a partitioned table,
+                // the actual value of the index must be used as the value for the whole partitioned table may have changed
+                indexNumberOfShards = indexMetadata.getNumberOfShards();
+            }
+
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(mapper.mappingSource()))
-                    .numberOfShards(numberOfShards)
+                    .putMapping(new MappingMetadata(mapping))
+                    .numberOfShards(indexNumberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
             );
         }
@@ -939,7 +1099,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (indexTemplateMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
             }
-            Integer version = indexTemplateMetadata.getVersion();
+            Integer version = indexTemplateMetadata.version();
             var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
                 .version(version == null ? 1 : version + 1)
@@ -972,6 +1132,19 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 addedColumn = true;
                 newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
+            } else if (
+                DataTypes.isArrayOfNulls(exists.valueType())
+                    && newRef.valueType().id() == ArrayType.ID
+                    && DataTypes.isArrayOfNulls(newRef.valueType()) == false
+            ) {
+                // upgrade array_of_null to typed array
+                // we do not need a new OID as we are replacing the existing NullArrayType reference
+                newReferences.put(newColumn, newRef);
+                addedColumn = true;
+            } else if (exists.valueType().id() == ArrayType.ID && DataTypes.isArrayOfNulls(newRef.valueType())) {
+                // one shard is trying to create array_of_null while another has already created a typed array
+                // don't do anything
+                continue;
             } else if (exists.valueType().id() != newRef.valueType().id()) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
@@ -990,7 +1163,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         ArrayList<Reference> result = new ArrayList<>(columns);
         for (Reference ref : columns) {
             for (ColumnIdent parent : ref.column().parents()) {
-                if (!Symbols.containsColumn(result, parent)) {
+                if (!Symbols.hasColumn(result, parent)) {
                     Reference parentRef = getReference(parent);
                     if (parentRef == null) {
                         throw new UnsupportedOperationException(
@@ -1008,6 +1181,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
+        newColumns.forEach(ref -> ref.column().validForCreate());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
         int maxPosition = maxPosition();
@@ -1055,28 +1229,25 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 String expressionStr = entry.getValue();
                 Expression expression = SqlParser.createExpression(expressionStr);
                 Symbol expressionSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-                newChecks.add(new CheckConstraint<Symbol>(name, expressionSymbol, expressionStr));
+                newChecks.add(new CheckConstraint<>(name, expressionSymbol, expressionStr));
             }
         }
         return new DocTableInfo(
             ident,
             newReferences,
             indexColumns,
-            analyzers,
             pkConstraintName,
             newPrimaryKeys,
             newChecks,
             clusteredBy,
-            concreteIndices,
-            concreteOpenIndices,
             tableParameters,
             partitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 

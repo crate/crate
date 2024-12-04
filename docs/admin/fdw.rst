@@ -65,12 +65,20 @@ system::
     | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
     +---------------------------------------------------------------------------------------+
 
+.. note::
+
+   Only `DQL` (Data Query Language) statements are supported on foreign tables.
+
+
+.. _administration-fdw-jdbc:
 
 ``jdbc``
 ========
 
 The ``jdbc`` foreign data wrapper allows to connect to a foreign database via
 ``JDBC``. Bundled JDBC drivers include:
+
+.. _administration-fdw-jdbc-psql:
 
 - PostgreSQL
 

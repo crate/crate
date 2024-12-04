@@ -50,6 +50,7 @@ public class SemanticSortValidator {
         Stream.of(
             DataTypes.REGCLASS,
             DataTypes.REGPROC,
+            DataTypes.NUMERIC,
             BitStringType.INSTANCE_ONE,
             FloatVectorType.INSTANCE_ONE
         )
@@ -87,19 +88,15 @@ public class SemanticSortValidator {
             if (!context.inFunction && !SUPPORTED_TYPES.contains(symbol.valueType().id())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
-                                  "Cannot %s '%s': invalid return type '%s'.",
-                                  context.operation,
-                                  symbol,
-                                  symbol.valueType())
+                        "Cannot %s '%s': invalid return type '%s'.",
+                        context.operation,
+                        symbol,
+                        symbol.valueType())
                 );
             }
-            try {
-                context.inFunction = true;
-                for (Symbol arg : symbol.arguments()) {
-                    arg.accept(this, context);
-                }
-            } finally {
-                context.inFunction = false;
+            context.inFunction = true;
+            for (Symbol arg : symbol.arguments()) {
+                arg.accept(this, context);
             }
             return null;
         }

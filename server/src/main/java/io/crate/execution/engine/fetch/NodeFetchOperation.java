@@ -78,11 +78,12 @@ public class NodeFetchOperation {
 
         FetchCollector createCollector(int readerId, RamAccounting ramAccounting) {
             IndexService indexService = fetchTask.indexService(readerId);
-            var mapperService = indexService.mapperService();
+            String indexName = indexService.index().getName();
+            var table = fetchTask.table(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
-                indexService.index().getName(),
-                mapperService::fieldType,
-                fetchTask.table(readerId).partitionedByColumns()
+                indexName,
+                table.partitionedByColumns(),
+                table.isParentReferenceIgnored()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {
@@ -90,6 +91,7 @@ public class NodeFetchOperation {
             }
             return new FetchCollector(
                 exprs,
+                indexName,
                 streamers,
                 fetchTask,
                 ramAccounting,

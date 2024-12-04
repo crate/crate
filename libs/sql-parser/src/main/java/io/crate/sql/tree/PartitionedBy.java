@@ -23,7 +23,6 @@ package io.crate.sql.tree;
 
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
@@ -46,17 +45,13 @@ public final class PartitionedBy<T> extends Node {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(columns);
+        return columns.hashCode();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PartitionedBy<?> that = (PartitionedBy<?>) o;
-
-        return Objects.equals(columns, that.columns);
+        return o instanceof PartitionedBy<?> that
+            && columns.equals(that.columns);
     }
 
     @Override

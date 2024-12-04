@@ -43,13 +43,9 @@ public final class DropView extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        DropView dropView = (DropView) o;
-
-        if (ifExists != dropView.ifExists) return false;
-        return names.equals(dropView.names);
+        return o instanceof DropView that
+            && ifExists == that.ifExists
+            && names.equals(that.names);
     }
 
     @Override

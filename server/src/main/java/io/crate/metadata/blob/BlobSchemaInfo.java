@@ -21,19 +21,19 @@
 
 package io.crate.metadata.blob;
 
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.service.ClusterService;
+
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
-import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
 
 public class BlobSchemaInfo implements SchemaInfo {
 
@@ -43,7 +43,6 @@ public class BlobSchemaInfo implements SchemaInfo {
     private final BlobTableInfoFactory blobTableInfoFactory;
     private final ConcurrentHashMap<String, BlobTableInfo> tableByName = new ConcurrentHashMap<>();
 
-    @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobTableInfoFactory blobTableInfoFactory) {
         this.clusterService = clusterService;
@@ -68,11 +67,6 @@ public class BlobSchemaInfo implements SchemaInfo {
     @Override
     public String name() {
         return NAME;
-    }
-
-    @Override
-    public void invalidateTableCache(String tableName) {
-        tableByName.remove(tableName);
     }
 
     @Override

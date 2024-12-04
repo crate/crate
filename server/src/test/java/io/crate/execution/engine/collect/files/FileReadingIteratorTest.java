@@ -57,6 +57,7 @@ import org.mockito.ArgumentCaptor;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class FileReadingIteratorTest extends ESTestCase {
@@ -130,7 +131,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             "name,id,age",
             "Trillian,5,33"
         );
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -178,7 +179,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 }
             };
 
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(lines);
     }
 
@@ -252,23 +253,23 @@ public class FileReadingIteratorTest extends ESTestCase {
             }
         };
 
-        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.moveNext()).isTrue();
         assertThat(fi.currentElement().line()).isEqualTo("1");
-        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.moveNext()).isTrue();
         assertThat(fi.currentElement().line()).isEqualTo("2");
-        assertThat(fi.moveNext()).isEqualTo(false);
-        assertThat(fi.allLoaded()).isEqualTo(false);
+        assertThat(fi.moveNext()).isFalse();
+        assertThat(fi.allLoaded()).isFalse();
         assertThat(fi.loadNextBatch()).succeedsWithin(5, TimeUnit.SECONDS)
             .satisfies(x -> {
                 assertThat(fi.currentElement().line()).isEqualTo("2");
                 assertThat(fi.watermark).isEqualTo(3);
-                assertThat(fi.moveNext()).isEqualTo(true);
+                assertThat(fi.moveNext()).isTrue();
                 // the watermark helped 'fi' to recover the state right before the exception then cleared
                 assertThat(fi.watermark).isEqualTo(0);
                 assertThat(fi.currentElement().line()).isEqualTo("3");
 
                 // verify the exception did not prevent reading the next URI
-                assertThat(fi.moveNext()).isEqualTo(true);
+                assertThat(fi.moveNext()).isTrue();
                 assertThat(fi.currentElement().line()).isEqualTo("4");
             });
     }

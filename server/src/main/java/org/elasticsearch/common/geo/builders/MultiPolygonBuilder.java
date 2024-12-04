@@ -19,20 +19,15 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.spatial4j.shape.Shape;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
+
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.XShapeCollection;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.spatial4j.shape.Shape;
 
 public class MultiPolygonBuilder extends ShapeBuilder {
 
@@ -56,10 +51,6 @@ public class MultiPolygonBuilder extends ShapeBuilder {
         this.orientation = orientation;
     }
 
-    public Orientation orientation() {
-        return this.orientation;
-    }
-
     /**
      * Add a shallow copy of the polygon to the multipolygon. This will apply the orientation of the
      * {@link MultiPolygonBuilder} to the polygon if polygon has different orientation.
@@ -73,87 +64,18 @@ public class MultiPolygonBuilder extends ShapeBuilder {
         return this;
     }
 
-    /**
-     * get the list of polygons
-     */
-    public List<PolygonBuilder> polygons() {
-        return polygons;
-    }
-
-    private static String polygonCoordinatesToWKT(PolygonBuilder polygon) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(GeoWKTParser.LPAREN);
-        sb.append(ShapeBuilder.coordinateListToWKT(polygon.shell().coordinates));
-        for (LineStringBuilder hole : polygon.holes()) {
-            sb.append(GeoWKTParser.COMMA);
-            sb.append(ShapeBuilder.coordinateListToWKT(hole.coordinates));
-        }
-        sb.append(GeoWKTParser.RPAREN);
-        return sb.toString();
-    }
-
-    @Override
-    protected StringBuilder contentToWKT() {
-        final StringBuilder sb = new StringBuilder();
-        if (polygons.isEmpty()) {
-            sb.append(GeoWKTParser.EMPTY);
-        } else {
-            sb.append(GeoWKTParser.LPAREN);
-            if (polygons.size() > 0) {
-                sb.append(polygonCoordinatesToWKT(polygons.get(0)));
-            }
-            for (int i = 1; i < polygons.size(); ++i) {
-                sb.append(GeoWKTParser.COMMA);
-                sb.append(polygonCoordinatesToWKT(polygons.get(i)));
-            }
-            sb.append(GeoWKTParser.RPAREN);
-        }
-        return sb;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_ORIENTATION.getPreferredName(), orientation.name().toLowerCase(Locale.ROOT));
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        for (PolygonBuilder polygon : polygons) {
-            builder.startArray();
-            polygon.coordinatesArray(builder, params);
-            builder.endArray();
-        }
-        builder.endArray();
-        return builder.endObject();
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
-    public int numDimensions() {
-        if (polygons == null || polygons.isEmpty()) {
-            throw new IllegalStateException("unable to get number of dimensions, " +
-                "Polygons have not yet been initialized");
-        }
-        return polygons.get(0).numDimensions();
-    }
-
     @Override
     public Shape buildS4J() {
-
         List<Shape> shapes = new ArrayList<>(this.polygons.size());
-
         if (wrapdateline) {
             for (PolygonBuilder polygon : this.polygons) {
                 for (Coordinate[][] part : polygon.coordinates()) {
-                    shapes.add(jtsGeometry(PolygonBuilder.polygonS4J(FACTORY, part)));
+                    shapes.add(jtsGeometry(PolygonBuilder.polygonS4J(GEO_FACTORY, part)));
                 }
             }
         } else {
             for (PolygonBuilder polygon : this.polygons) {
-                shapes.add(jtsGeometry(polygon.toPolygonS4J(FACTORY)));
+                shapes.add(jtsGeometry(polygon.toPolygonS4J(GEO_FACTORY)));
             }
         }
         if (shapes.size() == 1)

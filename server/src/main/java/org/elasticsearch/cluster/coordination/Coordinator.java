@@ -72,7 +72,6 @@ import org.elasticsearch.cluster.service.ClusterApplier;
 import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasable;
@@ -81,10 +80,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.DiscoveryStats;
 import org.elasticsearch.discovery.HandshakingTransportAddressConnector;
 import org.elasticsearch.discovery.PeerFinder;
 import org.elasticsearch.discovery.SeedHostsProvider;
@@ -98,9 +94,8 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.server.xcontent.XContentHelper;
 
-public class Coordinator extends AbstractLifecycleComponent implements Discovery {
+public class Coordinator extends AbstractLifecycleComponent implements ClusterStatePublisher {
 
     private static final Logger LOGGER = LogManager.getLogger(Coordinator.class);
 
@@ -696,12 +691,6 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
-    @Override
-    public DiscoveryStats stats() {
-        return new DiscoveryStats(new PendingClusterStateStats(0, 0, 0), publicationHandler.stats());
-    }
-
-    @Override
     public void startInitialJoin() {
         synchronized (mutex) {
             becomeCandidate("startInitialJoin");
@@ -1092,19 +1081,11 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
     }
 
-    // there is no equals on cluster state, so we just serialize it to XContent and compare Maps
-    // deserialized from the resulting JSON
-    private boolean assertPreviousStateConsistency(ClusterChangedEvent event) {
-        assert event.previousState() == coordinationState.get().getLastAcceptedState() ||
-            XContentHelper.convertToMap(
-                JsonXContent.JSON_XCONTENT, Strings.toString(event.previousState()), false
-            ).equals(
-                XContentHelper.convertToMap(
-                    JsonXContent.JSON_XCONTENT,
-                    Strings.toString(clusterStateWithNoMasterBlock(coordinationState.get().getLastAcceptedState())),
-                    false))
-            : Strings.toString(event.previousState()) + " vs "
-            + Strings.toString(clusterStateWithNoMasterBlock(coordinationState.get().getLastAcceptedState()));
+    private boolean assertPreviousStateConsistency(ClusterChangedEvent event) throws IOException {
+        ClusterState previousState = clusterStateWithNoMasterBlock(event.previousState());
+        ClusterState lastAcceptedState = clusterStateWithNoMasterBlock(coordinationState.get().getLastAcceptedState());
+        assert event.previousState() == coordinationState.get().getLastAcceptedState()
+            || previousState.toString().equals(lastAcceptedState.toString());
         return true;
     }
 

@@ -605,48 +605,7 @@ Uptime limitations
 | ``os_info['jvm']['vm_version']``    | The version of the JVM                       | ``TEXT``    |
 +-------------------------------------+----------------------------------------------+-------------+
 
-``network``
------------
-
-Network statistics are deprecated in CrateDB 2.3 and may completely be removed
-in subsequent versions. All ``BIGINT`` columns always return ``0``.
-
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| Column Name                                            | Description                                                                                | Return Type |
-+========================================================+============================================================================================+=============+
-| ``network``                                            | Statistics about network activity on the host.                                             | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['probe_timestamp']``                         | Unix timestamp at the time of collection of the network probe.                             | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']``                                     | TCP network activity on the host.                                                          | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']``                      | Information about TCP network connections.                                                 | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['initiated']``         | Total number of initiated TCP connections.                                                 | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['accepted']``          | Total number of accepted TCP connections.                                                  | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['connections']['curr_established']``  | Total number of currently established TCP connections.                                     | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']['dropped']``           | Total number of dropped TCP connections.                                                   | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['connections']['embryonic_dropped']`` | Total number of TCP connections that have been dropped before they were accepted.          | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']``                          | Information about TCP packets.                                                             | ``OBJECT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['packets']['sent']``                  | Total number of TCP packets sent.                                                          | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']['received']``              | Total number of TCP packets received.                                                      | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tpc']['packets']['retransmitted']``         | Total number of TCP packets retransmitted due to an error.                                 | ``BIGINT``  |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']['packets']['errors_received']``       | Total number of TCP packets that contained checksum errors, had a bad offset, were dropped | ``BIGINT``  |
-|                                                        | because of a lack of memory or were too short.                                             |             |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
-| ``network['tcp']]['packets']['rst_sent']``             | Total number of RST packets sent due to left unread                                        | ``BIGINT``  |
-|                                                        | data in queue when socket is closed.                                                       |             |
-|                                                        | See `tools.ietf.org <https://tools.ietf.org/html/rfc2525#page-50>`_.                       |             |
-+--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
+.. _sys-nodes-connections:
 
 ``connections``
 ---------------
@@ -711,7 +670,17 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 |                                  | Transport       |                 |
 |                                  | protocol        |                 |
 +----------------------------------+-----------------+-----------------+
-
+| ``transport['total']``           | The total       | ``BIGINT``      |
+|                                  | number of       |                 |
+|                                  | connections     |                 |
+|                                  | that have been  |                 |
+|                                  | established via |                 |
+|                                  | Transport       |                 |
+|                                  | protocol over   |                 |
+|                                  | the life time   |                 |
+|                                  | of a CrateDB    |                 |
+|                                  | node            |                 |
++----------------------------------+-----------------+-----------------+
 
 ``process``
 -----------
@@ -836,24 +805,24 @@ Description of checked node settings
 .. raw:: html
 
   <span id="recovery-expected-nodes"></span>
-  
+
 Recovery expected data nodes
 ............................
 
-This check looks at the 
-:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting and 
-checks if its value matches the actual number of data nodes present in the 
-cluster. 
-If the actual number of nodes is below the expected number, the warning is 
+This check looks at the
+:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting and
+checks if its value matches the actual number of data nodes present in the
+cluster.
+If the actual number of nodes is below the expected number, the warning is
 raised to indicate some nodes are down.
-If the actual number is greater, this is flagged to indicate the setting 
+If the actual number is greater, this is flagged to indicate the setting
 should be updated.
 
 .. NOTE::
 
    For backward compatibility, setting the deprecated
    :ref:`gateway.expected_nodes <gateway.expected_nodes>` instead is still
-   supported. It counts all nodes, not only 
+   supported. It counts all nodes, not only
    :ref:`data-carrying nodes <node.data>`.
 
 .. raw:: html
@@ -863,16 +832,16 @@ should be updated.
 Recovery after data nodes
 .........................
 
-This check looks at the 
-:ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>` 
-setting and checks if its value is greater than half the configured expected 
+This check looks at the
+:ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
+setting and checks if its value is greater than half the configured expected
 number, but not greater than the configured expected number.
 
 .. NOTE::
 
    For backward compatibility, setting the deprecated
    :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
-   is still supported. 
+   is still supported.
 
 ::
 
@@ -882,10 +851,10 @@ Here, ``R`` is the number of :ref:`recovery <gloss-shard-recovery>` nodes and
 ``E`` is the number of expected (data) nodes.
 
 If recovery is started when some nodes are down, CrateDB proceeds on the
-basis the nodes that are down may not be coming back, and it will create new 
+basis the nodes that are down may not be coming back, and it will create new
 replicas and rebalance shards as necessary. This is throttled, and it can be
 controlled with :ref:`routing allocation settings <conf_routing>`, but
-depending on the context, you may prefer to delay recovery if the nodes are 
+depending on the context, you may prefer to delay recovery if the nodes are
 only down for a short period of time, so it is advisable to review the
 documentation around :ref:`the settings involved <metadata_gateway>` and
 configure them carefully.
@@ -1159,7 +1128,7 @@ For example, you can query shards like this::
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   | schema | t         | id | p_i | docs | primary | r_n  | r_state |  state  | o_p   |
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
-  | doc    | locations |  1 |     |    8 | TRUE    | NULL | STARTED | STARTED | FALSE |
+  | doc    | locations |  1 |     |    4 | TRUE    | NULL | STARTED | STARTED | FALSE |
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   SELECT 1 row in set (... sec)
 
@@ -1740,39 +1709,20 @@ How to reindex
 1. Use :ref:`ref-show-create-table` to get the schema required to create an
    empty copy of the table to recreate::
 
-    cr> SHOW CREATE TABLE rx.metrics;
-    +-----------------------------------------------------+
-    | SHOW CREATE TABLE rx.metrics                        |
-    +-----------------------------------------------------+
-    | CREATE TABLE IF NOT EXISTS "rx"."metrics" (         |
-    |    "id" TEXT NOT NULL,                                       |
-    |    "temperature" REAL,                              |
-    |    PRIMARY KEY ("id")                               |
-    | )                                                   |
-    | CLUSTERED BY ("id") INTO 4 SHARDS                   |
-    | WITH (                                              |
-    |    "allocation.max_retries" = 5,                    |
-    |    "blocks.metadata" = false,                       |
-    |    "blocks.read" = false,                           |
-    |    "blocks.read_only" = false,                      |
-    |    "blocks.read_only_allow_delete" = false,         |
-    |    "blocks.write" = false,                          |
-    |    codec = 'default',                               |
-    |    column_policy = 'strict',                        |
-    |    "mapping.total_fields.limit" = 1000,             |
-    |    max_ngram_diff = 1,                              |
-    |    max_shingle_diff = 3,                            |
-    |    number_of_replicas = '0-1',                      |
-    |    "routing.allocation.enable" = 'all',             |
-    |    "routing.allocation.total_shards_per_node" = -1, |
-    |    "store.type" = 'fs',                             |
-    |    "translog.durability" = 'REQUEST',               |
-    |    "translog.flush_threshold_size" = 536870912,     |
-    |    "translog.sync_interval" = 5000,                 |
-    |    "unassigned.node_left.delayed_timeout" = 60000,  |
-    |    "write.wait_for_active_shards" = '1'             |
-    | )                                                   |
-    +-----------------------------------------------------+
+    +---------------------------------------------+
+    | SHOW CREATE TABLE rx.metrics                |
+    +---------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "rx"."metrics" ( |
+    |    "id" TEXT NOT NULL,                      |
+    |    "temperature" REAL,                      |
+    |    PRIMARY KEY ("id")                       |
+    | )                                           |
+    | CLUSTERED BY ("id") INTO 4 SHARDS           |
+    | WITH (                                      |
+    |    column_policy = 'strict',                |
+    |    number_of_replicas = '0-1'               |
+    | )                                           |
+    +---------------------------------------------+
     SHOW 1 row in set (... sec)
 
 2. Create a new temporary table, using the schema returned from
@@ -1806,7 +1756,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 5.8.0              |
+    | 5.10.0             |
     +--------------------+
     SELECT 1 row in set (... sec)
 
@@ -1987,51 +1937,68 @@ Snapshots
 The table ``sys.snapshots`` lists all existing snapshots in all configured
 repositories (see :ref:`snapshot-restore`).
 
-+----------------------+----------------------------------+------------------------------+
-| Column Name          | Description                      | Return Type                  |
-+======================+==================================+==============================+
-| ``name``             | The name of the snapshot         | ``TEXT``                     |
-+----------------------+----------------------------------+------------------------------+
-| ``repository``       | The name of the repository that  | ``TEXT``                     |
-|                      | contains this snapshot.          |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``concrete_indices`` | Contains the names of all        | ``ARRAY(TEXT)``              |
-|                      | tables and partitions that are   |                              |
-|                      | contained in this snapshot       |                              |
-|                      | how they are represented         |                              |
-|                      | as ES index names.               |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``tables``           | Contains the fully qualified     | ``ARRAY(TEXT)``              |
-|                      | names of all tables within the   |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``table_partitions`` | Contains the table schema, table | ``ARRAY(OBJECT)``            |
-|                      | name and partition values of     |                              |
-|                      | partitioned tables within the    |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``started``          | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
-|                      | creation of the snapshot         |                              |
-|                      | started. Changes made after      |                              |
-|                      | that are not stored in this      |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``finished``         | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
-|                      | snapshot creation finished.      |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``state``            | The current state of the         | ``TEXT``                     |
-|                      | snapshot. One of:                |                              |
-|                      | ``IN_PROGRESS``, ``SUCCESS``,    |                              |
-|                      | ``PARTIAL``, or ``FAILED``.      |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``version``          | An internal version this         | ``TEXT``                     |
-|                      | snapshot was created with.       |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``failures``         | A list of failures that occurred | ``ARRAY(TEXT)``              |
-|                      | while taking the snapshot.       |                              |
-|                      | If taking the snapshot was       |                              |
-|                      | successful this is empty.        |                              |
-+----------------------+----------------------------------+------------------------------+
++--------------------------+----------------------------------+------------------------------+
+| Column Name              | Description                      | Return Type                  |
++==========================+==================================+==============================+
+| ``id``                   | UUID of the snapshot             | ``TEXT``                     |
++--------------------------+----------------------------------+------------------------------+
+| ``name``                 | The name of the snapshot         | ``TEXT``                     |
++--------------------------+----------------------------------+------------------------------+
+| ``repository``           | The name of the repository that  | ``TEXT``                     |
+|                          | contains this snapshot.          |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``concrete_indices``     | Contains the names of all        | ``ARRAY(TEXT)``              |
+|                          | tables and partitions that are   |                              |
+|                          | contained in this snapshot       |                              |
+|                          | how they are represented         |                              |
+|                          | as ES index names.               |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``tables``               | Contains the fully qualified     | ``ARRAY(TEXT)``              |
+|                          | names of all tables within the   |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``relations``            | Contains the ``table_schema``    | ``ARRAY(OBJECT)``            |
+|                          | and ``table_name`` of all tables |                              |
+|                          | within the snapshot.             |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``table_partitions``     | Contains the table schema, table | ``ARRAY(OBJECT)``            |
+|                          | name and partition values of     |                              |
+|                          | partitioned tables within the    |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``started``              | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
+|                          | creation of the snapshot         |                              |
+|                          | started. Changes made after      |                              |
+|                          | that are not stored in this      |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``finished``             | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
+|                          | snapshot creation finished.      |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``state``                | The current state of the         | ``TEXT``                     |
+|                          | snapshot. One of:                |                              |
+|                          | ``IN_PROGRESS``, ``SUCCESS``,    |                              |
+|                          | ``PARTIAL``, or ``FAILED``.      |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``version``              | An internal version this         | ``TEXT``                     |
+|                          | snapshot was created with.       |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``failures``             | A list of failures that occurred | ``ARRAY(TEXT)``              |
+|                          | while taking the snapshot.       |                              |
+|                          | If taking the snapshot was       |                              |
+|                          | successful this is empty.        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``reason``               | Snapshot failure reason.         | ``TEXT``                     |
+|                          | If the snapshot was              |                              |
+|                          | successful this is ``NULL``.     |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``total_shards``         | Total number of primary shards   | ``INTEGER``                  |
+|                          | in the snapshot.                 |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``include_global_state`` | Flag indicating that the         | ``BOOLEAN``                  |
+|                          | snapshot was taken with the      |                              |
+|                          | ``ALL`` option.                  |                              |
++--------------------------+----------------------------------+------------------------------+
 
 Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column
 indicates whether all (``SUCCESS``), some (``PARTIAL``), or no
@@ -2239,6 +2206,55 @@ the database.
 | ``type``     | The :ref:`type of access <privilege_types>`     | ``TEXT``    |
 |              | for the specific database object                |             |
 +--------------+-------------------------------------------------+-------------+
+
+.. _sys-sessions:
+
+Sessions
+========
+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+    :align: left
+
+    * - Column Name
+      - Description
+      - Return Type
+    * - ``id``
+      - The unique identifier of the session within a single node. Use together
+        with ``handler_node`` to uniquely identify sessions across a cluster
+      - ``INTEGER``
+    * - ``auth_user``
+      - The user which was authenticated for the session
+      - ``TEXT``
+    * - ``session_user``
+      - The user, possibly different than the ``auth_user`` which is currently
+        active in the session, see: :ref:`ref-set-session-authorization`
+      - ``TEXT``
+    * - ``handler_node``
+      - The name of the node on which the session is created
+      - ``TEXT``
+    * - ``client_address``
+      - The IPv4 or IPv6 network address of the client which opened the session
+      - ``TEXT``
+    * - ``time_created``
+      - The time on which the session was created
+      - ``TIMESTAMPTZ``
+    * - ``protocol``
+      - ``http`` or ``pg`` to denote weather the session is created through
+        :ref:`interface-http` or :ref:`interface-postgresql`
+      - ``TEXT``
+    * - ``ssl``
+      - A flag which denotes if ``SSL`` encryption is used between the client
+        which opened the session and the ``handler_node``
+      - ``BOOLEAN``
+    * - ``settings``
+      - The :ref:`session settings <conf-session>`
+      - ``OBJECT``
+    * - ``last_statement``
+      - The last SQL statement which was executed in the session
+      - ``TEXT``
+
 
 .. _sys-allocations:
 

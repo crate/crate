@@ -19,13 +19,8 @@
 
 package org.elasticsearch.snapshots;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,8 +30,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
@@ -90,10 +83,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         execute("create snapshot repo.snapshot table doc.test with (wait_for_completion = false)");
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));
 
-        final SnapshotId snapshotId = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest("repo", new String[] { "snapshot" }))
-            .get()
-            .getSnapshots().get(0).snapshotId();
+        SnapshotInfo snapshotInfo = snapshotInfo("repo", "snapshot");
+        final SnapshotId snapshotId = snapshotInfo.snapshotId();
 
         logger.info("--> start disrupting cluster");
         final NetworkDisruption networkDisruption = new NetworkDisruption(new NetworkDisruption.TwoPartitions(masterNode, dataNode),
@@ -110,8 +101,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
             final Snapshot snapshot = new Snapshot("repo", snapshotId);
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
                 .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
-            assertThat(stages, hasSize(shards));
-            assertThat(stages, everyItem(equalTo(IndexShardSnapshotStatus.Stage.DONE)));
+            assertThat(stages).hasSize(shards);
+            assertThat(stages).allSatisfy(s -> assertThat(s).isEqualTo(IndexShardSnapshotStatus.Stage.DONE));
         }, 30L, TimeUnit.SECONDS);
 
         logger.info("--> stop disrupting cluster");
@@ -120,9 +111,9 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
         assertBusy(() -> {
             execute("select state, array_length(failures,0) from sys.snapshots where name='snapshot'");
-            assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is("SUCCESS"));
-            assertThat(response.rows()[0][1], is(nullValue()));
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isEqualTo("SUCCESS");
+            assertThat(response.rows()[0][1]).isNull();
         }, 30L, TimeUnit.SECONDS);
     }
 }

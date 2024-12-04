@@ -154,6 +154,7 @@ public class WindowProjector {
         );
         return sourceRows -> WindowFunctionBatchIterator.of(
             sourceRows,
+            ramAccounting::addBytes,
             accounting,
             computeFrameStart,
             computeFrameEnd,

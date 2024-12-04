@@ -18,14 +18,13 @@
  */
 package org.elasticsearch.indices;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.codec.CodecService;
@@ -67,7 +66,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
             IndexSettings indexSettings = new IndexSettings(config.getIndexSettings().getIndexMetadata(), settings);
             return new EngineConfig(config.getShardId(), config.getThreadPool(),
                                     indexSettings, config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
-                                    new CodecService(null, LogManager.getLogger(IndexingMemoryControllerIT.class)),
+                                    new CodecService(),
                                     config.getEventListener(), config.getQueryCache(),
                                     config.getQueryCachingPolicy(), config.getTranslogConfig(), config.getFlushMergesAfter(),
                                     config.getExternalRefreshListener(), config.getInternalRefreshListener(),
@@ -98,7 +97,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
         // need to assert busily as IndexingMemoryController refreshes in background
         assertBusy(() -> {
             execute("select count(*) from doc.test");
-            assertThat(response.rows()[0][0], is(0L));
+            assertThat(response.rows()[0][0]).isEqualTo(0L);
         });
     }
 }

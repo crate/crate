@@ -37,7 +37,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
@@ -67,8 +67,8 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
 
 public final class DocValuesAggregates {
@@ -93,7 +93,8 @@ public final class DocValuesAggregates {
             referenceResolver,
             aggregateProjection.aggregations(),
             phase.toCollect(),
-            table
+            table,
+            indexShard.getVersionCreated()
         );
         if (aggregators == null) {
             return null;
@@ -102,15 +103,15 @@ public final class DocValuesAggregates {
         SharedShardContext shardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = shardContext.acquireSearcher("doc-value-aggregates: " + LuceneShardCollectorProvider.formatSource(phase));
         collectTask.addSearcher(shardContext.readerId(), searcher);
-        QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
+        IndexService indexService = shardContext.indexService();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            shardContext.indexService().cache()
+            indexShard.getVersionCreated(),
+            indexService.cache()
         );
 
         AtomicReference<Throwable> killed = new AtomicReference<>();
@@ -142,7 +143,8 @@ public final class DocValuesAggregates {
                                                              LuceneReferenceResolver referenceResolver,
                                                              List<Aggregation> aggregations,
                                                              List<Symbol> toCollect,
-                                                             DocTableInfo table) {
+                                                             DocTableInfo table,
+                                                             Version shardVersionCreated) {
         ArrayList<DocValueAggregator> aggregator = new ArrayList<>(aggregations.size());
         for (int i = 0; i < aggregations.size(); i++) {
             Aggregation aggregation = aggregations.get(i);
@@ -155,6 +157,7 @@ public final class DocValuesAggregates {
             for (var input : aggregation.inputs()) {
                 if (input instanceof Literal<?> literal) {
                     literals.add(literal);
+                    aggregationReferences.add(null);
                 } else {
                     var reference = input.accept(AggregationInputToReferenceResolver.INSTANCE, toCollect);
                     if (reference == null) {
@@ -162,9 +165,10 @@ public final class DocValuesAggregates {
                         // to the normal aggregation implementation
                         return null;
                     }
-                    assert reference.ident().columnIdent().fqn().startsWith(DocSysColumns.Names.DOC) == false :
+                    assert reference.ident().columnIdent().fqn().startsWith(SysColumns.Names.DOC) == false :
                         "Source look-up for Reference " + reference + " is not allowed in DocValuesAggregates.";
                     aggregationReferences.add(reference);
+                    literals.add(null);
                 }
             }
             FunctionImplementation func = functions.getQualified(aggregation);
@@ -179,6 +183,7 @@ public final class DocValuesAggregates {
                 referenceResolver,
                 aggregationReferences,
                 table,
+                shardVersionCreated,
                 literals
             );
             if (docValueAggregator == null) {

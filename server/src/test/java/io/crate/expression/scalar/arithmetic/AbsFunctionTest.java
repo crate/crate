@@ -23,11 +23,16 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.types.NumericType;
 
 
 public class AbsFunctionTest extends ScalarTestCase {
@@ -38,14 +43,15 @@ public class AbsFunctionTest extends ScalarTestCase {
         assertEvaluate("abs(-2.0)", 2.0);
         assertEvaluate("abs(cast(-2 as bigint))", 2L);
         assertEvaluate("abs(cast(-2.0 as float))", 2.0f);
+        assertEvaluate("abs(cast(-12.23 as numeric(4,2)))", new BigDecimal("12.23"));
         assertEvaluateNull("abs(null)");
     }
 
     @Test
     public void testWrongType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluateNull("abs('foo')");
+        assertThatThrownBy(() -> assertEvaluateNull("abs('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 
     @Test
@@ -56,5 +62,10 @@ public class AbsFunctionTest extends ScalarTestCase {
     @Test
     public void testNormalizeNull() throws Exception {
         assertNormalize("abs(null)", isLiteral(null));
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        assertNormalize("abs(cast(null as numeric(10, 5)))", isLiteral(null, NumericType.of(List.of(10, 5))));
     }
 }

@@ -27,27 +27,13 @@ import java.util.Map;
 
 public class IndexStats implements Iterable<IndexShardStats> {
 
-    private final String index;
+    private final List<ShardStats> shards;
 
-    private final String uuid;
-
-    private final ShardStats[] shards;
-
-    public IndexStats(String index, String uuid, ShardStats[] shards) {
-        this.index = index;
-        this.uuid = uuid;
+    public IndexStats(List<ShardStats> shards) {
         this.shards = shards;
     }
 
-    public String getIndex() {
-        return this.index;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public ShardStats[] getShards() {
+    public List<ShardStats> getShards() {
         return this.shards;
     }
 
@@ -66,9 +52,10 @@ public class IndexStats implements Iterable<IndexShardStats> {
             }
             lst.add(shard);
         }
-        indexShards = new HashMap<>();
+        indexShards = HashMap.newHashMap(tmpIndexShards.size());
         for (Map.Entry<Integer, List<ShardStats>> entry : tmpIndexShards.entrySet()) {
-            indexShards.put(entry.getKey(), new IndexShardStats(entry.getValue().get(0).getShardRouting().shardId(), entry.getValue().toArray(new ShardStats[entry.getValue().size()])));
+            List<ShardStats> shardStats = entry.getValue();
+            indexShards.put(entry.getKey(), new IndexShardStats(shardStats));
         }
         return indexShards;
     }
@@ -76,35 +63,5 @@ public class IndexStats implements Iterable<IndexShardStats> {
     @Override
     public Iterator<IndexShardStats> iterator() {
         return getIndexShards().values().iterator();
-    }
-
-    private CommonStats total = null;
-
-    public CommonStats getTotal() {
-        if (total != null) {
-            return total;
-        }
-        CommonStats stats = new CommonStats();
-        for (ShardStats shard : shards) {
-            stats.add(shard.getStats());
-        }
-        total = stats;
-        return stats;
-    }
-
-    private CommonStats primary = null;
-
-    public CommonStats getPrimaries() {
-        if (primary != null) {
-            return primary;
-        }
-        CommonStats stats = new CommonStats();
-        for (ShardStats shard : shards) {
-            if (shard.getShardRouting().primary()) {
-                stats.add(shard.getStats());
-            }
-        }
-        primary = stats;
-        return stats;
     }
 }

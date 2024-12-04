@@ -24,15 +24,13 @@ import java.util.Optional;
 import org.elasticsearch.cluster.routing.allocation.RerouteExplanation;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.io.stream.NamedWriteable;
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 
 /**
  * A command to move shards in some way.
  *
  * Commands are registered in {@link NetworkModule}.
  */
-public interface AllocationCommand extends NamedWriteable, ToXContentObject {
+public interface AllocationCommand extends NamedWriteable {
 
     /**
      * Get the name of the command

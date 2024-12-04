@@ -44,7 +44,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -59,7 +58,6 @@ public class SourceIndexWriterProjectionSerializationTest {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -71,9 +69,9 @@ public class SourceIndexWriterProjectionSerializationTest {
         );
         String partitionIdent = "pIdent";
         InputColumn inputColumn = new InputColumn(123);
-        List<ColumnIdent> primaryKeys = List.of(new ColumnIdent("colIdent"));
+        List<ColumnIdent> primaryKeys = List.of(ColumnIdent.of("colIdent"));
         List<Symbol> partitionedBySymbols = List.of(reference);
-        ColumnIdent clusteredByColumn = new ColumnIdent("col1");
+        ColumnIdent clusteredByColumn = ColumnIdent.of("col1");
         Settings settings = Settings.builder().put("fail_fast", true).build();
         // fail_fast property set to true
         SourceIndexWriterProjection expected = new SourceIndexWriterProjection(
@@ -119,7 +117,6 @@ public class SourceIndexWriterProjectionSerializationTest {
             referenceIdent,
             RowGranularity.DOC,
             dataType,
-            ColumnPolicy.STRICT,
             IndexType.FULLTEXT,
             false,
             true,
@@ -131,9 +128,9 @@ public class SourceIndexWriterProjectionSerializationTest {
         );
         String partitionIdent = "pIdent";
         InputColumn inputColumn = new InputColumn(123);
-        List<ColumnIdent> primaryKeys = List.of(new ColumnIdent("colIdent"));
+        List<ColumnIdent> primaryKeys = List.of(ColumnIdent.of("colIdent"));
         List<Symbol> partitionedBySymbols = List.of(reference);
-        ColumnIdent clusteredByColumn = new ColumnIdent("col1");
+        ColumnIdent clusteredByColumn = ColumnIdent.of("col1");
         Settings settings = Settings.builder().put("validation", false).build();
         // validation property set to false
         SourceIndexWriterProjection validationFlagSetToFalse = new SourceIndexWriterProjection(

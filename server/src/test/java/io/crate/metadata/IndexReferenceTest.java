@@ -72,9 +72,9 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             );
 
         DocTableInfo table = e.resolveTableInfo("tbl");
-        IndexReference reference = table.indexColumn(new ColumnIdent("title_desc_fulltext"));
-        var titleRef = table.getReference(new ColumnIdent("title"));
-        var descRef = table.getReference(new ColumnIdent("description"));
+        IndexReference reference = table.indexColumn(ColumnIdent.of("title_desc_fulltext"));
+        var titleRef = table.getReference(ColumnIdent.of("title"));
+        var descRef = table.getReference(ColumnIdent.of("description"));
 
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)

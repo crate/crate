@@ -33,7 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.AckedClusterStateTaskListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -57,7 +57,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -216,7 +215,7 @@ public class MasterService extends AbstractLifecycleComponent {
     }
 
     protected <T> void publish(ClusterChangedEvent clusterChangedEvent, TaskOutputs<T> taskOutputs, long startTimeMillis) {
-        final PlainActionFuture<Void> fut = new PlainActionFuture<Void>() {
+        final PlainFuture<Void> fut = new PlainFuture<Void>() {
             @Override
             protected boolean blockingAllowed() {
                 return isMasterUpdateThread() || super.blockingAllowed();
@@ -384,7 +383,7 @@ public class MasterService extends AbstractLifecycleComponent {
             taskInputs.executor.clusterStatePublished(clusterChangedEvent);
         }
 
-        Discovery.AckListener createAckListener(ThreadPool threadPool, ClusterState newClusterState) {
+        ClusterStatePublisher.AckListener createAckListener(ThreadPool threadPool, ClusterState newClusterState) {
             return new DelegatingAckListener(nonFailedTasks.stream()
                 .filter(task -> task.listener instanceof AckedClusterStateTaskListener)
                 .map(task -> new AckCountDownListener((AckedClusterStateTaskListener) task.listener, newClusterState.version(),
@@ -553,30 +552,30 @@ public class MasterService extends AbstractLifecycleComponent {
         }
     }
 
-    private static class DelegatingAckListener implements Discovery.AckListener {
+    private static class DelegatingAckListener implements ClusterStatePublisher.AckListener {
 
-        private final List<Discovery.AckListener> listeners;
+        private final List<ClusterStatePublisher.AckListener> listeners;
 
-        private DelegatingAckListener(List<Discovery.AckListener> listeners) {
+        private DelegatingAckListener(List<ClusterStatePublisher.AckListener> listeners) {
             this.listeners = listeners;
         }
 
         @Override
         public void onCommit(TimeValue commitTime) {
-            for (Discovery.AckListener listener : listeners) {
+            for (var listener : listeners) {
                 listener.onCommit(commitTime);
             }
         }
 
         @Override
         public void onNodeAck(DiscoveryNode node, @Nullable Exception e) {
-            for (Discovery.AckListener listener : listeners) {
+            for (var listener : listeners) {
                 listener.onNodeAck(node, e);
             }
         }
     }
 
-    private static class AckCountDownListener implements Discovery.AckListener {
+    private static class AckCountDownListener implements ClusterStatePublisher.AckListener {
 
         private static final Logger LOGGER = LogManager.getLogger(AckCountDownListener.class);
 

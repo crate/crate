@@ -66,6 +66,7 @@ import io.crate.types.DataTypes;
  *  - Convert {@link ScopedSymbol} to {@link Reference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
  *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
+ *  - Drops aliases {@link AliasSymbol}
  *    and {@link NestableInput}s can be retrieved for the Reference.
  */
 public class EvaluatingNormalizer {
@@ -177,7 +178,7 @@ public class EvaluatingNormalizer {
                         } else {
                             TEXT_MATCH.writeAsFunctionInfo(out, TEXT_MATCH.getArgumentDataTypes());
                             if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                                Symbols.nullableToStream(filter, out);
+                                Symbol.nullableToStream(filter, out);
                             }
                             Symbols.toStream(arguments, out);
                             if (out.getVersion().onOrAfter(Version.V_4_2_0)) {

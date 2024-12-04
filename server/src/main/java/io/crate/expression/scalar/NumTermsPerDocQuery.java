@@ -54,6 +54,8 @@ import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -95,18 +97,27 @@ public class NumTermsPerDocQuery extends Query {
             case GeoPointType.ID:
                 return numValuesPerDocForSortedNumeric(reader, column);
 
+            case NumericType.ID: {
+                NumericType numericType = (NumericType) elementType;
+                Integer precision = numericType.numericPrecision();
+                if (precision == null || precision > NumericStorage.COMPACT_PRECISION) {
+                    return numValuesPerDocForSortedSetDocValues(reader, column);
+                }
+                return numValuesPerDocForSortedNumeric(reader, column);
+            }
+
             case StringType.ID:
             case CharacterType.ID:
             case BitStringType.ID:
             case IpType.ID:
-                return numValuesPerDocForString(reader, column);
+                return numValuesPerDocForSortedSetDocValues(reader, column);
 
             default:
                 throw new UnsupportedOperationException("NYI: " + elementType);
         }
     }
 
-    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String column) {
+    private static IntUnaryOperator numValuesPerDocForSortedSetDocValues(LeafReader reader, String column) {
         SortedSetDocValues docValues;
         try {
             docValues = DocValues.getSortedSet(reader, column);

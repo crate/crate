@@ -32,6 +32,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class TypeConversionTest extends ESTestCase {
 
@@ -175,7 +176,7 @@ public class TypeConversionTest extends ESTestCase {
 
     @Test
     public void test_object_to_object_conversion_when_either_has_no_inner_types() {
-        var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
+        var objectTypeWithInner = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("field", DataTypes.STRING).build();
         var objectTypeWithoutInner = DataTypes.UNTYPED_OBJECT;
 
         assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner, false)).isTrue();
@@ -184,8 +185,8 @@ public class TypeConversionTest extends ESTestCase {
 
     @Test
     public void test_object_to_object_conversion_with_not_convertible_inner_types() {
-        var thisObj = ObjectType.builder().setInnerType("field", DataTypes.GEO_POINT).build();
-        var thatObj = ObjectType.builder().setInnerType("field", DataTypes.INTEGER).build();
+        var thisObj = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("field", DataTypes.GEO_POINT).build();
+        var thatObj = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("field", DataTypes.INTEGER).build();
 
         assertThat(thisObj.isConvertableTo(thatObj, false)).isFalse();
     }
@@ -195,10 +196,10 @@ public class TypeConversionTest extends ESTestCase {
         // Dynamic objects allow dynamic creation of new sub-columns
         // Because of that we must allow conversions from one object to another
         // where one object contains more or different columns than the other.
-        ObjectType objX = ObjectType.builder()
+        ObjectType objX = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.INTEGER)
             .build();
-        ObjectType objY = ObjectType.builder()
+        ObjectType objY = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("y", DataTypes.INTEGER)
             .build();
 

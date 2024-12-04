@@ -21,11 +21,10 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class AnyTypeTest extends BasePGTypeTest<Integer> {
@@ -73,13 +72,13 @@ public class AnyTypeTest extends BasePGTypeTest<Integer> {
          * table_am_handler
          * anyrange
          **/
-        assertThat(AnyType.INSTANCE.typReceive().oid(), Matchers.is(0));
-        assertThat(AnyType.INSTANCE.typReceive().name(), Matchers.is("-"));
+        assertThat(AnyType.INSTANCE.typReceive().oid()).isEqualTo(0);
+        assertThat(AnyType.INSTANCE.typReceive().name()).isEqualTo("-");
     }
 
     @Test
     public void test_typsend_is_0_for_anytype() throws Exception {
-        assertThat(AnyType.INSTANCE.typSend().oid(), Matchers.is(0));
-        assertThat(AnyType.INSTANCE.typSend().name(), Matchers.is("-"));
+        assertThat(AnyType.INSTANCE.typSend().oid()).isEqualTo(0);
+        assertThat(AnyType.INSTANCE.typSend().name()).isEqualTo("-");
     }
 }

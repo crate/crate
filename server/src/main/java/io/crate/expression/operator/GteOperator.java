@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -33,12 +34,12 @@ public final class GteOperator {
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             builder.add(
-                Signature.scalar(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withFeature(Scalar.Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature())
+                    .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .build(),
                 (signature, boundSignature) -> new CmpOperator(
                     signature,
                     boundSignature,
@@ -46,5 +47,18 @@ public final class GteOperator {
                 )
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new CmpOperator(
+                signature,
+                boundSignature,
+                cmpResult -> cmpResult >= 0
+            )
+        );
     }
 }

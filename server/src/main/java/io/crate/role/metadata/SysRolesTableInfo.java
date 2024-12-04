@@ -34,16 +34,14 @@ public class SysRolesTableInfo {
 
     private SysRolesTableInfo() {}
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "roles");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "roles");
 
-    public static SystemTable<Role> create() {
-        return SystemTable.<Role>builder(IDENT)
-            .add("name", STRING, Role::name)
-            .startObjectArray("granted_roles", r -> r.grantedRoles().stream().sorted().toList())
-                .add("role", STRING, GrantedRole::roleName)
-                .add("grantor", STRING, GrantedRole::grantor)
-            .endObjectArray()
-            .setPrimaryKeys(new ColumnIdent("name"))
-            .build();
-    }
+    public static SystemTable<Role> INSTANCE = SystemTable.<Role>builder(IDENT)
+        .add("name", STRING, Role::name)
+        .startObjectArray("granted_roles", r -> r.grantedRoles().stream().sorted().toList())
+            .add("role", STRING, GrantedRole::roleName)
+            .add("grantor", STRING, GrantedRole::grantor)
+        .endObjectArray()
+        .setPrimaryKeys(ColumnIdent.of("name"))
+        .build();
 }

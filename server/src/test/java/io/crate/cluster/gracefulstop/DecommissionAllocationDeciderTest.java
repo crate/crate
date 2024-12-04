@@ -21,8 +21,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -87,10 +86,10 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
 
         decision = allocationDecider.canAllocate(primaryShard, n2, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.YES));
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
     }
 
     @Test
@@ -102,10 +101,10 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.YES));
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
 
         decision = allocationDecider.canAllocate(primaryShard, n2, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.YES));
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
     }
 
     @Test
@@ -118,10 +117,10 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
 
         decision = allocationDecider.canRemain(replicaShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.YES));
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
     }
 
     @Test
@@ -134,14 +133,14 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
         decision = allocationDecider.canRemain(replicaShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
 
         decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
         decision = allocationDecider.canRemain(primaryShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
     }
 
     @Test
@@ -155,6 +154,6 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
         clusterService.getClusterSettings().applySettings(settings);
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
-        assertThat(decision.type(), is(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
     }
 }

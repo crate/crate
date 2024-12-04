@@ -21,10 +21,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
@@ -34,7 +32,7 @@ public class PgExpandArrayTest extends AbstractTableFunctionsTest {
     @Test
     public void test_null_argument_to_pg_expand_array_returns_empty_result() {
         var rows = execute("information_schema._pg_expandarray(null::text[])");
-        assertThat(rows, Matchers.emptyIterable());
+        assertThat(rows).isEmpty();
     }
 
     @Test
@@ -44,6 +42,6 @@ public class PgExpandArrayTest extends AbstractTableFunctionsTest {
             "a| 1\n" +
             "b| 2\n" +
             "b| 3\n";
-        assertThat(TestingHelpers.printedTable(result), is(expectedResult));
+        assertThat(TestingHelpers.printedTable(result)).isEqualTo(expectedResult);
     }
 }

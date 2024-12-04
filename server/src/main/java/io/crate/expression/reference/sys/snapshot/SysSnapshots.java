@@ -31,8 +31,13 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotException;
@@ -40,8 +45,10 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
-
+import org.elasticsearch.snapshots.SnapshotsService;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
@@ -53,15 +60,17 @@ public class SysSnapshots {
 
     private static final Logger LOGGER = LogManager.getLogger(SysSnapshots.class);
     private final Supplier<Collection<Repository>> getRepositories;
+    private final ClusterService clusterService;
 
     @Inject
-    public SysSnapshots(RepositoriesService repositoriesService) {
-        this(repositoriesService::getRepositoriesList);
+    public SysSnapshots(RepositoriesService repositoriesService, ClusterService clusterService) {
+        this(repositoriesService::getRepositoriesList, clusterService);
     }
 
     @VisibleForTesting
-    SysSnapshots(Supplier<Collection<Repository>> getRepositories) {
+    SysSnapshots(Supplier<Collection<Repository>> getRepositories, ClusterService clusterService) {
         this.getRepositories = getRepositories;
+        this.clusterService = clusterService;
     }
 
     public CompletableFuture<Iterable<SysSnapshot>> currentSnapshots() {
@@ -77,6 +86,11 @@ public class SysSnapshots {
                     return CompletableFutures.allSuccessfulAsList(snapshots);
                 });
             sysSnapshots.add(futureSnapshots);
+
+            // Add snapshots in progress in this repository.
+            final SnapshotsInProgress snapshotsInProgress = clusterService.state().custom(SnapshotsInProgress.TYPE);
+            List<SysSnapshot> inProgressSnapshots = snapshotsInProgress(snapshotsInProgress, repository.getMetadata().name());
+            sysSnapshots.add(CompletableFuture.completedFuture(inProgressSnapshots));
         }
         return CompletableFutures.allSuccessfulAsList(sysSnapshots).thenApply(data -> {
             ArrayList<SysSnapshot> result = new ArrayList<>();
@@ -93,6 +107,7 @@ public class SysSnapshots {
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
+            snapshotId.getUUID(),
             snapshotId.getName(),
             repository.getMetadata().name(),
             snapshotInfo.indices(),
@@ -101,7 +116,30 @@ public class SysSnapshots {
             snapshotInfo.endTime(),
             version == null ? null : version.toString(),
             snapshotInfo.state().name(),
-            Lists.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
+            Lists.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString),
+            snapshotInfo.reason(),
+            snapshotInfo.totalShards(),
+            snapshotInfo.includeGlobalState()
+        );
+    }
+
+    private static SysSnapshot toSysSnapshot(String repositoryName,
+                                             SnapshotsInProgress.Entry entry,
+                                             List<String> partedTables) {
+        return new SysSnapshot(
+            entry.snapshot().getSnapshotId().getUUID(),
+            entry.snapshot().getSnapshotId().getName(),
+            repositoryName,
+            entry.indices().stream().map(IndexId::getName).toList(),
+            partedTables,
+            entry.startTime(),
+            0L,
+            Version.CURRENT.toString(),
+            SnapshotState.IN_PROGRESS.name(),
+            Collections.emptyList(),
+            entry.failure(),
+            entry.shards().size(),
+            entry.includeGlobalState()
         );
     }
 
@@ -109,9 +147,10 @@ public class SysSnapshots {
         return repository.getSnapshotGlobalMetadata(snapshotId).thenCombine(
             repository.getSnapshotInfo(snapshotId),
             (metadata, snapshotInfo) -> {
-                List<String> partedTables = new ArrayList<>();
-                for (var template : metadata.templates().values()) {
-                    partedTables.add(RelationName.fqnFromIndexName(template.value.getName()));
+                ImmutableOpenMap<String, IndexTemplateMetadata> templates = metadata.templates();
+                List<String> partedTables = new ArrayList<>(templates.size());
+                for (var template : templates.values()) {
+                    partedTables.add(RelationName.fqnFromIndexName(template.value.name()));
                 }
                 return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);
             }).exceptionally(t -> {
@@ -121,6 +160,7 @@ public class SysSnapshots {
                         LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
                     }
                     return new SysSnapshot(
+                        snapshotId.getUUID(),
                         snapshotId.getName(),
                         repository.getMetadata().name(),
                         Collections.emptyList(),
@@ -129,10 +169,35 @@ public class SysSnapshots {
                         null,
                         null,
                         SnapshotState.FAILED.name(),
-                        List.of()
+                        List.of(),
+                        null, // We don't show info retrieval error, "reason" shows only snapshotting operation error.
+                        0,
+                        null
                     );
                 }
                 throw Exceptions.toRuntimeException(err);
             });
+    }
+
+    /**
+     * Returns a list of currently running snapshots from repository sorted by snapshot creation date
+     *
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repositoryName repository to check running snapshots
+     * @return list of snapshots
+     */
+    public static List<SysSnapshot> snapshotsInProgress(@Nullable SnapshotsInProgress snapshotsInProgress,
+                                                        String repositoryName) {
+        List<SysSnapshot> sysSnapshots = new ArrayList<>();
+        List<SnapshotsInProgress.Entry> entries =
+            SnapshotsService.currentSnapshots(snapshotsInProgress, repositoryName, Collections.emptyList());
+        for (SnapshotsInProgress.Entry entry : entries) {
+            List<String> partedTables = new ArrayList<>();
+            for (var template : entry.templates()) {
+                partedTables.add(RelationName.fqnFromIndexName(template));
+            }
+            sysSnapshots.add(SysSnapshots.toSysSnapshot(repositoryName, entry, partedTables));
+        }
+        return sysSnapshots;
     }
 }

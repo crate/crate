@@ -22,7 +22,8 @@
 package io.crate.expression.operator.any;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 import org.apache.lucene.search.Query;
 
@@ -36,6 +37,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -43,7 +45,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
-import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -51,7 +53,7 @@ import io.crate.types.TypeSignature;
 /**
  * Abstract base class for implementations of {@code <probe> <op> ANY(<candidates>)}
  **/
-public abstract sealed class AnyOperator extends Operator<Object>
+public abstract sealed class AnyOperator<T> extends Operator<T>
     permits AnyEqOperator, AnyNeqOperator, AnyRangeOperator, AnyLikeOperator, AnyNotLikeOperator {
 
     public static final String OPERATOR_PREFIX = "any_";
@@ -68,20 +70,11 @@ public abstract sealed class AnyOperator extends Operator<Object>
         LikeOperators.ANY_NOT_ILIKE
     );
 
-    public static final Set<String> SUPPORTED_COMPARISONS = Set.of(
-        ComparisonExpression.Type.EQUAL.getValue(),
-        ComparisonExpression.Type.NOT_EQUAL.getValue(),
-        ComparisonExpression.Type.LESS_THAN.getValue(),
-        ComparisonExpression.Type.LESS_THAN_OR_EQUAL.getValue(),
-        ComparisonExpression.Type.GREATER_THAN.getValue(),
-        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
-    );
-
-    protected final DataType<Object> leftType;
+    protected final DataType<T> leftType;
 
     public static void register(Functions.Builder builder) {
-        reg(builder, AnyEqOperator.NAME, (sig, boundSig) -> new AnyEqOperator(sig, boundSig));
-        reg(builder, AnyNeqOperator.NAME, (sig, boundSig) -> new AnyNeqOperator(sig, boundSig));
+        reg(builder, AnyEqOperator.NAME, AnyEqOperator::new);
+        reg(builder, AnyNeqOperator.NAME, AnyNeqOperator::new);
         regRange(builder, AnyRangeOperator.Comparison.GT);
         regRange(builder, AnyRangeOperator.Comparison.GTE);
         regRange(builder, AnyRangeOperator.Comparison.LT);
@@ -94,46 +87,57 @@ public abstract sealed class AnyOperator extends Operator<Object>
 
     private static void reg(Functions.Builder builder, String name, FunctionFactory operatorFactory) {
         builder.add(
-            Signature.scalar(
-                name,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)"))
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .build(),
             operatorFactory
         );
+    }
+
+    protected static List<?> filterNullValues(Literal<?> literal) {
+        assert ArrayType.dimensions(literal.valueType()) == 1 : "The literal must be 1D array";
+        return StreamSupport.stream(((Iterable<?>) literal.value()).spliterator(), false)
+            .filter(Objects::nonNull).toList();
     }
 
     @SuppressWarnings("unchecked")
     AnyOperator(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
-        this.leftType = (DataType<Object>) boundSignature.argTypes().get(0);
+        this.leftType = (DataType<T>) boundSignature.argTypes().get(0);
     }
 
-    abstract boolean matches(Object probe, Object candidate);
+    abstract boolean matches(T probe, T candidate);
 
     protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
 
     protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
 
+    protected void validateRightArg(T arg) {}
+
+    @SuppressWarnings("unchecked")
     @Override
     @SafeVarargs
-    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T> ... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";
 
-        Object item = args[0].value();
-        Object items = args[1].value();
+        T item = args[0].value();
+        T items = args[1].value();
         if (items == null || item == null) {
             return null;
         }
         boolean anyNulls = false;
-        for (Object rightValue : (Iterable<?>) items) {
+        for (T rightValue : (Iterable<T>) items) {
             if (rightValue == null) {
                 anyNulls = true;
                 continue;
             }
+            validateRightArg(rightValue);
             if (matches(item, rightValue)) {
                 return true;
             }

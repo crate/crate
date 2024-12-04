@@ -95,11 +95,11 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
         executor.execute(plan);
 
-        assertThat(executor.cursors.size()).isEqualTo(1);
+        assertThat(executor.cursors).hasSize(1);
 
         executor.execute("CLOSE ALL");
 
-        assertThat(executor.cursors.size()).isEqualTo(0);
+        assertThat(executor.cursors).hasSize(0);
     }
 
     @Test

@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -43,6 +42,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
+import io.crate.protocols.ConnectionStats;
 
 public interface Transport extends LifecycleComponent {
 
@@ -80,7 +80,7 @@ public interface Transport extends LifecycleComponent {
      */
     void openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Transport.Connection> listener);
 
-    TransportStats getStats();
+    ConnectionStats getStats();
 
     ResponseHandlers getResponseHandlers();
 
@@ -97,7 +97,7 @@ public interface Transport extends LifecycleComponent {
 
         /**
          * Sends the request to the node this connection is associated with
-         * @param requestId see {@link ResponseHandlers#add(ResponseContext)} for details
+         * @param requestId see {@link ResponseHandlers#add(long, ResponseContext)} for details
          * @param action the action to execute
          * @param request the request to send
          * @param options request options to apply

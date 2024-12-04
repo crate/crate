@@ -20,45 +20,32 @@
 package org.elasticsearch.snapshots;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
-import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.time.DateFormatter;
-import org.elasticsearch.common.time.DateFormatters;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.unit.TimeValue;
 import io.crate.server.xcontent.XContentParserUtils;
 
 /**
  * Information about a snapshot
  */
-public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent, Writeable {
+public final class SnapshotInfo implements Comparable<SnapshotInfo>, Writeable {
 
     public static final String CONTEXT_MODE_PARAM = "context_mode";
     public static final String CONTEXT_MODE_SNAPSHOT = "SNAPSHOT";
-    private static final DateFormatter DATE_TIME_FORMATTER = DateFormatters.forPattern("strictDateOptionalTime");
     private static final String SNAPSHOT = "snapshot";
     private static final String UUID = "uuid";
     private static final String INDICES = "indices";
@@ -68,15 +55,11 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
     private static final String START_TIME_IN_MILLIS = "start_time_in_millis";
     private static final String END_TIME = "end_time";
     private static final String END_TIME_IN_MILLIS = "end_time_in_millis";
-    private static final String DURATION = "duration";
-    private static final String DURATION_IN_MILLIS = "duration_in_millis";
     private static final String FAILURES = "failures";
     private static final String SHARDS = "shards";
     private static final String TOTAL = "total";
-    private static final String FAILED = "failed";
     private static final String SUCCESSFUL = "successful";
     private static final String VERSION_ID = "version_id";
-    private static final String VERSION = "version";
     private static final String NAME = "name";
     private static final String TOTAL_SHARDS = "total_shards";
     private static final String SUCCESSFUL_SHARDS = "successful_shards";
@@ -247,12 +230,6 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
     public SnapshotInfo(SnapshotId snapshotId, List<String> indices, long startTime, Boolean includeGlobalState) {
         this(snapshotId, indices, SnapshotState.IN_PROGRESS, null, Version.CURRENT, startTime, 0L, 0, 0,
             Collections.emptyList(), includeGlobalState);
-    }
-
-    public SnapshotInfo(SnapshotsInProgress.Entry entry) {
-        this(entry.snapshot().getSnapshotId(),
-            entry.indices().stream().map(IndexId::getName).collect(Collectors.toList()), SnapshotState.IN_PROGRESS, null, Version.CURRENT,
-            entry.startTime(), 0L, 0, 0, Collections.emptyList(), entry.includeGlobalState());
     }
 
     public SnapshotInfo(SnapshotId snapshotId, List<String> indices, long startTime, String reason, long endTime,
@@ -453,94 +430,6 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
         }
         return RestStatus.status(successfulShards, totalShards,
                                  shardFailures.toArray(new ShardOperationFailedException[shardFailures.size()]));
-    }
-
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        // write snapshot info to repository snapshot blob format
-        if (CONTEXT_MODE_SNAPSHOT.equals(params.param(CONTEXT_MODE_PARAM))) {
-            return toXContentInternal(builder, params);
-        }
-
-        final boolean verbose = params.paramAsBoolean("verbose", GetSnapshotsRequest.DEFAULT_VERBOSE_MODE);
-        // write snapshot info for the API and any other situations
-        builder.startObject();
-        builder.field(SNAPSHOT, snapshotId.getName());
-        builder.field(UUID, snapshotId.getUUID());
-        if (version != null) {
-            builder.field(VERSION_ID, version.internalId);
-            builder.field(VERSION, version.toString());
-        }
-        builder.startArray(INDICES);
-        for (String index : indices) {
-            builder.value(index);
-        }
-        builder.endArray();
-        if (includeGlobalState != null) {
-            builder.field(INCLUDE_GLOBAL_STATE, includeGlobalState);
-        }
-        if (verbose || state != null) {
-            builder.field(STATE, state);
-        }
-        if (reason != null) {
-            builder.field(REASON, reason);
-        }
-        if (verbose || startTime != 0) {
-            builder.field(START_TIME, DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(startTime).atZone(ZoneOffset.UTC)));
-            builder.field(START_TIME_IN_MILLIS, startTime);
-        }
-        if (verbose || endTime != 0) {
-            builder.field(END_TIME, DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(endTime).atZone(ZoneOffset.UTC)));
-            builder.field(END_TIME_IN_MILLIS, endTime);
-            builder.humanReadableField(DURATION_IN_MILLIS, DURATION, new TimeValue(Math.max(0L, endTime - startTime)));
-        }
-        if (verbose || !shardFailures.isEmpty()) {
-            builder.startArray(FAILURES);
-            for (SnapshotShardFailure shardFailure : shardFailures) {
-                shardFailure.toXContent(builder, params);
-            }
-            builder.endArray();
-        }
-        if (verbose || totalShards != 0) {
-            builder.startObject(SHARDS);
-            builder.field(TOTAL, totalShards);
-            builder.field(FAILED, failedShards());
-            builder.field(SUCCESSFUL, successfulShards);
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    private XContentBuilder toXContentInternal(final XContentBuilder builder, final ToXContent.Params params) throws IOException {
-        builder.startObject(SNAPSHOT);
-        builder.field(NAME, snapshotId.getName());
-        builder.field(UUID, snapshotId.getUUID());
-        assert version != null : "version must always be known when writing a snapshot metadata blob";
-        builder.field(VERSION_ID, version.internalId);
-        builder.startArray(INDICES);
-        for (String index : indices) {
-            builder.value(index);
-        }
-        builder.endArray();
-        builder.field(STATE, state);
-        if (reason != null) {
-            builder.field(REASON, reason);
-        }
-        if (includeGlobalState != null) {
-            builder.field(INCLUDE_GLOBAL_STATE, includeGlobalState);
-        }
-        builder.field(START_TIME, startTime);
-        builder.field(END_TIME, endTime);
-        builder.field(TOTAL_SHARDS, totalShards);
-        builder.field(SUCCESSFUL_SHARDS, successfulShards);
-        builder.startArray(FAILURES);
-        for (SnapshotShardFailure shardFailure : shardFailures) {
-            shardFailure.toXContent(builder, params);
-        }
-        builder.endArray();
-        builder.endObject();
-        return builder;
     }
 
     /**

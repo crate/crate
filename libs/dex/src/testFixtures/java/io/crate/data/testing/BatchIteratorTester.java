@@ -50,13 +50,30 @@ import io.crate.data.Row;
 public class BatchIteratorTester<T> {
 
     private final Supplier<BatchIterator<T>> it;
+    private final ResultOrder resultOrder;
 
-    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it) {
-        return new BatchIteratorTester<>(() -> it.get().map(row -> row == null ? null : row.materialize()));
+    public enum ResultOrder {
+        /**
+         * Result must match in exact order
+         **/
+        EXACT,
+
+        /**
+         * Result can match in any order
+         **/
+        ANY
     }
 
-    public BatchIteratorTester(Supplier<BatchIterator<T>> it) {
+    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it, ResultOrder resultOrder) {
+        return new BatchIteratorTester<>(
+            () -> it.get().map(row -> row == null ? null : row.materialize()),
+            resultOrder
+        );
+    }
+
+    public BatchIteratorTester(Supplier<BatchIterator<T>> it, ResultOrder resultOrder) {
         this.it = it;
+        this.resultOrder = resultOrder;
     }
 
     public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult,
@@ -111,7 +128,7 @@ public class BatchIteratorTester<T> {
         it.moveToStart();
         List<T> secondResult = it.collect(Collectors.toList(), false).get(5, TimeUnit.SECONDS);
         it.close();
-        checkResult(firstResult, secondResult);
+        checkResult(firstResult, secondResult, resultOrder);
     }
 
     private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<T> it) throws Exception {
@@ -219,12 +236,14 @@ public class BatchIteratorTester<T> {
 
     private void testProperConsumption(BatchIterator<T> it, List<T> expectedResult) throws Exception {
         List<T> result = it.toList().get(5, TimeUnit.SECONDS);
-        checkResult(expectedResult, result);
+        checkResult(expectedResult, result, resultOrder);
     }
 
-    private static <T> void checkResult(List<T> expected, List<T> actual) {
+    private static <T> void checkResult(List<T> expected, List<T> actual, ResultOrder resultOrder) {
         if (expected.isEmpty()) {
             assertThat(actual).isEmpty();
+        } else if (resultOrder == ResultOrder.EXACT) {
+            assertThat(actual).containsExactlyElementsOf(expected);
         } else {
             assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
         }

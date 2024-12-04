@@ -35,6 +35,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -44,6 +45,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
@@ -65,26 +67,25 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public static void register(Functions.Builder module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG);
+
+        TypeSignature stringType = DataTypes.STRING.getTypeSignature();
         for (DataType<?> dataType : supportedTimestampTypes) {
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    dataType.getTypeSignature(),
-                    DataTypes.TIMESTAMPZ.getTypeSignature()
-                ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(stringType, dataType.getTypeSignature())
+                    .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                    .features(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
+                    .build(),
                 DateTruncFunction::new
             );
 
             // time zone aware variant
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    dataType.getTypeSignature(),
-                    DataTypes.TIMESTAMPZ.getTypeSignature()
-                ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(stringType, stringType, dataType.getTypeSignature())
+                    .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                    .features(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
+                    .build(),
                 DateTruncFunction::new
             );
         }

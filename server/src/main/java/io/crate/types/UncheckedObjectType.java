@@ -42,11 +42,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
 
     public static final String NAME = "unchecked_object";
 
-    public static UncheckedObjectType untyped() {
-        return new UncheckedObjectType();
-    }
-
-    UncheckedObjectType() {
+    private UncheckedObjectType() {
     }
 
     @Override
@@ -90,7 +86,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     public Map<Object, Object> readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             int size = in.readInt();
-            HashMap<Object, Object> m = new HashMap<>(size);
+            HashMap<Object, Object> m = HashMap.newHashMap(size);
             for (int i = 0; i < size; i++) {
                 Object key = in.readGenericValue();
                 Object val = in.readGenericValue();

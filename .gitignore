@@ -65,3 +65,5 @@ target/
 *.factorypath
 .mvn/wrapper/maven-wrapper.jar
 pom.xml.versionsBackup
+
+.jqwik-database

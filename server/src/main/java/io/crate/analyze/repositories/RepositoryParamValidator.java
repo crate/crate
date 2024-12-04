@@ -21,17 +21,18 @@
 
 package io.crate.analyze.repositories;
 
-import io.crate.common.collections.Sets;
-import io.crate.sql.tree.GenericProperties;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import io.crate.common.collections.Sets;
+import io.crate.sql.tree.GenericProperties;
 
 @Singleton
 public class RepositoryParamValidator {
@@ -51,7 +52,7 @@ public class RepositoryParamValidator {
         if (!dynamicProperties.isEmpty()) {
             // allSettings are immutable by default, copy map
             allSettings = new HashMap<>(allSettings);
-            for (String key : dynamicProperties.properties().keySet()) {
+            for (String key : dynamicProperties.keys()) {
                 allSettings.put(key, Setting.simpleString(key));
             }
         }

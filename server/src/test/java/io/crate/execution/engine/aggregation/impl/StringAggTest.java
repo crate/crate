@@ -21,13 +21,11 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -46,7 +44,7 @@ public class StringAggTest extends AggregationTestCase {
             },
             List.of()
         );
-        assertThat(result, Matchers.nullValue());
+        assertThat(result).isNull();
     }
 
     @Test
@@ -58,7 +56,7 @@ public class StringAggTest extends AggregationTestCase {
                 new Object[]{"c", ","},
             },
             List.of());
-        assertThat(result, is("ab,c"));
+        assertThat(result).isEqualTo("ab,c");
     }
 
     @Test
@@ -70,7 +68,7 @@ public class StringAggTest extends AggregationTestCase {
                 new Object[]{"c", ","},
             },
             List.of());
-        assertThat(result, is("a,c"));
+        assertThat(result).isEqualTo("a,c");
     }
 
     @Test
@@ -89,6 +87,6 @@ public class StringAggTest extends AggregationTestCase {
         var mergedState = stringAgg.reduce(RAM_ACCOUNTING, state1, state2);
         var result = stringAgg.terminatePartial(RAM_ACCOUNTING, mergedState);
 
-        assertThat(result, is("a;b,c;d"));
+        assertThat(result).isEqualTo("a;b,c;d");
     }
 }

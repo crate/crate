@@ -19,47 +19,22 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
-import org.elasticsearch.index.shard.ShardId;
-
-import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 public class IndexShardStats implements Iterable<ShardStats> {
 
-    private final ShardId shardId;
-    private final ShardStats[] shards;
+    private final List<ShardStats> shards;
 
-    private CommonStats total = null;
     private CommonStats primary = null;
 
-    public IndexShardStats(ShardId shardId, ShardStats[] shards) {
-        this.shardId = shardId;
+    public IndexShardStats(List<ShardStats> shards) {
         this.shards = shards;
-    }
-
-    public ShardId getShardId() {
-        return this.shardId;
-    }
-
-    public ShardStats[] getShards() {
-        return shards;
     }
 
     @Override
     public Iterator<ShardStats> iterator() {
-        return Arrays.stream(shards).iterator();
-    }
-
-    public CommonStats getTotal() {
-        if (total != null) {
-            return total;
-        }
-        CommonStats stats = new CommonStats();
-        for (ShardStats shard : shards) {
-            stats.add(shard.getStats());
-        }
-        total = stats;
-        return stats;
+        return shards.iterator();
     }
 
     public CommonStats getPrimary() {

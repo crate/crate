@@ -21,14 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
@@ -64,6 +63,6 @@ public class ClientNodeIntegrationTest extends IntegTestCase {
     @Test
     public void testNodesSQLRequestOnClientNode() throws Exception {
         execute("select * from sys.nodes");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
     }
 }

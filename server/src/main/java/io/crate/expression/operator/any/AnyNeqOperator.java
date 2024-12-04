@@ -21,14 +21,12 @@
 
 package io.crate.expression.operator.any;
 
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
-
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -40,10 +38,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
-public final class AnyNeqOperator extends AnyOperator {
+public final class AnyNeqOperator extends AnyOperator<Object> {
 
     public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
 
@@ -58,18 +58,17 @@ public final class AnyNeqOperator extends AnyOperator {
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = probe.storageIdent();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return newUnmappedFieldQuery(columnName);
-        }
-
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : (Iterable<?>) candidates.value()) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             var fromPrimitive = EqOperator.fromPrimitive(
                 probe.valueType(),
                 columnName,
@@ -81,7 +80,7 @@ public final class AnyNeqOperator extends AnyOperator {
             }
             andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
         }
-        Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
+        Query exists = IsNullPredicate.refExistsQuery(probe, context);
         return new BooleanQuery.Builder()
             .add(Queries.not(andBuilder.build()), Occur.MUST)
             .add(exists, Occur.FILTER)
@@ -91,13 +90,11 @@ public final class AnyNeqOperator extends AnyOperator {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        if (DataTypes.isArray(probe.valueType())) {
+            return null;
+        }
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
-
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return newUnmappedFieldQuery(columnName);
-        }
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
         if (storageSupport == null) {
             return null;

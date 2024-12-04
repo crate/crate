@@ -24,19 +24,13 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.UnaryOperator;
-
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -64,10 +58,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     @Override
     public Count apply(HashAggregate aggregate,
                        Captures captures,
-                       PlanStats planStats,
-                       TransactionContext txnCtx,
-                       NodeContext nodeCtx,
-                       UnaryOperator<LogicalPlan> resolvePlan) {
+                       Rule.Context context) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

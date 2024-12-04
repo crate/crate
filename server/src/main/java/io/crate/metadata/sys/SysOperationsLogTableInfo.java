@@ -34,16 +34,14 @@ public class SysOperationsLogTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
 
-    static SystemTable<OperationContextLog> create() {
-        return SystemTable.<OperationContextLog>builder(IDENT)
-            .add("id", STRING, l -> String.valueOf(l.id()))
-            .add("job_id", STRING, l -> l.jobId().toString())
-            .add("name", STRING, OperationContextLog::name)
-            .add("started", TIMESTAMPZ, OperationContextLog::started)
-            .add("ended", TIMESTAMPZ, OperationContextLog::ended)
-            .add("used_bytes", LONG, OperationContextLog::usedBytes)
-            .add("error", STRING, OperationContextLog::errorMessage)
-            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
-            .build();
-    }
+    static SystemTable<OperationContextLog> INSTANCE = SystemTable.<OperationContextLog>builder(IDENT)
+        .add("id", STRING, l -> String.valueOf(l.id()))
+        .add("job_id", STRING, l -> l.jobId().toString())
+        .add("name", STRING, OperationContextLog::name)
+        .add("started", TIMESTAMPZ, OperationContextLog::started)
+        .add("ended", TIMESTAMPZ, OperationContextLog::ended)
+        .add("used_bytes", LONG, OperationContextLog::usedBytes)
+        .add("error", STRING, OperationContextLog::errorMessage)
+        .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
+        .build();
 }

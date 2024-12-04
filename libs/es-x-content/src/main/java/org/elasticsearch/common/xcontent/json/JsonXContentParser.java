@@ -19,19 +19,20 @@
 
 package org.elasticsearch.common.xcontent.json;
 
-import com.fasterxml.jackson.core.JsonLocation;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
+import java.io.IOException;
+import java.nio.CharBuffer;
 
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentLocation;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.AbstractXContentParser;
 
-import java.io.IOException;
-import java.nio.CharBuffer;
+import com.fasterxml.jackson.core.JsonLocation;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+
+import io.crate.common.io.IOUtils;
 
 public class JsonXContentParser extends AbstractXContentParser {
 
@@ -70,7 +71,7 @@ public class JsonXContentParser extends AbstractXContentParser {
 
     @Override
     public String currentName() throws IOException {
-        return parser.getCurrentName();
+        return parser.currentName();
     }
 
     @Override
@@ -166,7 +167,7 @@ public class JsonXContentParser extends AbstractXContentParser {
 
     @Override
     public XContentLocation getTokenLocation() {
-        JsonLocation loc = parser.getTokenLocation();
+        JsonLocation loc = parser.currentTokenLocation();
         if (loc == null) {
             return null;
         }

@@ -21,6 +21,7 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
@@ -36,25 +37,25 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -65,12 +66,12 @@ import io.crate.types.TypeSignature;
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            TypeSignature.parse("E"),
-            DataTypes.BOOLEAN.getTypeSignature()
-        ).withFeature(Feature.NON_NULLABLE)
-        .withTypeVariableConstraints(typeVariable("E"));
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"))
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(
@@ -109,7 +110,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (!ref.isNullable()) {
                 return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
-            Query refExistsQuery = refExistsQuery(ref, context, true);
+            Query refExistsQuery = refExistsQuery(ref, context);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
         return null;
@@ -117,14 +118,16 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
 
     @Nullable
-    public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
+    public static Query refExistsQuery(Reference ref, Context context) {
         String field = ref.storageIdent();
-        MapperService mapperService = context.queryShardContext().getMapperService();
-        MappedFieldType mappedFieldType = mapperService.fieldType(field);
         DataType<?> valueType = ref.valueType();
-        boolean canUseFieldsExist = ref.hasDocValues() || (mappedFieldType != null && mappedFieldType.hasNorms());
+        boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (countEmptyArrays) {
+            if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
+                // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
+                // such that FieldExistsQuery can be used.
+                return ArrayIndexer.arrayLengthExistsQuery(ref, context.tableInfo()::getReference);
+            } else {
                 if (canUseFieldsExist) {
                     return new BooleanQuery.Builder()
                         .setMinimumNumberShouldMatch(1)
@@ -135,19 +138,17 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     return null;
                 }
             }
-            // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
-            valueType = ArrayType.unnest(valueType);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
         if (ref instanceof DynamicReference) {
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+            if (context.tableInfo().isIgnoredOrImmediateChildOfIgnored(ref)) {
                 // Not indexed, need to use source lookup
                 return null;
             }
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);
-        } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+        } else if (context.tableInfo().isIgnoredOrImmediateChildOfIgnored(ref)) {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null) {
@@ -163,7 +164,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     if (childRef == null) {
                         return null;
                     }
-                    Query refExistsQuery = refExistsQuery(childRef, context, true);
+                    Query refExistsQuery = refExistsQuery(childRef, context);
                     if (refExistsQuery == null) {
                         return null;
                     }
@@ -176,10 +177,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }
-            if (mappedFieldType == null || !mappedFieldType.isSearchable()) {
+            if (ref.indexType() == IndexType.NONE) {
                 return null;
             } else {
-                return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
+                return new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, field)));
             }
         } else {
             return null;

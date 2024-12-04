@@ -24,8 +24,6 @@ package io.crate.execution.dml.upsert;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -39,16 +37,15 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -86,7 +83,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -97,8 +93,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"),
         RowGranularity.DOC,
-        DataTypes.SHORT,
-        ColumnPolicy.DYNAMIC,
+        DataTypes.INTEGER,
         IndexType.PLAIN,
         true,
         false,
@@ -124,10 +119,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
-                                                 NodeContext nodeCtx,
-                                                 Schemas schemas) {
+                                                 NodeContext nodeCtx) {
             super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumnAction.class),
-                tasksService, indicesService, shardStateAction, nodeCtx, schemas);
+                tasksService, indicesService, shardStateAction, nodeCtx);
         }
 
         @Override
@@ -177,7 +171,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
-                ColumnPolicy.DYNAMIC,
                 IndexType.PLAIN,
                 true,
                 false,
@@ -186,7 +179,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 null
         );
-        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(dynamicLongColRef);
+        when(tableInfo.getReference(ColumnIdent.of("dynamic_long_col"))).thenReturn(dynamicLongColRef);
         when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -196,8 +189,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
-            createNodeContext(),
-            schemas
+            createNodeContext(schemas, List.of())
         );
     }
 
@@ -209,19 +201,20 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
@@ -230,43 +223,45 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures()).satisfiesExactly(
-            f -> assertThat(f.message()).isEqualTo(
+            f -> assertThat(f.error().getMessage()).isEqualTo(
                 "[1]: version conflict, document with id: 1 already exists in 'characters'"));
     }
 
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
 
-        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
@@ -275,25 +270,25 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
         request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
 
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(0)).applyIndexOperationOnReplica(
-            anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
+        verify(indexShard, times(0)).index(any(Engine.Index.class));
     }
 
     @Test
@@ -303,62 +298,30 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // The follow-up dynamic insert to replica tries to resolve the DynamicReference to a SimpleReference
         // and there can be a potential ClassCastException.
         DynamicReference dynamicRefConvertedToSimpleRef = new DynamicReference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("dynamic_long_col")),
+            new ReferenceIdent(TABLE_IDENT, ColumnIdent.of("dynamic_long_col")),
             RowGranularity.DOC,
             0
         );
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{dynamicRefConvertedToSimpleRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{dynamicRefConvertedToSimpleRef},
+            missingAssignmentsColumns,
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
         request.add(1,
                     ShardUpsertRequest.Item.forInsert(
                         "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                        missingAssignmentsColumns,
                         new Object[]{1}, // notice that it is not a 'long'
                         null));
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-    }
-
-    /**
-     * This tests verifies a regression introduced in 5.3 where a marker was introduced in order to skip items instead
-     * of relying on a NULL source. On request coming from older nodes this marker isn't available and the source NULL
-     * check wasn't working as expected, resulted in an NPE.
-     */
-    @Test
-    public void testItemsWithoutSourceAreSkippedOnReplicaOperationBWC() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
-        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-                DUMMY_SESSION_INFO,
-                TimeValue.timeValueSeconds(30),
-                DuplicateKeyAction.UPDATE_OR_FAIL,
-                false,
-                null,
-                new SimpleReference[]{ID_REF},
-                null,
-                UUID.randomUUID()
-        ).newRequest(shardId);
-
-        var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
-        itemWithSource.source(new BytesArray("{}"));
-        request.add(1, itemWithSource);
-
-        var itemWithoutSourceAndMarker = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
-        request.add(2, itemWithoutSourceAndMarker);
-
-        reset(indexShard);
-
-        // would fail with NPE if not skipped
-        transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(1)).applyIndexOperationOnReplica(
-                anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
     }
 }

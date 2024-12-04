@@ -47,8 +47,7 @@ import io.crate.types.ObjectType;
 
 public final class ValueNormalizer {
 
-    private ValueNormalizer() {
-    }
+    private ValueNormalizer() {}
 
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
@@ -108,15 +107,15 @@ public final class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private static final <T> T uncheckedCast(Object value) {
+    private static <T> T uncheckedCast(Object value) {
         return (T) value;
     }
 
     private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
         DataType<?> targetType;
-        if (reference instanceof DynamicReference) {
+        if (reference instanceof DynamicReference dynamicReference) {
             targetType = valueSymbol.valueType();
-            ((DynamicReference) reference).valueType(targetType);
+            dynamicReference.valueType(targetType);
         } else {
             targetType = reference.valueType();
         }
@@ -129,12 +128,12 @@ public final class ValueNormalizer {
             ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
-                if (info.columnPolicy() == ColumnPolicy.IGNORED) {
+                if (info.valueType().columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
                 }
                 DynamicReference dynamicReference = null;
-                if (tableInfo instanceof DocTableInfo) {
-                    dynamicReference = ((DocTableInfo) tableInfo).getDynamic(nestedIdent, true, true);
+                if (tableInfo instanceof DocTableInfo docTableInfo) {
+                    dynamicReference = docTableInfo.getDynamic(nestedIdent, true, true);
                 }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent, tableInfo.ident());
@@ -165,11 +164,10 @@ public final class ValueNormalizer {
         return type instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID;
     }
 
-    @SuppressWarnings("unchecked")
     private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
-        for (Object value : values) {
+        for (Map<String, Object> value : values) {
             // return value not used and replaced in value as arrayItem is a map that is mutated
-            normalizeObjectValue((Map<String, Object>) value, arrayInfo, tableInfo);
+            normalizeObjectValue(value, arrayInfo, tableInfo);
         }
     }
 

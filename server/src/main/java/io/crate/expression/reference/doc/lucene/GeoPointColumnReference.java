@@ -21,61 +21,24 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
-import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.geo.GeoEncodingUtils;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-
-public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
-
-    private final String columnName;
-    private SortedNumericDocValues values;
-    private int docId;
+public class GeoPointColumnReference extends NumericColumnReference<Point> {
 
     public GeoPointColumnReference(String columnName) {
-        this.columnName = columnName;
+        super(columnName);
     }
 
     @Override
-    public Point value() {
-        try {
-            if (values.advanceExact(docId)) {
-                switch (values.docValueCount()) {
-                    case 1:
-                        long encoded = values.nextValue();
-                        return new PointImpl(
-                            GeoEncodingUtils.decodeLongitude((int) encoded),
-                            GeoEncodingUtils.decodeLatitude((int) (encoded >>> 32)),
-                            JtsSpatialContext.GEO
-                        );
-
-                    default:
-                        throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    protected Point convert(long input) {
+        return new PointImpl(
+            GeoEncodingUtils.decodeLongitude((int) input),
+            GeoEncodingUtils.decodeLatitude((int) (input >>> 32)),
+            JtsSpatialContext.GEO
+        );
     }
 
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
-    }
 }

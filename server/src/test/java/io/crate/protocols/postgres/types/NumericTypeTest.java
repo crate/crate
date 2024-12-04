@@ -21,12 +21,11 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -39,41 +38,41 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
         super(NumericType.INSTANCE);
     }
 
+    private static final List<BigDecimal> TEST_NUMBERS = List.of(
+        new BigDecimal(0),
+        new BigDecimal("-123"),
+        new BigDecimal("12345.1"),
+        new BigDecimal("-12.12"),
+        new BigDecimal("00123"),
+        new BigDecimal("12.123").setScale(2, MathContext.DECIMAL64.getRoundingMode()),
+        new BigDecimal("1234.0"),
+        new BigDecimal("1234.0000").setScale(1, MathContext.DECIMAL64.getRoundingMode())
+    );
+
     @Test
     public void test_read_and_write_numeric_text_value() {
-        var expected = new BigDecimal("12.123", MathContext.DECIMAL64)
-            .setScale(2, MathContext.DECIMAL64.getRoundingMode());
-        ByteBuf buffer = Unpooled.buffer();
-        try {
-            //noinspection unchecked
-            pgType.writeAsText(buffer, expected);
-            var actual = pgType.readTextValue(buffer, buffer.readInt());
-            assertThat(actual, is(expected));
-            assertThat(actual.toString(), is(expected.toString()));
-        } finally {
-            buffer.release();
+        for (var expected : TEST_NUMBERS) {
+            ByteBuf buffer = Unpooled.buffer();
+            try {
+                pgType.writeAsText(buffer, expected);
+                var actual = pgType.readTextValue(buffer, buffer.readInt());
+                assertThat(actual).isEqualTo(expected);
+                assertThat(actual.toString()).isEqualTo(expected.toString());
+            } finally {
+                buffer.release();
+            }
         }
     }
 
     @Test
     public void test_read_and_write_numeric_binary_value() {
-        ArrayList<BigDecimal> testNumbers = new ArrayList<>();
-        testNumbers.add(new BigDecimal("-123"));
-        testNumbers.add(new BigDecimal("12345.1"));
-        testNumbers.add(new BigDecimal("-12.12"));
-        testNumbers.add(new BigDecimal("00123"));
-        testNumbers.add(new BigDecimal("12.123").setScale(2, MathContext.DECIMAL64.getRoundingMode()));
-        testNumbers.add(new BigDecimal("1234.0"));
-        testNumbers.add(new BigDecimal("1234.0000").setScale(1, MathContext.DECIMAL64.getRoundingMode()));
-
-        for (var expected : testNumbers) {
+        for (var expected : TEST_NUMBERS) {
             ByteBuf buffer = Unpooled.buffer();
             try {
-                //noinspection unchecked
                 pgType.writeAsBinary(buffer, expected);
-                BigDecimal actual = (BigDecimal) pgType.readBinaryValue(buffer, buffer.readInt());
-                assertThat(actual.scale(), is(expected.scale()));
-                assertThat(actual.toString(), is(expected.toString()));
+                BigDecimal actual = pgType.readBinaryValue(buffer, buffer.readInt());
+                assertThat(actual.scale()).isEqualTo(expected.scale());
+                assertThat(actual.toString()).isEqualTo(expected.toString());
             } finally {
                 buffer.release();
             }

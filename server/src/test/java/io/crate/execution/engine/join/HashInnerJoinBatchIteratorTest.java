@@ -46,6 +46,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -128,7 +129,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoin() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -136,15 +137,16 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 5
+            ignored -> 5,
+            false
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
     public void testInnerHashJoinWithHashCollisions() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -152,15 +154,16 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashWithCollisions(),
             getHashWithCollisions(),
-            ignored -> 5
+            ignored -> 5,
+            false
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
     public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -168,15 +171,16 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 1
+            ignored -> 1,
+            false
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
     public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -184,9 +188,10 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            ignored -> 3
+            ignored -> 3,
+            false
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

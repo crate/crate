@@ -54,8 +54,8 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.replication.logical.engine.SubscriberEngine;
 import io.crate.replication.logical.exceptions.InvalidShardEngineException;
@@ -184,7 +184,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  Consumer<Exception> failure) {
             var indexName = request.shardId().getIndexName();
             var currentMappingVersion = clusterService.state().metadata().index(indexName).getMappingVersion();
-            var clusterStateObserver = new ClusterStateObserver(clusterService, LOGGER);
+            var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
                     @Override
@@ -217,9 +217,9 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         }
 
         @Override
-        protected WriteReplicaResult<Request> shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
+        protected WriteReplicaResult shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
             Translog.Location location = performOnReplica(request, replica);
-            return new WriteReplicaResult<>(location, null, replica);
+            return new WriteReplicaResult(location, null, replica);
         }
 
         private Translog.Location performOnReplica(Request request, IndexShard replica) throws Exception {
@@ -229,7 +229,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 var result = replica.applyTranslogOperation(op, Engine.Operation.Origin.REPLICA);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new TransportReplicationAction.RetryOnReplicaException(
-                        replica.shardId(), "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                        replica.shardId(), "Mappings are not available on the replica yet, triggered update");
                 }
                 location = syncOperationResultOrThrow(result, location);
             }

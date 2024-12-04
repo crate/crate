@@ -24,7 +24,7 @@ package io.crate.auth;
 import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -39,7 +39,7 @@ import java.util.Locale;
 
 import javax.net.ssl.SSLSession;
 
-import org.apache.http.impl.conn.SystemDefaultDnsResolver;
+import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
@@ -73,7 +73,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     private final Authentication authService = new HostBasedAuthentication(
         hbaEnabled,
         List::of,
-        SystemDefaultDnsResolver.INSTANCE,
+        DnsResolver.SYSTEM,
         () -> "dummy"
     );
     private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());

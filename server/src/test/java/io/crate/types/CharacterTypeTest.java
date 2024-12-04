@@ -23,16 +23,19 @@ package io.crate.types;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import java.util.Map;
+
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.testing.SqlExpressions;
 
 public class CharacterTypeTest extends DataTypeTestCase<String> {
 
     @Override
-    public DataType<String> getType() {
-        return CharacterType.INSTANCE;
+    protected DataDef<String> getDataDef() {
+        return DataDef.fromType(CharacterType.INSTANCE);
     }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
@@ -58,5 +61,18 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
         assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS)).isEqualTo("t");
         assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS)).isEqualTo("1");
         assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS)).isEqualTo("-");
+    }
+
+    @Test
+    public void test_comparison() {
+        assertThat(CharacterType.of(3).compare(" a  ", " a       ")).isEqualTo(0);
+        assertThat(CharacterType.of(3).compare("  a", " a")).isLessThan(0);
+        assertThat(CharacterType.of(3).compare(" b          ", " a  ")).isGreaterThan(0);
+    }
+
+    @Test
+    public void test_precedence_with_string_type() {
+        var sqlExpressions = new SqlExpressions(Map.of());
+        assertThat(sqlExpressions.normalize(sqlExpressions.asSymbol("'ab'::char(3) = 'ab  '"))).isLiteral(true);
     }
 }

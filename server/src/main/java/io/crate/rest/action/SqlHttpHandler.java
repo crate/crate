@@ -21,9 +21,11 @@
 
 package io.crate.rest.action;
 
-import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.http.Headers.isCloseConnection;
+import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -41,33 +43,35 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
-import io.crate.action.sql.parser.SQLRequestParseContext;
-import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
+import io.crate.auth.Protocol;
 import io.crate.breaker.TypedRowAccounting;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.DescribeResult;
+import io.crate.session.ResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
+import io.crate.session.parser.SQLRequestParseContext;
+import io.crate.session.parser.SQLRequestParser;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -86,33 +90,38 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     private final Settings settings;
-    private final Sessions sqlOperations;
+    private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
-    private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
+    private final boolean checkJwtProperties;
 
     private Session session;
 
-    SqlHttpHandler(Settings settings,
-                   Sessions sqlOperations,
-                   Function<String, CircuitBreaker> circuitBreakerProvider,
-                   Roles roles,
-                   Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
-                   Netty4CorsConfig corsConfig) {
+    public SqlHttpHandler(Settings settings,
+                          Sessions sessions,
+                          Function<String, CircuitBreaker> circuitBreakerProvider,
+                          Roles roles,
+                          Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
-        this.sqlOperations = sqlOperations;
+        this.sessions = sessions;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
-        this.getAccessControl = getAccessControl;
         this.corsConfig = corsConfig;
+        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
         if (request.uri().startsWith("/_sql")) {
-            Session session = ensureSession(request);
+            Session session = ensureSession(
+                new ConnectionProperties(
+                    null, // not used
+                    Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
+                    Protocol.HTTP,
+                    getSession(ctx.channel())),
+                request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
             handleSQLRequest(session, content, paramContainFlag(parameters, "types"))
@@ -162,7 +171,9 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionSettings()), t);
+            var sessionSettings = session.sessionSettings();
+            AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
+            var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
@@ -216,15 +227,15 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     @VisibleForTesting
-    Session ensureSession(FullHttpRequest request) {
+    Session ensureSession(ConnectionProperties connectionProperties, FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
         } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
         }
         this.session = session;
         return session;
@@ -252,7 +263,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 resultFields,
                 startTimeInNs,
                 new TypedRowAccounting(
-                    Symbols.typeView(resultFields),
+                    Lists.map(resultFields, Symbol::valueType),
                     ramAccounting
                 ),
                 includeTypes
@@ -282,13 +293,15 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                             "Bulk operations for statements that return result sets is not supported"));
             }
         }
+        var sessionSettings = session.sessionSettings();
+        AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
         return session.sync()
             .thenApply(ignored -> {
                 try {
                     return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())
                         .duration(startTimeInNs)
-                        .bulkRows(results)
+                        .bulkRows(results, accessControl)
                         .build();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -304,7 +317,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
      */
     Role userFromAuthHeader(@Nullable String authHeaderValue) {
         try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+            Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
             if (rolePredicate != null) {
                 Role role = roles.findUser(rolePredicate);
                 if (role != null) {

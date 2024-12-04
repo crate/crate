@@ -40,7 +40,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 public interface Reference extends Symbol {
@@ -49,7 +50,7 @@ public interface Reference extends Symbol {
         .comparing(Reference::position)
         .thenComparing(r -> r.column().fqn());
 
-    static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
+    public static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
         int i = 0;
         for (Reference ref : refs) {
             if (ref.column().equals(column)) {
@@ -64,9 +65,21 @@ public interface Reference extends Symbol {
 
     ColumnIdent column();
 
-    IndexType indexType();
+    @Override
+    default ColumnIdent toColumn() {
+        return column();
+    }
 
-    ColumnPolicy columnPolicy();
+    @Override
+    default ColumnDefinition<Expression> toColumnDefinition() {
+        return new ColumnDefinition<>(
+            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            valueType().toColumnType(null),
+            List.of()
+        );
+    }
+
+    IndexType indexType();
 
     boolean isNullable();
 

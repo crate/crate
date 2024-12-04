@@ -22,9 +22,6 @@
 package io.crate.execution.engine.collect.files;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -35,15 +32,15 @@ public class FilesIterablesTest {
         Iterable<SqlFeatureContext> sqlFeatureContextIterable = SqlFeatures.loadFeatures();
 
         var iterator = sqlFeatureContextIterable.iterator();
-        assertTrue(iterator.hasNext());
+        assertThat(iterator.hasNext()).isTrue();
         SqlFeatureContext context = iterator.next();
-        assertEquals("B011", context.featureId);
-        assertEquals("Embedded Ada", context.featureName);
-        assertEquals("", context.subFeatureId);
-        assertEquals("", context.subFeatureName);
-        assertEquals(false, context.isSupported);
-        assertNull(context.isVerifiedBy);
-        assertNull(context.comments);
+        assertThat(context.featureId).isEqualTo("B011");
+        assertThat(context.featureName).isEqualTo("Embedded Ada");
+        assertThat(context.subFeatureId).isEqualTo("");
+        assertThat(context.subFeatureName).isEqualTo("");
+        assertThat(context.isSupported).isEqualTo(false);
+        assertThat(context.isVerifiedBy).isNull();
+        assertThat(context.comments).isNull();
 
         assertThat(sqlFeatureContextIterable).hasSize(679);
     }

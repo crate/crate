@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -65,9 +64,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public enum Precedence {
         NOT_SUPPORTED,
         UNDEFINED,
-        LITERAL,
-        CHARACTER,
         STRING,
+        CHARACTER,
         BYTE,
         BOOLEAN,
         SHORT,
@@ -85,7 +83,6 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         DOUBLE,
         NUMERIC,
         ARRAY,
-        SET,
         TABLE,
         GEO_POINT,
         OBJECT,
@@ -101,7 +98,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * type should be preferred (higher precedence) or converted (lower
      * precedence) during type conversions.
      */
-    public abstract Precedence precedence();
+    protected abstract Precedence precedence();
 
     public abstract String getName();
 
@@ -162,6 +159,27 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      */
     public abstract T sanitizeValue(Object value);
 
+    /**
+     * Sanitizes the value lenient, handle any exception thrown by {@link DataType#sanitizeValue(Object)}
+     * and return NULL instead.
+     * <p>
+     * On some mapping changes, e.g. adding a new column with a concrete child type to an ignored object, the
+     * replica translog or existing shards may contain entries with values that cannot be sanitized to the current
+     * mapping. In this case, document processing should not fail due to a single corrupt value.
+     *
+     * @param value The value to sanitize to the target {@link DataType}.
+     * @return The value of {@link DataType} or NULL in case of a sanitization error.
+     * @see DataType#sanitizeValue(Object)
+     */
+    @Nullable
+    public T sanitizeValueLenient(Object value) {
+        try {
+            return sanitizeValue(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public TypeSignature getTypeSignature() {
         return new TypeSignature(getName());
     }
@@ -172,11 +190,35 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     /**
      * Returns true if this DataType precedes the supplied DataType.
-     * @param other The other type to compare against.
+     * @param that The other type to compare against.
      * @return True if the current type precedes, false otherwise.
      */
-    public boolean precedes(DataType<?> other) {
-        return this.precedence().ordinal() > other.precedence().ordinal();
+    public boolean precedes(DataType<?> that) {
+        int thisOrdinal = this.precedence().ordinal();
+        int thatOrdinal = that.precedence().ordinal();
+        if (thisOrdinal == thatOrdinal) {
+            Integer thisPrecision = this.numericPrecision();
+            Integer thatPrecision = that.numericPrecision();
+            if (thisPrecision == null && thatPrecision == null) {
+                Integer thisLength = this.characterMaximumLength();
+                Integer thatLength = that.characterMaximumLength();
+                if (thisLength == null) {
+                    return true;
+                }
+                if (thatLength == null) {
+                    return false;
+                }
+                return thisLength > thatLength;
+            }
+            if (thisPrecision == null) {
+                return true;
+            }
+            if (thatPrecision == null) {
+                return false;
+            }
+            return thisPrecision > thatPrecision;
+        }
+        return thisOrdinal > thatOrdinal;
     }
 
     /**
@@ -195,6 +237,14 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
             return false;
         }
         return possibleConversions.contains(other.id());
+    }
+
+    DataType<?> merge(DataType<?> other) {
+        assert this.id() == other.id() || this.precedes(other) : "'this' precedes 'other' or they must be the same type";
+        if (other.isConvertableTo(this, false)) {
+            return this;
+        }
+        throw new IllegalArgumentException("'" + other + "' is not convertible to '" + this + "'");
     }
 
     @Override
@@ -245,19 +295,18 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return storageSupport;
     }
 
-
-    @Nullable
+    /**
+     * Returns a ValueIndexer for this type
+     */
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
-                                                      Function<String, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {
         StorageSupport<? super T> storageSupport = storageSupportSafe();
-        return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
+        return storageSupport.valueIndexer(table, ref, getRef);
     }
 
 
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         assert getTypeParameters().isEmpty()
             : "If the type parameters aren't empty, `" + getClass().getSimpleName() + "` must override `toColumnType`";
         return new ColumnType<>(getName());
@@ -292,5 +341,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public ColumnStatsSupport<T> columnStatsSupport() {
         throw new UnsupportedOperationException("Datatype " + this + " does not support column stats");
+    }
+
+    public ColumnPolicy columnPolicy() {
+        return ColumnPolicy.STRICT;
     }
 }

@@ -1,0 +1,214 @@
+.. _version_5.9.0:
+
+=============
+Version 5.9.0
+=============
+
+Released on 2024-10-09.
+
+.. WARNING::
+
+    5.9.0 was a testing release not promoted to stable due to `Known
+    issues`_.
+    The first stable version for the 5.9 line is :ref:`version_5.9.2`. Please
+    upgrade to 5.9.2 directly.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.9.0.
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    We recommend that you upgrade to the latest 5.8 release before moving to
+    5.9.0.
+
+    Before upgrading, you should `back up your data`_.
+
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+.. _version_5.9.0_breaking_changes:
+
+Breaking Changes
+================
+
+- Narrowed the allowed min and max values for ``bigint`` by one to solve an
+  issue where a query using ``ORDER BY`` would return ``NULL`` instead of the
+  inserted value.
+
+- Removed deprecated ``validation`` parameter from ``COPY FROM``.
+
+- Added validation of unknown or irrelevant for the ``file`` scheme properties
+  for the ``COPY FROM`` and ``COPY TO`` statements.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against a non-empty array to incorrectly filter empty arrays,
+  e.g.::
+
+      SELECT * FROM t WHERE a != [1];
+
+  It is a breaking change because the fix causes performance degradations.
+
+- Fixed an issue that caused ``WHERE`` clause containing
+  :ref:`scalar-array_length` under ``<``, ``<=`` or ``=`` to return invalid
+  results. It is a breaking change because the fix causes performance
+  regressions on tables created before 5.9.0. For tables created on and after
+  5.9.0, the fix has positive impact on the performance.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against an empty array to incorrectly filter array of nulls. It
+  is a breaking change because the fix causes performance regressions on tables
+  created before 5.9.0. For tables created on and after 5.9.0, the fix has
+  positive impact on the performance.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type without doc-values against a non-empty array to incorrectly
+  un-filter null rows. It is a breaking change because the fix causes
+  performance regressions on tables created before 5.9.0. For tables created on
+  and after 5.9.0, the fix has positive impact on the performance.
+
+- Changed the return value of the concat operator to return a ``NULL`` literal
+  instead of an empty string when any of the operand is ``NULL``.
+
+- Changed the return value of :ref:`scalar-array_cat` to return a ``NULL``
+  literal instead of an empty array when both arguments are ``NULL``.
+
+- Changed the implementation of the :ref:`scalar-array_cat` to return an empty
+  array of type ``ARRAY(UNDEFINED)`` when both arguments are an empty array
+  instead of raising an exception.
+
+- Changed the output of ``COPY TO``, executed on a partitioned table, to now
+  include partition columns.
+  We recommend waiting until the entire cluster is upgraded before running
+  ``COPY TO`` with file output to ensure that the output across different shards
+  is consistent.
+
+- Dynamically added empty arrays, or arrays that only contain ``NULL``, are
+  now stored in the schema and automatically updated to an array of defined type
+  when a row containing concrete values are added.  Once an empty array has been
+  inserted, subsequent inserts into that column must contain array values, or
+  ``NULL``.  Previously, CrateDB would accept non-array values in subsequent
+  inserts.
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- Extended :ref:`ref-explain` with initial support for ``INSERT INTO``. Using
+  ``VERBOSE`` is still not supported.
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- The ``proisstrict`` property of the ``pg_catalog.pg_proc`` table now returns
+  true or false depending on if a function always returns null if any call
+  argument is null. Before the property's value was a static ``null``.
+
+- `Martin Stein <https://github.com/marstein>`_ added support for
+  ``MILLISECOND`` unit for the :ref:`INTERVAL <type-interval>` data type.
+  ``ms``, ``msec``, ``msecs``, ``millisecond`` or ``milliseconds`` can
+  be used as the unit name as well.
+
+- `Martin Stein <https://github.com/marstein>`_ added support for the
+  IS DISTINCT FROM operator.
+
+- Added Azure Blob Storage support to the :ref:`COPY FROM <sql-copy-from>` and
+  :ref:`COPY TO <sql-copy-to>` statements.
+
+Data Types
+----------
+
+- Added storage support for the :ref:`NUMERIC <type-numeric>` data type.
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Added :ref:`topk aggregation function <aggregation-topk>` which computes
+  the k most frequent argument values and their frequencies.
+
+- Changed :ref:`pg_get_userbyid <scalar-pg_get_userbyid>` to return the matching
+  user or ``unknown`` instead of always ``crate``.
+
+- Added support of the ``array || element`` operator as an alias for the
+  :ref:`array_append(array, value) <scalar-array_append>` scalar function for
+  improved compatibility with PostgreSQL.
+
+- Added the :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar
+  function which prepends a value to an array. Additionally, added the
+  ``value || array`` operator as an alias to the new
+  :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar function.
+
+- Added :ref:`position scalar function <scalar-position>` as alias for the
+  :ref:`strpos scalar function <scalar-strpos>`.
+
+- Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
+  scalar function.
+
+- Functions like :ref:`array_sum <scalar-array_sum>` or :ref:`array_avg
+  <scalar-array_avg>` can now be used with an empty array literal without
+  requiring an explicit type cast.
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Added an optimization rule to drop unnecessary ``ORDER BY`` operations from
+  queries in ``INSERT INTO``.
+
+Administration and Operations
+-----------------------------
+
+- Added :ref:`sys.sessions <sys-sessions>` table, to expose information about
+  the active sessions in the cluster.
+
+- Added support to override ``routing.allocation.*`` cluster settings
+  with a ``routing.allocation.*`` table setting. This can be used to define the
+  default routing behavior for all tables with a cluster setting and reroute
+  individual tables by assigning the table setting using ``ALTER TABLE SET``.
+
+- Added support to set :ref:`session settings <conf-session>` to a user via
+  :ref:`ALTER ROLE <ref-alter-role>` statement. For details and examples see:
+  :ref:`here <administration_user_management_alter_user>`.
+
+- Added support for :ref:`Shared Access Signatures (SAS) tokens <sql-create-repo-azure-sas-token>`
+  as an alternative for authentication for :ref:`Azure repositories <sql-create-repo-azure>`.
+
+- Added ``id``, ``reason``, ``total_shards`` and ``include_global_state``
+  columns to the :ref:`sys.snapshots <sys-snapshots>` table.
+
+- Added support to use the ``EXPLAIN ANALYZE`` statement on queries which
+  contain sub-queries, e.g.::
+
+    EXPLAIN ANALYZE SELECT * FROM t1 WHERE c = (SELECT count(*) FROM t2);
+
+- Added schema, table, partition and shard information to ``QueryBreakdown``
+  entries of the ``EXPLAIN ANALYZE`` statement.
+
+
+Known issues
+============
+
+- Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.0 can lead
+  to problems with queries on ``sys.users`` table.
+
+- Inserting ``0`` value into a column of a :ref:`NUMERIC<type-numeric>`
+  type via PG wire leads to an error in 5.9.0.
+
+- Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.8.x to
+  5.9.0 can lead to problems when writing into a column of the
+  ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
+  types.
+
+- Due to a BWC issue, a rolling upgrade from 5.8.x to 5.9.1 can lead
+  to problems when running queries as a user created on an older version
+  during a rolling upgrade.

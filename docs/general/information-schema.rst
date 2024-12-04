@@ -101,6 +101,7 @@ number of replicas.
     | pg_catalog         | pg_index                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_indexes              | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_locks                | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_matviews             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_namespace            | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_proc                 | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_publication          | BASE TABLE |             NULL | NULL               |
@@ -131,13 +132,14 @@ number of replicas.
     | sys                | repositories            | BASE TABLE |             NULL | NULL               |
     | sys                | roles                   | BASE TABLE |             NULL | NULL               |
     | sys                | segments                | BASE TABLE |             NULL | NULL               |
+    | sys                | sessions                | BASE TABLE |             NULL | NULL               |
     | sys                | shards                  | BASE TABLE |             NULL | NULL               |
     | sys                | snapshot_restore        | BASE TABLE |             NULL | NULL               |
     | sys                | snapshots               | BASE TABLE |             NULL | NULL               |
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 70 rows in set (... sec)
+    SELECT 72 rows in set (... sec)
 
 
 The table also contains additional information such as the specified

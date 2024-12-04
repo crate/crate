@@ -21,14 +21,15 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.Constants;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 /**
  * A symbol that associates another symbol with a relation.
@@ -55,10 +56,41 @@ public final class ScopedSymbol implements Symbol {
     private final ColumnIdent column;
     private final DataType<?> dataType;
 
+    /**
+     * Used to disambiguate columns with the same name.
+     **/
+    private final int identity;
+
+    /**
+     * <p>
+     * Creates a ScopedSymbol describing output from a relation.
+     * E.g. in the case of UNION its a stand-in for two symbols from the two child
+     * relations.
+     * </p>
+     *
+     * Use the {@link #ScopedSymbol(RelationName, ColumnIdent, Symbol)} constructor
+     * if the symbol is pointing to a single specific symbol of a child relation
+     *
+     * @param relation owner of this symbol
+     * @param column name of the symbol
+     **/
     public ScopedSymbol(RelationName relation, ColumnIdent column, DataType<?> dataType) {
         this.relation = relation;
         this.column = column;
         this.dataType = dataType;
+        this.identity = 0;
+    }
+
+    /**
+     * @param relation owner of this symbol
+     * @param column name of the symbol
+     * @param symbol the symbol this ScopedSymbol is pointing towards
+     **/
+    public ScopedSymbol(RelationName relation, ColumnIdent column, Symbol symbol) {
+        this.relation = relation;
+        this.column = column;
+        this.dataType = symbol.valueType();
+        this.identity = System.identityHashCode(symbol);
     }
 
     public RelationName relation() {
@@ -66,6 +98,11 @@ public final class ScopedSymbol implements Symbol {
     }
 
     public ColumnIdent column() {
+        return column;
+    }
+
+    @Override
+    public ColumnIdent toColumn() {
         return column;
     }
 
@@ -106,22 +143,11 @@ public final class ScopedSymbol implements Symbol {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        ScopedSymbol that = (ScopedSymbol) o;
-
-        if (!relation.equals(that.relation)) {
-            return false;
-        }
-        if (!column.equals(that.column)) {
-            return false;
-        }
-        return dataType.equals(that.dataType);
+        return o instanceof ScopedSymbol other
+            && relation.equals(other.relation)
+            && column.equals(other.column)
+            && dataType.equals(other.dataType)
+            && identity == other.identity;
     }
 
     @Override
@@ -129,6 +155,7 @@ public final class ScopedSymbol implements Symbol {
         int result = relation.hashCode();
         result = 31 * result + column.hashCode();
         result = 31 * result + dataType.hashCode();
+        result = 31 * result + identity;
         return result;
     }
 

@@ -138,7 +138,8 @@ alterStmt
     | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER (USER | ROLE) name=ident
-        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRole
+        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRoleSet
+    | ALTER (USER | ROLE) name=ident RESET (property=ident | ALL)                    #alterRoleReset
     | ALTER PUBLICATION name=ident
         ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
@@ -189,7 +190,7 @@ querySpec
     : SELECT setQuant? selectItem (COMMA selectItem)*
       (FROM relation (COMMA relation)*)?
       where?
-      (GROUP BY expr (COMMA expr)*)?
+      (GROUP BY ( ALL | expr (COMMA expr)*))?
       (HAVING having=booleanExpression)?
       (WINDOW windows+=namedWindow (COMMA windows+=namedWindow)*)?                   #defaultQuerySpec
     | VALUES values (COMMA values)*                                                  #valuesRelation
@@ -350,6 +351,7 @@ explicitFunction
     | LEFT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET   #left
     | RIGHT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET  #right
     | SUBSTRING OPEN_ROUND_BRACKET expr FROM expr (FOR expr)? CLOSE_ROUND_BRACKET    #substring
+    | POSITION OPEN_ROUND_BRACKET expr IN expr CLOSE_ROUND_BRACKET                   #position
     | TRIM OPEN_ROUND_BRACKET ((trimMode=(LEADING | TRAILING | BOTH))?
                 (charsToTrim=expr)? FROM)? target=expr CLOSE_ROUND_BRACKET           #trim
     | EXTRACT OPEN_ROUND_BRACKET stringLiteralOrIdentifier FROM
@@ -537,7 +539,7 @@ intervalLiteral
     ;
 
 intervalField
-    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | MILLISECOND
     ;
 
 booleanLiteral
@@ -587,7 +589,7 @@ createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
-    | CREATE TABLE table AS insertSource                                             #createTableAs
+    | CREATE TABLE (IF NOT EXISTS)? table AS insertSource                            #createTableAs
     | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
         SERVER server=ident kvOptions?                                               #createForeignTable
@@ -956,6 +958,7 @@ nonReserved
     | MATERIALIZED
     | METADATA
     | MINUTE
+    | MILLISECOND
     | MONTH
     | MOVE
     | NEXT
@@ -972,6 +975,7 @@ nonReserved
     | PARTITIONS
     | PLAIN
     | PLANS
+    | POSITION
     | PRECEDING
     | PRECISION
     | PREPARE

@@ -21,17 +21,17 @@
 
 package io.crate.planner;
 
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 public final class AnalyzePlan implements Plan {
 
-    AnalyzePlan() {
-    }
+    AnalyzePlan() {}
 
     @Override
     public StatementType type() {

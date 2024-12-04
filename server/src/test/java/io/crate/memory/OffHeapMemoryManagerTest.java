@@ -21,8 +21,7 @@
 
 package io.crate.memory;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -36,6 +35,8 @@ public class OffHeapMemoryManagerTest {
         ByteBuf buf1 = memoryManager.allocate(20);
         buf1.retain();
         memoryManager.close();
-        assertThat("ref count must reach 0 now", buf1.release(), is(true));
+        assertThat(buf1.release())
+            .as("ref count must reach 0 now")
+            .isTrue();
     }
 }

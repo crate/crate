@@ -97,6 +97,11 @@ The following ``user_parameter`` are supported to define a new user account:
 
   Combination of ``iss`` and ``username`` must be unique.
 
+.. WARNING::
+
+    If :ref:`auth.host_based.jwt.iss <auth.host_based.jwt.iss>` is set,
+    user specific properties are ignored and :ref:`jwt_defaults` are used.
+
 .. SEEALSO::
 
   :ref:`auth_jwt`

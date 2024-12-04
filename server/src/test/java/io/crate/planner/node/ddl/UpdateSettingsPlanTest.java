@@ -23,9 +23,8 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -71,7 +70,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("cluster.graceful_stop.min_availability", "full")
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test
@@ -85,10 +84,8 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("stats.jobs_log_size", 25)
             .build();
 
-        assertThat(
-            buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{10, 25}))),
-            is(expected)
-        );
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(10, 25))))
+            .isEqualTo(expected);
     }
 
     @Test
@@ -112,52 +109,44 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{param}))), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(param)))).isEqualTo(expected);
     }
 
     @Test
     public void testSetNonRuntimeSettingObject() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
-
         List<Assignment<Symbol>> settings = List.of(
-            new Assignment<>(Literal.of("gateway"), List.of(Literal.of(Map.of("recover_after_nodes", 3))))
-        );
-
-
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+            new Assignment<>(Literal.of("gateway"), List.of(Literal.of(Map.of("recover_after_nodes", 3)))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
     }
 
     @Test
     public void testSetNonRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_time' cannot be set/reset at runtime");
-
         List<Assignment<Symbol>> settings = List.of(
-            new Assignment<>(Literal.of("gateway.recover_after_time"), List.of(Literal.of("5m"))
-            ));
-
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+            new Assignment<>(Literal.of("gateway.recover_after_time"), List.of(Literal.of("5m"))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Setting 'gateway.recover_after_time' cannot be set/reset at runtime");
     }
 
     @Test
     public void testUnsupportedSetting() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Setting 'unsupported_setting' is not supported");
-
         List<Assignment<Symbol>> settings = List.of(
-            new Assignment<>(Literal.of("unsupported_setting"), List.of(Literal.of("foo"))
-            ));
-
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+            new Assignment<>(Literal.of("unsupported_setting"), List.of(Literal.of("foo"))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'unsupported_setting' is not supported");
     }
 
     @Test
     public void test_build_settings_with_null_value() {
-        List<Assignment<Symbol>> settings = List.of(new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), Literal.NULL));
+        List<Assignment<Symbol>> settings = List
+                .of(new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), Literal.NULL));
 
-        expectedException.expectMessage("Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] \"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .hasMessage("Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] " +
+                        "\"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
     }
 
     @Test
@@ -169,7 +158,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
         );
         Assignment<Symbol> assignment = new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), idsArray);
         Settings settings = buildSettingsFrom(List.of(assignment), symbolEvaluator(Row.EMPTY));
-        assertThat(settings.get("cluster.routing.allocation.exclude._id"), is("id1,id2"));
-        assertThat(settings.getAsList("cluster.routing.allocation.exclude._id"), contains("id1", "id2"));
+        assertThat(settings.get("cluster.routing.allocation.exclude._id")).isEqualTo("id1,id2");
+        assertThat(settings.getAsList("cluster.routing.allocation.exclude._id")).containsExactly("id1", "id2");
     }
 }

@@ -31,10 +31,11 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.sql.SqlFormatter;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 
@@ -47,7 +48,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
                        .put(super.nodeSettings(nodeOrdinal))
-                       .put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
+                       .put(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
                        .build();
     }
 
@@ -57,7 +58,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (text) values ('hello world')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
         assertThat(response).hasRowCount(1L);
@@ -70,7 +71,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (a) values (?)", new Object[][]{
             new Object[]{new Object[]{10, 10, 20}},
             new Object[]{new Object[]{40, 50, 60}},
-            new Object[]{new Object[]{null, null}}
+            new Object[]{new Object[]{null, null}},
+            new Object[]{new Object[]{null, 1}}
         });
         execute("refresh table t");
 
@@ -79,6 +81,9 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
         execute("select * from t where a = [10, 20]");
         assertThat(response).hasRowCount(0L);
+
+        execute("select * from t where a = [null, 1]");
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from t where a = [null, null]");
         assertThat(response).hasRowCount(1L);
@@ -90,7 +95,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (text) values ('hello world')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text, 1, 1) = 'h'");
         assertThat(response).hasRowCount(1L);
@@ -104,7 +109,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (text) values ('hello world')");
         execute("insert into t (text) values ('harr')");
         execute("insert into t (text) values ('hh')");
-        refresh();
+        execute("refresh table t");
 
         execute("select text from t where substr(text_ft, 1, 1) = 'h'");
         assertThat(response).hasRowCount(0L);
@@ -117,7 +122,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (a) values ([{b=[{n=1}, {n=2}, {n=3}]}])");
         execute("insert into t (a) values ([{b=[{n=3}, {n=4}, {n=5}]}])");
-        refresh();
+        execute("refresh table t");
 
         execute("select * from t where 3 = any(a[1]['b']['n'])");
         assertThat(response).hasRowCount(2L);
@@ -133,7 +138,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
-        refresh();
+        execute("refresh table t");
 
         execute("select dummy from t where substr(_uid, 1, 1) != '{'");
         assertThat(response).hasRowCount(1L);
@@ -295,7 +300,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
-        refresh();
+        execute("refresh table t");
 
         execute("select dummy from t where substr(_id, 1, 1) != '{'");
         assertThat(response).hasRowCount(1L);
@@ -345,12 +350,17 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
-        execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        Object val1 = dataGenerator.get();
+        var extendedType = DataTypeTesting.extendedType(type, val1);
+        Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
 
-        Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});
-        long[] rowCounts = execute("insert into t1 (c) values (?)", bulkArgs);
-        assertThat(rowCounts).containsExactly(1, 1, 1);
+        String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
+        execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
+
+        Object[][] bulkArgs = $$($(val1), $(val2), new Object[]{null});
+        var bulkResponse = execute("insert into t1 (c) values (?)", bulkArgs);
+        assertThat(bulkResponse.rowCounts()).containsExactly(1L, 1L, 1L);
         execute("refresh table t1");
 
         execute("select count(*) from t1 where c is null");
@@ -386,7 +396,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo("[1, 2, 3]\n");
         execute("select * from t1 where not ignore3vl(5 = any(a))");
         assertThat(printedTable(response.rows()).split("\n")).containsExactlyInAnyOrder(
-            "[1, 2, 3, null]",
+            "[1, 2, 3, NULL]",
             "[1, 2, 3]"
         );
     }

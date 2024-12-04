@@ -21,9 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import java.util.function.UnaryOperator;
-
-import io.crate.common.annotations.NotThreadSafe;
+import java.util.function.BiFunction;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -32,6 +30,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
+import io.crate.common.annotations.NotThreadSafe;
 import io.crate.common.collections.RefCountedItem;
 
 
@@ -39,19 +38,19 @@ import io.crate.common.collections.RefCountedItem;
 public class SharedShardContext {
 
     private final IndexService indexService;
-    private final int readerId;
     private final IndexShard indexShard;
+    private final int readerId;
     private final RefCountedItem<Engine.Searcher> searcher;
 
     SharedShardContext(IndexService indexService,
                        ShardId shardId,
                        int readerId,
-                       UnaryOperator<Engine.Searcher> wrapSearcher) {
+                       BiFunction<ShardId, Engine.Searcher, Engine.Searcher> wrapSearcher) {
         this.indexService = indexService;
         this.indexShard = indexService.getShard(shardId.id());
         this.readerId = readerId;
-        this.searcher = new RefCountedItem<Engine.Searcher>(
-            source -> wrapSearcher.apply(indexShard.acquireSearcher(source)),
+        this.searcher = new RefCountedItem<>(
+            source -> wrapSearcher.apply(shardId, indexShard.acquireSearcher(source)),
             Engine.Searcher::close
         );
     }
@@ -61,12 +60,12 @@ public class SharedShardContext {
         return searcher;
     }
 
-    public IndexShard indexShard() {
-        return indexShard;
-    }
-
     public IndexService indexService() {
         return indexService;
+    }
+
+    public IndexShard indexShard() {
+        return indexShard;
     }
 
     public int readerId() {

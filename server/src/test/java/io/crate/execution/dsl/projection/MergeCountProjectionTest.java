@@ -21,9 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class MergeCountProjectionTest {
@@ -31,6 +30,6 @@ public class MergeCountProjectionTest {
     @Test
     public void testMergeCountProjectionHasSaneHashCode() {
         // regression test -> used to run into a infinite recursion
-        assertThat(MergeCountProjection.INSTANCE.hashCode(), Matchers.is(0));
+        assertThat(MergeCountProjection.INSTANCE.hashCode()).isZero();
     }
 }

@@ -21,14 +21,21 @@
 
 package io.crate.planner.operators;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.SqlExpressions;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SubQueryAndParamBinderTest extends ESTestCase {
 
@@ -37,7 +44,16 @@ public class SubQueryAndParamBinderTest extends ESTestCase {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(Row.EMPTY, SubQueryResults.EMPTY);
         Symbol symbol = new SqlExpressions(Map.of()).asSymbol("$1 > 10");
 
-        expectedException.expectMessage("The query contains a parameter placeholder $1, but there are only 0 parameter values");
-        paramBinder.apply(symbol);
+        assertThatThrownBy(() -> paramBinder.apply(symbol))
+            .hasMessage("The query contains a parameter placeholder $1, but there are only 0 parameter values");
+    }
+
+    @Test
+    public void test_nested_conversion_exception_are_not_ignored() {
+        var paramSymbol = new ParameterSymbol(0, ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("x", DataTypes.INTEGER).build());
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(new Row1(Map.of("x", "foo")), SubQueryResults.EMPTY);
+
+        assertThatThrownBy(() -> paramBinder.apply(paramSymbol))
+            .hasMessage("Cannot cast object element `x` with value `foo` to type `integer`");
     }
 }

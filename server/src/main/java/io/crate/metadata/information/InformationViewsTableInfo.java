@@ -21,16 +21,14 @@
 
 package io.crate.metadata.information;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.view.ViewInfo;
-
-
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
 import io.crate.Constants;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.view.ViewInfo;
 
 public class InformationViewsTableInfo {
 
@@ -39,20 +37,18 @@ public class InformationViewsTableInfo {
 
     private static final String CHECK_OPTION_NONE = "NONE";
 
-    public static SystemTable<ViewInfo> create() {
-        return SystemTable.<ViewInfo>builder(IDENT)
-            .add("table_catalog", STRING, r -> Constants.DB_NAME)
-            .add("table_schema", STRING, r -> r.ident().schema())
-            .add("table_name", STRING, r -> r.ident().name())
-            .add("view_definition", STRING, ViewInfo::definition)
-            .add("check_option", STRING, r -> CHECK_OPTION_NONE)
-            .add("is_updatable", BOOLEAN, r -> false)
-            .add("owner", STRING, ViewInfo::owner)
-            .setPrimaryKeys(
-                new ColumnIdent("table_catalog"),
-                new ColumnIdent("table_name"),
-                new ColumnIdent("table_schema")
-            )
-            .build();
-    }
+    public static SystemTable<ViewInfo> INSTANCE = SystemTable.<ViewInfo>builder(IDENT)
+        .add("table_catalog", STRING, r -> Constants.DB_NAME)
+        .add("table_schema", STRING, r -> r.ident().schema())
+        .add("table_name", STRING, r -> r.ident().name())
+        .add("view_definition", STRING, ViewInfo::definition)
+        .add("check_option", STRING, r -> CHECK_OPTION_NONE)
+        .add("is_updatable", BOOLEAN, r -> false)
+        .add("owner", STRING, ViewInfo::owner)
+        .setPrimaryKeys(
+            ColumnIdent.of("table_catalog"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("table_schema")
+        )
+        .build();
 }

@@ -71,9 +71,8 @@ public final class DefaultConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DefaultConstraint<?> that)) return false;
-        return Objects.equals(name, that.name)
+        return o instanceof DefaultConstraint<?> that
+            && Objects.equals(name, that.name)
             && Objects.equals(expression, that.expression)
             && Objects.equals(expressionStr, that.expressionStr);
     }

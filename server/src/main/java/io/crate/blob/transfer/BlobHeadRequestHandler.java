@@ -23,7 +23,6 @@ package io.crate.blob.transfer;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -52,9 +51,10 @@ public class BlobHeadRequestHandler {
         public static final String PUT_BLOB_HEAD_CHUNK = "internal:crate:blob/shard/tmp_transfer/put_head_chunk";
     }
 
-    @Inject
-    public BlobHeadRequestHandler(TransportService transportService, ClusterService clusterService,
-                                  BlobTransferTarget blobTransferTarget, ThreadPool threadPool) {
+    public BlobHeadRequestHandler(TransportService transportService,
+                                  ClusterService clusterService,
+                                  BlobTransferTarget blobTransferTarget,
+                                  ThreadPool threadPool) {
         this.blobTransferTarget = blobTransferTarget;
         this.clusterService = clusterService;
         this.transportService = transportService;

@@ -23,15 +23,18 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.assertj.core.api.AbstractAssert;
+import java.util.function.Consumer;
 
+import org.assertj.core.api.AbstractObjectAssert;
+
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 
-public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> {
+public class ReferenceAssert extends AbstractObjectAssert<ReferenceAssert, Reference> {
 
     public ReferenceAssert(Reference reference) {
         super(reference, ReferenceAssert.class);
@@ -79,10 +82,23 @@ public class ReferenceAssert extends AbstractAssert<ReferenceAssert, Reference> 
         return this;
     }
 
+    public ReferenceAssert hasDefault(Symbol expectedDefault) {
+        assertThat(actual.defaultExpression())
+            .as("defaultExpression")
+            .isEqualTo(expectedDefault);
+        return this;
+    }
+
     public ReferenceAssert hasAnalyzer(String analyzer) {
         isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) actual).analyzer()).isEqualTo(analyzer);
         return this;
     }
 
+    @SafeVarargs
+    public final ReferenceAssert hasSourceColumnsSatisfying(Consumer<? super Reference> ... assertions) {
+        isExactlyInstanceOf(IndexReference.class);
+        assertThat(((IndexReference) actual).columns()).satisfiesExactly(assertions);
+        return this;
+    }
 }

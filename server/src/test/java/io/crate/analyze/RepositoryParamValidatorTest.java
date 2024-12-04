@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
@@ -46,16 +48,15 @@ public class RepositoryParamValidatorTest extends ESTestCase {
 
     @Test
     public void testValidate() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid repository type \"invalid_type\"");
-        validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY);
+        assertThatThrownBy(() -> validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid repository type \"invalid_type\"");
     }
 
     @Test
     public void testRequiredTypeIsMissing() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "The following required parameters are missing to create a repository of type \"fs\": [location]");
-        validator.validate("fs", GenericProperties.empty(), Settings.EMPTY);
+        assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The following required parameters are missing to create a repository of type \"fs\": [location]");
     }
 }

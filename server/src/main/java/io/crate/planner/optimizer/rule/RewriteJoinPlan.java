@@ -23,19 +23,15 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import java.util.function.UnaryOperator;
-
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.sql.tree.JoinType;
 
 public class RewriteJoinPlan implements Rule<JoinPlan> {
 
@@ -56,17 +52,16 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
     @Override
     public LogicalPlan apply(JoinPlan join,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
-
-        if (txnCtx.sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
+                             Rule.Context context) {
+        if (context.txnCtx().sessionSettings().hashJoinsEnabled() &&
+            join.joinType() == JoinType.INNER &&
+            EquiJoinDetector.isEquiJoin(join.joinCondition())) {
             return new HashJoin(
                 join.lhs(),
                 join.rhs(),
-                join.joinCondition()
+                join.joinCondition(),
+                join.joinType(),
+                join.lookUpJoin()
             );
         } else {
             return new NestedLoopJoin(
@@ -76,7 +71,8 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                 join.joinCondition(),
                 join.isFiltered(),
                 false,
-                false
+                false,
+                join.lookUpJoin()
             );
         }
     }

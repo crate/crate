@@ -30,7 +30,7 @@ public class PgGetFunctionResultFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_oid_results_in_null() {
-        assertEvaluateNull("pg_function_is_visible(null)");
+        assertEvaluateNull("pg_catalog.pg_get_function_result(null)");
     }
 
     @Test

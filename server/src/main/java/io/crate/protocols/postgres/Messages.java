@@ -35,7 +35,6 @@ import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -181,11 +180,18 @@ public class Messages {
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.code().getBytes(StandardCharsets.UTF_8);
 
-        sendErrorResponse(channel, message, msg, PGError.SEVERITY_FATAL, null, null,
+        sendErrorResponse(channel, message, msg, PGError.Severity.FATAL.bytes(), null, null,
                           METHOD_NAME_CLIENT_AUTH, errorCode);
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, AccessControl accessControl, Throwable throwable) {
+        return sendErrorResponse(channel, accessControl, throwable, PGError.Severity.ERROR);
+    }
+
+    static ChannelFuture sendErrorResponse(Channel channel,
+                                           AccessControl accessControl,
+                                           Throwable throwable,
+                                           PGError.Severity severity) {
         final var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
 
         ByteBuf buffer = channel.alloc().buffer();
@@ -193,7 +199,7 @@ public class Messages {
         buffer.writeInt(0); // length, updated later
 
         buffer.writeByte('S');
-        writeCString(buffer, PGError.SEVERITY_ERROR);
+        writeCString(buffer, severity.bytes());
 
         buffer.writeByte('M');
         writeCString(buffer, error.message().getBytes(StandardCharsets.UTF_8));
@@ -231,6 +237,7 @@ public class Messages {
             }
             writeCString(buffer, sb.toString().getBytes(StandardCharsets.UTF_8));
         }
+
         buffer.writeByte(0);
         buffer.setInt(1, buffer.writerIndex() - 1); // exclude msg type from length
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
@@ -434,7 +441,7 @@ public class Messages {
         }
         int idx = 0;
         for (Symbol column : columns) {
-            byte[] nameBytes = Symbols.pathFromSymbol(column).sqlFqn().getBytes(StandardCharsets.UTF_8);
+            byte[] nameBytes = column.toColumn().sqlFqn().getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 

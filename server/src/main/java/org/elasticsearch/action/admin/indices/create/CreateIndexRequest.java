@@ -21,29 +21,20 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-
-import io.crate.Constants;
 
 /**
  * A request to create an index.
@@ -55,28 +46,15 @@ import io.crate.Constants;
  */
 public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> implements IndicesRequest {
 
-    public static final ParseField MAPPINGS = new ParseField("mappings");
-    public static final ParseField SETTINGS = new ParseField("settings");
-    public static final ParseField ALIASES = new ParseField("aliases");
-
     private String cause = "";
 
     private String index;
 
-    private Settings settings = EMPTY_SETTINGS;
-
-    private String mapping = null;
+    private Settings settings = Settings.EMPTY;
 
     private final Set<Alias> aliases = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
-
-    /**
-     * Constructs a new request to create an index with the specified name.
-     */
-    public CreateIndexRequest(String index) {
-        this(index, EMPTY_SETTINGS);
-    }
 
     /**
      * Constructs a new request to create an index with the specified name and settings.
@@ -93,7 +71,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
 
     @Override
     public IndicesOptions indicesOptions() {
-        return IndicesOptions.strictSingleIndexNoExpandForbidClosed();
+        return IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED;
     }
 
     /**
@@ -120,29 +98,8 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     /**
      * The settings to create the index with.
      */
-    public CreateIndexRequest settings(Settings.Builder settings) {
-        this.settings = settings.build();
-        return this;
-    }
-
-    /**
-     * The settings to create the index with.
-     */
     public CreateIndexRequest settings(Settings settings) {
         this.settings = settings;
-        return this;
-    }
-
-    /**
-     * Sets the mapping that will be used when the index gets created.
-     *
-     * @param source The mapping source
-     */
-    public CreateIndexRequest mapping(String source) {
-        if (this.mapping != null) {
-            throw new IllegalStateException("mapping already defined");
-        }
-        mapping = source;
         return this;
     }
 
@@ -155,35 +112,11 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     }
 
     /**
-     * Sets the mapping that will be used when the index gets created.
-     *
-     * @param source The mapping source
-     */
-    public CreateIndexRequest mapping(Map<String, Object> source) {
-        if (this.mapping != null) {
-            throw new IllegalStateException("mapping already defined");
-        }
-        try {
-            XContentBuilder builder = JsonXContent.builder();
-            builder.map(source);
-            mapping = BytesReference.bytes(builder).utf8ToString();
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-    }
-
-
-    /**
      * Adds an alias that will be associated with the index when it gets created
      */
     public CreateIndexRequest alias(Alias alias) {
         this.aliases.add(alias);
         return this;
-    }
-
-    public String mapping() {
-        return this.mapping;
     }
 
     public Set<Alias> aliases() {
@@ -218,21 +151,23 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         cause = in.readString();
         index = in.readString();
         settings = readSettingsFromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_5_0_0)) {
-            mapping = in.readOptionalString();
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_8_0)) {
+            // no mapping anymore
+        } else if (version.onOrAfter(Version.V_5_0_0)) {
+            in.readOptionalString(); // maping
         } else {
             int size = in.readVInt();
             for (int i = 0; i < size; i++) {
                 in.readString(); // type, was always "default"
-                String source = in.readString();
-                mapping = source;
+                in.readString(); // mapping
             }
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
             aliases.add(new Alias(in));
         }
-        if (in.getVersion().before(Version.V_4_3_0)) {
+        if (version.before(Version.V_4_3_0)) {
             in.readBoolean(); // updateAllTypes
         }
         waitForActiveShards = ActiveShardCount.readFrom(in);
@@ -244,22 +179,20 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         out.writeString(cause);
         out.writeString(index);
         writeSettingsToStream(out, settings);
-        if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
-            out.writeOptionalString(mapping);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_8_0)) {
+            // no mapping anymore
+        } else if (version.onOrAfter(Version.V_5_0_0)) {
+            out.writeOptionalString(null);
         } else {
-            if (mapping == null) {
-                out.writeVInt(0);
-            } else {
-                out.writeVInt(1);
-                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
-                out.writeString(mapping);
-            }
+            // used to be a dict for mapping by type
+            out.writeVInt(0);
         }
         out.writeVInt(aliases.size());
         for (Alias alias : aliases) {
             alias.writeTo(out);
         }
-        if (out.getVersion().before(Version.V_4_3_0)) {
+        if (version.before(Version.V_4_3_0)) {
             out.writeBoolean(true); // updateAllTypes
         }
         waitForActiveShards.writeTo(out);

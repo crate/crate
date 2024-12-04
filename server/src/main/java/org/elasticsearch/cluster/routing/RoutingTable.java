@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
-import org.elasticsearch.cluster.DiffableUtils;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
@@ -269,6 +269,10 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return allShardsSatisfyingPredicate(indices, shardRouting -> true, true);
     }
 
+    public ShardsIterator allPrimaryShards(String[] indices) {
+        return allShardsSatisfyingPredicate(indices, ShardRouting::primary, false);
+    }
+
     private ShardsIterator allShardsSatisfyingPredicate(String[] indices, Predicate<ShardRouting> predicate, boolean includeRelocationTargets) {
         // use list here since we need to maintain identity across shards
         List<ShardRouting> shards = new ArrayList<>();
@@ -359,15 +363,15 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
 
         RoutingTableDiff(RoutingTable before, RoutingTable after) {
             version = after.version;
-            indicesRouting = DiffableUtils.diff(before.indicesRouting, after.indicesRouting, DiffableUtils.getStringKeySerializer());
+            indicesRouting = Diffs.diff(before.indicesRouting, after.indicesRouting, Diffs.stringKeySerializer());
         }
 
-        private static final DiffableUtils.DiffableValueReader<String, IndexRoutingTable> DIFF_VALUE_READER =
-                new DiffableUtils.DiffableValueReader<>(IndexRoutingTable::readFrom, IndexRoutingTable::readDiffFrom);
+        private static final Diffs.DiffableValueReader<String, IndexRoutingTable> DIFF_VALUE_READER =
+                new Diffs.DiffableValueReader<>(IndexRoutingTable::readFrom, IndexRoutingTable::readDiffFrom);
 
         RoutingTableDiff(StreamInput in) throws IOException {
             version = in.readLong();
-            indicesRouting = DiffableUtils.readImmutableOpenMapDiff(in, DiffableUtils.getStringKeySerializer(), DIFF_VALUE_READER);
+            indicesRouting = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), DIFF_VALUE_READER);
         }
 
         @Override
@@ -600,4 +604,18 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return sb.toString();
     }
 
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = 31 * result + (int) (version ^ (version >>> 32));
+        result = 31 * result + indicesRouting.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof RoutingTable other
+            && version == other.version
+            && indicesRouting.equals(other.indicesRouting);
+    }
 }

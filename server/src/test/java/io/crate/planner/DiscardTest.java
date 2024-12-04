@@ -21,9 +21,8 @@
 
 package io.crate.planner;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -37,10 +36,10 @@ public class DiscardTest extends CrateDummyClusterServiceUnitTest {
         // The planner always returns a noopPlan
 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
-        assertThat(e.plan("DISCARD ALL"), Matchers.sameInstance(NoopPlan.INSTANCE));
-        assertThat(e.plan("DISCARD PLANS"), Matchers.sameInstance(NoopPlan.INSTANCE));
-        assertThat(e.plan("DISCARD SEQUENCES"), Matchers.sameInstance(NoopPlan.INSTANCE));
-        assertThat(e.plan("DISCARD TEMPORARY"), Matchers.sameInstance(NoopPlan.INSTANCE));
-        assertThat(e.plan("DISCARD TEMP"), Matchers.sameInstance(NoopPlan.INSTANCE));
+        assertThat((Plan) e.plan("DISCARD ALL")).isSameAs(NoopPlan.INSTANCE);
+        assertThat((Plan) e.plan("DISCARD PLANS")).isSameAs(NoopPlan.INSTANCE);
+        assertThat((Plan) e.plan("DISCARD SEQUENCES")).isSameAs(NoopPlan.INSTANCE);
+        assertThat((Plan) e.plan("DISCARD TEMPORARY")).isSameAs(NoopPlan.INSTANCE);
+        assertThat((Plan) e.plan("DISCARD TEMP")).isSameAs(NoopPlan.INSTANCE);
     }
 }

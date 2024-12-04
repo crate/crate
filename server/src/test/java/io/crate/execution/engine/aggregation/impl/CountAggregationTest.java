@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -84,6 +85,7 @@ public class CountAggregationTest extends AggregationTestCase {
             mock(LuceneReferenceResolver.class),
             aggregationReferences,
             sourceTable,
+            Version.CURRENT,
             List.of()
         );
         if (expectedAggregatorClass == null) {
@@ -121,10 +123,9 @@ public class CountAggregationTest extends AggregationTestCase {
 
     private void helper_count_on_object_with_not_null_immediate_child(DataType<?> childType, Class<?> expectedAggregatorClass) {
         SimpleReference notNullImmediateChild = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             childType,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -133,10 +134,9 @@ public class CountAggregationTest extends AggregationTestCase {
             false,
             null);
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -173,10 +173,9 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference notNullGrandChild = new SimpleReference(
             new ReferenceIdent(
                 null,
-                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol"))),
+                ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -185,10 +184,9 @@ public class CountAggregationTest extends AggregationTestCase {
             false,
             null);
         SimpleReference immediateChild = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object", "second_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullGrandChild.column().leafName(), notNullGrandChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -198,10 +196,9 @@ public class CountAggregationTest extends AggregationTestCase {
             null
         );
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
-            ColumnPolicy.DYNAMIC,
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(immediateChild.column().leafName(), immediateChild.valueType()).build(),
             IndexType.PLAIN,
             true,
             true,
@@ -224,13 +221,13 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference notNullSibling = new SimpleReference(
             new ReferenceIdent(
                 null,
-                new ColumnIdent("top_level_Integer")),
+                ColumnIdent.of("top_level_Integer")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             0,
             null);
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
             ObjectType.UNTYPED,
             0,
@@ -250,21 +247,21 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference notNullSibilingsChild = new SimpleReference(
             new ReferenceIdent(
                 null,
-                new ColumnIdent("top_level_sibling", List.of("not_null_subcol"))),
+                ColumnIdent.of("top_level_sibling", List.of("not_null_subcol"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
             null);
         @SuppressWarnings("unused")
         SimpleReference sibling = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_sibling")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_sibling")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
             0,
             null
         );
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
             ObjectType.UNTYPED,
             0,
@@ -282,15 +279,15 @@ public class CountAggregationTest extends AggregationTestCase {
     @Test
     public void test_count_on_object_with_nullable_subcolumn_not_use_DocValueAggregator() {
         SimpleReference nullableChild = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object", "nullable_subcol")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object", "nullable_subcol")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             0,
             null);
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder().setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
+            ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType(nullableChild.column().leafName(), nullableChild.valueType()).build(),
             0,
             null
         );
@@ -308,10 +305,9 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference notNullGrandChild1 = new SimpleReference(
             new ReferenceIdent(
                 null,
-                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
+                ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol1"))),
             RowGranularity.DOC,
             DataTypes.STRING,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -322,10 +318,9 @@ public class CountAggregationTest extends AggregationTestCase {
         SimpleReference notNullGrandChild2 = new SimpleReference(
             new ReferenceIdent(
                 null,
-                new ColumnIdent("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
+                ColumnIdent.of("top_level_object", List.of("second_level_object", "not_null_subcol2"))),
             RowGranularity.DOC,
             DataTypes.BYTE,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -334,13 +329,12 @@ public class CountAggregationTest extends AggregationTestCase {
             false,
             null);
         SimpleReference immediateChild = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object", "second_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object", "second_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder()
+            ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType(notNullGrandChild1.column().leafName(), notNullGrandChild1.valueType())
                 .setInnerType(notNullGrandChild2.column().leafName(), notNullGrandChild2.valueType())
                 .build(),
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -350,10 +344,9 @@ public class CountAggregationTest extends AggregationTestCase {
             null
         );
         SimpleReference notNullImmediateChild = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object", "not_null_subcol")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object", "not_null_subcol")),
             RowGranularity.DOC,
             DataTypes.IP,
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,
@@ -362,13 +355,12 @@ public class CountAggregationTest extends AggregationTestCase {
             false,
             null);
         SimpleReference countedObject = new SimpleReference(
-            new ReferenceIdent(null, new ColumnIdent("top_level_object")),
+            new ReferenceIdent(null, ColumnIdent.of("top_level_object")),
             RowGranularity.DOC,
-            ObjectType.builder()
+            ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType(immediateChild.column().leafName(), immediateChild.valueType())
                 .setInnerType(notNullImmediateChild.column().leafName(), notNullImmediateChild.valueType())
                 .build(),
-            ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
             true,
             true,

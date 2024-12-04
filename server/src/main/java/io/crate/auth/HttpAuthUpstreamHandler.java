@@ -21,6 +21,7 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.protocols.SSL.getSession;
 import static io.netty.buffer.Unpooled.copiedBuffer;
 
@@ -40,8 +41,8 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -68,10 +69,11 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
 
-    private static List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
+    private static final List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
 
     private final Authentication authService;
     private final Settings settings;
+    private final boolean checkJwtProperties;
 
     private final Roles roles;
     private String authorizedUser = null;
@@ -80,16 +82,17 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         // do not auto-release reference counted messages which are just in transit here
         super(false);
         this.settings = settings;
+        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
         this.authService = authService;
         this.roles = roles;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HttpRequest) {
-            handleHttpRequest(ctx, (HttpRequest) msg);
-        } else if (msg instanceof HttpContent) {
-            handleHttpChunk(ctx, ((HttpContent) msg));
+        if (msg instanceof HttpRequest httpRequest) {
+            handleHttpRequest(ctx, httpRequest);
+        } else if (msg instanceof HttpContent httpContent) {
+            handleHttpChunk(ctx, httpContent);
         } else {
             // neither http request nor http chunk - send upstream and see ...
             ctx.fireChannelRead(msg);
@@ -101,7 +104,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         SSLSession session = getSession(ctx.channel());
         Credentials credentials = credentialsFromRequest(request, session, settings);
 
-        Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+        Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
         if (rolePredicate != null) {
             Role role = roles.findUser(rolePredicate);
             if (role != null) {
@@ -116,13 +119,14 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
 
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
+        ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
+
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
                 "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
-                address.getHostAddress(), username, Protocol.HTTP.toString());
+                address.getHostAddress(), username, Protocol.HTTP);
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {

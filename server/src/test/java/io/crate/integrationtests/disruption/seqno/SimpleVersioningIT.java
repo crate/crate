@@ -19,12 +19,10 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
 
 public class SimpleVersioningIT extends IntegTestCase {
 
@@ -39,63 +37,63 @@ public class SimpleVersioningIT extends IntegTestCase {
         long seqNo = (long) response.rows()[0][0];
         long primaryTerm = (long) response.rows()[0][1];
 
-        assertThat(seqNo, equalTo(0L));
-        assertThat(primaryTerm, equalTo(1L));
+        assertThat(seqNo).isEqualTo(0L);
+        assertThat(primaryTerm).isEqualTo(1L);
 
         execute("update test set value = 'value1_2' where id = 1 and _seq_no = 0 and _primary_term = 1 returning _seq_no, _primary_term");
 
         seqNo = (long) response.rows()[0][0];
         primaryTerm = (long) response.rows()[0][1];
 
-        assertThat(seqNo, equalTo(1L));
-        assertThat(primaryTerm, equalTo(1L));
+        assertThat(seqNo).isEqualTo(1L);
+        assertThat(primaryTerm).isEqualTo(1L);
 
         execute("update test set value = 'value1_1' where id = 1 and _seq_no = 10 and _primary_term = 1 returning _seq_no, _primary_term");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("update test set value = 'value1_1' where id = 1 and _seq_no = 10 and _primary_term = 2 returning _seq_no, _primary_term");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("update test set value = 'value1_1' where id = 1 and _seq_no = 1 and _primary_term = 2 returning _seq_no, _primary_term");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("delete from test where id = 1 and _seq_no = 10 and _primary_term = 1");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("delete from test where id = 1 and _seq_no = 10 and _primary_term = 2");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("delete from test where id = 1 and _seq_no = 1 and _primary_term = 2");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("refresh table test");
 
         for (int i = 0; i < 10; i++) {
             execute("select _seq_no, _primary_term from test where id = 1");
-            assertThat(response.rows()[0][0], equalTo(1L));
-            assertThat(response.rows()[0][1], equalTo(1L));
+            assertThat(response.rows()[0][0]).isEqualTo(1L);
+            assertThat(response.rows()[0][1]).isEqualTo(1L);
         }
 
         // select with versioning
         for (int i = 0; i < 10; i++) {
             execute("select _seq_no, _primary_term, _version from test");
-            assertThat(response.rows()[0][0], equalTo(1L));
-            assertThat(response.rows()[0][1], equalTo(1L));
-            assertThat(response.rows()[0][2], equalTo(2L));
+            assertThat(response.rows()[0][0]).isEqualTo(1L);
+            assertThat(response.rows()[0][1]).isEqualTo(1L);
+            assertThat(response.rows()[0][2]).isEqualTo(2L);
         }
 
         // select without versioning
         for (int i = 0; i < 10; i++) {
             execute("select _seq_no, _primary_term from test");
-            assertThat(response.rows()[0][0], equalTo(1L));
-            assertThat(response.rows()[0][1], equalTo(1L));
+            assertThat(response.rows()[0][0]).isEqualTo(1L);
+            assertThat(response.rows()[0][1]).isEqualTo(1L);
         }
 
         execute("delete from test where id = 1 and _seq_no = 1 and _primary_term = 1");
-        assertThat(response.rowCount(), equalTo(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("delete from test where id = 1 and _seq_no = 2 and _primary_term = 1");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
     }
 
@@ -107,37 +105,37 @@ public class SimpleVersioningIT extends IntegTestCase {
         execute("insert into test (id, value) values (?, ?) returning _seq_no", new Object[]{1, "value1_1"});
 
         long seqNo = (long) response.rows()[0][0];
-        assertThat(seqNo, equalTo(0L));
+        assertThat(seqNo).isEqualTo(0L);
 
         execute("refresh table test");
 
         execute("update test set value = 'value1_2' where id = 1 returning _seq_no, _primary_term");
 
         seqNo = (long) response.rows()[0][0];
-        assertThat(seqNo, equalTo(1L));
+        assertThat(seqNo).isEqualTo(1L);
 
         execute("refresh table test");
 
         execute("update test set value = 'value1_1' where id = 1 and _seq_no = 0 and _primary_term = 1 returning _seq_no, _primary_term");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("refresh table test");
 
         execute("delete from test where id = 1 and _seq_no = 0 and _primary_term = 1");
-        assertThat(response.rowCount(), equalTo(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         for (int i = 0; i < 10; i++) {
             execute("select _version from test where id=1");
-            assertThat(response.rows()[0][0], equalTo(2L));
+            assertThat(response.rows()[0][0]).isEqualTo(2L);
         }
 
         execute("refresh table test");
 
         for (int i = 0; i < 10; i++) {
             execute("select _version, _seq_no from test");
-            assertThat(response.rowCount(), equalTo(1L));
-            assertThat(response.rows()[0][0], equalTo(2L));
-            assertThat(response.rows()[0][1], equalTo(1L));
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isEqualTo(2L);
+            assertThat(response.rows()[0][1]).isEqualTo(1L);
         }
     }
 }

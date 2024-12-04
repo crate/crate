@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
-import static io.crate.testing.Asserts.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -57,7 +57,7 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         execute("insert into \"_Abc\".\"_T\" values (1)");
         execute("create view \"_Abc\".v1 as select a from \"_Abc\".\"_T\"");
         execute("CREATE FUNCTION \"_Abc\".func(string) RETURNS STRING LANGUAGE dummy_lang AS 'DUMMY EATS text'");
-        refresh();
+        execute("refresh table \"_Abc\".\"_T\"");
 
         // check index/template names
         var meta = clusterService().state().metadata();
@@ -82,12 +82,12 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         // a little more complex scenario involving schema names with upper cases
         execute("create table Abc.\"_T\" (b string, c string as \"_Abc\".func(b))");
         execute("insert into Abc.\"_T\"(b) values ('Abc')"); // NOTE: here failed before due to - Unknown function: _abc.func(abc."_T".b)
-        refresh();
+        execute("refresh table Abc.\"_T\"");
 
         execute("select * from Abc.\"_T\"");
         assertThat(printedTable(response.rows())).isEqualTo("Abc| DUMMY EATS text\n");
 
         assertThatThrownBy(() -> execute("drop function \"_Abc\".func(string)"))
-            .hasMessageContaining("Cannot drop function '_Abc.func(text)', it is still in use by 'abc._T.c AS \"_Abc\".func(b)'");
+            .hasMessageContaining("Cannot drop function '\"_Abc\".func'. It is in use by column 'c' of table 'abc._T'");
     }
 }

@@ -21,12 +21,13 @@
 
 package io.crate.execution.engine.collect;
 
+import org.elasticsearch.common.inject.AbstractModule;
+
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.collect.sources.SystemCollectSource;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
 
@@ -34,7 +35,6 @@ public class CollectOperationModule extends AbstractModule {
     protected void configure() {
         bind(InformationSchemaIterables.class).asEagerSingleton();
 
-        bind(JobsLogService.class).asEagerSingleton();
         bind(JobsLogs.class).toProvider(JobsLogService.class);
         bind(ShardCollectSource.class).asEagerSingleton();
         bind(SystemCollectSource.class).asEagerSingleton();

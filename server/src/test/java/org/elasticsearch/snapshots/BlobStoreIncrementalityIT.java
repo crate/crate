@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -92,7 +90,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         }
         int documentCountOriginal = data.size();
         execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
-        refresh();
+        execute("refresh table " + indexName);
 
         final String snapshot1 = "snap_1";
         final String repo = "test_repo";
@@ -139,7 +137,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         }
         execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
         int countAfterRecreation = data.size();
-        refresh();
+        execute("refresh table " + indexName);
 
         final String snapshot3 = "snap_3";
         logger.info("--> creating snapshot 3");
@@ -179,7 +177,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
                 data.add(new Object[]{"foo" + j + "_bar" + i});
             }
             execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
-            refresh();
+            execute("refresh table " + indexName);
         }
         execute("SELECT count(*) FROM sys.segments WHERE primary=true AND table_name=?", new Object[]{indexName});
         assertThat((long) response.rows()[0][0]).isGreaterThan(1);
@@ -195,7 +193,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> force merging down to a single segment");
         execute("OPTIMIZE TABLE " + indexName + " WITH(max_num_segments=1)");
-        refresh();
+        execute("refresh table " + indexName);
         execute("SELECT count(*) FROM sys.segments WHERE primary=true AND table_name=?", new Object[]{indexName});
         assertThat((long) response.rows()[0][0]).isEqualTo(1);
 
@@ -205,10 +203,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> asserting that the two snapshots refer to different files in the repository");
         final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class);
-        final SnapshotInfo snapshotInfo2 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot2 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo2 = snapshotInfo(repo, snapshot2);
 
         assertBusy(() -> {
             Map<ShardId, IndexShardSnapshotStatus> snapshotShards = getIndexShardSnapShotStates(
@@ -241,10 +236,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
             "--> asserting that snapshots [{}] and [{}] are referring to the same files in the repository", snapshot1, snapshot2);
 
         final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class, dataNode);
-        final SnapshotInfo snapshotInfo1 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot1 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo1 = snapshotInfo(repo, snapshot1);
         final int[] fileCount = new int[1];
 
         assertBusy(() -> {
@@ -265,10 +257,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
             assertThat(statusSnap.getIncrementalFileCount()).isEqualTo(statusSnap.getTotalFileCount());
         }, 30L, TimeUnit.SECONDS);
 
-        final SnapshotInfo snapshotInfo2 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot2 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo2 = snapshotInfo(repo, snapshot2);
 
         assertBusy(() -> {
             Map<ShardId, IndexShardSnapshotStatus> snapshotShards = getIndexShardSnapShotStates(
@@ -389,7 +378,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         var shardContainer = repository.blobStore()
             .blobContainer(indicesPath.add(indexId.getId()).add(Integer.toString(shardId.id())));
 
-        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), xContentRegistry());
+        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), writableRegistry(), xContentRegistry());
         return IndexShardSnapshotStatus.newDone(snapshot.startTime(), snapshot.time(),
             snapshot.incrementalFileCount(), snapshot.totalFileCount(),
             snapshot.incrementalSize(), snapshot.totalSize(), null); // Not adding a real generation here as it doesn't matter to callers

@@ -23,8 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import static io.crate.protocols.postgres.types.PGType.INT32_BYTE_SIZE;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 
@@ -67,8 +66,7 @@ public class RegprocTypeTest extends BasePGTypeTest<Regproc> {
             //noinspection unchecked
             pgType.writeAsText(buffer, regproc);
             assertThat(
-                pgType.readTextValue(buffer, buffer.readInt()),
-                is(regproc));
+                pgType.readTextValue(buffer, buffer.readInt())).isEqualTo(regproc);
         } finally {
             buffer.release();
         }
@@ -79,6 +77,6 @@ public class RegprocTypeTest extends BasePGTypeTest<Regproc> {
         var regproc = Regproc.of("test");
         //noinspection unchecked
         byte[] bytes = pgType.encodeAsUTF8Text(regproc);
-        assertThat(new String(bytes, UTF_8), is("test"));
+        assertThat(new String(bytes, UTF_8)).isEqualTo("test");
     }
 }

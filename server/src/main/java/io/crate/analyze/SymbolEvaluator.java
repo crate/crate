@@ -30,6 +30,7 @@ import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -72,7 +73,7 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     @Override
     public Input<?> visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
         return () -> {
-            Object value = params.get(parameterSymbol.index());
+            Object value = parameterSymbol.bind(params);
             try {
                 return parameterSymbol.valueType().implicitCast(value);
             } catch (ConversionException e) {
@@ -88,6 +89,12 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
         DataType type = selectSymbol.valueType();
         return Literal.of(type, type.sanitizeValue(subQueryResults.getSafe(selectSymbol)));
+    }
+
+    @Override
+    public Input<?> visitOuterColumn(OuterColumn outerColumn, Row context) {
+        DataType<?> valueType = outerColumn.valueType();
+        return Literal.ofUnchecked(valueType, valueType.sanitizeValue(subQueryResults.get(outerColumn)));
     }
 
     public Function<Symbol, Object> bind(Row params) {

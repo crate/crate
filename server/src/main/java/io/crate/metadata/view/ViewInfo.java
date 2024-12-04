@@ -45,14 +45,21 @@ public class ViewInfo implements RelationInfo {
     private final RelationName ident;
     private final String definition;
     private final List<Reference> columns;
+    private final List<Reference> references;
     private final String owner;
     private final SearchPath searchPath;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner, SearchPath searchPath) {
+    public ViewInfo(RelationName ident, String definition, List<Reference> references, @Nullable String owner, SearchPath searchPath) {
         this.ident = ident;
         this.definition = definition;
-        this.columns = columns;
+        this.references = references
+            .stream()
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .toList();
+        this.columns = this.references.stream()
+            .filter(r -> r.column().isRoot())
+            .toList();
         this.owner = owner;
         this.searchPath = searchPath;
     }
@@ -94,7 +101,7 @@ public class ViewInfo implements RelationInfo {
 
     @Override
     public Iterator<Reference> iterator() {
-        return columns.iterator();
+        return references.iterator();
     }
 
     @Override

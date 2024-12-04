@@ -21,10 +21,12 @@
 
 package io.crate.types;
 
+import static io.crate.metadata.table.TableInfo.IS_OBJECT_ARRAY;
 import static java.util.Map.entry;
 import static java.util.stream.Collectors.toSet;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -243,7 +245,6 @@ public final class DataTypes {
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
         entry(ObjectType.ID, Set.of(GEO_SHAPE.id(), JsonType.ID)),
-        entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
         entry(BitStringType.ID, Set.of(BitStringType.ID)),
         entry(JsonType.ID, Set.of(ObjectType.ID))
     );
@@ -307,24 +308,22 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings({"unchecked"})
     public static DataType<?> guessType(Object value) {
-        if (value == null) {
-            return UNDEFINED;
-        } else if (value instanceof Map) {
-            return UNTYPED_OBJECT;
-        } else if (value instanceof List list) {
-            return valueFromList(list);
-        } else if (value instanceof Object[] objectArray) {
-            return valueFromList(Arrays.asList(objectArray));
-        } else if (value instanceof float[] values) {
-            return new FloatVectorType(values.length);
-        }
-        DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
-        if (dataType == null) {
-            throw new IllegalArgumentException("Cannot detect the type of the value: " + value);
-        }
-        return dataType;
+        return switch (value) {
+            case null -> UNDEFINED;
+            case Map<?, ?> map -> UNTYPED_OBJECT;
+            case List<?> list -> valueFromList(list, false);
+            case Object[] array -> valueFromList(Arrays.asList(array), false);
+            case float[] values -> new FloatVectorType(values.length);
+            case BigDecimal bigDecimal -> new NumericType(bigDecimal.precision(), bigDecimal.scale());
+            default -> {
+                DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
+                if (dataType == null) {
+                    throw new IllegalArgumentException("Cannot detect the type of the value: " + value);
+                }
+                yield dataType;
+            }
+        };
     }
 
     /**
@@ -348,7 +347,25 @@ public final class DataTypes {
         }
     }
 
-    private static DataType<?> valueFromList(List<Object> value) {
+    /**
+     * Given a numeric data type, converts it to the widest possible implementation.
+     * So bytes, shorts and integers become long, and floats become double.
+     */
+    public static DataType<?> upcast(DataType<?> type) {
+        return switch (type.id()) {
+            case ByteType.ID, ShortType.ID, IntegerType.ID -> DataTypes.LONG;
+            case FloatType.ID -> DataTypes.DOUBLE;
+            default -> type;
+        };
+    }
+
+    /**
+     * Given a list of values, return an ArrayType that can refer to all of them
+     * @param value     the list of values
+     * @param upcast    if true, then use the widest possible compatible numeric type
+     *                  e.g. a list of integers produces array(long)
+     */
+    public static DataType<?> valueFromList(List<?> value, boolean upcast) {
         DataType<?> highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
@@ -365,7 +382,14 @@ public final class DataTypes {
                 highest = current;
             }
         }
+        if (upcast) {
+            highest = upcast(highest);
+        }
         return new ArrayType<>(highest);
+    }
+
+    public static boolean isSafeConversion(DataType<?> source, DataType<?> target) {
+        return SAFE_CONVERSIONS.getOrDefault(source.id(), Set.of()).contains(target);
     }
 
     private static boolean safeConversionPossible(DataType<?> type1, DataType<?> type2) {
@@ -510,7 +534,9 @@ public final class DataTypes {
         entry(GEO_POINT.id(), "geo_point"),
         entry(INTERVAL.id(), "interval"),
         entry(BitStringType.ID, "bit"),
-        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName())
+        entry(NumericType.ID, "numeric"),
+        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
+        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName())
     );
 
     @Nullable
@@ -537,6 +563,10 @@ public final class DataTypes {
      */
     public static boolean isNumericPrimitive(DataType<?> type) {
         return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id());
+    }
+
+    public static boolean isNumeric(DataType<?> type) {
+        return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id()) || NUMERIC.id() == type.id();
     }
 
     /**
@@ -611,25 +641,16 @@ public final class DataTypes {
     }
 
     public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
-        DataType<?> type;
-        if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
-            type = ObjectType.merge((ObjectType) leftType, (ObjectType) rightType);
-        } else if (leftType.id() == ArrayType.ID && rightType.id() == ArrayType.ID) {
-            type = new ArrayType<>(merge(((ArrayType<?>) leftType).innerType(), ((ArrayType<?>) rightType).innerType()));
+        final DataType<?> higher;
+        final DataType<?> lower;
+        if (leftType.precedes(rightType)) {
+            higher = leftType;
+            lower = rightType;
         } else {
-            if (leftType.precedes(rightType)) {
-                if (rightType.isConvertableTo(leftType, false)) {
-                    return leftType;
-                }
-                throw new IllegalArgumentException("'" + rightType + "' is not convertible to '" + leftType + "'");
-            } else {
-                if (leftType.isConvertableTo(rightType, false)) {
-                    return rightType;
-                }
-                throw new IllegalArgumentException("'" + leftType + "' is not convertible to '" + rightType + "'");
-            }
+            higher = rightType;
+            lower = leftType;
         }
-        return type;
+        return higher.merge(lower);
     }
 
     public static DataType<?> fromId(Integer id) {
@@ -637,5 +658,36 @@ public final class DataTypes {
             .filter(x -> x.id() == id)
             .findFirst()
             .orElse(DataTypes.UNDEFINED);
+    }
+
+    public static boolean isArrayOf(DataType<?> type, DataType<?> innerType) {
+        return type instanceof ArrayType<?> at && at.innerType().id() == innerType.id();
+    }
+
+    public static boolean isArrayOfNulls(DataType<?> type) {
+        return isArrayOf(type, UndefinedType.INSTANCE);
+    }
+
+    public static boolean isNestedArray(DataType<?> type) {
+        return type instanceof ArrayType<?> at && at.innerType() instanceof ArrayType<?>;
+    }
+
+    public static boolean hasPath(DataType<?> dataType, List<String> path) {
+        assert path.isEmpty() == false : "DataTypes.hasPath expects path to be not empty";
+        if (!IS_OBJECT_ARRAY.test(dataType) && !(dataType instanceof ObjectType)) {
+            return false;
+        }
+        for (int i = 0; i < path.size(); i++) {
+            dataType = ArrayType.unnest(dataType);
+            if (dataType instanceof ObjectType objectType) {
+                dataType = objectType.innerType(path.get(i));
+                if (dataType instanceof UndefinedType) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 }

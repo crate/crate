@@ -44,8 +44,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.fdw.ServersMetadata.Server;
@@ -66,7 +64,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                          String fdw,
                          String owner,
                          Map<String, Settings> users,
-                         Settings options) implements Writeable, ToXContent {
+                         Settings options) implements Writeable {
 
 
         public Server(StreamInput in) throws IOException {
@@ -88,7 +86,6 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             Settings.writeSettingsToStream(out, options);
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
         public static Server fromXContent(XContentParser parser) throws IOException {
             String name = null;
             String fdw = null;
@@ -144,27 +141,6 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                 requireNonNull(options));
         }
 
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.field("name", name);
-            builder.field("fdw", fdw);
-            builder.field("owner", owner);
-
-            builder.startObject("users");
-            for (var user : users.entrySet()) {
-                builder.startObject(user.getKey());
-                user.getValue().toXContent(builder, params);
-                builder.endObject();
-            }
-            builder.endObject();
-
-            builder.startObject("options");
-            options.toXContent(builder, params);
-            builder.endObject();
-
-            return builder;
-        }
-
         public record Option(String serverName,
                              String serverOwner,
                              String name,
@@ -211,19 +187,6 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
         }
         parser.nextToken();
         return new ServersMetadata(servers);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var entry : servers.entrySet()) {
-            String serverName = entry.getKey();
-            Server server = entry.getValue();
-            builder.startObject(serverName);
-            server.toXContent(builder, params);
-            builder.endObject();
-        }
-        return builder.endObject();
     }
 
 

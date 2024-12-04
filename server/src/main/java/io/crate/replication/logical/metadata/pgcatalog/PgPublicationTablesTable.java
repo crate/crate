@@ -21,6 +21,10 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.stream.Stream;
+
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -29,21 +33,15 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 
-import java.util.stream.Stream;
-
-import static io.crate.types.DataTypes.STRING;
-
 public class PgPublicationTablesTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_publication_tables");
 
-    public static SystemTable<PublicatedTableRow> create() {
-        return SystemTable.<PublicatedTableRow>builder(IDENT)
-            .add("pubname", STRING, p -> p.publicationName)
-            .add("schemaname", STRING, p -> p.relationName.schema())
-            .add("tablename", STRING, p -> p.relationName.name())
-            .build();
-    }
+    public static SystemTable<PublicatedTableRow> INSTANCE = SystemTable.<PublicatedTableRow>builder(IDENT)
+        .add("pubname", STRING, p -> p.publicationName)
+        .add("schemaname", STRING, p -> p.relationName.schema())
+        .add("tablename", STRING, p -> p.relationName.name())
+        .build();
 
     public static Iterable<PublicatedTableRow> rows(LogicalReplicationService logicalReplicationService,
                                                     Schemas schemas) {
@@ -67,21 +65,8 @@ public class PgPublicationTablesTable {
         };
     }
 
-    public static class PublicatedTableRow {
-        private final String publicationName;
-        private final RelationName relationName;
-        private final String owner;
-
-        public PublicatedTableRow(String publicationName,
-                                  RelationName relationName,
-                                  String owner) {
-            this.publicationName = publicationName;
-            this.relationName = relationName;
-            this.owner = owner;
-        }
-
-        public String owner() {
-            return owner;
-        }
+    public static record PublicatedTableRow(String publicationName,
+                                            RelationName relationName,
+                                            String owner) {
     }
 }

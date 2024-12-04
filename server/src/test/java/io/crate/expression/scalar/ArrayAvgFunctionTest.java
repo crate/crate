@@ -21,14 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -117,10 +114,8 @@ public class ArrayAvgFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_array_avg_with_array_of_undefined_inner_type_throws_exception() {
-        assertThatThrownBy(
-            () -> assertEvaluateNull("array_avg([])"))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_avg([]), no overload found for matching argument types: (undefined_array).");
+    public void test_average_of_empty_array_is_null() {
+        assertEvaluateNull("array_avg([])");
+        assertEvaluateNull("array_avg([]::int[])");
     }
 }

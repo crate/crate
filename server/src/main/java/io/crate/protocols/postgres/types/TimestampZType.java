@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -35,7 +34,7 @@ import io.crate.types.Regproc;
 
 final class TimestampZType extends BaseTimestampType {
 
-    public static final PGType INSTANCE = new TimestampZType();
+    public static final TimestampZType INSTANCE = new TimestampZType();
 
     private static final int OID = 1184;
     private static final String NAME = "timestamptz";
@@ -92,7 +91,7 @@ final class TimestampZType extends BaseTimestampType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Object value) {
+    byte[] encodeAsUTF8Text(@NotNull Long value) {
         long msecs = (long) value;
         if (msecs >= FIRST_MSEC_AFTER_CHRIST) {
             return ISO_FORMATTER.print(msecs).getBytes(StandardCharsets.UTF_8);
@@ -102,7 +101,7 @@ final class TimestampZType extends BaseTimestampType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes) {
         // Currently seems that only GoLang prepared statements are sent as TimestampType with time zone
         // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);

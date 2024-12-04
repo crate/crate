@@ -1,0 +1,68 @@
+.. _version_5.9.4:
+
+=============
+Version 5.9.4
+=============
+
+Released on 2024-11-27.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.9.4.
+
+    We recommend that you upgrade to the latest 5.8 release before moving to
+    5.9.4.
+
+    A rolling upgrade from 5.8.x to 5.9.4 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.9.0` release notes for a full list of changes in the
+5.9 series.
+
+Fixes
+=====
+
+- Fixed an issue leading to an error when running ``ANALYZE`` followed by a
+  correlated subquery with the Subquery being an ``INNER JOIN`` and a table on
+  the right side having more records than a table on the left side.
+
+- Fixed an ``ArrayIndexOutOfBoundsException`` that happened when using ``SET
+  LOCAL <settingName> TO DEFAULT``.
+
+- Fixed an issue that caused incorrect result when comparing values of type
+  ``geo_shape`` defined as object literals and one being a geometry collection
+  and another ``MultiPolygon`` or ``MultiPoint``. Example of the query
+  that used to return ``false`` instead of ``true``::
+
+      SELECT
+       {
+         type='MultiPoint',
+         coordinates=[[10, 40], [40, 30]]
+       }::GEO_SHAPE
+        =
+       {
+         type='GeometryCollection',
+         geometries=[{type='Point', coordinates=[10, 40]}, {type='Point', coordinates=[40, 30]}]
+       }::GEO_SHAPE;
+
+- Fixed an issue on the :ref:`PostgreSQL wire protocol <interface-postgresql>`
+  that may cause the node to crash with OutOfMemory exceptions when a client
+  sends a invalid (or huge) startup message.

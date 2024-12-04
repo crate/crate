@@ -21,17 +21,18 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.symbol.format.Style;
-import io.crate.types.BooleanType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
+import io.crate.expression.symbol.format.Style;
+import io.crate.types.BooleanType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class MatchPredicate implements Symbol {
 
@@ -65,6 +66,22 @@ public class MatchPredicate implements Symbol {
 
     public Symbol options() {
         return options;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (predicate.test(this) || queryTerm.any(predicate) || options.any(predicate)) {
+            return true;
+        }
+        for (var entry : identBoostMap.entrySet()) {
+            if (entry.getKey().any(predicate)) {
+                return true;
+            }
+            if (entry.getValue().any(predicate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

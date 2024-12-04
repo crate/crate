@@ -26,10 +26,10 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
@@ -73,6 +74,8 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.NumericType;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -99,7 +102,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                       "o object as (a object as (b object as (c int)))," +
                       "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
                       "\"myObj\" object as (x object as (\"AbC\" int))" +
-                      ")");
+                      ")")
+            .addTable("create table num (a numeric(4,2), b double)");
         expressions = new SqlExpressions(Collections.emptyMap());
     }
 
@@ -325,7 +329,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
         assertThatThrownBy(() -> executor.analyze("select * from tarr where xs = ANY([10, 20])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
+            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY([10, 20]))," +
                         " no overload found for matching argument types: (integer_array, integer_array).");
     }
 
@@ -406,6 +410,46 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_handle_large_integers() throws Exception {
+        String expression = "34533365386010436550";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
+    }
+
+    @Test
+    public void test_can_handle_large_float_numbers() throws Exception {
+        String expression = "34533365386010436550.1234";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        NumericType numericType = (NumericType) symbol.valueType();
+        assertThat(numericType.scale()).isEqualTo(4);
+        assertThat(numericType.numericPrecision()).isEqualTo(24);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
+    }
+
+    @Test
+    public void test_negative_scale_numeric_uses_double_type() throws Exception {
+        String expression = "1.79769313486231572014e+308";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(DoubleType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(Double.parseDouble(expression));
+    }
+
+    @Test
     public void test_partial_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
         assertThat(symbol).isReference().hasName("o['a']['b']['c']");
@@ -449,7 +493,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ArraySliceFunction.NAME,
             arg1 -> assertThat(arg1)
                     .isReference()
-                    .hasColumnIdent(new ColumnIdent("xs"))
+                    .hasColumnIdent(ColumnIdent.of("xs"))
                     .hasTableIdent(new RelationName("doc", "tarr"))
                 .hasType(DataTypes.INTEGER_ARRAY),
             arg2 -> assertThat(arg2).isLiteral(1),
@@ -504,5 +548,60 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 y -> assertThat(y).isReference().hasName("o_arr['o_arr_nested']['y']")
             )
         );
+    }
+
+    @Test
+    public void test_analyze_all_like_operator_variants() {
+        Symbol symbol = executor.asSymbol("t1.a like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a ILIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not like all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT LIKE ALL(['a', 'b', 'c']))");
+
+        symbol = executor.asSymbol("t1.a not ilike all(['a', 'b', 'c'])");
+        assertThat(symbol).isSQL("(doc.t1.a NOT ILIKE ALL(['a', 'b', 'c']))");
+    }
+
+    @Test
+    public void test_eq_operator_on_numeric_and_number_types() {
+        assertThat(executor.asSymbol("num.a = num.b")).isFunction(
+            EqOperator.NAME,
+            x -> assertThat(x).isReference().hasName("a"),
+            x -> assertThat(x).isFunction(
+                ImplicitCastFunction.NAME,
+                y -> assertThat(y).isReference().hasName("b"),
+                y -> assertThat(y).isLiteral("numeric") // implicit cast to 'numeric' NOT 'numeric(4,2)'
+            )
+        );
+    }
+
+    @Test
+    public void test_complex_order_by_expression() {
+        QueriedSelectRelation queriedSelectRelation = executor.analyze("""
+            SELECT LEFT(a, 1) = ANY(['hello']) AS txt_match
+            FROM t1
+            ORDER BY txt_match DESC;
+            """);
+        assertThat(queriedSelectRelation.orderBy().orderBySymbols()).hasSize(1);
+        Function orderBy = (Function) queriedSelectRelation.orderBy().orderBySymbols().getFirst();
+        assertThat(orderBy).isFunction(
+            AnyEqOperator.NAME,
+            x -> assertThat(x).isFunction(
+                "left",
+                y -> assertThat(y).isReference().hasName("a"),
+                y -> assertThat(y).isLiteral(1)
+            ),
+            x -> assertThat(x).isLiteral(List.of("hello"))
+        );
+    }
+
+    @Test
+    public void test_aliased_match_predicate_in_select_throws() {
+        assertThatThrownBy(() -> executor.analyze("select match(a, 'foo') as alias from t1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("match predicate cannot be selected");
     }
 }

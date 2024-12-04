@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -51,7 +52,7 @@ public final class SwapTableAnalyzer {
     public AnalyzedSwapTable analyze(SwapTable<Expression> swapTable,
                                      CoordinatorTxnCtx txnCtx,
                                      ParamTypeHints typeHints) {
-        HashMap<String, Expression> properties = new HashMap<>(swapTable.properties().properties());
+        Map<String, Expression> properties = swapTable.properties().toMap(HashMap::new);
         Expression dropSourceExpr = properties.remove(DROP_SOURCE);
         if (!properties.isEmpty()) {
             throw new IllegalArgumentException(

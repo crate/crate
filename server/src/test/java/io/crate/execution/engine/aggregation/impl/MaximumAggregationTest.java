@@ -30,6 +30,8 @@ import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
@@ -39,13 +41,13 @@ public class MaximumAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                "max",
-                argumentType.getTypeSignature(),
-                argumentType.getTypeSignature()
-            ),
-            data,
-            List.of()
+                Signature.builder("max", FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(argumentType.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
@@ -100,8 +102,13 @@ public class MaximumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_aggregate_min_long() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {Long.MIN_VALUE}});
-        assertThat(result).isEqualTo((Long.MIN_VALUE));
+        Object result = executeAggregation(
+            DataTypes.LONG,
+            new Object[][] {
+                {Long.MIN_VALUE + 1},
+                {Long.MIN_VALUE + 1}
+            });
+        assertThat(result).isEqualTo((Long.MIN_VALUE + 1));
     }
 
     @Test

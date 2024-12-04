@@ -21,11 +21,6 @@
 
 package io.crate.blob;
 
-import io.crate.blob.exceptions.DigestNotFoundException;
-import io.crate.common.Hex;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +35,12 @@ import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.crate.blob.exceptions.DigestNotFoundException;
+import io.crate.common.Hex;
 
 public class BlobContainer {
 
@@ -113,13 +114,14 @@ public class BlobContainer {
      */
     public byte[][] cleanAndReturnDigests(byte prefix) {
         int index = prefix & 0xFF;  // byte is signed and may be negative, convert to int to get correct index
-        String[] names = cleanDigests(subDirs[index].list(), index);
-        byte[][] digests = new byte[names.length][];
-        for (int i = 0; i < names.length; i++) {
+        List<String> names = cleanDigests(subDirs[index].list(), index);
+        byte[][] digests = new byte[names.size()][];
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
             try {
-                digests[i] = Hex.decodeHex(names[i]);
+                digests[i] = Hex.decodeHex(name);
             } catch (IllegalStateException ex) {
-                LOGGER.error("Can't convert string {} to byte array", names[i]);
+                LOGGER.error("Can't convert string {} to byte array", name);
                 throw ex;
             }
         }
@@ -130,9 +132,9 @@ public class BlobContainer {
      * delete all digests that have a .X suffix.
      * they are leftover files from a previous recovery that was interrupted
      */
-    private String[] cleanDigests(String[] names, int index) {
+    private List<String> cleanDigests(String[] names, int index) {
         if (names == null) {
-            return null;
+            List.of();
         }
         List<String> newNames = new ArrayList<>(names.length);
         for (String name : names) {
@@ -144,8 +146,7 @@ public class BlobContainer {
                 newNames.add(name);
             }
         }
-
-        return newNames.toArray(new String[newNames.size()]);
+        return newNames;
     }
 
     /**

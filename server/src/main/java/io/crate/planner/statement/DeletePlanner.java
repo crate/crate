@@ -31,16 +31,17 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.DeleteProjection;
@@ -52,13 +53,12 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -94,10 +94,7 @@ public final class DeletePlanner {
         Symbol query = detailedQuery.query();
         if (!detailedQuery.partitions().isEmpty()) {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols
-            var hasNonPartitionReferences = SymbolVisitors.any(
-                s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false,
-                query
-            );
+            var hasNonPartitionReferences = query.any(s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false);
             if (hasNonPartitionReferences == false) {
                 return new DeletePartitions(table.ident(), detailedQuery.partitions());
             }
@@ -107,7 +104,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(Lists.map(table.partitions(), IndexParts::toIndexName));
+            return new DeleteAllPartitions(Lists.map(table.getPartitionNames(context.clusterState().metadata()), PartitionName::asIndexName));
         }
 
         return new Delete(tableRel, detailedQuery);
@@ -141,11 +138,12 @@ public final class DeletePlanner {
                 params,
                 subQueryResults,
                 plannerContext.transactionContext(),
-                executor.nodeContext());
+                plannerContext.nodeContext(),
+                plannerContext.clusterState().metadata());
             if (!where.partitions().isEmpty()
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
-                request.indicesOptions(IndicesOptions.lenientExpandOpen());
+                request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
                 executor.client().execute(DeleteIndexAction.INSTANCE, request)
                     .whenComplete(new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
                 return;
@@ -159,10 +157,10 @@ public final class DeletePlanner {
         }
 
         @Override
-        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                         PlannerContext plannerContext,
-                                                         List<Row> bulkParams,
-                                                         SubQueryResults subQueryResults) {
+        public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                           PlannerContext plannerContext,
+                                                           List<Row> bulkParams,
+                                                           SubQueryResults subQueryResults) {
             ArrayList<NodeOperationTree> nodeOperationTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
                 WhereClause where = detailedQuery.toBoundWhereClause(
@@ -170,7 +168,8 @@ public final class DeletePlanner {
                     params,
                     subQueryResults,
                     plannerContext.transactionContext(),
-                    executor.nodeContext());
+                    executor.nodeContext(),
+                    plannerContext.clusterState().metadata());
                 ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
                 nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }
@@ -182,7 +181,7 @@ public final class DeletePlanner {
 
     private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
         var sessionSettings = context.transactionContext().sessionSettings();
         Routing routing = context.allocateRouting(

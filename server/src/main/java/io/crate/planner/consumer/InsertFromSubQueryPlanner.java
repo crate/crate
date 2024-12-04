@@ -46,8 +46,7 @@ public final class InsertFromSubQueryPlanner {
     public static final String RETURNING_VERSION_ERROR_MSG =
         "Returning clause for Insert is only supported when all nodes in the cluster running at least version 4.2.0";
 
-    private InsertFromSubQueryPlanner() {
-    }
+    private InsertFromSubQueryPlanner() {}
 
     public static LogicalPlan plan(AnalyzedInsertStatement statement,
                                    PlannerContext plannerContext,

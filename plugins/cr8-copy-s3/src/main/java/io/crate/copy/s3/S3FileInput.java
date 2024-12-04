@@ -29,7 +29,8 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.copy.s3.common.S3ClientHelper;
 import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.Globs;
+import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -58,7 +59,7 @@ public class S3FileInput implements FileInput {
     @Nullable
     private final S3URI preGlobUri;
     @NotNull
-    private final Predicate<S3URI> uriPredicate;
+    private final Predicate<String> uriPredicate;
     @Nullable
     private final String protocolSetting;
 
@@ -66,7 +67,7 @@ public class S3FileInput implements FileInput {
         this.clientBuilder = new S3ClientHelper();
         this.normalizedS3URI = S3URI.toS3URI(uri);
         this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
-        this.uriPredicate = new GlobPredicate(this.normalizedS3URI);
+        this.uriPredicate = new GlobPredicate(this.normalizedS3URI.toString());
         this.protocolSetting = protocol;
     }
 
@@ -75,7 +76,7 @@ public class S3FileInput implements FileInput {
         this.clientBuilder = clientBuilder;
         this.normalizedS3URI = S3URI.toS3URI(uri);
         this.preGlobUri = toPreGlobUri(this.normalizedS3URI);
-        this.uriPredicate = new GlobPredicate(this.normalizedS3URI);
+        this.uriPredicate = new GlobPredicate(this.normalizedS3URI.toString());
         this.protocolSetting = protocol;
     }
 
@@ -114,7 +115,7 @@ public class S3FileInput implements FileInput {
             String key = summary.getKey();
             if (!key.endsWith("/")) {
                 S3URI keyUri = preGlobUri.replacePath(summary.getBucketName(), key);
-                if (uriPredicate.test(keyUri)) {
+                if (uriPredicate.test(keyUri.toString())) {
                     uris.add(keyUri.uri());
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("{}", keyUri);
@@ -151,18 +152,5 @@ public class S3FileInput implements FileInput {
             preGlobUri = S3URI.toS3URI(URI.create(hasGlobMatcher.group(1)));
         }
         return preGlobUri;
-    }
-
-    private static class GlobPredicate implements Predicate<S3URI> {
-        private final Pattern globPattern;
-
-        GlobPredicate(S3URI uri) {
-            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(uri.toString()));
-        }
-
-        @Override
-        public boolean test(@Nullable S3URI input) {
-            return input != null && globPattern.matcher(input.toString()).matches();
-        }
     }
 }

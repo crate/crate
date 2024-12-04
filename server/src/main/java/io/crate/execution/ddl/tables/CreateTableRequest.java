@@ -26,13 +26,12 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,9 +43,11 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
 /**
  * Creates a table represented by an ES index or an ES template (partitioned table).
@@ -56,7 +57,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     // Fields required to add column(s), aligned with AddColumnRequest
     private final RelationName relationName;
-    private final List<Reference> colsToAdd;
+    private final List<Reference> columns;
     @Nullable
     private final String pkConstraintName;
     private final IntArrayList pKeyIndices;
@@ -65,78 +66,28 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     // Everything what's not covered by AddColumnRequest is added as a separate field.
     private final Settings settings;
     @Nullable
-    private final String routingColumn;
+    private final ColumnIdent routingColumn;
     private final ColumnPolicy tableColumnPolicy; // The only setting which is set as a "mapping" change (see TableParameter.mappings()), 'strict' by default.
-    private final List<List<String>> partitionedBy;
-
-    @Deprecated
-    private CreateIndexRequest createIndexRequest;
-    @Deprecated
-    private PutIndexTemplateRequest putIndexTemplateRequest;
+    private final List<ColumnIdent> partitionedBy;
 
     public CreateTableRequest(RelationName relationName,
                               @Nullable String pkConstraintName,
-                              List<Reference> colsToAdd,
+                              List<Reference> columns,
                               IntArrayList pKeyIndices,
                               Map<String, String> checkConstraints,
                               Settings settings,
-                              @Nullable String routingColumn,
+                              @Nullable ColumnIdent routingColumn,
                               ColumnPolicy tableColumnPolicy,
-                              List<List<String>> partitionedBy) {
+                              List<ColumnIdent> partitionedBy) {
         this.relationName = relationName;
         this.pkConstraintName = pkConstraintName;
-        this.colsToAdd = colsToAdd;
+        this.columns = columns;
         this.pKeyIndices = pKeyIndices;
         this.checkConstraints = checkConstraints;
         this.settings = settings;
         this.routingColumn = routingColumn;
         this.tableColumnPolicy = tableColumnPolicy;
         this.partitionedBy = partitionedBy;
-
-        this.createIndexRequest = null;
-        this.putIndexTemplateRequest = null;
-    }
-
-    @Deprecated
-    public CreateTableRequest(CreateIndexRequest createIndexRequest) {
-        this(RelationName.fromIndexName(createIndexRequest.index()),
-            null,
-            List.of(),
-            new IntArrayList(),
-            Map.of(),
-            Settings.EMPTY,
-            null,
-            ColumnPolicy.STRICT,
-            List.of()
-        );
-        this.createIndexRequest = createIndexRequest;
-        this.putIndexTemplateRequest = null;
-    }
-
-    @Deprecated
-    public CreateTableRequest(PutIndexTemplateRequest putIndexTemplateRequest) {
-        this(RelationName.fromIndexName(putIndexTemplateRequest.aliases().iterator().next().name()),
-            null,
-            List.of(),
-            new IntArrayList(),
-            Map.of(),
-            Settings.EMPTY,
-            null,
-            ColumnPolicy.STRICT,
-            List.of()
-        );
-        this.createIndexRequest = null;
-        this.putIndexTemplateRequest = putIndexTemplateRequest;
-    }
-
-    @Nullable
-    public CreateIndexRequest getCreateIndexRequest() {
-        return createIndexRequest;
-    }
-
-    @Nullable
-    public PutIndexTemplateRequest getPutIndexTemplateRequest() {
-        return putIndexTemplateRequest;
     }
 
     @NotNull
@@ -161,40 +112,33 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         } else {
             this.pkConstraintName = null;
         }
-        if (in.getVersion().onOrAfter(Version.V_5_4_0)) {
-            this.relationName = new RelationName(in);
-            this.checkConstraints = in.readMap(
-                LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
-            this.colsToAdd = in.readList(Reference::fromStream);
-            int numPKIndices = in.readVInt();
-            this.pKeyIndices = new IntArrayList(numPKIndices);
-            for (int i = 0; i < numPKIndices; i++) {
-                pKeyIndices.add(in.readVInt());
-            }
+        this.relationName = new RelationName(in);
+        this.checkConstraints = in.readMap(
+            LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
+        this.columns = in.readList(Reference::fromStream);
+        int numPKIndices = in.readVInt();
+        this.pKeyIndices = new IntArrayList(numPKIndices);
+        for (int i = 0; i < numPKIndices; i++) {
+            pKeyIndices.add(in.readVInt());
+        }
 
-            this.settings = readSettingsFromStream(in);
-            this.routingColumn = in.readOptionalString();
-            this.tableColumnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
-            this.partitionedBy = in.readList(StreamInput::readStringList);
-
-            createIndexRequest = null;
-            putIndexTemplateRequest = null;
+        this.settings = readSettingsFromStream(in);
+        boolean after510 = in.getVersion().onOrAfter(Version.V_5_10_0);
+        if (after510) {
+            this.routingColumn = in.readOptionalWriteable(ColumnIdent::of);
         } else {
-            if (in.readBoolean()) {
-                createIndexRequest = new CreateIndexRequest(in);
-                putIndexTemplateRequest = null;
-            } else {
-                putIndexTemplateRequest = new PutIndexTemplateRequest(in);
-                createIndexRequest = null;
+            this.routingColumn = ColumnIdent.fromPath(in.readOptionalString());
+        }
+        this.tableColumnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
+        if (after510) {
+            this.partitionedBy = in.readList(ColumnIdent::of);
+        } else {
+            // List of [fqn, typeMappingName]
+            List<List<String>> partitionedBy = in.readList(StreamInput::readStringList);
+            this.partitionedBy = new ArrayList<>(partitionedBy.size());
+            for (List<String> column : partitionedBy) {
+                this.partitionedBy.add(ColumnIdent.fromPath(column.get(0)));
             }
-            this.relationName = null;
-            this.colsToAdd = null;
-            this.pKeyIndices = null;
-            this.checkConstraints = null;
-            this.settings = null;
-            this.routingColumn = null;
-            this.tableColumnPolicy = null;
-            this.partitionedBy = null;
         }
     }
 
@@ -204,23 +148,32 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         if (out.getVersion().onOrAfter(Version.V_5_6_0)) {
             out.writeOptionalString(pkConstraintName);
         }
-        if (out.getVersion().onOrAfter(Version.V_5_4_0)) {
-            relationName.writeTo(out);
-            out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-            out.writeCollection(colsToAdd, Reference::toStream);
-            out.writeVInt(pKeyIndices.size());
-            for (int i = 0; i < pKeyIndices.size(); i++) {
-                out.writeVInt(pKeyIndices.get(i));
-            }
-            writeSettingsToStream(out, settings);
-            out.writeOptionalString(routingColumn);
-            out.writeVInt(tableColumnPolicy.ordinal());
-            out.writeCollection(partitionedBy, StreamOutput::writeStringCollection);
+        relationName.writeTo(out);
+        out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
+        out.writeCollection(columns, Reference::toStream);
+        out.writeVInt(pKeyIndices.size());
+        for (int i = 0; i < pKeyIndices.size(); i++) {
+            out.writeVInt(pKeyIndices.get(i));
+        }
+        writeSettingsToStream(out, settings);
+        boolean after510 = out.getVersion().onOrAfter(Version.V_5_10_0);
+        if (after510) {
+            out.writeOptionalWriteable(routingColumn);
         } else {
-            boolean isIndexRequest = createIndexRequest != null;
-            out.writeBoolean(isIndexRequest);
-            var request = isIndexRequest ? createIndexRequest : putIndexTemplateRequest;
-            request.writeTo(out);
+            out.writeOptionalString(routingColumn == null ? null : routingColumn.fqn());
+        }
+        out.writeVInt(tableColumnPolicy.ordinal());
+        if (after510) {
+            out.writeList(partitionedBy);
+        } else {
+            out.writeVInt(partitionedBy.size());
+            for (ColumnIdent column : partitionedBy) {
+                int refIdx = Reference.indexOf(columns, column);
+                Reference reference = columns.get(refIdx);
+                out.writeVInt(2);
+                out.writeString(column.fqn());
+                out.writeString(DataTypes.esMappingNameFrom(reference.valueType().id()));
+            }
         }
     }
 
@@ -230,7 +183,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     }
 
     @Nullable
-    public String routingColumn() {
+    public ColumnIdent routingColumn() {
         return routingColumn;
     }
 
@@ -240,7 +193,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     }
 
     @NotNull
-    public List<List<String>> partitionedBy() {
+    public List<ColumnIdent> partitionedBy() {
         return partitionedBy;
     }
 
@@ -251,7 +204,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     @NotNull
     public List<Reference> references() {
-        return this.colsToAdd;
+        return this.columns;
     }
 
     @NotNull

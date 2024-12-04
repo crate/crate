@@ -21,8 +21,8 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.InetAddress;
 import java.util.List;
@@ -47,19 +47,25 @@ public class AuthenticationContextTest extends ESTestCase {
     public void testAuthenticationContextCycle() throws Exception {
         String userName = "crate";
         char[] passwd = "passwd".toCharArray();
+        var credentials = new Credentials(userName, passwd);
         ConnectionProperties connProperties = new ConnectionProperties(
-            InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
+            credentials,
+            InetAddress.getByName("127.0.0.1"),
+            Protocol.POSTGRES,
+            null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
-            authMethod, connProperties, new Credentials(userName, null), LogManager.getLogger(AuthenticationContextTest.class));
+            authMethod, connProperties, new Credentials(userName, null),
+            LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
-        assertThat(authContext.authenticate(), is(Role.CRATE_USER));
-        assertThat(authContext.password().getChars(), is(passwd));
+        assertThat(authContext.authenticate()).isEqualTo(Role.CRATE_USER);
+        assertThat(authContext.password().getChars()).isEqualTo(passwd);
         authContext.close();
 
-        // once the authContext has been closed it must not been re-used for authenticating a user
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("SecureString has already been closed");
-        authContext.password().getChars();
+        // once the authContext has been closed it must not been re-used for
+        // authenticating a user
+        assertThatThrownBy(() -> authContext.password().getChars())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("SecureString has already been closed");
     }
 }

@@ -181,6 +181,12 @@ public class IntervalParserTest extends ESTestCase {
     }
 
     @Test
+    public void test_psql_format_ms_from_string() {
+        Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs 1 millisecond  ");
+        assertThat(period).isEqualTo(new Period().withYears(1).withMonths(1).withDays(1).withHours(1).withMinutes(1).withSeconds(1).withMillis(1));
+    }
+
+    @Test
     public void test_psql_verbose_format_from_string_with_ago() {
         Period period = IntervalParser.apply("  @ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago  ");
         assertThat(period).isEqualTo(
@@ -199,6 +205,14 @@ public class IntervalParserTest extends ESTestCase {
     @Test
     public void test_psql_verbose_format_from_string_with_negative_values_and_ago() {
         Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3.30 secs AGO");
+        assertThat(period).isEqualTo(
+            new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300)
+                .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_verbose_format_from_string_with_negative_values_millis_and_ago() {
+        Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3 secs -300 msecs AGO");
         assertThat(period).isEqualTo(
             new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300)
                 .withPeriodType(PeriodType.yearMonthDayTime()));
@@ -246,11 +260,17 @@ public class IntervalParserTest extends ESTestCase {
         assertThatThrownBy(() -> IntervalParser.apply("1 years 2 mons 3 days 2 years"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid interval format: 1 years 2 mons 3 days 2 years");
+        assertThatThrownBy(() -> IntervalParser.apply("5 millis 1 years 2 mons 3 days 2 ms"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 5 millis 1 years 2 mons 3 days 2 ms");
+        assertThatThrownBy(() -> IntervalParser.apply("1 years 2 mons 3 days 2.2 secs 2 ms"))
+            .isExactlyInstanceOf(IllegalArgumentException.class) // This throws b/c the 2.2 secs already includes the ms part. Postgres acts like this.
+            .hasMessage("Invalid interval format: 1 years 2 mons 3 days 2.2 secs 2 ms");
     }
 
     @Test
     public void test_normalization() {
-        var expected = new Period(1, 2, 0, 827, 4, 40, 43, 0)
+        var expected = new Period(1, 2, 0, 827, 4, 40, 43, 12)
             .withPeriodType(PeriodType.yearMonthDayTime());
 
 
@@ -261,6 +281,7 @@ public class IntervalParserTest extends ESTestCase {
         var hour = randomWhiteSpaces() + randomFrom("hour", "hours", "h");
         var minute = randomWhiteSpaces() + randomFrom("minute", "minutes", "min", "mins", "m");
         var second = randomWhiteSpaces() + randomFrom("second", "seconds", "sec", "secs", "s");
+        var millis = randomWhiteSpaces() + randomFrom("millisecond", "milliseconds", "msec", "msecs", "ms");
 
         year = randomBoolean() ? year : year.toUpperCase(Locale.ENGLISH);
         month = randomBoolean() ? month : month.toUpperCase(Locale.ENGLISH);
@@ -269,9 +290,10 @@ public class IntervalParserTest extends ESTestCase {
         hour = randomBoolean() ? hour : hour.toUpperCase(Locale.ENGLISH);
         minute = randomBoolean() ? minute : minute.toUpperCase(Locale.ENGLISH);
         second = randomBoolean() ? second : second.toUpperCase(Locale.ENGLISH);
+        millis = randomBoolean() ? millis : millis.toUpperCase(Locale.ENGLISH);
 
         assertThat(IntervalParser.apply("1" + year + " 2" + month + " 3" + week + " 763" + day + " 1024" + hour +
-                                        " 642" + minute + " 7123" + second)).isEqualTo(expected);
+                                        " 642" + minute + " 7123" + second + " 12" + millis)).isEqualTo(expected);
     }
 
     private static String randomWhiteSpaces() {

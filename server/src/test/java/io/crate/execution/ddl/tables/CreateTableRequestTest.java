@@ -23,17 +23,20 @@ package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -79,10 +82,6 @@ public class CreateTableRequestTest {
             null
         );
         List<Reference> refs = List.of(ref1, ref2, ref3, ref4);
-        List<String> partCol1 = List.of("part_col_1", DataTypes.esMappingNameFrom(DataTypes.STRING.id()));
-        List<String> partCol2 = List.of("part_col_2", DataTypes.esMappingNameFrom(DataTypes.INTEGER.id()));
-        List<List<String>> partitionedBy = List.of(partCol1, partCol2);
-
         CreateTableRequest request = new CreateTableRequest(
             rel,
             null,
@@ -90,24 +89,35 @@ public class CreateTableRequestTest {
             IntArrayList.from(3),
             Map.of("check1", "just_col > 0"),
             Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_0).build(),
-            "some_routing_col",
+            ColumnIdent.of("some_routing_col"),
             ColumnPolicy.DYNAMIC,
-            partitionedBy
+            List.of(ref1.column(), ref2.column())
         );
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
-        CreateTableRequest fromStream = new CreateTableRequest(out.bytes().streamInput());
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            request.writeTo(out);
+            CreateTableRequest fromStream = new CreateTableRequest(out.bytes().streamInput());
 
-        assertThat(fromStream.getTableName()).isEqualTo(request.getTableName());
-        assertThat(fromStream.references()).isEqualTo(request.references());
-        assertThat(fromStream.checkConstraints()).isEqualTo(request.checkConstraints());
-        assertThat(fromStream.pKeyIndices()).isEqualTo(request.pKeyIndices());
+            assertThat(fromStream.getTableName()).isEqualTo(request.getTableName());
+            assertThat(fromStream.references()).isEqualTo(request.references());
+            assertThat(fromStream.checkConstraints()).isEqualTo(request.checkConstraints());
+            assertThat(fromStream.pKeyIndices()).isEqualTo(request.pKeyIndices());
 
-        assertThat(fromStream.settings()).isEqualTo(request.settings());
-        assertThat(fromStream.routingColumn()).isEqualTo(request.routingColumn());
-        assertThat(fromStream.tableColumnPolicy()).isEqualTo(request.tableColumnPolicy());
-        assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+            assertThat(fromStream.settings()).isEqualTo(request.settings());
+            assertThat(fromStream.routingColumn()).isEqualTo(request.routingColumn());
+            assertThat(fromStream.tableColumnPolicy()).isEqualTo(request.tableColumnPolicy());
+            assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+        }
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_9_2);
+            request.writeTo(out);
+            StreamInput streamInput = out.bytes().streamInput();
+            streamInput.setVersion(Version.V_5_9_2);
+            CreateTableRequest fromStream = new CreateTableRequest(streamInput);
+            assertThat(fromStream.partitionedBy()).containsExactlyElementsOf(request.partitionedBy());
+        }
     }
 
     @Test
@@ -136,5 +146,35 @@ public class CreateTableRequestTest {
         in.setVersion(Version.V_5_5_0);
         actual = new CreateTableRequest(in);
         assertThat(actual.pkConstraintName()).isNull();
+    }
+
+    @Test
+    public void test_streaming_routing_59_bwc() throws Exception {
+        for (ColumnIdent routingColumn : Arrays.asList(null, ColumnIdent.of("foo", "bar"), ColumnIdent.of("foo"))) {
+            CreateTableRequest request = new CreateTableRequest(
+                new RelationName(null, "dummy"),
+                "pk_constraint",
+                List.of(),
+                new IntArrayList(),
+                Map.of(),
+                Settings.EMPTY,
+                routingColumn,
+                ColumnPolicy.DYNAMIC,
+                List.of()
+            );
+
+            BytesStreamOutput out = new BytesStreamOutput();
+            request.writeTo(out);
+            CreateTableRequest actual = new CreateTableRequest(out.bytes().streamInput());
+            assertThat(actual.routingColumn()).isEqualTo(routingColumn);
+
+            out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_9_0);
+            request.writeTo(out);
+            var in = out.bytes().streamInput();
+            in.setVersion(Version.V_5_9_0);
+            actual = new CreateTableRequest(in);
+            assertThat(actual.routingColumn()).isEqualTo(routingColumn);
+        }
     }
 }

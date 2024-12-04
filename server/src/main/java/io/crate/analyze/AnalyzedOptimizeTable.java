@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import java.util.Map;
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-
-import java.util.Map;
-import java.util.function.Consumer;
 
 public class AnalyzedOptimizeTable implements DDLStatement {
 
@@ -56,7 +56,7 @@ public class AnalyzedOptimizeTable implements DDLStatement {
                 partitionProperty.expressions().forEach(consumer);
             }
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

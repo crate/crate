@@ -29,25 +29,24 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-
-import io.crate.execution.dml.IndexItem;
-import org.elasticsearch.common.TriFunction;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.metadata.PartitionName;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements TriFunction<ShardedRequests<TReq, TItem>, Row, Boolean, TItem>,
@@ -226,16 +225,17 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
      * @throws IllegalStateException if a shardLocation still can't be resolved
      */
     void reResolveShardLocations(ShardedRequests<TReq, TItem> requests) {
-        Iterator<Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>>> entryIt =
-            requests.itemsByMissingIndex.entrySet().iterator();
+        Iterator<Map.Entry<PartitionName, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>>> entryIt =
+            requests.itemsByMissingPartition.entrySet().iterator();
         while (entryIt.hasNext()) {
-            Map.Entry<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>> e = entryIt.next();
+            Map.Entry<PartitionName, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>> e = entryIt.next();
             List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>> items = e.getValue();
             Iterator<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>> it = items.iterator();
             while (it.hasNext()) {
                 ShardedRequests.ItemAndRoutingAndSourceInfo<TItem> itemAndRoutingAndSourceInfo = it.next();
+                PartitionName partition = e.getKey();
                 ShardLocation shardLocation =
-                    getShardLocation(e.getKey(), itemAndRoutingAndSourceInfo.item.id(), itemAndRoutingAndSourceInfo.routing);
+                    getShardLocation(partition.asIndexName(), itemAndRoutingAndSourceInfo.item.id(), itemAndRoutingAndSourceInfo.routing);
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }

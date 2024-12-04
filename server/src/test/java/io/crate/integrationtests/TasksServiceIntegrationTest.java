@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -60,7 +60,7 @@ public class TasksServiceIntegrationTest extends IntegTestCase {
             new Object[]{1, -7L},
             new Object[]{2, 3L},
         });
-        refresh();
+        execute("refresh table upserts");
 
         // upsert-by-id (UpsertByIdContext is created)
         execute("update upserts set d = 5 where id = 1");

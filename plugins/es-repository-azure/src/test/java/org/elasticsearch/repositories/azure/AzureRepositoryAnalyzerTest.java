@@ -50,7 +50,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         repositoryParamValidator = new RepositoryParamValidator(
             Map.of("azure", new TypeSettings(AzureRepository.mandatorySettings(), AzureRepository.optionalSettings()))
         );
@@ -72,14 +72,6 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
         } else {
             throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
         }
-    }
-
-    @Test
-    public void testCreateAzureRepoWithMissingMandatorySettings() {
-        assertThatThrownBy(
-            () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')"))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("The following required parameters are missing to create a repository of type \"azure\": [key]");
     }
 
     @Test

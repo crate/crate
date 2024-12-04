@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -42,6 +42,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.legacy.LegacySettings;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -65,12 +66,12 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
             LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(settings) ? LEGACY_ROW_TYPE : ROW_TYPE;
 
         builder.add(
-            Signature.table(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
+                .build(),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,
@@ -78,13 +79,13 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
             )
         );
         builder.add(
-            Signature.table(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
+                .build(),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,

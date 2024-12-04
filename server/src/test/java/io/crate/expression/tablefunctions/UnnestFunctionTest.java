@@ -21,8 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -98,7 +97,6 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
             function
         );
         assertThat(
-            functionImplementation.boundSignature().returnType().getTypeParameters(),
-            is(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT)));
+            functionImplementation.boundSignature().returnType().getTypeParameters()).isEqualTo(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT));
     }
 }

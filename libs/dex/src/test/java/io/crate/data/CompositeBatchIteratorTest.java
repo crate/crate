@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -59,7 +60,7 @@ class CompositeBatchIteratorTest {
         var tester = BatchIteratorTester.forRows(
             () -> CompositeBatchIterator.seqComposite(
                 TestingBatchIterators.range(0, 5),
-                TestingBatchIterators.range(5, 10))
+                TestingBatchIterators.range(5, 10)), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
@@ -82,7 +83,7 @@ class CompositeBatchIteratorTest {
             () -> CompositeBatchIterator.seqComposite(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null),
                 TestingBatchIterators.range(5, 10)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

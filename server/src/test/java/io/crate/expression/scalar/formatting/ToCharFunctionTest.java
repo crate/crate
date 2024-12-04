@@ -63,6 +63,15 @@ public class ToCharFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_evaluate_interval_milliseconds() {
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds 1000 milliseconds', 'YYYY MM DD HH12:MI:SS')", "0001 03 22 05:06:08");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds 334 milliseconds', 'YYYY MM DD HH12:MI:SS')", "0001 03 22 05:06:07");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds 1000 milliseconds', 'YYYY MM DD HH12:MI:SS.MS')", "0001 03 22 05:06:08.000");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds 334 milliseconds', 'YYYY MM DD HH12:MI:SS.MS')", "0001 03 22 05:06:07.334");
+        assertEvaluate("to_char(INTERVAL '1 year 2 months 3 weeks 5 hours 6 minutes 7 seconds 1334 milliseconds', 'YYYY MM DD HH12:MI:SS.MS')", "0001 03 22 05:06:08.334");
+    }
+
+    @Test
     public void testEvaluateIntervalWithNullPattern() {
         assertEvaluateNull("to_char(timestamp '1970-01-01T17:31:12', null)");
     }

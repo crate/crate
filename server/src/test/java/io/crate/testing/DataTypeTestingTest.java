@@ -30,7 +30,7 @@ public class DataTypeTestingTest extends ESTestCase {
 
     @Test
     public void testDataGeneratorReturnValidValues() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             type.sanitizeValue(DataTypeTesting.getDataGenerator(type).get());
         }
     }

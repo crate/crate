@@ -53,10 +53,12 @@ import io.crate.data.SkippingBatchIterator;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.execution.engine.collect.RowCollectExpression;
-import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
+import io.crate.execution.engine.join.HashJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -85,11 +87,12 @@ public class RowsBatchIteratorBenchmark {
             .toList();
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         lastValueIntFunction = (WindowFunction) functions.getQualified(
-            Signature.window(
-                LAST_VALUE_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(LAST_VALUE_NAME, FunctionType.WINDOW)
+                .argumentTypes(TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
         );
@@ -153,7 +156,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,
@@ -161,7 +164,8 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            ignored -> 1000
+            ignored -> 1000,
+            false
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -170,7 +174,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
-        BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
+        BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,
@@ -183,7 +187,8 @@ public class RowsBatchIteratorBenchmark {
                 return value < 500 ? value : (value % 100) + 500;
             },
             row -> (Integer) row.get(0) % 500,
-            ignored -> 1000
+            ignored -> 1000,
+            false
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -195,6 +200,7 @@ public class RowsBatchIteratorBenchmark {
         RowCollectExpression input = new RowCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL, false),
+            ignored -> {},
             new NoRowAccounting<>(),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,

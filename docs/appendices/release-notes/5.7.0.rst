@@ -97,7 +97,7 @@ Performance and Resilience Improvements
 
       SET optimizer_equi_join_to_lookup_join = false
 
-    Note that this setting is experimental, and may change in the future.
+  Note that this setting is experimental, and may change in the future.
 
 - Improved the performance of the :ref:`analyze` statement. CrateDB now uses much
   less memory when collecting column statistics.

@@ -21,14 +21,15 @@
 
 package io.crate.statistics;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import io.crate.metadata.RelationName;
 
 public final class PublishTableStatsRequest extends TransportRequest {
 
@@ -40,7 +41,7 @@ public final class PublishTableStatsRequest extends TransportRequest {
 
     public PublishTableStatsRequest(StreamInput in) throws IOException {
         int numRelations = in.readVInt();
-        statsByRelation = new HashMap<>();
+        statsByRelation = HashMap.newHashMap(numRelations);
         for (int i = 0; i < numRelations; i++) {
             statsByRelation.put(new RelationName(in), new Stats(in));
         }

@@ -21,19 +21,16 @@
 
 package io.crate.testing;
 
-import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.session.Session.UNNAMED;
+import static io.crate.types.ResultSetParser.getObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -63,46 +60,37 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.util.PGobject;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.auth.Protocol;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
-import io.crate.protocols.postgres.types.PGArray;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.role.Role;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.ResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.crate.types.JsonType;
 
 public class SQLTransportExecutor {
 
@@ -147,11 +135,11 @@ public class SQLTransportExecutor {
         return executeTransportOrJdbc(EXECUTION_FEATURES_DISABLED, statement, params, REQUEST_TIMEOUT);
     }
 
-    public long[] execBulk(String statement, @Nullable Object[][] bulkArgs) {
+    public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
         return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
     }
 
-    public long[] execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
+    public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
@@ -211,7 +199,7 @@ public class SQLTransportExecutor {
             sessionList.addAll(buildRandomizedRuleSessionSettings(
                 random,
                 config.amountOfRulesToDisable(),
-                LoadedRules.RULES,
+                LoadedRules.INSTANCE.rules(),
                 config.rulesToKeep()));
         }
 
@@ -261,13 +249,15 @@ public class SQLTransportExecutor {
 
     public Session newSession() {
         return clientProvider.sqlOperations().newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null),
             searchPath.currentSchema(),
             Role.CRATE_USER
         );
     }
 
     public SQLResponse executeAs(String stmt, Role user) {
-        try (Session session = clientProvider.sqlOperations().newSession(null, user)) {
+        try (Session session = clientProvider.sqlOperations()
+            .newSession(new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
     }
@@ -317,22 +307,22 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<long[]> listener) {
+    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<BulkResponse> listener) {
         if (bulkArgs != null && bulkArgs.length == 0) {
-            listener.onResponse(new long[0]);
+            listener.onResponse(new BulkResponse(0));
             return;
         }
         Session session = newSession();
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
-            final long[] rowCounts = bulkArgs == null ? new long[0] : new long[bulkArgs.length];
+            var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
             if (bulkArgs == null) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
                 session.execute(UNNAMED, 0, new BaseResultReceiver());
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                    ResultReceiver<?> resultReceiver = new BulkRowCountReceiver(rowCounts, i);
+                    ResultReceiver<?> resultReceiver = new BulkRowCountReceiver(bulkResponse, i);
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
@@ -343,7 +333,7 @@ public class SQLTransportExecutor {
             }
             session.sync().whenComplete((Object result, Throwable t) -> {
                 if (t == null) {
-                    listener.onResponse(rowCounts);
+                    listener.onResponse(bulkResponse);
                 } else {
                     listener.onFailure(Exceptions.toException(t));
                 }
@@ -433,6 +423,10 @@ public class SQLTransportExecutor {
             DataType<?>[] dataTypes = new DataType[metadata.getColumnCount()];
             for (int i = 0; i < metadata.getColumnCount(); i++) {
                 columnNames.add(metadata.getColumnName(i + 1));
+                String columnTypeName = metadata.getColumnTypeName(i + 1);
+                dataTypes[i] = columnTypeName.startsWith("_")
+                    ? new ArrayType<>(getDataType(columnTypeName.substring(1)))
+                    : getDataType(columnTypeName);
             }
             while (resultSet.next()) {
                 Object[] row = new Object[metadata.getColumnCount()];
@@ -440,6 +434,13 @@ public class SQLTransportExecutor {
                     Object value;
                     String typeName = metadata.getColumnTypeName(i + 1);
                     value = getObject(resultSet, i, typeName);
+                    if (typeName.equals("char") && value != null) {
+                        // ResultSetParser is dedicated to deal with Postgres specific "char" type which can be single ASCII character.
+                        // This code is also used in tests to get results via JDBC which is not necessarily bound to PG logic.
+                        // Hence, cancel PG specific logic here.
+                        assert value instanceof String;
+                        value = Byte.parseByte((String) value);
+                    }
                     row[i] = value;
                 }
                 rows.add(row);
@@ -469,120 +470,26 @@ public class SQLTransportExecutor {
     }
 
     /**
-     * retrieve the same type of object from the resultSet as the CrateClient would return
+     * Map type name from jdbc response (metadata) to a DataType
+     * This roughly follows {@link PGTypes}
      */
-    private static Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
-        Object value;
-        int columnIndex = i + 1;
-        switch (typeName) {
-            // need to use explicit `get<Type>` for some because getObject would return a wrong type.
-            // E.g. int2 would return Integer instead of short.
-            case "int2":
-                Integer intValue = (Integer) resultSet.getObject(columnIndex);
-                if (intValue == null) {
-                    return null;
-                }
-                value = intValue.shortValue();
-                break;
-            case "_char": {
-                Array array = resultSet.getArray(columnIndex);
-                if (array == null) {
-                    return null;
-                }
-                ArrayList<Byte> elements = new ArrayList<>();
-                for (Object o : ((Object[]) array.getArray())) {
-                    elements.add(Byte.parseByte((String) o));
-                }
-                return elements;
-            }
-            case "oidvector": {
-                String textval = resultSet.getString(columnIndex);
-                if (textval == null) {
-                    return null;
-                }
-                return PgOidVectorType.listFromOidVectorString(textval);
-            }
-            case "char":
-                String strValue = resultSet.getString(columnIndex);
-                if (strValue == null) {
-                    return null;
-                }
-                return Byte.valueOf(strValue);
-            case "byte":
-                value = resultSet.getByte(columnIndex);
-                break;
-            case "_json": {
-                Array array = resultSet.getArray(columnIndex);
-                if (array == null) {
-                    return null;
-                }
-                ArrayList<Object> jsonObjects = new ArrayList<>();
-                for (Object item : (Object[]) array.getArray()) {
-                    jsonObjects.add(jsonToObject((String) item));
-                }
-                value = jsonObjects;
-                break;
-            }
-            case "json":
-                String json = resultSet.getString(columnIndex);
-                value = jsonToObject(json);
-                break;
-            case "point":
-                PGpoint pGpoint = resultSet.getObject(columnIndex, PGpoint.class);
-                value = new PointImpl(pGpoint.x, pGpoint.y, JtsSpatialContext.GEO);
-                break;
-            case "record":
-                value = resultSet.getObject(columnIndex, PGobject.class).getValue();
-                break;
-            case "_bit":
-                String pgBitStringArray = resultSet.getString(columnIndex);
-                if (pgBitStringArray == null) {
-                    return null;
-                }
-                byte[] bytes = pgBitStringArray.getBytes(StandardCharsets.UTF_8);
-                ByteBuf buf = Unpooled.wrappedBuffer(bytes);
-                value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length);
-                buf.release();
-                break;
-
-            default:
-                value = resultSet.getObject(columnIndex);
-                break;
-        }
-        if (value instanceof Timestamp) {
-            value = ((Timestamp) value).getTime();
-        } else if (value instanceof Array) {
-            value = Arrays.asList(((Object[]) ((Array) value).getArray()));
-        }
-        return value;
-    }
-
-    private static Object jsonToObject(String json) {
-        try {
-            if (json != null) {
-                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-                    NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
-                if (bytes.length >= 1 && bytes[0] == '[') {
-                    parser.nextToken();
-                    return parser.list();
-                } else {
-                    return parser.mapOrdered();
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    private static DataType<?> getDataType(String pgTypeName) {
+        DataType<?> dataType = switch (pgTypeName) {
+            case "int2" -> DataTypes.SHORT;
+            case "int4" -> DataTypes.INTEGER;
+            case "int8" -> DataTypes.LONG;
+            case "json" -> JsonType.INSTANCE;
+            default -> DataTypes.UNDEFINED;
+        };
+        return dataType;
     }
 
     /**
      * @return an array with the rowCounts
      */
-    private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    private BulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            FutureActionListener<long[]> listener = new FutureActionListener<>();
+            FutureActionListener<BulkResponse> listener = new FutureActionListener<>();
             execute(stmt, bulkArgs, listener);
             var future = listener.exceptionally(err -> {
                 Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
@@ -685,7 +592,7 @@ public class SQLTransportExecutor {
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
                 Symbol field = outputFields.get(i);
-                outputNames[i] = Symbols.pathFromSymbol(field).sqlFqn();
+                outputNames[i] = field.toColumn().sqlFqn();
                 outputTypes[i] = field.valueType();
             }
 
@@ -745,28 +652,31 @@ public class SQLTransportExecutor {
     private static class BulkRowCountReceiver extends BaseResultReceiver {
 
         private final int resultIdx;
-        private final long[] rowCounts;
-        private long rowCount;
+        private final BulkResponse bulkResponse;
 
-        BulkRowCountReceiver(long[] rowCounts, int resultIdx) {
-            this.rowCounts = rowCounts;
+        BulkRowCountReceiver(BulkResponse bulkResponse, int resultIdx) {
+            this.bulkResponse = bulkResponse;
             this.resultIdx = resultIdx;
         }
 
         @Override
         public void setNextRow(Row row) {
-            rowCount = (long) row.get(0);
+            long rowCount = (long) row.get(0);
+            Throwable failure = null;
+            // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
+            if (bulkResponse.size() > 1) {
+                failure = (Throwable) row.get(1);
+            }
+            bulkResponse.update(resultIdx, rowCount, failure);
         }
 
         @Override
         public void allFinished() {
-            rowCounts[resultIdx] = rowCount;
             super.allFinished();
         }
 
         @Override
         public void fail(@NotNull Throwable t) {
-            rowCounts[resultIdx] = Row1.ERROR;
             super.fail(t);
         }
     }

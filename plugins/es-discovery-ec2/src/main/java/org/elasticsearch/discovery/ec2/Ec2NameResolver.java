@@ -19,12 +19,6 @@
 
 package org.elasticsearch.discovery.ec2;
 
-import io.crate.common.SuppressForbidden;
-import io.crate.common.io.IOUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.network.NetworkService.CustomNameResolver;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +27,14 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.NetworkService.CustomNameResolver;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.io.IOUtils;
 
 /**
  * Resolves certain ec2 related 'meta' hostnames into an actual hostname
@@ -87,7 +89,7 @@ class Ec2NameResolver implements CustomNameResolver {
      * @see CustomNameResolver#resolveIfPossible(String)
      */
     @SuppressForbidden(reason = "We call getInputStream in doPrivileged and provide SocketPermission")
-    public InetAddress[] resolve(Ec2HostnameType type) throws IOException {
+    public List<InetAddress> resolve(Ec2HostnameType type) throws IOException {
         InputStream in = null;
         String metadataUrl = AwsEc2ServiceImpl.EC2_METADATA_URL + type.ec2Name;
         try {
@@ -102,7 +104,7 @@ class Ec2NameResolver implements CustomNameResolver {
                     throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
                 }
                 // only one address: because we explicitly ask for only one via the Ec2HostnameType
-                return new InetAddress[]{InetAddress.getByName(metadataResult)};
+                return List.of(InetAddress.getByName(metadataResult));
             }
         } catch (IOException e) {
             throw new IOException("IOException caught when fetching InetAddress from [" + metadataUrl + "]", e);
@@ -112,12 +114,12 @@ class Ec2NameResolver implements CustomNameResolver {
     }
 
     @Override
-    public InetAddress[] resolveDefault() {
+    public List<InetAddress> resolveDefault() {
         return null; // using this, one has to explicitly specify _ec2_ in network setting
     }
 
     @Override
-    public InetAddress[] resolveIfPossible(String value) throws IOException {
+    public List<InetAddress> resolveIfPossible(String value) throws IOException {
         for (Ec2HostnameType type : Ec2HostnameType.values()) {
             if (type.configName.equals(value)) {
                 return resolve(type);

@@ -31,11 +31,10 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
@@ -54,12 +53,10 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             req.checkConstraints());
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
 
     @Inject
     public TransportAddColumnAction(TransportService transportService,
                                     ClusterService clusterService,
-                                    IndicesService indicesService,
                                     ThreadPool threadPool,
                                     NodeContext nodeContext) {
         super(ACTION_NAME,
@@ -71,17 +68,11 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             AcknowledgedResponse::new,
             "add-column");
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
     }
 
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AlterTableTask<>(
-            nodeContext,
-            indicesService::createIndexMapperService,
-            request.relationName(),
-            ADD_COLUMN_OPERATOR
-        );
+        return new AlterTableTask<>(nodeContext, request.relationName(), ADD_COLUMN_OPERATOR);
     }
 
 

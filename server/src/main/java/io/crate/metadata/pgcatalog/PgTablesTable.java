@@ -21,12 +21,12 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.table.TableInfo;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.BOOLEAN;
+import io.crate.metadata.table.TableInfo;
 
 public final class PgTablesTable {
 
@@ -35,16 +35,14 @@ public final class PgTablesTable {
 
     private PgTablesTable() {}
 
-    public static SystemTable<TableInfo> create() {
-        return SystemTable.<TableInfo>builder(IDENT)
-            .add("schemaname", STRING, r -> r.ident().schema())
-            .add("tablename", STRING, r -> r.ident().name())
-            .add("tableowner", STRING, r -> null)
-            .add("tablespace", STRING, r -> null)
-            .add("hasindexes", BOOLEAN, r -> false)
-            .add("hasrules", BOOLEAN, r -> false)
-            .add("hastriggers", BOOLEAN, r -> false)
-            .add("rowsecurity", BOOLEAN, r -> false)
-            .build();
-    }
+    public static SystemTable<TableInfo> INSTANCE = SystemTable.<TableInfo>builder(IDENT)
+        .add("schemaname", STRING, r -> r.ident().schema())
+        .add("tablename", STRING, r -> r.ident().name())
+        .add("tableowner", STRING, r -> null)
+        .add("tablespace", STRING, r -> null)
+        .add("hasindexes", BOOLEAN, r -> false)
+        .add("hasrules", BOOLEAN, r -> false)
+        .add("hastriggers", BOOLEAN, r -> false)
+        .add("rowsecurity", BOOLEAN, r -> false)
+        .build();
 }

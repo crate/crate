@@ -48,17 +48,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -70,6 +66,10 @@ import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
+import io.crate.session.DescribeResult;
+import io.crate.session.ResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -78,6 +78,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.ssl.SslContext;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -196,8 +197,8 @@ public class PostgresWireProtocol {
     private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
 
-    public static int SERVER_VERSION_NUM = 140000;
-    public static String PG_SERVER_VERSION = "14.0";
+    public static final int SERVER_VERSION_NUM = 140000;
+    public static final String PG_SERVER_VERSION = "14.0";
 
     final PgDecoder decoder;
     final MessageHandler handler;
@@ -257,7 +258,7 @@ public class PostgresWireProtocol {
             }
             String value = readCString(buffer);
             LOGGER.trace("payload: key={} value={}", key, value);
-            if (!"".equals(key) && !"".equals(value)) {
+            if (!key.isEmpty() && !"".equals(value)) {
                 properties.setProperty(key, value);
             }
         }
@@ -385,13 +386,23 @@ public class PostgresWireProtocol {
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if (cause instanceof SocketException && cause.getMessage().equals("Connection reset")) {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable t) throws Exception {
+            if (t instanceof SocketException && t.getMessage().equals("Connection reset")) {
                 LOGGER.info("Connection reset. Client likely terminated connection");
-                closeSession();
+            } else if (t instanceof DecoderException) {
+                Messages.sendErrorResponse(
+                    channel,
+                    session == null
+                        ? AccessControl.DISABLED
+                        : getAccessControl.apply(session.sessionSettings()),
+                    t.getCause(),
+                    PGError.Severity.FATAL
+                );
             } else {
-                LOGGER.error("Uncaught exception: ", cause);
+                LOGGER.error("Uncaught exception: ", t);
             }
+            closeSession();
+            ctx.channel().close();
         }
 
         @Override
@@ -413,7 +424,8 @@ public class PostgresWireProtocol {
         InetAddress address = Netty4HttpServerTransport.getRemoteAddress(channel);
 
         SSLSession sslSession = getSession(channel);
-        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslSession);
+        var credentials = new Credentials(userName, null);
+        ConnectionProperties connProperties = new ConnectionProperties(credentials, address, Protocol.POSTGRES, sslSession);
 
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, connProperties);
         if (authMethod == null) {
@@ -427,7 +439,7 @@ public class PostgresWireProtocol {
             authContext = new AuthenticationContext(
                 authMethod,
                 connProperties,
-                new Credentials(userName, null),
+                credentials,
                 LOGGER
             );
             if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {
@@ -443,7 +455,7 @@ public class PostgresWireProtocol {
         try {
             Role authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sessions.newSession(database, authenticatedUser);
+            session = sessions.newSession(authContext.connectionProperties(), database, authenticatedUser);
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);
@@ -682,7 +694,7 @@ public class PostgresWireProtocol {
             Messages.sendEmptyQueryResponse(channel);
             return;
         }
-        List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
+        List<? extends DataType<?>> outputTypes = session.getOutputTypes(portalName);
 
         // .execute is going async and may execute the query in another thread-pool.
         // The results are later sent to the clients via the `ResultReceiver` created

@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -54,8 +53,7 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
             fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);
 
             assertThat(
-                StreamSupport.stream(jobsLogs.activeOperations().spliterator(), false).count(),
-                is(0L));
+                StreamSupport.stream(jobsLogs.activeOperations().spliterator(), false).count()).isEqualTo(0L);
         } finally {
             threadPoolExecutor.shutdown();
             threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);

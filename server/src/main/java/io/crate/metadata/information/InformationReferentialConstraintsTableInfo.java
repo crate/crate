@@ -32,22 +32,20 @@ public class InformationReferentialConstraintsTableInfo {
     public static final String NAME = "referential_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("constraint_catalog", STRING, ignored -> null)
-            .add("constraint_schema", STRING, ignored -> null)
-            .add("constraint_name", STRING, ignored -> null)
-            .add("unique_constraint_catalog", STRING, ignored -> null)
-            .add("unique_constraint_schema", STRING, ignored -> null)
-            .add("unique_constraint_name", STRING, ignored -> null)
-            .add("match_option", STRING, ignored -> null)
-            .add("update_rule", STRING, ignored -> null)
-            .add("delete_rule", STRING, ignored -> null)
-            .setPrimaryKeys(
-                new ColumnIdent("constraint_catalog"),
-                new ColumnIdent("constraint_schema"),
-                new ColumnIdent("constraint_name")
-            )
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("constraint_catalog", STRING, ignored -> null)
+        .add("constraint_schema", STRING, ignored -> null)
+        .add("constraint_name", STRING, ignored -> null)
+        .add("unique_constraint_catalog", STRING, ignored -> null)
+        .add("unique_constraint_schema", STRING, ignored -> null)
+        .add("unique_constraint_name", STRING, ignored -> null)
+        .add("match_option", STRING, ignored -> null)
+        .add("update_rule", STRING, ignored -> null)
+        .add("delete_rule", STRING, ignored -> null)
+        .setPrimaryKeys(
+            ColumnIdent.of("constraint_catalog"),
+            ColumnIdent.of("constraint_schema"),
+            ColumnIdent.of("constraint_name")
+        )
+        .build();
 }

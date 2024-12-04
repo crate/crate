@@ -23,102 +23,100 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.FloatVectorType;
 
 public class FloatVectorIndexer implements ValueIndexer<float[]> {
+
+    public static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setIndexOptions(IndexOptions.NONE);
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.freeze();
+    }
 
     final FieldType fieldType;
     private final String name;
     private final Reference ref;
 
-    public FloatVectorIndexer(Reference ref, @Nullable FieldType fieldType) {
-        if (fieldType == null) {
-            fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
-            fieldType.setVectorAttributes(
-                ref.valueType().characterMaximumLength(),
-                VectorEncoding.FLOAT32,
-                FloatVectorType.SIMILARITY_FUNC
-            );
-        }
+    public FloatVectorIndexer(Reference ref) {
+        this.fieldType = new FieldType(FIELD_TYPE);
+        this.fieldType.setVectorAttributes(
+            ref.valueType().characterMaximumLength(),
+            VectorEncoding.FLOAT32,
+            FloatVectorType.SIMILARITY_FUNC
+        );
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType;
     }
 
     @Override
-    public void indexValue(float @Nullable [] values,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        if (values == null) {
-            return;
-        }
-        xcontentBuilder.startArray();
-        for (float value : values) {
-            xcontentBuilder.value(value);
-        }
-        xcontentBuilder.endArray();
-
+    public void indexValue(float @NotNull [] values, IndexDocumentBuilder docBuilder) throws IOException {
         createFields(
             name,
             fieldType,
             ref.indexType() != IndexType.NONE,
             ref.hasDocValues(),
+            ref.hasDocValues() == false && docBuilder.maybeAddStoredField(),
             values,
-            addField
+            docBuilder::addField
         );
         if (fieldType.stored()) {
             throw new UnsupportedOperationException("Cannot store float_vector as stored field");
         }
+        docBuilder.translogWriter().writeValue(values);
     }
 
     public static void createFields(String fqn,
                                     FieldType fieldType,
                                     boolean indexed,
                                     boolean hasDocValues,
+                                    boolean hasStoredField,
                                     float @NotNull [] values,
                                     Consumer<? super IndexableField> addField) {
         if (indexed) {
             addField.accept(new KnnFloatVectorField(fqn, values, fieldType));
         }
+
+        BytesRef byteRepresentation = null;
+        if (hasDocValues || hasStoredField) {
+            byte[] bytes = new byte[Float.BYTES * values.length];
+            ByteBuffer.wrap(bytes).asFloatBuffer().put(values);
+            byteRepresentation = new BytesRef(bytes);
+        }
+
         if (hasDocValues) {
-            int capacity = values.length * Float.BYTES;
-            ByteBuffer buffer = ByteBuffer.allocate(capacity).order(ByteOrder.BIG_ENDIAN);
-            for (float value : values) {
-                buffer.putFloat(value);
-            }
-            byte[] bytes = new byte[buffer.flip().limit()];
-            buffer.get(bytes);
-            var field = new BinaryDocValuesField(fqn, new BytesRef(bytes));
+            var field = new BinaryDocValuesField(fqn, byteRepresentation);
             addField.accept(field);
         } else {
+            if (hasStoredField) {
+                addField.accept(new StoredField(fqn, byteRepresentation));
+            }
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                SysColumns.FieldNames.NAME,
                 fqn,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                SysColumns.FieldNames.FIELD_TYPE));
         }
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

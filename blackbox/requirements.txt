@@ -5,7 +5,7 @@ crash>=0.25.0
 crate
 asyncpg>=0.27.0
 cr8>=0.19.1
-tqdm==4.24.0
+tqdm>=4.66.4
 pycodestyle==2.4.0
 zc.customdoctests==1.0.1
 minio>=5.0.0
@@ -14,9 +14,8 @@ minio>=5.0.0
 dnslib
 
 # Documentation
-sphinx>=4.6
+crate-docs-theme>=0.35.0
 sphinx-csv-filter==0.4.0
-crate-docs-theme>=0.30.0
 
 # Documentation: local development
-sphinx-autobuild>=2020.9.1
+sphinx-autobuild<2024

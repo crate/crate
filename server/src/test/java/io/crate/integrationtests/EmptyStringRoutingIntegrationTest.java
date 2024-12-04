@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Paths;
 
@@ -52,10 +51,10 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, c) values (1, '')");
         execute("insert into t (i, c) values (2, '')");
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][1]).isEqualTo(2L);
     }
 
     @Test
@@ -63,10 +62,10 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (1, ''), (2, '')");
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][1]).isEqualTo(2L);
     }
 
     @Test
@@ -75,11 +74,10 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, c) values (?, ?)", new Object[]{1, ""});
         execute("insert into t (i, c) values (?, ?)", new Object[]{2, ""});
-        ;
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][1]).isEqualTo(2L);
     }
 
     @Test
@@ -87,10 +85,10 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (?, ?)", new Object[][]{{1, ""}, {2, ""}});
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][1]).isEqualTo(2L);
     }
 
     @Test
@@ -102,12 +100,12 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
 
         execute("insert into t (i, c) values (1, '')");
         execute("select i from t where i=1 and c=''");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("update t set a=5 where i=1 and c=''");
         execute("select a from t where i=1 and c=''");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((int) response.rows()[0][0], is(5));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((int) response.rows()[0][0]).isEqualTo(5);
     }
 
     @Test
@@ -115,20 +113,20 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key, a int) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (1, ''), (2, '')");
-        refresh();
+        execute("refresh table t");
 
         String uri = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("delete from t");
-        refresh();
+        execute("refresh table t");
 
         execute("copy t from ? with (shared=true)", new Object[]{uri + "t_*"});
-        refresh();
+        execute("refresh table t");
         response = execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((long) response.rows()[0][1]).isEqualTo(2L);
 
     }
 }

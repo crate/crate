@@ -30,8 +30,8 @@ import org.junit.Test;
 public class IntervalTypeTest extends DataTypeTestCase<Period> {
 
     @Override
-    public DataType<Period> getType() {
-        return IntervalType.INSTANCE;
+    protected DataDef<Period> getDataDef() {
+        return DataDef.fromType(IntervalType.INSTANCE);
     }
 
     @Test

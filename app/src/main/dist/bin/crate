@@ -146,6 +146,9 @@ fi
 # Disables explicit GC
 JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
 
+# Prevent denial of service attacks via SSL renegotiation
+JAVA_OPTS="$JAVA_OPTS -Djdk.tls.rejectClientInitiatedRenegotiation=true"
+
 # Ensure UTF-8 encoding by default (e.g. filenames)
 JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
 
@@ -157,6 +160,9 @@ JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=tru
 
 # Disable netty recycler
 JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
+
+# Lucene uses native access and vector module
+JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
 
 # Dump heap on OOM
 JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"

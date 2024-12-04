@@ -24,96 +24,80 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
-import io.crate.expression.symbol.Symbol;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.ShortType;
 import io.crate.types.StorageSupport;
-import io.crate.types.UndefinedType;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
-    private final Function<String, FieldType> getFieldType;
-    private Function<ColumnIdent, Reference> getRef;
+    private final Function<ColumnIdent, Reference> getRef;
     private final int position;
+    private final boolean useOids;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
-    @Nullable
-    private final String storageIdentPrefixForEmptyArrays;
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
-                          Function<String, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef,
-                          @Nullable String storageIdentPrefixForEmptyArrays) {
+                          boolean useOids) {
         this.refIdent = refIdent;
-        this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.position = position;
-        this.storageIdentPrefixForEmptyArrays = storageIdentPrefixForEmptyArrays;
+        this.useOids = useOids;
+    }
+
+    /**
+     * Create a new Reference based on a dynamically detected type
+     */
+    public static Reference buildReference(ReferenceIdent refIdent, DataType<?> type, int position, long oid) {
+        throwOnNestedArray(type);
+        StorageSupport<?> storageSupport = type.storageSupport();
+        if (storageSupport == null) {
+            throw new IllegalArgumentException(
+                "Cannot create columns of type " + type.getName() + " dynamically. " +
+                    "Storage is not supported for this type");
+        }
+        return new SimpleReference(
+            refIdent,
+            RowGranularity.DOC,
+            type,
+            IndexType.PLAIN,
+            true,
+            storageSupport.docValuesDefault(),
+            position,
+            oid,
+            false,
+            null
+        );
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public void collectSchemaUpdates(Object value,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                                     Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
-            DynamicIndexer.throwOnNestedArray(type);
+            Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
             StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                if (handleEmptyArray(type, value, null, null)) {
-                    type = null; // guess type again with next value
-                    return;
-                }
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                    "Storage is not supported for this type");
-            }
-            boolean nullable = true;
-            Symbol defaultExpression = null;
-            Reference newColumn = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                type,
-                ColumnPolicy.DYNAMIC,
-                IndexType.PLAIN,
-                nullable,
-                storageSupport.docValuesDefault(),
-                position,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                defaultExpression
-            );
+            assert storageSupport != null; // will have already thrown in buildReference
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
-                getFieldType,
                 getRef
             );
             onDynamicColumn.accept(newColumn);
@@ -127,12 +111,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    public void indexValue(Object value,
-                           String storageIdentLeafName,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
             // except the case with array of nulls
@@ -140,89 +119,28 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
-            var emptyArrayStorageIdent = storageIdentLeafName;
-            if (storageIdentPrefixForEmptyArrays != null) {
-                emptyArrayStorageIdent = storageIdentPrefixForEmptyArrays + storageIdentLeafName;
-            }
-            if (handleEmptyArray(type, value, emptyArrayStorageIdent, xcontentBuilder)) {
-                type = null; // guess type again with next value
-                return;
-            }
             throw new IllegalArgumentException(
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        if (storageIdentLeafName != null) {
-            xcontentBuilder.field(storageIdentLeafName);
-        }
-        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void indexValue(Object value,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        StorageSupport<?> storageSupport = type.storageSupport();
-        boolean nullable = true;
-        Symbol defaultExpression = null;
-        Reference newColumn = new SimpleReference(
-            refIdent,
-            RowGranularity.DOC,
-            type,
-            ColumnPolicy.DYNAMIC,
-            IndexType.PLAIN,
-            nullable,
-            storageSupport.docValuesDefault(),
-            position,
-            COLUMN_OID_UNASSIGNED,
-            false,
-            defaultExpression
-        );
+        Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
         if (indexer == null) {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.
             // Phase 2 must be aware of all mapping updates.
-            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
-                refIdent.tableIdent(),
-                newColumn,
-                getFieldType,
-                getRef
-            );
+            // noinspection unchecked
+            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(refIdent.tableIdent(), newColumn, getRef);
         }
         value = type.sanitizeValue(value);
-        indexer.indexValue(
-            value,
-            xcontentBuilder,
-            addField,
-            synthetics,
-            toValidate
-        );
+        indexer.indexValue(value, docBuilder);
     }
 
-    static boolean handleEmptyArray(DataType<?> type,
-                                    Object value,
-                                    @Nullable String name,
-                                    @Nullable XContentBuilder builder) throws IOException {
-        if (type instanceof ArrayType<?> && ArrayType.unnest(type) instanceof UndefinedType) {
-            Collection<?> values = (Collection<?>) value;
-            if (values.isEmpty() || values.stream().allMatch(x -> x == null)) {
-                if (builder != null) {
-                    builder.field(name);
-                    builder.startArray();
-                    for (int i = 0; i < values.size(); i++) {
-                        builder.nullValue();
-                    }
-                    builder.endArray();
-                }
-                return true;
-            }
-        }
-        return false;
+    @Override
+    public String storageIdentLeafName() {
+        return useOids
+            ? SourceParser.UNKNOWN_COLUMN_PREFIX + refIdent.columnIdent().leafName()
+            : refIdent.columnIdent().leafName();
     }
-
 
     /**
      * <p>
@@ -230,8 +148,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * For example a `Integer` results in a BIGINT type.
      * </p>
      * <p>
-     *  Users should sanitize the value using {@link DataType#sanitizeValue(Object)}
-     *  of the result type.
+     * Users should sanitize the value using {@link DataType#sanitizeValue(Object)}
+     * of the result type.
      * </p>
      */
     static DataType<?> guessType(Object value) {
@@ -243,9 +161,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 innerType = arrayType.innerType();
                 dimensions++;
             }
-            return ArrayType.makeArray(upcast(innerType), dimensions);
+            return ArrayType.makeArray(DataTypes.upcast(innerType), dimensions);
         }
-        return upcast(type);
+        return DataTypes.upcast(type);
     }
 
     /**
@@ -253,19 +171,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * used when reading from the translog can't handle them.  So we also check
      * here that we're not trying to dynamically create one.
      */
-    public static void throwOnNestedArray(DataType<?> type) {
+    private static void throwOnNestedArray(DataType<?> type) {
         if (type instanceof ArrayType<?> at) {
             if (at.innerType() instanceof ArrayType<?>) {
                 throw new IllegalArgumentException("Dynamic nested arrays are not supported");
             }
         }
-    }
-
-    private static DataType<?> upcast(DataType<?> type) {
-        return switch (type.id()) {
-            case ByteType.ID, ShortType.ID, IntegerType.ID -> DataTypes.LONG;
-            case FloatType.ID -> DataTypes.DOUBLE;
-            default -> type;
-        };
     }
 }

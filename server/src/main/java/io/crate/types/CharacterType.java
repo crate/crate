@@ -27,15 +27,22 @@ import static io.crate.common.StringUtils.padEnd;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.execution.dml.FulltextIndexer;
+import io.crate.execution.dml.StringIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -44,6 +51,35 @@ public class CharacterType extends StringType {
     public static final String NAME = "character";
     public static final int ID = 27;
     public static final CharacterType INSTANCE = new CharacterType();
+
+    private StorageSupport<Object> storageSupport(int lengthLimit) {
+        return new StorageSupport<>(
+            true,
+            true,
+            new StringEqQuery(value -> {
+                // strip trailing whitespaces and pad to reach the {@param lengthLimit},
+                // to match the value stored on disk.
+                if (value == null) {
+                    return null;
+                }
+                if (value instanceof String s) {
+                    return padEnd(s.stripTrailing(), lengthLimit, ' ');
+                }
+                return padEnd(((BytesRef) value).utf8ToString().stripTrailing(), lengthLimit, ' ');
+            })
+        ) {
+            @Override
+            @SuppressWarnings({"rawtypes"})
+            public ValueIndexer<Object> valueIndexer(RelationName table,
+                                                     Reference ref,
+                                                     Function<ColumnIdent, Reference> getRef) {
+                return switch (ref.indexType()) {
+                    case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
+                    case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
+                };
+            }
+        };
+    }
 
     public static CharacterType of(List<Integer> parameters) {
         if (parameters.size() != 1) {
@@ -63,14 +99,15 @@ public class CharacterType extends StringType {
         return new CharacterType(lengthLimit);
     }
 
-    private final int lengthLimit;
+    private final StorageSupport<Object> storageSupport;
 
     public CharacterType(StreamInput in) throws IOException {
-        lengthLimit = in.readInt();
+        this(in.readInt());
     }
 
-    public CharacterType(int lengthLimit) {
-        this.lengthLimit = lengthLimit;
+    private CharacterType(int lengthLimit) {
+        super(lengthLimit);
+        storageSupport = storageSupport(lengthLimit);
     }
 
     private CharacterType() {
@@ -85,11 +122,6 @@ public class CharacterType extends StringType {
     @Override
     public int id() {
         return ID;
-    }
-
-    @Override
-    public int lengthLimit() {
-        return lengthLimit;
     }
 
     @Override
@@ -134,10 +166,10 @@ public class CharacterType extends StringType {
             return null;
         }
         var string = cast(value);
-        if (string.length() <= lengthLimit()) {
+        if (string.length() <= lengthLimit) {
             return string;
         } else {
-            return string.substring(0, lengthLimit());
+            return string.substring(0, lengthLimit);
         }
     }
 
@@ -147,8 +179,7 @@ public class CharacterType extends StringType {
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(NAME, List.of(lengthLimit));
     }
 
@@ -179,5 +210,15 @@ public class CharacterType extends StringType {
     public void addMappingOptions(Map<String, Object> mapping) {
         mapping.put("length_limit", lengthLimit);
         mapping.put("blank_padding", true);
+    }
+
+    @Override
+    public int compare(String val1, String val2) {
+        return val1.stripTrailing().compareTo(val2.stripTrailing());
+    }
+
+    @Override
+    public StorageSupport<Object> storageSupport() {
+        return storageSupport;
     }
 }

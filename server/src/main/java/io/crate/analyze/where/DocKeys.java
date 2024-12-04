@@ -47,7 +47,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     private final int width;
     private final Function<List<String>, String> idFunction;
     private final boolean withSequenceVersioning;
-    private int clusteredByIdx;
+    private final int clusteredByIdx;
     private final boolean withVersions;
     private final List<List<Symbol>> docKeys;
     private final List<Integer> partitionIdx;

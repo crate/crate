@@ -24,17 +24,17 @@ package io.crate.planner;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -101,14 +101,16 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.data.Row;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.fdw.ForeignDataWrappers;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
-import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
@@ -142,6 +144,7 @@ import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.node.management.VerboseOptimizerTracer;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
@@ -149,6 +152,7 @@ import io.crate.planner.statement.SetSessionAuthorizationPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
@@ -160,6 +164,7 @@ import io.crate.replication.logical.plan.CreateSubscriptionPlan;
 import io.crate.replication.logical.plan.DropPublicationPlan;
 import io.crate.replication.logical.plan.DropSubscriptionPlan;
 import io.crate.role.RoleManager;
+import io.crate.session.Cursors;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 import io.crate.statistics.TableStats;
 
@@ -172,25 +177,26 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
-    private final TableCreator tableCreator;
+    private final CreateTableClient tableCreator;
     private final RoleManager roleManager;
     private final ForeignDataWrappers foreignDataWrappers;
     private final SessionSettingRegistry sessionSettingRegistry;
+    private final NodeContext nodeCtx;
 
     private List<String> awarenessAttributes;
 
 
-    @Inject
     public Planner(Settings settings,
                    ClusterService clusterService,
                    NodeContext nodeCtx,
                    TableStats tableStats,
                    NumberOfShards numberOfShards,
-                   TableCreator tableCreator,
+                   CreateTableClient tableCreator,
                    RoleManager roleManager,
                    ForeignDataWrappers foreignDataWrappers,
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
+        this.nodeCtx = nodeCtx;
         this.tableStats = tableStats;
         this.logicalPlanner = new LogicalPlanner(
             nodeCtx,
@@ -203,6 +209,28 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.foreignDataWrappers = foreignDataWrappers;
         this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);
+    }
+
+    public PlannerContext createContext(RoutingProvider routingProvider,
+                                        UUID jobId,
+                                        CoordinatorTxnCtx txnCtx,
+                                        int fetchSize,
+                                        @Nullable Row params,
+                                        Cursors cursors,
+                                        TransactionState transactionState) {
+        return new PlannerContext(
+            clusterService.state(),
+            routingProvider,
+            jobId,
+            txnCtx,
+            nodeCtx,
+            fetchSize,
+            params,
+            cursors,
+            transactionState,
+            new PlanStats(nodeCtx, txnCtx, tableStats),
+            this.logicalPlanner::optimize
+        );
     }
 
     private void initAwarenessAttributes(Settings settings) {
@@ -303,7 +331,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
-        return new CopyToPlan(analysis, tableStats);
+        return new CopyToPlan(analysis);
     }
 
     @Override
@@ -363,12 +391,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
-                                            PlannerContext context) {
-        return new AlterBlobTablePlan(analysis);
-    }
-
-    @Override
     public Plan visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis,
                                              PlannerContext context) {
         return new CreateBlobTablePlan(analysis, numberOfShards);
@@ -398,12 +420,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitAnalyzedCreateRole(AnalyzedCreateRole analysis,
                                            PlannerContext context) {
-        return new CreateRolePlan(analysis, roleManager);
+        return new CreateRolePlan(analysis, roleManager, sessionSettingRegistry);
     }
 
     @Override
     public Plan visitAnalyzedAlterRole(AnalyzedAlterRole analysis, PlannerContext context) {
-        return new AlterRolePlan(analysis, roleManager);
+        return new AlterRolePlan(analysis, roleManager, sessionSettingRegistry);
     }
 
     @Override

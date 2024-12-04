@@ -22,13 +22,13 @@ package org.elasticsearch.test;
 import static io.crate.common.unit.TimeValue.timeValueSeconds;
 import static io.crate.lucene.CrateLuceneTestCase.rarely;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -73,18 +73,13 @@ import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExc
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -116,10 +111,9 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.CommitStats;
-import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
+import org.elasticsearch.index.engine.DocIdAndSeqNo;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.engine.InternalEngine;
@@ -143,7 +137,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.jetbrains.annotations.Nullable;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectLongMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -153,11 +146,16 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.RelationInfo.RelationType;
+import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -411,65 +409,28 @@ public final class TestCluster implements Closeable {
      * Wipes any data that a test can leave behind: indices, templates (except exclude templates) and repositories
      */
     public void wipe() {
-        wipeIndices("_all");
-        wipeAllTemplates();
+        wipeAllTables();
         wipeRepositories();
     }
 
-    /**
-     * Deletes the given indices from the tests cluster. If no index name is passed to this method
-     * all indices are removed.
-     */
-    public void wipeIndices(String... indices) {
-        assert indices != null && indices.length > 0;
+    public void wipeAllTables() {
         if (size() > 0) {
-            try {
-                var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(indices)));
-                assertAcked(acknowledgedResponse);
-            } catch (IndexNotFoundException e) {
-                // ignore
-            } catch (IllegalArgumentException e) {
-                // Happens if `action.destructive_requires_name` is set to true
-                // which is the case in the CloseIndexDisableCloseAllTests
-                if ("_all".equals(indices[0])) {
-                    var clusterStateResponse = FutureUtils
-                        .get(client().admin().cluster().state(new ClusterStateRequest()));
-                    ObjectArrayList<String> concreteIndices = new ObjectArrayList<>();
-                    for (IndexMetadata indexMetadata : clusterStateResponse.getState().metadata()) {
-                        concreteIndices.add(indexMetadata.getIndex().getName());
-                    }
-                    if (!concreteIndices.isEmpty()) {
-                        var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(concreteIndices.toArray(String.class))));
-                        assertAcked(acknowledgedResponse);
-                    }
+            InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
+            List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
+            for (var relation : infoSchema.relations()) {
+                if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
+                    futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relation.ident())));
                 }
             }
-        }
-    }
-
-    /**
-     * Removes all templates, except the templates defined in the exclude
-     */
-    public void wipeAllTemplates() {
-        if (size() > 0) {
-            IndicesAdminClient indices = client().admin().indices();
-            var result = indices.getTemplates(new GetIndexTemplatesRequest()).thenCompose(response -> {
-                List<IndexTemplateMetadata> indexTemplates = response.getIndexTemplates();
-                List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(indexTemplates.size());
-                for (IndexTemplateMetadata indexTemplate : indexTemplates) {
-                    CompletableFuture<AcknowledgedResponse> deleteTemplate = indices
-                        .deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName()));
-                    futures.add(deleteTemplate);
-                }
-                return CompletableFutures.allAsList(futures);
-            });
+            CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);
             try {
-                List<AcknowledgedResponse> responses = result.get();
+                List<AcknowledgedResponse> responses = allResponses.get(5, TimeUnit.SECONDS);
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
             }
         }
     }
+
 
     /**
      * Deletes repositories, supports wildcard notation.
@@ -1447,7 +1408,7 @@ public final class TestCluster implements Closeable {
                     if (primaryShard == null) {
                         continue;
                     }
-                    final List<DocIdSeqNoAndSource> docsOnPrimary;
+                    final List<DocIdAndSeqNo> docsOnPrimary;
                     try {
                         docsOnPrimary = IndexShardTestCase.getDocIdAndSeqNos(primaryShard);
                     } catch (AlreadyClosedException ex) {
@@ -1458,7 +1419,7 @@ public final class TestCluster implements Closeable {
                         if (replicaShard == null) {
                             continue;
                         }
-                        final List<DocIdSeqNoAndSource> docsOnReplica;
+                        final List<DocIdAndSeqNo> docsOnReplica;
                         try {
                             docsOnReplica = IndexShardTestCase.getDocIdAndSeqNos(replicaShard);
                         } catch (AlreadyClosedException ex) {

@@ -36,7 +36,7 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
+import io.crate.expression.reference.doc.lucene.StringColumnReference;
 
 public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
@@ -60,7 +60,7 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(COLUMN);
+        StringColumnReference bytesRefColumn = new StringColumnReference(COLUMN);
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

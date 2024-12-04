@@ -71,7 +71,7 @@ Fixes
 
 - Fixed :ref:`trim <scalar-trim>`, :ref:`ltrim <scalar-ltrim>`,
   :ref:`rtrim <scalar-rtrim>`, and :ref:`btrim <scalar-btrim>` scalar functions
-  to return ``NULL`, instead of the original string, when the ``trimmingText``
+  to return ``NULL``, instead of the original string, when the ``trimmingText``
   argument is ``NULL``, complying with PostgreSQL behaviour for these functions.
 
 - Fixed a regression introduced in 5.6.0 that caused

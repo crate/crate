@@ -153,7 +153,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     Row.EMPTY,
                     SubQueryResults.EMPTY,
                     coordinatorTxnCtx,
-                    e.nodeCtx);
+                    e.nodeCtx,
+                    e.getPlannerContext().clusterState().metadata());
             }
             return new WhereClause(queriedRelation.where());
         } else {

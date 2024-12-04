@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -86,8 +87,20 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     }
 
     @Override
-    protected IndicesStatsResponse newResponse(IndicesStatsRequest request, int totalShards, int successfulShards, int failedShards, List<ShardStats> responses, List<DefaultShardOperationFailedException> shardFailures, ClusterState clusterState) {
-        return new IndicesStatsResponse(responses.toArray(new ShardStats[responses.size()]), totalShards, successfulShards, failedShards, shardFailures);
+    protected IndicesStatsResponse newResponse(IndicesStatsRequest request,
+                                               int totalShards,
+                                               int successfulShards,
+                                               int failedShards,
+                                               List<ShardStats> responses,
+                                               List<DefaultShardOperationFailedException> shardFailures,
+                                               ClusterState clusterState) {
+        return new IndicesStatsResponse(
+            responses.toArray(new ShardStats[responses.size()]),
+            totalShards,
+            successfulShards,
+            failedShards,
+            shardFailures
+        );
     }
 
     @Override
@@ -96,7 +109,7 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     }
 
     @Override
-    protected ShardStats shardOperation(IndicesStatsRequest request, ShardRouting shardRouting) {
+    protected void shardOperation(IndicesStatsRequest request, ShardRouting shardRouting, ActionListener<ShardStats> listener) {
         IndexService indexService = indicesService.indexServiceSafe(shardRouting.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
         // if we don't have the routing entry yet, we need it stats wise, we treat it as if the shard is not ready yet
@@ -126,13 +139,13 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
             seqNoStats = null;
             retentionLeaseStats = null;
         }
-        return new ShardStats(
+        listener.onResponse(new ShardStats(
             indexShard.routingEntry(),
             indexShard.shardPath(),
             new CommonStats(indexShard, flags),
             commitStats,
             seqNoStats,
             retentionLeaseStats
-        );
+        ));
     }
 }

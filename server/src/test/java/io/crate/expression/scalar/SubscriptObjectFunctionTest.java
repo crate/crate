@@ -22,7 +22,10 @@
 package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
@@ -58,8 +61,8 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
+        assertThatThrownBy(() -> assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L))))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test
@@ -82,6 +85,14 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
         assertEvaluateNull("subscript_obj({x=null}, 'x', 'y')");
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_subscript_obj_with_nested_array_obj() throws Exception {
+        assertEvaluate("subscript_obj({\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"x\"= 20}}]}, 'o', 'oo', 'x')",
+            o -> assertThat((List<Integer>) o).containsExactly(10, 20));
+    }
+
+    @SuppressWarnings("unchecked")
     @Test
     public void testEvaluateNestedObjectWithUnknownObjectkeysWithSessionSetting() throws Exception {
         // missing key in the very front
@@ -98,5 +109,13 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
             .hasMessageContaining("The object `{y={z=test}}` does not contain the key `x`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']");
+        // object array, where one item (object) contains key and the other doesn't
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        Assertions.assertThatThrownBy(() -> assertEvaluate("{\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}['o']['oo']['x']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{y=20}` does not contain the key `x`");
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertEvaluate("{\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}['o']['oo']['x']",
+            o -> assertThat((List<Integer>) o).containsExactly(10, null));
     }
 }

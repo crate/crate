@@ -23,7 +23,7 @@ package io.crate.execution.engine.distribution.merge;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +45,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.RowGenerator;
 import io.crate.data.testing.TestingBatchIterators;
@@ -80,7 +80,7 @@ public class BatchPagingIteratorTest {
                 () -> true,
                 throwable -> {}
             );
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -131,7 +131,7 @@ public class BatchPagingIteratorTest {
                 }
             );
         };
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -146,7 +146,7 @@ public class BatchPagingIteratorTest {
         );
 
         iterator.close();
-        assertThat(pagingIterator.finishedCalled, Matchers.is(true));
+        assertThat(pagingIterator.finishedCalled).isTrue();
     }
 
     private static class TestPagingIterator implements PagingIterator<Integer, Row> {

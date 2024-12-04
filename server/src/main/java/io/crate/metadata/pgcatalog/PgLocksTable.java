@@ -31,24 +31,22 @@ public final class PgLocksTable {
 
     private PgLocksTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("locktype", DataTypes.STRING, x -> null)
-            .add("database", DataTypes.INTEGER, x -> null)
-            .add("relation", DataTypes.INTEGER, x -> null)
-            .add("page", DataTypes.INTEGER, x -> null)
-            .add("tuple", DataTypes.SHORT, x -> null)
-            .add("virtualxid", DataTypes.STRING, x -> null)
-            .add("transactionid", DataTypes.INTEGER, x -> null)
-            .add("classid", DataTypes.INTEGER, x -> null)
-            .add("objid", DataTypes.STRING, x -> null)
-            .add("objsubid", DataTypes.SHORT, x -> null)
-            .add("virtualtransaction", DataTypes.STRING, x -> null)
-            .add("pid", DataTypes.INTEGER, x -> null)
-            .add("mode", DataTypes.STRING, x -> null)
-            .add("granted", DataTypes.BOOLEAN, x -> null)
-            .add("fastpath", DataTypes.BOOLEAN, x -> null)
-            .add("waitstart", DataTypes.TIMESTAMPZ, x -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("locktype", DataTypes.STRING, x -> null)
+        .add("database", DataTypes.INTEGER, x -> null)
+        .add("relation", DataTypes.INTEGER, x -> null)
+        .add("page", DataTypes.INTEGER, x -> null)
+        .add("tuple", DataTypes.SHORT, x -> null)
+        .add("virtualxid", DataTypes.STRING, x -> null)
+        .add("transactionid", DataTypes.INTEGER, x -> null)
+        .add("classid", DataTypes.INTEGER, x -> null)
+        .add("objid", DataTypes.STRING, x -> null)
+        .add("objsubid", DataTypes.SHORT, x -> null)
+        .add("virtualtransaction", DataTypes.STRING, x -> null)
+        .add("pid", DataTypes.INTEGER, x -> null)
+        .add("mode", DataTypes.STRING, x -> null)
+        .add("granted", DataTypes.BOOLEAN, x -> null)
+        .add("fastpath", DataTypes.BOOLEAN, x -> null)
+        .add("waitstart", DataTypes.TIMESTAMPZ, x -> null)
+        .build();
 }

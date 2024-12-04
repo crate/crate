@@ -21,11 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
+import java.math.RoundingMode;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -33,22 +35,40 @@ public final class FloorFunction {
 
     public static final String NAME = "floor";
 
-    public static void register(Functions.Builder module) {
+    private FloorFunction() {}
+
+    public static void register(Functions.Builder builder) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
-            module.add(
-                scalar(NAME, typeSignature, returnType.getTypeSignature())
-                    .withFeature(Scalar.Feature.NULLABLE),
+            builder.add(
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(typeSignature)
+                    .returnType(returnType.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .build(),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
                         boundSignature,
                         type,
-                        x -> returnType.sanitizeValue(Math.floor(((Number) x).doubleValue()))
+                        x -> returnType.sanitizeValue(Math.floor(x.doubleValue()))
                     )
             );
         }
+        builder.add(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(
+                signature,
+                boundSignature,
+                DataTypes.NUMERIC,
+                x -> x.setScale(0, RoundingMode.FLOOR)
+            )
+        );
     }
 }

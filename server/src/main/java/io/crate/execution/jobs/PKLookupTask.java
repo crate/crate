@@ -44,7 +44,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
-import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
@@ -66,6 +65,7 @@ public final class PKLookupTask extends AbstractTask {
     private final RowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<Doc, ?>> expressions;
+    private final List<Symbol> toCollect;
     private final String name;
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final int ramAccountingBlockSizeInBytes;
@@ -73,7 +73,7 @@ public final class PKLookupTask extends AbstractTask {
     private long totalBytes = -1;
 
     @Nullable
-    private final SourceParser sourceParser;
+    private final DocTableInfo table;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
@@ -101,6 +101,7 @@ public final class PKLookupTask extends AbstractTask {
         this.consumer = consumer;
         this.memoryManagerFactory = memoryManagerFactory;
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
+        this.toCollect = toCollect;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -110,12 +111,11 @@ public final class PKLookupTask extends AbstractTask {
 
         var shardIt = idsByShard.keySet().iterator();
         if (shardIt.hasNext()) {
-            var relationName = RelationName.fromIndexName(shardIt.next().getIndexName());
-            DocTableInfo table = schemas.getTableInfo(relationName);
-            sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
-            sourceParser.register(toCollect);
+            String indexName = shardIt.next().getIndexName();
+            var relationName = RelationName.fromIndexName(indexName);
+            this.table = schemas.getTableInfo(relationName);
         } else {
-            sourceParser = null;
+            this.table = null;
         }
 
         expressions = ctx.expressions();
@@ -134,7 +134,8 @@ public final class PKLookupTask extends AbstractTask {
             shardProjections,
             consumer.requiresScroll(),
             this::resultToRow,
-            sourceParser
+            table,
+            toCollect
         );
         consumer.accept(rowBatchIterator, null);
         close();

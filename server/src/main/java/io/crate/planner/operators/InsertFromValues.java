@@ -26,7 +26,6 @@ import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_REQ
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -54,6 +53,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -76,6 +76,7 @@ import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardRequest;
@@ -89,7 +90,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.engine.indexing.GroupRowsByShard;
-import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
@@ -100,8 +100,9 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -209,7 +210,7 @@ public class InsertFromValues implements LogicalPlan {
             onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults);
             onConflictColumns = assignments.targetNames();
         }
-        var indexNameResolver = IndexNameResolver.create(
+        var indexNameResolver = IndexName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
@@ -278,9 +279,9 @@ public class InsertFromValues implements LogicalPlan {
         }
         validatorsCache.clear();
 
-        createIndices(
+        createPartitions(
             dependencies.client(),
-            shardedRequests.itemsByMissingIndex().keySet(),
+            shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
@@ -307,10 +308,10 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
-                                                     PlannerContext plannerContext,
-                                                     List<Row> bulkParams,
-                                                     SubQueryResults subQueryResults) {
+    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier dependencies,
+                                                       PlannerContext plannerContext,
+                                                       List<Row> bulkParams,
+                                                       SubQueryResults subQueryResults) {
         final DocTableInfo tableInfo = dependencies
             .schemas()
             .getTableInfo(writerProjection.tableIdent());
@@ -351,7 +352,7 @@ public class InsertFromValues implements LogicalPlan {
             context.add(writerProjection.clusteredBy());
         }
 
-        var indexNameResolver = IndexNameResolver.create(
+        var indexNameResolver = IndexName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
@@ -383,11 +384,11 @@ public class InsertFromValues implements LogicalPlan {
         );
 
 
+        var bulkResponse = new BulkResponse(bulkParams.size());
         IntArrayList bulkIndices = new IntArrayList();
-        List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
+        CompletableFuture<BulkResponse> result = new CompletableFuture<>();
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
             Row param = bulkParams.get(bulkIdx);
-
             final Symbol[] assignmentSources;
             if (assignments != null) {
                 assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
@@ -426,17 +427,18 @@ public class InsertFromValues implements LogicalPlan {
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {
-                for (CompletableFuture<Long> result : results) {
-                    result.completeExceptionally(t);
+                for (int i = 0; i < bulkResponse.size(); i++) {
+                    bulkResponse.setFailure(i, t);
                 }
-                return results;
+                result.complete(bulkResponse);
+                return result;
             }
         }
         validatorsCache.clear();
 
-        createIndices(
+        createPartitions(
             dependencies.client(),
-            shardedRequests.itemsByMissingIndex().keySet(),
+            shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
         ).thenCompose(acknowledgedResponse -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
@@ -450,17 +452,13 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
-                long[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
-                for (int i = 0; i < bulkParams.size(); i++) {
-                    results.get(i).complete(resultRowCount[i]);
-                }
+                bulkResponse.update(response, bulkIndices);
+                result.complete(bulkResponse);
             } else {
-                for (CompletableFuture<Long> result : results) {
-                    result.completeExceptionally(t);
-                }
+                result.completeExceptionally(t);
             }
         });
-        return results;
+        return result;
     }
 
     private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>
@@ -477,6 +475,7 @@ public class InsertFromValues implements LogicalPlan {
                 id,
                 pkValues,
                 autoGeneratedTimestamp,
+                writerProjection.allTargetColumns().toArray(Reference[]::new),
                 insertValues.materialize(),
                 onConflictAssignments
             );
@@ -575,9 +574,10 @@ public class InsertFromValues implements LogicalPlan {
     private static ShardLocation getShardLocation(String indexName,
                                                   String id,
                                                   @Nullable String routing,
-                                                  ClusterService clusterService) {
-        ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-            clusterService.state(),
+                                                  OperationRouting operationRouting,
+                                                  ClusterState state) {
+        ShardIterator shardIterator = operationRouting.indexShards(
+            state,
             indexName,
             id,
             routing);
@@ -597,10 +597,12 @@ public class InsertFromValues implements LogicalPlan {
     private static <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
         Map<ShardLocation, TReq> resolveAndGroupShardRequests(ShardedRequests<TReq, TItem> shardedRequests,
                                                           ClusterService clusterService) {
-        var itemsByMissingIndex = shardedRequests.itemsByMissingIndex().entrySet().iterator();
-        while (itemsByMissingIndex.hasNext()) {
-            var entry = itemsByMissingIndex.next();
-            var index = entry.getKey();
+        var itemsByMissingPartition = shardedRequests.itemsByMissingPartition().entrySet().iterator();
+        ClusterState state = clusterService.state();
+        OperationRouting operationRouting = clusterService.operationRouting();
+        while (itemsByMissingPartition.hasNext()) {
+            var entry = itemsByMissingPartition.next();
+            var partition = entry.getKey();
             var requestItems = entry.getValue();
 
             var requestItemsIterator = requestItems.iterator();
@@ -609,23 +611,21 @@ public class InsertFromValues implements LogicalPlan {
                 ShardLocation shardLocation;
                 try {
                     shardLocation = getShardLocation(
-                        index,
+                        partition.asIndexName(),
                         itemAndRoutingAndSourceInfo.item().id(),
                         itemAndRoutingAndSourceInfo.routing(),
-                        clusterService);
+                        operationRouting,
+                        state
+                    );
                 } catch (IndexNotFoundException e) {
-                    if (IndexParts.isPartitioned(index)) {
-                        requestItemsIterator.remove();
-                        continue;
-                    } else {
-                        throw e;
-                    }
+                    requestItemsIterator.remove();
+                    continue;
                 }
                 shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null);
                 requestItemsIterator.remove();
             }
             if (requestItems.isEmpty()) {
-                itemsByMissingIndex.remove();
+                itemsByMissingPartition.remove();
             }
         }
 
@@ -674,7 +674,7 @@ public class InsertFromValues implements LogicalPlan {
                     .currentNodeId();
             } catch (IndexNotFoundException e) {
                 lastFailure.set(e);
-                if (!IndexParts.isPartitioned(request.index())) {
+                if (!IndexName.isPartitioned(request.index())) {
                     synchronized (compressedResult) {
                         compressedResult.markAsFailed(request.items());
                     }
@@ -732,11 +732,11 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private static boolean partitionWasDeleted(Throwable throwable, String index) {
-        return throwable instanceof IndexNotFoundException && IndexParts.isPartitioned(index);
+        return throwable instanceof IndexNotFoundException && IndexName.isPartitioned(index);
     }
 
     private static boolean partitionClosed(Throwable throwable, String index) {
-        if (throwable instanceof ClusterBlockException blockException && IndexParts.isPartitioned(index)) {
+        if (throwable instanceof ClusterBlockException blockException && IndexName.isPartitioned(index)) {
             for (ClusterBlock clusterBlock : blockException.blocks()) {
                 if (clusterBlock.id() == INDEX_CLOSED_BLOCK.id()) {
                     return true;
@@ -746,60 +746,20 @@ public class InsertFromValues implements LogicalPlan {
         return false;
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createIndices(ElasticsearchClient elasticsearchClient,
-                                                                         Set<String> indices,
-                                                                         ClusterService clusterService) {
+    private static CompletableFuture<AcknowledgedResponse> createPartitions(ElasticsearchClient client,
+                                                                            Set<PartitionName> partitions,
+                                                                            ClusterService clusterService) {
         Metadata metadata = clusterService.state().metadata();
-        List<String> indicesToCreate = new ArrayList<>();
-        for (var index : indices) {
-            if (IndexParts.isPartitioned(index) && metadata.hasIndex(index) == false) {
-                indicesToCreate.add(index);
+        List<PartitionName> partitionsToCreate = new ArrayList<>();
+        for (var partition : partitions) {
+            if (metadata.hasIndex(partition.asIndexName()) == false) {
+                partitionsToCreate.add(partition);
             }
         }
-        if (indicesToCreate.isEmpty()) {
+        if (partitionsToCreate.isEmpty()) {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
-        return elasticsearchClient.execute(CreatePartitionsAction.INSTANCE, new CreatePartitionsRequest(indicesToCreate));
-    }
-
-    /**
-     * Create bulk-response depending on number of bulk responses
-     * <pre>
-     *     compressedResult
-     *          success: [1, 1, 1, 1]
-     *          failure: []
-     *
-     *     insert into t (x) values (?), (?)   -- bulkParams: [[1, 2], [3, 4]]
-     *     Response:
-     *      [2, 2]
-     *
-     *     insert into t (x) values (?)        -- bulkParams: [[1], [2], [3], [4]]
-     *     Response:
-     *      [1, 1, 1, 1]
-     * </pre>
-     */
-    private static long[] createBulkResponse(ShardResponse.CompressedResult result,
-                                             int bulkResponseSize,
-                                             IntArrayList bulkIndices) {
-        long[] resultRowCount = new long[bulkResponseSize];
-        Arrays.fill(resultRowCount, 0L);
-        for (int i = 0; i < bulkIndices.size(); i++) {
-            int resultIdx = bulkIndices.get(i);
-            if (result.successfulWrites(i)) {
-                resultRowCount[resultIdx]++;
-            } else if (result.failed(i)) {
-                resultRowCount[resultIdx] = Row1.ERROR;
-            }
-        }
-        return resultRowCount;
-    }
-
-    private static <T> List<CompletableFuture<T>> createUnsetFutures(int num) {
-        ArrayList<CompletableFuture<T>> results = new ArrayList<>(num);
-        for (int i = 0; i < num; i++) {
-            results.add(new CompletableFuture<>());
-        }
-        return results;
+        return client.execute(CreatePartitionsAction.INSTANCE, CreatePartitionsRequest.of(partitionsToCreate));
     }
 
     @Override
@@ -822,7 +782,7 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of();
     }
 

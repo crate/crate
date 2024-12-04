@@ -23,11 +23,9 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
@@ -36,6 +34,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -115,14 +114,13 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         @Override
         public ValueIndexer<Float> valueIndexer(RelationName table,
                                                 Reference ref,
-                                                Function<String, FieldType> getFieldType,
                                                 Function<ColumnIdent, Reference> getRef) {
-            return new FloatIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new FloatIndexer(ref);
         }
     };
 
-    private static final BigInteger MAX = BigDecimal.valueOf(Float.MAX_VALUE).toBigInteger();
-    private static final BigInteger MIN = BigDecimal.valueOf(-Float.MAX_VALUE).toBigInteger();
+    private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);
+    private static final BigDecimal MIN = BigDecimal.valueOf(-Float.MAX_VALUE);
 
     private FloatType() {
     }
@@ -159,10 +157,14 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         } else if (value instanceof Float f) {
             return f;
         } else if (value instanceof String s) {
-            return Float.parseFloat(s);
+            return JavaFloatParser.parseFloat(s);
         } else if (value instanceof BigDecimal bigDecimalValue) {
-            if (MAX.compareTo(bigDecimalValue.toBigInteger()) <= 0
-                || MIN.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
+            // Preferring compareTo over equals as it gives safer equality check.
+            // From the compareTo docs:
+            // Two BigDecimal objects that are equal in value but have a different scale (like 2.0 and 2.00)
+            // are considered equal by this method.
+            if (MAX.compareTo(bigDecimalValue) <= 0
+                || MIN.compareTo(bigDecimalValue) >= 0) {
                 throw new IllegalArgumentException("float value out of range: " + value);
             }
             return bigDecimalValue.floatValue();

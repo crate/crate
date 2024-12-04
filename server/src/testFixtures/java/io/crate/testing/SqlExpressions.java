@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Map;
@@ -47,8 +46,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 
@@ -72,16 +73,19 @@ public class SqlExpressions {
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser) {
-        this(sources, fieldResolver, sessionUser, List.of());
+        this(sources, fieldResolver, sessionUser, List.of(), null);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
-                          List<Role> additionalUsers) {
-        this.nodeCtx = createNodeContext(Lists.concat(additionalUsers, sessionUser));
+                          List<Role> additionalUsers,
+                          Schemas schemas,
+                          String... searchPaths) {
+        this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
-        var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
+        Role role = sessionUser == null ? Role.CRATE_USER : sessionUser;
+        var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules(), searchPaths);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
@@ -92,12 +96,20 @@ public class SqlExpressions {
                 ParentRelations.NO_PARENTS,
                 sessionSettings.searchPath().currentSchema()),
             new SubqueryAnalyzer(
-                new RelationAnalyzer(nodeCtx, mock(Schemas.class)),
+                new RelationAnalyzer(nodeCtx),
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );
         normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext(sessionSettings);
+    }
+
+    public EvaluatingNormalizer normalizer() {
+        return normalizer;
+    }
+
+    public TransactionContext txnCtx() {
+        return coordinatorTxnCtx;
     }
 
     public Symbol asSymbol(String expression) {

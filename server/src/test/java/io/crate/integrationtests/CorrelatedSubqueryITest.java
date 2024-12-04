@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -67,9 +66,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "    └ Rename[1, mountain] AS t\n" +
             "      └ Collect[sys.summits | [1, mountain] | true]\n" +
             "    └ SubPlan\n" +
-            "      └ Eval[mountain]\n" +
-            "        └ Limit[2::bigint;0::bigint]\n" +
-            "          └ TableFunction[empty_row | [] | true]\n"
+            "      └ Limit[2::bigint;0::bigint]\n" +
+            "        └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute("SELECT 1, (SELECT t.mountain) FROM sys.summits t");
         Comparator<Object[]> compareMountain = Comparator.comparing((Object[] row) -> (String) row[1]);
@@ -120,9 +118,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        └ Rename[1, mountain] AS t\n" +
             "          └ Collect[sys.summits | [1, mountain] | true]\n" +
             "        └ SubPlan\n" +
-            "          └ Eval[mountain]\n" +
-            "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [] | true]\n"
+            "          └ Limit[2::bigint;0::bigint]\n" +
+            "            └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute(statement);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -229,9 +226,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ Rename[x] AS t\n" +
             "        └ TableFunction[generate_series | [generate_series] | true]\n" +
             "      └ SubPlan\n" +
-            "        └ Eval[x]\n" +
-            "          └ Limit[1;0]\n" +
-            "            └ TableFunction[empty_row | [] | true]\n");
+            "        └ Limit[1;0]\n" +
+            "          └ TableFunction[empty_row | [x] | true]\n");
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "1\n" +
@@ -253,9 +249,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "          └ Rename[mountain, region, height] AS t\n" +
             "            └ Collect[sys.summits | [mountain, region, height] | true]\n" +
             "          └ SubPlan\n" +
-            "            └ Eval[mountain]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ TableFunction[empty_row | [] | true]\n"
+            "            └ Limit[2::bigint;0::bigint]\n" +
+            "              └ TableFunction[empty_row | [mountain] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -380,9 +375,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +
-            "            └ Eval[attrelid]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ TableFunction[empty_row | [] | true]\n"
+            "            └ Limit[2::bigint;0::bigint]\n" +
+            "              └ TableFunction[empty_row | [attrelid] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -455,7 +449,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     public void test_can_mix_correlated_qubquery_and_sub_select() {
         execute("CREATE TABLE tbl(x int)");
         execute("INSERT INTO tbl(x) VALUES (1)");
-        refresh();
+        execute("refresh table tbl");
         execute(
             """
            SELECT (
@@ -466,5 +460,58 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
           ) FROM tbl t
             """);
         assertThat(response).hasRows("1");
+    }
+
+
+    /*
+     * https://github.com/crate/crate/issues/16124
+     */
+    @Test
+    public void test_scalar_in_projection_with_correlated_sub_query() {
+        execute("create table table1 (field1 int)");
+        execute("insert into table1(field1) values (1)");
+        execute("create table table2 (field1 int);");
+        execute("insert into table2(field1) values (1)");
+        execute("create table table3 (field1 int,field2 text)");
+        execute("insert into table3(field1,field2) values (1,'abc')");
+        execute("refresh table table1, table2, table3");
+        execute("""
+            SELECT (
+             SELECT CONCAT (
+                                table2.field1::TEXT,(
+                                                      SELECT table3.field2
+                                                             FROM table3
+                                                             WHERE table3.field1 = table2.field1 limit 1
+                                                     )
+                                )
+                FROM table2
+                WHERE table2.field1 = table1.field1
+                ) AS table2_Details
+                FROM table1;
+             """);
+
+        assertThat(response).hasRows("1abc");
+    }
+
+    /*
+     * https://github.com/crate/crate/issues/16793
+     */
+    @Test
+    public void test_correlated_subquery_with_join_on_primary_key() {
+        execute("CREATE TABLE tbl (x INT PRIMARY KEY)");
+        execute("INSERT INTO tbl(x) VALUES(111)");
+        execute("REFRESH TABLE tbl");
+        execute("""
+            SELECT (
+              SELECT x
+              FROM tbl a
+              WHERE a.x = b.x
+              LIMIT 1
+            ) AS t
+            FROM (
+              SELECT x FROM tbl
+            ) as b"""
+        );
+        assertThat(response).hasRows("111");
     }
 }

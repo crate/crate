@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.index.Term;
@@ -28,13 +29,18 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.expression.operator.all.AllLikeOperator;
+import io.crate.expression.operator.all.AllNotLikeOperator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyNotLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ArrayComparison;
 import io.crate.types.DataTypes;
 
 public class LikeOperators {
@@ -46,18 +52,40 @@ public class LikeOperators {
     public static final String ANY_NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
     public static final String ANY_NOT_ILIKE = AnyOperator.OPERATOR_PREFIX + "not_ilike";
 
-    public static final char DEFAULT_ESCAPE = '\\';
+    public static final String ALL_LIKE = AllOperator.OPERATOR_PREFIX + "like";
+    public static final String ALL_ILIKE = AllOperator.OPERATOR_PREFIX + "ilike";
+    public static final String ALL_NOT_LIKE = AllOperator.OPERATOR_PREFIX + "not_like";
+    public static final String ALL_NOT_ILIKE = AllOperator.OPERATOR_PREFIX + "not_ilike";
+
+    public static final Character DEFAULT_ESCAPE = '\\';
+    /**
+     *  To avoid creating a String out of {@link #DEFAULT_ESCAPE} every time
+     *  inside the {@link AnyOperator#validateRightArg(Object)}
+     */
+    public static final String DEFAULT_ESCAPE_STR = "\\";
 
     public static String likeOperatorName(boolean ignoreCase) {
         return ignoreCase ? OP_ILIKE : OP_LIKE;
     }
 
-    public static String arrayOperatorName(boolean negate, boolean ignoreCase) {
+    public static String arrayOperatorName(ArrayComparison.Quantifier q, boolean negate, boolean ignoreCase) {
         String name;
-        if (negate) {
-            name = ignoreCase ? ANY_NOT_ILIKE : ANY_NOT_LIKE;
-        } else {
-            name = ignoreCase ? ANY_ILIKE : ANY_LIKE;
+        switch (q) {
+            case ANY -> {
+                if (negate) {
+                    name = ignoreCase ? ANY_NOT_ILIKE : ANY_NOT_LIKE;
+                } else {
+                    name = ignoreCase ? ANY_ILIKE : ANY_LIKE;
+                }
+            }
+            case ALL -> {
+                if (negate) {
+                    name = ignoreCase ? ALL_NOT_ILIKE : ALL_NOT_LIKE;
+                } else {
+                    name = ignoreCase ? ALL_ILIKE : ALL_LIKE;
+                }
+            }
+            default -> throw new IllegalStateException("An invalid array operator: " + q);
         }
         return name;
     }
@@ -107,55 +135,51 @@ public class LikeOperators {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.scalar(
-                OP_LIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(OP_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
         );
         builder.add(
-            Signature.scalar(
-                OP_ILIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(OP_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.STRICTNULL, Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
         );
 
         builder.add(
-            Signature.scalar(
-                OP_LIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ),
+            Signature.builder(OP_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
         );
         builder.add(
-            Signature.scalar(
-                OP_ILIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ),
+            Signature.builder(OP_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
         );
         builder.add(
-            Signature.scalar(
-                ANY_LIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ANY_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
                     signature,
@@ -164,12 +188,12 @@ public class LikeOperators {
                 )
         );
         builder.add(
-            Signature.scalar(
-                ANY_NOT_LIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ANY_NOT_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(
                     signature,
@@ -178,12 +202,12 @@ public class LikeOperators {
                 )
         );
         builder.add(
-            Signature.scalar(
-                ANY_ILIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ANY_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
                     signature,
@@ -192,14 +216,70 @@ public class LikeOperators {
                 )
         );
         builder.add(
-            Signature.scalar(
-                ANY_NOT_ILIKE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ANY_NOT_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(
+                    signature,
+                    boundSignature,
+                    CaseSensitivity.INSENSITIVE
+                )
+        );
+        builder.add(
+            Signature.builder(ALL_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new AllLikeOperator(
+                    signature,
+                    boundSignature,
+                    CaseSensitivity.SENSITIVE
+                )
+        );
+        builder.add(
+            Signature.builder(ALL_NOT_LIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new AllNotLikeOperator(
+                    signature,
+                    boundSignature,
+                    CaseSensitivity.SENSITIVE
+                )
+        );
+        builder.add(
+            Signature.builder(ALL_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new AllLikeOperator(
+                    signature,
+                    boundSignature,
+                    CaseSensitivity.INSENSITIVE
+                )
+        );
+        builder.add(
+            Signature.builder(ALL_NOT_ILIKE, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING_ARRAY.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new AllNotLikeOperator(
                     signature,
                     boundSignature,
                     CaseSensitivity.INSENSITIVE
@@ -268,6 +348,9 @@ public class LikeOperators {
                 }
             }
         }
+        if (escaped) {
+            throwErrorForTrailingEscapeChar(patternString, escapeChar);
+        }
         regex.append('$');
         return regex.toString();
     }
@@ -306,6 +389,15 @@ public class LikeOperators {
                 }
             }
         }
+        if (escaped) {
+            throwErrorForTrailingEscapeChar(wildcardString, LikeOperators.DEFAULT_ESCAPE);
+        }
         return regex.toString();
+    }
+
+    public static void throwErrorForTrailingEscapeChar(String pattern, Character escapeChar) {
+        throw new IllegalArgumentException(
+            String.format(Locale.ENGLISH, "pattern '%s' must not end with escape character '%s'",
+                pattern, escapeChar));
     }
 }

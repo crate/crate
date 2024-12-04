@@ -28,41 +28,39 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
-import io.crate.action.sql.Sessions;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
+import io.crate.session.Sessions;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 
 @Singleton
 public class SessionSettingRegistry {
 
-    private static final String SEARCH_PATH_KEY = "search_path";
+    public static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
+    public static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
+    public static final String APPLICATION_NAME_KEY = "application_name";
+    public static final String DATE_STYLE_KEY = "datestyle";
     static final String MAX_INDEX_KEYS = "max_index_keys";
     static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
     static final String SERVER_VERSION_NUM = "server_version_num";
     static final String SERVER_VERSION = "server_version";
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
-    static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
-    static final String DATE_STYLE_KEY = "datestyle";
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
-        "application_name",
-        inputs -> {},
+        APPLICATION_NAME_KEY,
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
         CoordinatorSessionSettings::setApplicationName,
         SessionSettings::applicationName,
@@ -72,18 +70,19 @@ public class SessionSettingRegistry {
     );
     static final SessionSetting<String> DATE_STYLE = new SessionSetting<>(
         DATE_STYLE_KEY,
-        inputs -> validateDateStyleFrom(objectsToStringArray(inputs)),
-        inputs -> DEFAULT_DATE_STYLE,
+        inputs -> {
+            validateDateStyleFrom(objectsToStringArray(inputs));
+            return DEFAULT_DATE_STYLE;
+        },
         CoordinatorSessionSettings::setDateStyle,
         SessionSettings::dateStyle,
-        () -> String.valueOf(DEFAULT_DATE_STYLE),
+        () -> DEFAULT_DATE_STYLE,
         "Display format for date and time values.",
         DataTypes.STRING
     );
 
     static final SessionSetting<TimeValue> STATEMENT_TIMEOUT = new SessionSetting<>(
-        "statement_timeout",
-        inputs -> {},
+        Sessions.STATEMENT_TIMEOUT_KEY,
         inputs -> {
             Object input = inputs[0];
             // Interpret values without explicit unit/interval format as milliseconds for PostgreSQL compat.
@@ -111,8 +110,7 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<Integer> MEMORY_LIMIT = new SessionSetting<>(
-        Sessions.MEMORY_LIMIT.getKey(),
-        input -> {},
+        Sessions.MEMORY_LIMIT_KEY,
         inputs -> DataTypes.INTEGER.implicitCast(inputs[0]),
         CoordinatorSessionSettings::memoryLimit,
         settings -> Integer.toString(settings.memoryLimitInBytes()),
@@ -129,7 +127,7 @@ public class SessionSettingRegistry {
             .put(SEARCH_PATH_KEY,
                  new SessionSetting<>(
                      SEARCH_PATH_KEY,
-                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
+                     // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                      objects -> createSearchPathFrom(objectsToStringArray(objects)),
                      CoordinatorSessionSettings::setSearchPath,
                      s -> String.join(", ", s.searchPath().showPath()),
@@ -143,8 +141,8 @@ public class SessionSettingRegistry {
                          if (objects.length != 1) {
                              throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
                          }
+                         return DataTypes.BOOLEAN.implicitCast(objects[0]);
                      },
-                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
                      CoordinatorSessionSettings::setHashJoinEnabled,
                      s -> Boolean.toString(s.hashJoinsEnabled()),
                      () -> String.valueOf(true),
@@ -153,11 +151,10 @@ public class SessionSettingRegistry {
             .put(MAX_INDEX_KEYS,
                  new SessionSetting<>(
                      MAX_INDEX_KEYS,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
+                     _ -> {
                          throw new UnsupportedOperationException("\"" + MAX_INDEX_KEYS + "\" cannot be changed.");
                      },
+                     (s, v) -> {},
                      s -> String.valueOf(32),
                      () -> String.valueOf(32),
                      "Shows the maximum number of index keys.",
@@ -165,23 +162,21 @@ public class SessionSettingRegistry {
             .put(MAX_IDENTIFIER_LENGTH,
                  new SessionSetting<>(
                      MAX_IDENTIFIER_LENGTH,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
+                     _ -> {
                          throw new UnsupportedOperationException("\"" + MAX_IDENTIFIER_LENGTH + "\" cannot be changed.");
                      },
-                     s -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
-                     () -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     (s, v) -> {},
+                     s -> String.valueOf(IndexName.MAX_INDEX_NAME_BYTES),
+                     () -> String.valueOf(IndexName.MAX_INDEX_NAME_BYTES),
                      "Shows the maximum length of identifiers in bytes.",
                      DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,
                  new SessionSetting<>(
                      SERVER_VERSION_NUM,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
+                     _ -> {
                          throw new UnsupportedOperationException("\"" + SERVER_VERSION_NUM + "\" cannot be changed.");
                      },
+                     (s, v) -> {},
                      s -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
                      () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
                      "Reports the emulated PostgreSQL version number",
@@ -191,11 +186,10 @@ public class SessionSettingRegistry {
             .put(SERVER_VERSION,
                  new SessionSetting<>(
                      SERVER_VERSION,
-                     objects -> {},
-                     Function.identity(),
-                     (s, v) -> {
+                     _ -> {
                          throw new UnsupportedOperationException("\"" + SERVER_VERSION + "\" cannot be changed.");
                      },
+                     (s, v) -> {},
                      s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
                      "Reports the emulated PostgreSQL version number",
@@ -210,8 +204,8 @@ public class SessionSettingRegistry {
                              throw new IllegalArgumentException(STANDARD_CONFORMING_STRINGS + " should have only one argument.");
                          }
                          validateStandardConformingStrings(objectsToStringArray(objects)[0]);
+                         return objects;
                      },
-                     Function.identity(),
                      (s, v) -> {},
                      s -> "on",
                      () -> "on",
@@ -226,8 +220,8 @@ public class SessionSettingRegistry {
                          if (objects.length != 1) {
                              throw new IllegalArgumentException(ERROR_ON_UNKNOWN_OBJECT_KEY + " should have only one argument.");
                          }
+                         return DataTypes.BOOLEAN.implicitCast(objects[0]);
                      },
-                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
                      CoordinatorSessionSettings::setErrorOnUnknownObjectKey,
                      s -> Boolean.toString(s.errorOnUnknownObjectKey()),
                      () -> String.valueOf(true),
@@ -279,7 +273,7 @@ public class SessionSettingRegistry {
                 case "SQL",
                      "POSTGRES",
                       "GERMAN":
-                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE.name() + "\": \"" +
                                                         dateStyle + "\". Valid values include: [\"ISO\"].");
                 // date order style
                 case "MDY",
@@ -292,7 +286,7 @@ public class SessionSettingRegistry {
                      "YMD":
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE.name() + "\": \"" +
                                                        dateStyle + "\". Valid values include: [\"ISO\"].");
             }
         }

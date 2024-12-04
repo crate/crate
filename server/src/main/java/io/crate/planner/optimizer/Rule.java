@@ -39,18 +39,15 @@ public interface Rule<T> {
 
     /**
      *
-     * @param resolvePlan resolvesPlan will resolve a {@GroupReference} to it's referenced {@LogicalPlan} instance.
-     *                    It must be used on a source of {@code plan} if the rule needs to access any properties
-     *                    of the source other than the outputs or the relation names. This may materialize
-     *                    the sub-tree for the source and could be expensive. If the rule doesn't access
-     *                    source properties, don't call it.
+     * @param plan resolvesPlan will resolve a {@GroupReference} to it's referenced {@LogicalPlan} instance.
+     *             It must be used on a source of {@code plan} if the rule needs to access any properties
+     *             of the source other than the outputs or the relation names. This may materialize
+     *             the sub-tree for the source and could be expensive. If the rule doesn't access
+     *             source properties, don't call it.
      */
     LogicalPlan apply(T plan,
                       Captures captures,
-                      PlanStats planStats,
-                      TransactionContext txnCtx,
-                      NodeContext nodeCtx,
-                      UnaryOperator<LogicalPlan> resolvePlan);
+                      Rule.Context context);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.
@@ -68,6 +65,14 @@ public interface Rule<T> {
         return false;
     }
 
+    /**
+     * Every rule is enabled by default, but rules can be disabled by default when they are
+     * not suited for general usage because they are experimental.
+     */
+    default boolean defaultEnabled() {
+        return true;
+    }
+
     default String sessionSettingName() {
         return sessionSettingName(getClass());
     }
@@ -75,4 +80,11 @@ public interface Rule<T> {
     static String sessionSettingName(Class<?> rule) {
         return "optimizer_" + StringUtils.camelToSnakeCase(rule.getSimpleName());
     }
+
+    record Context(
+        PlanStats planStats,
+        TransactionContext txnCtx,
+        NodeContext nodeCtx,
+        UnaryOperator<LogicalPlan> resolvePlan
+    ) {}
 }

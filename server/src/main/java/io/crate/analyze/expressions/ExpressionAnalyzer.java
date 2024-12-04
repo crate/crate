@@ -28,6 +28,7 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,7 +61,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.ExistsOperator;
@@ -69,6 +69,7 @@ import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ArraySliceFunction;
@@ -120,6 +121,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
@@ -145,6 +147,7 @@ import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
@@ -163,6 +166,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
+import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -310,7 +315,7 @@ public class ExpressionAnalyzer {
     @Nullable
     private WindowDefinition getWindowDefinition(Optional<Window> maybeWindow,
                                                  ExpressionAnalysisContext context) {
-        if (!maybeWindow.isPresent()) {
+        if (maybeWindow.isEmpty()) {
             return null;
         }
         var unresolvedWindow = maybeWindow.get();
@@ -697,11 +702,11 @@ public class ExpressionAnalyzer {
             // We should come up with a design that addresses those and remove the duct-tape logic below.
 
             Symbol ref;
+            List<String> parts = subscriptContext.parts();
             try {
-                List<String> parts = subscriptContext.parts();
                 ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
             } catch (ColumnUnknownException e) {
-                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, e);
+                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
             }
 
             // If there are any array subscripts, recursively wrap the resolved expression in an
@@ -719,8 +724,8 @@ public class ExpressionAnalyzer {
             SubscriptExpression node,
             ExpressionAnalysisContext context,
             QualifiedName qualifiedName,
-            ColumnUnknownException e
-        ) {
+            List<String> parts,
+            ColumnUnknownException e) {
             if (operation != Operation.READ) {
                 throw e;
             }
@@ -729,7 +734,36 @@ public class ExpressionAnalyzer {
                     List.of(),
                     operation,
                     context.errorOnUnknownObjectKey());
-                if (base instanceof Reference) {
+                DataType<?> baseType = base.valueType();
+                // Need to double-check that the base type does not hold the inner type before throwing. For instance,
+                //     create table t (o array(object as (a int)));
+                //     select col['a'] from (select unnest(o) as col from t) t_alias;
+                // `col['a']` cannot be resolved(due to unnest), although we know o['a'] exists. Here `col`(the base)
+                // is resolved to a ScopedSymbol which holds `a` as the inner type.
+                // There are test cases that fail without checking inner types:
+                //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
+                //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
+                // Another example is selecting sub-column of an object that is union-ed.
+                if (DataTypes.hasPath(baseType, parts)) {
+                    return allocateFunction(
+                        SubscriptFunction.NAME,
+                        List.of(
+                            node.base().accept(this, context),
+                            node.index().accept(this, context)
+                        ),
+                        context
+                    );
+                }
+                DataType<?> currentType = baseType;
+                ColumnPolicy parentPolicy = baseType.columnPolicy();
+                for (String p : parts) {
+                    if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
+                        parentPolicy = objectType.columnPolicy();
+                        currentType = objectType.innerType(p);
+                    }
+                }
+                if (parentPolicy == ColumnPolicy.STRICT ||
+                    (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
                     throw e;
                 }
                 return allocateFunction(
@@ -757,18 +791,10 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, ExpressionAnalysisContext context) {
-            final String name;
-            switch (node.getType()) {
-                case AND:
-                    name = AndOperator.NAME;
-                    break;
-                case OR:
-                    name = OrOperator.NAME;
-                    break;
-                default:
-                    throw new UnsupportedOperationException(
-                        "Unsupported logical binary expression " + node.getType().name());
-            }
+            final String name = switch (node.getType()) {
+                case AND -> AndOperator.NAME;
+                case OR -> OrOperator.NAME;
+            };
             List<Symbol> arguments = List.of(
                 node.getLeft().accept(this, context),
                 node.getRight().accept(this, context)
@@ -813,19 +839,10 @@ public class ExpressionAnalyzer {
 
             context.parentIsOrderSensitive(true);
             ComparisonExpression.Type operationType = node.getType();
-            final String operatorName;
-            switch (node.quantifier()) {
-                case ANY:
-                    operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
-                    break;
-
-                case ALL:
-                    operatorName = AllOperator.OPERATOR_PREFIX + operationType.getValue();
-                    break;
-
-                default:
-                    throw new IllegalStateException("Expected comparison quantifier ALL or ANY, got " + node.quantifier());
-            }
+            final String operatorName = switch (node.quantifier()) {
+                case ANY -> AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+                case ALL -> AllOperator.OPERATOR_PREFIX + operationType.getValue();
+            };
             return allocateFunction(
                 operatorName,
                 List.of(leftSymbol, arraySymbol),
@@ -840,7 +857,7 @@ public class ExpressionAnalyzer {
             Symbol arraySymbol = node.getValue().accept(this, context);
             Symbol leftSymbol = node.getPattern().accept(this, context);
             return allocateFunction(
-                LikeOperators.arrayOperatorName(node.inverse(), node.ignoreCase()),
+                LikeOperators.arrayOperatorName(node.quantifier(), node.inverse(), node.ignoreCase()),
                 List.of(leftSymbol, arraySymbol),
                 context);
         }
@@ -1002,6 +1019,13 @@ public class ExpressionAnalyzer {
         }
 
         @Override
+        public Symbol visitNumericLiteral(NumericLiteral numericLiteral, ExpressionAnalysisContext context) {
+            BigDecimal value = numericLiteral.value();
+            NumericType numericType = new NumericType(value.precision(), value.scale());
+            return Literal.of(numericType, value);
+        }
+
+        @Override
         protected Symbol visitNullLiteral(NullLiteral node, ExpressionAnalysisContext context) {
             return Literal.of(UndefinedType.INSTANCE, null);
         }
@@ -1037,7 +1061,7 @@ public class ExpressionAnalyzer {
                 context);
         }
 
-        private final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
+        private static final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
             Map.of(
                 YEAR, IntervalParser.Precision.YEAR,
                 MONTH, IntervalParser.Precision.MONTH,
@@ -1093,6 +1117,7 @@ public class ExpressionAnalyzer {
             return allocateFunction(AndOperator.NAME, List.of(gteFunc, lteFunc), context);
         }
 
+
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
             Map<Symbol, Symbol> identBoostMap = HashMap.newHashMap(node.idents().size());
@@ -1122,7 +1147,7 @@ public class ExpressionAnalyzer {
             String matchType = io.crate.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
-            for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
+            for (Map.Entry<String, Expression> e : node.properties()) {
                 mapArgs.add(Literal.of(e.getKey()));
                 mapArgs.add(e.getValue().accept(this, context));
             }
@@ -1180,12 +1205,12 @@ public class ExpressionAnalyzer {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 
-    public static Symbol allocateFunction(String functionName,
-                                          List<Symbol> arguments,
-                                          @Nullable Symbol filter,
-                                          ExpressionAnalysisContext context,
-                                          TransactionContext txnCtx,
-                                          NodeContext nodeCtx) {
+    public static Function allocateFunction(String functionName,
+                                            List<Symbol> arguments,
+                                            @Nullable Symbol filter,
+                                            ExpressionAnalysisContext context,
+                                            TransactionContext txnCtx,
+                                            NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
             null, functionName, arguments, filter, null, context, null, txnCtx, nodeCtx);
     }
@@ -1204,15 +1229,15 @@ public class ExpressionAnalyzer {
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
-    private static Symbol allocateBuiltinOrUdfFunction(@Nullable String schema,
-                                                       String functionName,
-                                                       List<Symbol> arguments,
-                                                       @Nullable Symbol filter,
-                                                       @Nullable Boolean ignoreNulls,
-                                                       ExpressionAnalysisContext context,
-                                                       @Nullable WindowDefinition windowDefinition,
-                                                       TransactionContext txnCtx,
-                                                       NodeContext nodeCtx) {
+    private static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
+                                                         String functionName,
+                                                         List<Symbol> arguments,
+                                                         @Nullable Symbol filter,
+                                                         @Nullable Boolean ignoreNulls,
+                                                         ExpressionAnalysisContext context,
+                                                         @Nullable WindowDefinition windowDefinition,
+                                                         TransactionContext txnCtx,
+                                                         NodeContext nodeCtx) {
         FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,
@@ -1224,7 +1249,7 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (signature.getKind() == FunctionType.AGGREGATE) {
+            if (signature.getType() == FunctionType.AGGREGATE) {
                 context.indicateAggregates();
             } else if (filter != null) {
                 throw new UnsupportedOperationException(
@@ -1238,8 +1263,8 @@ public class ExpressionAnalyzer {
             }
             newFunction = new Function(signature, castArguments, boundSignature.returnType(), filter);
         } else {
-            if (signature.getKind() != FunctionType.WINDOW) {
-                if (signature.getKind() != FunctionType.AGGREGATE) {
+            if (signature.getType() != FunctionType.WINDOW) {
+                if (signature.getType() != FunctionType.AGGREGATE) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
                         "OVER clause was specified, but %s is neither a window nor an aggregate function.",

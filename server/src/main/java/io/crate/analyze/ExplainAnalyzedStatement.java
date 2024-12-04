@@ -63,14 +63,14 @@ public class ExplainAnalyzedStatement implements AnalyzedRelation {
         if (options.contains(Explain.Option.VERBOSE)) {
             ScopedSymbol stepField = new ScopedSymbol(
                 relationName,
-                new ColumnIdent(STEP_COLUMN_NAME),
+                ColumnIdent.of(STEP_COLUMN_NAME),
                 DataTypes.STRING
             );
             outputs.add(stepField);
         }
         ScopedSymbol queryPlanField = new ScopedSymbol(
             relationName,
-            new ColumnIdent(PLAN_COLUMN_NAME),
+            ColumnIdent.of(PLAN_COLUMN_NAME),
             context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
         );
         outputs.add(queryPlanField);
@@ -106,11 +106,6 @@ public class ExplainAnalyzedStatement implements AnalyzedRelation {
     @Override
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         throw new UnsupportedOperationException("Cannot use getField on " + getClass().getSimpleName());
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return false;
     }
 
     @Override

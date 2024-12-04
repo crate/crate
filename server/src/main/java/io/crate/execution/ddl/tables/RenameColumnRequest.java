@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -48,15 +48,15 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
     public RenameColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
-        this.refToRename = (Reference) Symbols.fromStream(in);
-        this.newName = new ColumnIdent(in);
+        this.refToRename = (Reference) Symbol.fromStream(in);
+        this.newName = ColumnIdent.of(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        Symbols.toStream(refToRename, out);
+        Symbol.toStream(refToRename, out);
         newName.writeTo(out);
     }
 

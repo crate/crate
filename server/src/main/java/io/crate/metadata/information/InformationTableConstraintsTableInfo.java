@@ -34,22 +34,20 @@ public class InformationTableConstraintsTableInfo {
     public static final String NAME = "table_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<ConstraintInfo> create() {
-        return SystemTable.<ConstraintInfo>builder(IDENT)
-            .add("constraint_schema", STRING, r -> r.relationName().schema())
-            .add("constraint_name", STRING, ConstraintInfo::constraintName)
-            .add("constraint_catalog", STRING, r -> Constants.DB_NAME)
-            .add("table_catalog", STRING, r -> Constants.DB_NAME)
-            .add("table_schema", STRING, r -> r.relationName().schema())
-            .add("table_name", STRING, r -> r.relationName().name())
-            .add("constraint_type", STRING, r -> r.constraintType().toString())
-            .add("is_deferrable", STRING, ignored -> "NO")
-            .add("initially_deferred", STRING, ignored -> "NO")
-            .setPrimaryKeys(
-                new ColumnIdent("constraint_catalog"),
-                new ColumnIdent("constraint_schema"),
-                new ColumnIdent("constraint_name")
-            )
-            .build();
-    }
+    public static SystemTable<ConstraintInfo> INSTANCE = SystemTable.<ConstraintInfo>builder(IDENT)
+        .add("constraint_schema", STRING, r -> r.relationName().schema())
+        .add("constraint_name", STRING, ConstraintInfo::constraintName)
+        .add("constraint_catalog", STRING, r -> Constants.DB_NAME)
+        .add("table_catalog", STRING, r -> Constants.DB_NAME)
+        .add("table_schema", STRING, r -> r.relationName().schema())
+        .add("table_name", STRING, r -> r.relationName().name())
+        .add("constraint_type", STRING, r -> r.constraintType().toString())
+        .add("is_deferrable", STRING, ignored -> "NO")
+        .add("initially_deferred", STRING, ignored -> "NO")
+        .setPrimaryKeys(
+            ColumnIdent.of("constraint_catalog"),
+            ColumnIdent.of("constraint_schema"),
+            ColumnIdent.of("constraint_name")
+        )
+        .build();
 }

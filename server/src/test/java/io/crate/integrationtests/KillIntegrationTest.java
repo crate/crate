@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -168,9 +166,9 @@ public class KillIntegrationTest extends IntegTestCase {
     public void testKillNonExisitingJob() throws Exception {
         UUID jobId = UUID.randomUUID();
         SQLResponse killResponse = execute("KILL ?", new Object[]{jobId.toString()});
-        assertThat(killResponse.rowCount(), is(0L));
+        assertThat(killResponse.rowCount()).isEqualTo(0L);
         SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
-        assertThat(logResponse.rowCount(), is(0L));
+        assertThat(logResponse.rowCount()).isEqualTo(0L);
     }
 
 }

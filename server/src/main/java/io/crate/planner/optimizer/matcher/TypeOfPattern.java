@@ -27,7 +27,7 @@ import io.crate.planner.operators.LogicalPlan;
 
 class TypeOfPattern<T> extends Pattern<T> {
 
-    private Class<T> expectedClass;
+    private final Class<T> expectedClass;
 
     TypeOfPattern(Class<T> expectedClass) {
         this.expectedClass = expectedClass;

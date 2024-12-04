@@ -18,15 +18,19 @@ Synopsis
 ::
 
     ALTER ROLE name
-      SET ( parameter = value [, ...] )
+        SET ( parameter = value [, ...] )
+      | RESET [parameter | ALL]
 
 
 Description
 ===========
 
-``ALTER ROLE`` applies a change to an existing database user or role. Only
-existing superusers or the user itself have the privilege to alter an existing
-database user.
+``ALTER ROLE SET`` applies a change to an existing database user or role.
+Superusers and users with ``AL`` privileges can modify other roles. Every role
+has permission to modify themselves.
+
+``ALTER ROLE RESET`` resets modifiable
+:ref:`session settings <conf-session>` to their default value.
 
 
 Arguments
@@ -65,6 +69,11 @@ are supported to alter an existing user account:
 
   ``NULL`` removes the JWT properties from the user.
 
+.. WARNING::
+
+    If :ref:`auth.host_based.jwt.iss <auth.host_based.jwt.iss>` is set,
+    user specific properties are ignored and :ref:`jwt_defaults` are used.
+
 .. NOTE::
 
    ``jwt = {...}`` overrides existing jwt properties. If an optional property
@@ -74,3 +83,34 @@ are supported to alter an existing user account:
 
    Passwords and JWT properties can be changed only for existing database
    users, but not to roles.
+
+:session settings:
+
+  Any of the modifiable :ref:`session settings <conf-session>`. The value set
+  is used for the user when logins to the database, instead of the default
+  value, thus, there is no need to use ``SET`` statements to modify the setting
+  value on its user session.
+
+
+.. NOTE::
+
+    The session settings can only be set to a user and not on a role and
+    are therefore are not inherited to other users.
+
+    Changes to session settings are only applied to new sessions opened by the
+    user.
+
+
+``RESET``
+---------
+
+Resets modifiable :ref:`session settings <conf-session>` to their default value.
+
+:parameter:
+
+  Any of the modifiable :ref:`session settings <conf-session>`.
+
+:ALL:
+
+  Resets all the  modifiable :ref:`session settings <conf-session>` of the user
+  to their default values.

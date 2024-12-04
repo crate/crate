@@ -18,17 +18,10 @@
  */
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader.getElasticsearchDirectoryReader;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.List;
@@ -61,11 +54,11 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             EngineConfig config = config(defaultSettings, store, createTempDir(), newMergePolicy(), null, null, globalCheckpoint::get);
             int numDocs = scaledRandomIntBetween(10, 1000);
             final SeqNoStats lastSeqNoStats;
-            final List<DocIdSeqNoAndSource> lastDocIds;
+            final List<DocIdAndSeqNo> lastDocIds;
             try (InternalEngine engine = createEngine(config)) {
                 Engine.Get get = null;
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"));
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     if (get == null || rarely()) {
@@ -83,9 +76,9 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                     engine.getTranslogStats(), false, UnaryOperator.identity(), true);
                 lastSeqNoStats = engine.getSeqNoStats(globalCheckpoint.get());
                 lastDocIds = getDocIds(engine, true);
-                assertThat(readOnlyEngine.getPersistedLocalCheckpoint(), equalTo(lastSeqNoStats.getLocalCheckpoint()));
-                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo(), equalTo(lastSeqNoStats.getMaxSeqNo()));
-                assertThat(getDocIds(readOnlyEngine, false), equalTo(lastDocIds));
+                assertThat(readOnlyEngine.getPersistedLocalCheckpoint()).isEqualTo(lastSeqNoStats.getLocalCheckpoint());
+                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo()).isEqualTo(lastSeqNoStats.getMaxSeqNo());
+                assertThat(getDocIds(readOnlyEngine, false)).isEqualTo(lastDocIds);
                 for (int i = 0; i < numDocs; i++) {
                     if (randomBoolean()) {
                         String delId = Integer.toString(i);
@@ -97,27 +90,27 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 }
                 Engine.Searcher external = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL);
                 Engine.Searcher internal = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
-                assertSame(external.getIndexReader(), internal.getIndexReader());
-                assertThat(external.getIndexReader(), instanceOf(DirectoryReader.class));
+                assertThat(external.getIndexReader()).isSameAs(internal.getIndexReader());
+                assertThat(external.getIndexReader()).isInstanceOf(DirectoryReader.class);
                 DirectoryReader dirReader = external.getDirectoryReader();
                 ElasticsearchDirectoryReader esReader = getElasticsearchDirectoryReader(dirReader);
                 IndexReader.CacheHelper helper = esReader.getReaderCacheHelper();
-                assertNotNull(helper);
-                assertEquals(helper.getKey(), dirReader.getReaderCacheHelper().getKey());
+                assertThat(helper).isNotNull();
+                assertThat(dirReader.getReaderCacheHelper().getKey()).isEqualTo(helper.getKey());
 
                 IOUtils.close(external, internal);
                 // the locked down engine should still point to the previous commit
-                assertThat(readOnlyEngine.getPersistedLocalCheckpoint(), equalTo(lastSeqNoStats.getLocalCheckpoint()));
-                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo(), equalTo(lastSeqNoStats.getMaxSeqNo()));
-                assertThat(getDocIds(readOnlyEngine, false), equalTo(lastDocIds));
+                assertThat(readOnlyEngine.getPersistedLocalCheckpoint()).isEqualTo(lastSeqNoStats.getLocalCheckpoint());
+                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo()).isEqualTo(lastSeqNoStats.getMaxSeqNo());
+                assertThat(getDocIds(readOnlyEngine, false)).isEqualTo(lastDocIds);
             }
             // Close and reopen the main engine
             try (InternalEngine recoveringEngine = new InternalEngine(config)) {
                 recoveringEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
                 // the locked down engine should still point to the previous commit
-                assertThat(readOnlyEngine.getPersistedLocalCheckpoint(), equalTo(lastSeqNoStats.getLocalCheckpoint()));
-                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo(), equalTo(lastSeqNoStats.getMaxSeqNo()));
-                assertThat(getDocIds(readOnlyEngine, false), equalTo(lastDocIds));
+                assertThat(readOnlyEngine.getPersistedLocalCheckpoint()).isEqualTo(lastSeqNoStats.getLocalCheckpoint());
+                assertThat(readOnlyEngine.getSeqNoStats(globalCheckpoint.get()).getMaxSeqNo()).isEqualTo(lastSeqNoStats.getMaxSeqNo());
+                assertThat(getDocIds(readOnlyEngine, false)).isEqualTo(lastDocIds);
             }
         } finally {
             IOUtils.close(readOnlyEngine);
@@ -144,8 +137,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                     ParsedDocument doc = testParsedDocument(
                         Integer.toString(i),
                         testDocument(),
-                        new BytesArray("{}"),
-                        null
+                        new BytesArray("{}")
                     );
                     engine.index(
                         new Engine.Index(
@@ -172,7 +164,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.flushAndClose();
                 readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, null , null, true, UnaryOperator.identity(), true);
                 Engine.CommitId flush = readOnlyEngine.flush(randomBoolean(), true);
-                assertThat(readOnlyEngine.flush(randomBoolean(), true), is(flush));
+                assertThat(readOnlyEngine.flush(randomBoolean(), true)).isEqualTo(flush);
             } finally {
                 IOUtils.close(readOnlyEngine);
             }
@@ -189,7 +181,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (InternalEngine engine = createEngine(config)) {
                 long maxSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"));
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     maxSeqNo = engine.getProcessedLocalCheckpoint();
@@ -208,9 +200,8 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                         }
                     })
                     .isExactlyInstanceOf(IllegalStateException.class)
-                    .hasMessage(
-                        "Maximum sequence number [" + maxSeqNo
-                        + "] from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]");
+                    .hasMessage("Maximum sequence number [" + maxSeqNo + "] " +
+                                "from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]");
             }
         }
     }
@@ -293,8 +284,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                     ParsedDocument doc = testParsedDocument(
                         Integer.toString(i),
                         testDocument(),
-                        new BytesArray("{}"),
-                        null
+                        new BytesArray("{}")
                     );
                     engine.index(new Engine.Index(
                         newUid(doc),
@@ -318,7 +308,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.flushAndClose();
             }
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
-                TranslogHandler translogHandler = new TranslogHandler(xContentRegistry(), config.getIndexSettings());
+                TranslogHandler translogHandler = new TranslogHandler(config.getIndexSettings());
                 readOnlyEngine.recoverFromTranslog(translogHandler, randomNonNegativeLong());
                 int opsRecovered = translogHandler.run(
                     readOnlyEngine,
@@ -338,7 +328,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
 
                         }
                     });
-                assertThat(opsRecovered, is(0));
+                assertThat(opsRecovered).isEqualTo(0);
             }
         }
     }
@@ -355,7 +345,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
 
             try (InternalEngine engine = createEngine(config)) {
                 for (int i = 0; i < numDocs; i++) {
-                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"), null);
+                    ParsedDocument doc = testParsedDocument(Integer.toString(i), testDocument(), new BytesArray("{}"));
                     engine.index(new Engine.Index(newUid(doc), doc, i, primaryTerm.get(), 1, null, Engine.Operation.Origin.REPLICA,
                                                   System.nanoTime(), -1, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
                     globalCheckpoint.set(i);
@@ -367,20 +357,19 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                     }
                 }
 
-                assertThat(engine.getTranslogStats().estimatedNumberOfOperations(),
-                           equalTo(softDeletesEnabled ? uncommittedDocs : numDocs));
-                assertThat(engine.getTranslogStats().getUncommittedOperations(), equalTo(uncommittedDocs));
-                assertThat(engine.getTranslogStats().getTranslogSizeInBytes(), greaterThan(0L));
-                assertThat(engine.getTranslogStats().getUncommittedSizeInBytes(), greaterThan(0L));
+                assertThat(engine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? uncommittedDocs : numDocs);
+                assertThat(engine.getTranslogStats().getUncommittedOperations()).isEqualTo(uncommittedDocs);
+                assertThat(engine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
+                assertThat(engine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);
 
                 engine.flush(true, true);
             }
 
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
-                assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations(), equalTo(softDeletesEnabled ? 0 : numDocs));
-                assertThat(readOnlyEngine.getTranslogStats().getUncommittedOperations(), equalTo(0));
-                assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes(), greaterThan(0L));
-                assertThat(readOnlyEngine.getTranslogStats().getUncommittedSizeInBytes(), greaterThan(0L));
+                assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? 0 : numDocs);
+                assertThat(readOnlyEngine.getTranslogStats().getUncommittedOperations()).isEqualTo(0);
+                assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
+                assertThat(readOnlyEngine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);
             }
         }
     }

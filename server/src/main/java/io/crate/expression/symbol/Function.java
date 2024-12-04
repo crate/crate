@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -38,6 +39,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.ExistsOperator;
 import io.crate.expression.operator.Operator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
@@ -53,6 +55,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
@@ -62,6 +65,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.SqlFormatter;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -93,11 +97,11 @@ public class Function implements Symbol, Cloneable {
             generatedSignature = Signature.readFromFunctionInfo(in);
         }
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            filter = Symbols.nullableFromStream(in);
+            filter = Symbol.nullableFromStream(in);
         } else {
             filter = null;
         }
-        arguments = List.copyOf(Symbols.listFromStream(in));
+        arguments = List.copyOf(Symbols.fromStream(in));
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (in.getVersion().before(Version.V_5_0_0)) {
                 in.readBoolean();
@@ -145,9 +149,38 @@ public class Function implements Symbol, Cloneable {
     }
 
     @Override
+    public boolean isDeterministic() {
+        if (!signature.isDeterministic()) {
+            return false;
+        }
+        for (var arg : arguments) {
+            if (!arg.isDeterministic()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (predicate.test(this)) {
+            return true;
+        }
+        for (var arg : arguments) {
+            if (arg.any(predicate)) {
+                return true;
+            }
+        }
+        if (filter != null) {
+            return filter.any(predicate);
+        }
+        return false;
+    }
+
+    @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         String name = signature.getName().name();
-        if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
+        if (targetType instanceof ArrayType<?> arrayType && name.equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -155,28 +188,31 @@ public class Function implements Symbol, Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, modes);
+            return castArrayElements(arrayType, modes);
         } else {
             return Symbol.super.cast(targetType, modes);
         }
     }
 
-    private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {
-        DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
+    @Override
+    public Symbol uncast() {
+        if (isCast()) {
+            return arguments.get(0);
+        }
+        return this;
+    }
+
+    private Symbol castArrayElements(ArrayType<?> targetType, CastMode... modes) {
+        DataType<?> innerType = targetType.innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             try {
                 newArgs.add(arg.cast(innerType, modes));
             } catch (ConversionException e) {
-                throw new ConversionException(returnType, newDataType);
+                throw new ConversionException(returnType, targetType);
             }
         }
-        return new Function(
-            signature,
-            newArgs,
-            newDataType,
-            null
-        );
+        return new Function(signature, newArgs, targetType, null);
     }
 
     public boolean isCast() {
@@ -221,7 +257,7 @@ public class Function implements Symbol, Cloneable {
             signature.writeAsFunctionInfo(out, Symbols.typeView(arguments));
         }
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbols.nullableToStream(filter, out);
+            Symbol.nullableToStream(filter, out);
         }
         Symbols.toStream(arguments, out);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
@@ -235,9 +271,6 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
@@ -249,7 +282,10 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(arguments, signature, filter);
+        int result = arguments.hashCode();
+        result = 31 * result + signature.hashCode();
+        result = 31 * result + (filter == null ? 0 : filter.hashCode());
+        return result;
     }
 
     @Override
@@ -337,9 +373,28 @@ public class Function implements Symbol, Cloneable {
                 }
                 break;
 
+            case ArrayFunction.NAME:
+                printArray(builder, style);
+                break;
+
+            case CaseFunction.NAME:
+                builder.append("CASE");
+                for (int i = 2; i < arguments.size(); i += 2) {
+                    builder.append(" WHEN ");
+                    builder.append(arguments.get(i).toString(style));
+                    builder.append(" THEN ");
+                    builder.append(arguments.get(i + 1).toString(style));
+                }
+                builder.append(" ELSE ");
+                builder.append(arguments.get(1).toString(style));
+                builder.append(" END");
+                break;
+
             default:
                 if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
+                } else if (AllOperator.OPERATOR_NAMES.contains(name)) {
+                    printAllOperator(builder, style);
                 } else if (isCast()) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
@@ -370,11 +425,24 @@ public class Function implements Symbol, Cloneable {
         builder.append(arguments.get(1).toString(style));
     }
 
+    private void printArray(StringBuilder builder, Style style) {
+        builder.append("[");
+        int size = arguments.size();
+        for (int i = 0; i < size; i++) {
+            Symbol arg = arguments.get(i);
+            builder.append(arg.toString(style));
+            if (i + 1 < size) {
+                builder.append(", ");
+            }
+        }
+        builder.append("]");
+    }
+
     private void printAnyOperator(StringBuilder builder, Style style) {
         String name = signature.getName().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "function for printAnyOperator must start with any prefix";
         assert arguments.size() == 2 : "function's number of arguments must be 2";
-        String operatorName = name.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+        String operatorName = name.substring(AnyOperator.OPERATOR_PREFIX.length()).replace('_', ' ').toUpperCase(Locale.ENGLISH);
         builder
             .append("(") // wrap operator in parens to ensure precedence
             .append(arguments.get(0).toString(style))
@@ -386,6 +454,22 @@ public class Function implements Symbol, Cloneable {
             .append("))");
     }
 
+    private void printAllOperator(StringBuilder builder, Style style) {
+        String name = signature.getName().name();
+        assert name.startsWith(AllOperator.OPERATOR_PREFIX) : "function for printAllOperator must start with all prefix";
+        assert arguments.size() == 2 : "function's number of arguments must be 2";
+        String operatorName = name.substring(AllOperator.OPERATOR_PREFIX.length()).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+        builder
+            .append("(") // wrap operator in parens to ensure precedence
+            .append(arguments.get(0).toString(style))
+            .append(" ")
+            .append(operatorName)
+            .append(" ")
+            .append("ALL(")
+            .append(arguments.get(1).toString(style))
+            .append("))");
+    }
+
     private void printCastFunction(StringBuilder builder, Style style) {
         var name = signature.getName().name();
         assert arguments.size() == 2 : "Expecting 2 arguments for function " + name;
@@ -393,12 +477,13 @@ public class Function implements Symbol, Cloneable {
             builder.append(arguments().get(0).toString(style));
         } else {
             var targetType = arguments.get(1).valueType();
+            var columnType = targetType.toColumnType(null);
             builder
                 .append(name)
                 .append("(")
                 .append(arguments().get(0).toString(style))
                 .append(" AS ")
-                .append(targetType.toString())
+                .append(SqlFormatter.formatSql(columnType))
                 .append(")");
         }
     }

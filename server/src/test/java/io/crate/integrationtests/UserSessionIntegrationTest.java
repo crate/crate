@@ -23,42 +23,17 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        Settings settings = super.nodeSettings(nodeOrdinal);
-        if (nodeOrdinal == 0) { // Enterprise enabled
-            return Settings.builder().put(settings)
-                .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        }
-        // Enterprise disabled
-        return Settings.builder().put(settings)
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-    }
-
-    @Test
-    public void testSystemExecutorUsesSuperuserSession() {
-        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(true));
-        assertThat(response).hasRows("crate");
-    }
-
-    @Test
-    public void testSystemExecutorNullUser() {
-        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(false));
-        assertThat(response).hasRows("crate");
-    }
-
     @Test
     public void test_set_session_user_from_auth_superuser_to_unprivileged_user_round_trip() {
-        try (var session = createSuperUserSession()) {
+        try (var session = sqlExecutor.newSession()) {
             execute("SELECT SESSION_USER", session);
             assertThat(response).hasRows("crate");
 
@@ -73,10 +48,28 @@ public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
         }
     }
 
-    private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {
-        if (enterpriseEnabled) {
-            return cluster().getNodeNames()[0];
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_sys_sessions() {
+        long timeCreated = System.currentTimeMillis();
+        try (var session = sqlExecutor.newSession()) {
+            execute("CREATE USER test", session);
+            execute("GRANT AL, DQL TO test", session);
+            execute("SET SESSION AUTHORIZATION test", session);
+            execute("SET enable_hashjoin=false", session);
+
+            execute("select auth_user, session_user, client_address, " +
+                    "protocol, ssl, settings, last_statement from sys.sessions", session);
+            assertThat(response).hasRows(
+                "crate| test| localhost| http| false| {application_name=NULL, datestyle=ISO, " +
+                    "disabled_optimizer_rules=optimizer_equi_join_to_lookup_join, enable_hashjoin=false, " +
+                    "error_on_unknown_object_key=true, memory.operation_limit=0, search_path=pg_catalog,doc, " +
+                    "statement_timeout=0s}| select auth_user, session_user, client_address, " +
+                    "protocol, ssl, settings, last_statement from sys.sessions");
+            execute("select handler_node, time_created from sys.sessions", session);
+            assertThat(response).hasRowCount(1);
+            assertThat((String) response.rows()[0][0]).startsWith("node_s");
+            assertThat((Long) response.rows()[0][1]).isGreaterThanOrEqualTo(timeCreated);
         }
-        return cluster().getNodeNames()[1];
     }
 }

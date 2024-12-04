@@ -24,6 +24,7 @@ package io.crate.role.metadata;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 import io.crate.metadata.ColumnIdent;
@@ -35,7 +36,7 @@ import io.crate.role.Role;
 
 public class SysUsersTableInfo {
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
     public static final String PASSWORD_PLACEHOLDER = "********";
 
     private SysUsersTableInfo() {}
@@ -54,7 +55,8 @@ public class SysUsersTableInfo {
                 .add("role", STRING, GrantedRole::roleName)
                 .add("grantor", STRING, GrantedRole::grantor)
             .endObjectArray()
-            .setPrimaryKeys(new ColumnIdent("name"))
+            .addDynamicObject("session_settings", STRING, x -> new TreeMap<>(x.sessionSettings()))
+            .setPrimaryKeys(ColumnIdent.of("name"))
             .build();
     }
 }

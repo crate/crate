@@ -48,15 +48,30 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     @Nullable
     protected final Symbol joinCondition;
     protected final JoinType joinType;
+    protected final LookUpJoin lookupJoin;
+
+    public enum LookUpJoin {
+        LEFT, RIGHT, NONE;
+
+        public LookUpJoin invert() {
+            return switch (this) {
+                case LEFT -> RIGHT;
+                case RIGHT -> LEFT;
+                case NONE -> NONE;
+            };
+        }
+    }
 
     protected AbstractJoinPlan(LogicalPlan lhs,
                                LogicalPlan rhs,
                                @Nullable Symbol joinCondition,
-                               JoinType joinType) {
+                               JoinType joinType,
+                               LookUpJoin lookupJoin) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
         this.joinType = joinType;
+        this.lookupJoin = lookupJoin;
     }
 
     public LogicalPlan lhs() {
@@ -65,6 +80,10 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    public LookUpJoin lookUpJoin() {
+        return lookupJoin;
     }
 
     @Override
@@ -81,7 +100,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();
         Map<LogicalPlan, SelectSymbol> rightDeps = rhs.dependencies();
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(leftDeps.size() + rightDeps.size());
+        HashMap<LogicalPlan, SelectSymbol> deps = HashMap.newHashMap(leftDeps.size() + rightDeps.size());
         deps.putAll(leftDeps);
         deps.putAll(rightDeps);
         return deps;
@@ -97,8 +116,8 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
-        return Lists.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
+    public List<RelationName> relationNames() {
+        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
     }
 
     @Override

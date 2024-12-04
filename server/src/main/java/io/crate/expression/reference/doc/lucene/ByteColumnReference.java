@@ -21,52 +21,15 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
-public class ByteColumnReference extends LuceneCollectorExpression<Byte> {
-
-    private final String columnName;
-    private SortedNumericDocValues values;
-    private int docId;
+public class ByteColumnReference extends NumericColumnReference<Byte> {
 
     public ByteColumnReference(String columnName) {
-        this.columnName = columnName;
+        super(columnName);
     }
 
     @Override
-    public Byte value() {
-        try {
-            if (values.advanceExact(docId)) {
-                switch (values.docValueCount()) {
-                    case 1:
-                        return (byte) values.nextValue();
-
-                    default:
-                        throw new ArrayViaDocValuesUnsupportedException(columnName);
-
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    protected Byte convert(long input) {
+        return (byte) input;
     }
 
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
-    }
 }

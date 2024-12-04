@@ -63,13 +63,24 @@ public class GeoJSONUtils {
     static final String GEOMETRIES_FIELD = "geometries";
 
     // GEO JSON Types
-    static final String GEOMETRY_COLLECTION = "GeometryCollection";
+    public static final String GEOMETRY_COLLECTION = "GeometryCollection";
     public static final String POINT = "Point";
     private static final String MULTI_POINT = "MultiPoint";
     public static final String LINE_STRING = "LineString";
     private static final String MULTI_LINE_STRING = "MultiLineString";
     public static final String POLYGON = "Polygon";
     private static final String MULTI_POLYGON = "MultiPolygon";
+
+    /**
+     * Register of types that are composable when a geometry collection consist only of those types.
+     * Key is a type of each shape inside collection, value is a target type to be transformed to.
+     */
+    public static final Map<String, String> COMPOSABLE_TYPES =
+        Map.of(
+            POINT, MULTI_POINT,
+            POLYGON, MULTI_POLYGON,
+            LINE_STRING, MULTI_LINE_STRING
+        );
 
     private static final Map<String, String> GEOJSON_TYPES = Map.<String, String>ofEntries(
         Map.entry(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION),
@@ -111,8 +122,7 @@ public class GeoJSONUtils {
     }
 
     public static Map<String, Object> shape2Map(Shape shape) {
-        if (shape instanceof ShapeCollection) {
-            ShapeCollection<?> shapeCollection = (ShapeCollection<?>) shape;
+        if (shape instanceof ShapeCollection<?> shapeCollection) {
             List<Map<String, Object>> geometries = new ArrayList<>(shapeCollection.size());
             for (Shape collShape : shapeCollection) {
                 geometries.add(shape2Map(collShape));
@@ -131,9 +141,18 @@ public class GeoJSONUtils {
         }
     }
 
+    /**
+     * Convert a WKT string into a Shape.
+     *
+     * GeometryCollections composed of a single part are converted
+     * into the respective multi-part (MultiPoint, MultiLineString, or MultiPolygon) objects
+     * to maximize interoperability.
+     * See https://datatracker.ietf.org/doc/html/draft-ietf-geojson-03#section-3.1.8
+     */
     public static Shape wkt2Shape(String wkt) {
         try {
             return GeoPointType.WKT_READER.parse(wkt);
+
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert WKT \"%s\" to shape", wkt), e);
@@ -153,6 +172,60 @@ public class GeoJSONUtils {
 
     public static Object map2LuceneShape(Map<String, Object> geoJSONMap) {
         return geoJSONString2ShapeBuilder(geoJSONMap).buildLucene();
+    }
+
+    /**
+     * @return 0 if shapes are topologically equal and 1 otherwise.
+     * This method doesn't do any validation and assumes that Maps represent correct geo shapes.
+     *
+     * When comparing geometries collections, order of geometries is important,
+     * ie collection(point1, point2) != collection(point2, point1).
+     * Each shape pair inside a GeometryCollection is equal if shapes are topologically equal.
+     *
+     * See https://postgis.net/docs/ST_Equals.html for topological equality reference.
+     */
+    @SuppressWarnings("unchecked")
+    public static int compare(Map<String, Object> val1, Map<String, Object> val2) {
+        Object type1 = val1.get(TYPE_FIELD);
+        Object type2 = val2.get(TYPE_FIELD);
+        assert type1 != null && type2 != null : "Shapes must be valid"; // implicitCast and sanitizeValue validate provided values.
+        if (type1.equals(type2) == false) {
+            return 1;
+        }
+
+        int result = 0;
+        if (GEOMETRY_COLLECTION.equals(type1)) {
+            // Both shapes are valid geometries collections.
+            Object geometries1 = val1.get(GeoJSONUtils.GEOMETRIES_FIELD);
+            Object geometries2 = val2.get(GeoJSONUtils.GEOMETRIES_FIELD);
+            assert geometries1 instanceof Collection : " Geometries must be a collection";
+            assert geometries2 instanceof Collection : " Geometries must be a collection";
+            Collection<?> geoms1 = (Collection<?>) geometries1;
+            Collection<?> geoms2 = (Collection<?>) geometries2;
+            if (geoms1.size() != geoms2.size()) {
+                return 1;
+            }
+            Iterator<?> it1 = geoms1.iterator();
+            Iterator<?> it2 = geoms2.iterator();
+            while (it1.hasNext()) {
+                Object value1 = it1.next();
+                Object value2 = it2.next();
+                assert value1 instanceof Map : "Shapes must be valid";
+                assert value2 instanceof Map : "Shapes must be valid";
+                if (compare((Map<String, Object>) value1, (Map<String, Object>) value2) != 0) {
+                    result = 1;
+                    break;
+                }
+            }
+        } else {
+            Shape shape1 = GeoJSONUtils.map2Shape(val1);
+            Shape shape2 = GeoJSONUtils.map2Shape(val2);
+            if (shape1.equals(shape2) == false && shape1.relate(shape2) != shape2.relate(shape1)) {
+                // Neither exact equality nor topological.
+                result = 1;
+            }
+        }
+        return result;
     }
 
     /*
@@ -177,7 +250,11 @@ public class GeoJSONUtils {
         }
     }
 
-    public static void validateGeoJson(Map<?, ?> value) {
+    /**
+    * Sanitize a map of geometric values using the same constrains as {@link #wkt2Shape}
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> sanitizeMap(Map<?, ?> value) {
         String type = BytesRefs.toString(value.get(TYPE_FIELD));
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
@@ -187,20 +264,47 @@ public class GeoJSONUtils {
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
         }
-
         if (GEOMETRY_COLLECTION.equals(type)) {
             Object geometries = value.get(GeoJSONUtils.GEOMETRIES_FIELD);
             if (geometries == null) {
                 throw new IllegalArgumentException(invalidGeoJSON("geometries field missing"));
             }
 
+            final String[] typeInCollection = {null};
+            final boolean[] sameType = {true};
+            final List<Map<String, Object>> sanitizedGeometries = new ArrayList<>();
             forEach(geometries, input -> {
                 if (!(input instanceof Map<?, ?> map)) {
                     throw new IllegalArgumentException(invalidGeoJSON("invalid GeometryCollection"));
                 } else {
-                    validateGeoJson(map);
+                    Map<String, Object> sanitizedShape = sanitizeMap(map);
+                    sanitizedGeometries.add(sanitizedShape);
+                    String shapeType = BytesRefs.toString(sanitizedShape.get(TYPE_FIELD));
+                    if (typeInCollection[0] == null) {
+                        typeInCollection[0] = shapeType;
+                    } else {
+                        if (typeInCollection[0].equals(shapeType) == false) {
+                            sameType[0] = false;
+                        }
+                    }
                 }
             });
+            Map<String, Object> transformed = new HashMap<>();
+            String targetType = COMPOSABLE_TYPES.get(typeInCollection[0]);
+            if (sameType[0] == true && targetType != null) {
+                transformed.put(TYPE_FIELD, targetType);
+                final List<Object> coords = new ArrayList<>();
+                forEach(geometries, input -> {
+                    Map<String, Object> validatedShape = (Map<String, Object>) input;
+                    coords.add(validatedShape.get(COORDINATES_FIELD));
+                });
+                transformed.put(COORDINATES_FIELD, coords);
+            } else {
+                transformed.put(TYPE_FIELD, GEOMETRY_COLLECTION);
+                transformed.put(GEOMETRIES_FIELD, sanitizedGeometries);
+            }
+            return transformed;
+
         } else {
             Object coordinates = value.get(COORDINATES_FIELD);
             if (coordinates == null) {
@@ -226,6 +330,7 @@ public class GeoJSONUtils {
                     throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
             }
         }
+        return (Map<String, Object>) value;
     }
 
     private static void validateCoordinates(Object coordinates, final int depth) {

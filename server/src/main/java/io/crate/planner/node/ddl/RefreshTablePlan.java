@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
@@ -40,9 +39,9 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -82,26 +81,21 @@ public class RefreshTablePlan implements Plan {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices()));
+                toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices(plannerContext.clusterState().metadata())));
             } else {
-                var partitionName = toPartitionName(
-                    tableInfo,
-                    Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)));
-                if (!tableInfo.partitions().contains(partitionName)) {
-                    throw new PartitionUnknownException(partitionName);
-                }
+                PartitionName partitionName = PartitionName.ofAssignments(tableInfo, Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)), plannerContext.clusterState().metadata());
                 toRefresh.add(partitionName.asIndexName());
             }
         }
 
         RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
         dependencies.client().execute(RefreshAction.INSTANCE, request)
             .whenComplete(
                 new OneRowActionListener<>(
                     consumer,
-                    response -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
+                    ignoredResponse -> new Row1(toRefresh.isEmpty() ? -1L : (long) toRefresh.size())
                 ));
     }
 

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -48,14 +49,14 @@ import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.SendRequestTransportException;
-import org.elasticsearch.transport.TransportFuture;
+import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 
@@ -134,12 +135,33 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
 
     @Override
     public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
-        TransportFuture<TransportResponse.Empty> handler = new TransportFuture<>(EmptyTransportResponseHandler.INSTANCE_SAME);
+        FutureActionListener<TransportResponse.Empty> future = new FutureActionListener<>();
+        ActionListenerResponseHandler<TransportResponse.Empty> handler = new ActionListenerResponseHandler<>(
+            future,
+            in -> TransportResponse.Empty.INSTANCE,
+            ThreadPool.Names.SAME
+        );
         transportService.sendRequest(
-            targetNode, PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
+            targetNode,
+            PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
             new RecoveryHandoffPrimaryContextRequest(recoveryId, shardId, primaryContext),
-            TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(), handler);
-        handler.txGet();
+            TransportRequestOptions.builder()
+                .withTimeout(recoverySettings.internalActionTimeout())
+                .build(),
+                handler
+        );
+        try {
+            future.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Future got interrupted", ex);
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof ElasticsearchException esEx) {
+                throw esEx;
+            } else {
+                throw new TransportException("Failed execution", ex);
+            }
+        }
     }
 
     @Override

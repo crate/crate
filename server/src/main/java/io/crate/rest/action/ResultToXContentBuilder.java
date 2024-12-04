@@ -21,15 +21,19 @@
 
 package io.crate.rest.action;
 
-import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
 
 import java.io.IOException;
 import java.util.List;
+
+import org.elasticsearch.common.xcontent.XContentBuilder;
+
+import io.crate.auth.AccessControl;
+import io.crate.data.Row;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 
 class ResultToXContentBuilder {
 
@@ -41,7 +45,9 @@ class ResultToXContentBuilder {
         static final String ROWS = "rows";
         static final String ROW_COUNT = "rowcount";
         static final String DURATION = "duration";
-        static final String ERROR_MESSAGE = "error_message";
+        static final String ERROR = "error";
+        static final String ERROR_CODE = "code";
+        static final String ERROR_MESSAGE = "message";
     }
 
     private final XContentBuilder builder;
@@ -58,7 +64,7 @@ class ResultToXContentBuilder {
     ResultToXContentBuilder cols(List<? extends Symbol> fields) throws IOException {
         builder.startArray(FIELDS.COLS);
         for (Symbol field : fields) {
-            builder.value(Symbols.pathFromSymbol(field).sqlFqn());
+            builder.value(field.toColumn().sqlFqn());
         }
         builder.endArray();
         return this;
@@ -129,13 +135,19 @@ class ResultToXContentBuilder {
         return this;
     }
 
-    ResultToXContentBuilder bulkRows(RestBulkRowCountReceiver.Result[] results) throws IOException {
+    ResultToXContentBuilder bulkRows(RestBulkRowCountReceiver.Result[] results, AccessControl accessControl) throws IOException {
         builder.startArray(FIELDS.RESULTS);
         for (RestBulkRowCountReceiver.Result result : results) {
             builder.startObject();
             builder.field(FIELDS.ROW_COUNT, result.rowCount());
-            if (result.errorMessage() != null) {
-                builder.field(FIELDS.ERROR_MESSAGE, result.errorMessage());
+            Throwable t = result.error();
+            if (t != null) {
+                builder.startObject(FIELDS.ERROR);
+                var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
+                HttpError httpError = HttpError.fromThrowable(throwable);
+                builder.field(FIELDS.ERROR_CODE, httpError.errorCode());
+                builder.field(FIELDS.ERROR_MESSAGE, userFriendlyMessage(throwable));
+                builder.endObject();
             }
             builder.endObject();
         }

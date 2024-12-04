@@ -44,7 +44,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         execute("insert into test (pk_col, message) values ('1', 'foo')");
         execute("insert into test (pk_col, message) values ('2', 'bar')");
         execute("insert into test (pk_col, message) values ('3', 'baz')");
-        refresh();
+        execute("refresh table test");
         execute("SELECT pk_col as id, message from test where pk_col IN (?,?)", new Object[]{"1", "2"});
         assertThat(response).hasRowCount(2L);
         assertThat(response.cols()).containsExactlyInAnyOrder("id", "message");
@@ -58,7 +58,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table test");
 
         execute("select \"_version\" from test where col1 = 1");
         assertThat(response).hasRows("1");
@@ -69,7 +69,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
 
         // Validate that the row is really deleted
-        refresh();
+        execute("refresh table test");
         execute("select * from test where col1 = 1");
         assertThat(response).hasRowCount(0);
     }
@@ -80,14 +80,14 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table test");
 
         execute("select \"_version\" from test where col1 = 1");
         assertThat(response).hasRows("1");
 
         execute("update test set col2 = ? where col1 = ?", new Object[]{"ok now panic", 1});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table test");
 
         execute("delete from test where col1 = 1 and \"_version\" = 1");
         assertThat(response).hasRowCount(0);
@@ -99,7 +99,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table test");
 
         execute("select \"_version\" from test where col1 = 1");
         assertThat(response).hasRows("1");
@@ -109,7 +109,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
 
         // Validate that the row is really updated
-        refresh();
+        execute("refresh table test");
         execute("select col2 from test where col1 = 1");
         assertThat(response).hasRows("ok now panic");
     }
@@ -130,7 +130,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
+        execute("refresh table test");
 
         execute("select \"_version\" from test where col1 = 1");
         assertThat(response).hasRows("1");
@@ -138,15 +138,15 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
             new Object[]{"ok now panic", 1, 1});
         assertThat(response).hasRowCount(1L);
-        refresh();
+        execute("refresh table test");
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
             new Object[]{"hopefully not updated", 1, 1});
         assertThat(response).hasRowCount(0L);
-        refresh();
+        execute("refresh table test");
 
         // Validate that the row is really NOT updated
-        refresh();
+        execute("refresh table test");
         execute("select col2 from test where col1 = 1");
         assertThat(response).hasRows("ok now panic");
     }

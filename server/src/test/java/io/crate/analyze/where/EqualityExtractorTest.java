@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.junit.Test;
 
@@ -39,8 +40,8 @@ import io.crate.testing.T3;
 
 public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
-    private static final ColumnIdent x = new ColumnIdent("x");
-    private static final ColumnIdent i = new ColumnIdent("i");
+    private static final ColumnIdent x = ColumnIdent.of("x");
+    private static final ColumnIdent i = ColumnIdent.of("i");
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
         return analyzeParent(query, List.of(x));
@@ -308,7 +309,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         Map<RelationName, AnalyzedRelation> sources = T3.sources(List.of(T3.T4), clusterService);
         DocTableRelation tr4 = (DocTableRelation) sources.get(T3.T4);
         var expressionsT4 = new SqlExpressions(sources, tr4);
-        var pkCol = new ColumnIdent("obj");
+        var pkCol = ColumnIdent.of("obj");
 
         var query = expressionsT4.normalize(expressionsT4.asSymbol("obj = any([{i = 1}])"));
         List<List<Symbol>> matches = analyzeExact(query, List.of(pkCol));
@@ -383,5 +384,34 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         assertThat(matches).isNull();
         matches = analyzeExactX(query("x = 1 AND (x = 2 AND (NOT(x = 3) OR i = 1) AND x = 4)"));
         assertThat(matches).isNull();
+    }
+
+    @Test
+    public void test_pk_extraction_breaks_after_x_iterations() {
+        StringJoiner sj = new StringJoiner(" or ");
+        for (int j = 0; j < 20; j++) {
+            sj.add("x = ? AND i = ?");
+        }
+
+        EqualityExtractor extractor = new EqualityExtractor(normalizer) {
+            @Override
+            protected int maxIterations() {
+                return 100; // with 20 `x=? AND i=?` joined with OR, 100 iterations are not enough
+            }
+        };
+
+        var matches = extractor.extractMatches(
+            List.of(x, i), query(sj.toString()), coordinatorTxnCtx).matches();
+        assertThat(matches).isNull();
+
+        extractor = new EqualityExtractor(normalizer) {
+            @Override
+            protected int maxIterations() {
+                return 1000; // make sure iterations are enough to extract pk matches
+            }
+        };
+        matches = extractor.extractMatches(
+            List.of(x, i), query(sj.toString()), coordinatorTxnCtx).matches();
+        assertThat(matches).isNotNull();
     }
 }

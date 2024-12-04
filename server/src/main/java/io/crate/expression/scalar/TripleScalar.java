@@ -45,7 +45,7 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
                         DataType<T> type,
                         ThreeParametersFunction<T, T, T, R> func) {
         super(signature, boundSignature);
-        assert signature.hasFeature(Feature.NULLABLE) : "A TriScalar is NULLABLE by definition";
+        assert signature.hasFeature(Feature.STRICTNULL) : "A TriScalar is NULLABLE by definition";
         assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
             "All argument types of the bound signature must match the type argument";
         this.type = type;

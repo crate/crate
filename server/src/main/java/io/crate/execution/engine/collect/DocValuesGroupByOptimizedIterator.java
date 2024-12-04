@@ -44,12 +44,12 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -68,18 +68,18 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataType;
 
 final class DocValuesGroupByOptimizedIterator {
@@ -90,12 +90,11 @@ final class DocValuesGroupByOptimizedIterator {
                                           IndexShard indexShard,
                                           DocTableInfo table,
                                           LuceneQueryBuilder luceneQueryBuilder,
-                                          FieldTypeLookup fieldTypeLookup,
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
                                           CollectTask collectTask) {
-        if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
+        if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE)
+            || collectPhase.where().hasColumn(SysColumns.SCORE)) {
             return null;
         }
 
@@ -112,20 +111,22 @@ final class DocValuesGroupByOptimizedIterator {
                 return null; // group by on non-reference
             }
             var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
-            var keyFieldType = fieldTypeLookup.get(columnKeyRef.storageIdent());
-            if (keyFieldType == null || !keyFieldType.hasDocValues()) {
+            if (!columnKeyRef.hasDocValues()) {
                 return null;
             } else {
                 columnKeyRefs.add(columnKeyRef);
             }
         }
 
+        Version shardCreatedVersion = indexShard.getVersionCreated();
+
         List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
             functions,
             referenceResolver,
             groupProjection.values(),
             collectPhase.toCollect(),
-            table
+            table,
+            shardCreatedVersion
         );
         if (aggregators == null) {
             return null;
@@ -135,10 +136,11 @@ final class DocValuesGroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("group-by-doc-value-aggregates: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
+        String indexName = indexShard.shardId().getIndexName();
         List<LuceneCollectorExpression<?>> keyExpressions = new ArrayList<>();
         for (var keyRef : columnKeyRefs) {
             keyExpressions.add((LuceneCollectorExpression<?>) docCtx.add(keyRef));
@@ -146,11 +148,11 @@ final class DocValuesGroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
-            indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexName,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            shardCreatedVersion,
+            indexService.cache()
         );
 
         if (columnKeyRefs.size() == 1) {
@@ -163,7 +165,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -175,7 +177,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
             );
         }
     }

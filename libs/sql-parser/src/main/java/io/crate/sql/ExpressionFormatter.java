@@ -21,6 +21,20 @@
 
 package io.crate.sql;
 
+import static io.crate.sql.SqlFormatter.formatSql;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -62,6 +76,7 @@ import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
@@ -77,20 +92,6 @@ import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.TreeMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import static io.crate.sql.SqlFormatter.formatSql;
 
 public final class ExpressionFormatter {
 
@@ -163,12 +164,12 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, @Nullable List<Expression> parameters) {
-
             String array = node.getRight().accept(this, parameters);
             String left = node.getLeft().accept(this, parameters);
             String type = node.getType().getValue();
+            String quantifier = node.quantifier().name();
 
-            return "(" + left + " " + type + " ANY(" + array + "))";
+            return "(" + left + " " + type + " " + quantifier + "(" + array + "))";
         }
 
         @Override
@@ -268,6 +269,11 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        public String visitNumericLiteral(NumericLiteral numericLiteral, List<Expression> context) {
+            return numericLiteral.value().toString();
+        }
+
+        @Override
         protected String visitDoubleLiteral(DoubleLiteral node, @Nullable List<Expression> parameters) {
             return Double.toString(node.getValue());
         }
@@ -340,6 +346,16 @@ public final class ExpressionFormatter {
             }
             if (node.isDistinct()) {
                 arguments = "DISTINCT " + arguments;
+            }
+
+            var nonFqnName = node.getName().getSuffix();
+            if (nonFqnName.startsWith("op_")) {
+                return formatBinaryExpression(
+                    nonFqnName.substring("op_".length()),
+                    node.getArguments().get(0),
+                    node.getArguments().get(1),
+                    parameters
+                );
             }
 
             builder.append(node.getName());
@@ -574,7 +590,7 @@ public final class ExpressionFormatter {
             builder.append(")");
             if (node.matchType() != null) {
                 builder.append(" USING ").append(node.matchType()).append(" ");
-                if (node.properties().properties().isEmpty() == false) {
+                if (node.properties().isEmpty() == false) {
                     builder.append(node.properties().accept(this, parameters));
                 }
             }
@@ -593,7 +609,7 @@ public final class ExpressionFormatter {
         @Override
         public String visitGenericProperties(GenericProperties<?> node, @Nullable List<Expression> parameters) {
             return " WITH (" +
-                node.properties().entrySet().stream()
+                node.stream()
                     .map(prop -> prop.getKey() + "=" + ((Expression) prop.getValue()).accept(this, null))
                     .collect(COMMA_JOINER) +
                 ")";

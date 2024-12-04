@@ -62,12 +62,20 @@ the client given that this user exists.
 If the setting ``auth.host_based`` is present and the configurations list does
 not contain any entry, then no client can authenticate.
 
+Default JWT configuration is defined in the ``auth.host_based.jwt`` setting in
+the ``crate.yml`` file. Allowed fields are ``iss`` and ``aud``. The description
+of these fields can be found in :ref:`jwt_defaults`.
+Please note, that if ``iss`` is set, user specific JWT properties are ignored.
+
 For example, a host based configuration can look like this:
 
 .. code-block:: yaml
 
     auth:
       host_based:
+        jwt:
+          iss: http://example.com
+          aud: test_aud
         enabled: true
         config:
           0:
@@ -108,10 +116,11 @@ For example, a host based configuration can look like this:
 
    In the ``auth.host_based.config`` setting, the order of the entries is
    defined by the natural order of the group keys of the setting. The
-   authentication method of the first entry that matches the client user and
-   address will be used. If the authentication attempt fails, subsequent
-   entries will not be considered. The entry look-up order is determined by the
-   ``order`` identifier of each entry.
+   authentication method of the first entry that matches the client user,
+   address, protocol and connection properties will be used. If the
+   authentication attempt fails, subsequent entries will not be considered.
+   The entry look-up order is determined by the  ``order`` identifier of each
+   entry.
 
 In the example above:
 
@@ -148,6 +157,8 @@ default.
 ``{user: john, method: jwt, protocol: http}`` means
 that the user ``john`` can authenticate to CrateDB over HTTP protocol using the
 :ref:`JWT <auth_jwt>` method.
+If the user was created without JWT properties, values from the
+``auth.host_based.jwt`` (``http://example.com`` and ``test_aud``) are used.
 
 And finally the entry ``{method: password}`` means that any existing user (or
 superuser) can authenticate to CrateDB from any IP address using the

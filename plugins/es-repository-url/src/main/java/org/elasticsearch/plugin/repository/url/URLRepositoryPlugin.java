@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -50,6 +51,7 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
+                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                            NamedXContentRegistry namedXContentRegistry,
                                                            ClusterService clusterService,
                                                            RecoverySettings recoverySettings) {
@@ -64,7 +66,14 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new URLRepository(metadata, env, namedXContentRegistry, clusterService, recoverySettings);
+                    return new URLRepository(
+                        metadata,
+                        env,
+                        namedWriteableRegistry,
+                        namedXContentRegistry,
+                        clusterService,
+                        recoverySettings
+                    );
                 }
             }
         );

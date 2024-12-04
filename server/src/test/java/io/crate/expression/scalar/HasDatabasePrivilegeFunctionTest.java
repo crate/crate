@@ -63,7 +63,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     public void prepare() {
         sqlExpressions = new SqlExpressions(
             tableSources, null, randomFrom(Role.CRATE_USER, TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS),
-            List.of(Role.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE));
+            List.of(Role.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE), null);
     }
 
     @Test
@@ -112,7 +112,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_is_not_super_user_checking_for_other_user() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('testUserWithClusterAL', 'crate', 'CREATE')", null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
@@ -121,7 +121,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_is_not_super_user_checking_for_other_user_for_compiled() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertCompile("has_database_privilege('testUserWithClusterAL', name, 'CREATE')",
                                 TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),

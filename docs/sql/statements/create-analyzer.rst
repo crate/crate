@@ -55,6 +55,11 @@ searches. It is possible to extend an existing analyzer or define a new
 analyzer chain from scratch. For examples and detailed explanation see
 :ref:`create_custom_analyzer`.
 
+.. CAUTION::
+
+    If ``analyzer_name`` already exists, its definition is updated, but 
+    existing tables will continue to use the old definition.
+
 Parameters
 ==========
 

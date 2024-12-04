@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
@@ -52,7 +51,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -63,6 +61,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public static final String NAME = "bit";
     public static final int DEFAULT_LENGTH = 1;
     private final int length;
+
 
     private static final StorageSupport<BitString> STORAGE = new StorageSupport<>(
         true,
@@ -105,9 +104,8 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         @Override
         public ValueIndexer<BitString> valueIndexer(RelationName table,
                                                     Reference ref,
-                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
-            return new BitStringIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new BitStringIndexer(ref);
         }
     };
 
@@ -277,8 +275,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
-                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(getName(), List.of(length));
     }
 

@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.Streamer;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -186,5 +187,10 @@ public class FetchPhase implements ExecutionPhase {
             + ", executionPhaseId=" + executionPhaseId
             + ", fetchRefs=" + fetchRefs
             + ", tableIndices=" + tableIndices + "}";
+    }
+
+    @Override
+    public Streamer<?>[] getStreamers() {
+        throw new UnsupportedOperationException("FetchPhase has no streamers");
     }
 }

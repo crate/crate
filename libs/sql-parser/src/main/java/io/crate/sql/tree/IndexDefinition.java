@@ -93,6 +93,6 @@ public class IndexDefinition<T> extends TableElement<T> {
     @Override
     public void visit(Consumer<? super T> consumer) {
         columns.forEach(consumer);
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 }

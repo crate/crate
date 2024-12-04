@@ -22,7 +22,6 @@
 package io.crate.analyze.where;
 
 
-
 import java.util.Locale;
 import java.util.Set;
 import java.util.Stack;
@@ -42,15 +41,14 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ComparisonExpression;
 
 public final class WhereClauseValidator {
 
     private static final Visitor VISITOR = new Visitor();
 
-    private WhereClauseValidator() {
-    }
+    private WhereClauseValidator() {}
 
     public static void validate(Symbol query) {
         query.accept(VISITOR, new Visitor.Context());
@@ -62,8 +60,7 @@ public final class WhereClauseValidator {
 
             private final Stack<Function> functions = new Stack<>();
 
-            private Context() {
-            }
+            private Context() {}
         }
 
         private static final String SCORE = "_score";
@@ -94,7 +91,7 @@ public final class WhereClauseValidator {
         @Override
         public Symbol visitFunction(Function function, Context context) {
             context.functions.push(function);
-            if (function.signature().getKind().equals(FunctionType.TABLE)) {
+            if (function.signature().getType().equals(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException("Table functions are not allowed in WHERE");
             }
             continueTraversal(function, context);
@@ -146,7 +143,7 @@ public final class WhereClauseValidator {
                 validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioningValidationException::seqNoAndPrimaryTermUsage);
             } else if (columnName.equalsIgnoreCase(SCORE)) {
                 validateSysReference(context, SCORE_ALLOWED_COMPARISONS, () -> new UnsupportedOperationException(SCORE_ERROR));
-            } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {
+            } else if (columnName.equalsIgnoreCase(SysColumns.RAW.name())) {
                 throw new UnsupportedOperationException("The _raw column is not searchable and cannot be used inside a query");
             }
         }

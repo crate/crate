@@ -44,8 +44,10 @@ import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -78,13 +80,14 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         for (var functionName : NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
                 builder.add(
-                    Signature.aggregate(
-                        functionName,
-                        supportedType.getTypeSignature(),
-                        DataTypes.DOUBLE.getTypeSignature()),
-                    (signature, boundSignature) ->
-                        new AverageAggregation(signature, boundSignature,
-                            supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
+                        Signature.builder(functionName, FunctionType.AGGREGATE)
+                                .argumentTypes(supportedType.getTypeSignature())
+                                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                                .features(Scalar.Feature.DETERMINISTIC)
+                                .build(),
+                        (signature, boundSignature) ->
+                                new AverageAggregation(signature, boundSignature,
+                                        supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
                 );
             }
         }
@@ -307,8 +310,12 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
+                                                       Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (!reference.hasDocValues()) {
             return null;
         }

@@ -86,10 +86,10 @@ public class Memo {
     }
 
     /**
-     * Returns the {@LogicalPlan} referenced by the given group id.
+     * Returns the {@link LogicalPlan} referenced by the given group id.
      *
      * @param group group id
-     * @return {@LogicalPlan} for the group id, throws an {@IllegalStateException}
+     * @return {@link LogicalPlan} for the group id, throws an {@link IllegalStateException}
      * if the group does not exist
      */
     public LogicalPlan resolve(int group) {
@@ -97,20 +97,19 @@ public class Memo {
     }
 
     /**
-     * Returns the  {@LogicalPlan} referenced by the given GroupReference.
+     * Returns the  {@link LogicalPlan} referenced by the given GroupReference.
      *
-     * @param groupReference
-     * @return {@LogicalPlan} for the {@GroupReference}, throws an {@IllegalStateException}
-     * ff no {@LogicalPlan} exists
+     * @return {@link LogicalPlan} for the {@link GroupReference}, throws an {@link IllegalStateException}
+     * ff no {@link LogicalPlan} exists
      */
     public LogicalPlan resolve(GroupReference groupReference) {
         return resolve(groupReference.groupId());
     }
 
     /**
-     * Returns the full operator tree of {@LogicalPlan}s all {@GroupReference}s resolved.
+     * Returns the full operator tree of {@link LogicalPlan}s all {@link GroupReference}s resolved.
      *
-     * @return {@LogicalPlan}
+     * @return {@link LogicalPlan}
      */
     public LogicalPlan extract() {
         return extract(resolve(rootGroup));
@@ -128,11 +127,11 @@ public class Memo {
     }
 
     /**
-     * Replaces the previous {@LogicalPlan} for a given group id with the new {@LogicalPlan}
+     * Replaces the previous {@link LogicalPlan} for a given group id with the new {@link LogicalPlan}
      *
      * @param groupId exisiting group id
-     * @param node A {@LogicalPlan} which will be added to the group
-     * @return the {@LogicalPlan} where to group is updated to
+     * @param node A {@link LogicalPlan} which will be added to the group
+     * @return the {@link LogicalPlan} where to group is updated to
      */
     public LogicalPlan replace(int groupId, LogicalPlan node) {
         Group group = group(groupId);
@@ -200,13 +199,13 @@ public class Memo {
                 .map(child -> new GroupReference(
                     insertRecursive(child),
                     child.outputs(),
-                    child.getRelationNames()))
+                    child.relationNames()))
                 .collect(Collectors.toList()));
     }
 
     private int insertRecursive(LogicalPlan node) {
-        if (node instanceof GroupReference) {
-            return ((GroupReference) node).groupId();
+        if (node instanceof GroupReference groupReference) {
+            return groupReference.groupId();
         }
 
         int group = nextGroupId();

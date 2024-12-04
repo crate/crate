@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -35,22 +35,23 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 public class SharedShardContexts {
 
     private final IndicesService indicesService;
-    private final UnaryOperator<Engine.Searcher> wrapSearcher;
+    private final BiFunction<ShardId, Engine.Searcher, Engine.Searcher> wrapSearcher;
     @VisibleForTesting
     final Map<ShardId, SharedShardContext> allocatedShards = new HashMap<>();
     @VisibleForTesting
     int readerId = 0;
 
-    public SharedShardContexts(IndicesService indicesService, UnaryOperator<Engine.Searcher> wrapSearcher) {
+    public SharedShardContexts(IndicesService indicesService,
+                               BiFunction<ShardId, Engine.Searcher, Engine.Searcher> wrapSearcher) {
         this.indicesService = indicesService;
         this.wrapSearcher = wrapSearcher;
     }
@@ -67,7 +68,7 @@ public class SharedShardContexts {
             }
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 }
                 refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
@@ -75,7 +76,7 @@ public class SharedShardContexts {
             }
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
-                if (!IndexParts.isPartitioned(indexName)) {
+                if (!IndexName.isPartitioned(indexName)) {
                     refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
                 }
                 continue;

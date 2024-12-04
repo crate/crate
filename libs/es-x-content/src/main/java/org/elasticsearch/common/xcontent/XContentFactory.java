@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.smile.SmileXContent;
 import org.elasticsearch.common.xcontent.yaml.YamlXContent;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A one stop to use {@link org.elasticsearch.common.xcontent.XContent} and {@link XContentBuilder}.
@@ -37,7 +38,16 @@ public class XContentFactory {
      * Constructs a new json builder that will output the result into the provided output stream.
      */
     public static XContentBuilder json(OutputStream os) throws IOException {
-        return new XContentBuilder(JsonXContent.JSON_XCONTENT, os);
+        return json(os, null);
+    }
+
+    /**
+     * Constructs a new json builder that will output the result into the provided output stream.
+     * @param os the output stream
+     * @param rootValueSeparator the rootValueSeparator, if null the default whitespace (" ") is used
+     */
+    public static XContentBuilder json(OutputStream os, @Nullable String rootValueSeparator) throws IOException {
+        return new XContentBuilder(JsonXContent.JSON_XCONTENT, os, rootValueSeparator);
     }
 
     /**

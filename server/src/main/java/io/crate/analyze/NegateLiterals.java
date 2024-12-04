@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.math.BigDecimal;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -30,14 +32,14 @@ import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 
 public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
 
     private static final NegateLiterals INSTANCE = new NegateLiterals();
 
-    private NegateLiterals() {
-    }
+    private NegateLiterals() {}
 
     public static Symbol negate(Symbol symbol) {
         return symbol.accept(INSTANCE, null);
@@ -50,20 +52,15 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
             return symbol;
         }
         DataType<?> valueType = symbol.valueType();
-        switch (valueType.id()) {
-            case DoubleType.ID:
-                return Literal.ofUnchecked(valueType, (Double) value * -1);
-            case FloatType.ID:
-                return Literal.ofUnchecked(valueType, (Double) value * -1);
-            case ShortType.ID:
-                return Literal.ofUnchecked(valueType, (Short) value * -1);
-            case IntegerType.ID:
-                return Literal.ofUnchecked(valueType, (Integer) value * -1);
-            case LongType.ID:
-                return Literal.ofUnchecked(valueType, (Long) value * -1);
-            default:
-                throw new UnsupportedOperationException(Symbols.format(
-                    "Cannot negate %s. You may need to add explicit type casts", symbol));
-        }
+        return switch (valueType.id()) {
+            case DoubleType.ID -> Literal.ofUnchecked(valueType, (Double) value * -1);
+            case FloatType.ID -> Literal.ofUnchecked(valueType, (Double) value * -1);
+            case ShortType.ID -> Literal.ofUnchecked(valueType, (Short) value * -1);
+            case IntegerType.ID -> Literal.ofUnchecked(valueType, (Integer) value * -1);
+            case LongType.ID -> Literal.ofUnchecked(valueType, (Long) value * -1);
+            case NumericType.ID -> Literal.ofUnchecked(valueType, ((BigDecimal) value).negate());
+            default -> throw new UnsupportedOperationException(Symbols.format(
+                "Cannot negate %s. You may need to add explicit type casts", symbol));
+        };
     }
 }

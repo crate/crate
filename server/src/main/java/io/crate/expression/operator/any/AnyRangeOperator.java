@@ -22,8 +22,12 @@
 package io.crate.expression.operator.any;
 
 
+import java.util.Objects;
+import java.util.stream.StreamSupport;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -35,8 +39,9 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
 
-public final class AnyRangeOperator extends AnyOperator {
+public final class AnyRangeOperator extends AnyOperator<Object> {
 
     public enum Comparison {
         GT(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN) {
@@ -102,13 +107,19 @@ public final class AnyRangeOperator extends AnyOperator {
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = StreamSupport
+            .stream(((Iterable<?>) candidates.value()).spliterator(), false)
+            .filter(Objects::nonNull).toList();
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : (Iterable<?>) candidates.value()) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             booleanQuery.add(
                 CmpOperator.toQuery(comparison.innerOpName, probe, value),
                 BooleanClause.Occur.SHOULD);

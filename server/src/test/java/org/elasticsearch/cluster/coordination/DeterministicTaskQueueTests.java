@@ -19,20 +19,9 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,11 +34,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 
 public class DeterministicTaskQueueTests extends ESTestCase {
 
+    @Test
     public void testRunRandomTask() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(2);
@@ -57,23 +48,24 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         taskQueue.scheduleNow(() -> strings.add("foo"));
         taskQueue.scheduleNow(() -> strings.add("bar"));
 
-        assertThat(strings, empty());
+        assertThat(strings).isEmpty();
 
-        assertTrue(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
         taskQueue.runRandomTask();
-        assertThat(strings, contains(isOneOf("foo", "bar")));
+        assertThat(strings).hasSize(1).containsAnyOf("foo", "bar");
 
-        assertTrue(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
         taskQueue.runRandomTask();
-        assertThat(strings, containsInAnyOrder("foo", "bar"));
+        assertThat(strings).containsExactlyInAnyOrder("foo", "bar");
 
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
     }
 
+    @Test
     public void testRunRandomTaskVariesOrder() {
         final List<String> strings1 = getResultsOfRunningRandomly(new Random(4520795446362137264L));
         final List<String> strings2 = getResultsOfRunningRandomly(new Random(266504691902226821L));
-        assertThat(strings1, not(equalTo(strings2)));
+        assertThat(strings1).isNotEqualTo(strings2);
     }
 
     private List<String> getResultsOfRunningRandomly(Random random) {
@@ -85,19 +77,21 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         taskQueue.scheduleNow(() -> strings.add("baz"));
         taskQueue.scheduleNow(() -> strings.add("quux"));
 
-        assertThat(strings, empty());
+        assertThat(strings).isEmpty();
 
         while (taskQueue.hasRunnableTasks()) {
             taskQueue.runRandomTask();
         }
 
-        assertThat(strings, containsInAnyOrder("foo", "bar", "baz", "quux"));
+        assertThat(strings).containsExactlyInAnyOrder("foo", "bar", "baz", "quux");
         return strings;
     }
 
+
+    @Test
     public void testStartsAtTimeZero() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(0L));
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(0L);
     }
 
     private void advanceToRandomTime(DeterministicTaskQueue taskQueue) {
@@ -105,10 +99,11 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         });
         taskQueue.advanceTime();
         taskQueue.runRandomTask();
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
     }
 
+    @Test
     public void testDoesNotDeferTasksForImmediateExecution() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         advanceToRandomTime(taskQueue);
@@ -116,14 +111,15 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         final List<String> strings = new ArrayList<>(1);
 
         taskQueue.scheduleAt(taskQueue.getCurrentTimeMillis(), () -> strings.add("foo"));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo"));
+        assertThat(strings).containsExactly("foo");
 
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
     }
 
+    @Test
     public void testDoesNotDeferTasksScheduledInThePast() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         advanceToRandomTime(taskQueue);
@@ -131,36 +127,38 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         final List<String> strings = new ArrayList<>(1);
 
         taskQueue.scheduleAt(taskQueue.getCurrentTimeMillis() - randomInt(200), () -> strings.add("foo"));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo"));
+        assertThat(strings).containsExactly("foo");
 
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
     }
 
+    @Test
     public void testDefersTasksWithPositiveDelays() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(1);
 
         final long executionTimeMillis = randomLongBetween(1, 100);
         taskQueue.scheduleAt(executionTimeMillis, () -> strings.add("foo"));
-        assertThat(taskQueue.getCurrentTimeMillis(), is(0L));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(0L);
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.advanceTime();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis);
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
 
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo"));
+        assertThat(strings).containsExactly("foo");
 
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
     }
 
+    @Test
     public void testKeepsFutureTasksDeferred() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(2);
@@ -171,29 +169,30 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         taskQueue.scheduleAt(executionTimeMillis1, () -> strings.add("foo"));
         taskQueue.scheduleAt(executionTimeMillis2, () -> strings.add("bar"));
 
-        assertThat(taskQueue.getCurrentTimeMillis(), is(0L));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(0L);
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.advanceTime();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis1));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis1);
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo"));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(strings).containsExactly("foo");
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.advanceTime();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis2));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis2);
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
 
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo", "bar"));
+        assertThat(strings).containsExactly("foo", "bar");
     }
 
+    @Test
     public void testExecutesTasksInTimeOrder() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(3);
@@ -204,37 +203,38 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         taskQueue.scheduleAt(executionTimeMillis1, () -> strings.add("foo"));
         taskQueue.scheduleAt(executionTimeMillis2, () -> strings.add("bar"));
 
-        assertThat(taskQueue.getCurrentTimeMillis(), is(0L));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(0L);
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.advanceTime();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis1));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis1);
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo"));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(strings).containsExactly("foo");
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         final long executionTimeMillis3 = randomLongBetween(executionTimeMillis1 + 1, executionTimeMillis2 - 1);
         taskQueue.scheduleAt(executionTimeMillis3, () -> strings.add("baz"));
 
         taskQueue.advanceTime();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis3));
-        assertTrue(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis3);
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.runRandomTask();
         taskQueue.advanceTime();
         taskQueue.runRandomTask();
-        assertThat(strings, contains("foo", "baz", "bar"));
-        assertThat(taskQueue.getCurrentTimeMillis(), is(executionTimeMillis2));
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertFalse(taskQueue.hasDeferredTasks());
+        assertThat(strings).containsExactly("foo", "baz", "bar");
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(executionTimeMillis2);
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isFalse();
     }
 
+    @Test
     public void testRunInTimeOrder() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(2);
@@ -246,75 +246,80 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         taskQueue.scheduleAt(executionTimeMillis2, () -> strings.add("bar"));
 
         taskQueue.runAllTasksInTimeOrder();
-        assertThat(strings, contains("foo", "bar"));
+        assertThat(strings).containsExactly("foo", "bar");
     }
 
+    @Test
     public void testExecutorServiceEnqueuesTasks() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(2);
 
         final ExecutorService executorService = taskQueue.getExecutorService();
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
         executorService.execute(() -> strings.add("foo"));
-        assertTrue(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
         executorService.execute(() -> strings.add("bar"));
 
-        assertThat(strings, empty());
+        assertThat(strings).isEmpty();
 
         while (taskQueue.hasRunnableTasks()) {
             taskQueue.runRandomTask();
         }
 
-        assertThat(strings, containsInAnyOrder("foo", "bar"));
+        assertThat(strings).containsExactlyInAnyOrder("foo", "bar");
     }
 
+    @Test
     public void testThreadPoolEnqueuesTasks() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final List<String> strings = new ArrayList<>(2);
 
         final ThreadPool threadPool = taskQueue.getThreadPool();
-        assertFalse(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
         threadPool.generic().execute(() -> strings.add("foo"));
-        assertTrue(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
         threadPool.executor("anything").execute(() -> strings.add("bar"));
 
-        assertThat(strings, empty());
+        assertThat(strings).isEmpty();
 
         while (taskQueue.hasRunnableTasks()) {
             taskQueue.runRandomTask();
         }
 
-        assertThat(strings, containsInAnyOrder("foo", "bar"));
+        assertThat(strings).containsExactlyInAnyOrder("foo", "bar");
     }
 
+    @Test
     public void testThreadPoolWrapsRunnable() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final AtomicBoolean called = new AtomicBoolean();
         final ThreadPool threadPool = taskQueue.getThreadPool(runnable -> () -> {
-            assertFalse(called.get());
+            assertThat(called.get()).isFalse();
             called.set(true);
             runnable.run();
         });
         threadPool.generic().execute(() -> logger.info("runnable executed"));
-        assertFalse(called.get());
+        assertThat(called.get()).isFalse();
         taskQueue.runAllRunnableTasks();
-        assertTrue(called.get());
+        assertThat(called.get()).isTrue();
     }
 
+    @Test
     public void testExecutorServiceWrapsRunnable() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         final AtomicBoolean called = new AtomicBoolean();
         final ExecutorService executorService = taskQueue.getExecutorService(runnable -> () -> {
-            assertFalse(called.get());
+            assertThat(called.get()).isFalse();
             called.set(true);
             runnable.run();
         });
         executorService.execute(() -> logger.info("runnable executed"));
-        assertFalse(called.get());
+        assertThat(called.get()).isFalse();
         taskQueue.runAllRunnableTasks();
-        assertTrue(called.get());
+        assertThat(called.get()).isTrue();
     }
 
+    @Test
     public void testThreadPoolSchedulesFutureTasks() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         advanceToRandomTime(taskQueue);
@@ -326,18 +331,18 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         final long delayMillis = randomLongBetween(1, 100);
 
         threadPool.schedule(() -> strings.add("deferred"), TimeValue.timeValueMillis(delayMillis), GENERIC);
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         threadPool.schedule(() -> strings.add("runnable"), TimeValue.ZERO, GENERIC);
-        assertTrue(taskQueue.hasRunnableTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isTrue();
 
         threadPool.schedule(() -> strings.add("also runnable"), TimeValue.MINUS_ONE, GENERIC);
 
         taskQueue.runAllTasks();
 
-        assertThat(taskQueue.getCurrentTimeMillis(), is(startTime + delayMillis));
-        assertThat(strings, containsInAnyOrder("runnable", "also runnable", "deferred"));
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(startTime + delayMillis);
+        assertThat(strings).containsExactlyInAnyOrder("runnable", "also runnable", "deferred");
 
         final long delayMillis1 = randomLongBetween(2, 100);
         final long delayMillis2 = randomLongBetween(1, delayMillis1 - 1);
@@ -345,11 +350,11 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         threadPool.schedule(() -> strings.add("further deferred"), TimeValue.timeValueMillis(delayMillis1), GENERIC);
         threadPool.schedule(() -> strings.add("not quite so deferred"), TimeValue.timeValueMillis(delayMillis2), GENERIC);
 
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         taskQueue.runAllTasks();
-        assertThat(taskQueue.getCurrentTimeMillis(), is(startTime + delayMillis + delayMillis1));
+        assertThat(taskQueue.getCurrentTimeMillis()).isEqualTo(startTime + delayMillis + delayMillis1);
 
         final TimeValue cancelledDelay = TimeValue.timeValueMillis(randomLongBetween(1, 100));
         final Scheduler.Cancellable cancelledBeforeExecution =
@@ -358,9 +363,10 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         cancelledBeforeExecution.cancel();
         taskQueue.runAllTasks();
 
-        assertThat(strings, containsInAnyOrder("runnable", "also runnable", "deferred", "not quite so deferred", "further deferred"));
+        assertThat(strings).containsExactlyInAnyOrder("runnable", "also runnable", "deferred", "not quite so deferred", "further deferred");
     }
 
+    @Test
     public void testDelayVariabilityAppliesToImmediateTasks() {
         final DeterministicTaskQueue deterministicTaskQueue = newTaskQueue();
         advanceToRandomTime(deterministicTaskQueue);
@@ -373,10 +379,12 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         final long startTime = deterministicTaskQueue.getCurrentTimeMillis();
         deterministicTaskQueue.runAllTasks();
         final long elapsedTime = deterministicTaskQueue.getCurrentTimeMillis() - startTime;
-        assertThat(elapsedTime, greaterThan(0L)); // fails with negligible probability 2^{-100}
-        assertThat(elapsedTime, lessThanOrEqualTo(variabilityMillis));
+        assertThat(elapsedTime)
+            .isGreaterThan(0L) // fails with negligible probability 2^{-100}
+            .isLessThanOrEqualTo(variabilityMillis);
     }
 
+    @Test
     public void testDelayVariabilityAppliesToFutureTasks() {
         final DeterministicTaskQueue deterministicTaskQueue = newTaskQueue();
         advanceToRandomTime(deterministicTaskQueue);
@@ -388,13 +396,15 @@ public class DeterministicTaskQueueTests extends ESTestCase {
             deterministicTaskQueue.scheduleAt(nominalExecutionTime, () -> {});
         }
         final long expectedEndTime = deterministicTaskQueue.getLatestDeferredExecutionTime();
-        assertThat(expectedEndTime, greaterThan(nominalExecutionTime)); // fails if every task has zero variability -- vanishingly unlikely
-        assertThat(expectedEndTime, lessThanOrEqualTo(Math.max(startTime, nominalExecutionTime + variabilityMillis)));
+        assertThat(expectedEndTime)
+            .isGreaterThan(nominalExecutionTime) // fails if every task has zero variability -- vanishingly unlikely
+            .isLessThanOrEqualTo(Math.max(startTime, nominalExecutionTime + variabilityMillis));
 
         deterministicTaskQueue.runAllTasks();
-        assertThat(deterministicTaskQueue.getCurrentTimeMillis(), is(expectedEndTime));
+        assertThat(deterministicTaskQueue.getCurrentTimeMillis()).isEqualTo(expectedEndTime);
     }
 
+    @Test
     public void testThreadPoolSchedulesPeriodicFutureTasks() {
         final DeterministicTaskQueue taskQueue = newTaskQueue();
         advanceToRandomTime(taskQueue);
@@ -406,23 +416,23 @@ public class DeterministicTaskQueueTests extends ESTestCase {
         final AtomicInteger counter = new AtomicInteger(0);
         Scheduler.Cancellable cancellable = threadPool.scheduleWithFixedDelay(
             () -> strings.add("periodic-" + counter.getAndIncrement()), TimeValue.timeValueMillis(intervalMillis), GENERIC);
-        assertFalse(taskQueue.hasRunnableTasks());
-        assertTrue(taskQueue.hasDeferredTasks());
+        assertThat(taskQueue.hasRunnableTasks()).isFalse();
+        assertThat(taskQueue.hasDeferredTasks()).isTrue();
 
         for (int i = 0; i < 3; ++i) {
             taskQueue.advanceTime();
-            assertTrue(taskQueue.hasRunnableTasks());
+            assertThat(taskQueue.hasRunnableTasks()).isTrue();
             taskQueue.runAllRunnableTasks();
         }
 
-        assertThat(strings, contains("periodic-0", "periodic-1", "periodic-2"));
+        assertThat(strings).containsExactly("periodic-0", "periodic-1", "periodic-2");
 
         cancellable.cancel();
 
         taskQueue.advanceTime();
         taskQueue.runAllRunnableTasks();
 
-        assertThat(strings, contains("periodic-0", "periodic-1", "periodic-2"));
+        assertThat(strings).containsExactly("periodic-0", "periodic-1", "periodic-2");
     }
 
     static DeterministicTaskQueue newTaskQueue() {

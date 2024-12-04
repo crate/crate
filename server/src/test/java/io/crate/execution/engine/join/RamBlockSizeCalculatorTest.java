@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.join;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -43,14 +42,14 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             5
         );
-        assertThat(blockCalculator100leftRows.applyAsInt(-1), is(20));
+        assertThat(blockCalculator100leftRows.applyAsInt(-1)).isEqualTo(20);
         RamBlockSizeCalculator blockCalculator10LeftRows = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
             5
         );
-        assertThat(blockCalculator10LeftRows.applyAsInt(-1), is(20));
-        assertThat(blockCalculator10LeftRows.applyAsInt(50), is(2));
+        assertThat(blockCalculator10LeftRows.applyAsInt(-1)).isEqualTo(20);
+        assertThat(blockCalculator10LeftRows.applyAsInt(50)).isEqualTo(2);
     }
 
     @Test
@@ -61,7 +60,7 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             10
         );
-        assertThat(blockSizeCalculator.applyAsInt(-1), is(RamBlockSizeCalculator.FALLBACK_SIZE));
+        assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(RamBlockSizeCalculator.FALLBACK_SIZE);
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
@@ -70,14 +69,14 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             10
         );
-        assertThat(blockCalculatorNoNumberOrRowsStats.applyAsInt(-1), is(10));
+        assertThat(blockCalculatorNoNumberOrRowsStats.applyAsInt(-1)).isEqualTo(10);
 
         RamBlockSizeCalculator blockCalculatorNoRowSizeStats = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
             -1
         );
-        assertThat(blockCalculatorNoRowSizeStats.applyAsInt(-1), is(RamBlockSizeCalculator.FALLBACK_SIZE));
+        assertThat(blockCalculatorNoRowSizeStats.applyAsInt(-1)).isEqualTo(RamBlockSizeCalculator.FALLBACK_SIZE);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             10
         );
-        assertThat(blockSizeCalculator.applyAsInt(-1), is(10));
+        assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(10);
     }
 
     @Test
@@ -101,7 +100,7 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             1
         );
-        assertThat(blockSizeCalculator.applyAsInt(-1), is(500_000));
+        assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(500_000);
     }
 
     @Test
@@ -113,6 +112,6 @@ public class RamBlockSizeCalculatorTest {
             circuitBreaker,
             1
         );
-        assertThat(blockSizeCalculator.applyAsInt(-1), is(defaultBlockSize));
+        assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(defaultBlockSize);
     }
 }

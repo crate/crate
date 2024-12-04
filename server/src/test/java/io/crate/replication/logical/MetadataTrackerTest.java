@@ -23,14 +23,10 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.role.Role.CRATE_USER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -272,7 +268,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publicationsStateResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         // Nothing in the indexMetadata changed, so the cluster state must be equal
-        assertThat(SUBSCRIBER_CLUSTER_STATE, is(syncedSubscriberClusterState));
+        assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
         // Let's change the mapping on the publisher publisherClusterState
         Map<String, Object> updatedMapping = Map.of("1", "one", "2", "two");
@@ -296,10 +292,10 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
 
-        assertThat(SUBSCRIBER_CLUSTER_STATE, is(not(syncedSubscriberClusterState)));
+        assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         var updatedPublisherMetadata = updatedPublisherClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.mapping(), is(updatedPublisherMetadata.mapping()));
+        assertThat(syncedIndexMetadata.mapping()).isEqualTo(updatedPublisherMetadata.mapping());
     }
 
     @Test
@@ -324,8 +320,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null),
-                   is(5));
+        assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
     }
 
     @Test
@@ -352,7 +347,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default"), is(not(publisherIndexUuid)));
+        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default")).isNotEqualTo(publisherIndexUuid);
     }
 
     @Test
@@ -377,7 +372,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings()), is(0));
+        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);
     }
 
     @Test
@@ -387,7 +382,7 @@ public class MetadataTrackerTest extends ESTestCase {
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
     }
 
     @Test
@@ -415,9 +410,9 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             updatedResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(RelationName.fromIndexName("t2")));
-        assertThat(restoreDiff.indexNamesToRestore(), contains("t2"));
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("t2"));
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly("t2");
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 
     @Test
@@ -444,9 +439,9 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(RelationName.fromIndexName("p1")));
-        assertThat(restoreDiff.indexNamesToRestore(), empty());
-        assertThat(restoreDiff.templatesToRestore(), contains(templateName));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("p1"));
+        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
     }
 
     @Test
@@ -472,9 +467,9 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(newRelation));
-        assertThat(restoreDiff.indexNamesToRestore(), contains(newPartitionName.asIndexName()));
-        assertThat(restoreDiff.templatesToRestore(), contains(templateName));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
     }
 
     @Test
@@ -500,9 +495,9 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(relationName));
-        assertThat(restoreDiff.indexNamesToRestore(), contains(newPartitionName.asIndexName()));
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(relationName);
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 
     @Test
@@ -534,9 +529,9 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(newRelationName));
-        assertThat(restoreDiff.indexNamesToRestore(), is(List.of(newPartitionName.asIndexName())));
-        assertThat(restoreDiff.templatesToRestore(), contains(newTemplateName));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelationName);
+        assertThat(restoreDiff.indexNamesToRestore()).isEqualTo(List.of(newPartitionName.asIndexName()));
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(newTemplateName);
     }
 
     @Test
@@ -565,8 +560,8 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), empty());
-        assertThat(restoreDiff.indexNamesToRestore(), empty());
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
+        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 }

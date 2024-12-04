@@ -22,11 +22,11 @@
 package io.crate.expression.reference.file;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 public class SourceLineExpression extends LineCollectorExpression<String> {
 
-    public static final String COLUMN_NAME = DocSysColumns.RAW.name();
+    public static final String COLUMN_NAME = SysColumns.RAW.name();
     private LineContext context;
 
     @Override

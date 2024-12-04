@@ -21,19 +21,19 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.sql.tree.FrameBound;
-import io.crate.sql.tree.FrameBound.Type;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.function.Function;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.function.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.FrameBound;
+import io.crate.sql.tree.FrameBound.Type;
 
 public class FrameBoundDefinition implements Writeable {
 
@@ -50,9 +50,9 @@ public class FrameBoundDefinition implements Writeable {
     public FrameBoundDefinition(StreamInput in) throws IOException {
         type = in.readEnum(FrameBound.Type.class);
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            value = Symbols.fromStream(in);
+            value = Symbol.fromStream(in);
         } else {
-            Symbol val = Symbols.nullableFromStream(in);
+            Symbol val = Symbol.nullableFromStream(in);
             value = val == null ? Literal.NULL : val;
         }
     }
@@ -61,9 +61,9 @@ public class FrameBoundDefinition implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(type);
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbols.toStream(value, out);
+            Symbol.toStream(value, out);
         } else {
-            Symbols.nullableToStream(value, out);
+            Symbol.nullableToStream(value, out);
         }
     }
 

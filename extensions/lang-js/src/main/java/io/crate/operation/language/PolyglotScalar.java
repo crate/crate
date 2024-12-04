@@ -76,7 +76,7 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
         try {
             String functionName = signature.getName().name();
             var function = PolyglotLanguage.getFunctionValue(graalLanguageId, functionName, script);
-            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
+            Object[] values = PolyglotValues.toPolyglotValues(args);
             return PolyglotValues.toCrateObject(
                 function.execute(values),
                 boundSignature.returnType()
@@ -107,7 +107,7 @@ public final class PolyglotScalar extends Scalar<Object, Object> {
         @Override
         @SafeVarargs
         public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
-            Object[] values = PolyglotValues.toPolyglotValues(args, boundSignature.argTypes());
+            Object[] values = PolyglotValues.toPolyglotValues(args);
             try {
                 return PolyglotValues.toCrateObject(function.execute(values), boundSignature.returnType());
             } catch (PolyglotException e) {

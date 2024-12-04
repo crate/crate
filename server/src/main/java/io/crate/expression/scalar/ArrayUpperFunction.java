@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -35,17 +36,19 @@ import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operators;
-import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -63,18 +66,21 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
+    // 'array_length([], 1)' = NULL, hence the lower bound must be 1
+    public static final int LOWER_BOUND = 1;
+    public static final int UPPER_BOUND = Integer.MAX_VALUE;
 
     public static void register(Functions.Builder module) {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
             module.add(
-                Signature.scalar(
-                        name,
-                        TypeSignature.parse("array(E)"),
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    ).withTypeVariableConstraints(typeVariable("E"))
-                    .withFeature(Feature.NULLABLE),
-                ArrayUpperFunction::new
+                    Signature.builder(name, FunctionType.SCALAR)
+                            .argumentTypes(TypeSignature.parse("array(E)"),
+                                    DataTypes.INTEGER.getTypeSignature())
+                            .returnType(DataTypes.INTEGER.getTypeSignature())
+                            .typeVariableConstraints(typeVariable("E"))
+                            .features(Feature.DETERMINISTIC)
+                            .build(),
+                    ArrayUpperFunction::new
             );
         }
     }
@@ -155,7 +161,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             : "If the second argument to a cmp operator is a null literal it should normalize to null";
         List<Symbol> arrayLengthArgs = arrayLength.arguments();
         Symbol arraySymbol = arrayLengthArgs.get(0);
-        if (!(arraySymbol instanceof Reference)) {
+        if (!(arraySymbol instanceof Reference arrayRef)) {
             return null;
         }
         Symbol dimensionSymbol = arrayLengthArgs.get(1);
@@ -163,18 +169,30 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             return null;
         }
         int dimension = ((Number) ((Input<?>) dimensionSymbol).value()).intValue();
+        if (dimension <= 0 || dimension > ArrayType.dimensions(arrayRef.valueType())) {
+            return new MatchNoDocsQuery("Dimension argument <= 0 or exceeding the dimension of the array cannot match");
+        }
         if (dimension != 1) {
             // Storage of the multidimensional arrays is not supported.
             return null;
         }
-        Reference arrayRef = (Reference) arraySymbol;
+        int cmpVal = cmpNumber.intValue();
+        // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
+        // see ArrayIndexer for details
+        if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
+            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, context.tableInfo()::getReference);
+        }
+
+        DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
+        if (innerType instanceof ArrayType<?>) {
+            // Cannot utilize `_array_length_` index for arrays in tables created before 5.9
+            return null;
+        }
         DataType<?> elementType = ArrayType.unnest(arrayRef.valueType());
         if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
             // No doc-values for these, can't utilize doc-value-count
             return null;
         }
-        int cmpVal = cmpNumber.intValue();
-
         // For numeric types all values are stored, so the doc-value-count represents the number of not-null values
         // Only unique values are stored for IP and TEXT types, so the doc-value-count represents the number of unique not-null  values
         // [a, a, a]
@@ -208,19 +226,14 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
 
             case GtOperator.NAME:
-                if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
-                }
                 return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
-                } else if (cmpVal == 1) {
-                    return NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch);
-                } else {
-                    return genericFunctionFilter(parent, context);
+                    // 'array_length >= 0' is equivalent to 'array_length >= 1' since 'array_length([], 1)' is NULL
+                    return docValueCountOrGeneric(parent, context, arrayRef, predicateForFunction(GteOperator.NAME, 1));
                 }
+                return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {
@@ -240,9 +253,9 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
     }
 
     private static Query docValueCountOrGeneric(Function parent,
-                                                 LuceneQueryBuilder.Context context,
-                                                 Reference arrayRef,
-                                                 IntPredicate valueCountIsMatch) {
+                                                LuceneQueryBuilder.Context context,
+                                                Reference arrayRef,
+                                                IntPredicate valueCountIsMatch) {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         return query
@@ -282,10 +295,47 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 return x -> x >= cmpValue;
 
             case EqOperator.NAME:
-                return x -> x == cmpValue;
+                // sometimes the doc-value-count cannot equal to 'cmpValue' think about '[null]' and '[null, 1]'
+                // where the doc-value-counts are '0' and '1' respectively but the lengths of them are '1' and '2'.
+                return x -> x <= cmpValue;
 
             default:
                 throw new IllegalArgumentException("Unknown comparison function: " + cmpFuncName);
+        }
+    }
+
+    private static Query toQueryUsingArrayLengthIndex(String operator, Reference arrayRef, int cmpVal, java.util.function.Function<ColumnIdent, Reference> getRef) {
+        switch (operator) {
+            case EqOperator.NAME:
+                if (cmpVal == 0) {
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
+                }
+                return ArrayIndexer.arrayLengthTermQuery(arrayRef, cmpVal, getRef);
+
+            case GtOperator.NAME:
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, cmpVal + 1, UPPER_BOUND, getRef);
+
+            case GteOperator.NAME:
+                if (cmpVal == 0) {
+                    // 'array_length >= 0' is equivalent to 'array_length >= 1' since 'array_length([], 1)' is NULL
+                    return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, UPPER_BOUND, getRef);
+                }
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, cmpVal, UPPER_BOUND, getRef);
+
+            case LtOperator.NAME:
+                if (cmpVal == 0 || cmpVal == 1) {
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match");
+                }
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, cmpVal - 1, getRef);
+
+            case LteOperator.NAME:
+                if (cmpVal == 0) {
+                    return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match");
+                }
+                return ArrayIndexer.arrayLengthRangeQuery(arrayRef, LOWER_BOUND, cmpVal, getRef);
+
+            default:
+                throw new IllegalArgumentException("Illegal operator: " + operator);
         }
     }
 }

@@ -29,29 +29,23 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState.Custom;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.snapshots.InFlightShardSnapshotStates;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.common.unit.TimeValue;
 
 /**
  * Meta data about snapshots that are currently executing
@@ -123,7 +117,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         );
     }
 
-    public static class Entry implements Writeable, ToXContent, RepositoryOperation {
+    public static class Entry implements Writeable, RepositoryOperation {
         private final State state;
         private final Snapshot snapshot;
         private final boolean includeGlobalState;
@@ -422,49 +416,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         }
 
         @Override
-        public String toString() {
-            return Strings.toString(this);
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            builder.field(REPOSITORY, snapshot.getRepository());
-            builder.field(SNAPSHOT, snapshot.getSnapshotId().getName());
-            builder.field(UUID, snapshot.getSnapshotId().getUUID());
-            builder.field(INCLUDE_GLOBAL_STATE, includeGlobalState());
-            builder.field(PARTIAL, partial);
-            builder.field(STATE, state);
-            builder.startArray(INDICES);
-            {
-                for (IndexId index : indices) {
-                    index.toXContent(builder, params);
-                }
-            }
-            builder.endArray();
-            builder.humanReadableField(START_TIME_MILLIS, START_TIME, new TimeValue(startTime));
-            builder.field(REPOSITORY_STATE_ID, repositoryStateId);
-            builder.startArray(SHARDS);
-            {
-                for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shardEntry : shards) {
-                    ShardId shardId = shardEntry.key;
-                    ShardSnapshotStatus status = shardEntry.value;
-                    builder.startObject();
-                    {
-                        builder.field(INDEX, shardId.getIndex());
-                        builder.field(SHARD, shardId.id());
-                        builder.field(STATE, status.state());
-                        builder.field(NODE, status.nodeId());
-                    }
-                    builder.endObject();
-                }
-            }
-            builder.endArray();
-            builder.endObject();
-            return builder;
-        }
-
-        @Override
         public void writeTo(StreamOutput out) throws IOException {
             snapshot.writeTo(out);
             out.writeBoolean(includeGlobalState);
@@ -483,11 +434,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             } else if (out.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
                 out.writeBoolean(SnapshotsService.useShardGenerations(version));
             }
-        }
-
-        @Override
-        public boolean isFragment() {
-            return false;
         }
     }
 
@@ -735,32 +681,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeList(entries);
-    }
-
-    private static final String REPOSITORY = "repository";
-    private static final String SNAPSHOTS = "snapshots";
-    private static final String SNAPSHOT = "snapshot";
-    private static final String UUID = "uuid";
-    private static final String INCLUDE_GLOBAL_STATE = "include_global_state";
-    private static final String PARTIAL = "partial";
-    private static final String STATE = "state";
-    private static final String INDICES = "indices";
-    private static final String START_TIME_MILLIS = "start_time_millis";
-    private static final String START_TIME = "start_time";
-    private static final String REPOSITORY_STATE_ID = "repository_state_id";
-    private static final String SHARDS = "shards";
-    private static final String INDEX = "index";
-    private static final String SHARD = "shard";
-    private static final String NODE = "node";
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startArray(SNAPSHOTS);
-        for (Entry entry : entries) {
-            entry.toXContent(builder, params);
-        }
-        builder.endArray();
-        return builder;
     }
 
     public enum ShardState {

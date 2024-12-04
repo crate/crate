@@ -23,24 +23,28 @@ package io.crate.role;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
+import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
     private final Collection<Role> roles;
+    private final boolean accessControl;
 
     public StubRoleManager() {
         this.roles = List.of(Role.CRATE_USER);
+        this.accessControl = false;
     }
 
-    public StubRoleManager(Collection<Role> roles) {
+    public StubRoleManager(Collection<Role> roles, boolean accessControl) {
         this.roles = roles;
+        this.accessControl = accessControl;
     }
 
     @Override
@@ -61,7 +65,8 @@ public class StubRoleManager implements RoleManager {
                                              @Nullable SecureHash newHashedPw,
                                              @Nullable JwtProperties newJwtProperties,
                                              boolean resetPassword,
-                                             boolean resetJwtProperties) {
+                                             boolean resetJwtProperties,
+                                             Map<Boolean, Map<String, Object>> sessionSettingsChange) {
         return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterRole is not implemented in StubRoleManager"));
     }
 
@@ -79,7 +84,10 @@ public class StubRoleManager implements RoleManager {
     }
 
     @Override
-    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
+    public AccessControl getAccessControl(Role authenticatedUser, Role sessionUser) {
+        if (accessControl) {
+            return new AccessControlImpl(this, authenticatedUser, sessionUser);
+        }
         return AccessControl.DISABLED;
     }
 }

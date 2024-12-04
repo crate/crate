@@ -21,8 +21,7 @@
 
 package io.crate.planner.node.fetch;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -75,11 +74,11 @@ public class FetchPhaseTest {
         StreamInput in = out.bytes().streamInput();
         FetchPhase streamed = (FetchPhase) ExecutionPhases.fromStream(in);
 
-        assertThat(orig.phaseId(), is(streamed.phaseId()));
-        assertThat(orig.nodeIds(), is(streamed.nodeIds()));
-        assertThat(orig.fetchRefs(), is(streamed.fetchRefs()));
-        assertThat(orig.bases(), is(streamed.bases()));
-        assertThat(orig.tableIndices(), is(streamed.tableIndices()));
+        assertThat(orig.phaseId()).isEqualTo(streamed.phaseId());
+        assertThat(orig.nodeIds()).isEqualTo(streamed.nodeIds());
+        assertThat(orig.fetchRefs()).isEqualTo(streamed.fetchRefs());
+        assertThat(orig.bases()).isEqualTo(streamed.bases());
+        assertThat(orig.tableIndices()).isEqualTo(streamed.tableIndices());
 
     }
 }

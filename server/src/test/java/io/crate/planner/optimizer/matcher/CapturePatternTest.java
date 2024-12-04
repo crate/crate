@@ -21,10 +21,9 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -43,6 +42,6 @@ public class CapturePatternTest {
 
         Match<Filter> match = pattern.accept(filter, Captures.empty());
         Filter capturedFilter = match.captures().get(captureFilter);
-        assertThat(capturedFilter, Matchers.sameInstance(filter));
+        assertThat(capturedFilter).isSameAs(filter);
     }
 }

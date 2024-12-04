@@ -26,7 +26,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_READ_ONLY
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -35,22 +34,20 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.annotations.Immutable;
 import io.crate.common.annotations.ThreadSafe;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
-import io.crate.common.unit.TimeValue;
-import io.crate.metadata.settings.NumberOfReplicasSetting;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.settings.Validators;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -65,13 +62,12 @@ import io.crate.types.DataTypes;
 public class TableParameters {
 
     // all available table settings
-    static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
-    static final Setting<String> COLUMN_POLICY = new Setting<>(
-        new Setting.SimpleKey(ColumnPolicy.MAPPING_KEY),
-        s -> ColumnPolicy.STRICT.lowerCaseName(),
-        s -> ColumnPolicy.of(s).toMappingValue(),
+    public static final Setting<ColumnPolicy> COLUMN_POLICY = new Setting<>(
+        new Setting.SimpleKey("column_policy"),
+        _ -> ColumnPolicy.STRICT.lowerCaseName(),
+        s -> ColumnPolicy.of(s),
         o -> {
-            if (ColumnPolicy.IGNORED.toMappingValue().equals(o)) {
+            if (ColumnPolicy.IGNORED.equals(o)) {
                 throw new IllegalArgumentException("Invalid value for argument 'column_policy'");
             }
         },
@@ -79,11 +75,28 @@ public class TableParameters {
         Setting.Property.IndexScope
     );
 
-    // all available table mapping keys
 
-    private static final List<Setting<?>> SUPPORTED_SETTINGS =
+    /**
+     * Settings that are only applicable on a table level and can't be changed for a
+     * single partition.
+     *
+     * These are typically schema/mapping related.
+     **/
+    public static final List<Setting<?>> TABLE_ONLY_SETTINGS = List.of(
+        COLUMN_POLICY
+    );
+
+    /**
+     * These settings are applied on index/partition level but their default value
+     * Is inherited: Cluster -> Table -> Partition
+     *
+     * These settings can be changed either:
+     *  - on table level:       ALTER TABLE
+     *  - on partition level:   ALTER TABLE <name> PARTITION (...)
+     **/
+    private static final List<Setting<?>> PARTITION_SETTINGS =
         List.of(
-            NUMBER_OF_REPLICAS,
+            NumberOfReplicas.SETTING,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
             IndexMetadata.INDEX_READ_ONLY_SETTING,
             INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
@@ -95,8 +108,7 @@ public class TableParameters {
             IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
             IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
             ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
-            MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
-            IndexSettings.INDEX_WARMER_ENABLED_SETTING,
+            DocTableInfo.TOTAL_COLUMNS_LIMIT,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
             IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
@@ -124,37 +136,16 @@ public class TableParameters {
             Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
         );
 
-    /**
-     * Settings which are not included in table default settings
-     */
-    static final Set<Setting<?>> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
-        IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
-        IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
-        MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,
-        IndexService.RETENTION_LEASE_SYNC_INTERVAL_SETTING,
-
-        // We want IndexSettings#isExplicitRefresh and it's usages to work
-        IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
-
-        IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING,
-        Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING
-    );
-
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
-        = SUPPORTED_SETTINGS
+        = Lists.concat(PARTITION_SETTINGS, TABLE_ONLY_SETTINGS)
         .stream()
         .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     private static final Map<String, Setting<?>> SUPPORTED_NON_FINAL_SETTINGS_DEFAULT
-        = SUPPORTED_SETTINGS
+        = Lists.concat(PARTITION_SETTINGS, TABLE_ONLY_SETTINGS)
             .stream()
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
-
-    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
@@ -163,53 +154,45 @@ public class TableParameters {
                 IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING
             ).immutableMap();
 
-    private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
-
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = SUPPORTED_SETTINGS
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES = PARTITION_SETTINGS
         .stream()
         .filter(Setting::isReplicatedIndexScope)
         .filter(s -> s.isFinal() == false)
         .collect(Collectors.toMap(s -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
     public static final TableParameters TABLE_CREATE_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
+        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT);
 
     public static final TableParameters REPLICATED_TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES, Map.of());
+        = new TableParameters(SUPPORTED_SETTINGS_FOR_REPLICATED_TABLES);
 
     public static final TableParameters TABLE_ALTER_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
+        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS);
 
     public static final TableParameters PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-        = new TableParameters(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT, Map.of());
+        = new TableParameters(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT);
 
-    public static final TableParameters PARTITION_PARAMETER_INFO
-        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
+    public static final TableParameters PARTITION_PARAMETER_INFO = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS);
 
     public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
-            stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()), NUMBER_OF_REPLICAS,
+            stripIndexPrefix(NumberOfReplicas.SETTING.getKey()), NumberOfReplicas.SETTING,
             "blobs_path", Setting.simpleString(
                 BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path"))
-        ),
-        Map.of()
+        )
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
-        Map.of(stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()),
-               NUMBER_OF_REPLICAS,
+        Map.of(stripIndexPrefix(NumberOfReplicas.SETTING.getKey()),
+               NumberOfReplicas.SETTING,
                stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
                INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
-        ),
-        Map.of()
-        );
+        ));
 
     private final Map<String, Setting<?>> supportedSettings;
-    private final Map<String, Setting<?>> supportedMappings;
 
-    protected TableParameters(Map<String, Setting<?>> supportedSettings, Map<String, Setting<?>> supportedMappings) {
+    protected TableParameters(Map<String, Setting<?>> supportedSettings) {
         this.supportedSettings = supportedSettings;
-        this.supportedMappings = supportedMappings;
     }
 
     /**
@@ -217,13 +200,6 @@ public class TableParameters {
      */
     public Map<String, Setting<?>> supportedSettings() {
         return supportedSettings;
-    }
-
-    /**
-     * Returns a list of mapping names supported by this table
-     */
-    public Map<String, Setting<?>> supportedMappings() {
-        return supportedMappings;
     }
 
     public static String stripIndexPrefix(String key) {
@@ -238,43 +214,5 @@ public class TableParameters {
             return key.substring(0, key.length() - 1);
         }
         return key;
-    }
-
-    public static Map<String, Object> tableParametersFromIndexMetadata(Settings settings) {
-        MapBuilder<String, Object> builder = MapBuilder.newMapBuilder();
-        for (Setting<?> setting : SUPPORTED_SETTINGS) {
-            boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
-            if (shouldBeExcluded == false) {
-                if (setting instanceof Setting.AffixSetting) {
-                    flattenAffixSetting(builder, settings, (Setting.AffixSetting<?>) setting);
-                } else if (settings.hasValue(setting.getKey())) {
-                    builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
-                }
-            }
-        }
-        return builder.immutableMap();
-    }
-
-    private static void flattenAffixSetting(MapBuilder<String, Object> builder,
-                                            Settings settings,
-                                            Setting.AffixSetting<?> setting) {
-        String prefix = setting.getKey();
-        setting.getNamespaces(settings)
-            .forEach(s -> builder.put(prefix + s, setting.getConcreteSetting(prefix + s).get(settings)));
-    }
-
-    private static Object convertEsSettingType(Object value) {
-        if (value instanceof Number || value instanceof Boolean) {
-            return value;
-        }
-        if (value instanceof ByteSizeValue) {
-            // return bytes as long so it can be compared correctly
-            return ((ByteSizeValue) value).getBytes();
-        }
-        if (value instanceof TimeValue) {
-            // return time as long (epoch) in MS so it can be compared correctly
-            return ((TimeValue) value).millis();
-        }
-        return value.toString();
     }
 }

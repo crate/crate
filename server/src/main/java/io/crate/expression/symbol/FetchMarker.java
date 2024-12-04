@@ -23,6 +23,7 @@ package io.crate.expression.symbol;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataType;
 
 /**
@@ -44,7 +45,7 @@ public final class FetchMarker implements Symbol {
     private final Reference fetchId;
 
     public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
-        this(relationName, fetchRefs, DocSysColumns.forTable(relationName, DocSysColumns.FETCHID));
+        this(relationName, fetchRefs, SysColumns.forTable(relationName, SysColumns.FETCHID));
     }
 
     public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {
@@ -63,6 +64,11 @@ public final class FetchMarker implements Symbol {
 
     public Reference fetchId() {
         return fetchId;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this) || fetchId.any(predicate);
     }
 
     @Override

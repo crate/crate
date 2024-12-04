@@ -28,11 +28,9 @@ import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.ddl.tables.TransportAlterTableAction;
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropColumnAction;
 import io.crate.execution.ddl.tables.TransportDropConstraintAction;
-import io.crate.execution.ddl.tables.TransportDropTableAction;
-import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
+import io.crate.execution.ddl.tables.TransportOpenTableAction;
 import io.crate.execution.ddl.tables.TransportRenameTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
@@ -53,12 +51,10 @@ public class TransportExecutorModule extends AbstractModule {
         bind(JobSetup.class).asEagerSingleton();
         bind(LuceneQueryBuilder.class).asEagerSingleton();
 
-        bind(TransportCreateTableAction.class).asEagerSingleton();
         bind(TransportRenameTableAction.class).asEagerSingleton();
         bind(TransportSwapAndDropIndexNameAction.class).asEagerSingleton();
-        bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
+        bind(TransportOpenTableAction.class).asEagerSingleton();
         bind(TransportCloseTable.class).asEagerSingleton();
-        bind(TransportDropTableAction.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportCreateViewAction.class).asEagerSingleton();

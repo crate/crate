@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -32,10 +31,10 @@ import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -61,14 +60,13 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
-    private final TableParameters supportedTableParameters;
     private final Settings tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
-    private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
+    private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
 
     public BlobTableInfo(RelationName ident,
                          String index,
@@ -85,7 +83,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
-        this.supportedTableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
         this.tableParameters = tableParameters;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
@@ -122,7 +119,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
-        return routingProvider.forIndices(state, new String[] { index }, Collections.emptyMap(), false, shardSelection);
+        return routingProvider.forIndices(state, new String[] { index }, Set.of(), false, shardSelection);
     }
 
     @Override
@@ -167,10 +164,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return blobsPath;
     }
 
-    public TableParameters tableParameters() {
-        return supportedTableParameters;
-    }
-
     public Settings parameters() {
         return tableParameters;
     }
@@ -191,7 +184,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public String[] concreteIndices() {
+    public String[] concreteIndices(Metadata metadata) {
         return new String[] { index };
     }
 

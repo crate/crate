@@ -53,23 +53,23 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSetGlobal() throws Exception {
         AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
-        assertThat(analysis.isPersistent()).isEqualTo(true);
+        assertThat(analysis.isPersistent()).isTrue();
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.GLOBAL);
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1))));
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
-        assertThat(analysis.isPersistent()).isEqualTo(false);
+        assertThat(analysis.isPersistent()).isFalse();
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.GLOBAL);
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(2))));
 
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.GLOBAL);
-        assertThat(analysis.isPersistent()).isEqualTo(false);
+        assertThat(analysis.isPersistent()).isFalse();
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("stats.enabled"), List.of(Literal.of(false))));
 
         assertThat(analysis.settings().get(1)).isEqualTo(
@@ -84,14 +84,14 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedSetStatement analysis = analyze("SET LOCAL something TO 2");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.LOCAL);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of(Literal.of(2))));
 
 
         analysis = analyze("SET LOCAL something TO DEFAULT");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.LOCAL);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of()));
     }
 
@@ -108,13 +108,13 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedSetStatement analysis = analyze("SET SESSION something TO 2");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.SESSION);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of(Literal.of(2))));
 
         analysis = analyze("SET SESSION something = 1,2,3");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.SESSION);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of(Literal.of(1), Literal.of(2), Literal.of(3))));
     }
 
@@ -123,28 +123,28 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedSetStatement analysis = analyze("SET something TO 2");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.SESSION);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of(Literal.of(2))));
 
         analysis = analyze("SET something = DEFAULT");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.SESSION);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of()));
 
         analysis = analyze("SET something = default");
         assertThat(analysis.scope()).isEqualTo(SetStatement.Scope.SESSION);
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("something"), List.of()));
     }
 
     @Test
     public void testSetFullQualified() throws Exception {
         AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
-        assertThat(analysis.isPersistent()).isEqualTo(true);
+        assertThat(analysis.isPersistent()).isTrue();
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1))));
     }
 
@@ -154,7 +154,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         HashMap<String, Object> expected = new HashMap<>();
         expected.put("timeout", "1h");
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("cluster.graceful_stop"), List.of(Literal.of(expected))));
     }
 
@@ -163,7 +163,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedSetStatement analysis =
             analyze("SET GLOBAL TRANSIENT cluster['routing']['allocation']['include'] = {_host = 'host1.example.com'}");
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("cluster.routing.allocation.include"),
                              List.of(Literal.of(Map.of("_host", "host1.example.com")))));
     }
@@ -171,9 +171,9 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSetLoggingSetting() {
         AnalyzedSetStatement analysis = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
-        assertThat(analysis.isPersistent()).isEqualTo(false);
+        assertThat(analysis.isPersistent()).isFalse();
 
-        assertThat(analysis.settings().get(0)).isEqualTo(
+        assertThat(analysis.settings().getFirst()).isEqualTo(
             new Assignment<>(Literal.of("logger.action"), List.of(Literal.of("INFo"))));
     }
 }

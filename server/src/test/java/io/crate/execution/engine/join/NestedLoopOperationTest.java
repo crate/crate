@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.join;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
@@ -41,13 +40,13 @@ public class NestedLoopOperationTest {
     @Test
     public void testCrossJoinWithBlockNestedLoopIfSingleNodeExecution() {
         BatchIterator<Row> singleNodeLeftSideSmaller = createBatchIterator(true);
-        assertThat(singleNodeLeftSideSmaller, instanceOf(CrossJoinBlockNLBatchIterator.class));
+        assertThat(singleNodeLeftSideSmaller).isExactlyInstanceOf(CrossJoinBlockNLBatchIterator.class);
     }
 
     @Test
     public void testCrossJoinWithNestedLoopIfMultipleNodes() {
         BatchIterator<Row> singleNodeLeftSideSmaller = createBatchIterator(false);
-        assertThat(singleNodeLeftSideSmaller, instanceOf(CrossJoinNLBatchIterator.class));
+        assertThat(singleNodeLeftSideSmaller).isExactlyInstanceOf(CrossJoinNLBatchIterator.class);
     }
 
 

@@ -20,7 +20,6 @@
 
 package org.elasticsearch.action.support.replication;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -39,6 +38,7 @@ import java.util.stream.Collectors;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -95,7 +95,7 @@ public class ClusterStateCreationUtils {
         final int primaryTerm = 1 + randomInt(200);
         IndexMetadata indexMetadata = IndexMetadata.builder(index).settings(Settings.builder()
                                                                                 .put(SETTING_VERSION_CREATED, Version.CURRENT)
-                                                                                .put(SETTING_AUTO_EXPAND_REPLICAS, false)
+                                                                                .put(AutoExpandReplicas.SETTING_KEY, false)
                                                                                 .put(SETTING_NUMBER_OF_SHARDS, 1).put(SETTING_NUMBER_OF_REPLICAS, numberOfReplicas)
                                                                                 .put(SETTING_CREATION_DATE, System.currentTimeMillis())).primaryTerm(0, primaryTerm)
             .build();

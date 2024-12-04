@@ -71,7 +71,9 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -96,13 +98,13 @@ public class GroupingLongCollectorBenchmark {
                  new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()))) {
             Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
             SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
-                Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
-                List.of(DataTypes.INTEGER),
-                DataTypes.INTEGER
+                    Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                            .returnType(DataTypes.LONG.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    List.of(DataTypes.INTEGER),
+                    DataTypes.INTEGER
             );
             var memoryManager = new OnHeapMemoryManager(bytes -> {
             });

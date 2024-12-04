@@ -29,13 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.TableElementsAnalyzer;
+import io.crate.lucene.LuceneQueryBuilderTest;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -43,7 +44,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
 import io.crate.types.StorageSupport;
 
-public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
+public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
 
 
     private static final Object[] ARRAY_VALUES = new Object[] {List.of(), null};
@@ -78,7 +79,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
                 if (results.get(0) instanceof Map<?, ?> map) {
                     assertThat(map).isEmpty();
                 } else {
-                    assertThat(results.get(0)).asList().isEmpty();
+                    assertThat(results.get(0))
+                        .asInstanceOf(InstanceOfAssertFactories.LIST)
+                        .isEmpty();
                 }
             }
         }
@@ -98,37 +101,38 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
             if (values == null) {
                 assertThat(results).isEmpty();
             } else {
-                assertThat(results).hasSize(2);
+                assertThat(results).hasSize(1);
                 assertThat(results.get(0)).isInstanceOf(Map.class);
                 assertThat((Map<?, ?>) results.get(0)).isEmpty();
-                assertThat(results.get(1)).isNull();
             }
         }
     }
 
     @Test
     public void test_is_null_does_not_match_empty_arrays() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
-                " (xs array(" + type.getName() + "))";
+                " (xs array(" + typeDefinition + "))";
             assertMatches(createStatement, true, ARRAY_VALUES);
         }
     }
 
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
+                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
-                    " (xs array(" + type.getName() + ") index off)";
+                    " (xs array(" + typeDefinition + ") index off)";
                 assertMatches(createStatement, true, ARRAY_VALUES);
             }
         }
@@ -163,28 +167,30 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             // including geo_shape
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
-                " (xs array(" + type.getName() + "))";
+                " (xs array(" + typeDefinition + "))";
             assertMatches(createStatement, false, ARRAY_VALUES);
         }
     }
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
             if (TableElementsAnalyzer.UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
+                String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
-                    " (xs array(" + type.getName() + ") index off)";
+                    " (xs array(" + typeDefinition + ") index off)";
                 assertMatches(createStatement, false, ARRAY_VALUES);
             }
         }
@@ -223,7 +229,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_on_columns_without_doc_values() throws Exception {
-        for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (var type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null || !storageSupport.supportsDocValuesOff()) {
                 continue;
@@ -231,7 +237,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             var extendedType = DataTypeTesting.extendedType(type, val1);
-            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
+            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
             String stmt = "create table tbl (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
             QueryTester.Builder builder = new QueryTester.Builder(
                 THREAD_POOL,
@@ -250,5 +256,20 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
                     .isEqualTo("+*:* -ConstantScore(_field_names:x)");
             }
         }
+    }
+
+    @Test
+    public void testIsNullOnObjectArray() throws Exception {
+        Query isNull = convert("o_array IS NULL");
+        assertThat(isNull).hasToString("+*:* -FieldExistsQuery [field=_array_length_o_array]");
+        Query isNotNull = convert("o_array IS NOT NULL");
+        assertThat(isNotNull).hasToString("FieldExistsQuery [field=_array_length_o_array]");
+    }
+
+    @Test
+    public void test_neq_on_array() {
+        Query query = convert("(y_array != [1])");
+        // (+*:* -(y_array IS NULL)))~1) is required to make sure empty arrays are not filtered by the FieldExistsQuery
+        assertThat(query).hasToString("+(+*:* -(+y_array:{1} +(y_array = [1::bigint]))) +FieldExistsQuery [field=_array_length_y_array]");
     }
 }

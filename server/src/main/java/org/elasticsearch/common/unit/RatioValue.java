@@ -21,6 +21,8 @@ package org.elasticsearch.common.unit;
 
 import org.elasticsearch.ElasticsearchParseException;
 
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+
 /**
  * Utility class to represent ratio and percentage values between 0 and 100
  */
@@ -53,7 +55,7 @@ public class RatioValue {
         if (sValue.endsWith("%")) {
             final String percentAsString = sValue.substring(0, sValue.length() - 1);
             try {
-                final double percent = Double.parseDouble(percentAsString);
+                final double percent = JavaDoubleParser.parseDouble(percentAsString);
                 if (percent < 0 || percent > 100) {
                     throw new ElasticsearchParseException("Percentage should be in [0-100], got [{}]", percentAsString);
                 }
@@ -63,7 +65,7 @@ public class RatioValue {
             }
         } else {
             try {
-                double ratio = Double.parseDouble(sValue);
+                double ratio = JavaDoubleParser.parseDouble(sValue);
                 if (ratio < 0 || ratio > 1.0) {
                     throw new ElasticsearchParseException("Ratio should be in [0-1.0], got [{}]", ratio);
                 }

@@ -22,13 +22,16 @@
 package io.crate.execution.engine.window;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -39,11 +42,12 @@ public class RowNumberWindowFunction implements WindowFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.window(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature()
-            ),
-            RowNumberWindowFunction::new
+                Signature.builder(NAME, FunctionType.WINDOW)
+                        .argumentTypes()
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                RowNumberWindowFunction::new
         );
     }
 
@@ -56,7 +60,8 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,

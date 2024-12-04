@@ -21,10 +21,8 @@ package org.elasticsearch.transport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -152,11 +150,11 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         try (Transport.Connection connection =
                  AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)){
             DiscoveryNode connectedNode = TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut));
-            assertNotNull(connectedNode);
+            assertThat(connectedNode).isNotNull();
             // the name and version should be updated
-            assertEquals(connectedNode.getName(), "TS_B");
-            assertEquals(connectedNode.getVersion(), handleB.discoveryNode.getVersion());
-            assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+            assertThat("TS_B").isEqualTo(connectedNode.getName());
+            assertThat(handleB.discoveryNode.getVersion()).isEqualTo(connectedNode.getVersion());
+            assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
         }
     }
 
@@ -179,7 +177,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             .hasMessageContaining(
                 "handshake with [" + discoveryNode +
                 "] failed: remote cluster name [b] does not match local cluster name [a]");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     @Test
@@ -203,7 +201,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
                 "handshake with [" + discoveryNode +
                 "] failed: remote node version [" + handleB.discoveryNode.getVersion() + "] is incompatible with local node version [" +
                 Version.CURRENT + "]");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     public void testNodeConnectWithDifferentNodeId() {
@@ -220,7 +218,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode);
         }).isExactlyInstanceOf(ConnectTransportException.class)
             .hasMessageContaining("unexpected remote node");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
 

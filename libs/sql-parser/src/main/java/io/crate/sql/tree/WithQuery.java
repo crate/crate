@@ -64,12 +64,10 @@ public class WithQuery extends Node {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WithQuery withQuery = (WithQuery) o;
-        return name.equals(withQuery.name)
-            && query.equals(withQuery.query)
-            && Objects.equals(columnNames, withQuery.columnNames);
+        return o instanceof WithQuery that
+            && name.equals(that.name)
+            && query.equals(that.query)
+            && Objects.equals(columnNames, that.columnNames);
     }
 
     @Override

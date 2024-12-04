@@ -54,7 +54,7 @@ public class InstrumentedIndexSearcher extends Engine.Searcher {
 
     @Override
     public Weight createWeight(Query query, ScoreMode scoreMode, float boost) throws IOException {
-        QueryProfileBreakdown profile = profiler.getQueryBreakdown(query);
+        QueryProfileBreakdown profile = profiler.getProfileBreakdown(query);
         Timer timer = profile.getTimer(QueryTimingType.CREATE_WEIGHT);
         timer.start();
         final Weight weight;
@@ -62,7 +62,7 @@ public class InstrumentedIndexSearcher extends Engine.Searcher {
             weight = super.createWeight(query, scoreMode, boost);
         } finally {
             timer.stop();
-            profiler.pollLastElement();
+            profiler.pollLast();
         }
         return new ProfileWeight(query, weight, profile);
     }

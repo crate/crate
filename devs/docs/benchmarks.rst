@@ -8,7 +8,7 @@ Microbenchmarks are written using `JMH`_. To execute them, first build the JAR::
 
 Then run the JAR::
 
-    $ java -jar benchmarks/target/benchmarks.jar
+    $ java --add-modules jdk.incubator.vector -jar benchmarks/target/benchmarks.jar
 
 The `java` version needs to be equal or greater than the configured toolchain.
 Maven automatically downloads the JDK when it is missing and it should be
@@ -20,11 +20,11 @@ To get the configured JDK version, use::
 
 If you want to execute specific benchmarks you can provide a filter argument::
 
-    $ java -jar benchmarks/target/benchmarks.jar <benchmarkMethodName | benchmarkClassName>"
+    $ java --add-modules jdk.incubator.vector -jar benchmarks/target/benchmarks.jar <benchmarkMethodName | benchmarkClassName>"
 
 To save the results to a file, use the ``-rf`` and ``-rff`` options::
 
-    $ java -jar benchmarks/target/benchmarks.jar -rf json -rff /tmp/jmh.json
+    $ java --add-modules jdk.incubator.vector -jar benchmarks/target/benchmarks.jar -rf json -rff /tmp/jmh.json
 
 If you are writing new benchmarks, take a look at this `JMH introduction`_ and
 these `JMH samples`_.

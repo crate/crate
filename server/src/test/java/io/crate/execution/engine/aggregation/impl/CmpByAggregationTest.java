@@ -29,6 +29,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataTypes;
@@ -37,12 +39,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_max_by() throws Exception {
-        Signature signature = Signature.aggregate(
-            "max_by",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature()
-        );
+        Signature signature = Signature.builder("max_by", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -58,12 +60,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_cmp_by_returns_null_if_all_search_fields_are_null() throws Exception {
         for (String func : List.of("max_by", "min_by")) {
-            Signature signature = Signature.aggregate(
-                func,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            );
+            Signature signature = Signature.builder(func, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -80,12 +82,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_cmp_by_returns_null_if_all_return_fields_are_null() throws Exception {
         for (String func : List.of("max_by", "min_by")) {
-            Signature signature = Signature.aggregate(
-                func,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            );
+            Signature signature = Signature.builder(func, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -101,12 +103,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_max_by_returns_null_if_return_field_of_max_search_field_is_null() throws Exception {
-        Signature signature = Signature.aggregate(
-            "max_by",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature()
-        );
+        Signature signature = Signature.builder("max_by", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -122,12 +124,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_cmp_by_result_is_nondeterministic_on_ties() throws Exception {
         for (String func : List.of("max_by", "min_by")) {
-            Signature signature = Signature.aggregate(
-                func,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            );
+            Signature signature = Signature.builder(func, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -143,12 +145,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_min_by() throws Exception {
-        Signature signature = Signature.aggregate(
-            "min_by",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature()
-        );
+        Signature signature = Signature.builder("min_by", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -164,12 +166,12 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_cannot_use_max_by_on_non_comparable_types() throws Exception {
-        Signature signature = Signature.aggregate(
-            "max_by",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature()
-        );
+        Signature signature = Signature.builder("max_by", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         assertThatThrownBy(() -> executeAggregation(
             signature,
             new Object[][] {
@@ -183,18 +185,18 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_min_by_does_not_overflow_on_MIN_VALUE() throws Exception {
-        Signature signature = Signature.aggregate(
-            "min_by",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.LONG.getTypeSignature(),
-            DataTypes.STRING.getTypeSignature()
-        );
+        Signature signature = Signature.builder("min_by", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(
             signature,
             new Object[][] {
                 new Object[] { "a", 1L },
                 new Object[] { "b", 2L },
-                new Object[] { "c", Long.MIN_VALUE},
+                new Object[] { "c", Long.MIN_VALUE + 1},
             },
             List.of()
         );

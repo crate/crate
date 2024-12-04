@@ -19,7 +19,11 @@
 
 package org.elasticsearch.cluster.routing.allocation.decider;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.function.Consumer;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
@@ -33,27 +37,22 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class AllocationDecidersTests extends ESTestCase {
 
     public void testDebugMode() {
-        verifyDebugMode(RoutingAllocation.DebugMode.ON, Matchers.hasSize(1));
+        verifyDebugMode(RoutingAllocation.DebugMode.ON, result -> assertThat(result).hasSize(1));
     }
 
     public void testNoDebugMode() {
-        verifyDebugMode(RoutingAllocation.DebugMode.OFF, Matchers.empty());
+        verifyDebugMode(RoutingAllocation.DebugMode.OFF, result -> assertThat(result).isEmpty());
     }
 
     public void testDebugExcludeYesMode() {
-        verifyDebugMode(RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS, Matchers.empty());
+        verifyDebugMode(RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS, result -> assertThat(result).isEmpty());
     }
 
-    private void verifyDebugMode(RoutingAllocation.DebugMode mode, Matcher<Collection<? extends Decision>> matcher) {
+    private void verifyDebugMode(RoutingAllocation.DebugMode mode, Consumer<Collection<? extends Decision>> matcher) {
         AllocationDeciders deciders = new AllocationDeciders(Collections.singleton(new AllocationDecider() {
             @Override
             public Decision canAllocate(ShardRouting shardRouting, RoutingNode node, RoutingAllocation allocation) {
@@ -113,10 +112,10 @@ public class AllocationDecidersTests extends ESTestCase {
         verify(deciders.shouldAutoExpandToNode(idx, null, allocation), matcher);
     }
 
-    private void verify(Decision decision, Matcher<Collection<? extends Decision>> matcher) {
-        assertThat(decision.type(), Matchers.equalTo(Decision.Type.YES));
-        assertThat(decision, Matchers.instanceOf(Decision.Multi.class));
+    private void verify(Decision decision, Consumer<Collection<? extends Decision>> matcher) {
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
+        assertThat(decision).isExactlyInstanceOf(Decision.Multi.class);
         Decision.Multi multi = (Decision.Multi) decision;
-        assertThat(multi.getDecisions(), matcher);
+        matcher.accept(multi.getDecisions());
     }
 }

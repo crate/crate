@@ -48,7 +48,9 @@ import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -69,11 +71,11 @@ public class AggregateCollectorBenchmark {
         RowCollectExpression inExpr0 = new RowCollectExpression(0);
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         SumAggregation<?> sumAggregation = (SumAggregation<?>) functions.getQualified(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+            Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
         );

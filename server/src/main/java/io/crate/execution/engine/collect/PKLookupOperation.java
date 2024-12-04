@@ -34,13 +34,11 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -57,13 +55,17 @@ import io.crate.data.SentinelRow;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
-import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.expression.reference.doc.lucene.StoredRow;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
+import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupOperation {
@@ -83,8 +85,9 @@ public final class PKLookupOperation {
                                 VersionType versionType,
                                 long seqNo,
                                 long primaryTerm,
-                                @Nullable SourceParser sourceParser) {
-        Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
+                                DocTableInfo table,
+                                List<Symbol> columns) {
+        Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
             .versionType(versionType)
@@ -96,29 +99,22 @@ public final class PKLookupOperation {
             if (docIdAndVersion == null) {
                 return null;
             }
-            SourceFieldVisitor visitor = new SourceFieldVisitor();
+            StoredRowLookup storedRowLookup = StoredRowLookup.create(shard.getVersionCreated(), table, shard.shardId().getIndexName(), columns, getResult.fromTranslog());
             try {
-                StoredFields storedFields = docIdAndVersion.reader.storedFields();
-                storedFields.document(docIdAndVersion.docId, visitor);
+                StoredRow storedRow
+                    = storedRowLookup.getStoredRow(new ReaderContext(docIdAndVersion.reader.getContext()), docIdAndVersion.docId);
+                return new Doc(
+                    docIdAndVersion.docId,
+                    shard.shardId().getIndexName(),
+                    id,
+                    docIdAndVersion.version,
+                    docIdAndVersion.seqNo,
+                    docIdAndVersion.primaryTerm,
+                    storedRow
+                );
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            Map<String, Object> sourceMap;
-            if (sourceParser == null) {
-                sourceMap = Map.of();
-            } else {
-                sourceMap = sourceParser.parse(visitor.source());
-            }
-            return new Doc(
-                docIdAndVersion.docId,
-                shard.shardId().getIndexName(),
-                id,
-                docIdAndVersion.version,
-                docIdAndVersion.seqNo,
-                docIdAndVersion.primaryTerm,
-                sourceMap,
-                () -> visitor.source().utf8ToString()
-            );
         }
     }
 
@@ -131,7 +127,8 @@ public final class PKLookupOperation {
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
-                                     SourceParser sourceParser) {
+                                     DocTableInfo table,
+                                     List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
@@ -149,6 +146,7 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
+            assert table != null;
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> lookupDoc(
                     shard,
@@ -157,7 +155,8 @@ public final class PKLookupOperation {
                     VersionType.EXTERNAL,
                     pkAndVersion.seqNo(),
                     pkAndVersion.primaryTerm(),
-                    sourceParser
+                    table,
+                    columns
                 ))
                 .filter(Objects::nonNull)
                 .map(resultToRow);

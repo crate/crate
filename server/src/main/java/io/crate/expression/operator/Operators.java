@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.metadata.Functions;
@@ -41,7 +42,8 @@ public class Operators implements FunctionsProvider {
         EqOperator.NAME,
         GtOperator.NAME, GteOperator.NAME,
         LtOperator.NAME, LteOperator.NAME,
-        CIDROperator.CONTAINED_WITHIN
+        CIDROperator.CONTAINED_WITHIN,
+        DistinctFrom.NAME
     );
 
     @Override
@@ -63,5 +65,6 @@ public class Operators implements FunctionsProvider {
         AllOperator.register(builder);
         LikeOperators.register(builder);
         ExistsOperator.register(builder);
+        DistinctFrom.register(builder);
     }
 }

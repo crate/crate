@@ -37,14 +37,8 @@ public class ParameterExpression extends Expression {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ParameterExpression that = (ParameterExpression) o;
-
-        if (position != that.position) return false;
-
-        return true;
+        return o instanceof ParameterExpression that
+            && position == that.position;
     }
 
     @Override

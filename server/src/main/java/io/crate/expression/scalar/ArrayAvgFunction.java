@@ -29,9 +29,13 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -87,62 +91,78 @@ public class ArrayAvgFunction {
         // https://www.postgresql.org/docs/13/functions-aggregate.html
 
         builder.add(
-            Signature.scalar(
-                NAME,
-                new ArrayType<>(DataTypes.NUMERIC).getTypeSignature(),
-                DataTypes.NUMERIC.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
-            (signature, boundSignature) -> new UnaryScalar<>(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.NUMERIC).getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new Scalar<>(
                 signature,
-                boundSignature,
-                new ArrayType<>(DataTypes.NUMERIC),
-                ArrayAvgFunction::avgBigDecimal
-            )
+                boundSignature
+            ) {
+                @SafeVarargs
+                @Override
+                public final Object evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+                    return avgBigDecimal(new ArrayType<>(DataTypes.NUMERIC).sanitizeValue(args[0].value()));
+                }
+            }
         );
 
         builder.add(
-            Signature.scalar(
-                NAME,
-                new ArrayType<>(DataTypes.FLOAT).getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
-            (signature, boundSignature) -> new UnaryScalar<>(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.FLOAT).getTypeSignature())
+                .returnType(DataTypes.FLOAT.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new Scalar<>(
                 signature,
-                boundSignature,
-                new ArrayType<>(DataTypes.FLOAT),
-                ArrayAvgFunction::avgFloat
-            )
+                boundSignature
+            ) {
+                @SafeVarargs
+                @Override
+                public final Object evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+                    return avgFloat(new ArrayType<>(DataTypes.FLOAT).sanitizeValue(args[0].value()));
+                }
+            }
         );
 
         builder.add(
-            Signature.scalar(
-                NAME,
-                new ArrayType<>(DataTypes.DOUBLE).getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
-            (signature, boundSignature) -> new UnaryScalar<>(
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.DOUBLE).getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new Scalar<>(
                 signature,
-                boundSignature,
-                new ArrayType<>(DataTypes.DOUBLE),
-                ArrayAvgFunction::avgDouble
-            )
+                boundSignature
+            ) {
+                @SafeVarargs
+                @Override
+                public final Object evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+                    return avgDouble(new ArrayType<>(DataTypes.DOUBLE).sanitizeValue(args[0].value()));
+                }
+            }
         );
 
 
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             if (supportedType != DataTypes.FLOAT && supportedType != DataTypes.DOUBLE) {
                 builder.add(
-                    Signature.scalar(
-                        NAME,
-                        new ArrayType<>(supportedType).getTypeSignature(),
-                        DataTypes.NUMERIC.getTypeSignature()
-                    ).withFeature(Scalar.Feature.NULLABLE),
-                    (signature, boundSignature) -> new UnaryScalar<>(
+                    Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(new ArrayType<>(supportedType).getTypeSignature())
+                        .returnType(DataTypes.NUMERIC.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                    (signature, boundSignature) -> new Scalar<>(
                         signature,
-                        boundSignature,
-                        new ArrayType<>(supportedType),
-                        ArrayAvgFunction::avgNumber
-                    )
+                        boundSignature
+                    ) {
+                        @SafeVarargs
+                        @Override
+                        public final Object evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+                            return avgNumber(new ArrayType<>(supportedType).sanitizeValue(args[0].value()));
+                        }
+                    }
                 );
             }
         }

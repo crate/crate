@@ -48,8 +48,8 @@ import io.crate.planner.optimizer.costs.PlanStats;
  * LogicalPlan is a tree of "Operators"
  * This is a representation of the logical order of operators that need to be executed to produce a correct result.
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}  is used to create the
- * actual "physical" execution plan.
+ * {@link #build(DependencyCarrier, PlannerContext, Set, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}
+ * is used to create the actual "physical" execution plan.
  *
  * A Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
  * <pre>
@@ -62,8 +62,8 @@ import io.crate.planner.optimizer.costs.PlanStats;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}  is called
- * on the "root" and flows down.
+ * {@link #build(DependencyCarrier, PlannerContext, Set, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}
+ * is called on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
  *
@@ -126,7 +126,7 @@ public interface LogicalPlan extends Plan {
      *  This doesn't mean that the operator has to pull-down the scalar as well, but it means it has to provide all outputs
      *  that are required by the parent. The new pruned outputs should be in the same original order, to avoid errors
      *  regarding {@link Union} (which requires the order to be kept), or introduction of unnecessary {@link Eval} operators.
-     *  Using {@link io.crate.expression.symbol.SymbolVisitors#intersection(Symbol, Collection, Consumer)} is an option
+     *  Using {@link io.crate.expression.symbol.Symbols#intersection(Symbol, Collection, Consumer)} is an option
      *  To find the outputs required by the parent.
      * </p>
      *
@@ -226,7 +226,7 @@ public interface LogicalPlan extends Plan {
      *
      * @return RelationNames of the sources in order from left to right without duplicates
      */
-    List<RelationName> getRelationNames();
+    List<RelationName> relationNames();
 
     default void print(PrintContext printContext) {
         printContext

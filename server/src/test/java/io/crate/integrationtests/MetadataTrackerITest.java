@@ -28,15 +28,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
@@ -92,7 +97,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 "5| luke| 37",
                 "6| yoda| 900"
             );
-        });
+        }, 60, TimeUnit.SECONDS);
     }
 
     @Test
@@ -124,7 +129,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     "name"
                 );
             }
-        }, 30, TimeUnit.SECONDS);
+        }, 60, TimeUnit.SECONDS);
     }
 
     @Test

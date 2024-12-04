@@ -65,6 +65,7 @@ import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
+import io.crate.expression.scalar.postgres.PgTableIsVisibleFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
@@ -80,7 +81,7 @@ import io.crate.expression.scalar.string.ReverseFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.StringLeftRightFunction;
 import io.crate.expression.scalar.string.StringPaddingFunction;
-import io.crate.expression.scalar.string.StringPositionFucntion;
+import io.crate.expression.scalar.string.StringPositionFunction;
 import io.crate.expression.scalar.string.StringRepeatFunction;
 import io.crate.expression.scalar.string.StringSplitPartFunction;
 import io.crate.expression.scalar.string.TranslateFunction;
@@ -175,7 +176,7 @@ public class ScalarFunctions implements FunctionsProvider {
         TrimFunctions.register(builder);
         AsciiFunction.register(builder);
         EncodeDecodeFunction.register(builder);
-        StringPositionFucntion.register(builder);
+        StringPositionFunction.register(builder);
         StringRepeatFunction.register(builder);
         StringSplitPartFunction.register(builder);
         ChrFunction.register(builder);
@@ -209,6 +210,7 @@ public class ScalarFunctions implements FunctionsProvider {
         ArrayAvgFunction.register(builder);
         ArraySliceFunction.register(builder);
         ArrayPositionFunction.register(builder);
+        ArrayPrependFunction.register(builder);
         ArrayUnnestFunction.register(builder);
         ArraySetFunction.register(builder);
 
@@ -236,6 +238,7 @@ public class ScalarFunctions implements FunctionsProvider {
         ObjDescriptionFunction.register(builder);
         FormatTypeFunction.register(builder);
         PgFunctionIsVisibleFunction.register(builder);
+        PgTableIsVisibleFunction.register(builder);
         PgGetFunctionResultFunction.register(builder);
         PgPostmasterStartTime.register(builder);
         PgGetSerialSequenceFunction.register(builder);
@@ -244,9 +247,11 @@ public class ScalarFunctions implements FunctionsProvider {
 
         HasSchemaPrivilegeFunction.register(builder);
         HasDatabasePrivilegeFunction.register(builder);
+        HasTablePrivilegeFunction.register(builder);
         ParseURIFunction.register(builder);
         ParseURLFunction.register(builder);
 
         KnnMatch.register(builder);
+        VectorSimilarityFunction.register(builder);
     }
 }

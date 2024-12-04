@@ -24,14 +24,13 @@ package io.crate.execution.engine.collect;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
@@ -52,12 +51,10 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
 
 public abstract class ShardCollectorProvider {
 
-    protected final Schemas schemas;
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
@@ -66,7 +63,6 @@ public abstract class ShardCollectorProvider {
 
     ShardCollectorProvider(ClusterService clusterService,
                            CircuitBreakerService circuitBreakerService,
-                           Schemas schemas,
                            NodeLimits nodeJobsCounter,
                            NodeContext nodeCtx,
                            ThreadPool threadPool,
@@ -75,18 +71,16 @@ public abstract class ShardCollectorProvider {
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
-        this.schemas = schemas;
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.SHARD,
-            new ShardReferenceResolver(schemas, shardRowContext),
+            new ShardReferenceResolver(nodeCtx.schemas(), shardRowContext),
             null
         );
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -114,17 +108,16 @@ public abstract class ShardCollectorProvider {
             assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
                 "granularity must be DOC";
 
-            boolean isOpenIndex = indexShard.mapperService() != null;
-            RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
+            boolean isOpenIndex = !indexShard.isClosed();
             if (isOpenIndex) {
-                BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
+                BatchIterator<Row> fusedIterator = getProjectionFusedIterator(collectPhase, collectTask);
                 if (fusedIterator != null) {
                     return fusedIterator;
                 }
             }
             final BatchIterator<Row> iterator;
-            if (isOpenIndex && WhereClause.canMatch(normalizedCollectNode.where())) {
-                iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
+            if (isOpenIndex && WhereClause.canMatch(collectPhase.where())) {
+                iterator = getUnorderedIterator(collectPhase, requiresScroll, collectTask);
             } else {
                 iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
             }

@@ -21,9 +21,6 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-
-import io.crate.metadata.RelationName;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -46,6 +43,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.metadata.RelationName;
+
 /**
  * Restore snapshot request
  */
@@ -59,7 +58,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     @Deprecated
     private String[] templates = Strings.EMPTY_ARRAY;
-    private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpen();
+    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN;
     private String tableRenamePattern;
     private String tableRenameReplacement;
     private String schemaRenamePattern;
@@ -68,8 +67,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private boolean includeGlobalState = false;
     private boolean partial = false;
     private boolean includeAliases = true;
-    private Settings settings = EMPTY_SETTINGS;
-    private Settings indexSettings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
+    private Settings indexSettings = Settings.EMPTY;
     private String[] ignoreIndexSettings = Strings.EMPTY_ARRAY;
 
     private boolean includeIndices = true;

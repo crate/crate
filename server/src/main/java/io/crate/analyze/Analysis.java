@@ -21,16 +21,15 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.session.Cursors;
 
 public class Analysis {
 
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final ParamTypeHints paramTypeHints;
     private final Cursors cursors;
-
 
     public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
                     ParamTypeHints paramTypeHints,

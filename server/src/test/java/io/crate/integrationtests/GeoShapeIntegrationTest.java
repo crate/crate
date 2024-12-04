@@ -34,6 +34,9 @@ import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.JsonType;
 
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
@@ -81,8 +84,11 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
                 "{coordinates=[13.0, 52.4], type=Point}\n" +
                 "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n");
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(DataTypes.GEO_SHAPE),
+                x -> assertThat(x).isEqualTo(JsonType.INSTANCE)
+            );
             assertThat(response.rows()[0][0]).isInstanceOf(Map.class);
             assertThat(response.rows()[1][0]).isInstanceOf(Map.class);
         }
@@ -92,8 +98,12 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
                 "[{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}, " +
                 "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n");
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) new ArrayType(DataTypes.GEO_SHAPE)));
+
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE)),
+                x -> assertThat(x).isEqualTo(new ArrayType<>(JsonType.INSTANCE))
+            );
             assertThat(response.rows()[0][0]).isInstanceOf(List.class);
         }
     }
@@ -110,7 +120,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
                           "      distance_error_pct = 0.25,\n" +
-                          "      precision = '1.0m'\n" +
+                          "      precision = '1m'\n" +
                           "   )\n" +
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +
@@ -226,5 +236,46 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "-0.131835 51.534804, -0.131835 51.535017, -0.131492 51.535444, -0.129776 51.536512, " +
                 "-0.129089 51.536726))')");
         assertThat(response).hasRowCount(0);
+    }
+
+    @Test
+    public void test_geo_shape_can_be_used_as_generated_column() throws Exception {
+        execute("create table tbl (o object, geo as o::geo_shape)");
+        execute(
+            "insert into tbl (o) values (?)",
+            new Object[] { Map.of("coordinates", List.of(10, 20), "type", "point")}
+        );
+        execute("refresh table tbl");
+        assertThat(execute("select geo from tbl")).hasRows(
+            "{coordinates=[10, 20], type=point}"
+        );
+    }
+
+    @Test
+    public void test_polygon_can_be_used_as_generated_column() {
+        // Dynamic nested array is currently not supported, declaring coordinates array upfront.
+        execute("""
+            create table tbl
+            (
+                o object as (
+                    o1 object as (coordinates ARRAY(ARRAY(ARRAY(DOUBLE))), type string),
+                    geo as o['o1']::geo_shape
+               )
+            )
+            """
+        );
+        List<List<List<Double>>> coords = List.of(
+            List.of(List.of(0.0, 0.0), List.of(1.0, 0.0), List.of(1.0, 1.0), List.of(0.0, 0.0))
+        );
+        execute(
+            "insert into tbl (o) values (?)",
+            new Object[] {
+                Map.of("o1", Map.of("coordinates", coords, "type", "Polygon"))
+            }
+        );
+        execute("refresh table tbl");
+        assertThat(execute("select o['geo'] from tbl")).hasRows(
+            "{coordinates=[[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]], type=Polygon}"
+        );
     }
 }

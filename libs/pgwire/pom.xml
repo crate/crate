@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.8.0</version>
+    <version>5.10.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -41,11 +41,6 @@
       <groupId>org.antlr</groupId>
       <artifactId>antlr4-runtime</artifactId>
       <version>${versions.antlr}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.carrotsearch</groupId>
-      <artifactId>hppc</artifactId>
-      <version>${versions.hppc}</version>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>

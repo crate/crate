@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.cluster.settings;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Map;
@@ -32,8 +31,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -41,13 +38,10 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 /**
  * Request for an update cluster settings action
  */
-public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpdateSettingsRequest> implements ToXContentObject {
+public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpdateSettingsRequest> {
 
-    private static final ParseField PERSISTENT = new ParseField("persistent");
-    private static final ParseField TRANSIENT = new ParseField("transient");
-
-    private Settings transientSettings = EMPTY_SETTINGS;
-    private Settings persistentSettings = EMPTY_SETTINGS;
+    private Settings transientSettings = Settings.EMPTY;
+    private Settings persistentSettings = Settings.EMPTY;
 
     public ClusterUpdateSettingsRequest() {
     }
@@ -149,18 +143,5 @@ public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpd
         super.writeTo(out);
         writeSettingsToStream(out, transientSettings);
         writeSettingsToStream(out, persistentSettings);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.startObject(PERSISTENT.getPreferredName());
-        persistentSettings.toXContent(builder, params);
-        builder.endObject();
-        builder.startObject(TRANSIENT.getPreferredName());
-        transientSettings.toXContent(builder, params);
-        builder.endObject();
-        builder.endObject();
-        return builder;
     }
 }

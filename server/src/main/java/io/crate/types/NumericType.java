@@ -27,29 +27,29 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
     public static final int ID = 22;
+    public static final String NAME = "numeric";
     public static final NumericType INSTANCE = new NumericType(null, null); // unscaled
-
-    public static NumericType of(int precision) {
-        return new NumericType(precision, 0);
-    }
-
-    public static NumericType of(int precision, int scale) {
-        return new NumericType(precision, scale);
-    }
 
     public static DataType<?> of(List<Integer> parameters) {
         if (parameters.isEmpty() || parameters.size() > 2) {
@@ -59,9 +59,9 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             );
         }
         if (parameters.size() == 1) {
-            return of(parameters.get(0));
+            return new NumericType(parameters.get(0), 0);
         } else {
-            return of(parameters.get(0), parameters.get(1));
+            return new NumericType(parameters.get(0), parameters.get(1));
         }
     }
 
@@ -70,7 +70,23 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Nullable
     private final Integer precision;
 
-    private NumericType(@Nullable Integer precision, @Nullable Integer scale) {
+    public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
+        if (scale != null) {
+            if (precision == null) {
+                throw new IllegalArgumentException("If scale is set for NUMERIC, precision must be set too");
+            }
+            if (scale >= precision) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Scale of numeric must be less than the precision. NUMERIC(%d, %d) is unsupported.",
+                    precision,
+                    scale
+                ));
+            }
+            if (scale < 0) {
+                throw new IllegalArgumentException("Scale of NUMERIC must not be negative");
+            }
+        }
         this.precision = precision;
         this.scale = scale;
     }
@@ -92,7 +108,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
 
     @Override
     public String getName() {
-        return "numeric";
+        return NAME;
     }
 
     @Override
@@ -106,47 +122,74 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return null;
         }
 
-        var mathContext = mathContextOrDefault();
+        var mathContext = mathContext();
         BigDecimal bd;
-        if (value instanceof Long
-            || value instanceof Byte
-            || value instanceof Integer
-            || value instanceof Short) {
-            bd = new BigDecimal(
-                BigInteger.valueOf(((Number) value).longValue()),
-                mathContext
-            );
-        } else if (value instanceof String
-                   || value instanceof Float
-                   || value instanceof Double
-                   || value instanceof BigDecimal) {
-            bd = new BigDecimal(
-                value.toString(),
-                mathContext
-            );
+        if (value instanceof BigDecimal bigDecimal) {
+            bd = bigDecimal.round(mathContext);
+        } else if (value instanceof String || value instanceof Float || value instanceof Double) {
+            bd = new BigDecimal(value.toString(), mathContext);
+        } else if (value instanceof Number number) {
+            bd = new BigDecimal(BigInteger.valueOf(number.longValue()), mathContext);
         } else {
-            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+            throw new ClassCastException("Cannot cast '" + value + "' to " + getName());
         }
-        if (scale != null) {
-            bd = bd.setScale(scale, mathContext.getRoundingMode());
+        if (scale == null) {
+            return bd;
         }
-        return bd;
+        int sourceNumIntegralDigits = bd.precision() - bd.scale();
+        int targetNumIntegralDigits = precision - scale; // since scale != null, precision is also != null
+        if (sourceNumIntegralDigits - targetNumIntegralDigits > 0) {
+            throw new ClassCastException("Cannot cast '" + value + "' to " + this + " as it looses precision");
+        }
+        return bd.setScale(scale, mathContext.getRoundingMode());
     }
 
     @Override
     public BigDecimal sanitizeValue(Object value) {
         if (value == null) {
             return null;
+        }
+        if (value instanceof String str) {
+            MathContext mathContext = mathContext();
+            BigDecimal bigDecimal = new BigDecimal(str, mathContext);
+            return scale == null
+                ? bigDecimal
+                : bigDecimal.setScale(scale, mathContext.getRoundingMode());
+        }
+        // Can be long if the value comes from ScoreDoc/sort-field
+        // See NumericStorage+LuceneSort+OrderByCollectorExpression
+        if (value instanceof Long longValue) {
+            BigInteger bigInt = BigInteger.valueOf(longValue);
+            return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
+        }
+        return (BigDecimal) value;
+    }
+
+    @Override
+    DataType<?> merge(DataType<?> other) {
+        if (DataTypes.isNumeric(other)) { // if 'other' is a number type
+            return NumericType.INSTANCE;
         } else {
-            return (BigDecimal) value;
+            return super.merge(other);
         }
     }
 
     @Override
     public BigDecimal valueForInsert(BigDecimal value) {
-        throw new UnsupportedOperationException(
-            getName() + " type cannot be used in insert statements");
+        return value;
     }
+
+    @Override
+    public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        if (scale == null) {
+            if (precision == null) {
+                return new ColumnType<>(getName());
+            }
+            return new ColumnType<>(getName(), List.of(precision));
+        }
+        return new ColumnType<>(getName(), List.of(precision, scale));
+    }
+
 
     /**
      * Returns the size of {@link BigDecimal} in bytes
@@ -167,13 +210,12 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return precision;
     }
 
-    @VisibleForTesting
     @Nullable
-    Integer scale() {
+    public Integer scale() {
         return scale;
     }
 
-    private MathContext mathContextOrDefault() {
+    public MathContext mathContext() {
         if (precision == null) {
             return MathContext.UNLIMITED;
         } else {
@@ -221,10 +263,15 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             byte[] bytes = in.readByteArray();
+            int scale = this.scale == null ? 0 : this.scale;
+            if (in.getVersion().onOrAfter(Version.V_5_9_0) && in.readBoolean()) {
+                scale = in.readVInt();
+                assert this.scale == null || this.scale == scale : "streamed value scale differs from type scale";
+            }
             return new BigDecimal(
                 new BigInteger(bytes),
-                scale == null ? 0 : scale,
-                mathContextOrDefault()
+                scale,
+                mathContext()
             );
         } else {
             return null;
@@ -236,6 +283,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         if (v != null) {
             out.writeBoolean(true);
             out.writeByteArray(v.unscaledValue().toByteArray());
+            if (out.getVersion().onOrAfter(Version.V_5_9_0)) {
+                if (scale == null) {
+                    out.writeBoolean(true);
+                    out.writeVInt(v.scale());
+                } else {
+                    out.writeBoolean(false);
+                }
+            }
         } else {
             out.writeBoolean(false);
         }
@@ -277,13 +332,58 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
+    @Nullable
+    public StorageSupport<? super BigDecimal> storageSupport() {
+        return new NumericStorage(this);
+    }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        if (precision == null || scale == null) {
+            // Scale would be lost with the current encoding schemes used in NumericStorage
+            // The error is raised here to trigger this early on CREATE TABLE instead of
+            // INSERT INTO
+            throw new UnsupportedOperationException(
+                "NUMERIC storage is only supported if precision and scale are specified");
+        }
+        if (maxBytes() > PointValues.MAX_NUM_BYTES) {
+            throw new UnsupportedOperationException(
+                "Precision for NUMERIC(" + precision + ") is too large. Only up to 38 can be stored");
+        }
+        mapping.put("precision", precision);
+        mapping.put("scale", scale);
+    }
+
+    @Override
     public String toString() {
         if (getTypeParameters().isEmpty()) {
-            return super.toString();
+            return NAME;
         }
         if (scale == null) {
-            return "numeric(" + precision + ")";
+            return NAME + "(" + precision + ")";
         }
-        return "numeric(" + precision + "," + scale + ")";
+        return NAME + "(" + precision + "," + scale + ")";
+    }
+
+    public int maxBytes() {
+        if (precision == null) {
+            return Integer.MAX_VALUE;
+        } else {
+            return (new BigInteger("9".repeat(precision)).bitLength() / 8) + 1;
+        }
+    }
+
+    public BigInteger minValue() {
+        if (precision == null) {
+            throw new UnsupportedOperationException("Can't get min value for numeric type without precision");
+        }
+        return maxValue().negate();
+    }
+
+    public BigInteger maxValue() {
+        if (precision == null) {
+            throw new UnsupportedOperationException("Can't get max value for numeric type without precision");
+        }
+        return new BigInteger("9".repeat(precision));
     }
 }

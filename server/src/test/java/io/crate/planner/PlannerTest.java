@@ -39,7 +39,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Cursors;
+import io.crate.session.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnavailableShardsException;
@@ -103,7 +103,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            e.planStats()
+            e.planStats(),
+            (a,b) -> a
         );
 
         assertThat(plannerContext.nextExecutionPhaseId()).isEqualTo(0);
@@ -124,7 +125,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
                 plan,
                 mock(DependencyCarrier.class),
-                e.getPlannerContext(clusterService.state()),
+                e.getPlannerContext(),
                 new Row1("foo"),
                 SubQueryResults.EMPTY
             ))

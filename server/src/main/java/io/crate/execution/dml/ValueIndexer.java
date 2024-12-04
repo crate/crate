@@ -22,15 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
+import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
@@ -51,15 +49,26 @@ import io.crate.metadata.Reference;
 public interface ValueIndexer<T> {
 
     /**
+     * Represents values for columns generated from other input columns
+     */
+    interface Synthetics {
+
+        /**
+         * @return an Input object that returns generated values for a given column
+         */
+        Input<Object> get(ColumnIdent columnIdent);
+    }
+
+    /**
      * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
      */
     default void collectSchemaUpdates(@Nullable T value,
                                       Consumer<? super Reference> onDynamicColumn,
-                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {}
+                                      Synthetics synthetics) throws IOException {}
 
     /**
      * Update value indexer of inner columns.
-     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Map)
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Synthetics)
      * and added to the cluster state
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state
@@ -67,30 +76,10 @@ public interface ValueIndexer<T> {
     default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
 
     /**
-     * @param storageIdentLeafName is a key in the source.
-     * If it's NULL, writing key must be skipped.
-     * For example, for array of primitives,
-     * we need to write key only once and inner primitive indexer should be writing only values.
+     * Writes a value into an indexable document
      */
-    default void indexValue(
-        @Nullable T value,
-        @Nullable String storageIdentLeafName,
-        XContentBuilder xcontentBuilder,
-        Consumer<? super IndexableField> addField,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
-    ) throws IOException {
-        if (storageIdentLeafName != null) {
-            xcontentBuilder.field(storageIdentLeafName);
-        }
-        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
-    }
+    void indexValue(@NotNull T value, IndexDocumentBuilder docBuilder) throws IOException;
 
-    void indexValue(
-        @Nullable T value,
-        XContentBuilder xcontentBuilder,
-        Consumer<? super IndexableField> addField,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
-    ) throws IOException;
+    String storageIdentLeafName();
+
 }

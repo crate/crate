@@ -24,7 +24,6 @@ package io.crate.planner.optimizer.matcher;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
@@ -77,7 +76,7 @@ public class PatternTest {
         var pattern = typeOf(Filter.class).with(source(), typeOf(Filter.class)).capturedAs(capture);
         Match<Filter> match = pattern.accept(filter, Captures.empty());
         assertMatch(pattern, filter);
-        assertEquals(match.captures().get(capture), filter);
+        assertThat(filter).isEqualTo(match.captures().get(capture));
     }
 
     @Test
@@ -136,12 +135,12 @@ public class PatternTest {
 
     private <T> Match<T> assertMatch(Pattern<T> pattern, T expectedMatch) {
         Match<T> match = pattern.accept(expectedMatch, Captures.empty());
-        assertEquals(expectedMatch, match.value());
+        assertThat(match.value()).isEqualTo(expectedMatch);
         return match;
     }
 
     private <T> void assertNoMatch(Pattern<T> pattern, Object expectedNoMatch) {
         Match<T> match = pattern.accept(expectedNoMatch, Captures.empty());
-        assertEquals(Match.empty(), match);
+        assertThat(match).isEqualTo(Match.empty());
     }
 }

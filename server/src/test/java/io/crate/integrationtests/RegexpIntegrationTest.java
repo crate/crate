@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -33,7 +32,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class RegexpIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testRegexpReplaceIsNull() throws Exception {
@@ -47,11 +46,11 @@ public class RegexpIntegrationTest extends IntegTestCase {
             new Object[]{5, "foo"},
             new Object[]{6, null}
         });
-        refresh();
+        execute("refresh table regex_test");
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is not null");
-        assertThat(response.rowCount(), is(5L));
+        assertThat(response.rowCount()).isEqualTo(5L);
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is null");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -61,7 +60,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
         execute("insert into phone (phone) values (?)", new Object[][]{
             new Object[]{"+1234567890"}
         });
-        refresh();
+        execute("refresh table phone");
         Asserts.assertSQLError(() -> execute("select * from phone where phone ~* '+1234567890'"))
                 .hasPGError(PGErrorStatus.INTERNAL_ERROR)
                 .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
@@ -85,25 +84,25 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorFast() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
         execute("select distinct name from locations where name ~ '[A-Z][a-z0-9]+' order by name");
-        assertThat(response.rowCount(), is(5L));
-        assertThat((String) response.rows()[0][0], is("Aldebaran"));
-        assertThat((String) response.rows()[1][0], is("Algol"));
-        assertThat((String) response.rows()[2][0], is("Altair"));
-        assertThat((String) response.rows()[3][0], is("Argabuthon"));
-        assertThat((String) response.rows()[4][0], is("Bartledan"));
+        assertThat(response.rowCount()).isEqualTo(5L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Aldebaran");
+        assertThat((String) response.rows()[1][0]).isEqualTo("Algol");
+        assertThat((String) response.rows()[2][0]).isEqualTo("Altair");
+        assertThat((String) response.rows()[3][0]).isEqualTo("Argabuthon");
+        assertThat((String) response.rows()[4][0]).isEqualTo("Bartledan");
 
         execute("select name from locations where name !~ '[A-Z][a-z0-9]+' order by name");
-        assertThat(response.rowCount(), is(8L));
-        assertThat((String) response.rows()[0][0], is(""));
-        assertThat((String) response.rows()[1][0], is("Allosimanius Syneca"));
-        assertThat((String) response.rows()[2][0], is("Alpha Centauri"));
-        assertThat((String) response.rows()[3][0], is("Arkintoofle Minor"));
-        assertThat((String) response.rows()[4][0], is("End of the Galaxy"));
-        assertThat((String) response.rows()[5][0], is("Galactic Sector QQ7 Active J Gamma"));
-        assertThat((String) response.rows()[6][0], is("North West Ripple"));
-        assertThat((String) response.rows()[7][0], is("Outer Eastern Rim"));
+        assertThat(response.rowCount()).isEqualTo(8L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("");
+        assertThat((String) response.rows()[1][0]).isEqualTo("Allosimanius Syneca");
+        assertThat((String) response.rows()[2][0]).isEqualTo("Alpha Centauri");
+        assertThat((String) response.rows()[3][0]).isEqualTo("Arkintoofle Minor");
+        assertThat((String) response.rows()[4][0]).isEqualTo("End of the Galaxy");
+        assertThat((String) response.rows()[5][0]).isEqualTo("Galactic Sector QQ7 Active J Gamma");
+        assertThat((String) response.rows()[6][0]).isEqualTo("North West Ripple");
+        assertThat((String) response.rows()[7][0]).isEqualTo("Outer Eastern Rim");
     }
 
     /**
@@ -120,15 +119,15 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithCaseInsensitivity() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
         execute("select distinct name from locations where name ~* 'aldebaran'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Aldebaran"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Aldebaran");
 
         execute("select distinct name from locations where name !~* 'aldebaran|algol|altair' and name != '' order by name");
-        assertThat(response.rowCount(), is(9L));
-        assertThat((String) response.rows()[0][0], is("Allosimanius Syneca"));
-        assertThat((String) response.rows()[1][0], is("Alpha Centauri"));
+        assertThat(response.rowCount()).isEqualTo(9L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Allosimanius Syneca");
+        assertThat((String) response.rows()[1][0]).isEqualTo("Alpha Centauri");
 
     }
 
@@ -149,30 +148,30 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcre() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         // character class shortcut aliases
         execute("select distinct name from locations where name ~ 'Alpha\\sCentauri'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Alpha Centauri");
 
         // word boundaries: positive
         execute("select distinct name from locations where name ~ '.*\\bCentauri\\b.*'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Alpha Centauri");
 
         // word boundaries: negative
         execute("select distinct name from locations where name ~ '.*\\bauri\\b.*'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         // embedded flag expressions
         execute("select distinct name from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("Alpha Centauri"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("Alpha Centauri");
 
         execute("select count(name) from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
 
     }
 
@@ -186,11 +185,11 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
         this.setup.setUpLocations();
         ensureYellow();
-        refresh();
+        execute("refresh table locations");
 
         execute("select count(*) from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
 
     }
 
@@ -204,10 +203,10 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("delete from locations where name ~ '(?i).*centauri.*'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     /**
@@ -217,22 +216,22 @@ public class RegexpIntegrationTest extends IntegTestCase {
     public void testRegexpMatchQueryOperatorOnSysShards() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("select table_name, * from sys.shards where table_name ~ '(?i)LOCATIONS' order by table_name");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("locations"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("locations");
     }
 
     @Test
     public void testRegexpMatchQueryOperatorWithCaseInsensitivityOnSysShards() throws Exception {
         this.setup.setUpLocations();
         ensureGreen();
-        refresh();
+        execute("refresh table locations");
 
         execute("select table_name, * from sys.shards where table_name ~* 'LOCATIONS' order by table_name");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("locations"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("locations");
     }
 
 }

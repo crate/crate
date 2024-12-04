@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -42,11 +43,11 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.RetryPolicy;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.types.DataTypes;
 
@@ -67,6 +68,9 @@ public class AzureRepository extends BlobStoreRepository {
     public static final String TYPE = "azure";
 
     public static final class Repository {
+
+        static final Setting<SecureString> SAS_TOKEN_SETTING = Setting.maskedString("sas_token");
+
         static final Setting<SecureString> ACCOUNT_SETTING = Setting.maskedString("account");
 
         static final Setting<SecureString> KEY_SETTING = Setting.maskedString("key");
@@ -147,34 +151,37 @@ public class AzureRepository extends BlobStoreRepository {
 
     public static List<Setting<?>> optionalSettings() {
         return List.of(Repository.CONTAINER_SETTING,
-                       Repository.BASE_PATH_SETTING,
-                       Repository.CHUNK_SIZE_SETTING,
-                       Repository.READONLY_SETTING,
-                       Repository.LOCATION_MODE_SETTING,
-                       COMPRESS_SETTING,
-                       // client specific repository settings
-                       Repository.MAX_RETRIES_SETTING,
-                       Repository.ENDPOINT_SETTING,
-                       Repository.SECONDARY_ENDPOINT_SETTING,
-                       Repository.ENDPOINT_SUFFIX_SETTING,
-                       Repository.TIMEOUT_SETTING,
-                       Repository.PROXY_TYPE_SETTING,
-                       Repository.PROXY_HOST_SETTING,
-                       Repository.PROXY_PORT_SETTING);
+            Repository.BASE_PATH_SETTING,
+            Repository.CHUNK_SIZE_SETTING,
+            Repository.READONLY_SETTING,
+            Repository.LOCATION_MODE_SETTING,
+            COMPRESS_SETTING,
+            // client specific repository settings
+            Repository.MAX_RETRIES_SETTING,
+            Repository.ENDPOINT_SETTING,
+            Repository.SECONDARY_ENDPOINT_SETTING,
+            Repository.ENDPOINT_SUFFIX_SETTING,
+            Repository.TIMEOUT_SETTING,
+            Repository.PROXY_TYPE_SETTING,
+            Repository.PROXY_HOST_SETTING,
+            Repository.PROXY_PORT_SETTING,
+            Repository.KEY_SETTING,
+            Repository.SAS_TOKEN_SETTING);
     }
 
     public static List<Setting<?>> mandatorySettings() {
-        return List.of(Repository.ACCOUNT_SETTING, Repository.KEY_SETTING);
+        return List.of(Repository.ACCOUNT_SETTING);
     }
 
     private final ByteSizeValue chunkSize;
     private final boolean readonly;
 
     public AzureRepository(RepositoryMetadata metadata,
+                           NamedWriteableRegistry namedWriteableRegistry,
                            NamedXContentRegistry namedXContentRegistry,
                            ClusterService clusterService,
                            RecoverySettings recoverySettings) {
-        super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
+        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
 
         // If the user explicitly did not define a readonly value, we set it by ourselves depending on the location mode setting.

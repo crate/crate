@@ -42,9 +42,8 @@ public class DropRepository extends Statement {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return name.equals(((DropRepository) obj).name);
+        return obj instanceof DropRepository that
+            && name.equals(that.name);
     }
 
     @Override

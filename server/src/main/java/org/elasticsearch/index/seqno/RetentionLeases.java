@@ -33,8 +33,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
@@ -43,7 +41,7 @@ import org.elasticsearch.gateway.MetadataStateFormat;
  * Represents a versioned collection of retention leases. We version the collection of retention leases to ensure that sync requests that
  * arrive out of order on the replica, using the version to ensure that older sync requests are rejected.
  */
-public class RetentionLeases implements ToXContentFragment, Writeable {
+public class RetentionLeases implements Writeable {
 
     private final long primaryTerm;
 
@@ -197,20 +195,6 @@ public class RetentionLeases implements ToXContentFragment, Writeable {
         );
     }
 
-    @Override
-    public XContentBuilder toXContent(final XContentBuilder builder, final Params params) throws IOException {
-        builder.field(PRIMARY_TERM_FIELD.getPreferredName(), primaryTerm);
-        builder.field(VERSION_FIELD.getPreferredName(), version);
-        builder.startArray(LEASES_FIELD.getPreferredName());
-        {
-            for (final RetentionLease retentionLease : leases.values()) {
-                retentionLease.toXContent(builder, params);
-            }
-        }
-        builder.endArray();
-        return builder;
-    }
-
     /**
      * Parses a retention leases collection from {@link org.elasticsearch.common.xcontent.XContent}. This method assumes that the retention
      * leases were converted to {@link org.elasticsearch.common.xcontent.XContent} via {@link #toXContent(XContentBuilder, Params)}.
@@ -225,15 +209,14 @@ public class RetentionLeases implements ToXContentFragment, Writeable {
     static final MetadataStateFormat<RetentionLeases> FORMAT = new MetadataStateFormat<>("retention-leases-") {
 
         @Override
-        public void toXContent(final XContentBuilder builder, final RetentionLeases retentionLeases) throws IOException {
-            retentionLeases.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        }
-
-        @Override
         public RetentionLeases fromXContent(final XContentParser parser) {
             return RetentionLeases.fromXContent(parser);
         }
 
+        @Override
+        public RetentionLeases readFrom(StreamInput in) throws IOException {
+            return new RetentionLeases(in);
+        }
     };
 
     @Override

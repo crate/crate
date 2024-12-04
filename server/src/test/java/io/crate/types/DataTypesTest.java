@@ -32,6 +32,8 @@ import java.util.Objects;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
+
 public class DataTypesTest extends ESTestCase {
 
     @Test
@@ -176,26 +178,26 @@ public class DataTypesTest extends ESTestCase {
 
     @Test
     public void test_is_same_type_on_primitive_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING)).isEqualTo(true);
-        assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING)).isTrue();
+        assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_complex_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY)).isEqualTo(false);
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY)).isFalse();
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_primitive_and_complex_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING)).isEqualTo(false);
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING)).isFalse();
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_array_types_of_the_same_dimension() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY)).isEqualTo(true);
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY)).isTrue();
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY)).isFalse();
     }
 
     @Test
@@ -265,18 +267,18 @@ public class DataTypesTest extends ESTestCase {
     public void test_merge_method_with_object_types() {
         assertThat(
             DataTypes.merge(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("x", DataTypes.INTEGER)
                     .setInnerType("y", DataTypes.STRING)
                     .setInnerType("z", DataTypes.CHARACTER)
                     .build(),
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("w", DataTypes.SHORT)
                     .setInnerType("x", DataTypes.STRING)
                     .setInnerType("y", DataTypes.INTEGER)
                     .build()))
             .isEqualTo(
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("w", DataTypes.SHORT)
                     .setInnerType("x", DataTypes.INTEGER)
                     .setInnerType("y", DataTypes.INTEGER)
@@ -286,8 +288,8 @@ public class DataTypesTest extends ESTestCase {
 
         assertThatThrownBy(
             () -> DataTypes.merge(
-                ObjectType.builder().setInnerType("a", DataTypes.INTEGER_ARRAY).build(),
-                ObjectType.builder().setInnerType("a", DataTypes.DATE).build()))
+                ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER_ARRAY).build(),
+                ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.DATE).build()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("'date' is not convertible to 'integer_array'");
     }
@@ -305,28 +307,28 @@ public class DataTypesTest extends ESTestCase {
         assertThat(
             DataTypes.merge(
                 // left type
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("a", DataTypes.INTEGER_ARRAY)
                     .setInnerType("b", DataTypes.STRING_ARRAY)
                     .setInnerType("c",
                                   new ArrayType<>(
-                                      ObjectType.builder()
+                                      ObjectType.of(ColumnPolicy.DYNAMIC)
                                           .setInnerType("h", DataTypes.INTEGER)
                                           .setInnerType("j",
-                                                        ObjectType.builder()
+                                                        ObjectType.of(ColumnPolicy.DYNAMIC)
                                                             .setInnerType("k", DataTypes.STRING).build())
                                           .build())
                     ).build(),
                 // right type
-                ObjectType.builder()
+                ObjectType.of(ColumnPolicy.DYNAMIC)
                     .setInnerType("a", DataTypes.STRING_ARRAY)
                     .setInnerType("b", DataTypes.INTEGER_ARRAY)
                     .setInnerType("c",
                                   new ArrayType<>(
-                                      ObjectType.builder()
+                                      ObjectType.of(ColumnPolicy.DYNAMIC)
                                           .setInnerType("h", DataTypes.STRING)
                                           .setInnerType("j",
-                                                        ObjectType.builder()
+                                                        ObjectType.of(ColumnPolicy.DYNAMIC)
                                                             .setInnerType("k", DataTypes.INTEGER)
                                                             .setInnerType("l", DataTypes.INTEGER).build())
                                           .build())
@@ -334,15 +336,15 @@ public class DataTypesTest extends ESTestCase {
                 )
         ).isEqualTo(
             // merged type
-            ObjectType.builder()
+            ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("a", DataTypes.INTEGER_ARRAY)
                 .setInnerType("b", DataTypes.INTEGER_ARRAY)
                 .setInnerType("c",
                               new ArrayType<>(
-                                  ObjectType.builder()
+                                  ObjectType.of(ColumnPolicy.DYNAMIC)
                                       .setInnerType("h", DataTypes.INTEGER)
                                       .setInnerType("j",
-                                                    ObjectType.builder()
+                                                    ObjectType.of(ColumnPolicy.DYNAMIC)
                                                         .setInnerType("k", DataTypes.INTEGER)
                                                         .setInnerType("l", DataTypes.INTEGER).build())
                                       .build())

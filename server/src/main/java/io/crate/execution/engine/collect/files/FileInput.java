@@ -26,7 +26,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 
-public interface FileInput {
+public interface FileInput extends AutoCloseable {
 
     /**
      * this method returns all files that are found within fileUri
@@ -43,4 +43,9 @@ public interface FileInput {
     URI uri();
 
     boolean sharedStorageDefault();
+
+    @Override
+    default void close() {
+        // No-op, implement if FileInput implementation has resources to free.
+    }
 }

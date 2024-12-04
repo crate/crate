@@ -19,6 +19,10 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Objects;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -33,14 +37,9 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-
-import java.io.IOException;
-import java.util.Locale;
-import java.util.Objects;
 
 /**
  * A command that cancels relocation, or recovery of a given shard on a node.
@@ -160,16 +159,6 @@ public class CancelAllocationCommand implements AllocationCommand {
         allocation.removeAllocationId(shardRouting);
         return new RerouteExplanation(this, allocation.decision(Decision.YES, "cancel_allocation_command",
                 "shard " + shardId + " on node " + discoNode + " can be cancelled"));
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("index", index());
-        builder.field("shard", shardId());
-        builder.field("node", node());
-        builder.field("allow_primary", allowPrimary());
-        return builder.endObject();
     }
 
     public static CancelAllocationCommand fromXContent(XContentParser parser) throws IOException {

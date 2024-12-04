@@ -29,7 +29,8 @@ import java.util.function.UnaryOperator;
 
 import io.crate.common.Hex;
 import io.crate.common.Octal;
-import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.expression.scalar.BinaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -39,33 +40,33 @@ public class EncodeDecodeFunction {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                "encode",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("encode", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
-                        new Encode(),
-                        signature,
-                        boundSignature,
-                        DataTypes.STRING
+                    new Encode(),
+                    signature,
+                    boundSignature,
+                    DataTypes.STRING
                 )
         );
         module.add(
-            Signature.scalar(
-                "decode",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("decode", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
-                        new Decode(),
-                        signature,
-                        boundSignature,
-                        DataTypes.STRING
+                    new Decode(),
+                    signature,
+                    boundSignature,
+                    DataTypes.STRING
                 )
         );
     }

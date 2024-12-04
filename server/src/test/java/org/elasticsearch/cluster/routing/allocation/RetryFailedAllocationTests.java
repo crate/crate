@@ -19,11 +19,7 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -94,8 +90,10 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
             clusterState = strategy.applyFailedShards(clusterState, failedShards, List.of());
             clusterState = strategy.reroute(clusterState, "allocation retry attempt-" + i);
         }
-        assertThat("replica should not be assigned", getReplica().state(), equalTo(ShardRoutingState.UNASSIGNED));
-        assertThat("reroute should be a no-op", strategy.reroute(clusterState, "test"), sameInstance(clusterState));
+        assertThat(getReplica().state()).as("replica should not be assigned").isEqualTo(ShardRoutingState.UNASSIGNED);
+        assertThat(strategy.reroute(clusterState, "test"))
+            .as("reroute should be a no-op")
+            .isSameAs(clusterState);
 
         // Now allocate replica with retry_failed flag set
         AllocationService.CommandsResult result = strategy.reroute(clusterState,
@@ -104,9 +102,9 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
             false, true);
         clusterState = result.getClusterState();
 
-        assertEquals(ShardRoutingState.INITIALIZING, getReplica().state());
+        assertThat(getReplica().state()).isEqualTo(ShardRoutingState.INITIALIZING);
         clusterState = startShardsAndReroute(strategy, clusterState, getReplica());
-        assertEquals(ShardRoutingState.STARTED, getReplica().state());
-        assertFalse(clusterState.getRoutingNodes().hasUnassignedShards());
+        assertThat(getReplica().state()).isEqualTo(ShardRoutingState.STARTED);
+        assertThat(clusterState.getRoutingNodes().hasUnassignedShards()).isFalse();
     }
 }

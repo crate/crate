@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,27 +114,6 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
      *     <li>value of "tables" contains a list of all tables which are part of this publication</li>
      * </ul>
      */
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(TYPE);
-        for (var entry : publicationByName.entrySet()) {
-            var publication = entry.getValue();
-            builder.startObject(entry.getKey());
-            {
-                builder.field("owner", publication.owner());
-                builder.field("forAllTables", publication.isForAllTables());
-                builder.startArray("tables");
-                for (var table : publication.tables()) {
-                    builder.value(table.indexNameOrAlias());
-                }
-                builder.endArray();
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
     public static PublicationsMetadata fromXContent(XContentParser parser) throws IOException {
         Map<String, Publication> publications = new HashMap<>();
 

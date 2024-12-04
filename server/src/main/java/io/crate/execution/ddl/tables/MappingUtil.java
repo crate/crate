@@ -25,7 +25,6 @@ import static io.crate.metadata.Reference.buildTree;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -44,6 +44,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 public final class MappingUtil {
@@ -94,7 +95,7 @@ public final class MappingUtil {
     }
 
     /**
-     * This is a singe entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
+     * This is a single entry point to creating mapping: adding a column(s), create a table, create a partitioned table (template).
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
      *
@@ -104,9 +105,9 @@ public final class MappingUtil {
                                                     List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
-                                                    List<List<String>> partitionedBy,
+                                                    List<ColumnIdent> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
-                                                    @Nullable String routingColumn) {
+                                                    @Nullable ColumnIdent routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
         Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
@@ -119,7 +120,7 @@ public final class MappingUtil {
         }
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
-            meta.put("routing", routingColumn);
+            meta.put("routing", routingColumn.fqn());
         }
 
         if (tableColumnPolicy != null) {
@@ -136,7 +137,12 @@ public final class MappingUtil {
             meta.put("indices", indices);
         }
         if (partitionedBy.isEmpty() == false) {
-            meta.put("partitioned_by", partitionedBy);
+            List<List<String>> pColumns = Lists.map(partitionedBy, pColumn -> {
+                int refIdx = Reference.indexOf(columns, pColumn);
+                Reference pRef = columns.get(refIdx);
+                return toPartitionMapping(pRef);
+            });
+            meta.put("partitioned_by", pColumns);
         }
 
         mapping.put("_meta", meta);
@@ -145,6 +151,11 @@ public final class MappingUtil {
         return mapping;
     }
 
+    private static List<String> toPartitionMapping(Reference ref) {
+        String fqn = ref.column().fqn();
+        String typeMappingName = DataTypes.esMappingNameFrom(ref.valueType().id());
+        return List.of(fqn, typeMappingName);
+    }
 
     /**
      * Creates the "properties" part of a mapping.
@@ -211,18 +222,19 @@ public final class MappingUtil {
             valueType = arrayType.innerType();
             properties = arrayMapping;
         }
-        if (valueType.id() == ObjectType.ID) {
-            objectMapping(position, leafProperties, reference, tree);
+        if (valueType instanceof ObjectType objectType) {
+            objectMapping(position, leafProperties, objectType, reference.column(), tree);
         }
         return properties;
     }
 
     private static void objectMapping(AllocPosition position,
                                       Map<String, Object> propertiesMap,
-                                      Reference reference,
+                                      ObjectType objectType,
+                                      ColumnIdent columnIdent,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put(ColumnPolicy.MAPPING_KEY, reference.columnPolicy().toMappingValue());
-        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
+        propertiesMap.put(ColumnPolicy.MAPPING_KEY, (objectType.columnPolicy().toMappingValue()));
+        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, columnIdent, tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }
@@ -249,6 +261,7 @@ public final class MappingUtil {
         }
 
         // PK
+        List<ColumnIdent> pkColumns = new ArrayList<>();
         if (pKeyIndices.isEmpty() == false) {
             List<String> primaryKeys = (List<String>) meta.get("primary_keys");
             if (primaryKeys == null) {
@@ -256,12 +269,21 @@ public final class MappingUtil {
                 meta.put("primary_keys", primaryKeys);
             }
             for (int i = 0; i < pKeyIndices.size(); i ++) {
-                primaryKeys.add(references.get(pKeyIndices.get(i)).column().fqn());
+                Reference pkRef = references.get(pKeyIndices.get(i));
+                pkColumns.add(pkRef.column());
+                primaryKeys.add(pkRef.column().fqn());
             }
         }
 
         // Not nulls
-        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).toList();
+        ArrayList<String> newNotNulls = new ArrayList<>();
+        for (int i = 0; i < references.size(); i++) {
+            Reference ref = references.get(i);
+            // primary keys are implicitly null and not explicitly stored within not null constraints
+            if (!ref.isNullable() && !pkColumns.contains(ref.column())) {
+                newNotNulls.add(ref.column().fqn());
+            }
+        }
         if (newNotNulls.isEmpty() == false) {
             Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
             List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
@@ -276,7 +298,7 @@ public final class MappingUtil {
 
         // Generated expressions
         List<GeneratedReference> newGenExpressions = references.stream()
-            .filter(ref -> ref instanceof GeneratedReference)
+            .filter(ref -> ref instanceof GeneratedReference && !ref.isDropped())
             .map(ref -> (GeneratedReference) ref)
             .toList();
         if (newGenExpressions.isEmpty() == false) {
@@ -289,25 +311,5 @@ public final class MappingUtil {
                 generatedColumns.put(genRef.column().fqn(), genRef.formattedGeneratedExpression());
             }
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static boolean removeConstraints(Map<String, Object> currentSource, Collection<String> constraintNames) {
-        if (constraintNames.isEmpty()) {
-            return false;
-        }
-        Map<String, Object> meta = (Map<String, Object>) currentSource.get("_meta");
-        if (meta == null) {
-            return false;
-        }
-        Map<String, String> checkConstraints = (Map<String, String>) meta.get("check_constraints");
-        if (checkConstraints == null) {
-            return false;
-        }
-        boolean removed = false;
-        for (String constraintName : constraintNames) {
-            removed |= checkConstraints.remove(constraintName) != null;
-        }
-        return removed;
     }
 }

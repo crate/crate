@@ -22,11 +22,13 @@
 package io.crate.analyze;
 
 
-import org.elasticsearch.common.settings.Setting;
-
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Setting;
+
 public final class SnapshotSettings {
+
+    private SnapshotSettings() {}
 
     public static final Setting<Boolean> IGNORE_UNAVAILABLE = Setting.boolSetting("ignore_unavailable", false);
 
@@ -48,7 +50,4 @@ public final class SnapshotSettings {
         TABLE_RENAME_PATTERN.getKey(), TABLE_RENAME_PATTERN,
         TABLE_RENAME_REPLACEMENT.getKey(), TABLE_RENAME_REPLACEMENT
     );
-
-    private SnapshotSettings() {
-    }
 }

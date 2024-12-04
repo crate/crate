@@ -27,10 +27,10 @@ import java.util.List;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -42,10 +42,14 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     public static final List<? extends Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
 
-    private static final String BULK_SIZE = "bulk_size";
-
-    @VisibleForTesting
-    public static final int BULK_SIZE_DEFAULT = 10000;
+    // Insert-from-values and insert-from query always use default value.
+    // This setting is exposed for users only in COPY FROM WITH clause.
+    public static final Setting<Integer> BULK_SIZE_SETTING = Setting.intSetting(
+        "bulk_size",
+        10000,
+        1,
+        Setting.Property.Dynamic
+    );
 
     private final int bulkActions;
     protected RelationName relationName;
@@ -78,7 +82,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         this.autoCreateIndices = autoCreateIndices;
         this.idSymbols = idSymbols;
 
-        this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
+        this.bulkActions = BULK_SIZE_SETTING.get(settings);
         if (bulkActions <= 0) {
             throw new IllegalArgumentException("\"bulk_size\" must be greater than 0.");
         }
@@ -88,22 +92,18 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         relationName = new RelationName(in);
 
         partitionIdent = in.readOptionalString();
-        idSymbols = Symbols.listFromStream(in);
+        idSymbols = Symbols.fromStream(in);
 
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
         for (int i = 0; i < numPks; i++) {
-            primaryKeys.add(new ColumnIdent(in));
+            primaryKeys.add(ColumnIdent.of(in));
         }
 
-        partitionedBySymbols = Symbols.listFromStream(in);
+        partitionedBySymbols = Symbols.fromStream(in);
+        clusteredBySymbol = Symbol.nullableFromStream(in);
         if (in.readBoolean()) {
-            clusteredBySymbol = Symbols.fromStream(in);
-        } else {
-            clusteredBySymbol = null;
-        }
-        if (in.readBoolean()) {
-            clusteredByColumn = new ColumnIdent(in);
+            clusteredByColumn = ColumnIdent.of(in);
         }
         bulkActions = in.readVInt();
         autoCreateIndices = in.readBoolean();
@@ -206,12 +206,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKey.writeTo(out);
         }
         Symbols.toStream(partitionedBySymbols, out);
-        if (clusteredBySymbol == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(clusteredBySymbol, out);
-        }
+        Symbol.nullableToStream(clusteredBySymbol, out);
 
         if (clusteredByColumn == null) {
             out.writeBoolean(false);

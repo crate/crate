@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +55,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
         assertBusy(() -> {
             TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
-            assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1")), is(5L));
+            assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1"))).isEqualTo(5L);
             // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
             // to run this test.

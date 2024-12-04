@@ -34,13 +34,11 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import io.crate.common.SuppressForbidden;
 
-public class Version implements Comparable<Version>, ToXContentFragment {
+public class Version implements Comparable<Version> {
     /*
      * The logic for ID is: XXYYZZAA, where XX is major version, YY is minor version, ZZ is revision, and AA is alpha/beta/rc indicator AA
      * values below 25 are for alpha builder (since 5.0), and above 25 and below 50 are beta builds, and below 99 are RC builds, with 99
@@ -195,11 +193,31 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_5_6_2 = new Version(8_06_02_99, false, org.apache.lucene.util.Version.LUCENE_9_9_1);
     public static final Version V_5_6_3 = new Version(8_06_03_99, false, org.apache.lucene.util.Version.LUCENE_9_9_1);
     public static final Version V_5_6_4 = new Version(8_06_04_99, false, org.apache.lucene.util.Version.LUCENE_9_9_1);
+    public static final Version V_5_6_5 = new Version(8_06_05_99, false, org.apache.lucene.util.Version.LUCENE_9_9_1);
 
     public static final Version V_5_7_0 = new Version(8_07_00_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
-    public static final Version V_5_8_0 = new Version(8_08_00_99, true, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_1 = new Version(8_07_01_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_2 = new Version(8_07_02_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_3 = new Version(8_07_03_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_4 = new Version(8_07_04_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_5 = new Version(8_07_05_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
 
-    public static final Version CURRENT = V_5_8_0;
+    public static final Version V_5_8_0 = new Version(8_08_00_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_1 = new Version(8_08_01_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_2 = new Version(8_08_02_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_3 = new Version(8_08_03_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_4 = new Version(8_08_04_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_5 = new Version(8_08_05_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+
+    public static final Version V_5_9_0 = new Version(8_09_00_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_9_1 = new Version(8_09_01_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_9_2 = new Version(8_09_02_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_9_3 = new Version(8_09_03_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_9_4 = new Version(8_09_04_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+
+    public static final Version V_5_10_0 = new Version(8_10_00_99, true, org.apache.lucene.util.Version.LUCENE_9_12_0);
+
+    public static final Version CURRENT = V_5_10_0;
 
     private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
     private static final ImmutableOpenMap<String, Version> STRING_TO_VERSION;
@@ -460,11 +478,6 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     @Override
     public int compareTo(Version other) {
         return Integer.compare(this.internalId, other.internalId);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder.value(toString());
     }
 
     /*

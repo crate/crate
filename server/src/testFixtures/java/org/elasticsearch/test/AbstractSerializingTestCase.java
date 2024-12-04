@@ -19,34 +19,14 @@
 
 package org.elasticsearch.test;
 
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.function.Predicate;
 
-public abstract class AbstractSerializingTestCase<T extends ToXContent & Writeable> extends AbstractWireSerializingTestCase<T> {
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.XContentParser;
 
-    /**
-     * Generic test that creates new instance from the test instance and checks
-     * both for equality and asserts equality on the two instances.
-     */
-    public final void testFromXContent() throws IOException {
-        AbstractXContentTestCase.testFromXContent(
-                NUMBER_OF_TEST_RUNS,
-                this::createTestInstance,
-                supportsUnknownFields(),
-                getShuffleFieldsExceptions(),
-                getRandomFieldsExcludeFilter(),
-                this::createParser,
-                this::doParseInstance,
-                this::assertEqualInstances,
-                assertToXContentEquivalence(),
-                getToXContentParams());
-    }
+public abstract class AbstractSerializingTestCase<T extends Writeable> extends AbstractWireSerializingTestCase<T> {
 
     /**
      * Parses to a new instance using the provided {@link XContentParser}
@@ -74,22 +54,4 @@ public abstract class AbstractSerializingTestCase<T extends ToXContent & Writeab
     protected String[] getShuffleFieldsExceptions() {
         return Strings.EMPTY_ARRAY;
     }
-
-    /**
-     * Params that have to be provided when calling calling {@link ToXContent#toXContent(XContentBuilder, ToXContent.Params)}
-     */
-    protected ToXContent.Params getToXContentParams() {
-        return ToXContent.EMPTY_PARAMS;
-    }
-
-    /**
-     * Whether or not to assert equivalence of the {@link org.elasticsearch.common.xcontent.XContent} of the test instance and the instance
-     * parsed from the {@link org.elasticsearch.common.xcontent.XContent} of the test instance.
-     *
-     * @return true if equivalence should be asserted, otherwise false
-     */
-    protected boolean assertToXContentEquivalence() {
-        return true;
-    }
-
 }

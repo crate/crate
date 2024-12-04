@@ -29,11 +29,10 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
@@ -44,12 +43,10 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
     public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
         (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
 
     @Inject
     public TransportRenameColumnAction(TransportService transportService,
                                        ClusterService clusterService,
-                                       IndicesService indicesService,
                                        ThreadPool threadPool,
                                        NodeContext nodeContext) {
         super(RenameColumnAction.NAME,
@@ -61,18 +58,11 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
             AcknowledgedResponse::new,
             "rename-column");
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
-
     }
 
     @Override
     public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
-        return new AlterTableTask<>(
-            nodeContext,
-            indicesService::createIndexMapperService,
-            request.relationName(),
-            RENAME_COLUMN_OPERATOR
-        );
+        return new AlterTableTask<>(nodeContext, request.relationName(), RENAME_COLUMN_OPERATOR);
     }
 
 

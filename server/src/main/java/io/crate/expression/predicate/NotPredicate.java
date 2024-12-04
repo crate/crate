@@ -22,6 +22,7 @@
 package io.crate.expression.predicate;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.search.BooleanClause;
@@ -31,15 +32,18 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Input;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -47,17 +51,17 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
-    public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature())
-        .withFeature(Feature.NULLABLE);
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, NotPredicate::new);
@@ -148,6 +152,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 var b = function.arguments().get(1);
                 if (a instanceof Reference ref && b instanceof Literal<?>) {
                     if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
+                        context.enforceThreeValuedLogic = true;
                         return null;
                     }
                 }
@@ -156,9 +161,9 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 return null;
             } else {
                 var signature = function.signature();
-                if (signature.hasFeature(Feature.NON_NULLABLE)) {
+                if (signature.hasFeature(Feature.NOTNULL)) {
                     context.isNullable = false;
-                } else if (!signature.hasFeature(Feature.NULLABLE)) {
+                } else if (!signature.hasFeature(Feature.STRICTNULL)) {
                     // default case
                     context.enforceThreeValuedLogic = true;
                     return null;
@@ -193,13 +198,13 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         if (arg instanceof Function innerFunction && innerFunction.name().equals(IsNullPredicate.NAME)) {
             if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference ref) {
                 // Ignored objects have no field names in the index, need function filter fallback
-                if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
+                if (context.tableInfo().isIgnoredOrImmediateChildOfIgnored(ref)) {
                     return null;
                 }
                 if (!ref.isNullable()) {
                     return new MatchAllDocsQuery();
                 }
-                return IsNullPredicate.refExistsQuery(ref, context, true);
+                return IsNullPredicate.refExistsQuery(ref, context);
             }
         }
 
@@ -216,18 +221,46 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 .add(notX, Occur.MUST)
                 .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
                 .build();
-        } else {
+        } else if (ctx.nullableReferences().isEmpty() == false) {
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
             builder.add(notX, BooleanClause.Occur.MUST);
             for (Reference nullableRef : ctx.nullableReferences()) {
                 // we can optimize with a field exist query and filter out all null values which will reduce the
                 // result set of the query
-                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
+                var refExistsQuery = IsNullPredicate.refExistsQuery(
+                    nullableRef,
+                    context
+                );
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                } else {
+                    // fall back
+                    return new BooleanQuery.Builder()
+                        .add(notX, Occur.MUST)
+                        .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                        .build();
                 }
             }
             return builder.build();
         }
+        return notX;
+    }
+
+    /**
+     * i.e.:: countEmptyArrays('a != [1] AND a != []', a)
+     *        => [] != [1] AND [] != []
+     *        => true AND false
+     *        => false => do not need to count empty arrays since the query will evaluate it to false.
+     */
+    private static boolean countEmptyArrays(Symbol query, Reference reference, LuceneQueryBuilder.Context context) {
+        if (!DataTypes.isArray(reference.valueType())) {
+            return false;
+        }
+        var querySymbolReplacedRefs = RefReplacer.replaceRefs(
+            query,
+            r -> r.equals(reference) ? Literal.of(new ArrayType<>(r.valueType()), List.of()) : r
+        );
+        var evaluated = SymbolEvaluator.evaluateWithoutParams(context.transactionContext(), context.nodeContext(), querySymbolReplacedRefs);
+        return !(evaluated instanceof Boolean b) || b;
     }
 }

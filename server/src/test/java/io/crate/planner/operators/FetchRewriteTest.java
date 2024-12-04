@@ -43,8 +43,10 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
@@ -67,12 +69,12 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             collect,
             List.of(
                 new Function(
-                    Signature.scalar(
-                        "add",
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    ),
+                    Signature.builder("add", FunctionType.SCALAR)
+                        .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature())
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
                     List.of(x, x),
                     DataTypes.INTEGER
                 )

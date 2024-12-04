@@ -31,12 +31,15 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonFactoryBuilder;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.core.StreamWriteFeature;
+import com.fasterxml.jackson.core.io.SerializedString;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 
@@ -74,8 +77,12 @@ public class JsonXContent implements XContent {
     }
 
     @Override
-    public XContentGenerator createGenerator(OutputStream os) throws IOException {
-        return new JsonXContentGenerator(JSON_FACTORY.createGenerator(os, JsonEncoding.UTF8), os);
+    public XContentGenerator createGenerator(OutputStream os, @Nullable String rootValueSeparator) throws IOException {
+        JsonGenerator generator = JSON_FACTORY.createGenerator(os, JsonEncoding.UTF8);
+        if (rootValueSeparator != null) {
+            generator.setRootValueSeparator(new SerializedString(rootValueSeparator));
+        }
+        return new JsonXContentGenerator(generator, os);
     }
 
     @Override

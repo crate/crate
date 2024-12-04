@@ -21,9 +21,7 @@
 
 package io.crate.execution.jobs.kill;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
@@ -48,8 +46,8 @@ public class KillJobsRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         KillJobsNodeRequest.KillJobsRequest r2 = new KillJobsNodeRequest.KillJobsRequest(in);
 
-        assertThat(r.toKill(), equalTo(r2.toKill()));
-        assertThat(r.reason(), is(r2.reason()));
-        assertThat(r.userName(), is(r2.userName()));
+        assertThat(r.toKill()).isEqualTo(r2.toKill());
+        assertThat(r.reason()).isEqualTo(r2.reason());
+        assertThat(r.userName()).isEqualTo(r2.userName());
     }
 }

@@ -21,16 +21,8 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static io.crate.metadata.IndexParts.toIndexName;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
@@ -76,6 +67,7 @@ import org.junit.Test;
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.metadata.IndexName;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
@@ -193,7 +185,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             for (Semaphore semaphore : semaphores) {
                 semaphore.release(docsPerIndexer);
             }
-            assertTrue(countDownLatchRef.get().await(1, TimeUnit.MINUTES));
+            assertThat(countDownLatchRef.get().await(1, TimeUnit.MINUTES)).isTrue();
 
             for (int iter = 1 + randomInt(1); iter > 0; iter--) {
                 logger.info("starting disruptions & indexing (iteration [{}])", iter);
@@ -205,11 +197,13 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                 countDownLatchRef.set(new CountDownLatch(docsPerIndexer * indexers.size()));
                 Collections.shuffle(semaphores, random());
                 for (Semaphore semaphore : semaphores) {
-                    assertThat(semaphore.availablePermits(), equalTo(0));
+                    assertThat(semaphore.availablePermits()).isEqualTo(0);
                     semaphore.release(docsPerIndexer);
                 }
                 logger.info("waiting for indexing requests to complete");
-                assertThat("indexing requests must complete", countDownLatchRef.get().await(20, TimeUnit.SECONDS), is(true));
+                assertThat(countDownLatchRef.get().await(20, TimeUnit.SECONDS))
+                    .as("indexing requests must complete")
+                    .isTrue();
 
                 logger.info("stopping disruption");
                 disruptionScheme.stopDisrupting();
@@ -233,8 +227,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                             logger.debug("validating through node [{}] ([{}] acked docs)", node, ackedDocs.size());
                             for (String id : ackedDocs.keySet()) {
                                 execute("select * from t where id = ?", new Object[]{id}, node);
-                                assertThat("doc [" + id + "] indexed via node [" + ackedDocs.get(id) + "] not found",
-                                    response.rowCount(), is(1L));
+                                assertThat(response)
+                                    .as("doc [" + id + "] indexed via node [" + ackedDocs.get(id) + "] not found")
+                                    .hasRowCount(1);
                             }
                         } catch (AssertionError | NoShardAvailableActionException e) {
                             throw new AssertionError(e.getMessage() + " (checked via node [" + node + "]", e);
@@ -251,7 +246,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                 indexer.interrupt();
                 indexer.join(60000);
             }
-            if (exceptedExceptions.size() > 0) {
+            if (!exceptedExceptions.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
                 for (Exception e : exceptedExceptions) {
                     sb.append("\n").append(e.getMessage());
@@ -282,18 +277,18 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         NetworkDisruption scheme = addRandomDisruptionType(partitions);
         scheme.startDisrupting();
         ensureStableCluster(2, notIsolatedNode);
-        String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
-        assertFalse(FutureUtils.get(
+        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
+        assertThat(FutureUtils.get(
             client(notIsolatedNode).admin().cluster().health(
                 new ClusterHealthRequest(indexName).waitForYellowStatus()
-            )).isTimedOut());
+            )).isTimedOut()).isFalse();
 
         execute("insert into t (id, x) values (1, 10)", null, notIsolatedNode);
 
         logger.info("Verifying if document exists via node[{}]", notIsolatedNode);
 
         execute("select * from t where id = '1'", null, notIsolatedNode);
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         scheme.stopDisrupting();
 
@@ -303,7 +298,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         for (String node : nodes) {
             logger.info("Verifying if document exists after isolating node[{}] via node[{}]", isolatedNode, node);
             execute("select * from t where id = '1'", null, node);
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rowCount()).isEqualTo(1L);
         }
     }
 
@@ -312,7 +307,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     public void testSendingShardFailure() throws Exception {
         List<String> nodes = startCluster(3);
         String masterNode = cluster().getMasterName();
-        List<String> nonMasterNodes = nodes.stream().filter(node -> !node.equals(masterNode)).collect(Collectors.toList());
+        List<String> nonMasterNodes = nodes.stream().filter(node -> !node.equals(masterNode)).toList();
         String nonMasterNode = randomFrom(nonMasterNodes);
         execute("create table t (id int primary key, x string) clustered into 3 shards with (number_of_replicas = 2)");
         ensureGreen();
@@ -366,20 +361,20 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         latch.await();
 
         // the listener should be notified
-        assertTrue(success.get());
+        assertThat(success.get()).isTrue();
 
         // the failed shard should be gone
         List<ShardRouting> shards = clusterService().state().routingTable()
-            .allShards(toIndexName(sqlExecutor.getCurrentSchema(), "t", null));
+            .allShards(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null));
         for (ShardRouting shard : shards) {
-            assertThat(shard.allocationId(), not(equalTo(failedShard.allocationId())));
+            assertThat(shard.allocationId()).isNotEqualTo(failedShard.allocationId());
         }
     }
 
     @Test
     public void testRestartNodeWhileIndexing() throws Exception {
         startCluster(3);
-        String index = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        String index = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
 
         int numberOfReplicas = between(1, 2);
         logger.info("creating table with {} shards and {} replicas", 1, numberOfReplicas);
@@ -405,10 +400,10 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             threads[i].start();
         }
         ensureGreen();
-        assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(100)));
+        assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(100));
         cluster().restartRandomDataNode(new TestCluster.RestartCallback());
         ensureGreen();
-        assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(200)));
+        assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(200));
         stopped.set(true);
         for (Thread thread : threads) {
             thread.join();
@@ -419,8 +414,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             IndexShard shard = indicesService.getShardOrNull(shardRouting.shardId());
             Set<String> docs = IndexShardTestCase.getShardDocUIDs(shard);
-            assertThat("shard [" + shard.routingEntry() + "] docIds [" + docs + "] vs " + " acked docIds [" + ackedDocs + "]",
-                ackedDocs, everyItem(is(in(docs))));
+            assertThat(ackedDocs)
+                .as("shard [" + shard.routingEntry() + "] docIds [" + docs + "] vs " + " acked docIds [" + ackedDocs + "]")
+                .allSatisfy(i -> assertThat(i).isIn(docs));
         }
     }
 }

@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -47,7 +48,6 @@ import java.util.stream.Stream;
 
 import javax.net.ssl.SNIHostName;
 
-import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.IndexSearcher;
@@ -71,6 +71,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
+import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -90,13 +91,15 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.NodeAndClusterIdStateListener;
+import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.network.NetworkAddress;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.SettingUpgrader;
@@ -107,7 +110,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -119,6 +121,7 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.gateway.MetaStateService;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
@@ -142,15 +145,12 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.MetadataUpgrader;
-import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
@@ -164,20 +164,24 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.Analyzer;
+import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
-import io.crate.auth.AuthenticationModule;
 import io.crate.auth.HostBasedAuthentication;
-import io.crate.blob.BlobModule;
 import io.crate.blob.BlobService;
 import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.TransportExecutorModule;
+import io.crate.execution.ddl.RepositoryService;
+import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
@@ -186,23 +190,30 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.lucene.ArrayMapperService;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.MetadataBlobModule;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.MetadataInformationModule;
-import io.crate.metadata.pgcatalog.PgCatalogModule;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.plugin.CopyPlugin;
 import io.crate.protocols.postgres.PgClientFactory;
@@ -212,9 +223,12 @@ import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
-import io.crate.role.RoleManagementModule;
+import io.crate.role.RoleManager;
+import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
+import io.crate.session.Sessions;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 /**
@@ -383,7 +397,9 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
-            final NodeContext nodeContext = new NodeContext(functions, roles);
+            final TableStats tableStats = new TableStats();
+            final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
+            final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
 
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
@@ -408,7 +424,6 @@ public class Node implements Closeable {
                 modules.add(pluginModule);
             }
 
-            modules.add(new BlobModule());
             if (Node.NODE_DATA_SETTING.get(settings)) {
                 // the actual blob indices module is only available on data nodes. the blobservice on non data nodes will
                 // handle the requests redirection to data nodes.
@@ -420,14 +435,10 @@ public class Node implements Closeable {
             modules.add(new CollectOperationModule());
             modules.add(new MetadataModule());
             modules.add(new MetadataSysModule());
-            modules.add(new MetadataBlobModule());
-            modules.add(new PgCatalogModule());
             modules.add(new MetadataInformationModule());
             modules.add(new MonitorModule());
             modules.add(new SysChecksModule());
             modules.add(new SysNodeChecksModule());
-            modules.add(new RoleManagementModule());
-            modules.add(new AuthenticationModule());
 
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
@@ -448,10 +459,10 @@ public class Node implements Closeable {
             final FsHealthService fsHealthService = new FsHealthService(settings, clusterService.getClusterSettings(), threadPool,
                 nodeEnvironment);
             modules.add(clusterModule);
-            IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
+            IndicesModule indicesModule = new IndicesModule();
             modules.add(indicesModule);
 
-            IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
+            IndexSearcher.setMaxClauseCount(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
             CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);
@@ -462,7 +473,6 @@ public class Node implements Closeable {
             BigArrays bigArrays = createBigArrays(pageCacheRecycler, circuitBreakerService);
             modules.add(settingsModule);
             List<NamedWriteableRegistry.Entry> namedWriteables = Stream.of(
-                NetworkModule.getNamedWriteables().stream(),
                 IndicesModule.getNamedWriteables().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedWriteables().stream()),
@@ -471,16 +481,19 @@ public class Node implements Closeable {
                 .flatMap(Function.identity()).collect(Collectors.toList());
             final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
             NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(Stream.of(
-                NetworkModule.getNamedXContents().stream(),
                 IndicesModule.getNamedXContents().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
                 MetadataModule.getNamedXContents(nodeContext).stream())
                 .flatMap(Function.identity()).collect(Collectors.toList()));
-            final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
-            final PersistedClusterStateService persistedClusterStateService
-                = new PersistedClusterStateService(nodeEnvironment, xContentRegistry, bigArrays, clusterService.getClusterSettings(),
+            final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, namedWriteableRegistry, xContentRegistry);
+            final PersistedClusterStateService persistedClusterStateService = new PersistedClusterStateService(
+                nodeEnvironment,
+                xContentRegistry,
+                namedWriteableRegistry,
+                bigArrays,
+                clusterService.getClusterSettings(),
                 threadPool::relativeTimeInMillis);
 
             // collect engine factory providers from server and from plugins
@@ -499,35 +512,33 @@ public class Node implements Closeable {
                     .flatMap(m -> m.entrySet().stream())
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+            IndexScopedSettings indexScopedSettings = settingsModule.getIndexScopedSettings();
             final IndicesService indicesService = new IndicesService(
+                nodeContext,
                 settings,
                 clusterService,
                 pluginsService,
                 nodeEnvironment,
-                xContentRegistry,
                 analysisModule.getAnalysisRegistry(),
-                indicesModule.getMapperRegistry(),
-                namedWriteableRegistry,
                 threadPool,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 circuitBreakerService,
                 bigArrays,
-                client,
                 metaStateService,
                 engineFactoryProviders,
                 indexStoreFactories);
 
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
+                nodeContext,
                 settings,
                 clusterService,
                 indicesService,
                 clusterModule.getAllocationService(),
                 shardLimitValidator,
                 environment,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 threadPool,
-                xContentRegistry,
                 forbidPrivateIndexSettings
             );
 
@@ -547,28 +558,15 @@ public class Node implements Closeable {
                 ? new HostBasedAuthentication(
                     settings,
                     roles,
-                    SystemDefaultDnsResolver.INSTANCE,
+                    DnsResolver.SYSTEM,
                     () -> clusterService.state().metadata().clusterUUID()
                 )
                 : new AlwaysOKAuthentication(roles);
 
+
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
             nettyBootstrap.start();
-            final NetworkModule networkModule = new NetworkModule(
-                settings,
-                pluginsService.filterPlugins(NetworkPlugin.class),
-                threadPool,
-                bigArrays,
-                pageCacheRecycler,
-                circuitBreakerService,
-                namedWriteableRegistry,
-                xContentRegistry,
-                networkService,
-                nettyBootstrap,
-                authentication,
-                sslContextProvider,
-                client);
 
             List<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
@@ -591,10 +589,8 @@ public class Node implements Closeable {
                 customMetadataUpgraders,
                 indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
-                settings,
-                xContentRegistry,
-                indicesModule.getMapperRegistry(),
-                settingsModule.getIndexScopedSettings(),
+                nodeContext,
+                indexScopedSettings,
                 indexMetadataUpgraders);
             final Netty4Transport transport = new Netty4Transport(
                 settings,
@@ -616,7 +612,24 @@ public class Node implements Closeable {
                 settingsModule.getClusterSettings()
             );
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
-            final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
+            BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
+            BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
+                blobIndicesService,
+                threadPool,
+                transportService,
+                clusterService
+            );
+            final BlobService blobService = new BlobService(
+                clusterService,
+                blobIndicesService,
+                new BlobHeadRequestHandler(
+                    transportService,
+                    clusterService,
+                    blobTransferTarget,
+                    threadPool
+                ),
+                client
+            );
 
             PgClientFactory pgClientFactory = newPgClientFactory(
                 settings,
@@ -635,7 +648,7 @@ public class Node implements Closeable {
             );
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settings,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 clusterService,
                 remoteClusters,
                 threadPool,
@@ -657,6 +670,7 @@ public class Node implements Closeable {
                 logicalReplicationService,
                 remoteClusters,
                 threadPool,
+                namedWriteableRegistry,
                 xContentRegistry,
                 replicationSettings,
                 recoverySettings
@@ -666,28 +680,28 @@ public class Node implements Closeable {
             CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
             modules.add(copyModule);
 
-            RepositoriesService repositoryService = repositoriesModule.repositoryService();
-            repositoriesServiceReference.set(repositoryService);
-            logicalReplicationService.repositoriesService(repositoryService);
+            RepositoriesService repositoriesService = repositoriesModule.repositoryService();
+            repositoriesServiceReference.set(repositoriesService);
+            logicalReplicationService.repositoriesService(repositoriesService);
 
             final SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 transportService
             );
 
             final SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
                 settings,
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 transportService,
                 indicesService
             );
 
             RestoreService restoreService = new RestoreService(
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 clusterModule.getAllocationService(),
                 metadataCreateIndexService,
                 metadataIndexUpgradeService,
@@ -718,17 +732,79 @@ public class Node implements Closeable {
                 fsHealthService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
+            DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();
+            RoleManagerService rolesManager = new RoleManagerService(
+                client,
+                roles,
+                ddlClusterStateService
+            );
+            AnalysisRegistry analysisRegistry = analysisModule.getAnalysisRegistry();
+            AtomicReference<Injector> injectorRef = new AtomicReference<>();
+            Provider<DependencyCarrier> dependencyCarrier = () -> injectorRef.get().getInstance(DependencyCarrier.class);
 
-            BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
-            BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
-                blobIndicesService,
+            Planner planner = new Planner(
+                settings,
+                clusterService,
+                nodeContext,
+                tableStats,
+                new NumberOfShards(clusterService),
+                new CreateTableClient(client),
+                rolesManager,
+                new ForeignDataWrappers(settings, clusterService, nodeContext),
+                sessionSettingRegistry
+            );
+            RepositoryService repositoryService = new RepositoryService(clusterService, client);
+            Analyzer analyzer = new Analyzer(
+                nodeContext,
+                new RelationAnalyzer(nodeContext),
+                clusterService,
+                analysisRegistry,
+                repositoryService,
+                roles,
+                sessionSettingRegistry,
+                logicalReplicationService
+            );
+            JobsLogService jobsLogService = new JobsLogService(
+                settings,
+                clusterService,
+                nodeContext,
+                circuitBreakerService
+            );
+            Sessions sessions = new Sessions(
+                nodeContext,
+                analyzer,
+                planner,
+                dependencyCarrier,
+                jobsLogService.get(),
+                settings,
+                clusterService,
+                sessionSettingRegistry
+            );
+            final HttpServerTransport httpServerTransport = newHttpTransport(
+                networkService,
+                bigArrays,
                 threadPool,
-                transportService,
-                clusterService
+                xContentRegistry,
+                sslContextProvider,
+                blobService,
+                sessions,
+                authentication,
+                roles,
+                circuitBreakerService,
+                client
             );
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
+                    b.bind(NodeContext.class).toInstance(nodeContext);
+                    b.bind(TableStats.class).toInstance(tableStats);
+                    b.bind(Analyzer.class).toInstance(analyzer);
+                    b.bind(Sessions.class).toInstance(sessions);
+                    b.bind(Planner.class).toInstance(planner);
+                    b.bind(JobsLogService.class).toInstance(jobsLogService);
+                    b.bind(RepositoryService.class).toInstance(repositoryService);
+                    b.bind(RoleManager.class).toInstance(rolesManager);
+                    b.bind(DDLClusterStateService.class).toInstance(ddlClusterStateService);
                     b.bind(NodeService.class).toInstance(nodeService);
                     b.bind(NamedXContentRegistry.class).toInstance(xContentRegistry);
                     b.bind(PluginsService.class).toInstance(pluginsService);
@@ -740,7 +816,7 @@ public class Node implements Closeable {
                     b.bind(CircuitBreakerService.class).toInstance(circuitBreakerService);
                     b.bind(BigArrays.class).toInstance(bigArrays);
                     b.bind(PageCacheRecycler.class).toInstance(pageCacheRecycler);
-                    b.bind(AnalysisRegistry.class).toInstance(analysisModule.getAnalysisRegistry());
+                    b.bind(AnalysisRegistry.class).toInstance(analysisRegistry);
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
                     b.bind(MetadataUpgrader.class).toInstance(metadataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
@@ -755,13 +831,14 @@ public class Node implements Closeable {
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(SnapshotsInfoService.class).toInstance(snapshotsInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
-                    b.bind(RepositoriesService.class).toInstance(repositoryService);
+                    b.bind(RepositoriesService.class).toInstance(repositoriesService);
                     b.bind(SnapshotsService.class).toInstance(snapshotsService);
                     b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
                     b.bind(RestoreService.class).toInstance(restoreService);
+                    b.bind(BlobService.class).toInstance(blobService);
                     b.bind(BlobIndicesService.class).toInstance(blobIndicesService);
                     b.bind(BlobTransferTarget.class).toInstance(blobTransferTarget);
-                    b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
+                    b.bind(Coordinator.class).toInstance(discoveryModule.getCoordinator());
                     {
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
                         b.bind(PeerRecoverySourceService.class).toInstance(
@@ -793,9 +870,16 @@ public class Node implements Closeable {
                     b.bind(FsHealthService.class).toInstance(fsHealthService);
                     b.bind(SessionSettingRegistry.class).toInstance(sessionSettingRegistry);
                     b.bind(Functions.class).toInstance(functions);
+                    b.bind(UserDefinedFunctionService.class).toInstance(udfService);
+                    Schemas schemas = nodeContext.schemas();
+                    b.bind(SysSchemaInfo.class).toInstance((SysSchemaInfo) schemas.getSystemSchema(SysSchemaInfo.NAME));
+                    b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
+                    b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
+                    b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
                 }
             );
             injector = modules.createInjector();
+            injectorRef.set(injector);
 
             // We allocate copies of existing shards by looking for a viable copy of the shard in the cluster and assigning the shard there.
             // The search for viable copies is triggered by an allocation attempt (i.e. a reroute) and is performed asynchronously. When it
@@ -927,17 +1011,15 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).start();
         injector.getInstance(PostgresNetty.class).start();
         injector.getInstance(TasksService.class).start();
-        injector.getInstance(Schemas.class).start();
-        injector.getInstance(ArrayMapperService.class).start();
         injector.getInstance(DanglingArtifactsService.class).start();
         injector.getInstance(SslContextProviderService.class).start();
-
         injector.getInstance(IndicesService.class).start();
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();
         injector.getInstance(SnapshotShardsService.class).start();
         injector.getInstance(FsHealthService.class).start();
         injector.getInstance(RepositoriesService.class).start();
+        injector.getInstance(UserDefinedFunctionService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -947,13 +1029,13 @@ public class Node implements Closeable {
         clusterService.setNodeConnectionsService(nodeConnectionsService);
 
         injector.getInstance(GatewayService.class).start();
-        Discovery discovery = injector.getInstance(Discovery.class);
-        clusterService.getMasterService().setClusterStatePublisher(discovery::publish);
+        Coordinator coordinator = injector.getInstance(Coordinator.class);
+        clusterService.getMasterService().setClusterStatePublisher(coordinator::publish);
 
         HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
         httpServerTransport.start();
         // CRATE_PATCH: add http publish address to the discovery node
-        TransportAddress publishAddress = httpServerTransport.info().address().publishAddress();
+        TransportAddress publishAddress = httpServerTransport.boundAddress().publishAddress();
         localNodeFactory.httpPublishAddress = publishAddress.getAddress() + ':' + publishAddress.getPort();
 
         // Start the transport service now so the publish address will be added to the local disco node in ClusterService
@@ -978,8 +1060,12 @@ public class Node implements Closeable {
         if (Assertions.ENABLED) {
             try {
                 assert injector.getInstance(MetaStateService.class).loadFullState().v1().isEmpty();
-                final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
-                                                                                      nodeEnvironment.nodeDataPaths());
+                final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(
+                    logger,
+                    NamedWriteableRegistry.EMPTY,
+                    NamedXContentRegistry.EMPTY,
+                    nodeEnvironment.nodeDataPaths()
+                );
                 assert nodeMetadata != null;
                 assert nodeMetadata.nodeVersion().equals(Version.CURRENT);
                 assert nodeMetadata.nodeId().equals(localNodeFactory.getNode().getId());
@@ -996,19 +1082,20 @@ public class Node implements Closeable {
                 .flatMap(p -> p.getBootstrapChecks().stream()).collect(Collectors.toList()));
 
         // start after transport service so the local disco is known
-        discovery.start(); // start before cluster service so that it can set initial state on ClusterApplierService
+        coordinator.start(); // start before cluster service so that it can set initial state on ClusterApplierService
         clusterService.start();
 
         assert clusterService.localNode().equals(localNodeFactory.getNode())
             : "clusterService has a different local node than the factory provided";
         transportService.acceptIncomingRequests();
-        discovery.startInitialJoin();
+        coordinator.startInitialJoin();
         final TimeValue initialStateTimeout = INITIAL_STATE_TIMEOUT_SETTING.get(settings);
         configureNodeAndClusterIdStateListener(clusterService);
 
         if (initialStateTimeout.millis() > 0) {
             ClusterState clusterState = clusterService.state();
-            ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger);
+            ClusterStateObserver observer = new ClusterStateObserver(
+                clusterState, clusterService.getClusterApplierService(), null, logger);
 
             if (clusterState.nodes().getMasterNodeId() == null) {
                 logger.debug("waiting to join the cluster. timeout [{}]", initialStateTimeout);
@@ -1070,6 +1157,7 @@ public class Node implements Closeable {
 
         injector.getInstance(HttpServerTransport.class).stop();
 
+        injector.getInstance(UserDefinedFunctionService.class).start();
         injector.getInstance(SnapshotsService.class).stop();
         injector.getInstance(SnapshotShardsService.class).stop();
         injector.getInstance(RepositoriesService.class).stop();
@@ -1077,7 +1165,7 @@ public class Node implements Closeable {
         injector.getInstance(IndicesClusterStateService.class).stop();
         // close discovery early to not react to pings anymore.
         // This can confuse other nodes and delay things - mostly if we're the master and we're running tests.
-        injector.getInstance(Discovery.class).stop();
+        injector.getInstance(Coordinator.class).stop();
         // we close indices first, so operations won't be allowed on it
         injector.getInstance(ClusterService.class).stop();
         injector.getInstance(NodeConnectionsService.class).stop();
@@ -1091,8 +1179,6 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).stop();
         injector.getInstance(PostgresNetty.class).stop();
         injector.getInstance(TasksService.class).stop();
-        injector.getInstance(Schemas.class).stop();
-        injector.getInstance(ArrayMapperService.class).stop();
         injector.getInstance(DanglingArtifactsService.class).stop();
         injector.getInstance(SslContextProviderService.class).stop();
         injector.getInstance(BlobService.class).stop();
@@ -1158,7 +1244,7 @@ public class Node implements Closeable {
         toClose.add(() -> stopWatch.stop().start("node_connections_service"));
         toClose.add(injector.getInstance(NodeConnectionsService.class));
         toClose.add(() -> stopWatch.stop().start("discovery"));
-        toClose.add(injector.getInstance(Discovery.class));
+        toClose.add(injector.getInstance(Coordinator.class));
         toClose.add(() -> stopWatch.stop().start("monitor"));
         toClose.add(nodeService.getMonitorService());
         toClose.add(() -> stopWatch.stop().start("fsHealth"));
@@ -1184,10 +1270,6 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(PostgresNetty.class));
         toClose.add(() -> stopWatch.stop().start("tasks_service"));
         toClose.add(injector.getInstance(TasksService.class));
-        toClose.add(() -> stopWatch.stop().start("schemas"));
-        toClose.add(injector.getInstance(Schemas.class));
-        toClose.add(() -> stopWatch.stop().start("array_mapper_service"));
-        toClose.add(injector.getInstance(ArrayMapperService.class));
         toClose.add(() -> stopWatch.stop().start("dangling_artifacts_service"));
         toClose.add(injector.getInstance(DanglingArtifactsService.class));
         toClose.add(() -> stopWatch.stop().start("ssl_context_provider_service"));
@@ -1340,8 +1422,31 @@ public class Node implements Closeable {
     }
 
     /** Constructs a {@link org.elasticsearch.http.HttpServerTransport} which may be mocked for tests. */
-    protected HttpServerTransport newHttpTransport(NetworkModule networkModule) {
-        return networkModule.getHttpServerTransportSupplier().get();
+    protected HttpServerTransport newHttpTransport(NetworkService networkService,
+                                                   BigArrays bigArrays,
+                                                   ThreadPool threadPool,
+                                                   NamedXContentRegistry xContentRegistry,
+                                                   SslContextProvider sslContextProvider,
+                                                   BlobService blobService,
+                                                   Sessions sessions,
+                                                   Authentication authentication,
+                                                   Roles roles,
+                                                   CircuitBreakerService breakerService,
+                                                   NodeClient nodeClient) {
+        return new Netty4HttpServerTransport(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            xContentRegistry,
+            sslContextProvider,
+            blobService,
+            sessions,
+            authentication,
+            roles,
+            breakerService,
+            nodeClient
+        );
     }
 
     private static class LocalNodeFactory implements Function<BoundTransportAddress, DiscoveryNode> {

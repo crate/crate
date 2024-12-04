@@ -45,7 +45,6 @@ import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
-import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
@@ -57,16 +56,19 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.support.QueryParsers;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.lucene.DisableGraphAttribute;
 import io.crate.lucene.ExtendedCommonTermsQuery;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.lucene.match.ParsedOptions;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
 
 public class MatchQuery {
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MappedFieldType.class));
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MatchQuery.class));
     static final float DEFAULT_BOOST = 1.0f;
 
     public enum Type {
@@ -101,143 +103,57 @@ public class MatchQuery {
     public static final int DEFAULT_PHRASE_SLOP = 0;
 
     /**
-     * the default leniency setting
-     */
-    public static final boolean DEFAULT_LENIENCY = false;
-
-    /**
      * the default zero terms query
      */
     public static final ZeroTermsQuery DEFAULT_ZERO_TERMS_QUERY = ZeroTermsQuery.NONE;
 
-    protected final QueryShardContext context;
+    protected final LuceneQueryBuilder.Context context;
+    protected final ParsedOptions parsedOptions;
+    protected final Analyzer analyzer;
 
-    protected Analyzer analyzer;
 
-    protected BooleanClause.Occur occur = BooleanClause.Occur.SHOULD;
-
-    protected boolean enablePositionIncrements = true;
-
-    protected int phraseSlop = DEFAULT_PHRASE_SLOP;
-
-    protected Fuzziness fuzziness = null;
-
-    protected int fuzzyPrefixLength = FuzzyQuery.defaultPrefixLength;
-
-    protected int maxExpansions = FuzzyQuery.defaultMaxExpansions;
-
-    protected boolean transpositions = FuzzyQuery.defaultTranspositions;
-
-    protected MultiTermQuery.RewriteMethod fuzzyRewriteMethod;
-
-    protected boolean lenient = DEFAULT_LENIENCY;
-
-    protected ZeroTermsQuery zeroTermsQuery = DEFAULT_ZERO_TERMS_QUERY;
-
-    protected Float commonTermsCutoff = null;
-
-    protected boolean autoGenerateSynonymsPhraseQuery = true;
-
-    public MatchQuery(QueryShardContext context) {
+    public MatchQuery(LuceneQueryBuilder.Context context, ParsedOptions parsedOptions) {
         this.context = context;
+        this.parsedOptions = parsedOptions;
+        this.analyzer = getAnalyzer(parsedOptions.analyzer());
     }
 
-    public void setAnalyzer(String analyzerName) {
-        this.analyzer = context.getMapperService().getIndexAnalyzers().get(analyzerName);
-        if (analyzer == null) {
-            throw new IllegalArgumentException("No analyzer found for [" + analyzerName + "]");
+    private Analyzer getAnalyzer(@Nullable String analyzerName) {
+        if (analyzerName == null) {
+            return Lucene.KEYWORD_ANALYZER;
         }
-    }
-
-    public void setAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
-    }
-
-    public void setOccur(BooleanClause.Occur occur) {
-        this.occur = occur;
-    }
-
-    public void setCommonTermsCutoff(Float cutoff) {
-        this.commonTermsCutoff = cutoff;
-    }
-
-    public void setEnablePositionIncrements(boolean enablePositionIncrements) {
-        this.enablePositionIncrements = enablePositionIncrements;
-    }
-
-    public void setPhraseSlop(int phraseSlop) {
-        this.phraseSlop = phraseSlop;
-    }
-
-    public void setFuzziness(Fuzziness fuzziness) {
-        this.fuzziness = fuzziness;
-    }
-
-    public void setFuzzyPrefixLength(int fuzzyPrefixLength) {
-        this.fuzzyPrefixLength = fuzzyPrefixLength;
-    }
-
-    public void setMaxExpansions(int maxExpansions) {
-        this.maxExpansions = maxExpansions;
-    }
-
-    public void setTranspositions(boolean transpositions) {
-        this.transpositions = transpositions;
-    }
-
-    public void setFuzzyRewriteMethod(MultiTermQuery.RewriteMethod fuzzyRewriteMethod) {
-        this.fuzzyRewriteMethod = fuzzyRewriteMethod;
-    }
-
-    public void setLenient(boolean lenient) {
-        this.lenient = lenient;
-    }
-
-    public void setZeroTermsQuery(ZeroTermsQuery zeroTermsQuery) {
-        this.zeroTermsQuery = zeroTermsQuery;
-    }
-
-    public void setAutoGenerateSynonymsPhraseQuery(boolean enabled) {
-        this.autoGenerateSynonymsPhraseQuery = enabled;
-    }
-
-    protected Analyzer getAnalyzer(MappedFieldType fieldType, boolean quoted) {
-        if (analyzer == null) {
-            return quoted ? context.getSearchQuoteAnalyzer(fieldType) : context.getSearchAnalyzer(fieldType);
-        } else {
-            return analyzer;
-        }
+        return context.getAnalyzer(analyzerName);
     }
 
     public Query parse(Type type, String fieldName, Object value) {
-        MappedFieldType fieldType = context.fieldMapper(fieldName);
-        if (fieldType == null) {
+        Reference ref = context.getRef(fieldName);
+        if (ref == null) {
             return newUnmappedFieldQuery(fieldName);
         }
-        final String field = fieldType.name();
-
-        Analyzer analyzer = getAnalyzer(fieldType, type == Type.PHRASE);
-        assert analyzer != null;
+        final String field = ref.storageIdent();
+        Analyzer analyzer = ref instanceof IndexReference indexRef
+            ? getAnalyzer(indexRef.analyzer())
+            : this.analyzer;
 
         /*
          * If a keyword analyzer is used, we know that further analysis isn't
          * needed and can immediately return a term query.
          */
         if (analyzer == Lucene.KEYWORD_ANALYZER) {
-            return blendTermQuery(new Term(fieldName, value.toString()), fieldType);
+            return blendTermQuery(new Term(fieldName, value.toString()), ref);
         }
 
-        MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, fieldType);
-        builder.setEnablePositionIncrements(this.enablePositionIncrements);
-        if (fieldType.hasPositions()) {
-            builder.setAutoGenerateMultiTermSynonymsPhraseQuery(this.autoGenerateSynonymsPhraseQuery);
-        } else {
-            builder.setAutoGenerateMultiTermSynonymsPhraseQuery(false);
-        }
+        MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, ref);
+        builder.setEnablePositionIncrements(true);
+        builder.setAutoGenerateMultiTermSynonymsPhraseQuery(ref.indexType() == IndexType.FULLTEXT);
+
+        int phraseSlop = parsedOptions.phraseSlop();
 
         Query query = null;
         switch (type) {
             case BOOLEAN:
+                Occur occur = parsedOptions.operator();
+                Float commonTermsCutoff = parsedOptions.commonTermsCutoff();
                 if (commonTermsCutoff == null) {
                     query = builder.createBooleanQuery(field, value.toString(), occur);
                 } else {
@@ -248,7 +164,12 @@ public class MatchQuery {
                 query = builder.createPhraseQuery(field, value.toString(), phraseSlop);
                 break;
             case PHRASE_PREFIX:
-                query = builder.createPhrasePrefixQuery(field, value.toString(), phraseSlop, maxExpansions);
+                query = builder.createPhrasePrefixQuery(
+                    field,
+                    value.toString(),
+                    phraseSlop,
+                    parsedOptions.maxExpansions()
+                );
                 break;
             default:
                 throw new IllegalStateException("No type found for [" + type + "]");
@@ -261,18 +182,12 @@ public class MatchQuery {
         }
     }
 
-    protected final Query termQuery(MappedFieldType fieldType, BytesRef value, boolean lenient) {
-        try {
-            return new TermQuery(new Term(fieldType.name(), value));
-        } catch (RuntimeException e) {
-            if (lenient) {
-                return newLenientFieldQuery(fieldType.name(), e);
-            }
-            throw e;
-        }
+    protected final Query termQuery(Reference ref, BytesRef value) {
+        return new TermQuery(new Term(ref.storageIdent(), value));
     }
 
     protected Query zeroTermsQuery() {
+        ZeroTermsQuery zeroTermsQuery = parsedOptions.zeroTermsQuery();
         switch (zeroTermsQuery) {
             case NULL:
                 return null;
@@ -287,19 +202,19 @@ public class MatchQuery {
 
     private class MatchQueryBuilder extends QueryBuilder {
 
-        private final MappedFieldType mapper;
+        private final Reference reference;
 
         /**
          * Creates a new QueryBuilder using the given analyzer.
          */
-        MatchQueryBuilder(Analyzer analyzer, MappedFieldType mapper) {
+        MatchQueryBuilder(Analyzer analyzer, Reference reference) {
             super(analyzer);
-            this.mapper = mapper;
+            this.reference = reference;
         }
 
         @Override
         protected Query newTermQuery(Term term, float boost) {
-            return blendTermQuery(term, mapper);
+            return blendTermQuery(term, reference);
         }
 
         @Override
@@ -309,18 +224,11 @@ public class MatchQuery {
                 Query query = phraseQuery(field, stream, slop, enablePositionIncrements);
                 if (query instanceof PhraseQuery) {
                     // synonyms that expand to multiple terms can return a phrase query.
-                    return blendPhraseQuery((PhraseQuery) query, mapper);
+                    return blendPhraseQuery((PhraseQuery) query, reference);
                 }
                 return query;
-            } catch (IllegalStateException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(field, e);
-                }
-                throw e;
             } catch (IllegalArgumentException e) {
-                if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_phrase_not_lenient", e.getMessage());
-                }
+                DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_phrase_not_lenient", e.getMessage());
                 return newLenientFieldQuery(field, e);
             }
         }
@@ -330,21 +238,14 @@ public class MatchQuery {
             try {
                 checkForPositions(field);
                 return multiPhraseQuery(field, stream, slop, enablePositionIncrements);
-            } catch (IllegalStateException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(field, e);
-                }
-                throw e;
             } catch (IllegalArgumentException e) {
-                if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_multiphrase_not_lenient", e.getMessage());
-                }
+                DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_multiphrase_not_lenient", e.getMessage());
                 return newLenientFieldQuery(field, e);
             }
         }
 
         private void checkForPositions(String field) {
-            if (mapper.hasPositions() == false) {
+            if (reference.indexType() != IndexType.FULLTEXT) {
                 throw new IllegalStateException("field:[" + field + "] was indexed without position data; cannot run PhraseQuery");
             }
         }
@@ -473,36 +374,40 @@ public class MatchQuery {
      * Called when a phrase query is built with {@link QueryBuilder#analyzePhrase(String, TokenStream, int)}
      * Subclass can override this function to blend this query to multiple fields.
      */
-    protected Query blendPhraseQuery(PhraseQuery query, MappedFieldType fieldType) {
+    protected Query blendPhraseQuery(PhraseQuery query, Reference reference) {
         return query;
     }
 
-    protected Query blendTermsQuery(Term[] terms, MappedFieldType fieldType) {
-        var builder = new SynonymQuery.Builder(fieldType.name());
+    protected Query blendTermsQuery(Term[] terms, Reference ref) {
+        var builder = new SynonymQuery.Builder(ref.storageIdent());
         for (var term : terms) {
             builder.addTerm(term);
         }
         return builder.build();
     }
 
-    protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
-        if (fuzziness != null) {
-            try {
-                fieldType.failIfNotIndexed();
-                Query query = new FuzzyQuery(term, fuzziness.asDistance(term.text()), fuzzyPrefixLength, maxExpansions, transpositions);
-                if (query instanceof FuzzyQuery) {
-                    QueryParsers.setRewriteMethod((FuzzyQuery) query, fuzzyRewriteMethod);
-                }
-                return query;
-            } catch (RuntimeException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(fieldType.name(), e);
-                } else {
-                    throw e;
-                }
-            }
+    protected Query blendTermQuery(Term term, Reference ref) {
+        Fuzziness fuzziness = parsedOptions.fuzziness();
+        if (fuzziness == null) {
+            return termQuery(ref, term.bytes());
         }
-        return termQuery(fieldType, term.bytes(), lenient);
+        if (ref.indexType() == IndexType.NONE) {
+            throw new IllegalArgumentException("Cannot search on field [" + ref.column() + "] since it is not indexed.");
+        }
+        int distance = fuzziness.asDistance(term.text());
+        var fuzzyRewriteMethod = parsedOptions.rewriteMethod();
+        int maxExpansions = parsedOptions.maxExpansions();
+        var rewriteMethod = fuzzyRewriteMethod == null
+            ? FuzzyQuery.defaultRewriteMethod(maxExpansions)
+            : fuzzyRewriteMethod;
+        return new FuzzyQuery(
+            term,
+            distance,
+            parsedOptions.prefixLength(),
+            maxExpansions,
+            parsedOptions.transpositions(),
+            rewriteMethod
+        );
     }
 
     private static Query multiPhraseQuery(String field, TokenStream stream, int slop, boolean enablePositionIncrements) throws IOException {

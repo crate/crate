@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +56,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         "select count(*) from users",
         "select name, count(distinct id) from users group by name",
         "select avg(id) from users",
-        "select * from users where name = (select 'name')"
+        "select * from users where name = (select 'name')",
+        "SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)"
     );
 
     private SQLExecutor e;
@@ -179,40 +179,12 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testExplainAnalyzeMultiPhasePlanNotSupported() {
-        ExplainPlan plan = e.plan("EXPLAIN ANALYZE SELECT * FROM users WHERE name = (SELECT 'crate') or id = (SELECT 1)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
-        CountDownLatch counter = new CountDownLatch(1);
-
-        AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
-        AtomicReference<Throwable> failureRef = new AtomicReference<>();
-
-        plan.execute(null, plannerContext, new RowConsumer() {
-            @Override
-            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-                itRef.set(iterator);
-                failureRef.set(failure);
-                counter.countDown();
-            }
-
-            @Override
-            public CompletableFuture<?> completionFuture() {
-                return null;
-            }
-        }, Row.EMPTY, SubQueryResults.EMPTY);
-
-        assertThat(itRef.get()).isNull();
-        assertThat(failureRef.get()).isNotNull();
-        assertThat(failureRef.get().getMessage()).isEqualTo("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects.");
-    }
-
-    @Test
     public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
 
         ExplainPlan plan = e.plan("EXPLAIN (COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | true]"
         );
@@ -222,7 +194,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_explain_verbose_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE ts1 (ts TIMESTAMP NOT NULL)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
 
         ExplainPlan plan = e.plan("EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT * FROM ts1 WHERE ts = ts");
         List<Object[]> rows = execute(plan, plannerContext);
@@ -253,28 +225,46 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
 
         ExplainPlan plan = e.plan("EXPLAIN SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
-            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "  └ HashJoin[INNER | (x = x)] (rows=0)\n" +
             "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
         plan = e.plan("EXPLAIN (COSTS TRUE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)] (rows=1)\n" +
-            "  └ HashJoin[(x = x)] (rows=0)\n" +
+            "  └ HashJoin[INNER | (x = x)] (rows=0)\n" +
             "    ├ Collect[doc.a | [x] | true] (rows=100)\n" +
             "    └ Collect[doc.b | [x] | true] (rows=100)"
         );
         plan = e.plan("EXPLAIN (COSTS FALSE) SELECT COUNT(a.x) FROM a join b on a.x = b.x");
-        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()), plan.showCosts());
+        printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(), plan.showCosts());
         assertThat(printedPlan).isEqualTo(
             "HashAggregate[count(x)]\n" +
-            "  └ HashJoin[(x = x)]\n" +
+            "  └ HashJoin[INNER | (x = x)]\n" +
             "    ├ Collect[doc.a | [x] | true]\n" +
             "    └ Collect[doc.b | [x] | true]"
+        );
+    }
+
+    @Test
+    public void test_explain_insert() throws Exception {
+        TestingRowConsumer consumer = e.execute(
+            "explain insert into doc.users (id, name) values (1, 'Arthur')");
+        assertThat(consumer.getResult()).containsExactly(
+            new Object[] { "InsertFromValues[] (rows=unknown)" }
+        );
+
+        consumer = e.execute(
+            "explain insert into doc.users (id, name) (select id, name from doc.users limit 3)");
+        assertThat(consumer.getResult().get(0)[0].toString().split("\n")).containsExactly(
+            "Insert[INPUT(0)] (rows=1)",
+            "  └ Fetch[id, name] (rows=unknown)",
+            "    └ Limit[3::bigint;0] (rows=unknown)",
+            "      └ Collect[doc.users | [_fetchid] | true] (rows=unknown)"
         );
     }
 
@@ -283,7 +273,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.a (x int)")
             .addTable("CREATE TABLE doc.b (x int)");
-        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+        PlannerContext plannerContext = e.getPlannerContext();
 
         e.updateTableStats(Map.of(
             new RelationName("doc", "a"), new Stats(100, 100, Map.of()),
@@ -304,14 +294,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""}
         );
@@ -330,14 +320,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)] (rows=1)
-                  └ HashJoin[(x = x)] (rows=0)
+                  └ HashJoin[INNER | (x = x)] (rows=0)
                     ├ Collect[doc.a | [x] | true] (rows=100)
                     └ Collect[doc.b | [x] | true] (rows=100)"""}
         );
@@ -356,14 +346,14 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "optimizer_rewrite_join_plan",
                 """
                 HashAggregate[count(x)]
-                  └ HashJoin[(x = x)]
+                  └ HashJoin[INNER | (x = x)]
                     ├ Collect[doc.a | [x] | true]
                     └ Collect[doc.b | [x] | true]"""},
             new Object[]{
                 "Final logical plan",
                 """
                 HashAggregate[count(x)]
-                  └ HashJoin[(x = x)]
+                  └ HashJoin[INNER | (x = x)]
                     ├ Collect[doc.a | [x] | true]
                     └ Collect[doc.b | [x] | true]"""}
         );

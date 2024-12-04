@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -155,7 +156,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitReroutePromoteReplica(PromoteReplica<?> node, Context context) {
             var promoteReplica = node.map(x -> context.exprAnalyzer.convert((Expression) x, context.exprCtx));
 
-            HashMap<String, Symbol> properties = new HashMap<>(promoteReplica.properties().properties());
+            Map<String, Symbol> properties = promoteReplica.properties().toMap(HashMap::new);
             Symbol acceptDataLoss = properties.remove(PromoteReplica.Properties.ACCEPT_DATA_LOSS);
             if (!properties.isEmpty()) {
                 throw new IllegalArgumentException(

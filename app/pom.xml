@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.8.0</version>
+    <version>5.10.0</version>
   </parent>
 
   <artifactId>crate-app</artifactId>
@@ -66,10 +66,10 @@
           </execution>
         </executions>
         <configuration>
-          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.7.tar.gz</url>
+          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.9.tar.gz</url>
           <unpack>true</unpack>
           <outputDirectory>${project.build.directory}</outputDirectory>
-          <sha256>9bf415bef68c39b3fb0a845ade2c86cb707d0457eba7badc6b9dd29ba7e773f0</sha256>
+          <sha256>587788cf0a8b4fcc3ef14374e221a4d19db151598aac2b306005108de44b38c6</sha256>
         </configuration>
       </plugin>
       <plugin>
@@ -128,6 +128,13 @@
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>crate-copy-s3</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-copy-azure</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
       <optional>true</optional>

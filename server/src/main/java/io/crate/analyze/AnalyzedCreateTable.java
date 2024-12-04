@@ -38,7 +38,6 @@ import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexReference;
@@ -46,7 +45,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.ClusteredBy;
@@ -56,16 +55,16 @@ import io.crate.sql.tree.PartitionedBy;
 public record AnalyzedCreateTable(
         RelationName relationName,
         boolean ifNotExists,
-        /**
+        /*
          * In order of definition
          */
         Map<ColumnIdent, RefBuilder> columns,
-        /**
+        /*
          * By constraint name; In order of definition
          **/
         Map<String, AnalyzedCheck> checks,
         GenericProperties<Symbol> properties,
-        Optional<PartitionedBy<Symbol>> partitionedBy,
+        Optional<PartitionedBy<Reference>> partitionedBy,
         Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
 
     @Override
@@ -76,7 +75,7 @@ public record AnalyzedCreateTable(
         for (AnalyzedCheck check : checks.values()) {
             consumer.accept(check.check());
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
         partitionedBy.ifPresent(x -> x.columns().forEach(consumer));
         clusteredBy.ifPresent(x -> {
             x.column().ifPresent(consumer);
@@ -105,8 +104,9 @@ public record AnalyzedCreateTable(
             .map(numberOfShards::fromNumberOfShards)
             .orElseGet(numberOfShards::defaultNumberOfShards);
 
-        TableParameter tableParameter = new TableParameter();
-        tableParameter.settingsBuilder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards);
+        Settings.Builder builder = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards)
+            .put(NumberOfReplicas.SETTING.getDefault(Settings.EMPTY));
 
         Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
@@ -124,7 +124,7 @@ public record AnalyzedCreateTable(
                 String analyzer = indexRef.analyzer();
                 if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
                     Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
-                    tableParameter.settingsBuilder().put(settings);
+                    builder.put(settings);
                 }
             }
         }
@@ -144,20 +144,20 @@ public record AnalyzedCreateTable(
         }
 
         TableProperties.analyze(
-            tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
+            builder, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue));
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)
-            .map(Symbols::pathFromSymbol);
+            .map(Symbol::toColumn);
         optClusteredBy.ifPresent(c -> {
             if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(
                     "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
             }
         });
-        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID);
+        ColumnIdent routingColumn = optClusteredBy.orElse(null);
 
-        List<Symbol> partitionedByColumns = partitionedBy
+        List<Reference> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
             .orElse(List.of());
 
@@ -166,7 +166,7 @@ public record AnalyzedCreateTable(
             pkConstraintName,
             ifNotExists,
             references,
-            tableParameter,
+            builder.build(),
             List.copyOf(primaryKeys),
             checks,
             routingColumn,

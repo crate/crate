@@ -22,8 +22,7 @@
 package io.crate.metadata.functions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -32,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import io.crate.metadata.FunctionType;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
@@ -40,14 +40,12 @@ public class SignatureTest {
 
     @Test
     public void test_streaming_of_signature_and_type_signatures() throws Exception {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.INTEGER)
             .build();
 
-        var signature = Signature.builder()
-            .name("foo")
-            .kind(FunctionType.SCALAR)
-            .argumentTypes(
+        var signature = Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(
                 TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
                 objectType.getTypeSignature()
@@ -68,6 +66,6 @@ public class SignatureTest {
         StreamInput in = out.bytes().streamInput();
         var signature2 = new Signature(in);
 
-        assertThat(signature2, equalTo(signature));
+        assertThat(signature2).isEqualTo(signature);
     }
 }

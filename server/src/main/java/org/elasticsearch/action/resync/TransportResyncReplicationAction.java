@@ -103,10 +103,10 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    protected WriteReplicaResult<ResyncReplicationRequest> shardOperationOnReplica(ResyncReplicationRequest request,
-                                                                                   IndexShard replica) throws Exception {
+    protected WriteReplicaResult shardOperationOnReplica(ResyncReplicationRequest request,
+                                                         IndexShard replica) throws Exception {
         Translog.Location location = performOnReplica(request, replica);
-        return new WriteReplicaResult<>(location, null, replica);
+        return new WriteReplicaResult(location, null, replica);
     }
 
     public static Translog.Location performOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {
@@ -121,7 +121,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             final Engine.Result operationResult = replica.applyTranslogOperation(operation, Engine.Operation.Origin.REPLICA);
             if (operationResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 throw new TransportReplicationAction.RetryOnReplicaException(replica.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + operationResult.getRequiredMappingUpdate());
+                    "Mappings are not available on the replica yet, triggered update");
             }
             location = syncOperationResultOrThrow(operationResult, location);
         }

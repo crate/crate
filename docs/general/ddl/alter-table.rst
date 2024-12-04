@@ -101,11 +101,18 @@ into 4, 2 or 1 primary shards.
 Increase the number of shards
 .............................
 
-Increasing the number of shards is limited to tables which have been created
-with a ``number_of_routing_shards`` setting. For such tables the shards can be
-increased by a factor that depends on this setting. For example, a table with 5
-shards, with  ``number_of_routing_shards`` set to 20 can be changed to have
-either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20.
+To be able to increase the number of shards of a table, a correct value for the
+the :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+setting must be set during table creation. If the setting is not explicitly
+defined, a default value is calculated and set implicitly. For such tables the
+shards can be increased by a factor that depends on this setting. For example, a
+table with 5 primary shards, with ``number_of_routing_shards`` set to 20 can be
+changed to have either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20. If
+the table consists of only one primary shard, then the shard number can be
+increased to an arbitrary number (greater than 1 of course). In this case the
+default value for ``number_of_routing_shards`` will be calculated based on the
+new number of shards and set to the table, in order facilitate further increases
+of the number of its shards in the future.
 
 The only condition required for increasing the number of shards is to block
 operations to the table::
@@ -164,6 +171,16 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
 
+.. NOTE::
+
+    Adding a sub-column to an object column which is declared with a
+    :ref:`IGNORED <type-object-columns-ignored>` policy on a table with
+    existing data **may shadow the existing data** of this column if the newly
+    defined data type doesn't match or an index or columnar store of the
+    new column is used by a query. Additionally, such an operation may fail if
+    the existing primary and replica shards are not in-sync to ensure data
+    consistency.
+
 .. _alter-table-rename-column:
 
 Renaming columns
@@ -197,7 +214,7 @@ To rename a sub-column of an object column, you can use subscript expressions::
     | renamed_obj_column['name']        | text      |
     +-----------------------------------+-----------+
     SELECT 3 rows in set (... sec)
-    
+
 Closing and opening tables
 ==========================
 

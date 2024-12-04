@@ -22,10 +22,12 @@
 package io.crate.role;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,8 +41,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
@@ -48,12 +50,22 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<WriteRoleResponse> {
+        private static String NAME = "internal:crate:sql/user/create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
     public TransportCreateRoleAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool) {
         super(
-            "internal:crate:sql/user/create",
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
@@ -93,7 +105,8 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                             request.roleName(),
                             request.isUser(),
                             request.secureHash(),
-                            request.jwtProperties()
+                            request.jwtProperties(),
+                            Map.of()
                         );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
@@ -120,7 +133,8 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                            String roleName,
                            boolean isUser,
                            @Nullable SecureHash secureHash,
-                           @Nullable JwtProperties jwtProperties) {
+                           @Nullable JwtProperties jwtProperties,
+                           Map<String, Object> sessionSettings) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
 
@@ -133,7 +147,14 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
             );
         }
         if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, jwtProperties));
+            newMetadata.roles().put(roleName, new Role(
+                roleName,
+                isUser,
+                Set.of(),
+                Set.of(),
+                secureHash,
+                jwtProperties,
+                sessionSettings));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
             // nothing changed, no need to update the cluster state

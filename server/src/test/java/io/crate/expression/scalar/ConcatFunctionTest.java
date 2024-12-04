@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -42,10 +43,10 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testArgumentThatHasNoStringRepr() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: concat('foo', _array(1))," +
-                                        " no overload found for matching argument types: (text, integer_array).");
-        assertNormalize("concat('foo', [1])", isNull());
+        assertThatThrownBy(() -> assertNormalize("concat('foo', [1])", isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: concat('foo', [1]), " +
+                                    "no overload found for matching argument types: (text, integer_array).");
     }
 
 
@@ -91,18 +92,15 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: concat(_array(1, 2), _array(_array(1, 2)))," +
-                                        " no overload found for matching argument types: (integer_array, integer_array_array).");
-        assertNormalize("concat([1, 2], [[1, 2]])", isNull());
+        assertThatThrownBy(() -> assertNormalize("concat([1, 2], [[1, 2]])", isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: concat([1, 2], [[1, 2]]), " +
+                "no overload found for matching argument types: (integer_array, integer_array_array).");
     }
 
     @Test
     public void testTwoArraysOfUndefinedTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "One of the arguments of the `concat` function can be of undefined inner type, but not both");
-        assertNormalize("concat([], [])", isNull());
+        assertNormalize("concat([], [])", isLiteral(List.of()));
     }
 
     @Test
@@ -119,5 +117,37 @@ public class ConcatFunctionTest extends ScalarTestCase {
     @Test
     public void test_two_objects() {
         assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
+    }
+
+    @Test
+    public void test_concat_operator_with_null_literals() {
+        assertNormalize("null || null", isLiteral(null));
+        assertNormalize("null || 'foo'", isLiteral(null));
+        assertNormalize("'foo' || null", isLiteral(null));
+
+        assertNormalize("[1] || null", isLiteral(List.of(1)));
+        assertNormalize("null || [1]", isLiteral(List.of(1)));
+    }
+
+    public void test_concat_operator_with_strings() {
+        assertNormalize("'foo' || 'bar'", isLiteral("foobar"));
+    }
+
+    public void test_concat_operator_with_arrays() {
+        assertNormalize("[] || [1]", isLiteral(List.of(1)));
+    }
+
+    public void test_concat_operator_with_objects() {
+        assertEvaluate("{a=1} || {a=2,b=2}", Map.of("a",2,"b",2));
+    }
+
+    @Test
+    public void test_concat_operator_with_array_and_element() {
+        assertEvaluate("[1] || 2", List.of(1, 2));
+    }
+
+    @Test
+    public void test_concat_operator_with_element_and_array() {
+        assertEvaluate("1 || [2]", List.of(1, 2));
     }
 }

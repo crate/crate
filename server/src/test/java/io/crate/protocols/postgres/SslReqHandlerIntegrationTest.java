@@ -21,8 +21,8 @@
 
 package io.crate.protocols.postgres;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -127,7 +127,7 @@ public class SslReqHandlerIntegrationTest extends IntegTestCase {
         assertBusy(() -> {
             try {
                 SQLResponse response = execute("select name from sys.nodes");
-                assertEquals(1, response.rowCount());
+                assertThat(response.rowCount()).isEqualTo(1);
             } catch (Exception e) {
                 fail(e.getMessage());
             }

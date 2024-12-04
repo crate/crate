@@ -94,13 +94,12 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataType;
@@ -159,7 +158,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
     public ShardCollectSource(Settings settings,
                               IndicesService indicesService,
                               NodeContext nodeCtx,
-                              Schemas schemas,
                               ClusterService clusterService,
                               NodeLimits nodeJobsCounter,
                               ThreadPool threadPool,
@@ -187,7 +185,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -318,7 +315,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             String indexName = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 } else {
                     throw new IndexNotFoundException(indexName);
@@ -341,7 +338,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                         )).exceptionally(err -> {
                             err = SQLExceptions.unwrap(err);
                             if (err instanceof IndexNotFoundException notFound
-                                    && IndexParts.isPartitioned(notFound.getIndex().getName())) {
+                                    && IndexName.isPartitioned(notFound.getIndex().getName())) {
                                 return OrderedDocCollector.empty(notFound.getShardId());
                             }
                             throw Exceptions.toRuntimeException(err);
@@ -350,7 +347,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (IndexParts.isPartitioned(indexName)) {
+                    if (IndexName.isPartitioned(indexName)) {
                         break;
                     }
                     throw e;
@@ -391,7 +388,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                                                                               boolean requiresScroll) {
         err = SQLExceptions.unwrap(err);
         if (err instanceof IndexNotFoundException) {
-            if (IndexParts.isPartitioned(shardId.getIndexName())) {
+            if (IndexName.isPartitioned(shardId.getIndexName())) {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);
@@ -399,7 +396,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
             // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
             // and the reader required in the fetchPhase would be missing.
-            if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+            if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.FETCHID)) {
                 throw Exceptions.toRuntimeException(err);
             }
             assert collectTask.completionFuture().isDone() == false : "Cannot resume a collect task that is completed";
@@ -425,7 +422,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             String indexName = entry.getKey();
             IndexMetadata indexMD = metadata.index(indexName);
             if (indexMD == null) {
-                if (IndexParts.isPartitioned(indexName)) {
+                if (IndexName.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);

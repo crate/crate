@@ -22,6 +22,7 @@
 package io.crate.execution.engine.window;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -40,7 +41,8 @@ public interface WindowFunction extends FunctionImplementation {
      * @param currentFrame the frame the row identified by {@param rowIdx} is part of.
      * @param ignoreNulls
      */
-    Object execute(int rowIdx,
+    Object execute(LongConsumer allocateBytes,
+                   int rowIdx,
                    WindowFrameState currentFrame,
                    List<? extends CollectExpression<Row, ?>> expressions,
                    @Nullable Boolean ignoreNulls,

@@ -102,7 +102,7 @@ class Samples implements Writeable {
     }
 
     public Stats createTableStats(List<Reference> primitiveColumns) {
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
             statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());

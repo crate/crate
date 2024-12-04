@@ -59,7 +59,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(
-            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, Role.CRATE_USER), List.of(TEST_USER));
+            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, Role.CRATE_USER), List.of(TEST_USER), null);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('testUserWithClusterAL', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
@@ -117,7 +117,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user_for_compiled() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertCompile("has_schema_privilege('testUserWithClusterAL', name, 'USAGE')",
                                 TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),
@@ -194,5 +194,32 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
         assertEvaluate("has_schema_privilege('doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege(" + schemaOid + ", 'USAGE')", false);
+    }
+
+    @Test
+    public void test_unknown_schemas_with_different_privilege_classes() {
+        // super user sees true for unknown schemas
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster dql sees true for unknown schemas
+        Privilege create = new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
+        var user = RolesHelper.userOf("test", Set.of(create), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster ddl(NOT dql) sees false for unknown schemas
+        Privilege create2 = new Privilege(Policy.GRANT, Permission.DDL, Securable.CLUSTER, null, "crate");
+        var user2 = RolesHelper.userOf("test", Set.of(create2), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user2);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
+
+        // sees a false otherwise
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
     }
 }

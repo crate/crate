@@ -21,10 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +32,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
+import io.crate.session.Session;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
@@ -73,11 +70,11 @@ public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
                     session
                 );
             }
-            assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is(nullValue()));
-            assertThat(response.rows()[0][1], is(nullValue()));
-            assertThat(response.rows()[0][2], is(notNullValue()));
-            assertThat(response.rows()[0][3], is(n2));
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isNull();
+            assertThat(response.rows()[0][1]).isNull();
+            assertThat(response.rows()[0][2]).isNotNull();
+            assertThat(response.rows()[0][3]).isEqualTo(n2);
         } finally {
             partition.stopDisrupting();
             cluster().clearDisruptionScheme(true);

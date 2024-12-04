@@ -22,14 +22,12 @@
 package io.crate.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
 
 import java.util.BitSet;
 import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import io.crate.sql.tree.BitString;
@@ -45,7 +43,7 @@ public class UndefinedTypeTest extends ESTestCase {
         var in = out.bytes().streamInput();
 
         var valueIn = DataTypes.UNDEFINED.readValueFrom(in);
-        MatcherAssert.assertThat(valueIn, is(valueOut));
+        assertThat(valueIn).isEqualTo(valueOut);
     }
 
     @Test

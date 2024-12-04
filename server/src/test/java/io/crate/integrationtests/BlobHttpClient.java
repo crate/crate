@@ -21,14 +21,13 @@
 
 package io.crate.integrationtests;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
-
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 
 import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
@@ -41,12 +40,15 @@ class BlobHttpClient {
         this.address = address;
     }
 
-    public CloseableHttpResponse put(String table, String body) throws IOException {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        String digest = Hex.encodeHexString(Blobs.digest(body));
-        String url = Blobs.url(false, address, table + "/" + digest);
-        HttpPut httpPut = new HttpPut(url);
-        httpPut.setEntity(new StringEntity(body));
-        return httpClient.execute(httpPut);
+    public HttpResponse<String> put(String table, String body) throws Exception {
+        try (var httpClient = HttpClient.newHttpClient()) {
+            String digest = Hex.encodeHexString(Blobs.digest(body));
+            URI uri = Blobs.url(false, address, table + "/" + digest);
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .PUT(BodyPublishers.ofString(body))
+                .build();
+
+            return httpClient.send(request, BodyHandlers.ofString());
+        }
     }
 }

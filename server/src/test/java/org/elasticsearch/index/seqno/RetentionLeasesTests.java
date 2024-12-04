@@ -19,13 +19,8 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -35,6 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.test.ESTestCase;
 
@@ -59,10 +55,10 @@ public class RetentionLeasesTests extends ESTestCase {
         final RetentionLeases left = new RetentionLeases(lowerPrimaryTerm, randomLongBetween(1, Long.MAX_VALUE), Collections.emptyList());
         final long higherPrimaryTerm = randomLongBetween(lowerPrimaryTerm + 1, Long.MAX_VALUE);
         final RetentionLeases right = new RetentionLeases(higherPrimaryTerm, randomLongBetween(1, Long.MAX_VALUE), Collections.emptyList());
-        assertTrue(right.supersedes(left));
-        assertTrue(right.supersedes(left.primaryTerm(), left.version()));
-        assertFalse(left.supersedes(right));
-        assertFalse(left.supersedes(right.primaryTerm(), right.version()));
+        assertThat(right.supersedes(left)).isTrue();
+        assertThat(right.supersedes(left.primaryTerm(), left.version())).isTrue();
+        assertThat(left.supersedes(right)).isFalse();
+        assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
     public void testSupersedesByVersion() {
@@ -71,10 +67,10 @@ public class RetentionLeasesTests extends ESTestCase {
         final long higherVersion = randomLongBetween(lowerVersion + 1, Long.MAX_VALUE);
         final RetentionLeases left = new RetentionLeases(primaryTerm, lowerVersion, Collections.emptyList());
         final RetentionLeases right = new RetentionLeases(primaryTerm, higherVersion, Collections.emptyList());
-        assertTrue(right.supersedes(left));
-        assertTrue(right.supersedes(left.primaryTerm(), left.version()));
-        assertFalse(left.supersedes(right));
-        assertFalse(left.supersedes(right.primaryTerm(), right.version()));
+        assertThat(right.supersedes(left)).isTrue();
+        assertThat(right.supersedes(left.primaryTerm(), left.version())).isTrue();
+        assertThat(left.supersedes(right)).isFalse();
+        assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
     public void testRetentionLeasesRejectsDuplicates() {
@@ -91,9 +87,9 @@ public class RetentionLeasesTests extends ESTestCase {
     public void testLeasesPreservesIterationOrder() {
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
         if (retentionLeases.leases().isEmpty()) {
-            assertThat(retentionLeases.leases(), empty());
+            assertThat(retentionLeases.leases()).isEmpty();
         } else {
-            assertThat(retentionLeases.leases(), contains(retentionLeases.leases().toArray(new RetentionLease[0])));
+            assertThat(retentionLeases.leases()).containsExactly(retentionLeases.leases().toArray(new RetentionLease[0]));
         }
     }
 
@@ -101,7 +97,7 @@ public class RetentionLeasesTests extends ESTestCase {
         final Path path = createTempDir();
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
         RetentionLeases.FORMAT.writeAndCleanup(retentionLeases, path);
-        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path), equalTo(retentionLeases));
+        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedWriteableRegistry.EMPTY, NamedXContentRegistry.EMPTY, path)).isEqualTo(retentionLeases);
     }
 
     private RetentionLeases randomRetentionLeases(boolean allowEmpty) {

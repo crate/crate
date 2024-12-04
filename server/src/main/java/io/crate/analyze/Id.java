@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.SysColumns;
 
 
 public class Id {
@@ -61,19 +61,16 @@ public class Id {
      */
     private static Function<List<String>, String> compileWithNullValidation(final int numPks,
                                                                             final int clusteredByPosition) {
-        switch (numPks) {
-            case 0:
-                return RANDOM_ID;
-            case 1:
-                return ONLY_ITEM_NULL_VALIDATION;
-            default:
-                return keyValues -> {
-                    if (keyValues.size() != numPks) {
-                        throw new IllegalArgumentException("Missing primary key values");
-                    }
-                    return encode(keyValues, clusteredByPosition);
-                };
-        }
+        return switch (numPks) {
+            case 0 -> RANDOM_ID;
+            case 1 -> ONLY_ITEM_NULL_VALIDATION;
+            default -> keyValues -> {
+                if (keyValues.size() != numPks) {
+                    throw new IllegalArgumentException("Missing primary key values");
+                }
+                return encode(keyValues, clusteredByPosition);
+            };
+        };
     }
 
     /**
@@ -93,7 +90,7 @@ public class Id {
      */
     public static Function<List<String>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();
-        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
+        if (numPks == 1 && getOnlyElement(pkColumns).equals(SysColumns.ID.COLUMN)) {
             return RANDOM_ID;
         }
         int idx = -1;

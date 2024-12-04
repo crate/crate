@@ -21,16 +21,26 @@
 
 package io.crate.testing;
 
+import static org.elasticsearch.test.ESTestCase.assertBusy;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.test.MockLogAppender;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -41,8 +51,10 @@ import io.crate.data.Input;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;
@@ -61,6 +73,10 @@ public class Asserts extends Assertions {
 
     public static SymbolAssert assertThat(Symbol actual) {
         return new SymbolAssert(actual);
+    }
+
+    public static ReferenceAssert assertThat(Reference reference) {
+        return new ReferenceAssert(reference);
     }
 
     public static SymbolsAssert<? extends Symbol> assertList(List<? extends Symbol> actual) {
@@ -114,6 +130,18 @@ public class Asserts extends Assertions {
 
     public static PrivilegeResolutionAssert assertThat(Policy actual) {
         return new PrivilegeResolutionAssert(actual);
+    }
+
+    public static TranslogSnapshotAssert assertThat(Translog.Snapshot actual) {
+        return new TranslogSnapshotAssert(actual);
+    }
+
+    public static EngineSearcherAssert assertThat(Engine.Searcher actual) {
+        return new EngineSearcherAssert(actual);
+    }
+
+    public static TableInfoAssert assertThat(TableInfo actual) {
+        return new TableInfoAssert(actual);
     }
 
     // generic helper methods
@@ -180,6 +208,16 @@ public class Asserts extends Assertions {
             assertThat(s).isExactlyInstanceOf(Literal.class);
             assertThat(s).hasDataType(DataTypes.DOUBLE);
             Double value = (Double) ((Input<?>) s).value();
+            assertThat(value).isCloseTo(expectedValue, Offset.offset(precisionError));
+        };
+    }
+
+    public static Consumer<Symbol> isLiteral(BigDecimal expectedValue, BigDecimal precisionError) {
+        return s -> {
+            assertThat(s).isNotNull();
+            assertThat(s).isExactlyInstanceOf(Literal.class);
+            assertThat(s).hasDataType(DataTypes.NUMERIC);
+            BigDecimal value = (BigDecimal) ((Input<?>) s).value();
             assertThat(value).isCloseTo(expectedValue, Offset.offset(precisionError));
         };
     }
@@ -282,4 +320,21 @@ public class Asserts extends Assertions {
     public static Function<Scalar, Consumer<Scalar>> isNotSameInstance() {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
     }
+
+    public static void assertExpectedLogMessages(Runnable command,
+                                                 String loggerName,
+                                                 MockLogAppender.LoggingExpectation ... expectations) throws Exception {
+        Logger testLogger = LogManager.getLogger(loggerName);
+        MockLogAppender appender = new MockLogAppender();
+        Loggers.addAppender(testLogger, appender);
+        try {
+            appender.start();
+            Arrays.stream(expectations).forEach(appender::addExpectation);
+            command.run();
+            assertBusy(appender::assertAllExpectationsMatched);
+        } finally {
+            Loggers.removeAppender(testLogger, appender);
+        }
+    }
+
 }

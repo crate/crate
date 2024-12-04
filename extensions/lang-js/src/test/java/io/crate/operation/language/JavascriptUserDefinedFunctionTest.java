@@ -24,7 +24,6 @@ package io.crate.operation.language;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
-import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +48,6 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -65,11 +62,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        udfService = new UserDefinedFunctionService(
-            mock(ClusterService.class),
-            new DocTableInfoFactory(sqlExpressions.nodeCtx),
-            sqlExpressions.nodeCtx
-        );
+        udfService = new UserDefinedFunctionService(clusterService, sqlExpressions.nodeCtx);
         new JavaScriptLanguage(udfService);
     }
 
@@ -91,9 +84,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             var resolvers = functionImplementations.computeIfAbsent(
                 functionName, k -> new ArrayList<>());
             resolvers.add(udfService.buildFunctionResolver(udf));
-            sqlExpressions.nodeCtx.functions().registerUdfFunctionImplementationsForSchema(
-                Schemas.DOC_SCHEMA_NAME,
-                functionImplementations);
+            sqlExpressions.nodeCtx.functions().setUDFs(functionImplementations);
         } else {
             throw new ScriptException(validation);
         }

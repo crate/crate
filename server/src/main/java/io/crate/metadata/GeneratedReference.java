@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
@@ -35,17 +34,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
-public class GeneratedReference implements Reference {
+public final class GeneratedReference implements Reference {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(GeneratedReference.class);
 
@@ -67,16 +62,16 @@ public class GeneratedReference implements Reference {
         this.ref = ref;
         this.generatedExpression = generatedExpression;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.AGGREGATE)) {
             throw new UnsupportedOperationException(
                 "Aggregation functions are not allowed in generated columns: " + generatedExpression);
         }
-        if (SymbolVisitors.any(Symbols::isTableFunction, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.TABLE)) {
             throw new UnsupportedOperationException(
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
         this.referencedReferences = new ArrayList<>();
-        RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
+        generatedExpression.visit(Reference.class, referencedReferences::add);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
@@ -88,9 +83,9 @@ public class GeneratedReference implements Reference {
         }
         formattedGeneratedExpression = in.readString();
         if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
-            generatedExpression = Symbols.nullableFromStream(in);
+            generatedExpression = Symbol.nullableFromStream(in);
         } else {
-            generatedExpression = Symbols.fromStream(in);
+            generatedExpression = Symbol.fromStream(in);
         }
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
@@ -112,7 +107,6 @@ public class GeneratedReference implements Reference {
                     ref.ident(),
                     ref.granularity(),
                     ref.valueType(),
-                    ref.columnPolicy(),
                     ref.indexType(),
                     ref.isNullable(),
                     ref.hasDocValues(),
@@ -126,9 +120,9 @@ public class GeneratedReference implements Reference {
         }
         out.writeString(formattedGeneratedExpression);
         if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
-            Symbols.nullableToStream(generatedExpression, out);
+            Symbol.nullableToStream(generatedExpression, out);
         } else {
-            Symbols.toStream(generatedExpression, out);
+            Symbol.toStream(generatedExpression, out);
         }
 
         out.writeVInt(referencedReferences.size());
@@ -154,27 +148,29 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
+    public boolean isDeterministic() {
+        return generatedExpression.isDeterministic();
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.GENERATED_REFERENCE;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        GeneratedReference that = (GeneratedReference) o;
-        return Objects.equals(generatedExpression, that.generatedExpression) &&
-               Objects.equals(referencedReferences, that.referencedReferences) &&
-               Objects.equals(ref, that.ref);
+        return o instanceof GeneratedReference that
+            && generatedExpression.equals(that.generatedExpression)
+            && referencedReferences.equals(that.referencedReferences)
+            && ref.equals(that.ref);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(generatedExpression, ref, referencedReferences);
+        int result = generatedExpression.hashCode();
+        result = 31 * result + ref.hashCode();
+        result = 31 * referencedReferences.hashCode();
+        return result;
     }
 
     @Override
@@ -208,11 +204,6 @@ public class GeneratedReference implements Reference {
     }
 
     @Override
-    public ColumnPolicy columnPolicy() {
-        return ref.columnPolicy();
-    }
-
-    @Override
     public boolean isNullable() {
         return ref.isNullable();
     }
@@ -234,7 +225,7 @@ public class GeneratedReference implements Reference {
 
     @Override
     public boolean isDropped() {
-        return false;
+        return ref.isDropped();
     }
 
     @Override

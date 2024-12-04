@@ -75,6 +75,10 @@ For example, for the ``jdbc`` foreign data wrapper, the options ``user`` and
 
 .. code-block:: psql
 
+  CREATE USER MAPPING
+  FOR mylocaluser
+  SERVER myserver
+  OPTIONS ("user" 'myremoteuser', password '*****');
 
 .. seealso::
 

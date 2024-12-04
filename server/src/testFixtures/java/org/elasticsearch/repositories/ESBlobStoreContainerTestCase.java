@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.ESBlobStoreTestCase.randomBytes;
 import static org.elasticsearch.repositories.ESBlobStoreTestCase.writeRandomBlob;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,7 +78,7 @@ public abstract class ESBlobStoreContainerTestCase extends ESTestCase {
                     target.append(new BytesRef(buffer, offset, read));
                 }
                 assertThat(target.length()).isEqualTo(data.length);
-                assertArrayEquals(data, Arrays.copyOfRange(target.bytes(), 0, target.length()));
+                assertThat(Arrays.copyOfRange(target.bytes(), 0, target.length())).isEqualTo(data);
             }
         }
     }

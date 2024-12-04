@@ -20,16 +20,8 @@ package org.elasticsearch.cluster.service;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,6 +45,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterName;
@@ -71,7 +64,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.BaseFuture;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
@@ -156,7 +148,7 @@ public class MasterServiceTests extends ESTestCase {
         });
 
         latch1.await();
-        assertTrue("cluster state update task was executed on a non-master", taskFailed[0]);
+        assertThat(taskFailed[0]).as("cluster state update task was executed on a non-master").isTrue();
 
         final CountDownLatch latch2 = new CountDownLatch(1);
         nonMaster.submitStateUpdateTask("test", new LocalClusterUpdateTask() {
@@ -174,7 +166,7 @@ public class MasterServiceTests extends ESTestCase {
             }
         });
         latch2.await();
-        assertFalse("non-master cluster state update task was not executed", taskFailed[0]);
+        assertThat(taskFailed[0]).as("non-master cluster state update task was not executed").isFalse();
 
         nonMaster.close();
     }
@@ -220,7 +212,7 @@ public class MasterServiceTests extends ESTestCase {
             );
 
             latch.await();
-            assertTrue(published.get());
+            assertThat(published.get()).isTrue();
         }
     }
 
@@ -430,8 +422,9 @@ public class MasterServiceTests extends ESTestCase {
             public ClusterTasksResult<Task> execute(ClusterState currentState, List<Task> tasks) throws Exception {
                 for (Set<Task> expectedSet : taskGroups) {
                     long count = tasks.stream().filter(expectedSet::contains).count();
-                    assertThat("batched set should be executed together or not at all. Expected " + expectedSet + "s. Executing " + tasks,
-                        count, anyOf(equalTo(0L), equalTo((long) expectedSet.size())));
+                    assertThat(count)
+                        .as("batched set should be executed together or not at all. Expected " + expectedSet + "s. Executing " + tasks)
+                        .isIn(0L, (long) expectedSet.size());
                 }
                 tasks.forEach(Task::execute);
                 counter.addAndGet(tasks.size());
@@ -545,27 +538,28 @@ public class MasterServiceTests extends ESTestCase {
             semaphore.acquire(numberOfExecutors);
 
             // assert the number of executed tasks is correct
-            assertEquals(totalTaskCount, counter.get());
+            assertThat(counter.get()).isEqualTo(totalTaskCount);
 
             // assert each executor executed the correct number of tasks
             for (TaskExecutor executor : executors) {
                 if (counts.containsKey(executor)) {
-                    assertEquals((int) counts.get(executor), executor.counter.get());
-                    assertEquals(executor.batches.get(), executor.published.get());
+                    assertThat(executor.counter.get()).isEqualTo((int) counts.get(executor));
+                    assertThat(executor.published.get()).isEqualTo(executor.batches.get());
                 }
             }
 
             // assert the correct number of clusterStateProcessed events were triggered
             for (Map.Entry<String, AtomicInteger> entry : processedStates.entrySet()) {
-                assertThat(submittedTasksPerThread, hasKey(entry.getKey()));
-                assertEquals("not all tasks submitted by " + entry.getKey() + " received a processed event",
-                    entry.getValue().get(), submittedTasksPerThread.get(entry.getKey()).get());
+                assertThat(submittedTasksPerThread).containsKey(entry.getKey());
+                assertThat(submittedTasksPerThread.get(entry.getKey()).get())
+                    .as("not all tasks submitted by " + entry.getKey() + " received a processed event")
+                    .isEqualTo(entry.getValue().get());
             }
         }
     }
 
     public void testBlockingCallInClusterStateTaskListenerFails() throws InterruptedException {
-        assumeTrue("assertions must be enabled for this test to work", BaseFuture.class.desiredAssertionStatus());
+        assumeTrue("assertions must be enabled for this test to work", PlainFuture.class.desiredAssertionStatus());
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<AssertionError> assertionRef = new AtomicReference<>();
 
@@ -581,7 +575,7 @@ public class MasterServiceTests extends ESTestCase {
                 new ClusterStateTaskListener() {
                     @Override
                     public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                        BaseFuture<Void> future = new BaseFuture<Void>() {
+                        PlainFuture<Void> future = new PlainFuture<Void>() {
                         };
                         try {
                             if (randomBoolean()) {
@@ -604,8 +598,8 @@ public class MasterServiceTests extends ESTestCase {
             );
 
             latch.await();
-            assertNotNull(assertionRef.get());
-            assertThat(assertionRef.get().getMessage(), containsString("Reason: [Blocking operation]"));
+            assertThat(assertionRef.get()).isNotNull();
+            assertThat(assertionRef.get().getMessage()).contains("Reason: [Blocking operation]");
         }
     }
 

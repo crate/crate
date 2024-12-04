@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.profile;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
@@ -44,7 +43,7 @@ public class CollectProfileRequestTest {
 
         CollectProfileRequest streamed = new CollectProfileRequest(in);
 
-        assertThat(originalRequest.jobId(), is(streamed.jobId()));
+        assertThat(originalRequest.jobId()).isEqualTo(streamed.jobId());
     }
 
 }

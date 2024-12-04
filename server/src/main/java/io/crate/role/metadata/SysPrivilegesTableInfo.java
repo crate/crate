@@ -34,36 +34,26 @@ import io.crate.role.Role;
 
 public class SysPrivilegesTableInfo {
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
 
-    @SuppressWarnings("WeakerAccess")
-    public static class PrivilegeRow {
-        private final String grantee;
-        private final Privilege privilege;
-
-        PrivilegeRow(String grantee, Privilege privilege) {
-            this.grantee = grantee;
-            this.privilege = privilege;
-        }
+    public static record PrivilegeRow(String grantee, Privilege privilege) {
     }
 
-    public static SystemTable<PrivilegeRow> create() {
-        return SystemTable.<PrivilegeRow>builder(IDENT)
-            .add("grantee", STRING, x -> x.grantee)
-            .add("grantor", STRING, x -> x.privilege.grantor())
-            .add("state", STRING, x -> x.privilege.policy().toString())
-            .add("type", STRING, x -> x.privilege.subject().permission().toString())
-            .add("class", STRING, x -> x.privilege.subject().securable().toString())
-            .add("ident", STRING, x -> x.privilege.subject().ident())
-            .setPrimaryKeys(
-                new ColumnIdent("grantee"),
-                new ColumnIdent("state"),
-                new ColumnIdent("type"),
-                new ColumnIdent("class"),
-                new ColumnIdent("ident")
-            )
-            .build();
-    }
+    public static SystemTable<PrivilegeRow> INSTANCE = SystemTable.<PrivilegeRow>builder(IDENT)
+        .add("grantee", STRING, x -> x.grantee)
+        .add("grantor", STRING, x -> x.privilege.grantor())
+        .add("state", STRING, x -> x.privilege.policy().toString())
+        .add("type", STRING, x -> x.privilege.subject().permission().toString())
+        .add("class", STRING, x -> x.privilege.subject().securable().toString())
+        .add("ident", STRING, x -> x.privilege.subject().ident())
+        .setPrimaryKeys(
+            ColumnIdent.of("grantee"),
+            ColumnIdent.of("state"),
+            ColumnIdent.of("type"),
+            ColumnIdent.of("class"),
+            ColumnIdent.of("ident")
+        )
+        .build();
 
     public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<Role> roles) {
         return () -> StreamSupport.stream(roles.spliterator(), false)

@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +36,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.junit.Test;
 
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 @IntegTestCase.Slow
@@ -69,7 +66,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
                     )
                 """);
         execute("insert into registers values (1, 'initial value')");
-        refresh();
+        execute("refresh table registers");
 
         // not setting this when creating the table because we want the replica to be initialized before we start disrupting
         // otherwise the replica might not be ready to be promoted to primary due to "primary failed while replica initializing"
@@ -105,12 +102,12 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         String nonIsolatedDataNodeId = firstDataNodeHasPrimary ? secondDataNodeId : firstDataNodeId;
         logger.info("wait for replica on the partition with the master to be promoted to primary");
         assertBusy(() -> {
-            String index = IndexParts.toIndexName(schema, "registers", null);
+            String index = IndexName.encode(schema, "registers", null);
             ShardRouting primaryShard = client(masterNodeName).admin().cluster().state(new ClusterStateRequest()).get().getState().routingTable()
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
-            assertThat(primaryShard.currentNodeId(), equalTo(nonIsolatedDataNodeId));
-            assertTrue(primaryShard.active());
+            assertThat(primaryShard.currentNodeId()).isEqualTo(nonIsolatedDataNodeId);
+            assertThat(primaryShard.active()).isTrue();
         }, 30, TimeUnit.SECONDS);
 
         execute("update registers set value = 'value set on master' where id = 1", null, masterNodeName);
@@ -129,8 +126,10 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         long finalSequenceNumber = (long) response.rows()[0][1];
         long finalPrimaryTerm = (long) response.rows()[0][2];
 
-        assertThat("We executed 2 updates on the new primary", finalSequenceNumber, is(2L));
-        assertThat("Primary promotion should've triggered a bump in primary term", finalPrimaryTerm, equalTo(2L));
-        assertThat(finalValue, equalTo("value set on master the second time"));
+        assertThat(finalSequenceNumber)
+            .as("We executed 2 updates on the new primary")
+            .isEqualTo(2L);
+        assertThat(finalPrimaryTerm).as("Primary promotion should've triggered a bump in primary term").isEqualTo(2L);
+        assertThat(finalValue).isEqualTo("value set on master the second time");
     }
 }

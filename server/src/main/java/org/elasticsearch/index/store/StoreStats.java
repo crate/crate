@@ -26,10 +26,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
-public final class StoreStats implements Writeable, ToXContentFragment {
+public final class StoreStats implements Writeable {
 
     /**
      * Sentinel value for cases where the shard does not yet know its reserved size so we must fall back to an estimate, for instance
@@ -108,22 +106,5 @@ public final class StoreStats implements Writeable, ToXContentFragment {
      */
     public ByteSizeValue getReservedSize() {
         return new ByteSizeValue(reservedSize);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.STORE);
-        builder.humanReadableField(Fields.SIZE_IN_BYTES, Fields.SIZE, size());
-        builder.humanReadableField(Fields.RESERVED_IN_BYTES, Fields.RESERVED, getReservedSize());
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String STORE = "store";
-        static final String SIZE = "size";
-        static final String SIZE_IN_BYTES = "size_in_bytes";
-        static final String RESERVED = "reserved";
-        static final String RESERVED_IN_BYTES = "reserved_in_bytes";
     }
 }

@@ -23,6 +23,7 @@ package io.crate.integrationtests.disruption.routing;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -57,7 +58,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Sets;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @IntegTestCase.Slow
@@ -76,16 +77,16 @@ public class PrimaryAllocationIT extends IntegTestCase {
     @Before
     public void setupIndexNameAndSchemaForTableT() {
         schema = sqlExecutor.getCurrentSchema();
-        indexName = IndexParts.toIndexName(schema, "t", null);
+        indexName = IndexName.encode(schema, "t", null);
     }
 
     private Settings createStaleReplicaScenario(String master, String schema, String indexName) throws Exception {
         execute("insert into t values ('value1')");
-        refresh();
+        execute("refresh table t");
 
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest().all()).get().getState();
         List<ShardRouting> shards = state.routingTable().allShards(indexName);
-        assertThat(shards.size()).isEqualTo(2);
+        assertThat(shards).hasSize(2);
 
         final String primaryNode;
         final String replicaNode;
@@ -127,7 +128,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
             assertThat(cluster().getInstance(AllocationService.class, master).getNumberOfInFlightFetches()).isEqualTo(0));
         // kick reroute a second time and check that all shards are unassigned
         var clusterRerouteResponse = client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
-        assertThat(clusterRerouteResponse.getState().getRoutingNodes().unassigned().size()).isEqualTo(2);
+        assertThat(clusterRerouteResponse.getState().getRoutingNodes().unassigned()).hasSize(2);
         return inSyncDataPathSettings;
     }
 

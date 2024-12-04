@@ -19,23 +19,23 @@
 
 package org.elasticsearch.env;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.MetadataStateFormat;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Objects;
 
 /**
  * Metadata associated with this node: its persistent node ID and its version.
  * The metadata is persisted in the data folder of this node and is reused across restarts.
  */
-public final class NodeMetadata {
+public final class NodeMetadata implements Writeable {
 
     static final String NODE_ID_KEY = "node_id";
     static final String NODE_VERSION_KEY = "node_version";
@@ -47,6 +47,17 @@ public final class NodeMetadata {
     public NodeMetadata(final String nodeId, final Version nodeVersion) {
         this.nodeId = Objects.requireNonNull(nodeId);
         this.nodeVersion = Objects.requireNonNull(nodeVersion);
+    }
+
+    public NodeMetadata(StreamInput in) throws IOException {
+        this.nodeId = in.readString();
+        this.nodeVersion = Version.readVersion(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(nodeId);
+        Version.writeVersion(nodeVersion, out);
     }
 
     @Override
@@ -140,21 +151,13 @@ public final class NodeMetadata {
         }
 
         @Override
-        protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
-            XContentBuilder xContentBuilder = super.newXContentBuilder(type, stream);
-            xContentBuilder.prettyPrint();
-            return xContentBuilder;
-        }
-
-        @Override
-        public void toXContent(XContentBuilder builder, NodeMetadata nodeMetadata) throws IOException {
-            builder.field(NODE_ID_KEY, nodeMetadata.nodeId);
-            builder.field(NODE_VERSION_KEY, nodeMetadata.nodeVersion.internalId);
-        }
-
-        @Override
         public NodeMetadata fromXContent(XContentParser parser) throws IOException {
             return objectParser.apply(parser, null).build();
+        }
+
+        @Override
+        public NodeMetadata readFrom(StreamInput in) throws IOException {
+            return new NodeMetadata(in);
         }
     }
 

@@ -254,7 +254,7 @@ Parameters
 =================
 
 If the optional ``IF NOT EXISTS`` clause is used, this statement won't do
-anything if the table exists already.
+anything if the table exists already, and ``0`` rows will be returned.
 
 
 .. _sql-create-table-clustered:
@@ -384,7 +384,16 @@ The number of replicas is defined like this::
 
   The actual maximum number of replicas is max(num_replicas, N-1), where N is
   the number of data nodes in the cluster. If ``max_replicas`` is the string
-  ``all`` then it will always be N.
+  ``all`` then it will always be N-1.
+
+.. NOTE::
+
+   If the value is provided as a range or the default value ``0-1`` is used,
+   :ref:`cluster.max_shards_per_node <cluster.max_shards_per_node>` and
+   :ref:`cluster.routing.allocation.total_shards_per_node
+   <cluster.routing.allocation.total_shards_per_node>` limits account only for
+   primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed those limits.
 
 .. SEEALSO::
 
@@ -400,8 +409,12 @@ This number specifies the hashing space that is used internally to distribute
 documents across shards.
 
 This is an optional setting that enables users to later on increase the number
-of shards using :ref:`sql-alter-table`. It's not possible to update this
-setting after table creation.
+of shards using :ref:`sql-alter-table`. If it's not set explicitly, it's
+automatically set to a default value based on the number of shards defined in
+the :ref:`sql-create-table-clustered`, which allows to increase the shards by
+a factor of `2` each time, up until the maximum of `1024` shards per table.
+
+.. NOTE:: It's not possible to update this setting after table creation.
 
 
 .. _sql-create-table-refresh-interval:
@@ -812,7 +825,9 @@ shard before giving up and leaving the shard unallocated.
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has at least one of the
-comma-separated values.
+comma-separated values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.include.*>` for the given
+table, which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 
@@ -825,7 +840,9 @@ comma-separated values.
 ------------------------------------------
 
 Assign the table to a node whose ``{attribute}`` has all of the comma-separated
-values.
+values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.require.*>` for the given
+table which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 
@@ -837,8 +854,10 @@ values.
 ``routing.allocation.exclude.{attribute}``
 ------------------------------------------
 
-Assign the table to a node whose ``{attribute}`` has none of the
-comma-separated values.
+Assign the table to a node whose ``{attribute}`` has none of the comma-separated
+values. This setting overrides the related
+:ref:`cluster setting <cluster.routing.allocation.exclude.*>` for the given
+table which will then ignore the cluster setting completely.
 
 .. SEEALSO::
 

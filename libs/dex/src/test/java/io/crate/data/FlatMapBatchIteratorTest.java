@@ -32,6 +32,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingBatchIterators;
 
 class FlatMapBatchIteratorTest {
@@ -59,7 +60,7 @@ class FlatMapBatchIteratorTest {
         var tester = BatchIteratorTester.forRows(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);
             return new FlatMapBatchIterator<>(source, duplicateRow);
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(
             Arrays.asList(
                 new Object[] { 1 },

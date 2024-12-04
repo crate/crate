@@ -21,23 +21,15 @@
 
 package io.crate.replication.logical.metadata;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -81,30 +73,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         var subs2 = new SubscriptionsMetadata(in);
-        assertThat(subs2, is(subs));
+        assertThat(subs2).isEqualTo(subs);
 
-    }
-
-    @Test
-    public void testToXContent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        var subs = createMetadata();
-        subs.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            BytesReference.toBytes(BytesReference.bytes(builder)));
-        parser.nextToken(); // start object
-        var subs2 = SubscriptionsMetadata.fromXContent(parser);
-        assertThat(subs2, is(subs));
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
     }
 }

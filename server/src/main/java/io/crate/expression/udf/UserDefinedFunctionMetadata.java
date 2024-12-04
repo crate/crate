@@ -21,17 +21,7 @@
 
 package io.crate.expression.udf;
 
-import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,9 +30,18 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toList;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.XContentParser;
 
-public class UserDefinedFunctionMetadata implements Writeable, ToXContent {
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.exceptions.UnhandledServerException;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
+public class UserDefinedFunctionMetadata implements Writeable {
 
     private final String name;
     private final String schema;
@@ -133,24 +132,6 @@ public class UserDefinedFunctionMetadata implements Writeable, ToXContent {
         return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("schema", schema);
-        builder.field("name", name);
-        builder.startArray("arguments");
-        for (FunctionArgumentDefinition argument : arguments) {
-            argument.toXContent(builder, params);
-        }
-        builder.endArray();
-        builder.field("return_type");
-        DataTypeXContent.toXContent(returnType, builder, params);
-        builder.field("language", language);
-        builder.field("definition", definition);
-        builder.endObject();
-        return builder;
-    }
-
     static UserDefinedFunctionMetadata fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
             throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
@@ -222,16 +203,6 @@ public class UserDefinedFunctionMetadata implements Writeable, ToXContent {
     }
 
     public static class DataTypeXContent {
-
-        public static XContentBuilder toXContent(DataType<?> type, XContentBuilder builder, Params params) throws IOException {
-            builder.startObject().field("id", type.id());
-            if (type instanceof ArrayType) {
-                builder.field("inner_type");
-                toXContent(((ArrayType<?>) type).innerType(), builder, params);
-            }
-            builder.endObject();
-            return builder;
-        }
 
         public static DataType<?> fromXContent(XContentParser parser) throws IOException {
             XContentParser.Token token = parser.currentToken();

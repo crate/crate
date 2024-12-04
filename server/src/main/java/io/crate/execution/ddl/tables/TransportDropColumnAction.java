@@ -29,11 +29,10 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
@@ -45,12 +44,10 @@ public class TransportDropColumnAction extends AbstractDDLTransportAction<DropCo
         (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropColumns(req.colsToDrop());
     private static final String ACTION_NAME = "internal:crate:sql/table/drop_column";
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
 
     @Inject
     public TransportDropColumnAction(TransportService transportService,
                                      ClusterService clusterService,
-                                     IndicesService indicesService,
                                      ThreadPool threadPool,
                                      NodeContext nodeContext) {
         super(ACTION_NAME,
@@ -62,17 +59,11 @@ public class TransportDropColumnAction extends AbstractDDLTransportAction<DropCo
               AcknowledgedResponse::new,
               "drop-column");
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
     }
 
     @Override
     public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
-        return new AlterTableTask<>(
-            nodeContext,
-            indicesService::createIndexMapperService,
-            request.relationName(),
-            DROP_COLUMN_OPERATOR
-        );
+        return new AlterTableTask<>(nodeContext, request.relationName(), DROP_COLUMN_OPERATOR);
     }
 
 

@@ -35,7 +35,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 
 import io.crate.Streamer;
 
-class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
+public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
 
     private final Streamer<T> streamer;
 

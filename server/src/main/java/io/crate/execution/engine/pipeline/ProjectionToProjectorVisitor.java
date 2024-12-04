@@ -28,6 +28,7 @@ import static io.crate.planner.operators.InsertFromValues.checkConstraints;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,7 +42,6 @@ import java.util.stream.Collector;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
@@ -53,7 +53,6 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.collections.Iterables;
@@ -106,7 +105,6 @@ import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
-import io.crate.execution.engine.indexing.IndexNameResolver;
 import io.crate.execution.engine.indexing.IndexWriterProjector;
 import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -125,22 +123,23 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -175,11 +174,8 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
     private final int numProcessors;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
-    private final Schemas schemas;
-
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -194,7 +190,6 @@ public class ProjectionToProjectorVisitor
                                         @Nullable ShardId shardId,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
-        this.schemas = schemas;
         this.nodeJobsCounter = nodeJobsCounter;
         this.circuitBreakerService = circuitBreakerService;
         this.nodeCtx = nodeCtx;
@@ -212,7 +207,6 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
-                                        Schemas schemas,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
                                         NodeContext nodeCtx,
@@ -224,7 +218,6 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -341,7 +334,7 @@ public class ProjectionToProjectorVisitor
         return new GroupingProjector(
             projection.keys(),
             keyInputs,
-            Iterables.toArray(ctx.expressions(), CollectExpression.class),
+            ctx.expressions().toArray(CollectExpression[]::new),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
@@ -385,14 +378,17 @@ public class ProjectionToProjectorVisitor
         String uri = DataTypes.STRING.sanitizeValue(
             SymbolEvaluator.evaluate(context.txnCtx, nodeCtx, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
+        assert shardId != null : "ShardId must be set to use WriterProjection";
+        IndexParts indexParts = IndexName.decode(shardId.getIndexName());
+        String fileName = String.format(
+            Locale.ENGLISH,
+            "%s_%s_%s.json",
+            indexParts.table(),
+            shardId.id(),
+            indexParts.partitionIdent()
+        );
 
         StringBuilder sb = new StringBuilder(uri);
-        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.txnCtx);
-        assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
-        assert resolvedFileName.valueType().id() == StringType.ID :
-            "resolvedFileName.valueType() must be " + StringType.INSTANCE;
-
-        String fileName = (String) ((Literal<?>) resolvedFileName).value();
         if (!uri.endsWith("/")) {
             sb.append("/");
         }
@@ -402,37 +398,17 @@ public class ProjectionToProjectorVisitor
         }
         uri = sb.toString();
 
-        Map<ColumnIdent, Object> overwrites =
-            symbolMapToObject(projection.overwrites(), ctx, context.txnCtx);
-
         return new FileWriterProjector(
             threadPool.generic(),
             uri,
             projection.compressionType(),
             inputs,
             ctx.expressions(),
-            overwrites,
             projection.outputNames(),
             projection.outputFormat(),
             fileOutputFactoryMap,
             projection.withClauseOptions()
         );
-    }
-
-    private Map<ColumnIdent, Object> symbolMapToObject(
-            Map<ColumnIdent, Symbol> symbolMap,
-            InputFactory.Context<CollectExpression<Row, ?>> symbolContext,
-            TransactionContext txnCtx) {
-        Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
-        for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
-            Symbol symbol = entry.getValue();
-            assert symbol != null : "symbol must not be null";
-            objectMap.put(
-                entry.getKey(),
-                symbolContext.add(normalizer.normalize(symbol, txnCtx)).value()
-            );
-        }
-        return objectMap;
     }
 
     @Override
@@ -444,20 +420,21 @@ public class ProjectionToProjectorVisitor
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
-            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
-            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
-        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+        int targetTableNumShards = tableInfo.numberOfShards();
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
+            var sessionUser = nodeCtx.roles().getUser(context.txnCtx.sessionSettings().userName());
             upsertResultContext = UpsertResultContext.forReturnSummary(
                 context.txnCtx,
                 (SourceIndexWriterReturnSummaryProjection) projection,
                 clusterService.localNode(),
+                nodeCtx.roles().getAccessControl(sessionUser, sessionUser),
                 inputFactory);
         } else {
             upsertResultContext = UpsertResultContext.forRowCount();
@@ -510,17 +487,16 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
-            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
-        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize());
+        int targetTableNumShards = tableInfo.numberOfShards();
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
             indexItem,
             indexName,
-            schemas.getTableInfo(projection.tableIdent()),
+            nodeCtx.schemas().getTableInfo(projection.tableIdent()),
             context.txnCtx,
             nodeCtx,
             validatorsCache,
@@ -539,7 +515,7 @@ public class ProjectionToProjectorVisitor
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
-            IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),
@@ -705,7 +681,7 @@ public class ProjectionToProjectorVisitor
         } else {
             InputFactory.Context<NestableCollectExpression<SysNodeCheck, ?>> cntx = new InputFactory(
                 nodeCtx).ctxForRefs(
-                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.create().expressions()));
+                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.INSTANCE.expressions()));
             cntx.add(List.of(projection.returnValues()));
             return new SysUpdateResultSetProjector(rowUpdater,
                                                    rowWriter,

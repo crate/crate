@@ -1,0 +1,116 @@
+.. _version_5.8.4:
+
+=============
+Version 5.8.4
+=============
+
+Released on 2024-10-07.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.8.4.
+
+    We recommend that you upgrade to the latest 5.7 release before moving to
+    5.8.4.
+
+.. WARNING::
+    Due to a regression, introduced in 5.8.3, a rolling upgrade from 5.7.x to
+    5.8.4 can lead to problems when writing into a column of the
+    ``OBJECT(IGNORED)`` type with an array sub-column with values of mixed
+    types.
+    Please do a rolling upgrade from 5.7.x to 5.8.5 or higher instead.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.8.0` release notes for a full list of changes in the
+5.8 series.
+
+Fixes
+=====
+
+- Fixed an issue that could lead to nodes crashing with out of memory errors
+  when running ``INSERT INTO ... (SELECT ...)`` statements with large payloads
+  of type ``OBJECT``.
+
+- Fixed an issue that caused an error or wrong results when a table function was
+  combined with a UNION ALL in a sub-query e.g.::
+
+      SELECT a FROM (SELECT a, b FROM tbl UNION ALL SELECT 3 AS a, 3 AS b) t;
+
+- Fixed an issue that caused wrong results when ordering by an IP field or when
+  comparing values of :ref:`IP type <type-ip>`, e.g.::
+
+    SELECT * FROM tbl ORDER BY ip_col;
+    SELECT ip_col > '11.22.33.44' FROM tbl;
+
+- Fixed an issue that caused ``WHERE`` clause to wrongly filter out whole
+  partitions when there is a :ref:`NOT<sql_dql_not>` wrapping
+  :ref:`IS NULL<sql_dql_is_null>` or a complex expression::
+
+    CREATE TABLE tbl(a STRING, b STRING) PARTITIONED BY (a);
+    SELECT * FROM tbl
+    WHERE NOT (
+        CASE t1.c0
+            WHEN '' THEN TRUE
+            WHEN 'E' THEN ((t1.c1) IS NOT NULL)
+            ELSE t1.c0 > 'a'
+        END)
+
+- Fixed an issue that caused numeric values inside of ``OBJECT (IGNORED)``
+  columns to be returned as text instead of number.
+
+- Fixed an issue causing an object column definition with duplicate child
+  column names to be accepted (last definition was used) instead of throwing an
+  error. E.g.::
+
+      CREATE TABLE tbl (obj OBJECT AS (a BOOLEAN, a INTEGER));
+
+- Fixed an issue that caused filtering by :ref:`ANY <sql_any_array_comparison>`
+  operator on an array typed column under an explicit cast to return invalid
+  results.
+
+- Fixed an issue that caused filtering by :ref:`ALL <all_array_comparison>`
+  operator on :ref:`REAL <type-real>` array columns against literals to return
+  invalid results.
+
+- Fixed an issue that caused ``=`` or ``!=`` :ref:`ANY <sql_any_array_comparison>`
+  operator to throw a ``ClassCastException`` when the right hand side argument
+  was more than 1 dimensions higher than the left hand side argument.
+
+- Fixed an issue that caused :ref:`ANY <sql_any_array_comparison>` operator to
+  throw a ``ClassCastException`` when the arguments were nested arrays.
+
+- Fixed an issue that caused cast to :ref:`NUMERIC <type-numeric>` to return
+  incorrect results, with missing ``scale``. This issue has only affected
+  multi-node cluster installations.
+
+- Fixed an integer overflow issue when the total shards (shards and replicas)
+  configured for a table are greater than ``Integer.MAX_VALUE``.
+
+- Fixed an issue that caused :ref:`in <sql_in_array_comparison>` operator with
+  array typed column on left hand side of the arguments to return invalid
+  results.
+
+- Fixed an issue which may cause a ``EXPLAIN ANALYZE`` to throw exception due
+  to internal concurrent unsafe access.
+
+- Fixed an issue causing a role to loose it's concrete privileges once it gets
+  granted another role using the :ref:`GRANT role TO role <ref-grant>`
+  statement.

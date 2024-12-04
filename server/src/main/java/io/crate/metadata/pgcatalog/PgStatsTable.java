@@ -35,46 +35,44 @@ public final class PgStatsTable {
 
     private PgStatsTable() {}
 
-    public static SystemTable<ColumnStatsEntry> create() {
-        return SystemTable.<ColumnStatsEntry>builder(NAME)
-            .add("schemaname", DataTypes.STRING, x -> x.relation().schema())
-            .add("tablename", DataTypes.STRING, x -> x.relation().name())
-            .add("attname", DataTypes.STRING, x -> x.column().sqlFqn())
-            .add("inherited", DataTypes.BOOLEAN, c -> false)
-            .add("null_frac", DataTypes.FLOAT, x -> (float) x.columnStats().nullFraction())
-            .add("avg_width", DataTypes.INTEGER, x -> (int) x.columnStats().averageSizeInBytes())
-            .add("n_distinct", DataTypes.FLOAT, x -> (float) x.columnStats().approxDistinct())
+    public static SystemTable<ColumnStatsEntry> INSTANCE = SystemTable.<ColumnStatsEntry>builder(NAME)
+        .add("schemaname", DataTypes.STRING, x -> x.relation().schema())
+        .add("tablename", DataTypes.STRING, x -> x.relation().name())
+        .add("attname", DataTypes.STRING, x -> x.column().sqlFqn())
+        .add("inherited", DataTypes.BOOLEAN, c -> false)
+        .add("null_frac", DataTypes.FLOAT, x -> (float) x.columnStats().nullFraction())
+        .add("avg_width", DataTypes.INTEGER, x -> (int) x.columnStats().averageSizeInBytes())
+        .add("n_distinct", DataTypes.FLOAT, x -> (float) x.columnStats().approxDistinct())
 
-            // The arrays have the `anyarray` type in PostgreSQL, which are pseudo-types / polymorphic types
-            // (their actual type depends on in which context the columns are used)
-            // See https://www.postgresql.org/docs/current/extend-type-system.html
-            // We lack the capabilities to decide "on-use" which type to use, so we use a string array as most types can be casted to string.
-            .add(
-                "most_common_vals",
-                DataTypes.STRING_ARRAY,
-                x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().mostCommonValues().values())
-            )
-            .add(
-                "most_common_freqs",
-                DataTypes.FLOAT_ARRAY,
-                x -> {
-                    double[] frequencies = x.columnStats().mostCommonValues().frequencies();
-                    ArrayList<Float> values = new ArrayList<>(frequencies.length);
-                    for (double frequency : frequencies) {
-                        values.add((float) frequency);
-                    }
-                    return values;
+        // The arrays have the `anyarray` type in PostgreSQL, which are pseudo-types / polymorphic types
+        // (their actual type depends on in which context the columns are used)
+        // See https://www.postgresql.org/docs/current/extend-type-system.html
+        // We lack the capabilities to decide "on-use" which type to use, so we use a string array as most types can be casted to string.
+        .add(
+            "most_common_vals",
+            DataTypes.STRING_ARRAY,
+            x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().mostCommonValues().values())
+        )
+        .add(
+            "most_common_freqs",
+            DataTypes.FLOAT_ARRAY,
+            x -> {
+                double[] frequencies = x.columnStats().mostCommonValues().frequencies();
+                ArrayList<Float> values = new ArrayList<>(frequencies.length);
+                for (double frequency : frequencies) {
+                    values.add((float) frequency);
                 }
-            )
-            .add(
-                "histogram_bounds",
-                DataTypes.STRING_ARRAY,
-                x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().histogram())
-            )
-            .add("correlation", DataTypes.FLOAT, c -> 0.0f)
-            .add("most_common_elems", DataTypes.STRING_ARRAY, c -> null)
-            .add("most_common_elem_freqs", new ArrayType<>(DataTypes.FLOAT), c -> null)
-            .add("elem_count_histogram", new ArrayType<>(DataTypes.FLOAT), c -> null)
-            .build();
-    }
+                return values;
+            }
+        )
+        .add(
+            "histogram_bounds",
+            DataTypes.STRING_ARRAY,
+            x -> DataTypes.STRING_ARRAY.fromAnyArray(x.columnStats().histogram())
+        )
+        .add("correlation", DataTypes.FLOAT, c -> 0.0f)
+        .add("most_common_elems", DataTypes.STRING_ARRAY, c -> null)
+        .add("most_common_elem_freqs", new ArrayType<>(DataTypes.FLOAT), c -> null)
+        .add("elem_count_histogram", new ArrayType<>(DataTypes.FLOAT), c -> null)
+        .build();
 }

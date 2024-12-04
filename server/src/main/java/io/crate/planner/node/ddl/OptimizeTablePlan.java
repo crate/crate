@@ -26,34 +26,38 @@ import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableSettings.SUPPORTED_SETTINGS;
 import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesAction;
+import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.broadcast.BroadcastResponse;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -93,7 +97,8 @@ public class OptimizeTablePlan implements Plan {
             plannerContext.transactionContext(),
             dependencies.nodeContext(),
             parameters,
-            subQueryResults
+            subQueryResults,
+            plannerContext.clusterState().metadata()
         );
 
         var settings = stmt.settings();
@@ -106,17 +111,28 @@ public class OptimizeTablePlan implements Plan {
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
             request.onlyExpungeDeletes(ONLY_EXPUNGE_DELETES.get(settings));
             request.flush(FLUSH.get(settings));
-            request.indicesOptions(IndicesOptions.lenientExpandOpen());
+            request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
-            dependencies.client()
-                .execute(ForceMergeAction.INSTANCE, request)
-                .whenComplete(
-                    new OneRowActionListener<>(
-                        consumer,
-                        response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
-                    )
-                );
+            trySyncRetentionLeases(dependencies, toOptimize)
+                .handle((_, _) -> null)     // ignore errors, sync is a best-effort
+                .thenRun(() -> dependencies.client()
+                    .execute(ForceMergeAction.INSTANCE, request)
+                    .whenComplete(
+                        new OneRowActionListener<>(
+                            consumer,
+                            _ -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
+                        )
+                    ));
         }
+    }
+
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<String> indexNames) {
+        var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
+        if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
+            return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
+        }
+        return dependencies.client()
+            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(indexNames.toArray(String[]::new)));
     }
 
     @VisibleForTesting
@@ -124,7 +140,8 @@ public class OptimizeTablePlan implements Plan {
                                           CoordinatorTxnCtx txnCtx,
                                           NodeContext nodeCtx,
                                           Row parameters,
-                                          SubQueryResults subQueryResults) {
+                                          SubQueryResults subQueryResults,
+                                          Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -142,19 +159,14 @@ public class OptimizeTablePlan implements Plan {
         for (Map.Entry<Table<Symbol>, TableInfo> table : optimizeTable.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
-            if (tableInfo instanceof BlobTableInfo) {
-                toOptimize.add(((BlobTableInfo) tableInfo).concreteIndices()[0]);
+            if (tableInfo instanceof BlobTableInfo blobTableInfo) {
+                toOptimize.add(blobTableInfo.concreteIndices(metadata)[0]);
             } else {
                 var docTableInfo = (DocTableInfo) tableInfo;
                 if (tableSymbol.partitionProperties().isEmpty()) {
-                    toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices()));
+                    toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices(metadata)));
                 } else {
-                    var partitionName = toPartitionName(
-                        docTableInfo,
-                        Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)));
-                    if (!docTableInfo.partitions().contains(partitionName)) {
-                        throw new PartitionUnknownException(partitionName);
-                    }
+                    var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
                     toOptimize.add(partitionName.asIndexName());
                 }
             }

@@ -38,7 +38,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenameTable() {
         execute("create table t1 (id int) with (number_of_replicas = 0)");
         execute("insert into t1 (id) values (1), (2)");
-        refresh();
+        execute("refresh table t1");
 
         execute("alter table t1 rename to t2");
         assertThat(response.rowCount()).satisfiesAnyOf(
@@ -61,7 +61,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenameTableEnsureOldTableNameCanBeUsed() {
         execute("create table t1 (id int) with (number_of_replicas = 0)");
         execute("insert into t1 (id) values (1), (2)");
-        refresh();
+        execute("refresh table t1");
         execute("alter table t1 rename to t2");
 
         // creating a new table using the old name must succeed
@@ -75,7 +75,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenameClosedTable() {
         execute("create table t1 (id int) with (number_of_replicas = 0)");
         execute("insert into t1 (id) values (1), (2)");
-        refresh();
+        execute("refresh table t1");
 
         execute("alter table t1 close");
 
@@ -92,7 +92,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenamePartitionedTable() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
-        refresh();
+        execute("refresh table tp1");
 
         execute("alter table tp1 rename to tp2");
         assertThat(response.rowCount()).satisfiesAnyOf(
@@ -114,7 +114,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     @Test
     public void testRenameEmptyPartitionedTable() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
-        refresh();
+        execute("refresh table tp1");
 
         execute("alter table tp1 rename to tp2");
         assertThat(response.rowCount()).satisfiesAnyOf(
@@ -129,7 +129,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenamePartitionedTableEnsureOldTableNameCanBeUsed() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
-        refresh();
+        execute("refresh table tp1");
         execute("alter table tp1 rename to tp2");
 
         // creating a new table using the old name must succeed
@@ -137,7 +137,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
         // also inserting must work (no old blocks traces)
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
 
-        refresh();
+        execute("refresh table tp1");
         execute("select * from tp1");
         assertThat(response.rowCount()).isEqualTo(2);
         execute("drop table tp1");
@@ -150,7 +150,7 @@ public class RenameTableIntegrationTest extends IntegTestCase {
     public void testRenamePartitionedTablePartitionStayClosed() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
-        refresh();
+        execute("refresh table tp1");
 
         execute("alter table tp1 partition (id=1) close");
 

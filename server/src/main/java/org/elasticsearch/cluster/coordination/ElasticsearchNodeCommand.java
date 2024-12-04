@@ -38,6 +38,7 @@ import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -69,6 +70,11 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     public static final String ABORTED_BY_USER_MSG = "aborted by user";
     public static final String CS_MISSING_MSG = "cluster state is empty, cluster has never been bootstrapped?";
 
+    protected static final NamedWriteableRegistry NAMED_WRITABLE_CONTENT_REGISTRY = new NamedWriteableRegistry(
+        Stream.of(ClusterModule.getNamedWriteables().stream(), IndicesModule.getNamedWriteables().stream())
+            .flatMap(Function.identity())
+            .collect(Collectors.toList()));
+
     protected static final NamedXContentRegistry NAMED_X_CONTENT_REGISTRY = new NamedXContentRegistry(
         Stream.of(ClusterModule.getNamedXWriteables().stream(), IndicesModule.getNamedXContents().stream())
             .flatMap(Function.identity())
@@ -85,8 +91,16 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         }
 
         String nodeId = nodeMetadata.nodeId();
-        return new PersistedClusterStateService(dataPaths, nodeId, NAMED_X_CONTENT_REGISTRY, BigArrays.NON_RECYCLING_INSTANCE,
-            new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L, true);
+        return new PersistedClusterStateService(
+            dataPaths,
+            nodeId,
+            NAMED_X_CONTENT_REGISTRY,
+            NAMED_WRITABLE_CONTENT_REGISTRY,
+            BigArrays.NON_RECYCLING_INSTANCE,
+            new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
+            () -> 0L,
+            true
+        );
     }
 
     public static ClusterState clusterState(Environment environment, PersistedClusterStateService.OnDiskState onDiskState) {

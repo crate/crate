@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.8.0</version>
+    <version>5.10.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -52,15 +52,9 @@
       <version>${versions.annotations}</version>
     </dependency>
     <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-core</artifactId>
-      <version>${versions.quickcheck}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-generators</artifactId>
-      <version>${versions.quickcheck}</version>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik-api</artifactId>
+      <version>1.8.5</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -76,9 +70,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <version>${versions.junit5}</version>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-commons</artifactId>
+      <version>${versions.junit-platform-commons}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

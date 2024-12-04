@@ -33,8 +33,8 @@ import org.junit.Test;
 public class FloatTypeTest extends DataTypeTestCase<Float> {
 
     @Override
-    public DataType<Float> getType() {
-        return FloatType.INSTANCE;
+    protected DataDef<Float> getDataDef() {
+        return DataDef.fromType(FloatType.INSTANCE);
     }
 
     @Test

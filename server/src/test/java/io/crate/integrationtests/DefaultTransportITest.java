@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -68,7 +67,7 @@ public class DefaultTransportITest extends IntegTestCase {
     @Test
     public void test_nodes_connect_with_hba_enabled_and_default_transport_mode() throws Exception {
         execute("select count(*) from sys.nodes");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
 
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();
@@ -77,7 +76,7 @@ public class DefaultTransportITest extends IntegTestCase {
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
-            assertThat(probeResult, is(ProbeResult.SSL_MISSING));
+            assertThat(probeResult).isEqualTo(ProbeResult.SSL_MISSING);
         }
     }
 }

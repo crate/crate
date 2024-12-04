@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.NotNull;
@@ -51,8 +51,8 @@ public class RawIndexer {
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
-    private final Function<String, FieldType> getFieldType;
     private final Symbol[] returnValues;
+    private final Version shardVersionCreated;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
     private final List<Reference> nonDeterministicSynthetics;
@@ -63,18 +63,18 @@ public class RawIndexer {
 
     public RawIndexer(String indexName,
                       DocTableInfo table,
+                      Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
-                      Function<String, FieldType> getFieldType,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
         this.indexName = indexName;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
-        this.getFieldType = getFieldType;
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
+        this.shardVersionCreated = shardVersionCreated;
     }
 
     /**
@@ -86,7 +86,7 @@ public class RawIndexer {
         currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
             List<Reference> targetRefs = new ArrayList<>();
             for (String key : keys) {
-                ColumnIdent column = new ColumnIdent(key);
+                ColumnIdent column = ColumnIdent.of(key);
                 Reference reference = table.getReference(column);
                 if (reference == null) {
                     reference = table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
@@ -102,9 +102,9 @@ public class RawIndexer {
             return new Indexer(
                 indexName,
                 table,
+                shardVersionCreated,
                 txnCtx,
                 nodeCtx,
-                getFieldType,
                 targetRefs,
                 returnValues
             );

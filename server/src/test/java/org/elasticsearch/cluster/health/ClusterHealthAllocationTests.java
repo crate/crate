@@ -18,7 +18,8 @@
  */
 package org.elasticsearch.cluster.health;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
@@ -41,7 +42,7 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
         if (randomBoolean()) {
             clusterState = addNode(clusterState, "node_m", true);
         }
-        assertEquals(ClusterHealthStatus.GREEN, getClusterHealthStatus(clusterState));
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("test")
@@ -53,29 +54,29 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
         clusterState = ClusterState.builder(clusterState).metadata(metadata).routingTable(routingTable).build();
         MockAllocationService allocation = createAllocationService();
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
-        assertEquals(0, clusterState.nodes().getDataNodes().size());
-        assertEquals(ClusterHealthStatus.RED, getClusterHealthStatus(clusterState));
+        assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(0);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.RED);
 
         clusterState = addNode(clusterState, "node_d1", false);
-        assertEquals(1, clusterState.nodes().getDataNodes().size());
+        assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(1);
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
-        assertEquals(ClusterHealthStatus.YELLOW, getClusterHealthStatus(clusterState));
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.YELLOW);
 
         clusterState = addNode(clusterState, "node_d2", false);
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
-        assertEquals(ClusterHealthStatus.GREEN, getClusterHealthStatus(clusterState));
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
 
         clusterState = removeNode(clusterState, "node_d1", allocation);
-        assertEquals(ClusterHealthStatus.YELLOW, getClusterHealthStatus(clusterState));
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.YELLOW);
 
         clusterState = removeNode(clusterState, "node_d2", allocation);
-        assertEquals(ClusterHealthStatus.RED, getClusterHealthStatus(clusterState));
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.RED);
 
         routingTable = RoutingTable.builder(routingTable).remove("test").build();
         metadata = Metadata.builder(clusterState.metadata()).remove("test").build();
         clusterState = ClusterState.builder(clusterState).routingTable(routingTable).metadata(metadata).build();
-        assertEquals(0, clusterState.nodes().getDataNodes().size());
-        assertEquals(ClusterHealthStatus.GREEN, getClusterHealthStatus(clusterState));
+        assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(0);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
     }
 
     private ClusterState addNode(ClusterState clusterState, String nodeName, boolean isMaster) {

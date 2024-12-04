@@ -37,7 +37,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -75,7 +75,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         while (true) {
             List<Function> childTableFunctions = tableFunctions.stream()
                 .flatMap(func -> func.arguments().stream())
-                .filter(arg -> arg instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE)
+                .filter(arg -> arg instanceof Function fn && fn.signature().getType() == FunctionType.TABLE)
                 .map(x -> (Function) x)
                 .toList();
 
@@ -88,7 +88,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         LogicalPlan result = source;
         for (int i = nestedFunctions.size() - 1; i >= 0; i--) {
             List<Symbol> standalone = result.outputs().stream()
-                .filter(x -> !(x instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE))
+                .filter(x -> !(x instanceof Function fn && fn.signature().getType() == FunctionType.TABLE))
                 .toList();
             result = new ProjectSet(result, nestedFunctions.get(i), standalone);
         }
@@ -151,10 +151,10 @@ public class ProjectSet extends ForwardingLogicalPlan {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
+            Symbols.intersection(outputToKeep, standalone, newStandalone::add);
         }
         for (Function tableFunction : tableFunctions) {
-            SymbolVisitors.intersection(tableFunction, source.outputs(), toKeep::add);
+            Symbols.intersection(tableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);

@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.sql.PreparedStatement;
 
@@ -138,6 +138,6 @@ public class PostgresCompatIntegrationTest extends IntegTestCase {
      * That's why we add +1 in the {@link io.crate.testing.SQLTransportExecutor#executeAndConvertResult(PreparedStatement)}
      */
     private static void assertNoErrorResponse(SQLResponse response) {
-        assertTrue(response.rowCount() > -1);
+        assertThat(response.rowCount() > -1).isTrue();
     }
 }

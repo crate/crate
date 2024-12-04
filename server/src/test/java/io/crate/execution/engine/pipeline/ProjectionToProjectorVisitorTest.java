@@ -26,12 +26,8 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -39,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -46,7 +43,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.MockitoAnnotations;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -54,19 +50,20 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingLimitAndOffsetProjector;
+import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -79,8 +76,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -99,10 +98,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     @Before
     public void prepare() {
         nodeCtx = createNodeContext();
-        MockitoAnnotations.initMocks(this);
         visitor = new ProjectionToProjectorVisitor(
             clusterService,
-            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,
@@ -116,11 +113,11 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         );
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
 
-        avgSignature = Signature.aggregate(
-            "avg",
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.DOUBLE.getTypeSignature()
-        );
+        avgSignature = Signature.builder("avg", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
     }
 
     @Test
@@ -129,14 +126,14 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(LimitAndOffsetProjector.class));
+        assertThat(projector).isExactlyInstanceOf(LimitAndOffsetProjector.class);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(projector.apply(TestingBatchIterators.range(0, 20)), null);
 
         List<Object[]> result = consumer.getResult();
-        assertThat(result.size(), is(10));
-        assertThat(result.get(0), is(new Object[]{2}));
+        assertThat(result).hasSize(10);
+        assertThat(result.get(0)).isEqualTo(new Object[]{2});
     }
 
     @Test
@@ -149,7 +146,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         );
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(SortingLimitAndOffsetProjector.class));
+        assertThat(projector).isExactlyInstanceOf(SortingLimitAndOffsetProjector.class);
     }
 
     @Test
@@ -158,7 +155,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(OffsetProjector.class));
+        assertThat(projector).isExactlyInstanceOf(OffsetProjector.class);
     }
 
     @Test
@@ -182,7 +179,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         );
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(SortingProjector.class));
+        assertThat(projector).isExactlyInstanceOf(SortingProjector.class);
     }
 
     @Test
@@ -200,7 +197,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
 
-        assertThat(projector, instanceOf(AggregationPipe.class));
+        assertThat(projector).isExactlyInstanceOf(AggregationPipe.class);
 
 
         BatchIterator<Row> batchIterator = projector.apply(InMemoryBatchIterator.of(
@@ -213,8 +210,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(1));
-        assertThat(rows, contains(isRow(15.0, 2L)));
+        assertThat(rows).hasSize(1);
+        assertThat(rows).containsExactly(new RowN(15.0, 2L));
     }
 
     @Test
@@ -237,7 +234,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(GroupingProjector.class));
+        assertThat(projector).isExactlyInstanceOf(GroupingProjector.class);
 
         // use an OrderedAndLimitAndOffset projection in order to get sorted outputs
         List<Symbol> outputs = Arrays.asList(
@@ -270,11 +267,14 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         consumer.accept(batchIterator, null);
 
         Bucket bucket = consumer.getBucket();
-        assertThat(bucket, contains(
-            isRow(human, female, 22.0, 1L),
-            isRow(human, male, 34.0, 2L),
-            isRow(vogon, male, 44.0, 2L)
-        ));
+        List<Object[]> resultRows = StreamSupport.stream(bucket.spliterator(), false)
+            .map(Row::materialize)
+            .toList();
+        assertThat(resultRows).containsExactly(
+            new Object[] { human, female, 22.0, 1L },
+            new Object[] { human, male, 34.0, 2L },
+            new Object[] { vogon, male, 44.0, 2L }
+        );
     }
 
     @Test
@@ -288,7 +288,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(FilterProjector.class));
+        assertThat(projector).isExactlyInstanceOf(FilterProjector.class);
 
         List<Object[]> rows = new ArrayList<>();
         rows.add($("human", 2));
@@ -299,6 +299,6 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(filteredBI, null);
         Bucket bucket = consumer.getBucket();
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
     }
 }

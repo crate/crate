@@ -19,9 +19,8 @@
 
 package org.elasticsearch.test;
 
-import static org.elasticsearch.test.AbstractWireSerializingTestCase.NUMBER_OF_TEST_RUNS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.test.AbstractWireTestCase.NUMBER_OF_TEST_RUNS;
 
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -52,9 +51,9 @@ public final class DiffableTestUtils {
      */
     public static <T extends Diffable<T>> T assertDiffApplication(T remoteChanges, T localInstance, Diff<T> diffs) {
         T localChanges = diffs.apply(localInstance);
-        assertEquals(remoteChanges, localChanges);
-        assertEquals(remoteChanges.hashCode(), localChanges.hashCode());
-        assertNotSame(remoteChanges, localChanges);
+        assertThat(localChanges).isEqualTo(remoteChanges);
+        assertThat(localChanges.hashCode()).isEqualTo(remoteChanges.hashCode());
+        assertThat(remoteChanges).isNotSameAs(localChanges);
         return localChanges;
     }
 
@@ -97,9 +96,9 @@ public final class DiffableTestUtils {
     public static  <T extends Writeable> T assertSerialization(T testInstance, NamedWriteableRegistry namedWriteableRegistry,
                                                           Reader<T> reader) throws IOException {
         T deserializedInstance = copyInstance(testInstance, namedWriteableRegistry, reader);
-        assertEquals(testInstance, deserializedInstance);
-        assertEquals(testInstance.hashCode(), deserializedInstance.hashCode());
-        assertNotSame(testInstance, deserializedInstance);
+        assertThat(deserializedInstance).isEqualTo(testInstance);
+        assertThat(deserializedInstance.hashCode()).isEqualTo(testInstance.hashCode());
+        assertThat(deserializedInstance).isNotSameAs(testInstance);
         return deserializedInstance;
     }
 

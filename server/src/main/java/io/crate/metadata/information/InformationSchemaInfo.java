@@ -25,41 +25,37 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 
-@Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
     private final Map<String, TableInfo> tableInfoMap;
 
-    @Inject
     public InformationSchemaInfo() {
         tableInfoMap = MapBuilder.<String, TableInfo>treeMapBuilder()
-            .put(InformationTablesTableInfo.NAME, InformationTablesTableInfo.create())
-            .put(InformationViewsTableInfo.NAME, InformationViewsTableInfo.create())
-            .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.create())
-            .put(InformationKeyColumnUsageTableInfo.NAME, InformationKeyColumnUsageTableInfo.create())
-            .put(InformationPartitionsTableInfo.NAME, InformationPartitionsTableInfo.create())
-            .put(InformationTableConstraintsTableInfo.NAME, InformationTableConstraintsTableInfo.create())
-            .put(InformationReferentialConstraintsTableInfo.NAME, InformationReferentialConstraintsTableInfo.create())
-            .put(InformationRoutinesTableInfo.NAME, InformationRoutinesTableInfo.create())
-            .put(InformationSchemataTableInfo.NAME, InformationSchemataTableInfo.create())
-            .put(InformationSqlFeaturesTableInfo.NAME, InformationSqlFeaturesTableInfo.create())
-            .put(InformationCharacterSetsTable.NAME, InformationCharacterSetsTable.create())
-            .put(ForeignServerTableInfo.NAME, ForeignServerTableInfo.create())
-            .put(ForeignServerOptionsTableInfo.NAME, ForeignServerOptionsTableInfo.create())
-            .put(ForeignTableTableInfo.NAME, ForeignTableTableInfo.create())
-            .put(ForeignTableOptionsTableInfo.NAME, ForeignTableOptionsTableInfo.create())
-            .put(UserMappingsTableInfo.NAME, UserMappingsTableInfo.create())
-            .put(UserMappingOptionsTableInfo.NAME, UserMappingOptionsTableInfo.create())
+            .put(InformationTablesTableInfo.NAME, InformationTablesTableInfo.INSTANCE)
+            .put(InformationViewsTableInfo.NAME, InformationViewsTableInfo.INSTANCE)
+            .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.INSTANCE)
+            .put(InformationKeyColumnUsageTableInfo.NAME, InformationKeyColumnUsageTableInfo.INSTANCE)
+            .put(InformationPartitionsTableInfo.NAME, InformationPartitionsTableInfo.INSTANCE)
+            .put(InformationTableConstraintsTableInfo.NAME, InformationTableConstraintsTableInfo.INSTANCE)
+            .put(InformationReferentialConstraintsTableInfo.NAME, InformationReferentialConstraintsTableInfo.INSTANCE)
+            .put(InformationRoutinesTableInfo.NAME, InformationRoutinesTableInfo.INSTANCE)
+            .put(InformationSchemataTableInfo.NAME, InformationSchemataTableInfo.INSTANCE)
+            .put(InformationSqlFeaturesTableInfo.NAME, InformationSqlFeaturesTableInfo.INSTANCE)
+            .put(InformationCharacterSetsTable.NAME, InformationCharacterSetsTable.INSTANCE)
+            .put(ForeignServerTableInfo.NAME, ForeignServerTableInfo.INSTANCE)
+            .put(ForeignServerOptionsTableInfo.NAME, ForeignServerOptionsTableInfo.INSTANCE)
+            .put(ForeignTableTableInfo.NAME, ForeignTableTableInfo.INSTANCE)
+            .put(ForeignTableOptionsTableInfo.NAME, ForeignTableOptionsTableInfo.INSTANCE)
+            .put(UserMappingsTableInfo.NAME, UserMappingsTableInfo.INSTANCE)
+            .put(UserMappingOptionsTableInfo.NAME, UserMappingOptionsTableInfo.INSTANCE)
             .immutableMap();
     }
 
@@ -71,10 +67,6 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Override
     public String name() {
         return NAME;
-    }
-
-    @Override
-    public void invalidateTableCache(String tableName) {
     }
 
     @Override

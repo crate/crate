@@ -42,14 +42,8 @@ public class ObjectLiteral extends Literal {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ObjectLiteral that = (ObjectLiteral) o;
-
-        if (!values.equals(that.values)) return false;
-
-        return true;
+        return o instanceof ObjectLiteral that
+            && values.equals(that.values);
     }
 
     @Override

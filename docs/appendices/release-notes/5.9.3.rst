@@ -1,0 +1,148 @@
+.. _version_5.9.3:
+
+=============
+Version 5.9.3
+=============
+
+Released on 2024-11-14.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.9.3.
+
+    We recommend that you upgrade to the latest 5.8 release before moving to
+    5.9.3.
+
+    A rolling upgrade from 5.8.x to 5.9.3 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.9.0` release notes for a full list of changes in the
+5.9 series.
+
+Fixes
+=====
+
+- Fixed an issue that would lead to wrong results when querying a table with a
+  ``WHERE`` clause which filters on multiple columns, which are part of
+  :ref:`PRIMARY KEY<constraints-primary-key>`, and there at least one of them is
+  tested against lots of values, e.g.::
+
+      SELECT * FROM t
+        WHERE pk1 IN (<long_list_of_values>) AND pk2 = 3 AND pk3 = 'foo'
+
+- Fixed an issue that would prevent
+  :ref:`dropping <sql-alter-table-drop-column>` a
+  :ref:`generated column <ddl-generated-columns>` from a table, even though no
+  error was returned.
+
+- Fixed an issue that caused exceptions when querying sub-columns of nested
+  object arrays.
+
+- Fixed an issue that would cause an error to be thrown when attempting to
+  ``ORDER BY`` on top of a complex query (e.g. a ``JOIN``), using an expression
+  which contains a query parameter, e.g.::
+
+      SELECT * FROM t1 JOIN t2 ON t1.a = t2.b ORDER BY abs(t2.i + ?) DESC
+
+- Re-added the missing ``crate-node`` script to the tarball distribution.
+
+- Fixed an issue that caused error to be thrown when attempting to access a
+  nested field of an :ref:`OBJECT <type-object>`, which contains also arrays of
+  :ref:`OBJECT <type-object>`, e.g.::
+
+      SELECT {"o"=[{"oo"={"x"= 10}}, {"oo"={"x"= 20}}]}['o']['oo']['x']
+
+- Fixed an issue that prevented to cast an array of :ref:`TEXT <type-text>`
+  containing JSON text representation values to an array of
+  :ref:`OBJECT <type-object>`.
+
+- Fixed an issue that caused ``ClassCastExceptions`` or invalid results when
+  the ``WHERE`` clause contained comparisons of different data types. For
+  example::
+
+      SELECT * FROM t WHERE a < 128;
+      SQLParseException[Cannot cast `128` of type `integer` to type `byte`]
+
+      SELECT * FROM t WHERE float_col = 0.99999999;
+      +-----------+
+      | float_col |
+      +-----------+
+      |       1.0 |
+      +-----------+
+
+- Fixed an issue that caused ``=`` on a :ref:`NUMERIC type<type-numeric>` and a
+  number type such as :ref:`DOUBLE PRECISION <type-double-precision>` or
+  :ref:`INTEGER <type-integer>` to throw a ``ClassCastException`` or to return
+  invalid results.
+
+- Fixed an issue that lead to an error when selecting a table function inside a
+  a scalar function and using a column inside a scalar but not having it
+  neither in ``SELECT`` nor in the table function. For example::
+
+    SELECT
+      CASE
+        WHEN regexp_matches(col1, '^a') != []
+            THEN 'found'
+        WHEN col2 LIKE '%xyz%'  <--- col2 is not in SELECT targets and not used in the table function
+            THEN 'special case'
+        ELSE 'default'
+      END
+    FROM test;
+
+- Fixed an issue that caused the :ref:`analyze` statement to fail when executed
+  on a table that was created with an :ref:`OBJECT(IGNORED) <type-object>`
+  column and afterwards a sub-column with a concrete type was added to the
+  object column. In cases where data was already inserted into this sub-column
+  with a different type than defined later on, the :ref:`analyze` statement
+  failed with a cast error.
+
+- Fixed an issue that caused a :ref:`sql-create-table` statement to fail when a
+  column defines a generated expression including a conditional
+  :ref:`CASE <scalar-case-when-then-end>` function.
+
+- Fixed an issue that caused a SQL parsing error when running a query against
+  a ``FOREIGN TABLE`` of type :ref:`administration-fdw-jdbc` which contains an
+  aliased column name inside the ``WHERE`` clause. For example::
+
+      CREATE FOREIGN TABLE t (a INT) SERVER s;
+      SELECT * FROM (SELECT id as some_alias FROM t) tt WHERE tt.some_alias = 1;
+
+- Fixed the error messages returned when a given parameter of type
+  :ref:`type-object` fails on casting a object element to the expected type.
+
+- Fixed an issue that may cause the use of explicit casts inside a generated
+  column expression to fail with a SQL parsing error, depending on the target
+  type. For example::
+
+      CREATE TABLE t (
+        p GEO_POINT,
+        x ARRAY(DOUBLE) GENERATED ALWAYS AS p::ARRAY(DOUBLE)
+      );
+
+- Fixed an issue that caused an ``UnsupportedFeatureException`` when
+  ``ORDER BY`` expression contained a nested function. For example::
+
+    SELECT * FROM t ORDER BY LEFT(txt_col, 1) = ANY(['a']);
+
+- Fixed an issue that caused casting values of the ``NUMERIC`` type to the
+  ``float`` or ``double`` types to hang. For example::
+
+    SELECT exp(-1110102730.1852759636)::float;

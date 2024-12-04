@@ -21,8 +21,7 @@
 
 package org.elasticsearch;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -30,43 +29,43 @@ public class VersionTest {
 
     @Test
     public void test_compatible_current_version_is_compatible_to_4_0_0() {
-        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0), is(true));
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isTrue();
     }
 
     @Test
     public void test_min_version_is_4_0_0() {
-        assertThat(Version.CURRENT.minimumCompatibilityVersion(), is(Version.V_4_0_0));
+        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
     }
 
     @Test
     public void test_can_parse_next_patch_release_version() {
         int internalId = Version.CURRENT.internalId + 100;
         Version futureVersion = Version.fromId(internalId);
-        assertThat(futureVersion.major, is(Version.CURRENT.major));
-        assertThat(futureVersion.minor, is(Version.CURRENT.minor));
-        assertThat(futureVersion.revision, is((byte) (Version.CURRENT.revision + 1)));
-        assertThat(futureVersion.luceneVersion, is(Version.CURRENT.luceneVersion));
+        assertThat(futureVersion.major).isEqualTo(Version.CURRENT.major);
+        assertThat(futureVersion.minor).isEqualTo(Version.CURRENT.minor);
+        assertThat(futureVersion.revision).isEqualTo((byte) (Version.CURRENT.revision + 1));
+        assertThat(futureVersion.luceneVersion).isEqualTo(Version.CURRENT.luceneVersion);
     }
 
     @Test
     public void test_can_parse_next_minor_release_version() {
         int internalId = Version.CURRENT.internalId + 10000;
         Version futureVersion = Version.fromId(internalId);
-        assertThat(futureVersion.major, is(Version.CURRENT.major));
-        assertThat(futureVersion.minor, is((byte) (Version.CURRENT.minor + 1)));
-        assertThat(futureVersion.revision, is(Version.CURRENT.revision));
-        assertThat(futureVersion.luceneVersion, is(Version.CURRENT.luceneVersion));
+        assertThat(futureVersion.major).isEqualTo(Version.CURRENT.major);
+        assertThat(futureVersion.minor).isEqualTo((byte) (Version.CURRENT.minor + 1));
+        assertThat(futureVersion.revision).isEqualTo(Version.CURRENT.revision);
+        assertThat(futureVersion.luceneVersion).isEqualTo(Version.CURRENT.luceneVersion);
     }
 
     @Test
     public void test_can_parse_next_major_release_version() {
         int internalId = Version.CURRENT.internalId + 1000000;
         Version futureVersion = Version.fromId(internalId);
-        assertThat(futureVersion.major, is((byte) (Version.CURRENT.major + 1)));
-        assertThat(futureVersion.minor, is(Version.CURRENT.minor));
-        assertThat(futureVersion.revision, is(Version.CURRENT.revision));
-        assertThat(futureVersion.luceneVersion, is(org.apache.lucene.util.Version.fromBits(
+        assertThat(futureVersion.major).isEqualTo((byte) (Version.CURRENT.major + 1));
+        assertThat(futureVersion.minor).isEqualTo(Version.CURRENT.minor);
+        assertThat(futureVersion.revision).isEqualTo(Version.CURRENT.revision);
+        assertThat(futureVersion.luceneVersion).isEqualTo(org.apache.lucene.util.Version.fromBits(
             Version.CURRENT.luceneVersion.major + 1, 0, 0)
-        ));
+        );
     }
 }

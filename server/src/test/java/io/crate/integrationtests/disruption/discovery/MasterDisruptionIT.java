@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static io.crate.metadata.IndexParts.toIndexName;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;
@@ -50,6 +47,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
 
 /**
  * Tests relating to the loss of the master.
@@ -117,11 +115,11 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                 }
                 // assert nodes are identical
                 try {
-                    assertEquals("unequal versions", state.version(), nodeState.version());
-                    assertEquals("unequal node count", state.nodes().getSize(), nodeState.nodes().getSize());
-                    assertEquals("different masters ", state.nodes().getMasterNodeId(), nodeState.nodes().getMasterNodeId());
-                    assertEquals("different meta data version", state.metadata().version(), nodeState.metadata().version());
-                    assertEquals("different routing", state.routingTable().toString(), nodeState.routingTable().toString());
+                    assertThat(nodeState.version()).as("unequal versions").isEqualTo(state.version());
+                    assertThat(nodeState.nodes().getSize()).as("unequal node count").isEqualTo(state.nodes().getSize());
+                    assertThat(nodeState.nodes().getMasterNodeId()).as("different masters ").isEqualTo(state.nodes().getMasterNodeId());
+                    assertThat(nodeState.metadata().version()).as("different meta data version").isEqualTo(state.metadata().version());
+                    assertThat(nodeState.routingTable().toString()).as("different routing").isEqualTo(state.routingTable().toString());
                 } catch (AssertionError t) {
                     fail("failed comparing cluster state: " + t.getMessage() + "\n" +
                             "--- cluster state of node [" + nodes.get(0) + "]: ---\n" + state +
@@ -151,9 +149,9 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         TwoPartitions partitions = TwoPartitions.random(random(), cluster().getNodeNames());
         NetworkDisruption networkDisruption = addRandomDisruptionType(partitions);
 
-        assertEquals(1, partitions.getMinoritySide().size());
+        assertThat(partitions.getMinoritySide().size()).isEqualTo(1);
         final String isolatedNode = partitions.getMinoritySide().iterator().next();
-        assertEquals(2, partitions.getMajoritySide().size());
+        assertThat(partitions.getMajoritySide().size()).isEqualTo(2);
         final String nonIsolatedNode = partitions.getMajoritySide().iterator().next();
 
         // Simulate a network issue between the unlucky node and the rest of the cluster.
@@ -242,12 +240,11 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         disruption.stopDisrupting();
 
-        String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
         assertBusy(() -> {
             IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
-                assertThat(shardStats.getShardRouting().toString(),
-                           shardStats.getSeqNoStats().getGlobalCheckpoint(), equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));
+                assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
             }
         }, 1, TimeUnit.MINUTES);
     }

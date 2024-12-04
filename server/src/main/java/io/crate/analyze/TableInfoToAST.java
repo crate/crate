@@ -29,9 +29,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.fdw.ForeignTable;
@@ -43,6 +48,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
@@ -161,7 +167,6 @@ public class TableInfoToAST {
             }
 
             final ColumnType<Expression> columnType = ref.valueType().toColumnType(
-                ref.columnPolicy(),
                 () -> extractColumnDefinitions(ident)
             );
             List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
@@ -254,27 +259,25 @@ public class TableInfoToAST {
         if (!(tableInfo instanceof DocTableInfo docTable)) {
             return List.of();
         }
-        List<IndexDefinition<Expression>> elements = new ArrayList<>();
         Collection<IndexReference> indexColumns = docTable.indexColumns();
-        if (indexColumns != null) {
-            for (var indexRef : indexColumns) {
-                String name = indexRef.column().name();
-                List<Expression> columns = expressionsFromReferences(indexRef.columns());
-                if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
-                    String analyzer = indexRef.analyzer();
-                    GenericProperties<Expression> properties;
-                    if (analyzer == null) {
-                        properties = GenericProperties.empty();
-                    } else {
-                        properties = new GenericProperties<>(Map.of(
-                            FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
-                            new StringLiteral(analyzer))
-                        );
-                    }
-                    elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
-                } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
-                    elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
+        List<IndexDefinition<Expression>> elements = new ArrayList<>(indexColumns.size());
+        for (var indexRef : indexColumns) {
+            String name = indexRef.column().name();
+            List<Expression> columns = expressionsFromReferences(indexRef.columns());
+            if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
+                String analyzer = indexRef.analyzer();
+                GenericProperties<Expression> properties;
+                if (analyzer == null) {
+                    properties = GenericProperties.empty();
+                } else {
+                    properties = new GenericProperties<>(Map.of(
+                        FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                        new StringLiteral(analyzer))
+                    );
                 }
+                elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
+            } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
+                elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
             }
         }
         return elements;
@@ -300,31 +303,58 @@ public class TableInfoToAST {
     private GenericProperties<Expression> extractTableProperties() {
         // WITH ( key = value, ... )
         Map<String, Expression> properties = new HashMap<>();
+        String numberOfReplicasKey = TableParameters.stripIndexPrefix(NumberOfReplicas.SETTING.getKey());
         if (tableInfo instanceof DocTableInfo docTable) {
             Expression numReplicas = new StringLiteral(docTable.numberOfReplicas());
-            properties.put(TableParameters.stripIndexPrefix(TableParameters.NUMBER_OF_REPLICAS.getKey()), numReplicas);
+            properties.put(numberOfReplicasKey, numReplicas);
             properties.put("column_policy", new StringLiteral(docTable.columnPolicy().lowerCaseName()));
         }
-        Map<String, Object> tableParameters = TableParameters.tableParametersFromIndexMetadata(tableInfo.parameters());
-        for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
-            properties.put(
-                TableParameters.stripIndexPrefix(entry.getKey()),
-                Literal.fromObject(entry.getValue())
-            );
+        Settings parameters = tableInfo.parameters();
+        Map<String, Setting<?>> supportedSettings = TableParameters.TABLE_CREATE_PARAMETER_INFO.supportedSettings();
+        for (var entry : supportedSettings.entrySet()) {
+            String settingName = entry.getKey();
+            if (settingName.equals(numberOfReplicasKey)) {
+                // already handled above
+                continue;
+            }
+            Setting<?> setting = entry.getValue();
+            if (setting instanceof Setting.AffixSetting<?> affixSetting) {
+                String prefix = affixSetting.getKey();
+                Set<String> namespaces = affixSetting.getNamespaces(parameters);
+                for (String namespace : namespaces) {
+                    String key = prefix + namespace;
+                    Object value = affixSetting.getConcreteSetting(key).get(parameters);
+                    properties.put(key, literalOfSettingValue(value));
+                }
+            } else if (parameters.hasValue(setting.getKey())) {
+                Object value = setting.get(parameters);
+                properties.put(settingName, literalOfSettingValue(value));
+            }
         }
         return new GenericProperties<>(properties);
     }
 
-    private List<Expression> expressionsFromReferences(List<Reference> columns) {
-        List<Expression> expressions = new ArrayList<>(columns.size());
+    private static Literal literalOfSettingValue(Object value) {
+        Object result = switch (value) {
+            case ByteSizeValue byteSizeValue -> byteSizeValue.getBytes();
+            case TimeValue timeValue -> timeValue.millis();
+            case Number x -> x;
+            case Boolean x -> x;
+            default -> value.toString();
+        };
+        return Literal.fromObject(result);
+    }
+
+    private static List<Expression> expressionsFromReferences(List<Reference> columns) {
+        ArrayList<Expression> expressions = new ArrayList<>(columns.size());
         for (Reference ident : columns) {
             expressions.add(ident.column().toExpression());
         }
         return expressions;
     }
 
-    private List<Expression> expressionsFromColumns(List<ColumnIdent> columns) {
-        List<Expression> expressions = new ArrayList<>(columns.size());
+    private static List<Expression> expressionsFromColumns(List<ColumnIdent> columns) {
+        ArrayList<Expression> expressions = new ArrayList<>(columns.size());
         for (ColumnIdent ident : columns) {
             expressions.add(ident.toExpression());
         }

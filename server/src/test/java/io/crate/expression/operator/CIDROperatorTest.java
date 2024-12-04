@@ -21,8 +21,11 @@
 
 package io.crate.expression.operator;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
@@ -31,50 +34,50 @@ public class CIDROperatorTest extends ScalarTestCase {
 
     @Test
     public void test_ipv4_operands_in_wrong_order() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("'192.168.0.1/24' << '192.168.0.1'", false);
+        assertThatThrownBy(() -> assertEvaluate("'192.168.0.1/24' << '192.168.0.1'", false))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
     @Test
     public void test_ipv4_operands_in_wrong_order_from_query() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("name << ip",
-                       false,
-                       Literal.of("192.168.0.1/24"), Literal.of("192.168.0.1"));
+        assertThatThrownBy(() -> assertEvaluate("name << ip",
+                false,
+                Literal.of("192.168.0.1/24"), Literal.of("192.168.0.1")))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
     @Test
     public void test_ipv6_operands_in_wrong_order() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("'2001:db8::1/120' << '2001:db8:0:0:0:0:0:c8'::ip", false);
+        assertThatThrownBy(() -> assertEvaluate("'2001:db8::1/120' << '2001:db8:0:0:0:0:0:c8'::ip", false))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
     @Test
     public void test_ipv6_operands_in_wrong_order_from_query() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("name << ip",
-                       false,
-                       Literal.of("2001:db8::1/120"), Literal.of("2001:db8:0:0:0:0:0:c8"));
+        assertThatThrownBy(() -> assertEvaluate("name << ip",
+                false,
+                Literal.of("2001:db8::1/120"), Literal.of("2001:db8:0:0:0:0:0:c8")))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
     @Test
     public void test_ipv4_both_operands_are_ips() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("'192.168.0.1'::ip << '192.168.0.1'::ip", false);
+        assertThatThrownBy(() -> assertEvaluate("'192.168.0.1'::ip << '192.168.0.1'::ip", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void test_both_operands_are_ints() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("1 << 2", false);
+        assertThatThrownBy(() -> assertEvaluate("1 << 2", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void test_both_operands_are_of_wrong_type() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: (1.2 << _map('cidr', '192.168.0.0/24'))," +
-                                        " no overload found for matching argument types: (double precision, object).");
-        assertEvaluate("1.2 << { cidr = '192.168.0.0/24'}", false);
+        assertThatThrownBy(() -> assertEvaluate("1.2 << { cidr = '192.168.0.0/24'}", false))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: (1.2 << _map('cidr', '192.168.0.0/24')), " +
+                "no overload found for matching argument types: (double precision, object).");
     }
 
     @Test
@@ -93,19 +96,19 @@ public class CIDROperatorTest extends ScalarTestCase {
 
     @Test
     public void test_ipv4_both_operands_are_ips_from_query() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("ip << ip ",
-                       false,
-                       Literal.of("192.168.0.0"),
-                       Literal.of("192.168.0.1"));
+        assertThatThrownBy(() -> assertEvaluate("ip << ip ",
+                false,
+                Literal.of("192.168.0.0"),
+                Literal.of("192.168.0.1")))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void test_ipv6_both_operands_are_text_from_query() {
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("name << name",
-                       true,
-                       Literal.of("2001:db8:0:0:0:0:0:c7/120"),
-                       Literal.of("2001:db8:0:0:0:0:0:c8/120"));
+        assertThatThrownBy(() -> assertEvaluate("name << name",
+                true,
+                Literal.of("2001:db8:0:0:0:0:0:c7/120"),
+                Literal.of("2001:db8:0:0:0:0:0:c8/120")))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 }

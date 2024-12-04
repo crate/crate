@@ -59,8 +59,9 @@ is applied.
    The number of shards :ref:`can be changed <alter-shard-number>` after table
    creation, providing the value is a multiple of
    :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
-   (set at table-creation time). Altering the number of shards will put the
-   table into a read-only state until the operation has completed.
+   (set at table-creation time, automatically, or explicitly). Altering the
+   number of shards will put the table into a read-only state until the
+   operation has completed.
 
 .. CAUTION::
 

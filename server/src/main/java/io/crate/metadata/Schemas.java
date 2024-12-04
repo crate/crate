@@ -43,8 +43,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -63,12 +61,14 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.View;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Role;
@@ -77,7 +77,6 @@ import io.crate.role.Securable;
 import io.crate.sql.tree.QualifiedName;
 
 
-@Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
@@ -104,7 +103,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
-    @Inject
     public Schemas(Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
                    DocSchemaInfoFactory docSchemaInfoFactory,
@@ -336,6 +334,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemaInfo;
     }
 
+    public SchemaInfo getSystemSchema(String name) {
+        SchemaInfo schemaInfo = builtInSchemas.get(name);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(name);
+        }
+        return schemaInfo;
+    }
+
     @NotNull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
@@ -394,8 +400,8 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
         if (viewsMetadata != null) {
             StreamSupport.stream(viewsMetadata.names().spliterator(), false)
-                .map(IndexParts::new)
-                .map(IndexParts::getSchema)
+                .map(IndexName::decode)
+                .map(IndexParts::schema)
                 .forEach(schemas::add);
         }
         return schemas;
@@ -438,7 +444,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaInfo == null) {
             return false;
         }
-        schemaInfo.invalidateTableCache(relationName.name());
         TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return false;
@@ -512,5 +517,29 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     public boolean viewExists(RelationName relationName) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
         return views != null && views.getView(relationName) != null;
+    }
+
+    @Nullable
+    public RelationName getRelation(int oid) {
+        for (SchemaInfo schema : this) {
+            for (RelationInfo relation : schema.getTables()) {
+                if (oid == OidHash.relationOid(relation)) {
+                    return relation.ident();
+                }
+            }
+            for (ViewInfo view : schema.getViews()) {
+                if (oid == OidHash.relationOid(view)) {
+                    return view.ident();
+                }
+            }
+        }
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+        for (ForeignTable foreignTable : foreignTables) {
+            if (oid == OidHash.relationOid(foreignTable)) {
+                return foreignTable.ident();
+            }
+        }
+        return null;
     }
 }

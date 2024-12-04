@@ -68,6 +68,30 @@ When comparing dates, `ISO date formats`_ can be used::
     +--------------+----------+
     SELECT 2 rows in set (... sec)
 
+When comparing Geo Shapes, `topological comparison`_ is used.
+Topological equality means that the geometries have the same dimension, and their point-sets occupy the same space.
+This means that the order of vertices may be different in topologically equal geometries::
+
+    cr> SELECT 'POLYGON (( 0 0, 1 0, 1 1, 0 1, 0 0))'::GEO_SHAPE = 'POLYGON (( 1 0, 1 1, 0 1, 0 0, 1 0))'::GEO_SHAPE as res;
+    +------+
+    | res  |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+Geometry collections, containing only linestrings, points or polygons are
+normalized to MultiLineString, MultiPoint and MultiPolygon. Hence, geometry
+collection of points is equal to a MultiPoint with the same points set::
+
+    cr> select 'MULTIPOINT ((10 40), (40 30), (20 20))'::GEO_SHAPE = 'GEOMETRYCOLLECTION (POINT (10 40), POINT(40 30), POINT(20 20))'::GEO_SHAPE;
+    +------+
+    | true |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
 .. TIP::
 
     Comparison operators are commonly used to filter rows (e.g., in the
@@ -120,3 +144,4 @@ Operator                           Description
 .. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_blocks
 .. _ISO date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
 .. _lexicographical comparison: https://lucene.apache.org/core/6_6_0/core/org/apache/lucene/search/TermRangeQuery.html
+.. _topological comparison: https://postgis.net/docs/ST_Equals.html

@@ -19,13 +19,15 @@
 
 package org.elasticsearch.common.unit;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
+import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 
 public class SizeValue implements Writeable, Comparable<SizeValue> {
 
@@ -178,15 +180,15 @@ public class SizeValue implements Writeable, Comparable<SizeValue> {
         long singles;
         try {
             if (sValue.endsWith("k") || sValue.endsWith("K")) {
-                singles = (long) (Double.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C1);
+                singles = (long) (JavaDoubleParser.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C1);
             } else if (sValue.endsWith("m") || sValue.endsWith("M")) {
-                singles = (long) (Double.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C2);
+                singles = (long) (JavaDoubleParser.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C2);
             } else if (sValue.endsWith("g") || sValue.endsWith("G")) {
-                singles = (long) (Double.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C3);
+                singles = (long) (JavaDoubleParser.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C3);
             } else if (sValue.endsWith("t") || sValue.endsWith("T")) {
-                singles = (long) (Double.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C4);
+                singles = (long) (JavaDoubleParser.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C4);
             } else if (sValue.endsWith("p") || sValue.endsWith("P")) {
-                singles = (long) (Double.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C5);
+                singles = (long) (JavaDoubleParser.parseDouble(sValue.substring(0, sValue.length() - 1)) * SizeUnit.C5);
             } else {
                 singles = Long.parseLong(sValue);
             }

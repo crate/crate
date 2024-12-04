@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -163,12 +164,12 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             updatedState = ClusterState.builder(currentState).metadata(metadata).build();
         }
 
-        String partition = target.partition();
-        if (partition != null) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(partition);
-            updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
-        } else {
+        List<String> partitionValues = target.partitionValues();
+        if (partitionValues.isEmpty()) {
             updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+        } else {
+            PartitionName partitionName = new PartitionName(target.table(), partitionValues);
+            updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
         }
 
         final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
@@ -250,22 +251,33 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
     @Override
     protected ClusterBlockException checkBlock(CloseTableRequest request, ClusterState state) {
-        String partition = request.partition();
-        if (partition == null && isEmptyPartitionedTable(request.table(), state)) {
+        if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        String indexName = partition == null ? request.table().indexNameOrAlias() : partition;
-        return state.blocks().indicesBlockedException(
-            ClusterBlockLevel.METADATA_WRITE,
-            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), STRICT_INDICES_OPTIONS, indexName)
-        );
+        List<String> partitionValues = request.partitionValues();
+        String[] indexNames;
+        if (partitionValues.isEmpty()) {
+            indexNames = IndexNameExpressionResolver.concreteIndexNames(
+                state.metadata(),
+                STRICT_INDICES_OPTIONS,
+                request.table().indexNameOrAlias()
+            );
+        } else {
+            String indexName = new PartitionName(request.table(), partitionValues).asIndexName();
+            indexNames = IndexNameExpressionResolver.concreteIndexNames(
+                state.metadata(),
+                STRICT_INDICES_OPTIONS,
+                indexName
+            );
+        }
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
                                                   ClusterState clusterState) {
         var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
             clusterState.metadata(),
-            IndicesOptions.lenientExpandOpen(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             relationName.indexNameOrAlias()
         );
         if (concreteIndices.length > 0) {
@@ -369,9 +381,21 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             RelationName table = request.table();
-            String partition = request.partition();
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(currentState.metadata(),
-                    IndicesOptions.lenientExpandOpen(), partition == null ? table.indexNameOrAlias() : partition);
+            Index[] indices;
+            if (request.partitionValues().isEmpty()) {
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    currentState.metadata(),
+                    IndicesOptions.LENIENT_EXPAND_OPEN,
+                    table.indexNameOrAlias()
+                );
+            } else {
+                String indexName = new PartitionName(table, request.partitionValues()).asIndexName();
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    currentState.metadata(),
+                    IndicesOptions.LENIENT_EXPAND_OPEN,
+                    indexName
+                );
+            }
             if (indices.length == 0) {
                 return currentState;
             }
@@ -449,14 +473,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(final ClusterState currentState) throws Exception {
-            AlterTableTarget target = AlterTableTarget.resolve(
+            var alterTableTarget = AlterTableTarget.of(currentState, request.table(), request.partitionValues());
+            var updatedState = closeRoutingTable(
                 currentState,
-                request.table(),
-                request.partition()
-            );
-            final ClusterState updatedState = closeRoutingTable(
-                currentState,
-                target,
+                alterTableTarget,
                 ddlClusterStateService,
                 blockedIndices,
                 results

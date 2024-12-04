@@ -21,17 +21,14 @@
 
 package io.crate.expression.operator.any;
 
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
-
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
@@ -45,9 +42,8 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
-public final class AnyEqOperator extends AnyOperator {
+public final class AnyEqOperator extends AnyOperator<Object> {
 
     public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
@@ -63,28 +59,24 @@ public final class AnyEqOperator extends AnyOperator {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         String columnName = probe.storageIdent();
-        List<?> values = (List<?>) candidates.value();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return newUnmappedFieldQuery(columnName);
+        DataType<?> type = probe.valueType();
+        DataType<?> innerType = ArrayType.unnest(type);
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            // nested_array_ref = any([[1], [1,2]])
+            return termsAndGenericFilter(any, probe, candidates.value(), context);
         }
-        DataType<?> innerType = ArrayType.unnest(probe.valueType());
-        return EqOperator.termsQuery(columnName, innerType, values, probe.hasDocValues(), probe.indexType());
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
+        return EqOperator.termsQuery(columnName, innerType, nonNullValues, probe.hasDocValues(), probe.indexType());
     }
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(candidates.storageIdent());
-        if (fieldType == null) {
-            if (ArrayType.unnest(candidates.valueType()).id() == ObjectType.ID) {
-                // {x=10} = any(objects)
-                return null;
-            }
-            return newUnmappedFieldQuery(candidates.storageIdent());
-        }
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
-            return arrayLiteralEqAnyArray(any, candidates, probe.value(), context);
+            return termsAndGenericFilter(any, candidates, probe.value(), context);
         }
         return EqOperator.fromPrimitive(
             ArrayType.unnest(candidates.valueType()),
@@ -94,10 +86,10 @@ public final class AnyEqOperator extends AnyOperator {
             candidates.indexType());
     }
 
-    private static Query arrayLiteralEqAnyArray(Function function,
-                                                Reference candidates,
-                                                Object candidate,
-                                                LuceneQueryBuilder.Context context) {
+    private static Query termsAndGenericFilter(Function function,
+                                               Reference candidates,
+                                               Object candidate,
+                                               LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
         gatherLeafs((Iterable<?>) candidate, terms::add);
         Query termsQuery = EqOperator.termsQuery(

@@ -41,7 +41,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

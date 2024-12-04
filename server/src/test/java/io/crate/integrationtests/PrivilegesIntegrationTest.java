@@ -22,6 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_OBJECT;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -33,13 +35,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
+import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.pgcatalog.OidHash.Type;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedSchema;
 
 public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
@@ -68,7 +76,8 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     private Session testUserSession(String defaultSchema) {
         Role user = roles.findUser(TEST_USERNAME);
         assertThat(user).isNotNull();
-        return sqlOperations.newSession(defaultSchema, user);
+        return sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), defaultSchema, user);
     }
 
     @Override
@@ -91,7 +100,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testNormalUserGrantsPrivilegeThrowsException() {
-        Asserts.assertSQLError(() -> executeAsNormalUser("grant DQL to " + TEST_USERNAME))
+        Asserts.assertSQLError(() -> executeAs("grant DQL to " + TEST_USERNAME, NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -145,7 +154,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testApplyPrivilegesToUnknownUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Role 'unknown_user' does not exist");
     }
@@ -153,12 +162,13 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user, also_unknown"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Roles 'unknown_user, also_unknown' do not exist");
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
@@ -310,6 +320,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testRenameTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
@@ -337,6 +348,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
@@ -352,6 +364,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropTableRemovesPrivileges() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
@@ -372,6 +385,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropViewRemovesPrivileges() {
         executeAsSuperuser("create view doc.v1 as select 1");
         executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
@@ -391,6 +405,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropEmptyPartitionedTableRemovesPrivileges() {
         executeAsSuperuser(
             "create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
@@ -425,7 +440,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         assertThat(response).hasRowCount(1L);
 
         Asserts.assertSQLError(() -> executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_TABLE)
             .hasHTTPError(NOT_FOUND, 4041)
             .hasMessageContaining("Relation 't1' unknown");
     }
@@ -435,7 +450,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("alter cluster reroute retry failed");
         assertThat(response).hasRowCount(0L);
 
-        Asserts.assertSQLError(() -> executeAsNormalUser("alter cluster reroute retry failed"))
+        Asserts.assertSQLError(() -> executeAs("alter cluster reroute retry failed", NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -521,6 +536,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             "pg_index",
             "pg_indexes",
             "pg_locks",
+            "pg_matviews",
             "pg_namespace",
             "pg_proc",
             "pg_publication",
@@ -648,7 +664,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession);
-            assertThat(response).hasRowCount(564L);
+            assertThat(response).hasRowCount(567L);
 
             //create a table with an attribute that a new user is not privileged to access
             executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -673,6 +689,11 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testAccessesToPgConstraintEntriesWithRespectToPrivileges() throws Exception {
+        int relationOid = OidHash.relationOid(Type.TABLE, new RelationName("test_schema", "my_table"));
+        String selectConstraints =
+            "select conname from pg_catalog.pg_constraint where conrelid = ? order by conname";
+        Object[] args = new Object[] { relationOid };
+
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession);
@@ -688,29 +709,36 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                     "views_pk");
 
             //create a table with constraints that a new user is not privileged to access
-            executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
-            executeAsSuperuser("insert into test_schema.my_table values (1,10),(2,20)");
+            executeAsSuperuser("""
+                create table test_schema.my_table (
+                    my_pk int primary key,
+                    my_col int constraint positive_num check (my_col > 0)
+                )
+                """
+            );
 
-            //make sure a new user cannot access constraints without privilege
-            execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                    null, testUserSession);
-            assertThat(response).hasRowCount(0L);
+            execute(selectConstraints, args, testUserSession);
+            assertThat(response)
+                .as("user doesn't see constraints for tables without privileges")
+                .isEmpty();
 
-            //if privilege is granted, the new user can access
             executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
-            execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                    null, testUserSession);
-            assertThat(response).hasRowCount(2L);
+            execute(selectConstraints, args, testUserSession);
+            assertThat(response)
+                .as("user sees constraints after having granted privileges")
+                .hasRows(
+                    "my_table_pk",
+                    "positive_num"
+                );
         }
 
-        //values are identical
-        String newUserWithPrivilegesResult = printedTable(response.rows());
-        executeAsSuperuser("select * from pg_catalog.pg_constraint" +
-                           " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
-        String superUserResult = printedTable(response.rows());
-        assertThat(newUserWithPrivilegesResult).isEqualTo(superUserResult);
+        executeAsSuperuser(selectConstraints, args);
+        assertThat(response)
+            .as("super user sees same constraints")
+            .hasRows(
+                "my_table_pk",
+                "positive_num"
+            );
     }
 
     @Test

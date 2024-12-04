@@ -21,19 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.SearchPath;
@@ -54,15 +48,14 @@ public class RandomFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateRandom() {
-        assertThat(random.evaluate(txnCtx, sqlExpressions.nodeCtx, new Input[0]),
-            is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
+        assertThat(random.evaluate(txnCtx, sqlExpressions.nodeCtx)).isBetween(0.0, 1.0);
     }
 
     @Test
     public void normalizeReference() {
         Function function = new Function(random.signature(), Collections.emptyList(), DataTypes.DOUBLE);
         Function normalized = (Function) random.normalizeSymbol(function, txnCtx, sqlExpressions.nodeCtx);
-        assertThat(normalized, sameInstance(function));
+        assertThat(normalized).isSameAs(function);
     }
 
 }

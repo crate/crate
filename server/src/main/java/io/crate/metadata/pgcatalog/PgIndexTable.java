@@ -21,18 +21,18 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.types.Regclass;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.REGCLASS;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.STRING;
 
 import java.util.List;
 
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.SHORT_ARRAY;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.types.Regclass;
 
 public final class PgIndexTable {
 
@@ -40,30 +40,28 @@ public final class PgIndexTable {
 
     private PgIndexTable() {}
 
-    public static SystemTable<Entry> create() {
-        return SystemTable.<Entry>builder(IDENT)
-            .add("indexrelid", REGCLASS, x -> x.indexRelId)
-            .add("indrelid", REGCLASS, x -> x.indRelId)
-            .add("indnatts", SHORT, x -> (short) 0)
-            .add("indnkeyatts", SHORT, x -> (short) 0)
-            .add("indisunique", BOOLEAN, x -> false)
-            .add("indisprimary", BOOLEAN, x -> true)
-            .add("indisexclusion", BOOLEAN, x -> false)
-            .add("indimmediate", BOOLEAN, x -> true)
-            .add("indisclustered", BOOLEAN, x -> false)
-            .add("indisvalid", BOOLEAN, x -> true)
-            .add("indcheckxmin", BOOLEAN, x -> false)
-            .add("indisready", BOOLEAN, x -> true)
-            .add("indislive", BOOLEAN, x -> true)
-            .add("indisreplident", BOOLEAN, x -> false)
-            .add("indkey", INTEGER_ARRAY, x -> x.indKey)
-            .add("indcollation", INTEGER_ARRAY, x -> null)
-            .add("indclass", INTEGER_ARRAY, x -> null)
-            .add("indoption", SHORT_ARRAY, x -> null)
-            .add("indexprs", STRING, x -> null)
-            .add("indpred", STRING, x -> null)
-            .build();
-    }
+    public static SystemTable<Entry> INSTANCE = SystemTable.<Entry>builder(IDENT)
+        .add("indexrelid", REGCLASS, x -> x.indexRelId)
+        .add("indrelid", REGCLASS, x -> x.indRelId)
+        .add("indnatts", SHORT, x -> (short) 0)
+        .add("indnkeyatts", SHORT, x -> (short) 0)
+        .add("indisunique", BOOLEAN, x -> false)
+        .add("indisprimary", BOOLEAN, x -> true)
+        .add("indisexclusion", BOOLEAN, x -> false)
+        .add("indimmediate", BOOLEAN, x -> true)
+        .add("indisclustered", BOOLEAN, x -> false)
+        .add("indisvalid", BOOLEAN, x -> true)
+        .add("indcheckxmin", BOOLEAN, x -> false)
+        .add("indisready", BOOLEAN, x -> true)
+        .add("indislive", BOOLEAN, x -> true)
+        .add("indisreplident", BOOLEAN, x -> false)
+        .add("indkey", INTEGER_ARRAY, x -> x.indKey)
+        .add("indcollation", INTEGER_ARRAY, x -> null)
+        .add("indclass", INTEGER_ARRAY, x -> null)
+        .add("indoption", SHORT_ARRAY, x -> null)
+        .add("indexprs", STRING, x -> null)
+        .add("indpred", STRING, x -> null)
+        .build();
 
     public static final class Entry {
 

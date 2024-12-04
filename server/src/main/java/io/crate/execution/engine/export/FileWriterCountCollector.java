@@ -27,8 +27,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,15 +38,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -57,8 +54,6 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.ColumnIdent;
-import io.crate.server.xcontent.XContentHelper;
 
 /**
  * Collector implementation which writes the rows to the configured {@link FileOutput}
@@ -73,7 +68,6 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private final List<Input<?>> inputs;
     private final URI uri;
     private final FileOutput fileOutput;
-    private final Map<String, Object> overwrites;
     private final WriterProjection.CompressionType compressionType;
     @Nullable
     private final List<String> outputNames;
@@ -86,7 +80,6 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
                              @Nullable WriterProjection.CompressionType compressionType,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
-                             Map<ColumnIdent, Object> overwrites,
                              @Nullable List<String> outputNames,
                              WriterProjection.OutputFormat outputFormat,
                              Map<String, FileOutputFactory> fileOutputFactories,
@@ -94,7 +87,6 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         this.executor = executor;
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
-        this.overwrites = toNestedStringObjectMap(overwrites);
         this.compressionType = compressionType;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
@@ -109,59 +101,18 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         if (fileOutputFactory == null) {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", scheme));
         }
-        fileOutput = fileOutputFactory.create(withClauseOptions);
+        fileOutput = fileOutputFactory.create(uri, withClauseOptions);
         this.rowWriter = initWriter();
-    }
-
-    @VisibleForTesting
-    static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
-        Map<String, Object> nestedMap = new HashMap<>();
-        Map<String, Object> parent = nestedMap;
-
-        for (Map.Entry<ColumnIdent, Object> entry : columnIdentObjectMap.entrySet()) {
-            ColumnIdent key = entry.getKey();
-            Object value = entry.getValue();
-
-            if (key.path().isEmpty()) {
-                nestedMap.put(key.name(), value);
-            } else {
-                LinkedList<String> path = new LinkedList<>(key.path());
-                path.add(0, key.name());
-
-                while (true) {
-                    String currentKey = path.pop();
-                    if (path.isEmpty()) {
-                        parent.put(currentKey, value);
-                        break;
-                    }
-
-                    Object o = parent.get(currentKey);
-                    if (o == null) {
-                        Map<String, Object> child = new HashMap<>();
-                        parent.put(currentKey, child);
-                        parent = child;
-                    } else {
-                        assert o instanceof Map : "o must be instance of Map";
-                        parent = (Map) o;
-                    }
-                }
-            }
-        }
-
-        return nestedMap;
     }
 
     private RowWriter initWriter() {
         try {
-            if (!overwrites.isEmpty()) {
-                return new DocWriter(
-                    fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, overwrites);
-            } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
-                return new ColumnRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, inputs);
+            if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
+                return new ColumnRowWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
-                return new ColumnRowObjectWriter(fileOutput.acquireOutputStream(executor, uri, compressionType), collectExpressions, inputs, outputNames);
+                return new ColumnRowObjectWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType), collectExpressions, inputs, outputNames);
             } else {
-                return new RawRowWriter(fileOutput.acquireOutputStream(executor, uri, compressionType));
+                return new RawRowWriter(fileOutput, fileOutput.acquireOutputStream(executor, compressionType));
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);
@@ -215,7 +166,10 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     @VisibleForTesting
     static XContentBuilder createJsonBuilder(OutputStream outputStream) throws IOException {
-        XContentBuilder builder = XContentFactory.json(outputStream);
+        // Override the default rootValueSeparator to avoid whitespace characters added
+        // in the beginning of json data lines, when partitioned tables with multiple shards
+        // are exported.
+        XContentBuilder builder = XContentFactory.json(outputStream, "");
         builder.generator().configure(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM, false);
         return builder;
     }
@@ -227,50 +181,13 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         void close() throws IOException;
     }
 
-    static class DocWriter implements RowWriter {
-
-        private final OutputStream outputStream;
-        private final Iterable<CollectExpression<Row, ?>> collectExpressions;
-        private final Map<String, Object> overwrites;
-        private final XContentBuilder builder;
-
-        public DocWriter(OutputStream outputStream,
-                         Iterable<CollectExpression<Row, ?>> collectExpressions,
-                         Map<String, Object> overwrites) throws IOException {
-            this.outputStream = outputStream;
-            this.collectExpressions = collectExpressions;
-            this.overwrites = overwrites;
-            builder = createJsonBuilder(outputStream);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public void write(Row row) {
-            for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-                collectExpression.setNextRow(row);
-            }
-            Map doc = (Map) row.get(0);
-            XContentHelper.update(doc, overwrites, false);
-            try {
-                builder.map(doc);
-                builder.flush();
-                outputStream.write(NEW_LINE);
-            } catch (IOException e) {
-                throw new UnhandledServerException("Failed to write row to output", e);
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            outputStream.close();
-        }
-    }
-
     static class RawRowWriter implements RowWriter {
 
+        private final FileOutput fileOutput;
         private final OutputStream outputStream;
 
-        RawRowWriter(OutputStream outputStream) {
+        RawRowWriter(FileOutput fileOutput, OutputStream outputStream) {
+            this.fileOutput = fileOutput;
             this.outputStream = outputStream;
         }
 
@@ -289,19 +206,23 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         @Override
         public void close() throws IOException {
             outputStream.close();
+            fileOutput.close();
         }
     }
 
     static class ColumnRowWriter implements RowWriter {
 
         private final Iterable<CollectExpression<Row, ?>> collectExpressions;
+        private final FileOutput fileOutput;
         private final OutputStream outputStream;
         protected final List<Input<?>> inputs;
         protected final XContentBuilder builder;
 
-        ColumnRowWriter(OutputStream outputStream,
+        ColumnRowWriter(FileOutput fileOutput,
+                        OutputStream outputStream,
                         Iterable<CollectExpression<Row, ?>> collectExpressions,
                         List<Input<?>> inputs) throws IOException {
+            this.fileOutput = fileOutput;
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
             this.inputs = inputs;
@@ -325,6 +246,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         public void close() throws IOException {
             builder.close();
             outputStream.close();
+            fileOutput.close();
         }
 
         protected void processInputs() throws IOException {
@@ -340,11 +262,12 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
         private final List<String> outputNames;
 
-        public ColumnRowObjectWriter(OutputStream outputStream,
+        public ColumnRowObjectWriter(FileOutput fileOutput,
+                                     OutputStream outputStream,
                                      Iterable<CollectExpression<Row, ?>> collectExpressions,
                                      List<Input<?>> inputs,
                                      List<String> outputNames) throws IOException {
-            super(outputStream, collectExpressions, inputs);
+            super(fileOutput, outputStream, collectExpressions, inputs);
             this.outputNames = outputNames;
         }
 

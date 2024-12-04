@@ -21,11 +21,13 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -36,13 +38,14 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 public class GeoPointTypeTest extends DataTypeTestCase<Point> {
 
     @Override
-    public DataType<Point> getType() {
-        return GeoPointType.INSTANCE;
+    protected DataDef<Point> getDataDef() {
+        return DataDef.fromType(GeoPointType.INSTANCE);
     }
 
     @Override
-    protected boolean supportsDocValues() {
-        return false;
+    protected void assertEquals(Point actual, Point expected) {
+        assertThat(actual.getX()).isCloseTo(expected.getX(), Offset.offset(0.0001));
+        assertThat(actual.getY()).isCloseTo(expected.getY(), Offset.offset(0.0001));
     }
 
     @Test
@@ -113,5 +116,20 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
         assertThatThrownBy(() -> DataTypes.GEO_POINT.implicitCast(new Double[]{-187.654, 123.456}))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Failed to validate geo point [lon=-187.654000, lat=123.456000], not a valid location.");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable index", true);
     }
 }

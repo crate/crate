@@ -18,10 +18,7 @@
  */
 package org.elasticsearch.common.bytes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,7 +29,6 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.hamcrest.Matchers;
 
 public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase {
 
@@ -46,7 +42,7 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
         // we know bytes stream output always creates a paged bytes reference, we use it to create randomized content
         List<BytesReference> referenceList = newRefList(length);
         BytesReference ref = CompositeBytesReference.of(referenceList.toArray(new BytesReference[0]));
-        assertEquals(length, ref.length());
+        assertThat(ref.length()).isEqualTo(length);
         return ref;
     }
 
@@ -59,7 +55,7 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
             for (int j = 0; j < sliceLength; j++) {
                 out.writeByte((byte) random().nextInt(1 << 8));
             }
-            assertEquals(sliceLength, out.size());
+            assertThat(out.size()).isEqualTo(sliceLength);
             referenceList.add(out.bytes());
             i+=sliceLength;
         }
@@ -77,32 +73,32 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
             BytesRef scratch;
             while ((scratch = innerIter.next()) != null) {
                 BytesRef next = iterator.next();
-                assertNotNull(next);
-                assertEquals(next, scratch);
+                assertThat(next).isNotNull();
+                assertThat(scratch).isEqualTo(next);
                 builder.append(next);
             }
 
         }
-        assertNull(iterator.next());
+        assertThat(iterator.next()).isNull();
 
         int offset = 0;
         for (BytesReference reference : referenceList) {
-            assertEquals(reference, ref.slice(offset, reference.length()));
+            assertThat(ref.slice(offset, reference.length())).isEqualTo(reference);
             int probes = randomIntBetween(Math.min(10, reference.length()), reference.length());
             for (int i = 0; i < probes; i++) {
                 int index = randomIntBetween(0, reference.length()-1);
-                assertEquals(ref.get(offset + index), reference.get(index));
+                assertThat(reference.get(index)).isEqualTo(ref.get(offset + index));
             }
             offset += reference.length();
         }
 
         BytesArray array = new BytesArray(builder.toBytesRef());
-        assertEquals(array, ref);
-        assertEquals(array.hashCode(), ref.hashCode());
+        assertThat(ref).isEqualTo(array);
+        assertThat(ref.hashCode()).isEqualTo(array.hashCode());
 
         BytesStreamOutput output = new BytesStreamOutput();
         ref.writeTo(output);
-        assertEquals(array, output.bytes());
+        assertThat(output.bytes()).isEqualTo(array);
     }
 
     @Override
@@ -127,10 +123,10 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
                 new BytesArray(new byte[13]));
 
         // Slices that cross boundaries are composite too
-        assertThat(bytesRef.slice(5, 8), Matchers.instanceOf(CompositeBytesReference.class));
+        assertThat(bytesRef.slice(5, 8)).isExactlyInstanceOf(CompositeBytesReference.class);
 
         // But not slices that cover a single sub reference
-        assertThat(bytesRef.slice(13, 10), Matchers.not(Matchers.instanceOf(CompositeBytesReference.class))); // strictly within sub
-        assertThat(bytesRef.slice(12, 15), Matchers.not(Matchers.instanceOf(CompositeBytesReference.class))); // equal to sub
+        assertThat(bytesRef.slice(13, 10)).isNotExactlyInstanceOf(CompositeBytesReference.class); // strictly within sub
+        assertThat(bytesRef.slice(12, 15)).isNotExactlyInstanceOf(CompositeBytesReference.class); // equal to sub
     }
 }

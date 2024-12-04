@@ -28,12 +28,11 @@ import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.roleOf;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +43,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -55,8 +53,12 @@ import org.junit.Test;
 import io.crate.role.GrantedRole;
 import io.crate.role.GrantedRolesChange;
 import io.crate.role.JwtProperties;
+import io.crate.role.Permission;
 import io.crate.role.Policy;
+import io.crate.role.Privilege;
 import io.crate.role.Role;
+import io.crate.role.RolePrivileges;
+import io.crate.role.Securable;
 
 public class RolesMetadataTest extends ESTestCase {
 
@@ -73,13 +75,14 @@ public class RolesMetadataTest extends ESTestCase {
             Set.of(),
             DummyParentRoles,
             getSecureHash("fords-pwd")));
-        DummyUsersAndRolesWithParentRoles.put("John", userOf(
-            "John",
-            Set.of(),
-            new HashSet<>(),
-            getSecureHash("johns-pwd"),
-            new JwtProperties("https:dummy.org", "test", null))
-        );
+
+        var passwd = getSecureHash("johns-pwd");
+        var jwt = new JwtProperties("https:dummy.org", "test", null);
+        DummyUsersAndRolesWithParentRoles.put("John", userOf("John", passwd).with(
+            passwd,
+            jwt,
+            Map.of("statement_timeout", "1m", "enable_hashjoin", false)
+        ));
         DummyUsersAndRolesWithParentRoles.put("role1", roleOf("role1"));
         DummyUsersAndRolesWithParentRoles.put("role2", roleOf("role2"));
         DummyUsersAndRolesWithParentRoles.put("role3", roleOf("role3"));
@@ -94,52 +97,6 @@ public class RolesMetadataTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         RolesMetadata roles2 = new RolesMetadata(in);
         assertThat(roles2).isEqualTo(roles);
-    }
-
-    @Test
-    public void test_roles_metadata_to_x_content() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        RolesMetadata roles = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
-        assertThat(roles2).isEqualTo(roles);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
-    }
-
-    @Test
-    public void test_roles_metadata_without_attributes_to_xcontent() throws IOException {
-        XContentBuilder builder = JsonXContent.builder();
-
-        // reflects the logic used to process custom metadata in the cluster state
-        builder.startObject();
-
-        RolesMetadata roles = new RolesMetadata(DummyUsersAndRolesWithParentRoles);
-        roles.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-
-        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-            xContentRegistry(),
-            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            Strings.toString(builder));
-        parser.nextToken(); // start object
-        RolesMetadata roles2 = RolesMetadata.fromXContent(parser);
-        assertThat(roles2).isEqualTo(roles);
-
-        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken()).isNull();
     }
 
     @Test
@@ -161,8 +118,8 @@ public class RolesMetadataTest extends ESTestCase {
             new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES)
         );
         assertThat(rolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))),
+                "Ford", DUMMY_USERS.get("Ford").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Ford")))));
     }
 
     @Test
@@ -175,8 +132,8 @@ public class RolesMetadataTest extends ESTestCase {
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);
         assertThat(newRolesMetadata.roles()).containsExactlyInAnyOrderEntriesOf(
-            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur")),
-                "Ford", DUMMY_USERS.get("Ford").with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"))));
+            Map.of("Arthur", DUMMY_USERS.get("Arthur").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))),
+                "Ford", DUMMY_USERS.get("Ford").with(new RolePrivileges(OLD_DUMMY_USERS_PRIVILEGES.get("Ford")))));
     }
 
     @Test
@@ -275,5 +232,26 @@ public class RolesMetadataTest extends ESTestCase {
             .isExactlyInstanceOf(ElasticsearchParseException.class)
             .hasMessage("failed to parse jwt, unknown property 'prop'");
 
+    }
+
+    @Test
+    public void test_grant_roles_do_not_loose_existing_privileges() {
+        var rolesMetadata = new RolesMetadata();
+        rolesMetadata.roles().put("Ford", userOf(
+            "Ford",
+            Set.of(new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate")),
+            Set.of(),
+            getSecureHash("fords-pwd"))
+        );
+        rolesMetadata.roles().put("role1", roleOf("role1"));
+        assertThat(rolesMetadata.roles().get("Ford").privileges().size()).isEqualTo(1);
+
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor"));
+
+        assertThat(affectedRolePrivileges).isEqualTo(1);
+        assertThat(rolesMetadata.roles().get("Ford").privileges().size()).isEqualTo(1);
     }
 }

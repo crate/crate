@@ -65,21 +65,6 @@ public final class IndexSettings {
                       Property.IndexScope,
                       Property.ReplicatedIndexScope);
 
-    public static final Setting<Boolean> INDEX_WARMER_ENABLED_SETTING =
-        Setting.boolSetting("index.warmer.enabled", true, Property.Dynamic, Property.IndexScope, Property.Deprecated);
-
-    public static final Setting<String> INDEX_CHECK_ON_STARTUP = new Setting<>("index.shard.check_on_startup", "false", (s) -> {
-        switch (s) {
-            case "false":
-            case "true":
-            case "fix":
-            case "checksum":
-                return s;
-            default:
-                throw new IllegalArgumentException("unknown value for [index.shard.check_on_startup] must be one of [true, false, fix, checksum] but was: " + s);
-        }
-    }, DataTypes.STRING, Property.IndexScope);
-
     /**
      * Index setting describing for NGramTokenizer and NGramTokenFilter
      * the maximum difference between
@@ -275,7 +260,6 @@ public final class IndexSettings {
         this.retentionLeaseMillis = retentionLease.millis();
     }
 
-    private volatile boolean warmerEnabled;
     private volatile int maxNgramDiff;
     private volatile int maxShingleDiff;
     private volatile TimeValue searchIdleAfter;
@@ -324,7 +308,6 @@ public final class IndexSettings {
         softDeleteEnabled = scopedSettings.get(INDEX_SOFT_DELETES_SETTING);
         softDeleteRetentionOperations = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING);
         retentionLeaseMillis = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING).millis();
-        warmerEnabled = scopedSettings.get(INDEX_WARMER_ENABLED_SETTING);
         maxNgramDiff = scopedSettings.get(MAX_NGRAM_DIFF_SETTING);
         maxShingleDiff = scopedSettings.get(MAX_SHINGLE_DIFF_SETTING);
         maxRefreshListeners = scopedSettings.get(MAX_REFRESH_LISTENERS_PER_SHARD);
@@ -348,7 +331,6 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_SYNC_INTERVAL_SETTING, this::setTranslogSyncInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_NGRAM_DIFF_SETTING, this::setMaxNgramDiff);
         scopedSettings.addSettingsUpdateConsumer(MAX_SHINGLE_DIFF_SETTING, this::setMaxShingleDiff);
-        scopedSettings.addSettingsUpdateConsumer(INDEX_WARMER_ENABLED_SETTING, this::setEnableWarmer);
         scopedSettings.addSettingsUpdateConsumer(INDEX_GC_DELETES_SETTING, this::setGCDeletes);
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING, this::setTranslogFlushThresholdSize);
         scopedSettings.addSettingsUpdateConsumer(
@@ -539,17 +521,6 @@ public final class IndexSettings {
 
     private void setTranslogDurability(Translog.Durability durability) {
         this.durability = durability;
-    }
-
-    /**
-     * Returns true if index warmers are enabled, otherwise <code>false</code>
-     */
-    public boolean isWarmerEnabled() {
-        return warmerEnabled;
-    }
-
-    private void setEnableWarmer(boolean enableWarmer) {
-        this.warmerEnabled = enableWarmer;
     }
 
     /**

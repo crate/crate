@@ -55,7 +55,7 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
@@ -94,7 +94,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         BlobSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME);
 
-    private final Schemas schemas;
     private final Iterable<RelationInfo> relations;
     private final Iterable<TableInfo> tables;
     private final Iterable<ViewInfo> views;
@@ -116,13 +115,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private boolean initialClusterStateReceived = false;
 
     @Inject
-    public InformationSchemaIterables(final Schemas schemas,
-                                      NodeContext nodeCtx,
+    public InformationSchemaIterables(NodeContext nodeCtx,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
+        Schemas schemas = nodeCtx.schemas();
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
@@ -174,7 +172,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .flatMap(Function.identity())
             .iterator();
 
-        partitionInfos = new PartitionInfos(clusterService);
+        partitionInfos = new PartitionInfos(clusterService, schemas);
 
         referentialConstraints = emptyList();
         // these are initialized on a clusterState change
@@ -267,14 +265,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(schema -> sequentialStream(schema.getViews()))
-            .filter(i -> !IndexParts.isPartitioned(i.ident().indexNameOrAlias()));
+            .filter(i -> !IndexName.isPartitioned(i.ident().indexNameOrAlias()));
     }
 
     public static Stream<TableInfo> tablesStream(Schemas schemas) {
         return sequentialStream(schemas)
-            .flatMap(s -> sequentialStream(s.getTables()))
-            .filter(i -> !(IndexParts.isPartitioned(i.ident().indexNameOrAlias()) ||
-                           IndexParts.isDangling(i.ident().indexNameOrAlias())));
+            .flatMap(s -> sequentialStream(s.getTables()));
     }
 
     private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
@@ -282,7 +278,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<SchemaInfo> schemas() {
-        return schemas;
+        return nodeCtx.schemas();
     }
 
     public Iterable<RelationInfo> relations() {

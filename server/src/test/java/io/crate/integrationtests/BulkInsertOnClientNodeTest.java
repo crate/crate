@@ -21,21 +21,15 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
+import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
@@ -80,16 +74,12 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
         execute("create table test (id integer primary key) " +
                 "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
-        List<Long> rowCounts = Arrays.stream(
+        var bulkResponse =
             execute("insert into test (id, value) values (?, ?)",
                 new Object[][]{
                     new Object[]{1, 1},                                 // use id 1 to ensure shard 0
                     new Object[] {3, Map.of("foo", 127)}         // use id 3 to ensure shard 1
-                })).boxed().collect(Collectors.toList());
-        assertThat(rowCounts.size(), is(2));
-        assertThat(rowCounts, Matchers.anyOf(
-            contains(1L, -2L),
-            contains(-2L, 1L)
-        ));
+                });
+        assertThat(bulkResponse.rowCounts()).containsExactlyInAnyOrder(1L, -2L);
     }
 }

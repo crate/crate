@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.NotNull;
 
@@ -55,7 +57,7 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -71,7 +73,7 @@ public class FetchTask implements Task {
     private final SharedShardContexts sharedShardContexts;
     private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
     private final Metadata metadata;
-    private final Iterable<? extends Routing> routingIterable;
+    private final List<? extends Routing> routings;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
@@ -91,14 +93,14 @@ public class FetchTask implements Task {
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
-                     Iterable<? extends Routing> routingIterable) {
+                     List<? extends Routing> routings) {
         this.jobId = jobId;
         this.phase = phase;
         this.memoryLimitInBytes = memoryLimitInBytes;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
         this.metadata = metadata;
-        this.routingIterable = routingIterable;
+        this.routings = routings;
         this.toFetch = new HashMap<>(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
     }
@@ -182,6 +184,14 @@ public class FetchTask implements Task {
         return sharedShardContext.indexService();
     }
 
+    public IndexShard indexShard(int readerId) {
+        SharedShardContext sharedShardContext = shardContexts.get(readerId);
+        if (sharedShardContext == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Reader with id %d not found", readerId));
+        }
+        return sharedShardContext.indexShard();
+    }
+
     @Override
     public String toString() {
         return "FetchTask{" +
@@ -231,8 +241,8 @@ public class FetchTask implements Task {
                 return null;
             }
 
-            ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>();
-            for (Routing routing : routingIterable) {
+            ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>(routings.size());
+            for (Routing routing : routings) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
                 try {
@@ -266,7 +276,7 @@ public class FetchTask implements Task {
             tablesWithFetchRefs.add(reference.ident().tableIdent());
         }
         String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
-        for (Routing routing : routingIterable) {
+        for (Routing routing : routings) {
             Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
             Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
 
@@ -278,7 +288,7 @@ public class FetchTask implements Task {
                 }
                 IndexMetadata indexMetadata = metadata.index(indexName);
                 if (indexMetadata == null) {
-                    if (IndexParts.isPartitioned(indexName)) {
+                    if (IndexName.isPartitioned(indexName)) {
                         continue;
                     }
                     throw new IndexNotFoundException(indexName);
@@ -300,7 +310,7 @@ public class FetchTask implements Task {
                                 searchers.put(readerId, shardContext.acquireSearcher(source));
                             }
                         } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
-                            if (!IndexParts.isPartitioned(indexName)) {
+                            if (!IndexName.isPartitioned(indexName)) {
                                 throw e;
                             }
                         }

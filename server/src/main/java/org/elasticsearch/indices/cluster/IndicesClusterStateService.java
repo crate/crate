@@ -51,9 +51,9 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
-import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -110,7 +110,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
     private final ThreadPool threadPool;
     private final PeerRecoveryTargetService recoveryTargetService;
     private final ShardStateAction shardStateAction;
-    private final NodeMappingRefreshAction nodeMappingRefreshAction;
 
     private static final ActionListener<Void> SHARD_STATE_ACTION_LISTENER = ActionListener.wrap(() -> {});
 
@@ -121,7 +120,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
     private final FailedShardHandler failedShardHandler = new FailedShardHandler();
 
-    private final boolean sendRefreshMapping;
     private final List<IndexEventListener> buildInIndexListener;
     private final PrimaryReplicaSyncer primaryReplicaSyncer;
     private final RetentionLeaseSyncer retentionLeaseSyncer;
@@ -135,7 +133,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       ThreadPool threadPool,
                                       PeerRecoveryTargetService recoveryTargetService,
                                       ShardStateAction shardStateAction,
-                                      NodeMappingRefreshAction nodeMappingRefreshAction,
                                       RepositoriesService repositoriesService,
                                       SyncedFlushService syncedFlushService,
                                       PeerRecoverySourceService peerRecoverySourceService,
@@ -152,7 +149,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             threadPool,
             recoveryTargetService,
             shardStateAction,
-            nodeMappingRefreshAction,
             repositoriesService,
             syncedFlushService,
             peerRecoverySourceService,
@@ -173,7 +169,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                ThreadPool threadPool,
                                PeerRecoveryTargetService recoveryTargetService,
                                ShardStateAction shardStateAction,
-                               NodeMappingRefreshAction nodeMappingRefreshAction,
                                RepositoriesService repositoriesService,
                                SyncedFlushService syncedFlushService,
                                PeerRecoverySourceService peerRecoverySourceService,
@@ -199,11 +194,9 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         this.threadPool = threadPool;
         this.recoveryTargetService = recoveryTargetService;
         this.shardStateAction = shardStateAction;
-        this.nodeMappingRefreshAction = nodeMappingRefreshAction;
         this.repositoriesService = repositoriesService;
         this.primaryReplicaSyncer = primaryReplicaSyncer;
         this.retentionLeaseSyncer = retentionLeaseSyncer;
-        this.sendRefreshMapping = settings.getAsBoolean("indices.cluster.send_refresh_mapping", true);
         this.client = client;
     }
 
@@ -513,12 +506,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             AllocatedIndex<? extends Shard> indexService = null;
             try {
                 indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
-                if (indexService.updateMapping(null, indexMetadata) && sendRefreshMapping) {
-                    nodeMappingRefreshAction.nodeMappingRefresh(state.nodes().getMasterNode(),
-                        new NodeMappingRefreshAction.NodeMappingRefreshRequest(indexMetadata.getIndex().getName(),
-                            indexMetadata.getIndexUUID(), state.nodes().getLocalNodeId())
-                    );
-                }
+                indexService.validateMapping(state.metadata(), indexMetadata);
             } catch (Exception e) {
                 final String failShardReason;
                 if (indexService == null) {
@@ -556,12 +544,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     }
 
                     reason = "mapping update failed";
-                    if (indexService.updateMapping(currentIndexMetadata, newIndexMetadata) && sendRefreshMapping) {
-                        nodeMappingRefreshAction.nodeMappingRefresh(state.nodes().getMasterNode(),
-                            new NodeMappingRefreshAction.NodeMappingRefreshRequest(newIndexMetadata.getIndex().getName(),
-                                newIndexMetadata.getIndexUUID(), state.nodes().getLocalNodeId())
-                        );
-                    }
+                    indexService.validateMapping(state.metadata(), newIndexMetadata);
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
 
@@ -819,7 +802,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
          * - Updates and persists the new routing value.
          * - Updates the primary term if this shard is a primary.
          * - Updates the allocation ids that are tracked by the shard if it is a primary.
-         *   See {@link ReplicationTracker#updateFromMaster(long, Set, IndexShardRoutingTable, Set)} for details.
+         *   See {@link ReplicationTracker#updateFromMaster(long, Set, IndexShardRoutingTable)} for details.
          *
          * @param shardRouting                the new routing entry
          * @param primaryTerm                 the new primary term
@@ -856,7 +839,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         /**
          * Checks if index requires refresh from master.
          */
-        boolean updateMapping(IndexMetadata currentIndexMetadata, IndexMetadata newIndexMetadata) throws IOException;
+        void validateMapping(Metadata metadata, IndexMetadata newIndexMetadata) throws IOException;
 
         /**
          * Returns shard with given id.

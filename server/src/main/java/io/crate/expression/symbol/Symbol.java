@@ -21,12 +21,19 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.cast.CastMode;
@@ -34,14 +41,20 @@ import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.functions.Signature;
-import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
 
 public interface Symbol extends Writeable, Accountable {
+
+    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
+    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = s -> s instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
@@ -54,11 +67,119 @@ public interface Symbol extends Writeable, Accountable {
         return symbol instanceof Literal<?> literal && Objects.equals(literal.value(), value);
     }
 
+    @Nullable
+    public static Symbol nullableFromStream(StreamInput in) throws IOException {
+        return in.readBoolean() ? fromStream(in) : null;
+    }
+
+    public static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
+        if (symbol == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            toStream(symbol, out);
+        }
+    }
+
+    public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
+        if (out.getVersion().before(Version.V_4_2_0) && symbol instanceof AliasSymbol aliasSymbol) {
+            toStream(aliasSymbol.symbol(), out);
+        } else {
+            int ordinal = symbol.symbolType().ordinal();
+            out.writeVInt(ordinal);
+            symbol.writeTo(out);
+        }
+    }
+
+    public static Symbol fromStream(StreamInput in) throws IOException {
+        return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
+    }
+
     SymbolType symbolType();
 
     <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
     DataType<?> valueType();
+
+    /**
+     * Returns true if the tree is expected to return the same value given the same inputs
+     */
+    default boolean isDeterministic() {
+        return true;
+    }
+
+    /**
+     * Returns true if the tree contains a {@link Reference} or {@link ScopedSymbol}
+     * column matching the argument.
+     */
+    default boolean hasColumn(ColumnIdent column) {
+        return any(s ->
+            s instanceof Reference ref && ref.column().equals(column) ||
+            s instanceof ScopedSymbol field && field.column().equals(column));
+    }
+
+    /**
+     * Returns true if the tree contains the given function type
+     */
+    default boolean hasFunctionType(FunctionType type) {
+        return any(s -> s instanceof Function fn && fn.signature.getType().equals(type));
+    }
+
+    /**
+     * <p>
+     * Returns true if the given predicate matches on any node in the symbol tree.
+     * </p>
+     *
+     * Does not cross relations:
+     * <ul>
+     * <li>Symbols within the relation of a SelectSymbol are not visited</li>
+     * <li>OuterColumn is visited, but its linked symbol isn't. because it belongs to a parent relation</li>
+     * </ul>
+     */
+    default boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this);
+    }
+
+    /**
+     * Visits all instances of clazz in a tree.
+     * Does not cross relations. See {@link #any(Predicate)} for details
+     */
+    default <T extends Symbol> void visit(Class<T> clazz, Consumer<? super T> consumer) {
+        any(node -> {
+            if (clazz.isInstance(node)) {
+                consumer.accept(clazz.cast(node));
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Visits all nodes matching the predicate in a tree.
+     * Does not cross relations. See {@link #any(Predicate)} for details
+     */
+    default void visit(Predicate<? super Symbol> predicate, Consumer<? super Symbol> consumer) {
+        any(node -> {
+            if (predicate.test(node)) {
+                consumer.accept(node);
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Returns a {@link ColumnIdent} that can be used to represent the Symbol.
+     */
+    default ColumnIdent toColumn() {
+        return ColumnIdent.of(toString(Style.UNQUALIFIED));
+    }
+
+    default ColumnDefinition<Expression> toColumnDefinition() {
+        return new ColumnDefinition<>(
+            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            valueType().toColumnType(null),
+            List.of()
+        );
+    }
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping an implicit cast
@@ -71,17 +192,32 @@ public interface Symbol extends Writeable, Accountable {
      * @return An instance of {@link Function} which casts this symbol.
      */
     default Symbol cast(DataType<?> targetType, CastMode... modes) {
-        if (targetType.equals(valueType())) {
+        if (targetType.equals(UndefinedType.INSTANCE)) {
             return this;
-        } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
-                   && valueType().id() == targetType.id()) {
+        } else if (targetType.equals(valueType())) {
             return this;
-        } else if (ArrayType.unnest(targetType).equals(DataTypes.NUMERIC)
-                   && valueType().id() == DataTypes.NUMERIC.id()) {
-            // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
-            return this;
+        } else {
+            DataType<?> innerTargetType = ArrayType.unnest(targetType);
+            DataType<?> innerValueType = ArrayType.unnest(valueType());
+            if (innerTargetType.equals(DataTypes.UNTYPED_OBJECT) &&
+                innerTargetType.id() == innerValueType.id() &&
+                valueType().id() == targetType.id()) {
+                return this;
+            } else if (innerTargetType.equals(DataTypes.NUMERIC) &&
+                valueType().id() == DataTypes.NUMERIC.id()) {
+                // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
+                return this;
+            }
         }
+
         return generateCastFunction(this, targetType, modes);
+    }
+
+    /**
+     * If the symbol is a cast function it drops it (only on root)
+     **/
+    default Symbol uncast() {
+        return this;
     }
 
     /**
@@ -109,33 +245,17 @@ public interface Symbol extends Writeable, Accountable {
             // types have to be considered as well. Therefore, to bypass this
             // limitation we encode the return type info as the second function
             // argument.
-            var name = modes.contains(CastMode.TRY)
-                ? TryCastFunction.NAME
-                : ExplicitCastFunction.NAME;
-            return new Function(
-                Signature
-                    .scalar(
-                        name,
-                        TypeSignature.parse("E"),
-                        TypeSignature.parse("V"),
-                        TypeSignature.parse("V")
-                    ).withTypeVariableConstraints(
-                        TypeVariableConstraint.typeVariable("E"),
-                        TypeVariableConstraint.typeVariable("V")),
-                // a literal with a NULL value is passed as an argument
-                // to match the method signature
-                List.of(sourceSymbol, Literal.of(targetType, null)),
-                targetType
-            );
+            var signature = modes.contains(CastMode.TRY)
+                ? TryCastFunction.SIGNATURE
+                : ExplicitCastFunction.SIGNATURE;
+
+            // a literal with a NULL value is passed as an argument
+            // to match the method signature
+            List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
+            return new Function(signature, arguments, targetType);
         } else {
             return new Function(
-                Signature
-                    .scalar(
-                        ImplicitCastFunction.NAME,
-                        TypeSignature.parse("E"),
-                        DataTypes.STRING.getTypeSignature(),
-                        DataTypes.UNDEFINED.getTypeSignature())
-                    .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                ImplicitCastFunction.SIGNATURE,
                 List.of(
                     sourceSymbol,
                     Literal.of(targetType.getTypeSignature().toString())

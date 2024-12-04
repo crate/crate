@@ -34,10 +34,10 @@ import java.util.function.Function;
 
 import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -47,7 +47,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -116,11 +116,11 @@ public class WindowAgg extends ForwardingLogicalPlan {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
-            SymbolVisitors.intersection(outputToKeep, standalone, toKeep::add);
+            Symbols.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
+            Symbols.intersection(outputToKeep, standalone, toKeep::add);
         }
         for (WindowFunction newWindowFunction : newWindowFunctions) {
-            SymbolVisitors.intersection(newWindowFunction, source.outputs(), toKeep::add);
+            Symbols.intersection(newWindowFunction, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {

@@ -21,66 +21,63 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.apache.lucene.document.StoredField;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
-import io.crate.expression.symbol.Symbol;
+import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import io.crate.types.StorageSupport;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
-    private final ObjectType objectType;
-    private final HashMap<String, ValueIndexer<Object>> innerIndexers;
     private final ColumnIdent column;
-    private final Map<String, Reference> childColumns;
+    private final Map<String, Child> children = new HashMap<>();
     private final Function<ColumnIdent, Reference> getRef;
     private final RelationName table;
     private final Reference ref;
-    private final Function<String, FieldType> getFieldType;
-    private final boolean prefixUnknownColumns;
+    private final String unknownColumnPrefix;
 
-    /**
-     * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
-     */
+    private record Child(Reference reference, ValueIndexer<Object> indexer) {
+        ColumnIdent ident() {
+            return reference.column();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
-                         Function<String, FieldType> getFieldType,
                          Function<ColumnIdent, Reference> getRef) {
         this.table = table;
         this.ref = ref;
-        this.getFieldType = getFieldType;
         this.getRef = getRef;
-        this.prefixUnknownColumns = ref.oid() != COLUMN_OID_UNASSIGNED;
+        this.unknownColumnPrefix = ref.oid() != COLUMN_OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
         this.column = ref.column();
-        this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
-        this.innerIndexers = new HashMap<>();
-        this.childColumns = new HashMap<>();
+        ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
@@ -91,90 +88,110 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 // Treat it as dynamic column if a value for the nested column is found
                 continue;
             }
-            childColumns.put(innerName, childRef);
-            if (childRef.granularity() != RowGranularity.PARTITION) {
-                ValueIndexer<?> valueIndexer = value.valueIndexer(
-                    table,
-                    childRef,
-                    getFieldType,
-                    getRef
-                );
-                innerIndexers.put(innerName, (ValueIndexer<Object>) valueIndexer);
-            }
+            ValueIndexer<?> indexer
+                = childRef.granularity() == RowGranularity.PARTITION ? null : value.valueIndexer(table, childRef, getRef);
+            children.put(innerName, new Child(childRef, (ValueIndexer<Object>) indexer));
         }
     }
 
     @Override
-    public void indexValue(@Nullable Map<String, Object> value,
-                           XContentBuilder xContentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
-        xContentBuilder.startObject();
-        for (var entry : childColumns.entrySet()) {
-            var childRef = entry.getValue();
+    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+        TranslogWriter translogWriter = docBuilder.translogWriter();
+        translogWriter.startObject();
+        for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
-            DataType<?> type = childRef.valueType();
-            ColumnIdent innerColumn = column.getChild(innerName);
-            Object innerValue = null;
-            if (value == null || value.containsKey(innerName) == false) {
-                Synthetic synthetic = synthetics.get(innerColumn);
-                if (synthetic != null) {
-                    innerValue = synthetic.value();
+            Child child = entry.getValue();
+            if (value.containsKey(innerName) == false) {
+                var synth = docBuilder.getSyntheticValue(child.ident());
+                if (synth != null) {
+                    // directly modify the map so that containing types will see the value
+                    // if they need to write stored fields
+                    value.put(innerName, synth);
                 }
-            } else {
-                innerValue = value.get(innerName);
             }
-            ColumnConstraint check = checks.get(innerColumn);
-            if (check != null) {
-                check.verify(innerValue);
-            }
+            var innerValue = value.get(innerName);
+            docBuilder.checkColumnConstraint(child.ident(), innerValue);
             if (innerValue == null) {
                 continue;
             }
-            var valueIndexer = innerIndexers.get(innerName);
+            var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                valueIndexer.indexValue(
-                    type.sanitizeValue(innerValue),
-                    childRef.storageIdentLeafName(),
-                    xContentBuilder,
-                    addField,
-                    synthetics,
-                    checks
-                );
+                innerValue = child.reference.valueType().sanitizeValue(innerValue);
+                docBuilder.translogWriter().writeFieldName(child.reference.storageIdentLeafName());
+                valueIndexer.indexValue(innerValue, docBuilder);
+                value.put(innerName, innerValue);
             }
         }
-
-        if (value != null) {
-            indexUnknownColumns(value, xContentBuilder);
+        Map<String, Object> columnsToStore = new HashMap<>();
+        value.forEach((k, v) -> {
+            if (children.containsKey(k) == false) {
+                translogWriter.writeFieldName(this.unknownColumnPrefix + k);
+                translogWriter.writeValue(v);
+                columnsToStore.put(k, v);
+            }
+            if (v == null) {
+                columnsToStore.put(k, null);
+            }
+        });
+        if (docBuilder.maybeAddStoredField()) {
+            if (columnsToStore.isEmpty() == false) {
+                // We have unknown or null values that can't be reconstructed from doc values
+                // at read time, so we need to store them explicitly
+                docBuilder.addField(new StoredField(
+                    ref.storageIdentLeafName(),
+                    toBytes(columnsToStore, docBuilder.getTableVersionCreated()).toBytesRef()
+                ));
+            } else if (value.isEmpty()) {
+                // A completely empty object doesn't store anything in doc values, so we need to
+                // store a marker here to reconstruct it at read time and distinguish it from a
+                // null value
+                docBuilder.addField(new StoredField(
+                    ref.storageIdentLeafName(),
+                    toBytes(value, docBuilder.getTableVersionCreated()).toBytesRef()
+                ));
+            }
         }
-        xContentBuilder.endObject();
+        translogWriter.endObject();
+    }
+
+    private BytesReference toBytes(Map<String, Object> v, Version version) {
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            out.setVersion(version);
+            out.writeMap(v, StreamOutput::writeString, StreamOutput::writeGenericValue);
+            return out.bytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public void collectSchemaUpdates(@Nullable Map<String, Object> value,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
-        for (var entry : childColumns.entrySet()) {
-            var childRef = entry.getValue();
+                                     Synthetics synthetics) throws IOException {
+        for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
-            DataType<?> type = childRef.valueType();
-            ColumnIdent innerColumn = column.getChild(innerName);
+            Child child = entry.getValue();
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
-                Synthetic synthetic = synthetics.get(innerColumn);
+                Input<Object> synthetic = synthetics.get(child.ident());
                 if (synthetic != null) {
                     innerValue = synthetic.value();
                 }
             } else {
                 innerValue = value.get(innerName);
             }
-            var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
-            if (valueIndexer != null) {
-                valueIndexer.collectSchemaUpdates(
-                    type.sanitizeValue(innerValue),
+            if (child.indexer != null) {
+                var type = child.reference.valueType();
+                try {
+                    innerValue = type.sanitizeValue(innerValue);
+                } catch (ClassCastException | IllegalArgumentException e) {
+                    throw new ConversionException(innerValue, type);
+                }
+
+                child.indexer.collectSchemaUpdates(
+                    innerValue,
                     onDynamicColumn,
                     synthetics
                 );
@@ -187,45 +204,58 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
-        for (Map.Entry<String, Reference> entry : childColumns.entrySet()) {
-            var innerName = entry.getKey();
-            var oldChildRef = entry.getValue();
-            var newChildRef = getRef.apply(oldChildRef.column());
-            if (oldChildRef.equals(newChildRef) == false) {
-                entry.setValue(newChildRef);
-                if (newChildRef.granularity() != RowGranularity.PARTITION) {
-                    //noinspection unchecked
-                    ValueIndexer<Object> newIndexer = (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(
-                            newChildRef.ident().tableIdent(),
-                            newChildRef,
-                            getFieldType,
-                            getRef
-                    );
-                    innerIndexers.put(innerName, newIndexer);
-                }
+        ColumnIdent objectColumn = ref.column();
+        Reference updatedSelf = getRef.apply(objectColumn);
+        ObjectType objectType = (ObjectType) ArrayType.unnest(updatedSelf.valueType());
+        for (var entry : children.entrySet()) {
+            Child child = entry.getValue();
+            var newChildRef = getRef.apply(child.ident());
+            if (Objects.equals(child.reference, newChildRef) == false) {
+                @SuppressWarnings("unchecked")
+                ValueIndexer<Object> indexer = newChildRef.granularity() == RowGranularity.PARTITION
+                    ? null
+                    : (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(table, newChildRef, getRef);
+
+                children.put(entry.getKey(), new Child(newChildRef, indexer));
+            }
+            child.indexer.updateTargets(getRef);
+        }
+        for (String innerColumn : objectType.innerTypes().keySet()) {
+            if (!children.containsKey(innerColumn)) {
+                Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
+                @SuppressWarnings("unchecked")
+                ValueIndexer<Object> childIndexer = (ValueIndexer<Object>) childRef.valueType().valueIndexer(
+                    table,
+                    childRef,
+                    getRef
+                );
+                children.put(innerColumn, new Child(childRef, childIndexer));
             }
         }
-        for (var indexer : innerIndexers.values()) {
-            indexer.updateTargets(getRef);
-        }
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
-                               Map<ColumnIdent, Synthetic> synthetics) throws IOException {
+                               Synthetics synthetics) throws IOException {
+        ColumnPolicy columnPolicy = ref.valueType().columnPolicy();
+        if (columnPolicy == ColumnPolicy.IGNORED) {
+            return;
+        }
+        boolean isStrict = columnPolicy == ColumnPolicy.STRICT;
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !childColumns.containsKey(innerName);
-            if (!isNewColumn) {
+            if (children.containsKey(innerName) || innerValue == null) {
                 continue;
             }
-            if (innerValue == null) {
-                continue;
-            }
-            if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+            if (isStrict) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "Cannot add column `%s` to strict object `%s`",
@@ -233,94 +263,26 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     ref.column()
                 ));
             }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                continue;
-            }
             var type = DynamicIndexer.guessType(innerValue);
-            DynamicIndexer.throwOnNestedArray(type);
-            innerValue = type.sanitizeValue(innerValue);
-            StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, null, null)) {
-                    continue;
-                }
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                    "Storage is not supported for this type");
-            }
-            boolean nullable = true;
-            Symbol defaultExpression = null;
-            Reference newColumn = new SimpleReference(
+            Reference newColumn = DynamicIndexer.buildReference(
                 new ReferenceIdent(table, column.getChild(innerName)),
-                RowGranularity.DOC,
                 type,
-                ref.columnPolicy(),
-                IndexType.PLAIN,
-                nullable,
-                storageSupport.docValuesDefault(),
                 position,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                defaultExpression
+                COLUMN_OID_UNASSIGNED
             );
             position--;
             onDynamicColumn.accept(newColumn);
             var valueIndexer = (ValueIndexer<Object>) type.valueIndexer(
                 table,
                 newColumn,
-                getFieldType,
                 getRef
             );
-            innerIndexers.put(innerName, valueIndexer);
-            childColumns.put(innerName, newColumn);
+            innerValue = type.sanitizeValue(innerValue);
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,
                 synthetics
             );
         }
-    }
-
-    /**
-     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Map) to the xContentBuilder.
-     *
-     * There are no columns for:
-     * <ul>
-     *  <li>OBJECT (IGNORED)</li>
-     *  <li>Empty arrays, or arrays with only null values</li>
-     * </ul>
-     */
-    private void indexUnknownColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
-        for (var entry : value.entrySet()) {
-            String innerName = entry.getKey();
-            Object innerValue = entry.getValue();
-            boolean isNewColumn = !childColumns.containsKey(innerName);
-            if (!isNewColumn) {
-                continue;
-            }
-            if (prefixUnknownColumns) {
-                innerName = UNKNOWN_COLUMN_PREFIX + innerName;
-            }
-            if (innerValue == null) {
-                xContentBuilder.nullField(innerName);
-                continue;
-            }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                xContentBuilder.field(innerName, innerValue);
-                continue;
-            }
-            var type = DynamicIndexer.guessType(innerValue);
-            innerValue = type.sanitizeValue(innerValue);
-            StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, innerName, xContentBuilder)) {
-                    continue;
-                }
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
-            }
-        }
-
     }
 }

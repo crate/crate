@@ -26,6 +26,7 @@ import java.util.Locale;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -40,6 +41,16 @@ import io.crate.replication.logical.LogicalReplicationService;
 
 public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<WriteRoleResponse> {
+        private static String NAME = "internal:crate:sql/user/drop";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
@@ -48,7 +59,7 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
                                    ThreadPool threadPool,
                                    LogicalReplicationService logicalReplicationService) {
         super(
-            "internal:crate:sql/user/drop",
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,

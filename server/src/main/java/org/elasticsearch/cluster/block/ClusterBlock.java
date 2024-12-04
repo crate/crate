@@ -19,20 +19,17 @@
 
 package org.elasticsearch.cluster.block;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Locale;
-import java.util.Objects;
-
-public class ClusterBlock implements Writeable, ToXContentFragment {
+public class ClusterBlock implements Writeable {
 
     private final int id;
     private final @Nullable String uuid;
@@ -113,26 +110,6 @@ public class ClusterBlock implements Writeable, ToXContentFragment {
      */
     public boolean disableStatePersistence() {
         return this.disableStatePersistence;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Integer.toString(id));
-        if (uuid != null) {
-            builder.field("uuid", uuid);
-        }
-        builder.field("description", description);
-        builder.field("retryable", retryable);
-        if (disableStatePersistence) {
-            builder.field("disable_state_persistence", disableStatePersistence);
-        }
-        builder.startArray("levels");
-        for (ClusterBlockLevel level : levels) {
-            builder.value(level.name().toLowerCase(Locale.ROOT));
-        }
-        builder.endArray();
-        builder.endObject();
-        return builder;
     }
 
     @Override

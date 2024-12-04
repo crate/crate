@@ -19,27 +19,18 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.analysis.Analyzer;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalyzerScope;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
+
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -53,20 +44,14 @@ public class MetadataIndexUpgradeService {
 
     private static final Logger LOGGER = LogManager.getLogger(MetadataIndexUpgradeService.class);
 
-    private final Settings settings;
-    private final NamedXContentRegistry xContentRegistry;
-    private final MapperRegistry mapperRegistry;
     private final IndexScopedSettings indexScopedSettings;
     private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
+    private final DocTableInfoFactory tableFactory;
 
-    public MetadataIndexUpgradeService(Settings settings,
-                                       NamedXContentRegistry xContentRegistry,
-                                       MapperRegistry mapperRegistry,
+    public MetadataIndexUpgradeService(NodeContext nodeContext,
                                        IndexScopedSettings indexScopedSettings,
                                        Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders) {
-        this.settings = settings;
-        this.xContentRegistry = xContentRegistry;
-        this.mapperRegistry = mapperRegistry;
+        this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
         this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
             IndexMetadata newIndexMetadata = indexMetadata;
@@ -134,6 +119,7 @@ public class MetadataIndexUpgradeService {
      */
     private void checkMappingsCompatibility(IndexMetadata indexMetadata) {
         try {
+            tableFactory.validateSchema(indexMetadata);
 
             // We cannot instantiate real analysis server or similarity service at this point because the node
             // might not have been started yet. However, we don't really need real analyzers or similarities at
@@ -142,38 +128,6 @@ public class MetadataIndexUpgradeService {
             // Missing analyzers and similarities plugin will still trigger the appropriate error during the
             // actual upgrade.
 
-            IndexSettings indexSettings = new IndexSettings(indexMetadata, this.settings);
-
-            final NamedAnalyzer fakeDefault = new NamedAnalyzer("fake_default", AnalyzerScope.INDEX, new Analyzer() {
-                @Override
-                protected TokenStreamComponents createComponents(String fieldName) {
-                    throw new UnsupportedOperationException("shouldn't be here");
-                }
-            });
-
-            final Map<String, NamedAnalyzer> analyzerMap = new AbstractMap<String, NamedAnalyzer>() {
-                @Override
-                public NamedAnalyzer get(Object key) {
-                    assert key instanceof String : "key must be a string but was: " + key.getClass();
-                    return new NamedAnalyzer((String)key, AnalyzerScope.INDEX, fakeDefault.analyzer());
-                }
-
-                // this entrySet impl isn't fully correct but necessary as IndexAnalyzers will iterate
-                // over all analyzers to close them
-                @Override
-                public Set<Entry<String, NamedAnalyzer>> entrySet() {
-                    return Collections.emptySet();
-                }
-            };
-            try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, fakeDefault, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
-                try (var mapperService = new MapperService(
-                        indexSettings,
-                        fakeIndexAnalzyers,
-                        xContentRegistry,
-                        mapperRegistry)) {
-                    mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
-                }
-            }
         } catch (Exception ex) {
             // Wrap the inner exception so we have the index name in the exception message
             throw new IllegalStateException("unable to upgrade the mappings for the index [" + indexMetadata.getIndex() + "]", ex);

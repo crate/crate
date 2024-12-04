@@ -24,7 +24,6 @@ package io.crate.metadata;
 import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -43,8 +41,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.CompositeClassLoader;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
@@ -65,18 +63,12 @@ public class Functions {
 
     private static final Logger LOGGER = LogManager.getLogger(Functions.class);
 
-    private final Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = new ConcurrentHashMap<>();
+    private volatile Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = Map.of();
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
-
-    public Functions copyOf() {
-        var functions = new Functions(Map.copyOf(functionImplementations));
-        functions.udfFunctionImplementations.putAll(udfFunctionImplementations);
-        return functions;
-    }
 
     public static class Builder {
 
-        private HashMap<FunctionName, List<FunctionProvider>> providersByName = new HashMap<>();
+        private HashMap<FunctionName, ArrayList<FunctionProvider>> providersByName = new HashMap<>();
 
         public void add(Signature signature, FunctionFactory factory) {
             List<FunctionProvider> functionProviders = providersByName.computeIfAbsent(
@@ -87,7 +79,10 @@ public class Functions {
         }
 
         public Functions build() {
-            return new Functions(Collections.unmodifiableMap(providersByName));
+            for (ArrayList<FunctionProvider> providers : providersByName.values()) {
+                providers.trimToSize();
+            }
+            return new Functions(Map.copyOf(providersByName));
         }
     }
 
@@ -105,7 +100,7 @@ public class Functions {
         return builder.build();
     }
 
-    public Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
+    private Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
         this.functionImplementations = functionProvidersByName;
     }
 
@@ -122,20 +117,8 @@ public class Functions {
             .iterator();
     }
 
-    public void registerUdfFunctionImplementationsForSchema(
-        String schema, Map<FunctionName, List<FunctionProvider>> functions) {
-        // remove deleted ones before re-registering all current ones for the given schema
-        udfFunctionImplementations.entrySet()
-            .removeIf(
-                function ->
-                    schema.equals(function.getKey().schema())
-                    && functions.get(function.getKey()) == null);
-        udfFunctionImplementations.putAll(functions);
-    }
-
-    public void deregisterUdfResolversForSchema(String schema) {
-        udfFunctionImplementations.keySet()
-            .removeIf(function -> schema.equals(function.schema()));
+    public void setUDFs(Map<FunctionName, List<FunctionProvider>> functions) {
+        udfFunctionImplementations = functions;
     }
 
     @Nullable
@@ -354,11 +337,9 @@ public class Functions {
                                      List<FunctionProvider> candidates) {
         List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
         var function = new io.crate.expression.symbol.Function(
-            Signature.builder()
-                .name(new FunctionName(suppliedSchema, name))
+            Signature.builder(new FunctionName(suppliedSchema, name), FunctionType.SCALAR)
                 .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .kind(FunctionType.SCALAR)
                 .build(),
             arguments,
             DataTypes.UNDEFINED
@@ -440,21 +421,22 @@ public class Functions {
         List<ApplicableFunction> representatives = new ArrayList<>();
 
         for (ApplicableFunction current : candidates) {
-            boolean found = false;
-            for (int i = 0; i < representatives.size(); i++) {
-                ApplicableFunction representative = representatives.get(i);
+            boolean addCandidate = true;
+            var it = representatives.iterator();
+            while (it.hasNext()) {
+                ApplicableFunction representative = it.next();
+                if (representative.equals(current)) {
+                    continue;
+                }
                 if (isMoreSpecific.apply(current, representative)) {
-                    representatives.clear();
-                    representatives.add(current);
-                    found = true;
-                    break;
+                    it.remove();
+                    addCandidate = true;
                 } else if (isMoreSpecific.apply(representative, current)) {
-                    found = true;
-                    break;
+                    addCandidate = false;
                 }
             }
 
-            if (!found) {
+            if (addCandidate) {
                 representatives.add(current);
             }
         }

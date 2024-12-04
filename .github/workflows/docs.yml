@@ -15,7 +15,7 @@ jobs:
     name: Sphinx linkcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -32,14 +32,14 @@ jobs:
 
   vale:
     name: Vale
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Run vale
         uses: errata-ai/vale-action@v2.1.0
         with:
           files: docs/
-          version: 2.28.0
+          version: 3.4.1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

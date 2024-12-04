@@ -21,17 +21,18 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.metadata.Scalar.Feature.DETERMINISTIC;
+import static io.crate.metadata.Scalar.Feature.STRICTNULL;
+
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.function.BiFunction;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.FourFunction;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
@@ -41,48 +42,45 @@ import io.crate.role.Roles;
 import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 
-public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
+public class HasSchemaPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_schema_privilege");
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_NAME =
-        (roles, user, schema, permissions) -> {
-            String schemaName = (String) schema;
-            boolean result = false;
-            for (Permission permission : permissions) {
-                // USAGE is allowed for public schemas
-                if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
-                    return true;
-                }
-                // Last argument is null as it's not used for Privilege.Securable.SCHEMA
-                result |= roles.hasPrivilege(user, permission, Securable.SCHEMA, schemaName);
+    public static boolean checkBySchemaName(Roles roles, Role user, Object schema, Collection<Permission> permissions, Schemas schemas) {
+        String schemaName = (String) schema;
+        boolean result = false;
+        for (Permission permission : permissions) {
+            // USAGE is allowed for public schemas
+            if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaName)) {
+                return true;
             }
-            return result;
-        };
+            // Last argument is null as it's not used for Privilege.Securable.SCHEMA
+            result |= roles.hasPrivilege(user, permission, Securable.SCHEMA, schemaName);
+        }
+        return result;
+    }
 
-    private static final FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> CHECK_BY_SCHEMA_OID =
-        (roles, user, schema, permissions) -> {
-            Integer schemaOid = (Integer) schema;
-            boolean result = false;
-            for (Permission permission : permissions) {
-                // USAGE is allowed for public schemas
-                if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
-                    return true;
-                }
-                result |= roles.hasSchemaPrivilege(user, permission, schemaOid); // Returns true if has any privilege out of 2 possible
+    public static boolean checkBySchemaOid(Roles roles, Role user, Object schema, Collection<Permission> permissions, Schemas schemas) {
+        Integer schemaOid = (Integer) schema;
+        boolean result = false;
+        for (Permission permission : permissions) {
+            // USAGE is allowed for public schemas
+            if (permission == Permission.DQL && PgCatalogTableDefinitions.isPgCatalogOrInformationSchema(schemaOid)) {
+                return true;
             }
-            return result;
-        };
+            result |= roles.hasSchemaPrivilege(user, permission, schemaOid); // Returns true if has any privilege out of 2 possible
+        }
+        return result;
+    }
 
     /**
      * @param permissionNames is a comma separated list.
      * Valid permissionNames are 'CREATE' and 'USAGE' which map to DDL and DQL respectively.
      * Extra whitespaces between privilege names and repetition of a valid argument are allowed.
      *
-     * @see HasPrivilegeFunction#parsePermissions(String)
+     * @see HasPrivilegeFunction.ParsePermissions#parse(String)
      */
-    @Nullable
-    protected Collection<Permission> parsePermissions(String permissionNames) {
+    public static Collection<Permission> parsePermissions(String permissionNames) {
         Collection<Permission> toCheck = new HashSet<>();
         String[] permissions = permissionNames.toLowerCase(Locale.ENGLISH).split(",");
         for (String p : permissions) {
@@ -102,75 +100,113 @@ public class HasSchemaPrivilegeFunction extends HasPrivilegeFunction {
     public static void register(Functions.Builder module) {
         // Signature without user, takes user from session.
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(), // Schema
-                DataTypes.STRING.getTypeSignature(), // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_NAME)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(), // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByName,
+                HasSchemaPrivilegeFunction::checkBySchemaName,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
 
         // Signature without user, takes user from session.
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature(), // Schema
-                DataTypes.STRING.getTypeSignature(),  // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_OID)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.INTEGER.getTypeSignature(), // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByName,
+                HasSchemaPrivilegeFunction::checkBySchemaOid,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(), // User
-                DataTypes.STRING.getTypeSignature(), // Schema
-                DataTypes.STRING.getTypeSignature(), // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_NAME)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(), // User
+                    DataTypes.STRING.getTypeSignature(), // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByName,
+                HasSchemaPrivilegeFunction::checkBySchemaName,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),  // User
-                DataTypes.INTEGER.getTypeSignature(), // Schema
-                DataTypes.STRING.getTypeSignature(),  // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_NAME, CHECK_BY_SCHEMA_OID)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),  // User
+                    DataTypes.INTEGER.getTypeSignature(), // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByName,
+                HasSchemaPrivilegeFunction::checkBySchemaOid,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature(), // User
-                DataTypes.STRING.getTypeSignature(),  // Schema
-                DataTypes.STRING.getTypeSignature(),  // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_OID, CHECK_BY_SCHEMA_NAME)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.INTEGER.getTypeSignature(), // User
+                    DataTypes.STRING.getTypeSignature(),  // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByOid,
+                HasSchemaPrivilegeFunction::checkBySchemaName,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature(), // User
-                DataTypes.INTEGER.getTypeSignature(), // Schema
-                DataTypes.STRING.getTypeSignature(),  // Privilege
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeatures(DETERMINISTIC_ONLY),
-            (signature, boundSignature) -> new HasSchemaPrivilegeFunction(signature, boundSignature, USER_BY_OID, CHECK_BY_SCHEMA_OID)
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.INTEGER.getTypeSignature(), // User
+                    DataTypes.INTEGER.getTypeSignature(), // Schema
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
+                .build(),
+            (signature, boundSignature) -> new HasPrivilegeFunction(
+                signature,
+                boundSignature,
+                HasPrivilegeFunction::userByOid,
+                HasSchemaPrivilegeFunction::checkBySchemaOid,
+                HasSchemaPrivilegeFunction::parsePermissions
+            )
         );
     }
 
-    protected HasSchemaPrivilegeFunction(Signature signature,
-                                         BoundSignature boundSignature,
-                                         BiFunction<Roles, Object, Role> getUser,
-                                         FourFunction<Roles, Role, Object, Collection<Permission>, Boolean> checkPrivilege) {
-        super(signature, boundSignature, getUser, checkPrivilege);
+    private HasSchemaPrivilegeFunction() {
     }
 }

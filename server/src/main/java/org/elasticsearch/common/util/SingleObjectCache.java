@@ -19,10 +19,10 @@
 
 package org.elasticsearch.common.util;
 
-import io.crate.common.unit.TimeValue;
-
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * A very simple single object cache that allows non-blocking refresh calls
@@ -32,14 +32,14 @@ public abstract class SingleObjectCache<T> {
 
     private volatile T cached;
     private Lock refreshLock = new ReentrantLock();
-    private final TimeValue refreshInterval;
-    protected long lastRefreshTimestamp = 0;
+    private final long refreshIntervalNanos;
+    protected long lastRefreshNanos = 0;
 
     protected SingleObjectCache(TimeValue refreshInterval, T initialValue) {
         if (initialValue == null) {
             throw new IllegalArgumentException("initialValue must not be null");
         }
-        this.refreshInterval = refreshInterval;
+        this.refreshIntervalNanos = refreshInterval.nanos();
         cached = initialValue;
     }
 
@@ -54,7 +54,7 @@ public abstract class SingleObjectCache<T> {
                     if (needsRefresh()) { // check again!
                         cached = refresh();
                         assert cached != null;
-                        lastRefreshTimestamp = System.currentTimeMillis();
+                        lastRefreshNanos = System.nanoTime();
                     }
                 } finally {
                     refreshLock.unlock();
@@ -79,10 +79,10 @@ public abstract class SingleObjectCache<T> {
      * Returns <code>true</code> iff the cache needs to be refreshed.
      */
     protected boolean needsRefresh() {
-        if (refreshInterval.millis() == 0) {
+        if (refreshIntervalNanos == 0) {
             return true;
         }
-        final long currentTime = System.currentTimeMillis();
-        return (currentTime - lastRefreshTimestamp) > refreshInterval.millis();
+        final long currentNanos = System.nanoTime();
+        return (currentNanos - lastRefreshNanos) >= refreshIntervalNanos;
     }
 }

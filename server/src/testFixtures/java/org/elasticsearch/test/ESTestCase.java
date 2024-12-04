@@ -116,7 +116,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -134,7 +133,6 @@ import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
 import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
-import io.crate.testing.Asserts;
 
 /**
  * Base testcase for randomized unit testing with Elasticsearch
@@ -165,13 +163,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
 
     private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
 
-    /**
-     * @deprecated use {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)
-     */
-    @Rule
-    @Deprecated
-    public ExpectedException expectedException = ExpectedException.none();
-
     @AfterClass
     public static void resetPortCounter() {
         portGenerator.set(0);
@@ -181,7 +172,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     public static final String TEST_WORKER_VM_ID;
 
     // Set in pom.xml based on surefire.forkNumber
-    public static final String TEST_WORKER_SYS_PROPERTY = "worker.id";
+    public static final String TEST_WORKER_SYS_PROPERTY = "worker-id";
 
     public static final String DEFAULT_TEST_WORKER_ID = "--not-mvn--";
 
@@ -406,7 +397,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     private static final List<StatusData> statusData = new ArrayList<>();
     static {
         // ensure that the status logger is set to the warn level so we do not miss any warnings with our Log4j usage
-        StatusLogger.getLogger().setLevel(Level.WARN);
+        StatusLogger.getLogger().getFallbackListener().setLevel(Level.WARN);
         // Log4j will write out status messages indicating problems with the Log4j usage to the status logger; we hook into this logger and
         // assert that no such messages were written out as these would indicate a problem with our logging configuration
         StatusLogger.getLogger().registerListener(new StatusConsoleListener(Level.WARN) {
@@ -1051,7 +1042,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         // a different default port range per JVM unless the incoming settings override it
         // use a non-default base port otherwise some cluster in this JVM might reuse a port
 
-        String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY);
+        String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY, null);
         int startAt = workerId == null ? 0 : Integer.valueOf(workerId);
         assert startAt >= 0 : "Unexpected test worker Id, resulting port range would be negative";
         return 10300 + (startAt * 100);

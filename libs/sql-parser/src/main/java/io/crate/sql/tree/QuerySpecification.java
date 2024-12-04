@@ -33,7 +33,7 @@ public class QuerySpecification extends QueryBody {
     private final Select select;
     private final List<Relation> from;
     private final Optional<Expression> where;
-    private final List<Expression> groupBy;
+    private final Optional<GroupBy> groupBy;
     private final Optional<Expression> having;
     private final List<SortItem> orderBy;
     private final Optional<Expression> limit;
@@ -43,7 +43,7 @@ public class QuerySpecification extends QueryBody {
     public QuerySpecification(Select select,
                               List<Relation> from,
                               Optional<Expression> where,
-                              List<Expression> groupBy,
+                              Optional<GroupBy> groupBy,
                               Optional<Expression> having,
                               Map<String, Window> windows,
                               List<SortItem> orderBy,
@@ -72,7 +72,7 @@ public class QuerySpecification extends QueryBody {
         return where;
     }
 
-    public List<Expression> getGroupBy() {
+    public Optional<GroupBy> getGroupBy() {
         return groupBy;
     }
 
@@ -111,14 +111,14 @@ public class QuerySpecification extends QueryBody {
         }
         QuerySpecification that = (QuerySpecification) o;
         return Objects.equals(select, that.select) &&
-               Objects.equals(from, that.from) &&
-               Objects.equals(where, that.where) &&
-               Objects.equals(groupBy, that.groupBy) &&
-               Objects.equals(having, that.having) &&
-               Objects.equals(orderBy, that.orderBy) &&
-               Objects.equals(limit, that.limit) &&
-               Objects.equals(offset, that.offset) &&
-               Objects.equals(windows, that.windows);
+            Objects.equals(from, that.from) &&
+            Objects.equals(where, that.where) &&
+            Objects.equals(groupBy, that.groupBy) &&
+            Objects.equals(having, that.having) &&
+            Objects.equals(orderBy, that.orderBy) &&
+            Objects.equals(limit, that.limit) &&
+            Objects.equals(offset, that.offset) &&
+            Objects.equals(windows, that.windows);
     }
 
     @Override
@@ -129,15 +129,15 @@ public class QuerySpecification extends QueryBody {
     @Override
     public String toString() {
         return "QuerySpecification{" +
-               "select=" + select +
-               ", from=" + from +
-               ", where=" + where +
-               ", groupBy=" + groupBy +
-               ", having=" + having +
-               ", orderBy=" + orderBy +
-               ", limit=" + limit +
-               ", offset=" + offset +
-               ", windows=" + windows +
-               '}';
+            "select=" + select +
+            ", from=" + from +
+            ", where=" + where +
+            ", groupBy=" + groupBy +
+            ", having=" + having +
+            ", orderBy=" + orderBy +
+            ", limit=" + limit +
+            ", offset=" + offset +
+            ", windows=" + windows +
+            '}';
     }
 }

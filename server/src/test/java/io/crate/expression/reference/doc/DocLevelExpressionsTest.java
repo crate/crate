@@ -21,8 +21,6 @@
 
 package io.crate.expression.reference.doc;
 
-import java.util.Set;
-import java.util.function.UnaryOperator;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -55,6 +53,7 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(createTableStatement);
         indexEnv = new IndexEnv(
+            e.nodeCtx,
             THREAD_POOL,
             (DocTableInfo) StreamSupport.stream(e.schemas().spliterator(), false)
                 .filter(x -> x instanceof DocSchemaInfo)
@@ -64,14 +63,13 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
                 .getTables()
                 .iterator()
                 .next(),
-            clusterService.state(),
-            Version.CURRENT
+            clusterService.state(), Version.CURRENT
         );
         IndexWriter writer = indexEnv.writer();
         insertValues(writer);
         DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
-        ctx = new CollectorContext(Set.of(), UnaryOperator.identity());
+        ctx = new CollectorContext(() -> null);
     }
 
     @After

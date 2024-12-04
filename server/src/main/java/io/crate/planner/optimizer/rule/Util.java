@@ -21,14 +21,13 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.planner.operators.LogicalPlan;
-
 import java.util.List;
+
+import io.crate.planner.operators.LogicalPlan;
 
 public final class Util {
 
-    private Util() {
-    }
+    private Util() {}
 
     /**
      * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)

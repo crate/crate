@@ -26,12 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
-import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -57,18 +59,28 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testValidGroupByWithScalarAndMultipleColumns() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * other_id from users group by id, other_id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * other_id)");
+        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("(id * other_id)");
     }
 
     @Test
     public void testValidGroupByWithScalar() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * 2 from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("(id * 2::bigint)");
+        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("(id * 2::bigint)");
     }
 
     @Test
     public void testValidGroupByWithMultipleScalarFunctions() throws Exception {
         AnalyzedRelation relation = executor.analyze("select abs(id * 2) from users group by id");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("abs((id * 2::bigint))");
+        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("abs((id * 2::bigint))");
     }
+
+    @Test
+    public void testValidGroupByAllClause() throws Exception {
+        AnalyzedRelation relation = executor.analyze("select id, id + 10, sum(no_index) as sum_index, name from users group by All");
+        List<Symbol> groupBySymbols = ((QueriedSelectRelation) relation).groupBy();
+        assertThat(groupBySymbols).hasSize(3);
+        assertThat(groupBySymbols.get(0).equals("id"));
+        assertThat(groupBySymbols.get(1).equals("name"));
+    }
+
 }

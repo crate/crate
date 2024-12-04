@@ -21,6 +21,8 @@
 
 package io.crate.expression.tablefunctions;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 public class GenerateSubscriptsTest extends AbstractTableFunctionsTest {
@@ -65,9 +67,10 @@ public class GenerateSubscriptsTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_multidimensional_arrays_of_inconsistent_dimension_are_not_supported() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("nested arrays must have the same dimension within a level, offending level 2, position 3");
-        assertExecute("generate_subscripts([[[1],[2]], [[3],[4]], [[4]]], 3)", "1\n2\n3\n");
+        assertThatThrownBy(() ->
+                assertExecute("generate_subscripts([[[1],[2]], [[3],[4]], [[4]]], 3)", "1\n2\n3\n"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("nested arrays must have the same dimension within a level, offending level 2, position 3");
     }
 
     @Test

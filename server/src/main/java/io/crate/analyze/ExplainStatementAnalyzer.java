@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import java.util.EnumSet;
-import java.util.List;
+import java.util.Map;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
@@ -64,7 +64,7 @@ public class ExplainStatementAnalyzer {
         } else if (isAnalyzeActivated && isVerboseActivated) {
             throw new IllegalArgumentException("The ANALYZE and VERBOSE options are not allowed together");
         } else if (isAnalyzeActivated) {
-            var profilingContext = new ProfilingContext(List.of());
+            var profilingContext = new ProfilingContext(Map.of());
             var timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
             var subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
@@ -90,6 +90,10 @@ public class ExplainStatementAnalyzer {
         @Override
         public Void visitCopyFrom(CopyFrom<?> node, Void context) {
             return null;
+        }
+
+        public Void visitInsert(io.crate.sql.tree.Insert<?> node, Void context) {
+            return node.insertSource().accept(this, context);
         }
 
         @Override

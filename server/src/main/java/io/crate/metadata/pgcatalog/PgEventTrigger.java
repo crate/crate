@@ -31,16 +31,14 @@ public class PgEventTrigger {
 
     private PgEventTrigger() {}
 
-    public static SystemTable<Void> create() {
-        // See https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
-        return SystemTable.<Void>builder(NAME)
-            .add("oid", DataTypes.INTEGER, c -> null)
-            .add("evtname", DataTypes.STRING, c -> null)
-            .add("evtevent", DataTypes.STRING, c -> null)
-            .add("evtowner", DataTypes.INTEGER, c -> null)
-            .add("evtfoid", DataTypes.INTEGER, c -> null)
-            .add("evtenabled", DataTypes.CHARACTER, c -> null)
-            .add("evttags", DataTypes.STRING_ARRAY, c -> null)
-            .build();
-    }
+    // See https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
+        .add("oid", DataTypes.INTEGER, c -> null)
+        .add("evtname", DataTypes.STRING, c -> null)
+        .add("evtevent", DataTypes.STRING, c -> null)
+        .add("evtowner", DataTypes.INTEGER, c -> null)
+        .add("evtfoid", DataTypes.INTEGER, c -> null)
+        .add("evtenabled", DataTypes.CHARACTER, c -> null)
+        .add("evttags", DataTypes.STRING_ARRAY, c -> null)
+        .build();
 }

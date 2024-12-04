@@ -29,20 +29,15 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -66,10 +61,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();
@@ -84,14 +76,14 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
         ArrayList<Symbol> windowPartitionedBasedFilters = new ArrayList<>();
 
         for (Symbol part : filterParts) {
-            if (SymbolVisitors.any(containsWindowFunction, part) == false
+            if (part.any(containsWindowFunction) == false
                 && windowDefinition.partitions().containsAll(extractColumns(part))) {
                 windowPartitionedBasedFilters.add(part);
             } else {
                 remainingFilterSymbols.add(part);
             }
         }
-        assert remainingFilterSymbols.size() > 0 || windowPartitionedBasedFilters.size() > 0 :
+        assert !remainingFilterSymbols.isEmpty() || !windowPartitionedBasedFilters.isEmpty() :
             "Splitting the filter symbol must result in at least one group";
 
         /* SELECT ROW_NUMBER() OVER(PARTITION BY id)

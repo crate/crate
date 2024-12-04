@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -227,7 +226,7 @@ public class FulltextAnalyzerResolver {
         try {
             XContentBuilder builder = JsonXContent.builder();
             builder.startObject();
-            settings.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
+            settings.toXContent(builder, false);
             builder.endObject();
             return BytesReference.bytes(builder);
         } catch (IOException e) {

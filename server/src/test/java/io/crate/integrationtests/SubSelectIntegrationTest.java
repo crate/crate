@@ -48,7 +48,7 @@ import io.crate.types.DataTypes;
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SubSelectIntegrationTest extends IntegTestCase {
 
-    private Setup setup = new Setup(sqlExecutor);
+    private final Setup setup = new Setup(sqlExecutor);
 
     @Test
     public void testSubSelectOrderBy() throws Exception {
@@ -135,7 +135,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
-        refresh();
+        execute("refresh table t1");
 
         execute("select aa, (xxi + 1) " +
                 "from (select (xx + i) as xxi, concat(a, a) as aa " +
@@ -214,7 +214,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
         execute("insert into t2 (a, i, y) values ('aa', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select col1, col2 from ( " +
                 "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
@@ -234,7 +234,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
         execute("insert into t2 (a, i, y) values ('aa', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select aa, xyi from (" +
                 "  select (xy + i) as xyi, aa from (" +
@@ -260,7 +260,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
         execute("insert into t1 (a, i, x) values ('a', 2, 3),('b', 3, 5),('c', 5, 7),('d', 7, 11)");
         execute("insert into t2 (a, i, y) values ('a', 22, 33),('bb', 33, 55),('cc', 55, 77),('dd', 77, 111)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select aa, xyi from (" +
                 "  select (xy + i) as xyi, aa from (" +
@@ -462,7 +462,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select * from" +
                 " (select * from t1 order by 1 limit 3 offset 1) t1 inner join " +
@@ -484,7 +484,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select * from" +
                 " (select * from t1 order by 1 limit 4 offset 1) t1, " +
@@ -506,7 +506,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
-        refresh();
+        execute("refresh table t1, t2");
 
         execute("select * from" +
                 " (select distinct col1 from t1 order by 1 limit 2 offset 1) t1, " +
@@ -734,7 +734,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
     public void testWhereSubsSelectAsClusteredByValue() {
         execute("create table t1 (id int, r int) clustered by(r)");
         execute("insert into t1 (id, r) values (1, 1), (2, 2)");
-        refresh();
+        execute("refresh table t1");
         execute("select id from t1 where r = (select r from t1 where id = 1)");
         assertThat(response).hasRowCount(1L);
 

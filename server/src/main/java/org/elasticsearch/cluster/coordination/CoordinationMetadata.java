@@ -19,16 +19,6 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ConstructingObjectParser;
-import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,7 +29,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CoordinationMetadata implements Writeable, ToXContentFragment {
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.xcontent.ConstructingObjectParser;
+import org.elasticsearch.common.xcontent.ParseField;
+import org.elasticsearch.common.xcontent.XContentParser;
+
+public class CoordinationMetadata implements Writeable {
 
     public static final CoordinationMetadata EMPTY_METADATA = builder().build();
 
@@ -124,15 +122,6 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
         lastCommittedConfiguration.writeTo(out);
         lastAcceptedConfiguration.writeTo(out);
         out.writeCollection(votingConfigExclusions);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        return builder
-            .field(TERM_PARSE_FIELD.getPreferredName(), term)
-            .field(LAST_COMMITTED_CONFIGURATION_FIELD.getPreferredName(), lastCommittedConfiguration)
-            .field(LAST_ACCEPTED_CONFIGURATION_FIELD.getPreferredName(), lastAcceptedConfiguration)
-            .field(VOTING_CONFIG_EXCLUSIONS_FIELD.getPreferredName(), votingConfigExclusions);
     }
 
     public static CoordinationMetadata fromXContent(XContentParser parser) throws IOException {
@@ -234,7 +223,7 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
         }
     }
 
-    public static class VotingConfigExclusion implements Writeable, ToXContentFragment {
+    public static class VotingConfigExclusion implements Writeable {
         public static final String MISSING_VALUE_MARKER = "_absent_";
         private final String nodeId;
         private final String nodeName;
@@ -267,9 +256,6 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
             return nodeName;
         }
 
-        private static final ParseField NODE_ID_PARSE_FIELD = new ParseField("node_id");
-        private static final ParseField NODE_NAME_PARSE_FIELD = new ParseField("node_name");
-
         private static String nodeId(Object[] nodeIdAndName) {
             return (String) nodeIdAndName[0];
         }
@@ -282,23 +268,6 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
             "voting_config_exclusion",
             nodeIdAndName -> new VotingConfigExclusion(nodeId(nodeIdAndName), nodeName(nodeIdAndName))
         );
-
-        static {
-            PARSER.declareString(ConstructingObjectParser.constructorArg(), NODE_ID_PARSE_FIELD);
-            PARSER.declareString(ConstructingObjectParser.constructorArg(), NODE_NAME_PARSE_FIELD);
-        }
-
-        public static VotingConfigExclusion fromXContent(XContentParser parser) throws IOException {
-            return PARSER.parse(parser, null);
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            return builder.startObject()
-                    .field(NODE_ID_PARSE_FIELD.getPreferredName(), nodeId)
-                    .field(NODE_NAME_PARSE_FIELD.getPreferredName(), nodeName)
-                    .endObject();
-        }
 
         @Override
         public boolean equals(Object o) {
@@ -329,7 +298,7 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
     /**
      * A collection of persistent node ids, denoting the voting configuration for cluster state changes.
      */
-    public static class VotingConfiguration implements Writeable, ToXContentFragment {
+    public static class VotingConfiguration implements Writeable {
 
         public static final VotingConfiguration EMPTY_CONFIG = new VotingConfiguration(Collections.emptySet());
         public static final VotingConfiguration MUST_JOIN_ELECTED_MASTER = new VotingConfiguration(Collections.singleton(
@@ -380,15 +349,6 @@ public class CoordinationMetadata implements Writeable, ToXContentFragment {
 
         public boolean isEmpty() {
             return nodeIds.isEmpty();
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startArray();
-            for (String nodeId : nodeIds) {
-                builder.value(nodeId);
-            }
-            return builder.endArray();
         }
 
         public static VotingConfiguration of(DiscoveryNode... nodes) {

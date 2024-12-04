@@ -32,13 +32,14 @@ import org.elasticsearch.common.settings.SettingsException;
 
 import com.microsoft.azure.storage.LocationMode;
 
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 public final class AzureStorageSettings {
 
     private final String account;
-    private final String key;
+    private final String connectString;
     private final String endpoint;
     private final String secondaryEndpoint;
     private final String endpointSuffix;
@@ -49,7 +50,7 @@ public final class AzureStorageSettings {
 
     @VisibleForTesting
     AzureStorageSettings(String account,
-                         String key,
+                         String connectString,
                          String endpoint,
                          String secondaryEndpoint,
                          String endpointSuffix,
@@ -58,7 +59,7 @@ public final class AzureStorageSettings {
                          Proxy proxy,
                          LocationMode locationMode) {
         this.account = account;
-        this.key = key;
+        this.connectString = connectString;
         this.endpoint = endpoint;
         this.secondaryEndpoint = secondaryEndpoint;
         this.endpointSuffix = endpointSuffix;
@@ -69,16 +70,17 @@ public final class AzureStorageSettings {
     }
 
     private AzureStorageSettings(String account,
-                                 String key,
-                                 LocationMode locationMode,
-                                 String endpoint,
-                                 String secondaryEndpoint,
-                                 String endpointSuffix,
-                                 TimeValue timeout,
-                                 int maxRetries,
-                                 Proxy.Type proxyType,
-                                 String proxyHost,
-                                 Integer proxyPort) {
+                         String key,
+                         String sasToken,
+                         LocationMode locationMode,
+                         String endpoint,
+                         String secondaryEndpoint,
+                         String endpointSuffix,
+                         TimeValue timeout,
+                         int maxRetries,
+                         Proxy.Type proxyType,
+                         String proxyHost,
+                         Integer proxyPort) {
 
         final boolean hasEndpointSuffix = Strings.hasText(endpointSuffix);
         final boolean hasEndpoint = Strings.hasText(endpoint);
@@ -92,7 +94,7 @@ public final class AzureStorageSettings {
         }
 
         this.account = account;
-        this.key = key;
+        this.connectString = buildConnectString(account, key, sasToken, endpoint, endpointSuffix, secondaryEndpoint);
         this.endpoint = endpoint;
         this.secondaryEndpoint = secondaryEndpoint;
         this.endpointSuffix = endpointSuffix;
@@ -131,18 +133,37 @@ public final class AzureStorageSettings {
         return proxy;
     }
 
+    public String getConnectString() {
+        return connectString;
+    }
+
     public LocationMode getLocationMode() {
         return locationMode;
     }
 
-    public String buildConnectionString() {
+    private String buildConnectString(String account,
+                                      @Nullable String key,
+                                      @Nullable String sasToken,
+                                      String endpoint,
+                                      String endpointSuffix,
+                                      String secondaryEndpoint) {
+        boolean hasSasToken = Strings.hasText(sasToken);
+        boolean hasKey = Strings.hasText(key);
+        if (hasSasToken == false && hasKey == false) {
+            throw new SettingsException("Neither a secret key nor a shared access token was set.");
+        }
+        if (hasSasToken && hasKey) {
+            throw new SettingsException("Both a secret as well as a shared access token were set.");
+        }
         final StringBuilder connectionStringBuilder = new StringBuilder();
         connectionStringBuilder.append("DefaultEndpointsProtocol=https")
-                .append(";AccountName=")
-                .append(account)
-                .append(";AccountKey=")
-                .append(key);
-
+            .append(";AccountName=")
+            .append(account);
+        if (hasKey) {
+            connectionStringBuilder.append(";AccountKey=").append(key);
+        } else {
+            connectionStringBuilder.append(";SharedAccessSignature=").append(sasToken);
+        }
         if (Strings.hasText(endpointSuffix)) {
             connectionStringBuilder.append(";EndpointSuffix=").append(endpointSuffix);
         }
@@ -157,10 +178,12 @@ public final class AzureStorageSettings {
 
     static AzureStorageSettings getClientSettings(Settings settings) {
         try (SecureString account = getConfigValue(settings, AzureRepository.Repository.ACCOUNT_SETTING);
-             SecureString key = getConfigValue(settings, AzureRepository.Repository.KEY_SETTING)) {
+            SecureString key = getConfigValue(settings,AzureRepository.Repository.KEY_SETTING);
+            SecureString sasToken = getConfigValue(settings, AzureRepository.Repository.SAS_TOKEN_SETTING)) {
             return new AzureStorageSettings(
                 account.toString(),
                 key.toString(),
+                sasToken.toString(),
                 getConfigValue(settings, AzureRepository.Repository.LOCATION_MODE_SETTING),
                 getConfigValue(settings, AzureRepository.Repository.ENDPOINT_SETTING),
                 getConfigValue(settings, AzureRepository.Repository.SECONDARY_ENDPOINT_SETTING),
@@ -180,7 +203,7 @@ public final class AzureStorageSettings {
     static AzureStorageSettings copy(AzureStorageSettings settings) {
         return new AzureStorageSettings(
             settings.account,
-            settings.key,
+            settings.connectString,
             settings.endpoint,
             settings.secondaryEndpoint,
             settings.endpointSuffix,
@@ -193,7 +216,6 @@ public final class AzureStorageSettings {
     @Override
     public String toString() {
         return "AzureStorageSettings{" + "account='" + account + '\'' +
-               ", key='" + key + '\'' +
                ", timeout=" + timeout +
                ", endpoint='" + endpoint + '\'' +
                ", secondaryEndpoint='" + secondaryEndpoint + '\'' +

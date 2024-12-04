@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.cluster.snapshots.create;
 import static org.elasticsearch.common.Strings.EMPTY_ARRAY;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,7 +38,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -59,7 +57,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
  * </ul>
  */
 public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest>
-    implements IndicesRequest.Replaceable, ToXContentObject {
+    implements IndicesRequest.Replaceable {
 
     private String snapshot;
 
@@ -69,11 +67,11 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
 
     private String[] templates = EMPTY_ARRAY;
 
-    private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpen();
+    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN;
 
     private boolean partial = false;
 
-    private Settings settings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
 
     private boolean includeGlobalState = true;
 
@@ -362,32 +360,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      */
     public boolean includeGlobalState() {
         return includeGlobalState;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("repository", repository);
-        builder.field("snapshot", snapshot);
-        builder.startArray("indices");
-        for (String index : indices) {
-            builder.value(index);
-        }
-        builder.endArray();
-        builder.field("partial", partial);
-        if (settings != null) {
-            builder.startObject("settings");
-            if (settings.isEmpty() == false) {
-                settings.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-        builder.field("include_global_state", includeGlobalState);
-        if (indicesOptions != null) {
-            indicesOptions.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
     }
 
     @Override

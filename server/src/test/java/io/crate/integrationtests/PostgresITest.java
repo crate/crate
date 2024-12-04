@@ -53,7 +53,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -61,10 +60,10 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
@@ -232,6 +231,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.next()).isTrue();
             String array = resultSet.getString(1);
             assertThat(array).isEqualTo("[[1,2],[3]]");
+            assertThat(resultSet.next()).isFalse();
         }
 
         properties = new Properties();
@@ -242,6 +242,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.next()).isTrue();
             String array = resultSet.getString(1);
             assertThat(array).isEqualTo("[[1,2],[3]]");
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -285,6 +286,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.getInt(1)).isEqualTo(1);
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(2);
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -298,15 +300,18 @@ public class PostgresITest extends IntegTestCase {
             ResultSet resultSet = p1.executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(1);
+            assertThat(resultSet.next()).isFalse();
 
             PreparedStatement p2 = conn.prepareStatement("select 2 from sys.cluster");
             resultSet = p2.executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(2);
+            assertThat(resultSet.next()).isFalse();
 
             resultSet = p1.executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(1);
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -334,6 +339,7 @@ public class PostgresITest extends IntegTestCase {
              */
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(20);
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -358,6 +364,7 @@ public class PostgresITest extends IntegTestCase {
                 ResultSet resultSet = statement.executeQuery("select * from t");
                 assertThat(resultSet.next()).isTrue();
                 assertThat(resultSet.next()).isTrue();
+                assertThat(resultSet.next()).isFalse();
             }
         }
     }
@@ -369,6 +376,7 @@ public class PostgresITest extends IntegTestCase {
             ResultSet resultSet = conn.prepareStatement("select name from sys.cluster").executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getString(1)).startsWith("SUITE-TEST_WORKER");
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -392,6 +400,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new String[]{"99", "51"});
             assertThat(resultSet.getArray(2).getArray()).isEqualTo(new String[]{"fo,o", "bar"});
+            assertThat(resultSet.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
@@ -418,6 +427,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(rs.next()).isTrue();
             assertThat(rs.getArray(1).getArray()).isEqualTo(new Integer[]{10, 20});
             assertThat(rs.getArray(2).getArray()).isEqualTo(new Float[]{1.2f, 3.5f});
+            assertThat(rs.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
@@ -461,6 +471,7 @@ public class PostgresITest extends IntegTestCase {
             String shape = "{\"coordinates\":[[0.0,0.0],[1.0,1.0]],\"type\":\"LineString\"}";
             shapeObject.setValue(shape);
             assertThat((Object[]) rs.getArray(2).getArray()).containsExactly(shape);
+            assertThat(rs.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
@@ -490,6 +501,7 @@ public class PostgresITest extends IntegTestCase {
                     }
                     Collections.sort(result);
                     assertThat(result).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+                    assertThat(resultSet.next()).isFalse();
                 }
             }
         }
@@ -521,6 +533,7 @@ public class PostgresITest extends IntegTestCase {
                         result.add(xResults.getInt(1));
                     }
                     assertThat(result).containsExactlyInAnyOrder(0, 1, 2, 3, 4, 5);
+                    assertThat(xResults.next()).isFalse();
                 }
             }
         }
@@ -590,6 +603,7 @@ public class PostgresITest extends IntegTestCase {
             ResultSet resultSet = preparedStatement.executeQuery();
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getString(1)).startsWith("SUITE-TEST_WORKER");
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -637,6 +651,7 @@ public class PostgresITest extends IntegTestCase {
             ResultSet rs = conn.createStatement().executeQuery("select count(*) from t");
             assertThat(rs.next()).isTrue();
             assertThat(rs.getInt(1)).isEqualTo(0);
+            assertThat(rs.next()).isFalse();
         }
     }
 
@@ -673,6 +688,8 @@ public class PostgresITest extends IntegTestCase {
 
             assertThat(rs.next()).isTrue();
             assertThat(rs.getInt(1)).isEqualTo(1); // log(10) -> 1
+
+            assertThat(rs.next()).isFalse();
         }
     }
 
@@ -707,6 +724,13 @@ public class PostgresITest extends IntegTestCase {
             resultSet = statement.executeQuery("select * from t order by x desc");
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getInt(1)).isEqualTo(3);
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getInt(1)).isEqualTo(3);
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getInt(1)).isEqualTo(2);
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getInt(1)).isEqualTo(1);
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -721,10 +745,9 @@ public class PostgresITest extends IntegTestCase {
             statement.addBatch("refresh table t");
             statement.addBatch("select count(*) from t");
 
-            Assertions.assertThrows(BatchUpdateException.class,
-                                    () -> statement.executeBatch(),
-                                    "Only write operations are allowed in Batch statements"
-            );
+            assertThatThrownBy(() -> statement.executeBatch())
+                .isExactlyInstanceOf(BatchUpdateException.class)
+                .hasMessageContaining("Only write operations are allowed in Batch statements");
         }
     }
 
@@ -752,6 +775,8 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getString(1)).isEqualTo("Trillian");
             assertThat(resultSet.getTimestamp(2)).isEqualTo(new Timestamp(1467072000000L));
+
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -873,6 +898,7 @@ public class PostgresITest extends IntegTestCase {
                 "select count (distinct 74) from unnest([1, 2]) t1 cross join unnest([2, 3]) t2");
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getLong(1)).isEqualTo(1L);
+            assertThat(resultSet.next()).isFalse();
         }
     }
 
@@ -1157,6 +1183,7 @@ public class PostgresITest extends IntegTestCase {
             ResultSet resultSet = conn.createStatement().executeQuery("SELECT ints FROM t");
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Integer[]{1, 2});
+            assertThat(resultSet.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
@@ -1207,6 +1234,7 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Float[] { 2.2f, 2.3f });
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1)).isNull();
+            assertThat(resultSet.next()).isFalse();
         }
     }
 

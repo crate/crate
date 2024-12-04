@@ -39,14 +39,12 @@ public class ArrayFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_array";
     public static final Signature SIGNATURE =
-        Signature.builder()
-            .name(NAME)
-            .kind(FunctionType.SCALAR)
+        Signature.builder(NAME, FunctionType.SCALAR)
             .typeVariableConstraints(typeVariable("E"))
             .argumentTypes(TypeSignature.parse("E"))
             .returnType(TypeSignature.parse("array(E)"))
             .setVariableArity(true)
-            .feature(Feature.NON_NULLABLE)
+            .features(Feature.NOTNULL, Feature.DETERMINISTIC)
             .build();
 
 

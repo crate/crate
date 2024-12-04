@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
-
-import java.util.function.Consumer;
 
 public class AnalyzedCreateRepository implements DDLStatement {
 
@@ -52,7 +52,7 @@ public class AnalyzedCreateRepository implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

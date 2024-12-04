@@ -21,18 +21,15 @@
 
 package io.crate.execution.jobs;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.test.ESTestCase;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -134,7 +131,7 @@ public class AbstractTaskTest extends ESTestCase {
         TestingTask task = new TestingTask();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(1, 1, 0));
+        assertThat(task.stats()).containsExactly(1, 1, 0);
     }
 
     @Test
@@ -143,22 +140,22 @@ public class AbstractTaskTest extends ESTestCase {
         task.close();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(0, 1, 0));
+        assertThat(task.stats()).containsExactly(0, 1, 0);
     }
 
     @Test
     public void testParallelClose() throws Exception {
         testingTask.start();
         runAsync(closeRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 0));
+        assertThat(testingTask.stats()).containsExactly(1, 1, 0);
     }
 
     @Test
     public void testParallelKill() throws Exception {
         testingTask.start();
         runAsync(killRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 0, 1));
-        assertThat(testingTask.numKill.get(), greaterThan(0));
+        assertThat(testingTask.stats()).containsExactly(1, 0, 1);
+        assertThat(testingTask.numKill.get()).isGreaterThan(0);
     }
 
 }

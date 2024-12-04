@@ -32,6 +32,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.breaker.RamAccounting;
+import io.crate.testing.PlainRamAccounting;
 
 public class SketchRamAccountingTest extends ESTestCase {
 
@@ -84,36 +85,8 @@ public class SketchRamAccountingTest extends ESTestCase {
     @Test
     public void test_throws_exceptions() throws IOException {
 
-        boolean[] closed = new boolean[1];
-
-        RamAccounting a = new RamAccounting() {
-
-            long total;
-
-            @Override
-            public void addBytes(long bytes) {
-                total += bytes;
-                if (total > 32) {
-                    // break when more than two block sizes have been added to the Sketch
-                    throw new RuntimeException("Circuit break! " + total);
-                }
-            }
-
-            @Override
-            public long totalBytes() {
-                return total;
-            }
-
-            @Override
-            public void release() {
-                total = 0;
-            }
-
-            @Override
-            public void close() {
-                closed[0] = true;
-            }
-        };
+        // break when more than two block sizes have been added to the Sketch
+        PlainRamAccounting a = new PlainRamAccounting(32);
 
         TrackingRateLimiter rateLimiter = new TrackingRateLimiter(0);
         try (SketchRamAccounting accounting = new SketchRamAccounting(a, rateLimiter)) {
@@ -128,8 +101,7 @@ public class SketchRamAccountingTest extends ESTestCase {
             a.release();
         }
 
-        assertThat(closed[0]).isTrue();
-
+        assertThat(a.closed()).isTrue();
     }
 
 }

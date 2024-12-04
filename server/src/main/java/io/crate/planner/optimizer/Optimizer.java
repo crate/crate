@@ -95,7 +95,7 @@ public class Optimizer {
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
         int numIterations = 0;
-        UnaryOperator<LogicalPlan> resolvePlan = UnaryOperator.identity();
+        Rule.Context ruleContext = new Rule.Context(planStats, txnCtx, nodeCtx, UnaryOperator.identity());
         Version minVersion = minNodeVersionInCluster.get();
         while (!done && numIterations < 10_000) {
             done = true;
@@ -103,9 +103,9 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, tracer);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, ruleContext, tracer);
                 if (transformedPlan != null) {
-                    tracer.ruleApplied(rule, transformedPlan, planStats);
+                    tracer.ruleApplied(rule, transformedPlan, ruleContext.planStats());
                     node = transformedPlan;
                     done = false;
                 }
@@ -120,15 +120,12 @@ public class Optimizer {
     @Nullable
     public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
                                                    LogicalPlan node,
-                                                   PlanStats planStats,
-                                                   NodeContext nodeCtx,
-                                                   TransactionContext txnCtx,
-                                                   UnaryOperator<LogicalPlan> resolvePlan,
+                                                   Rule.Context ruleContext,
                                                    OptimizerTracer tracer) {
-        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
+        Match<T> match = rule.pattern().accept(node, Captures.empty(), ruleContext.resolvePlan());
         if (match.isPresent()) {
             tracer.ruleMatched(rule);
-            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
+            return rule.apply(match.value(), match.captures(), ruleContext);
         }
         return null;
     }

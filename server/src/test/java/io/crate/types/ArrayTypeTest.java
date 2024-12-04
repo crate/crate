@@ -38,18 +38,51 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public DataType<List<Object>> getType() {
-        // we don't support arrays of float vectors
+    protected DataDef<List<Object>> getDataDef() {
+        // Exclude float vectors and objects - we don't support arrays of float vector,
+        // and arrays of objects aren't currently handled by data generation code; these
+        // are tested in ObjectTypeTest instead.
         // TODO: maybe make this a property of the DataType itself rather than a check in DataTypeAnalyzer?
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
-            Set.of(FloatVectorType.INSTANCE_ONE)
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED)
         );
-        return new ArrayType<>(randomType);
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
     @Override
-    protected boolean supportsDocValues() {
-        return false;
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " STORAGE WITH (columnstore=false)";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " INDEX OFF STORAGE WITH (columnstore=false)";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_index_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " INDEX OFF";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
     }
 
     @Test

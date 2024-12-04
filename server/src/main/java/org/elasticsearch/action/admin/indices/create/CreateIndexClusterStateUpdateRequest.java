@@ -26,7 +26,6 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 
@@ -37,32 +36,23 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     private final String cause;
     private final String index;
-    private final String providedName;
     private Index recoverFrom;
     private ResizeType resizeType;
     private boolean copySettings;
 
-    private Settings settings = Settings.Builder.EMPTY_SETTINGS;
-
-    private String mapping = null;
+    private Settings settings = Settings.EMPTY;
 
     private final Set<Alias> aliases = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
 
-    public CreateIndexClusterStateUpdateRequest(String cause, String index, String providedName) {
+    public CreateIndexClusterStateUpdateRequest(String cause, String index) {
         this.cause = cause;
         this.index = index;
-        this.providedName = providedName;
     }
 
     public CreateIndexClusterStateUpdateRequest settings(Settings settings) {
         this.settings = settings;
-        return this;
-    }
-
-    public CreateIndexClusterStateUpdateRequest mapping(String mapping) {
-        this.mapping = mapping;
         return this;
     }
 
@@ -103,24 +93,12 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
         return settings;
     }
 
-    public String mapping() {
-        return mapping;
-    }
-
     public Set<Alias> aliases() {
         return aliases;
     }
 
     public Index recoverFrom() {
         return recoverFrom;
-    }
-
-    /**
-     * The name that was provided by the user. This might contain a date math expression.
-     * @see IndexMetadata#SETTING_INDEX_PROVIDED_NAME
-     */
-    public String getProvidedName() {
-        return providedName;
     }
 
     public ActiveShardCount waitForActiveShards() {

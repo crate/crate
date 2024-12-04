@@ -21,8 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -38,7 +37,7 @@ public class MappingSymbolVisitorTest {
 
         Map<Symbol, ? extends Symbol> fieldMap = Map.of(f, t);
 
-        assertThat(MappingSymbolVisitor.copy().process(f, fieldMap), is(t));
-        assertThat(MappingSymbolVisitor.copy().process(one, fieldMap), is(one));
+        assertThat(MappingSymbolVisitor.copy().process(f, fieldMap)).isEqualTo(t);
+        assertThat(MappingSymbolVisitor.copy().process(one, fieldMap)).isEqualTo(one);
     }
 }

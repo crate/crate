@@ -19,9 +19,8 @@
 
 package org.elasticsearch.indices.recovery;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -75,7 +74,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                     if (listener != null) {
                         boolean added = seqNosReturned.add(seqNo);
                         // Ensure that we only return 1 future per sequence number
-                        assertTrue(added);
+                        assertThat(added).isTrue();
                         if (rarely()) {
                             listener.onFailure(new ElasticsearchException(randomAlphaOfLength(10)));
                         } else {
@@ -96,7 +95,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
 
         for (var value : seqToResult.values()) {
             Optional<FutureActionListener<Void>> first = value.stream().findFirst();
-            assertTrue(first.isPresent());
+            assertThat(first.isPresent()).isTrue();
             Exception expectedException = null;
             try {
                 first.get().get();
@@ -104,7 +103,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                 expectedException = e;
             }
             for (var future : value) {
-                assertTrue(future.isDone());
+                assertThat(future.isDone()).isTrue();
                 if (expectedException == null) {
                     future.get();
                 } else {
@@ -112,7 +111,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                         future.get();
                         fail("expected exception");
                     } catch (Exception e) {
-                        assertEquals(expectedException.getMessage(), e.getMessage());
+                        assertThat(e.getMessage()).isEqualTo(expectedException.getMessage());
                     }
                 }
             }

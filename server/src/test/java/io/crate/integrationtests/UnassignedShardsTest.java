@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -36,8 +35,7 @@ public class UnassignedShardsTest extends IntegTestCase {
     public void testUnassignedReplicasAreVisibleAsUnassignedInSysShards() throws Exception {
         execute("create table t (id int) clustered into 1 shards with (number_of_replicas=1, \"write.wait_for_active_shards\"=1)");
         execute("select state, id, table_name from sys.shards where schema_name = ? AND table_name='t' order by state", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("STARTED| 0| t\n" +
-               "UNASSIGNED| 0| t\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("STARTED| 0| t\n" +
+               "UNASSIGNED| 0| t\n");
     }
 }

@@ -1,0 +1,97 @@
+.. _version_5.8.1:
+
+=============
+Version 5.8.1
+=============
+
+Released on 2024-07-29.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.8.1.
+
+    We recommend that you upgrade to the latest 5.7 release before moving to
+    5.8.1.
+
+    A rolling upgrade from 5.7.x to 5.8.1 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.8.0` release notes for a full list of changes in the
+5.8 series.
+
+Fixes
+=====
+
+- Changed behavior to partitioned tables by automatically calculating
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`,
+  so that they behave the same as simple tables, for which the
+  :ref:`change<version_5.8.0_break_ch_no_route_shards>` was already introduced
+  in :ref:`version_5.8.0`. With this fix, it's possible to
+  :ref:`alter the number_of_shards<partitioned-alter-single>` for a single
+  partition of a partitioned table.
+
+- Fixed an issue that would cause the
+  :ref:`number_of_replicas <sql-create-table-number-of-replicas>` setting of a
+  table to be reset to ``1``, when the number of shards for that table is
+  :ref:`increased <alter-shard-number-increase>` or
+  :ref:`decreased <alter-shard-number-decrease>`.
+
+- Fixed an issue that would add a whitespace character at the beginning of some
+  lines in the files containing the rows which are exported by executing
+  :ref:`COPY TO<sql-copy-to>` using the local filesystem on a whole partitioned
+  table.
+
+- Changed the behavior of :ref:`LIKE and ILIKE <sql_dql_like>` operators to
+  throw an error, when the pattern to match ends with the ``ESCAPE`` character.
+  Previously, the ``ESCAPE`` character was ignored, and the result was computed
+  based on the rest of the pattern.
+
+- Fixed an issue that caused an ``IndexOutOfBoundsException`` when the
+  :ref:`max_by <aggregation-max_by>` aggregation was called with a literal
+  as searchfield parameter instead of a column e.g.::
+
+    SELECT MAX_BY(x, 1) from tbl;
+
+- Fixed an issue that caused write operations to fail if the table contained
+  generated columns with a cast to ``geo_shape``.
+
+- Fixed a rare race condition that could lead to queries appearing stuck and
+  eventually time out after 60 seconds if they were executed while a shard was
+  being created. This could happen right after a table or a partition is
+  created, during shard relocation or node restarts.
+
+- Fixed an issue that could lead to ``ANALYZE`` over account the number of
+  documents in a table if shards were relocating.
+
+- Fixed a regression introduced in 5.8.0 that led to error when running a query
+  ``SELECT * FROM sys.nodes`` in a mixed cluster.
+
+- Fixed a regression introduced in 5.8.0 that prevented cluster to become GREEN
+  after a rolling upgrade.
+
+- Fixed a regression introduced in 5.8.0 that lead to error when running an
+  aggregations in a mixed cluster.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained array scalar functions under ``NOT`` operator. The
+  affected scalars include :ref:`scalar-array_min`, :ref:`scalar-array_max`,
+  :ref:`scalar-array_sum`, :ref:`scalar-array_avg`, :ref:`scalar-array_upper`,
+  :ref:`scalar-array_lower` and :ref:`scalar-array_length`.

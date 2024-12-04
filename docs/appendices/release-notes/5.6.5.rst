@@ -1,17 +1,11 @@
 .. _version_5.6.5:
 
-==========================
-Version 5.6.5 - Unreleased
-==========================
+=============
+Version 5.6.5
+=============
 
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-
-.. NOTE::
-    In development. 5.6.5 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2024-05-02.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -47,4 +41,39 @@ See the :ref:`version_5.6.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that could result in completed jobs to not be marked with an
+  ``ended`` timestamp and be moved to ``sys.jobs_log``, but stay "forever"
+  (until node restart) in :ref:`sys-jobs` table.
+
+- Fixed an issue that allowed creating tables named ``_all``, which is a
+  reversed name that has special effects - like expanding to *all* table names.
+  Because of these special semantics, statements like ``DROP TABLE _all`` would
+  delete all tables instead of only ``_all``.
+
+- Fixed an issue that could prevent a :ref:`sql-restore-snapshot` from
+  restoring a partition if using the ``TABLE PARTITION (...)`` clause to restore
+  an individual partition of a table with more than one partition column.
+
+- Fixed an issue that allowed ``INSERT INTO`` statements to create more shards
+  than allowed by :ref:`cluster.max_shards_per_node
+  <cluster.max_shards_per_node>` if the statement resulted in the creation of
+  many partitions at once.
+
+- Fixed an issue that resulted on the garbage collection logging environment
+  variables being ignored in Windows.
+
+- Fixed an issue that caused assigning a wrong number of replicas to closed
+  tables after cluster was re-balanced (for example by adding a node), if
+  tables were created with :ref:`sql-create-table-number-of-replicas` specified
+  as a range.
+
+- Fixed an issue that caused queries on partitioned tables via prepared
+  statements to return invalid results if the partitions of the table changed
+  after preparing the statements.
+
+- Fixed an issue that caused prepared statements to cache values of
+  non-deterministic functions and use the same value for each execution.
+
+- Improved ingestion performance for partitioned tables where no primary keys
+  are defined by using an append only optimized ingestion strategy. The
+  performance improvement increases with the size of each shard.

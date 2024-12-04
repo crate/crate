@@ -105,8 +105,8 @@ public class IterativeOptimizer {
 
     private boolean exploreNode(int group, Context context) {
         var rules = context.rules;
-        var resolvePlan = context.groupReferenceResolver;
         var node = context.memo.resolve(group);
+        var ruleContext = new Rule.Context(context.planStats, context.txnCtx, nodeCtx, context.groupReferenceResolver);
 
         int numIteration = 0;
         int maxIterations = 10_000;
@@ -123,10 +123,7 @@ public class IterativeOptimizer {
                 LogicalPlan transformed = Optimizer.tryMatchAndApply(
                     rule,
                     node,
-                    context.planStats,
-                    nodeCtx,
-                    context.txnCtx,
-                    resolvePlan,
+                    ruleContext,
                     context.tracer
                 );
                 if (transformed != null) {

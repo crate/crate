@@ -36,7 +36,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
         assertEvaluate("row_number() over(order by x)",
                        expected,
-                       List.of(new ColumnIdent("x")),
+                       List.of(ColumnIdent.of("x")),
                        new Object[] {4},
                        new Object[] {3},
                        new Object[] {2},
@@ -49,7 +49,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2)",
                        expected,
-                       List.of(new ColumnIdent("x")),
+                       List.of(ColumnIdent.of("x")),
                        new Object[]{1},
                        new Object[]{2},
                        new Object[]{2},
@@ -64,7 +64,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2 order by x)",
                        expected,
-                       List.of(new ColumnIdent("x")),
+                       List.of(ColumnIdent.of("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},
@@ -81,7 +81,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
                        expected,
-                       List.of(new ColumnIdent("x")),
+                       List.of(ColumnIdent.of("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},
@@ -96,7 +96,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "row_number() ignore nulls over()",
                 null,
-                List.of(new ColumnIdent("x")),
+                List.of(ColumnIdent.of("x")),
                 new Object[] {1}
             ))
             .isExactlyInstanceOf(IllegalArgumentException.class)

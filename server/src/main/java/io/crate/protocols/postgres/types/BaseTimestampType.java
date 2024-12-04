@@ -21,11 +21,11 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-
 import org.jetbrains.annotations.NotNull;
 
-abstract class BaseTimestampType extends PGType {
+import io.netty.buffer.ByteBuf;
+
+abstract class BaseTimestampType extends PGType<Long> {
 
     protected static final int TYPE_LEN = 8;
     protected static final int TYPE_MOD = -1;
@@ -42,7 +42,7 @@ abstract class BaseTimestampType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @NotNull Long value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeLong(toPgTimestamp((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -67,7 +67,7 @@ abstract class BaseTimestampType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Long readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "valueLength must be " + TYPE_LEN +
             " because timestamp is a 64 bit long. Actual length: " + valueLength;
         long microSecondsSince2K = buffer.readLong();

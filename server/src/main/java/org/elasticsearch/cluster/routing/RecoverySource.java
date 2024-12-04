@@ -19,20 +19,17 @@
 
 package org.elasticsearch.cluster.routing;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.snapshots.Snapshot;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * Represents the recovery source of a shard. Available recovery types are:
@@ -43,22 +40,7 @@ import java.util.Objects;
  * - {@link SnapshotRecoverySource} recovery from a snapshot
  * - {@link LocalShardsRecoverySource} recovery from other shards of another index on the same node
  */
-public abstract class RecoverySource implements Writeable, ToXContentObject {
-
-    @Override
-    public final XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject();
-        builder.field("type", getType());
-        addAdditionalFields(builder, params);
-        return builder.endObject();
-    }
-
-    /**
-     * to be overridden by subclasses
-     */
-    public void addAdditionalFields(XContentBuilder builder, ToXContent.Params params) throws IOException {
-
-    }
+public abstract class RecoverySource implements Writeable {
 
     public static RecoverySource readFrom(StreamInput in) throws IOException {
         Type type = Type.values()[in.readByte()];
@@ -155,11 +137,6 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
 
         private static ExistingStoreRecoverySource read(StreamInput in) throws IOException {
             return in.readBoolean() ? FORCE_STALE_PRIMARY_INSTANCE : INSTANCE;
-        }
-
-        @Override
-        public void addAdditionalFields(XContentBuilder builder, Params params) throws IOException {
-            builder.field("bootstrap_new_history_uuid", bootstrapNewHistoryUUID);
         }
 
         @Override
@@ -280,15 +257,6 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
         @Override
         public Type getType() {
             return Type.SNAPSHOT;
-        }
-
-        @Override
-        public void addAdditionalFields(XContentBuilder builder, ToXContent.Params params) throws IOException {
-            builder.field("repository", snapshot.getRepository())
-                .field("snapshot", snapshot.getSnapshotId().getName())
-                .field("version", version.toString())
-                .field("index", index.getName())
-                .field("restoreUUID", restoreUUID);
         }
 
         @Override

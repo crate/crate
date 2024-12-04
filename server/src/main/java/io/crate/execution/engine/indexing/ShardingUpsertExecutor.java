@@ -80,6 +80,8 @@ public class ShardingUpsertExecutor
         Property.Exposed
     );
 
+    public static final int BULK_RESPONSE_MAX_ERRORS_PER_SHARD = 10;
+
     static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
     static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
@@ -159,13 +161,13 @@ public class ShardingUpsertExecutor
         collectFailingSourceUris(requests, upsertResults);
         collectFailingItems(requests, upsertResults);
 
-        if (requests.itemsByMissingIndex.isEmpty()) {
+        if (requests.itemsByMissingPartition.isEmpty()) {
             return execRequests(requests, upsertResults);
         }
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
             CreatePartitionsAction.INSTANCE,
-            new CreatePartitionsRequest(requests.itemsByMissingIndex.keySet()))
+            CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;

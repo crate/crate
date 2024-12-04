@@ -21,8 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -54,8 +52,9 @@ public class RoutingProviderTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         Routing forRandomMasterOrDataNode = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "dummy"), nodes);
-        assertThat(forRandomMasterOrDataNode.nodes(), contains(
-            Matchers.oneOf(node1.getId(), node2.getId())
-        ));
+        assertThat(forRandomMasterOrDataNode.nodes()).hasSize(1).containsAnyOf(
+            node1.getId(),
+            node2.getId()
+        );
     }
 }

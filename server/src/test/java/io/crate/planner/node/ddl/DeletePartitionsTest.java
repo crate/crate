@@ -22,9 +22,8 @@
 package io.crate.planner.node.ddl;
 
 import static java.util.Collections.singletonList;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
@@ -39,7 +38,7 @@ import io.crate.testing.SQLExecutor;
 
 public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void testIndexNameGeneration() throws Exception {
@@ -51,14 +50,11 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
         Object[] args1 = {"1395874800000"};
-        assertThat(
-            plan.getIndices(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY),
-            Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY)).containsExactly(
+            ".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g");
 
         Object[] args2 = {"1395961200000"};
-        assertThat(
-            plan.getIndices(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY),
-            Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g"));
+        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY)).containsExactly(
+            ".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g");
     }
-
 }

@@ -34,8 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -44,15 +42,9 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.mapper.BitStringFieldMapper;
-import org.elasticsearch.index.mapper.DateFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -68,6 +60,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -89,20 +82,25 @@ import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
+import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
+import io.crate.types.UndefinedType;
 
-@Singleton
 public class DocTableInfoFactory {
-
-    private static final Logger LOGGER = LogManager.getLogger(DocTableInfoFactory.class);
 
     private final NodeContext nodeCtx;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
 
-    @Inject
+    public static class MappingKeys {
+        public static final String DOC_VALUES = "doc_values";
+        public static final String DATE = "date";
+        public static final String KEYWORD = "keyword";
+        public static final String BITSTRING = "bit";
+    }
+
     public DocTableInfoFactory(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
         this.systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
@@ -112,6 +110,91 @@ public class DocTableInfoFactory {
             ParamTypeHints.EMPTY,
             FieldProvider.UNSUPPORTED,
             null
+        );
+    }
+
+    public void validateSchema(IndexMetadata indexMetadata) {
+        String indexName = indexMetadata.getIndex().getName();
+        if (IndexName.isDangling(indexName)) {
+            return;
+        }
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        Settings tableParameters = indexMetadata.getSettings();
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
+        Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+        MappingMetadata mapping = indexMetadata.mapping();
+        Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
+        final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
+            Maps.getOrDefault(metaMap, "partitioned_by", List.of())
+        );
+        List<ColumnIdent> primaryKeys = getPrimaryKeys(metaMap);
+        Set<ColumnIdent> notNullColumns = getNotNullColumns(metaMap);
+
+        Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
+        Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
+        Map<ColumnIdent, Reference> references = new HashMap<>();
+        Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
+
+        parseColumns(
+            expressionAnalyzer,
+            relationName,
+            null,
+            indicesMap,
+            notNullColumns,
+            primaryKeys,
+            partitionedBy,
+            properties,
+            indexColumns,
+            references
+        );
+        var refExpressionAnalyzer = new ExpressionAnalyzer(
+            systemTransactionContext,
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            new TableReferenceResolver(references, relationName),
+            null
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
+        Map<String, String> generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
+        for (Entry<String,String> entry : generatedColumns.entrySet()) {
+            ColumnIdent column = ColumnIdent.fromPath(entry.getKey());
+            String generatedExpressionStr = entry.getValue();
+            Reference reference = references.get(column);
+            Symbol generatedExpression = refExpressionAnalyzer.convert(
+                SqlParser.createExpression(generatedExpressionStr),
+                expressionAnalysisContext
+            ).cast(reference.valueType());
+            assert reference != null : "Column present in generatedColumns must exist";
+            GeneratedReference generatedRef = new GeneratedReference(
+                reference,
+                generatedExpression
+            );
+            references.put(column, generatedRef);
+        }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            refExpressionAnalyzer,
+            expressionAnalysisContext,
+            metaMap
+        );
+        ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
+        new DocTableInfo(
+            relationName,
+            references,
+            indexColumns.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
+            Maps.get(metaMap, "pk_constraint_name"),
+            primaryKeys,
+            checkConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
+            versionCreated,
+            versionUpgraded,
+            indexMetadata.getState() == IndexMetadata.State.CLOSE,
+            Operation.CLOSED_OPERATIONS,
+            0
         );
     }
 
@@ -128,29 +211,18 @@ public class DocTableInfoFactory {
             concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
                 indexTemplateMetadata == null
-                    ? IndicesOptions.strictExpandOpen()
-                    : IndicesOptions.lenientExpandOpen(),
+                    ? IndicesOptions.STRICT_EXPAND_OPEN
+                    : IndicesOptions.LENIENT_EXPAND_OPEN,
                 relation.indexNameOrAlias()
             );
         } catch (IndexNotFoundException e) {
             throw new RelationUnknown(relation.fqn(), e);
         }
-        String[] concreteOpenIndices;
-        List<PartitionName> partitions;
+        long tableVersion;
         if (indexTemplateMetadata == null) {
             IndexMetadata index = metadata.index(relation.indexNameOrAlias());
             if (index == null) {
-                if (concreteIndices.length > 0) {
-                    index = metadata.index(concreteIndices[0]);
-                    LOGGER.info(
-                        "Found indices={} for relation={} without index template. Orphaned partition?",
-                        concreteIndices,
-                        relation
-                    );
-                }
-                if (index == null) {
-                    throw new RelationUnknown(relation);
-                }
+                throw new RelationUnknown(relation);
             }
             tableParameters = index.getSettings();
             versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
@@ -158,11 +230,10 @@ public class DocTableInfoFactory {
             state = index.getState();
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
-            concreteOpenIndices = concreteIndices;
+            tableVersion = index.getVersion();
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(relation);
             }
-            partitions = List.of();
         } else {
             mappingSource = XContentHelper.toMap(
                 indexTemplateMetadata.mapping().compressedReference(),
@@ -175,17 +246,7 @@ public class DocTableInfoFactory {
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
-            // We need all concrete open indices, as closed indices must not appear in the routing.
-            concreteOpenIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()),
-                relation.indexNameOrAlias()
-            );
-            partitions = new ArrayList<>(concreteIndices.length);
-            for (String indexName : concreteIndices) {
-                partitions.add(PartitionName.fromIndexOrTemplate(indexName));
-            }
-
+            tableVersion = indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
         }
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
@@ -198,7 +259,6 @@ public class DocTableInfoFactory {
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
         Map<ColumnIdent, Reference> references = new HashMap<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-        Map<ColumnIdent, String> analyzers = new HashMap<>();
 
         parseColumns(
             expressionAnalyzer,
@@ -210,7 +270,6 @@ public class DocTableInfoFactory {
             partitionedBy,
             properties,
             indexColumns,
-            analyzers,
             references
         );
         var refExpressionAnalyzer = new ExpressionAnalyzer(
@@ -249,16 +308,12 @@ public class DocTableInfoFactory {
             references,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
-            analyzers,
             Maps.get(metaMap, "pk_constraint_name"),
             primaryKeys,
             checkConstraints,
             clusteredBy,
-            concreteIndices,
-            concreteOpenIndices,
             tableParameters,
             partitionedBy,
-            partitions,
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,
@@ -267,7 +322,8 @@ public class DocTableInfoFactory {
                 tableParameters,
                 state,
                 publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
-            )
+            ),
+            tableVersion
         );
     }
 
@@ -278,7 +334,7 @@ public class DocTableInfoFactory {
         if (primaryKeys.size() == 1) {
             return primaryKeys.get(0);
         }
-        return DocSysColumns.ID;
+        return SysColumns.ID.COLUMN;
     }
 
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
@@ -313,22 +369,17 @@ public class DocTableInfoFactory {
                                     List<ColumnIdent> partitionedBy,
                                     Map<String, Object> properties,
                                     Map<ColumnIdent, IndexReference.Builder> indexColumns,
-                                    Map<ColumnIdent, String> analyzers,
                                     Map<ColumnIdent, Reference> references) {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         for (Entry<String,Object> entry : properties.entrySet()) {
             String columnName = entry.getKey();
             Map<String, Object> columnProperties = (Map<String, Object>) entry.getValue();
             final DataType<?> type = getColumnDataType(columnProperties);
-            ColumnIdent column = parent == null ? new ColumnIdent(columnName) : parent.getChild(columnName);
+            ColumnIdent column = parent == null ? ColumnIdent.of(columnName) : parent.getChild(columnName);
             ReferenceIdent refIdent = new ReferenceIdent(relationName, column);
             columnProperties = innerProperties(columnProperties);
 
             String analyzer = (String) columnProperties.get("analyzer");
-            if (analyzer != null) {
-                analyzers.put(column, analyzer);
-            }
-
             String defaultExpressionString = Maps.get(columnProperties, "default_expr");
             Symbol defaultExpression = null;
             if (defaultExpressionString != null) {
@@ -347,7 +398,7 @@ public class DocTableInfoFactory {
 
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
-            Object docValues = columnProperties.get(TypeParsers.DOC_VALUES);
+            Object docValues = columnProperties.get(MappingKeys.DOC_VALUES);
             boolean hasDocValues = docValues == null
                 ? docValuesDefault
                 : Booleans.parseBoolean(docValues.toString());
@@ -368,7 +419,6 @@ public class DocTableInfoFactory {
                 Reference ref = new GeoReference(
                     refIdent,
                     type,
-                    ColumnPolicy.DYNAMIC,
                     IndexType.PLAIN,
                     nullable,
                     position,
@@ -382,13 +432,10 @@ public class DocTableInfoFactory {
                 );
                 references.put(column, ref);
             } else if (elementType.id() == ObjectType.ID) {
-                ColumnPolicy columnPolicy = ColumnPolicy.fromMappingValue(columnProperties.get("dynamic"));
-
                 Reference ref = new SimpleReference(
                     refIdent,
                     granularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,
@@ -411,7 +458,6 @@ public class DocTableInfoFactory {
                         partitionedBy,
                         nestedProperties,
                         indexColumns,
-                        analyzers,
                         references
                     );
                 }
@@ -430,7 +476,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -463,7 +508,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -477,7 +521,6 @@ public class DocTableInfoFactory {
                             refIdent,
                             granularity,
                             type,
-                            ColumnPolicy.DYNAMIC,
                             indexType,
                             nullable,
                             hasDocValues,
@@ -617,11 +660,7 @@ public class DocTableInfoFactory {
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
-            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
-            if (innerProperties == null) {
-                return Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
-            }
-
+            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.getOrDefault("properties", Map.of());
             List<InnerObjectType> children = new ArrayList<>();
             for (Map.Entry<String, Object> entry : innerProperties.entrySet()) {
                 Map<String, Object> value = (Map<String, Object>) entry.getValue();
@@ -631,8 +670,8 @@ public class DocTableInfoFactory {
                     children.add(new InnerObjectType(entry.getKey(), position, getColumnDataType(value)));
                 }
             }
-            children.sort(Comparator.comparingInt(x -> x.position()));
-            ObjectType.Builder builder = ObjectType.builder();
+            children.sort(Comparator.comparingInt(InnerObjectType::position));
+            ObjectType.Builder builder = ObjectType.of(ColumnPolicy.fromMappingValue(columnProperties.get("dynamic")));
             for (var child : children) {
                 builder.setInnerType(child.name, child.type);
             }
@@ -641,12 +680,15 @@ public class DocTableInfoFactory {
 
         if (typeName.equalsIgnoreCase("array")) {
             Map<String, Object> innerProperties = Maps.get(columnProperties, "inner");
+            if (Objects.equals(UndefinedType.INSTANCE.getName(), innerProperties.get("type"))) {
+                return new ArrayType<>(UndefinedType.INSTANCE);
+            }
             DataType<?> innerType = getColumnDataType(innerProperties);
             return new ArrayType<>(innerType);
         }
 
         return switch (typeName.toLowerCase(Locale.ENGLISH)) {
-            case DateFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.DATE -> {
                 Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
                 if (ignoreTimezone != null && ignoreTimezone) {
                     yield DataTypes.TIMESTAMP;
@@ -654,20 +696,25 @@ public class DocTableInfoFactory {
                     yield DataTypes.TIMESTAMPZ;
                 }
             }
-            case KeywordFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.KEYWORD -> {
                 Integer lengthLimit = (Integer) columnProperties.get("length_limit");
                 var blankPadding = columnProperties.get("blank_padding");
                 if (blankPadding != null && (Boolean) blankPadding) {
-                    yield new CharacterType(lengthLimit);
+                    yield CharacterType.of(lengthLimit);
                 }
                 yield lengthLimit != null
                     ? StringType.of(lengthLimit)
                     : DataTypes.STRING;
             }
-            case BitStringFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.BITSTRING -> {
                 Integer length = (Integer) columnProperties.get("length");
                 assert length != null : "Length is required for bit string type";
                 yield new BitStringType(length);
+            }
+            case NumericType.NAME -> {
+                Integer precision = (Integer) columnProperties.get("precision");
+                Integer scale = (Integer) columnProperties.get("scale");
+                yield new NumericType(precision, scale);
             }
             case FloatVectorType.NAME -> {
                 Integer dimensions = (Integer) columnProperties.get("dimensions");

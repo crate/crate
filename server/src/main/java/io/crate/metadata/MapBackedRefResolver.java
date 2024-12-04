@@ -28,18 +28,18 @@ import io.crate.expression.reference.ReferenceResolver;
 
 public final class MapBackedRefResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private Map<ColumnIdent, NestableInput> implByColumn;
+    private Map<ColumnIdent, NestableInput<?>> implByColumn;
 
-    public MapBackedRefResolver(Map<ColumnIdent, NestableInput> implByColumn) {
+    public MapBackedRefResolver(Map<ColumnIdent, NestableInput<?>> implByColumn) {
         this.implByColumn = implByColumn;
     }
 
     @Override
-    public NestableInput getImplementation(Reference ref) {
+    public NestableInput<?> getImplementation(Reference ref) {
         return lookupMapWithChildTraversal(implByColumn, ref.column());
     }
 
-    static NestableInput lookupMapWithChildTraversal(Map<ColumnIdent, NestableInput> implByColumn, ColumnIdent column) {
+    static NestableInput<?> lookupMapWithChildTraversal(Map<ColumnIdent, NestableInput<?>> implByColumn, ColumnIdent column) {
         if (column.isRoot()) {
             return implByColumn.get(column);
         }

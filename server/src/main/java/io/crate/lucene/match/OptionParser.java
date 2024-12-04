@@ -21,18 +21,6 @@
 
 package io.crate.lucene.match;
 
-import io.crate.server.xcontent.LoggingDeprecationHandler;
-import io.crate.types.BooleanType;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.FuzzyQuery;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.query.MultiMatchQueryType;
-import org.elasticsearch.index.query.support.QueryParsers;
-import org.elasticsearch.index.search.MatchQuery;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +28,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.MultiTermQuery;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.query.MultiMatchQueryType;
+import org.elasticsearch.index.query.support.QueryParsers;
+import org.elasticsearch.index.search.MatchQuery;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.server.xcontent.LoggingDeprecationHandler;
+import io.crate.types.BooleanType;
 
 public class OptionParser {
 
@@ -75,6 +77,29 @@ public class OptionParser {
             // need a copy. Otherwise manipulations on a shared option will lead to strange race conditions.
             options = new HashMap<>(options);
         }
+        Float commonTermsCutoff = null;
+        BooleanClause.Occur operator = BooleanClause.Occur.SHOULD;
+        String minimumShouldMatch = null;
+        int phraseSlop = 0;
+        Float tieBreaker = null;
+        MultiTermQuery.RewriteMethod rewriteMethod = null;
+        switch (matchType.matchQueryType()) {
+            case BOOLEAN:
+                commonTermsCutoff = floatValue(options, OPTIONS.CUTOFF_FREQUENCY, null);
+                operator = operator(options.remove(OPTIONS.OPERATOR));
+                minimumShouldMatch = minimumShouldMatch(options.remove(OPTIONS.MINIMUM_SHOULD_MATCH));
+                break;
+            case PHRASE:
+                phraseSlop = intValue(options, OPTIONS.SLOP, 0);
+                tieBreaker = floatValue(options, OPTIONS.TIE_BREAKER, null);
+                break;
+            case PHRASE_PREFIX:
+                phraseSlop = intValue(options, OPTIONS.SLOP, 0);
+                tieBreaker = floatValue(options, OPTIONS.TIE_BREAKER, null);
+                rewriteMethod = rewrite(options.remove(OPTIONS.REWRITE));
+                break;
+            default:
+        }
         ParsedOptions parsedOptions = new ParsedOptions(
             floatValue(options, OPTIONS.BOOST, null),
             analyzer(options.remove(OPTIONS.ANALYZER)),
@@ -82,26 +107,15 @@ public class OptionParser {
             intValue(options, OPTIONS.MAX_EXPANSIONS, FuzzyQuery.defaultMaxExpansions),
             fuzziness(options.remove(OPTIONS.FUZZINESS)),
             intValue(options, OPTIONS.PREFIX_LENGTH, FuzzyQuery.defaultPrefixLength),
-            transpositions(options.remove(OPTIONS.FUZZY_TRANSPOSITIONS))
+            transpositions(options.remove(OPTIONS.FUZZY_TRANSPOSITIONS)),
+            commonTermsCutoff,
+            operator,
+            minimumShouldMatch,
+            phraseSlop,
+            tieBreaker,
+            rewriteMethod
         );
 
-        switch (matchType.matchQueryType()) {
-            case BOOLEAN:
-                parsedOptions.commonTermsCutoff(floatValue(options, OPTIONS.CUTOFF_FREQUENCY, null));
-                parsedOptions.operator(operator(options.remove(OPTIONS.OPERATOR)));
-                parsedOptions.minimumShouldMatch(minimumShouldMatch(options.remove(OPTIONS.MINIMUM_SHOULD_MATCH)));
-                break;
-            case PHRASE:
-                parsedOptions.phraseSlop(intValue(options, OPTIONS.SLOP, 0));
-                parsedOptions.tieBreaker(floatValue(options, OPTIONS.TIE_BREAKER, null));
-                break;
-            case PHRASE_PREFIX:
-                parsedOptions.phraseSlop(intValue(options, OPTIONS.SLOP, 0));
-                parsedOptions.tieBreaker(floatValue(options, OPTIONS.TIE_BREAKER, null));
-                parsedOptions.rewrite(rewrite(options.remove(OPTIONS.REWRITE)));
-                break;
-            default:
-        }
         if (!options.isEmpty()) {
             raiseIllegalOptions(matchType, options);
         }

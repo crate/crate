@@ -19,28 +19,17 @@
 
 package org.elasticsearch.cluster;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -58,14 +47,14 @@ public class ClusterInfoServiceIT extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     public void testClusterInfoServiceCollectsInformation() throws Exception {
         cluster().startNodes(2);
-        assertAcked(client().admin().indices().create(
-            new CreateIndexRequest("test", Settings.builder()
-                .put(Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING.getKey(), 0)
-                .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
-                .put(EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Rebalance.NONE)
-                .build()
-            ))
-            .get());
+        execute("""
+            create table doc.test (x int)
+            clustered into 1 shards
+            with (
+                "store.stats_refresh_interval" = 0
+            )
+            """
+        );
         if (randomBoolean()) {
             execute("alter table test close");
         }
@@ -76,38 +65,40 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             .getInstance(ClusterInfoService.class, internalTestCluster.getMasterName());
         infoService.setUpdateFrequency(TimeValue.timeValueMillis(200));
         ClusterInfo info = infoService.refresh();
-        assertNotNull("info should not be null", info);
+        assertThat(info).as("info should not be null").isNotNull();
         ImmutableOpenMap<String, DiskUsage> leastUsages = info.getNodeLeastAvailableDiskUsages();
         ImmutableOpenMap<String, DiskUsage> mostUsages = info.getNodeMostAvailableDiskUsages();
         ImmutableOpenMap<String, Long> shardSizes = info.shardSizes;
-        assertNotNull(leastUsages);
-        assertNotNull(shardSizes);
-        assertThat("some usages are populated", leastUsages.values().size(), Matchers.equalTo(2));
-        assertThat("some shard sizes are populated", shardSizes.values().size(), greaterThan(0));
+        assertThat(leastUsages).isNotNull();
+        assertThat(shardSizes).isNotNull();
+        assertThat(leastUsages.values())
+            .as("some usages are populated")
+            .hasSize(2);
+        assertThat(shardSizes.values().size()).as("some shard sizes are populated").isGreaterThan(0);
         for (ObjectCursor<DiskUsage> usage : leastUsages.values()) {
             logger.info("--> usage: {}", usage.value);
-            assertThat("usage has be retrieved", usage.value.getFreeBytes(), greaterThan(0L));
+            assertThat(usage.value.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (ObjectCursor<DiskUsage> usage : mostUsages.values()) {
             logger.info("--> usage: {}", usage.value);
-            assertThat("usage has be retrieved", usage.value.getFreeBytes(), greaterThan(0L));
+            assertThat(usage.value.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (ObjectCursor<Long> size : shardSizes.values()) {
             logger.info("--> shard size: {}", size.value);
-            assertThat("shard size is greater than 0", size.value, greaterThanOrEqualTo(0L));
+            assertThat(size.value).as("shard size is greater than 0:").isGreaterThanOrEqualTo(0L);
         }
         ClusterService clusterService = internalTestCluster.getInstance(ClusterService.class, internalTestCluster.getMasterName());
         ClusterState state = clusterService.state();
         for (ShardRouting shard : state.routingTable().allShards()) {
             String dataPath = info.getDataPath(shard);
-            assertNotNull(dataPath);
+            assertThat(dataPath).isNotNull();
 
             String nodeId = shard.currentNodeId();
             DiscoveryNode discoveryNode = state.nodes().get(nodeId);
             IndicesService indicesService = internalTestCluster.getInstance(IndicesService.class, discoveryNode.getName());
             IndexService indexService = indicesService.indexService(shard.index());
             IndexShard indexShard = indexService.getShardOrNull(shard.id());
-            assertEquals(indexShard.shardPath().getRootDataPath().toString(), dataPath);
+            assertThat(dataPath).isEqualTo(indexShard.shardPath().getRootDataPath().toString());
         }
     }
 }

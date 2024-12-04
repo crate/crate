@@ -71,16 +71,15 @@ public class OrderByWithAggregationValidator {
         @Override
         public Void visitFunction(Function symbol, ValidatorContext context) {
             for (var output : context.outputSymbols) {
-                if (output.equals(symbol)) {
-                    return null;
-                } else if (output instanceof AliasSymbol && ((AliasSymbol) output).symbol().equals(symbol)) {
+                if (output.equals(symbol) ||
+                    (output instanceof AliasSymbol aliasSymbol && aliasSymbol.symbol().equals(symbol))) {
                     return null;
                 }
             }
             if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
-            switch (symbol.signature().getKind()) {
+            switch (symbol.signature().getType()) {
                 case AGGREGATE:
                     if (context.aggregateFunctionVisited == null) {
                         context.aggregateFunctionVisited = symbol;
@@ -127,10 +126,8 @@ public class OrderByWithAggregationValidator {
                 return null;
             } else {
                 for (Symbol outputSymbol : context.outputSymbols) {
-                    if (outputSymbol instanceof AliasSymbol) {
-                        if (((AliasSymbol) outputSymbol).symbol().equals(symbol)) {
-                            return null;
-                        }
+                    if (outputSymbol instanceof AliasSymbol aliasSymbol && aliasSymbol.symbol().equals(symbol)) {
+                        return null;
                     }
                 }
                 String template = context.isDistinct ? INVALID_FIELD_IN_DISTINCT_TEMPLATE : INVALID_FIELD_TEMPLATE;

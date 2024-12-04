@@ -25,12 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.index.mapper.KeywordFieldMapper.KeywordFieldType;
 import org.junit.Test;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -39,19 +39,17 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTest {
 
-    // just return any fieldType to get passt the null check
     private static final RelationName RELATION_NAME = new RelationName("s", "t");
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
-        i -> new KeywordFieldType("dummy", true, false),
-        List.of()
+        List.of(),
+        (_) -> false
     );
 
     @Test
@@ -84,10 +82,21 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
+            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, 0);
 
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
+    }
+
+    @Test
+    public void test_void_references_are_resolved_as_null_literals() {
+        Reference voidRef = new VoidReference(
+            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), 0);
+
+        LuceneCollectorExpression<?> exp = LUCENE_REFERENCE_RESOLVER.getImplementation(voidRef);
+        assertThat(exp).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
+        LuceneReferenceResolver.LiteralValueExpression typeExp = (LuceneReferenceResolver.LiteralValueExpression) exp;
+        assertThat(typeExp.value()).isNull();
     }
 
     @Test
@@ -106,10 +115,10 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
-            i -> new KeywordFieldType("dummy", true, false),
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.isParentReferenceIgnored()
         );
-        Reference year = table.getReference(new ColumnIdent("year"));
+        Reference year = table.getReference(ColumnIdent.of("year"));
         LuceneCollectorExpression<?> impl1 = refResolver.getImplementation(year);
         assertThat(impl1).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
         assertThat(impl1.value()).isEqualTo(2023L);

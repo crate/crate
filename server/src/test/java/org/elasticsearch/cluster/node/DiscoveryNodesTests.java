@@ -19,21 +19,8 @@
 
 package org.elasticsearch.cluster.node;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESTestCase;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +36,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
 public class DiscoveryNodesTests extends ESTestCase {
 
     public void testResolveNodeByIdOrName() {
@@ -56,7 +50,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode.class);
         DiscoveryNode node = randomFrom(nodes);
         DiscoveryNode resolvedNode = discoveryNodes.resolveNode(randomBoolean() ? node.getId() : node.getName());
-        assertThat(resolvedNode.getId(), equalTo(node.getId()));
+        assertThat(resolvedNode.getId()).isEqualTo(node.getId());
     }
 
     public void testResolveNodeByAttribute() {
@@ -65,13 +59,13 @@ public class DiscoveryNodesTests extends ESTestCase {
         Set<String> matchingNodeIds = nodeSelector.matchingNodeIds(discoveryNodes);
         try {
             DiscoveryNode resolvedNode = discoveryNodes.resolveNode(nodeSelector.selector);
-            assertThat(matchingNodeIds.size(), equalTo(1));
-            assertThat(resolvedNode.getId(), equalTo(matchingNodeIds.iterator().next()));
+            assertThat(matchingNodeIds).hasSize(1);
+            assertThat(resolvedNode.getId()).isEqualTo(matchingNodeIds.iterator().next());
         } catch (IllegalArgumentException e) {
             if (matchingNodeIds.size() == 0) {
-                assertThat(e.getMessage(), equalTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes"));
+                assertThat(e.getMessage()).isEqualTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes");
             } else if (matchingNodeIds.size() > 1) {
-                assertThat(e.getMessage(), containsString("where expected to be resolved to a single node"));
+                assertThat(e.getMessage()).contains("where expected to be resolved to a single node");
             } else {
                 fail("resolveNode shouldn't have failed for [" + nodeSelector.selector + "]");
             }
@@ -83,9 +77,9 @@ public class DiscoveryNodesTests extends ESTestCase {
 
         final String[] allNodes =
                 StreamSupport.stream(discoveryNodes.spliterator(), false).map(DiscoveryNode::getId).toArray(String[]::new);
-        assertThat(discoveryNodes.resolveNodes(), arrayContainingInAnyOrder(allNodes));
-        assertThat(discoveryNodes.resolveNodes(new String[0]), arrayContainingInAnyOrder(allNodes));
-        assertThat(discoveryNodes.resolveNodes("_all"), arrayContainingInAnyOrder(allNodes));
+        assertThat(discoveryNodes.resolveNodes()).containsExactlyInAnyOrder(allNodes);
+        assertThat(discoveryNodes.resolveNodes(new String[0])).containsExactlyInAnyOrder(allNodes);
+        assertThat(discoveryNodes.resolveNodes("_all")).containsExactlyInAnyOrder(allNodes);
 
         final String[] nonMasterNodes =
                 StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
@@ -93,9 +87,9 @@ public class DiscoveryNodesTests extends ESTestCase {
                         .filter(n -> n.isMasterEligibleNode() == false)
                         .map(DiscoveryNode::getId)
                         .toArray(String[]::new);
-        assertThat(discoveryNodes.resolveNodes("_all", "master:false"), arrayContainingInAnyOrder(nonMasterNodes));
+        assertThat(discoveryNodes.resolveNodes("_all", "master:false")).containsExactlyInAnyOrder(nonMasterNodes);
 
-        assertThat(discoveryNodes.resolveNodes("master:false", "_all"), arrayContainingInAnyOrder(allNodes));
+        assertThat(discoveryNodes.resolveNodes("master:false", "_all")).containsExactlyInAnyOrder(allNodes);
     }
 
     public void testCoordinatorOnlyNodes() {
@@ -115,10 +109,10 @@ public class DiscoveryNodesTests extends ESTestCase {
                     .map(DiscoveryNode::getId)
                     .toArray(String[]::new);
 
-        assertThat(discoveryNodes.resolveNodes("coordinating_only:true"), arrayContainingInAnyOrder(coordinatorOnlyNodes));
-        assertThat(discoveryNodes.resolveNodes("_all", "data:false", "ingest:false", "master:false"),
-            arrayContainingInAnyOrder(coordinatorOnlyNodes));
-        assertThat(discoveryNodes.resolveNodes("_all", "coordinating_only:false"), arrayContainingInAnyOrder(nonCoordinatorOnlyNodes));
+        assertThat(discoveryNodes.resolveNodes("coordinating_only:true")).containsExactlyInAnyOrder(coordinatorOnlyNodes);
+        assertThat(discoveryNodes.resolveNodes("_all", "data:false", "ingest:false", "master:false"))
+            .containsExactlyInAnyOrder(coordinatorOnlyNodes);
+        assertThat(discoveryNodes.resolveNodes("_all", "coordinating_only:false")).containsExactlyInAnyOrder(nonCoordinatorOnlyNodes);
     }
 
     public void testResolveNodesIds() {
@@ -152,7 +146,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         Arrays.sort(resolvedNodesIds);
         String[] expectedNodesIds = expectedNodeIdsSet.toArray(new String[expectedNodeIdsSet.size()]);
         Arrays.sort(expectedNodesIds);
-        assertThat(resolvedNodesIds, equalTo(expectedNodesIds));
+        assertThat(resolvedNodesIds).isEqualTo(expectedNodesIds);
     }
 
     public void testMastersFirst() {
@@ -160,11 +154,11 @@ public class DiscoveryNodesTests extends ESTestCase {
         final DiscoveryNodes.Builder discoBuilder = DiscoveryNodes.builder();
         inputNodes.forEach(discoBuilder::add);
         final List<DiscoveryNode> returnedNodes = discoBuilder.build().mastersFirstStream().collect(Collectors.toList());
-        assertEquals(returnedNodes.size(), inputNodes.size());
-        assertEquals(new HashSet<>(returnedNodes), new HashSet<>(inputNodes));
+        assertThat(inputNodes.size()).isEqualTo(returnedNodes.size());
+        assertThat(new HashSet<>(inputNodes)).isEqualTo(new HashSet<>(returnedNodes));
         final List<DiscoveryNode> sortedNodes = new ArrayList<>(returnedNodes);
         Collections.sort(sortedNodes, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
-        assertEquals(sortedNodes, returnedNodes);
+        assertThat(returnedNodes).isEqualTo(sortedNodes);
     }
 
     public void testDeltas() {
@@ -207,33 +201,33 @@ public class DiscoveryNodesTests extends ESTestCase {
         DiscoveryNodes.Delta delta = discoNodesB.delta(discoNodesA);
 
         if (masterA == null) {
-            assertThat(delta.previousMasterNode(), nullValue());
+            assertThat(delta.previousMasterNode()).isNull();
         } else {
-            assertThat(delta.previousMasterNode().getId(), equalTo(masterAId));
+            assertThat(delta.previousMasterNode().getId()).isEqualTo(masterAId);
         }
         if (masterB == null) {
-            assertThat(delta.newMasterNode(), nullValue());
+            assertThat(delta.newMasterNode()).isNull();
         } else {
-            assertThat(delta.newMasterNode().getId(), equalTo(masterBId));
+            assertThat(delta.newMasterNode().getId()).isEqualTo(masterBId);
         }
 
         if (Objects.equals(masterAId, masterBId)) {
-            assertFalse(delta.masterNodeChanged());
+            assertThat(delta.masterNodeChanged()).isFalse();
         } else {
-            assertTrue(delta.masterNodeChanged());
+            assertThat(delta.masterNodeChanged()).isTrue();
         }
 
         Set<DiscoveryNode> newNodes = new HashSet<>(nodesB);
         newNodes.removeAll(nodesA);
-        assertThat(delta.added(), equalTo(newNodes.isEmpty() == false));
-        assertThat(delta.addedNodes(), containsInAnyOrder(newNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.addedNodes().size(), equalTo(newNodes.size()));
+        assertThat(delta.added()).isEqualTo(newNodes.isEmpty() == false);
+        assertThat(delta.addedNodes()).containsExactlyInAnyOrder(newNodes.toArray(new DiscoveryNode[]{}));
+        assertThat(delta.addedNodes()).hasSize(newNodes.size());
 
         Set<DiscoveryNode> removedNodes = new HashSet<>(nodesA);
         removedNodes.removeAll(nodesB);
-        assertThat(delta.removed(), equalTo(removedNodes.isEmpty() == false));
-        assertThat(delta.removedNodes(), containsInAnyOrder(removedNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.removedNodes().size(), equalTo(removedNodes.size()));
+        assertThat(delta.removed()).isEqualTo(removedNodes.isEmpty() == false);
+        assertThat(delta.removedNodes()).containsExactlyInAnyOrder(removedNodes.toArray(new DiscoveryNode[]{}));
+        assertThat(delta.removedNodes()).hasSize(removedNodes.size());
     }
 
     private static AtomicInteger idGenerator = new AtomicInteger();
@@ -356,7 +350,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         discoBuilder.localNodeId("name_1");
         discoBuilder.masterNodeId("name_2");
         DiscoveryNodes build = discoBuilder.build();
-        assertEquals( Version.V_4_4_0, build.getMaxNodeVersion());
-        assertEquals( Version.V_4_0_0, build.getMinNodeVersion());
+        assertThat(build.getMaxNodeVersion()).isEqualTo( Version.V_4_4_0);
+        assertThat(build.getMinNodeVersion()).isEqualTo( Version.V_4_0_0);
     }
 }

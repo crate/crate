@@ -30,20 +30,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -60,8 +60,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -85,8 +85,7 @@ public final class UpdatePlanner {
     public static final String RETURNING_VERSION_ERROR_MSG =
         "Returning clause for Update is only supported when all nodes in the cluster running at least version 4.2.0";
 
-    private UpdatePlanner() {
-    }
+    private UpdatePlanner() {}
 
     public static Plan plan(AnalyzedUpdateStatement update,
                             PlannerContext plannerCtx,
@@ -100,8 +99,7 @@ public final class UpdatePlanner {
         AbstractTableRelation<?> table = update.table();
 
         Plan plan;
-        if (table instanceof DocTableRelation) {
-            DocTableRelation docTable = (DocTableRelation) table;
+        if (table instanceof DocTableRelation docTable) {
             plan = plan(docTable,
                         update.assignmentByTargetCol(),
                         update.query(),
@@ -188,10 +186,10 @@ public final class UpdatePlanner {
         }
 
         @Override
-        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
-                                                         PlannerContext plannerContext,
-                                                         List<Row> bulkParams,
-                                                         SubQueryResults subQueryResults) {
+        public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                           PlannerContext plannerContext,
+                                                           List<Row> bulkParams,
+                                                           SubQueryResults subQueryResults) {
             List<NodeOperationTree> nodeOpTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
                 ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, subQueryResults);
@@ -211,7 +209,7 @@ public final class UpdatePlanner {
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -258,7 +256,7 @@ public final class UpdatePlanner {
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
+        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
@@ -281,7 +279,7 @@ public final class UpdatePlanner {
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
-            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.clusterState().metadata());
         if (where.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {

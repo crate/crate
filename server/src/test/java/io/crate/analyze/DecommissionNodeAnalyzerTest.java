@@ -41,7 +41,7 @@ public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Before
     public void setup() {
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private String analyze(String stmt, Object... arguments) {

@@ -24,6 +24,7 @@ package io.crate.expression.operator.any;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -38,8 +39,9 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
 
-public final class AnyNotLikeOperator extends AnyOperator {
+public final class AnyNotLikeOperator extends AnyOperator<String> {
 
     private final CaseSensitivity caseSensitivity;
 
@@ -55,22 +57,25 @@ public final class AnyNotLikeOperator extends AnyOperator {
     }
 
     @Override
-    boolean matches(Object probe, Object candidate) {
+    boolean matches(String probe, String candidate) {
         // Accept both sides of arguments to be patterns
-        return !LikeOperators.matches((String) probe, (String) candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) &&
-               !LikeOperators.matches((String) candidate, (String) probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
+        return !LikeOperators.matches(probe, candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) &&
+               !LikeOperators.matches(candidate, probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        Iterable<?> values = (Iterable<?>) candidates.value();
-        for (Object value : values) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             var likeQuery = caseSensitivity.likeQuery(columnName,
                 (String) value,
                 LikeOperators.DEFAULT_ESCAPE,
@@ -96,5 +101,12 @@ public final class AnyNotLikeOperator extends AnyOperator {
             notLike),
             RegexpFlag.COMPLEMENT.value()
         );
+    }
+
+    @Override
+    protected void validateRightArg(String arg) {
+        if (arg.endsWith(LikeOperators.DEFAULT_ESCAPE_STR)) {
+            LikeOperators.throwErrorForTrailingEscapeChar(arg, LikeOperators.DEFAULT_ESCAPE);
+        }
     }
 }

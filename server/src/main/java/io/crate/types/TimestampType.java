@@ -38,7 +38,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -74,9 +73,8 @@ public final class TimestampType extends DataType<Long>
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
-                                               Function<String, FieldType> getFieldType,
                                                Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new LongIndexer(ref);
         }
     };
 

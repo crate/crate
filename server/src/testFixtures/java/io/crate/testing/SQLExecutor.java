@@ -36,11 +36,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -48,11 +48,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
-import java.util.stream.Stream;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -79,7 +77,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -98,9 +95,6 @@ import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
 import io.crate.Constants;
-import io.crate.action.sql.Cursors;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -120,6 +114,8 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.auth.Protocol;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -133,6 +129,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.AddForeignTableTask;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
@@ -142,6 +139,7 @@ import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
@@ -149,20 +147,12 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfoFactory;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.DependencyCarrier;
@@ -173,7 +163,9 @@ import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -185,6 +177,9 @@ import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.RoleManager;
 import io.crate.role.StubRoleManager;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateForeignTable;
@@ -233,26 +228,23 @@ public class SQLExecutor {
 
 
     /**
-     * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
+     * Shortcut for {@link #getPlannerContext(Random)}
      * This can only be used if {@link com.carrotsearch.randomizedtesting.RandomizedContext} is available
      * (e.g. TestCase using {@link com.carrotsearch.randomizedtesting.RandomizedRunner}
      */
-    public PlannerContext getPlannerContext(ClusterState clusterState) {
-        return getPlannerContext(clusterState, Randomness.get());
+    public PlannerContext getPlannerContext() {
+        return getPlannerContext(Randomness.get());
     }
 
-    public PlannerContext getPlannerContext(ClusterState clusterState, Random random) {
-        return new PlannerContext(
-            clusterState,
+    public PlannerContext getPlannerContext(Random random) {
+        return planner.createContext(
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
             new CoordinatorTxnCtx(sessionSettings),
-            nodeCtx,
             -1,
             null,
             cursors,
-            transactionState,
-            planStats
+            transactionState
         );
     }
 
@@ -329,46 +321,29 @@ public class SQLExecutor {
             final Settings settings = Settings.EMPTY;
             var tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
-            var nodeCtx = new NodeContext(
-                Functions.load(settings, sessionSettingRegistry),
-                roleManager
-            );
-            var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
-            var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
-            Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
+            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
             Path homeDir = CrateLuceneTestCase.createTempDir();
             Environment environment = new Environment(
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
                 homeDir.resolve("config")
             );
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, nodeCtx.roles()));
-            schemaInfoByName.put("information_schema", new InformationSchemaInfo());
-            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats, nodeCtx.roles()));
-            schemaInfoByName.put(
-                BlobSchemaInfo.NAME,
-                new BlobSchemaInfo(
-                    clusterService,
-                    new BlobTableInfoFactory(clusterService.getSettings(), environment)));
-            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
-            var viewInfoFactory = new ViewInfoFactory(() -> {
-                var relationAnalyzer = relationAnalyzerRef.get();
-                assert relationAnalyzer != null : "RelationAnalyzer must be set";
-                return relationAnalyzer;
-            });
-            var schemas = new Schemas(
-                schemaInfoByName,
+            var nodeCtx = NodeContext.of(
+                environment,
                 clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService),
-                nodeCtx.roles()
+                Functions.load(settings, sessionSettingRegistry),
+                roleManager,
+                tableStats
             );
-            schemas.start();  // start listen to cluster state changes
-            var relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
+            var udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+
+            var relationAnalyzer = new RelationAnalyzer(nodeCtx);
             relationAnalyzerRef.set(relationAnalyzer);
             AnalysisRegistry analysisRegistry;
             try {
                 analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                udfService.close();
+                throw new UncheckedIOException(e);
             }
             var fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
             var allocationService = new AllocationService(
@@ -397,6 +372,7 @@ public class SQLExecutor {
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
+            var client = new NodeClient(settings, threadPool);
 
             publishInitialClusterState(clusterService);
             return new SQLExecutor(
@@ -404,16 +380,11 @@ public class SQLExecutor {
                 allocationService,
                 nodeCtx,
                 new Analyzer(
-                    schemas,
                     nodeCtx,
                     relationAnalyzer,
                     clusterService,
                     analysisRegistry,
-                    new RepositoryService(
-                        clusterService,
-                        mock(TransportDeleteRepositoryAction.class),
-                        mock(TransportPutRepositoryAction.class)
-                    ),
+                    new RepositoryService(clusterService, client),
                     roleManager,
                     sessionSettingRegistry,
                     logicalReplicationService
@@ -432,8 +403,9 @@ public class SQLExecutor {
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
-                new CoordinatorSessionSettings(Role.CRATE_USER),
-                schemas,
+                sessionSettingRegistry,
+                new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules()),
+                nodeCtx.schemas(),
                 Randomness.get(),
                 fulltextAnalyzerResolver,
                 udfService,
@@ -457,7 +429,7 @@ public class SQLExecutor {
      *
      * <p>Building a cluster state is a rather expensive operation thus this method should NOT be used when multiple
      * tables are needed (e.g. inside a loop) but instead building the cluster state once containing all tables
-     * using {@link #builder(ClusterService, AbstractModule...)} and afterwards resolve all table infos manually.</p>
+     * using {@link #builder(ClusterService)} and afterwards resolve all table infos manually.</p>
      */
     public static DocTableInfo tableInfo(RelationName name, String stmt, ClusterService clusterService) {
         try {
@@ -490,6 +462,7 @@ public class SQLExecutor {
                         Analyzer analyzer,
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
+                        SessionSettingRegistry sessionSettingRegistry,
                         CoordinatorSessionSettings sessionSettings,
                         Schemas schemas,
                         Random random,
@@ -512,7 +485,7 @@ public class SQLExecutor {
             jobsLogs,
             clusterService.getSettings(),
             clusterService,
-            tableStats
+            sessionSettingRegistry
         );
         this.analyzer = analyzer;
         this.planner = planner;
@@ -599,17 +572,14 @@ public class SQLExecutor {
     @SuppressWarnings("unchecked")
     private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize, Row params) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
             coordinatorTxnCtx,
-            nodeCtx,
             fetchSize,
             null,
             cursors,
-            transactionState,
-            planStats
+            transactionState
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan logicalPlan) {
@@ -637,7 +607,7 @@ public class SQLExecutor {
     @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
-        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
+        return (T) planner.plan(stmt, getPlannerContext());
     }
 
     public <T> T plan(String statement) {
@@ -652,7 +622,7 @@ public class SQLExecutor {
         var consumer = new TestingRowConsumer();
         plan.execute(
             dependencyMock,
-            getPlannerContext(planner.currentClusterState()),
+            getPlannerContext(),
             consumer,
             new RowN(params),
             SubQueryResults.EMPTY
@@ -681,8 +651,8 @@ public class SQLExecutor {
     }
 
     public <T extends RelationInfo> T resolveTableInfo(String tableName) {
-        IndexParts indexParts = new IndexParts(tableName);
-        QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
+        IndexParts indexParts = IndexName.decode(tableName);
+        QualifiedName qualifiedName = QualifiedName.of(indexParts.schema(), indexParts.table());
         return schemas.findRelation(
             qualifiedName,
             Operation.READ,
@@ -693,6 +663,7 @@ public class SQLExecutor {
 
     public Session createSession() {
         return sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null),
             sessionSettings.currentSchema(),
             sessionSettings.authenticatedUser()
         );
@@ -752,7 +723,7 @@ public class SQLExecutor {
         }
         ClusterState prevState = clusterService.state();
         var combinedSettings = Settings.builder()
-            .put(boundCreateTable.tableParameter().settings())
+            .put(boundCreateTable.settings())
             .put(customSettings)
             .build();
 
@@ -820,7 +791,7 @@ public class SQLExecutor {
         }
 
         var combinedSettings = Settings.builder()
-            .put(boundCreateTable.tableParameter().settings())
+            .put(boundCreateTable.settings())
             .put(settings)
             .build();
 
@@ -851,7 +822,7 @@ public class SQLExecutor {
     public SQLExecutor startShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = new IndexParts(index).toRelationName().indexNameOrAlias();
+            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
             final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
             clusterState = allocationService.applyStartedShards(clusterState, startedShards);
         }
@@ -865,7 +836,7 @@ public class SQLExecutor {
         ClusterState prevState = clusterService.state();
         var metadata = prevState.metadata();
         String[] concreteIndices = IndexNameExpressionResolver
-            .concreteIndexNames(metadata, IndicesOptions.lenientExpandOpen(), indexName);
+            .concreteIndexNames(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
 
         Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
@@ -999,17 +970,14 @@ public class SQLExecutor {
         var analyzedCreateForeignTable = FdwAnalyzer.analyze(analysis, nodeCtx, createTable);
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         ClusterState currentState = clusterService.state();
-        PlannerContext plannerContext = new PlannerContext(
-            currentState,
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             UUIDs.dirtyUUID(),
             txnCtx,
-            nodeCtx,
             0,
             null,
             cursors,
-            TransactionState.IDLE,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            TransactionState.IDLE
         );
         var request = CreateForeignTablePlan.toRequest(
             foreignDataWrappers,
@@ -1047,7 +1015,12 @@ public class SQLExecutor {
     }
 
     public SQLExecutor addUDF(UserDefinedFunctionMetadata udf) {
-        udfService.updateImplementations(udf.schema(), Stream.of(udf));
+        UserDefinedFunctionsMetadata udfs = clusterService.state().metadata().custom(UserDefinedFunctionsMetadata.TYPE);
+        udfService.updateImplementations(Lists.concat(udfs == null ? List.of() : udfs.functionsMetadata(), udf));
         return this;
+    }
+
+    public Rule.Context ruleContext() {
+      return new Rule.Context(planStats, CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, UnaryOperator.identity());
     }
 }

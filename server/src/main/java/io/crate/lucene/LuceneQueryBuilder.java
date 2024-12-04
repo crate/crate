@@ -36,11 +36,12 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -52,6 +53,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -60,7 +62,6 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexType;
@@ -68,9 +69,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
@@ -78,6 +78,14 @@ import io.crate.types.EqQuery;
 
 @Singleton
 public class LuceneQueryBuilder {
+
+    public static final Setting<Integer> INDICES_MAX_CLAUSE_COUNT_SETTING = Setting.intSetting(
+        "indices.query.bool.max_clause_count",
+        8192,
+        1,
+        Integer.MAX_VALUE,
+        Setting.Property.NodeScope
+    );
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
@@ -90,31 +98,31 @@ public class LuceneQueryBuilder {
 
     public Context convert(Symbol query,
                            TransactionContext txnCtx,
-                           MapperService mapperService,
                            String indexName,
-                           QueryShardContext queryShardContext,
+                           IndexAnalyzers indexAnalyzers,
                            DocTableInfo table,
+                           Version shardCreatedVersion,
                            QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
-            mapperService::fieldType,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            table.isParentReferenceIgnored()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
         Context ctx = new Context(
             table,
+            shardCreatedVersion,
             txnCtx,
             nodeCtx,
-            mapperService,
             queryCache,
-            queryShardContext,
+            indexAnalyzers,
             indexName,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            query
         );
-        CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ctx.query = eliminateNullsIfPossible(
-            inverseSourceLookup(normalizer.normalize(query, coordinatorTxnCtx)),
-            s -> normalizer.normalize(s, coordinatorTxnCtx)
+            inverseSourceLookup(normalizer.normalize(query, txnCtx)),
+            s -> normalizer.normalize(s, txnCtx)
         ).accept(VISITOR, ctx);
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", query.toString(Style.UNQUALIFIED), ctx.query);
@@ -128,38 +136,41 @@ public class LuceneQueryBuilder {
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
         private final DocTableInfo table;
+        private final Version shardCreatedVersion;
         final DocInputFactory docInputFactory;
-        final MapperService mapperService;
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
-        final QueryShardContext queryShardContext;
+        private final IndexAnalyzers indexAnalyzers;
+        private final String indexName;
 
         final NodeContext nodeContext;
-
+        private final Symbol parentQuery;
 
         Context(DocTableInfo table,
+                Version shardCreatedVersion,
                 TransactionContext txnCtx,
                 NodeContext nodeCtx,
-                MapperService mapperService,
                 QueryCache queryCache,
-                QueryShardContext queryShardContext,
+                IndexAnalyzers indexAnalyzers,
                 String indexName,
-                List<Reference> partitionColumns) {
+                List<Reference> partitionColumns,
+                Symbol parentQuery) {
             this.table = table;
+            this.shardCreatedVersion = shardCreatedVersion;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
-            this.queryShardContext = queryShardContext;
-            FieldTypeLookup typeLookup = mapperService::fieldType;
+            this.indexAnalyzers = indexAnalyzers;
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
                     indexName,
-                    typeLookup,
-                    partitionColumns
+                    partitionColumns,
+                    table.isParentReferenceIgnored()
                 )
             );
-            this.mapperService = mapperService;
             this.queryCache = queryCache;
+            this.parentQuery = parentQuery;
+            this.indexName = indexName;
         }
 
         public Query query() {
@@ -200,13 +211,12 @@ public class LuceneQueryBuilder {
             "_primary_term", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
 
-        @Nullable
-        public MappedFieldType getFieldTypeOrNull(String fqColumnName) {
-            return mapperService.fieldType(fqColumnName);
-        }
-
-        public QueryShardContext queryShardContext() {
-            return queryShardContext;
+        public NamedAnalyzer getAnalyzer(String analyzerName) {
+            NamedAnalyzer namedAnalyzer = indexAnalyzers.get(analyzerName);
+            if (namedAnalyzer == null) {
+                throw new IllegalArgumentException("No analyzer found for [" + analyzerName + "]");
+            }
+            return namedAnalyzer;
         }
 
         public SymbolVisitor<Context, Query> visitor() {
@@ -214,8 +224,29 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
+        public Reference getRef(String storageIdent) {
+            return table.getReference(storageIdent);
+        }
+
+        @Nullable
         public Reference getRef(ColumnIdent column) {
             return table.getReadReference(column);
+        }
+
+        public DocTableInfo tableInfo() {
+            return table;
+        }
+
+        public TransactionContext transactionContext() {
+            return txnCtx;
+        }
+
+        public NodeContext nodeContext() {
+            return nodeContext;
+        }
+
+        public Symbol parentQuery() {
+            return parentQuery;
         }
     }
 
@@ -290,10 +321,10 @@ public class LuceneQueryBuilder {
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.column().equals(DocSysColumns.UID)) {
+                    if (ref.column().equals(SysColumns.UID)) {
                         return new Function(
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right),
+                            List.of(SysColumns.forTable(ref.ident().tableIdent(), SysColumns.ID.COLUMN), right),
                             function.valueType()
                         );
                     } else {
@@ -354,15 +385,15 @@ public class LuceneQueryBuilder {
         // - no docValues are available for the related column, currently only on objects defined as `ignored`
         // - docValues value differs from source, currently happening on GeoPoint types as lucene's internal format
         //   results in precision changes (e.g. longitude 11.0 will be 10.999999966)
-        function = (Function) DocReferences.toSourceLookup(function,
-            r -> r.columnPolicy() == ColumnPolicy.IGNORED
-                 || r.valueType() == DataTypes.GEO_POINT);
+        function = (Function) DocReferences.toDocLookup(function,
+            r -> context.tableInfo().isIgnoredOrImmediateChildOfIgnored(r) || r.valueType() == DataTypes.GEO_POINT);
 
         final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(context.table.droppedColumns(), context.table.lookupNameBySourceKey());
+        final CollectorContext collectorContext
+            = new CollectorContext(() -> StoredRowLookup.create(context.shardCreatedVersion, context.table, context.indexName));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

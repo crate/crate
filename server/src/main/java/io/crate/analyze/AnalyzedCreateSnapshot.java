@@ -72,7 +72,7 @@ public class AnalyzedCreateSnapshot implements DDLStatement {
                 partitionProperty.expressions().forEach(consumer);
             }
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

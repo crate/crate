@@ -65,6 +65,11 @@ public final class OuterColumn implements Symbol {
     }
 
     @Override
+    public boolean isDeterministic() {
+        return symbol.isDeterministic();
+    }
+
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         throw new UnsupportedOperationException("Cannot stream OuterColumn symbol " + toString());
     }

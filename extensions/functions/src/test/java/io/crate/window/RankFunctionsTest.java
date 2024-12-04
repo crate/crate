@@ -37,7 +37,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "rank() over()",
             new Object[] {1, 1, 1, 1, 1},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -52,7 +52,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "rank() over(order by x)",
             new Object[] {1, 1, 1, 4, 4},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -66,7 +66,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "rank() over(order by y, x)",
             new Object[] {1, 2, 2, 4, 4},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -81,7 +81,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "rank() over(partition by y > 0)",
             expected,
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {3, 1},
@@ -96,7 +96,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "rank() over(partition by y > 0 order by x)",
             expected,
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {3, 1},
@@ -110,7 +110,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "dense_rank() over()",
             new Object[] {1, 1, 1, 1, 1},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -125,7 +125,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "dense_rank() over(order by x)",
             new Object[] {1, 1, 1, 2, 2},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -139,7 +139,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "dense_rank() over(order by y, x)",
             new Object[] {1, 2, 2, 3, 3},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {1, 1},
@@ -154,7 +154,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "dense_rank() over(partition by y > 0)",
             expected,
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {3, 1},
@@ -169,7 +169,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "dense_rank() over(partition by y > 0 order by x)",
             expected,
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
             new Object[] {3, 1},
@@ -183,7 +183,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "rank() ignore nulls over()",
                 null,
-                List.of(new ColumnIdent("x")),
+                List.of(ColumnIdent.of("x")),
                 new Object[] {1}
             ))
             .isExactlyInstanceOf(IllegalArgumentException.class)

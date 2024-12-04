@@ -84,4 +84,18 @@ public class AnalyzeITest extends IntegTestCase {
         assertThat(row[1]).isEqualTo(List.of("[1]", "[2]"));
         assertThat(row[2]).isEqualTo(List.of());
     }
+
+    @Test
+    public void test_analyze_works_on_data_with_different_type_than_defined() {
+        execute("CREATE TABLE t1 (obj object(ignored))");
+        execute("INSERT INTO t1 (obj) VALUES ({a={b=21, c=22}})");
+        execute("REFRESH TABLE t1");
+        boolean enableColumnarStore = randomBoolean();
+        execute("ALTER TABLE t1 ADD COLUMN obj['a'] text STORAGE WITH (COLUMNSTORE=" + enableColumnarStore + ")");
+        execute("INSERT INTO t1 (obj) VALUES ({a='bar'})");
+        execute("REFRESH TABLE t1");
+
+        // analyze should not fail
+        execute("ANALYZE");
+    }
 }

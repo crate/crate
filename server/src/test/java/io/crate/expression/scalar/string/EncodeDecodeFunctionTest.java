@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -30,51 +32,72 @@ public class EncodeDecodeFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidBytea() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Illegal octal character b at index 4");
-        assertEvaluateNull("encode('123\\b\\t56', 'base64')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("encode('123\\b\\t56', 'base64')");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Illegal octal character b at index 4");
     }
 
     @Test
     public void testInvalidBased64() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Illegal base64 character 8");
-        assertEvaluateNull("decode(E'123\\b\\t56', 'base64')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("decode(E'123\\b\\t56', 'base64')");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Illegal base64 character 8");
     }
 
     @Test
     public void testInvalidBinaryEncodeToBase64() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluateNull("encode('\\xfh', 'base64')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("encode('\\xfh', 'base64')");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Illegal hexadecimal character h at index 3");
     }
 
     @Test
     public void testInvalidBinaryEncodeToHex() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluateNull("encode('\\xfh', 'hex')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("encode('\\xfh', 'hex')");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Illegal hexadecimal character h at index 3");
     }
 
     @Test
     public void testInvalidBinaryEncodeToEscape() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluateNull("encode('\\xfh', 'escape')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("encode('\\xfh', 'escape')");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Illegal hexadecimal character h at index 3");
     }
 
     @Test
     public void testInvalidBinaryDecodeFromHex1() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Illegal hexadecimal character \\ at index 0");
-        assertEvaluateNull("decode('\\xff', 'hex')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("decode('\\xff', 'hex')");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Illegal hexadecimal character \\ at index 0");
     }
 
     @Test
     public void testInvalidBinaryDecodeFromHex2() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Odd number of characters");
-        assertEvaluateNull("decode('ffa', 'hex')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("decode('ffa', 'hex')");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Odd number of characters");
     }
 
     @Test
@@ -89,16 +112,22 @@ public class EncodeDecodeFunctionTest extends ScalarTestCase {
 
     @Test
     public void testUnknownEncodeFormat() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Encoding format 'bad' is not supported");
-        assertEvaluateNull("encode('\\xff', 'bad')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("encode('\\xff', 'bad')");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Encoding format 'bad' is not supported");
     }
 
     @Test
     public void testUnknownDecodeFormat() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Encoding format 'bad' is not supported");
-        assertEvaluateNull("decode('FA==', 'bad')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("decode('FA==', 'bad')");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Encoding format 'bad' is not supported");
     }
 
     @Test

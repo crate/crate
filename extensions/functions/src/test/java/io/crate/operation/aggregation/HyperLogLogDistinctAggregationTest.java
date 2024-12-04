@@ -21,17 +21,16 @@
 
 package io.crate.operation.aggregation;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,13 +42,10 @@ import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.role.Role;
-import io.crate.role.Roles;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -58,33 +54,31 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     @Before
     public void prepareFunctions() {
-        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
-        Roles roles = () -> List.of(Role.CRATE_USER);
-        nodeCtx = new NodeContext(functions, roles);
+        nodeCtx = createNodeContext(null, null);
     }
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                HyperLogLogDistinctAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
-            data,
-            List.of()
+                Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
     private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data, List<Literal<?>> optionalParams) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                HyperLogLogDistinctAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
-            data,
-            optionalParams
+                Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                optionalParams
         );
     }
 
@@ -153,7 +147,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         // They return different result for Long.MIN_VALUE (and all close numbers with same 63-th bit)
         // but providing 1 Long.MIN_VALUE as input is still not enough.
         // The difference is revealed only when input data consists of many tricky values i.e values, close to Long.MIN_VALUE.
-        Object result = executeAggregation(DataTypes.LONG, createTestData(10_000, i -> Long.MIN_VALUE + i, null));
+        Object result = executeAggregation(DataTypes.LONG, createTestData(10_000, i -> Long.MIN_VALUE + 1 + i, null));
         assertThat(result).isEqualTo(9925L);
     }
 

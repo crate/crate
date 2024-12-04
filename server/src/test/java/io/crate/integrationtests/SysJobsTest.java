@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +49,9 @@ public class SysJobsTest extends IntegTestCase {
         List<String> statements = new ArrayList<>();
 
         for (Object[] objects : response.rows()) {
-            assertNotNull(objects[0]);
+            assertThat(objects[0]).isNotNull();
             statements.add((String) objects[3]);
         }
-        assertTrue(statements.contains(stmt));
+        assertThat(statements.contains(stmt)).isTrue();
     }
 }

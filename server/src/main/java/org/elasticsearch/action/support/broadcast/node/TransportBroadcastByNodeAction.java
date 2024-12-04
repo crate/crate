@@ -19,6 +19,15 @@
 
 package org.elasticsearch.action.support.broadcast.node;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
@@ -51,14 +60,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
  * Abstraction for transporting aggregated shard-level operations in a single request (NodeRequest) per-node
@@ -106,7 +107,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
     private Response newResponse(
             Request request,
-            AtomicReferenceArray responses,
+            AtomicReferenceArray<Object> responses,
             List<NoShardAvailableActionException> unavailableShardExceptions,
             Map<String, List<ShardRouting>> nodes,
             ClusterState clusterState) {
@@ -115,8 +116,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         List<ShardOperationResult> broadcastByNodeResponses = new ArrayList<>();
         List<DefaultShardOperationFailedException> exceptions = new ArrayList<>();
         for (int i = 0; i < responses.length(); i++) {
-            if (responses.get(i) instanceof FailedNodeException) {
-                FailedNodeException exception = (FailedNodeException) responses.get(i);
+            if (responses.get(i) instanceof FailedNodeException exception) {
                 totalShards += nodes.get(exception.nodeId()).size();
                 for (ShardRouting shard : nodes.get(exception.nodeId())) {
                     exceptions.add(new DefaultShardOperationFailedException(shard.getIndexName(), shard.getId(), exception));
@@ -173,9 +173,9 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
      *
      * @param request      the node-level request
      * @param shardRouting the shard on which to execute the operation
-     * @return the result of the shard-level operation for the shard
+     * @param listener     a listener to receive the shard-level result of the operation
      */
-    protected abstract ShardOperationResult shardOperation(Request request, ShardRouting shardRouting) throws IOException;
+    protected abstract void shardOperation(Request request, ShardRouting shardRouting, ActionListener<ShardOperationResult> listener) throws IOException;
 
     /**
      * Determines the shards on which this operation will be executed on. The operation is executed once per shard.
@@ -219,7 +219,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         private final Map<String, List<ShardRouting>> nodeIds;
         private final AtomicReferenceArray<Object> responses;
         private final AtomicInteger counter = new AtomicInteger();
-        private List<NoShardAvailableActionException> unavailableShardExceptions = new ArrayList<>();
+        private final List<NoShardAvailableActionException> unavailableShardExceptions = new ArrayList<>();
 
         protected AsyncAction(Request request, ActionListener<Response> listener) {
             this.request = request;
@@ -272,7 +272,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         }
 
         public void start() {
-            if (nodeIds.size() == 0) {
+            if (nodeIds.isEmpty()) {
                 try {
                     onCompletion();
                 } catch (Exception e) {
@@ -318,7 +318,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             }
         }
 
-        protected void onNodeResponse(DiscoveryNode node, int nodeIndex, NodeResponse response) {
+        private void onNodeResponse(DiscoveryNode node, int nodeIndex, NodeResponse response) {
             if (logger.isTraceEnabled()) {
                 logger.trace("received response for [{}] from node [{}]", actionName, node.getId());
             }
@@ -375,42 +375,72 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             if (logger.isTraceEnabled()) {
                 logger.trace("[{}] executing operation on [{}] shards", actionName, totalShards);
             }
-            final Object[] shardResultOrExceptions = new Object[totalShards];
+            List<BroadcastShardOperationFailedException> accumulatedExceptions = Collections.synchronizedList(new ArrayList<>());
+            List<ShardOperationResult> results = Collections.synchronizedList(new ArrayList<>());
 
-            int shardIndex = -1;
-            for (final ShardRouting shardRouting : shards) {
-                shardIndex++;
-                onShardOperation(request, shardResultOrExceptions, shardIndex, shardRouting);
-            }
+            ActionListener<ShardOperationResult> listener = new ActionListener<ShardOperationResult>() {
 
-            List<BroadcastShardOperationFailedException> accumulatedExceptions = new ArrayList<>();
-            List<ShardOperationResult> results = new ArrayList<>();
-            for (int i = 0; i < totalShards; i++) {
-                if (shardResultOrExceptions[i] instanceof BroadcastShardOperationFailedException) {
-                    accumulatedExceptions.add((BroadcastShardOperationFailedException) shardResultOrExceptions[i]);
-                } else {
-                    results.add((ShardOperationResult) shardResultOrExceptions[i]);
+                final AtomicInteger counter = new AtomicInteger(totalShards);
+
+                @Override
+                public void onResponse(ShardOperationResult shardOperationResult) {
+                    results.add(shardOperationResult);
+                    if (counter.decrementAndGet() == 0) {
+                        finish();
+                    }
                 }
-            }
 
-            channel.sendResponse(new NodeResponse(request.getNodeId(), totalShards, results, accumulatedExceptions));
+                @Override
+                public void onFailure(Exception e) {
+                    accumulatedExceptions.add((BroadcastShardOperationFailedException) e);
+                    if (counter.decrementAndGet() == 0) {
+                        finish();
+                    }
+                }
+
+                void finish() {
+                    try {
+                        channel.sendResponse(new NodeResponse(request.getNodeId(), totalShards, results, accumulatedExceptions));
+                    } catch (Exception e) {
+                        try {
+                            channel.sendResponse(e);
+                        } catch (Exception e1) {
+                            logger.warn(() -> new ParameterizedMessage(
+                                "Failed to send error response for action [{}] and request [{}]", actionName, request), e1);
+                        }
+                    }
+                }
+            };
+
+            for (final ShardRouting shardRouting : shards) {
+                onShardOperation(request, shardRouting, listener);
+            }
         }
 
-        private void onShardOperation(final NodeRequest request, final Object[] shardResults, final int shardIndex, final ShardRouting shardRouting) {
+        private void onShardOperation(final NodeRequest request, final ShardRouting shardRouting, ActionListener<ShardOperationResult> listener) {
+            ActionListener<ShardOperationResult> wrappedListener = new ActionListener<>() {
+                @Override
+                public void onResponse(ShardOperationResult response) {
+                    listener.onResponse(response);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    BroadcastShardOperationFailedException failure =
+                        new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e);
+                    listener.onFailure(failure);
+                }
+            };
             try {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}]  executing operation for shard [{}]", actionName, shardRouting.shortSummary());
                 }
-                ShardOperationResult result = shardOperation(request.indicesLevelRequest, shardRouting);
-                shardResults[shardIndex] = result;
+                shardOperation(request.indicesLevelRequest, shardRouting, wrappedListener);
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}]  completed operation for shard [{}]", actionName, shardRouting.shortSummary());
                 }
             } catch (Exception e) {
-                BroadcastShardOperationFailedException failure =
-                    new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e);
-                failure.setShard(shardRouting.shardId());
-                shardResults[shardIndex] = failure;
+                wrappedListener.onFailure(e);
                 if (TransportActions.isShardNotAvailableException(e)) {
                     if (logger.isTraceEnabled()) {
                         logger.trace(new ParameterizedMessage(
@@ -427,9 +457,9 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     }
 
     public class NodeRequest extends TransportRequest implements IndicesRequest {
-        private String nodeId;
 
-        private List<ShardRouting> shards;
+        private final String nodeId;
+        private final List<ShardRouting> shards;
 
         protected Request indicesLevelRequest;
 
@@ -533,7 +563,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     }
 
     /**
-     * Can be used for implementations of {@link #shardOperation(BroadcastRequest, ShardRouting) shardOperation} for
+     * Can be used for implementations of {@link #shardOperation(BroadcastRequest, ShardRouting, ActionListener) shardOperation} for
      * which there is no shard-level return value.
      */
     public static final class EmptyResult implements Writeable {

@@ -56,7 +56,7 @@ import io.crate.role.Roles;
  *
  * <ul>
  *     <li>{@link io.crate.expression.scalar.UnaryScalar}</li>
- *     <li>{@link io.crate.expression.scalar.arithmetic.BinaryScalar}</li>
+ *     <li>{@link io.crate.expression.scalar.BinaryScalar}</li>
  *     <li>{@link io.crate.expression.scalar.DoubleScalar}</li>
  *     <li>{@link io.crate.expression.scalar.TripleScalar}</li>
  * </ul>
@@ -65,7 +65,6 @@ import io.crate.role.Roles;
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
 
-    public static final Set<Feature> NO_FEATURES = Set.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
@@ -129,6 +128,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * This method will evaluate the function using the given scalar if all arguments are literals.
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar,
                                                                        TransactionContext txnCtx,
                                                                        NodeContext nodeCtx,
@@ -145,7 +145,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             inputs[idx] = (Input<?>) arg;
             idx++;
         }
-        //noinspection unchecked
         return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, nodeCtx, inputs));
     }
 
@@ -221,13 +220,20 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
          */
         COMPARISON_REPLACEMENT,
         LAZY_ATTRIBUTES,
+
         /**
-         * If this feature is set, the function will return for null argument(s) as result null.
-         */
-        NULLABLE,
+         * Function returns null if any argument is null.
+         * <p>
+         *
+         * Not set for functions that return null under special conditions - e.g. null only if all
+         * arguments are null
+         * </p>
+         **/
+        STRICTNULL,
+
         /**
-         * If this feature is set, the function will never return null.
-         */
-        NON_NULLABLE
+         * Function never returns null.
+         **/
+        NOTNULL
     }
 }

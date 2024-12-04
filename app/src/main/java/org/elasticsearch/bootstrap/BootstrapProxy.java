@@ -59,7 +59,6 @@ import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
 
 import io.crate.bootstrap.BootstrapException;
 import io.crate.common.SuppressForbidden;
@@ -84,8 +83,8 @@ public class BootstrapProxy {
         UDCPlugin.class,
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
-        Ec2DiscoveryPlugin.class,
-        Netty4Plugin.class);
+        Ec2DiscoveryPlugin.class
+    );
 
     private volatile Node node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);

@@ -35,11 +35,13 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -50,15 +52,18 @@ public class ForeignCollect implements LogicalPlan {
     private final ForeignTableRelation relation;
     private final List<Symbol> toCollect;
     private final WhereClause where;
+    private final String executeAs;
 
     public ForeignCollect(ForeignDataWrapper fdw,
                           ForeignTableRelation relation,
                           List<Symbol> toCollect,
-                          WhereClause where) {
+                          WhereClause where,
+                          String executeAs) {
         this.fdw = fdw;
         this.relation = relation;
         this.toCollect = toCollect;
         this.where = where;
+        this.executeAs = executeAs;
     }
 
     @Override
@@ -72,15 +77,18 @@ public class ForeignCollect implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        var normalizer = new EvaluatingNormalizer(plannerContext.nodeContext(), RowGranularity.DOC, null, relation);
+        var binder = new SubQueryAndParamBinder(params, subQueryResults)
+            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
 
-        var binder = new SubQueryAndParamBinder(params, subQueryResults);
         ForeignCollectPhase phase = new ForeignCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             plannerContext.handlerNode(),
             relation.relationName(),
             Lists.map(toCollect, binder),
-            where.map(binder).queryOrFallback()
+            where.map(binder).queryOrFallback(),
+            executeAs
         );
         return new io.crate.planner.node.dql.Collect(
             phase,
@@ -125,7 +133,11 @@ public class ForeignCollect implements LogicalPlan {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
-        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where);
+        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where, executeAs);
+    }
+
+    public String executeAs() {
+        return executeAs;
     }
 
     @Override
@@ -139,7 +151,7 @@ public class ForeignCollect implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(relation.relationName());
     }
 

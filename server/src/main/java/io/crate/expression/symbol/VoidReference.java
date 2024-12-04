@@ -39,9 +39,8 @@ public class VoidReference extends DynamicReference {
     }
 
     public VoidReference(ReferenceIdent ident,
-                         RowGranularity granularity,
                          int position) {
-        super(ident, granularity, position);
+        super(ident, RowGranularity.DOC, position);
     }
 
     @Override

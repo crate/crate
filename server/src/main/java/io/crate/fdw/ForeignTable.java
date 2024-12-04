@@ -41,8 +41,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,8 +48,6 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexReference;
@@ -71,12 +67,12 @@ import io.crate.types.DataTypes;
 public record ForeignTable(RelationName name,
                            Map<ColumnIdent, Reference> references,
                            String server,
-                           Settings options) implements Writeable, ToXContent, TableInfo {
+                           Settings options) implements Writeable, TableInfo {
 
     ForeignTable(StreamInput in) throws IOException {
         this(
             new RelationName(in),
-            in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream),
+            in.readMap(LinkedHashMap::new, ColumnIdent::of, Reference::fromStream),
             in.readString(),
             Settings.readSettingsFromStream(in)
         );
@@ -119,7 +115,6 @@ public record ForeignTable(RelationName name,
                     case "references":
                         references = new HashMap<>();
                         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-                        Map<ColumnIdent, String> analyzers = new HashMap<>();
 
                         Map<String, Object> properties = parser.map();
                         DocTableInfoFactory.parseColumns(
@@ -132,7 +127,6 @@ public record ForeignTable(RelationName name,
                             List.of(),
                             properties,
                             indexColumns,
-                            analyzers,
                             references
                         );
                         break;
@@ -149,21 +143,6 @@ public record ForeignTable(RelationName name,
             requireNonNull(server),
             requireNonNull(options)
         );
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field("server", server);
-        builder.startObject("options");
-        options.toXContent(builder, params);
-        builder.endObject();
-
-        Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
-            AllocPosition.forTable(this),
-            Reference.buildTree(references.values())
-        );
-        builder.field("references", properties);
-        return builder;
     }
 
     @Override

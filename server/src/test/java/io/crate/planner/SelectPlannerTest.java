@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -459,7 +458,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
-    @Test(expected = UnsupportedFunctionException.class)
+    @Test
     public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
@@ -476,15 +475,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             );
 
-        e.plan("select name from parted order by year(date)");
+        assertThatThrownBy(() -> e.plan("select name from parted order by year(date)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class);
     }
 
-    @Test(expected = UnsupportedFeatureException.class)
+    @Test
     public void testQueryRequiresScalar() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService);
 
         // only scalar functions are allowed on system tables because we have no lucene queries
-        e.plan("select * from sys.shards where match(table_name, 'characters')");
+        assertThatThrownBy(() -> e.plan("select * from sys.shards where match(table_name, 'characters')"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Cannot use MATCH on system tables");
     }
 
     @Test
@@ -674,12 +676,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join innerJoin = (Join) outerJoin.right();
 
         assertThat(innerJoin.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
-        assertThat(innerJoin.joinPhase().projections()).hasSize(1);
+        assertThat(innerJoin.joinPhase().projections()).hasSize(2);
         assertThat(innerJoin.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
 
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
         assertThat(outerJoin.joinPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }
@@ -1230,8 +1231,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             Eval[unnest, sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
               └ WindowAgg[unnest, power(unnest, 2.0), sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
                 └ Eval[unnest, power(unnest, 2.0)]
-                  └ Rename[unnest] AS t
-                    └ TableFunction[unnest | [unnest] | true]
+                  └ Rename[unnest, unnest] AS t
+                    └ TableFunction[unnest | [unnest, unnest] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }
@@ -1311,7 +1312,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             """
             Eval[name]
-              └ HashJoin[(name = concat(name, $1))]
+              └ HashJoin[INNER | (name = (name || $1))]
                 ├ Rename[name] AS u1
                 │  └ Collect[doc.users | [name] | true]
                 └ Rename[name] AS u2
@@ -1335,7 +1336,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             """
             Eval[name]
-              └ NestedLoopJoin[INNER | (NOT (name = concat(name, $1)))]
+              └ NestedLoopJoin[INNER | (NOT (name = (name || $1)))]
                 ├ Rename[name] AS u1
                 │  └ Collect[doc.users | [name] | true]
                 └ Rename[name] AS u2
@@ -1365,7 +1366,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
             """
-            HashJoin[(a = b)]
+            HashJoin[INNER | (a = b)]
               ├ Rename[a] AS v1
               │  └ Rename[a] AS a1
               │    └ Collect[doc.t1 | [a] | true]
@@ -1605,4 +1606,43 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.tbl | [substr(o['b'], 0, 1) AS b] | ((substr(substr(o['b'], 0, 1) AS b, 0, 1) = 'y') AND (o['a'] = 'x'))]"
         );
     }
+
+    @Test
+    public void test_duplicate_aggregate_filter_expression_on_top_of_alias() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+        String stmt = """
+             SELECT
+                alias1.country,
+                MAX(height) FILTER (WHERE height>0) as max_height,
+                MAX(prominence) FILTER (WHERE height>0) as max_prominence
+            FROM
+                sys.summits alias1
+            GROUP BY
+                alias1.country
+            LIMIT 100;
+            """;
+
+        LogicalPlan logicalPlan = e.logicalPlan(stmt);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[country, max(height) FILTER (WHERE (height > 0)) AS max_height, max(prominence) FILTER (WHERE (height > 0)) AS max_prominence]",
+            "  └ Limit[100::bigint;0]",
+            "    └ GroupHashAggregate[country | max(height) FILTER (WHERE (height > 0)), max(prominence) FILTER (WHERE (height > 0))]",
+            "      └ Rename[height, (height > 0), prominence, country] AS alias1",
+            "        └ Collect[sys.summits | [height, (height > 0), prominence, country] | true]"
+        );
+    }
+
+    @Test
+    public void test_float_and_double_implicit_cast_dont_hang_on_range_validation() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+
+        // Used to hang in the value range validation in FloatType.implicitCast.
+        LogicalPlan logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::float");
+        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+
+        // Used to hang in the value range validation in DoubleType.implicitCast.
+        logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::double");
+        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+    }
+
 }

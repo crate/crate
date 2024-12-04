@@ -17,27 +17,27 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionTestUtils;
-import org.elasticsearch.action.support.replication.TransportWriteAction;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
+import org.elasticsearch.action.support.replication.TransportReplicationAction.PrimaryResult;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.seqno.RetentionLeaseSyncAction.Request;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -48,6 +48,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
 
 public class RetentionLeaseSyncActionTests extends ESTestCase {
@@ -84,7 +85,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
     }
 
     @Test
-    public void testRetentionLeaseSyncActionOnPrimary() throws WriteStateException {
+    public void testRetentionLeaseSyncActionOnPrimary() throws Exception {
         final IndicesService indicesService = mock(IndicesService.class);
 
         final Index index = new Index("index", "uuid");
@@ -106,19 +107,19 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             threadPool,
             shardStateAction
         );
-       final RetentionLeases retentionLeases = mock(RetentionLeases.class);
+        final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
-        action.shardOperationOnPrimary(request, indexShard,
-            ActionTestUtils.assertNoFailureListener(result -> {
-                    // the retention leases on the shard should be persisted
-                    verify(indexShard).persistRetentionLeases();
-                    // we should forward the request containing the current retention leases to the replica
-                    assertThat(result.replicaRequest(), sameInstance(request));
-                    // we should start with an empty replication response
-                    assertNull(result.finalResponseIfSuccessful.getShardInfo());
-                }
-            ));
+        var future = new FutureActionListener<PrimaryResult<RetentionLeaseSyncAction.Request, ReplicationResponse>>();
+        action.shardOperationOnPrimary(request, indexShard, future);
+        assertThat(future).succeedsWithin(1, TimeUnit.SECONDS);
+        PrimaryResult<Request, ReplicationResponse> result = future.get();
+        // the retention leases on the shard should be persisted
+        verify(indexShard).persistRetentionLeases();
+        // we should forward the request containing the current retention leases to the replica
+        assertThat(result.replicaRequest()).isSameAs(request);
+        // we should start with an empty replication response
+        assertThat(result.finalResponseIfSuccessful.getShardInfo()).isNull();
     }
 
     @Test
@@ -147,8 +148,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
-        final TransportWriteAction.WriteReplicaResult<RetentionLeaseSyncAction.Request> result =
-                action.shardOperationOnReplica(request, indexShard);
+        final TransportReplicationAction.ReplicaResult result =
+            action.shardOperationOnReplica(request, indexShard);
         // the retention leases on the shard should be updated
         verify(indexShard).updateRetentionLeasesOnReplica(retentionLeases);
         // the retention leases on the shard should be persisted
@@ -156,7 +157,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         // the result should indicate success
         final AtomicBoolean success = new AtomicBoolean();
         result.runPostReplicaActions(ActionListener.wrap(r -> success.set(true), e -> fail(e.toString())));
-        assertTrue(success.get());
+        assertThat(success.get()).isTrue();
     }
 
     @Test
@@ -183,7 +184,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             shardStateAction
         );
 
-        assertNull(action.indexBlockLevel());
+        assertThat(action.indexBlockLevel()).isNull();
     }
 
 }

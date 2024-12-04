@@ -1,0 +1,158 @@
+.. _version_5.10.0:
+
+===========================
+Version 5.10.0 - Unreleased
+===========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.10.0 isn't released yet. These are the release notes for
+    the upcoming release.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.10.0.
+
+    We recommend that you upgrade to the latest 5.9 release before moving to
+    5.10.0.
+
+    A rolling upgrade from 5.9.x to 5.10.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+.. _version_5.10.0_breaking_changes:
+
+Breaking Changes
+================
+
+None
+
+Deprecations
+============
+
+None
+
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- ``CREATE TABLE`` no longer persists default values for all available table
+  options but instead only stores the explicitly defined options. As a result,
+  ``SHOW CREATE TABLE`` will only show the explicitly defined options in the
+  ``WITH`` clause. An exception are the ``column_policy`` and
+  ``number_of_replicas`` options, which always show up. To get a complete view
+  of the effective options you can query the ``information_schema.tables``
+  table.
+
+- Added support for ``GROUP BY ALL`` clause which allows grouping by all output
+  columns that are not aggregate functions without explicitly listing them, e.g.::
+
+    SELECT department, title, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY ALL;
+
+  This is equivalent to::
+
+    SELECT department, title, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY department, title;
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+None
+
+Data Types
+----------
+
+- Added support for :ref:`NUMERIC type<type-numeric>` to the following
+  arithmetic scalar functions: :ref:`ABS<scalar-abs>`, :ref:`CEIL<scalar-ceil>`,
+  :ref:`FLOOR<scalar-floor>`, :ref:`ROUND<scalar-round>` (for the variation of
+  only one argument), :ref:`EXP<scalar-exp>`, :ref:`SQRT<scalar-sqrt>`,
+  :ref:`LN<scalar-ln>`, :ref:`LOG<scalar-log>` (for the variation of only one
+  argument), :ref:`SIN`<scalar-sin>`, :ref:`SIN`<scalar-asin>`,
+  :ref:`COS`<scalar-cos>`, :ref:`ACOS`<scalar-acos>`, :ref:`tan`<scalar-tan>`,
+  :ref:`ATAN`<scalar-atan>`, :ref:`ATAN2`<scalar-atan2>`,
+  :ref:`COT`<scalar-cot>`, :ref:`LN<scalar-ln>` and :ref:`LOG<scalar-log>` (for
+  the variation of only one arguement).
+
+Scalar and Aggregation Functions
+--------------------------------
+
+None
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Added hash-join execution for left/right-outer-equi-joins. This improves
+  performance for left/right-outer-join with an equi-join condition significantly
+  with the cost of higher memory consumption e.g.::
+
+    SELECT * FROM t1 LEFT JOIN t2 OM t1.id = t2.id;
+
+  This optimization can be disabled, with the session settings::
+
+    SET rewrite_left_outer_join_to_hash_join = false
+    SET rewrite_right_outer_join_to_hash_join = false
+
+  Note that these settings are experimental, and may change in the future.
+
+- Reduced storage requirements for new tables and partitions. CrateDB no longer
+  permanently retains a complete json representation of a row, and instead always
+  retrieves data from other data structures where they exist.  Columns that can
+  not be perfectly reconstructed from other data structures, for example arrays of
+  numeric data which are sorted and deduplicated by the built-in column store,
+  are stored separately in a more efficient format.
+
+  The json representation of a row is still stored initially as part of the
+  transaction log for a shard.  It will be removed naturally by merging as
+  indexing continues once the row has been successfully replicated to all shards,
+  or it can be removed explicitly by an ``OPTIMIZE`` operation after indexing
+  to a table or partition has completed.
+
+Administration and Operations
+-----------------------------
+
+- Added caching for public keys retrieved from JWK endpoints for JWT
+  authentication. See :ref:`JWT authentication method <auth_jwt>` for more details.
+
+- Added node settings for the :ref:`jwt_defaults` allowing to provide global
+  values for the :ref:`JWT properties <create-user-jwt>`.
+
+- Improved error handling for unknown object keys of ``DYNAMIC`` or ``STRICT``
+  objects. For example::
+
+    CREATE TABLE tbl (obj OBJECT(STRICT) AS (x INT));
+    SELECT obj['unknown'] FROM (SELECT obj FROM tbl) AS t; 
+
+  now throws a ``ColumnUnknownException`` as expected.
+
+Client interfaces
+-----------------
+
+- Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
+  issued over the :ref`interface-http` containing details of the error that
+  caused the bulk operation to fail.

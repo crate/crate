@@ -72,17 +72,11 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-
-        ArrayLikePredicate that = (ArrayLikePredicate) o;
-
-        if (inverse != that.inverse) return false;
-        if (quantifier != that.quantifier) return false;
-        if (ignoreCase != that.ignoreCase) return false;
-
-        return true;
+        return super.equals(o)
+            && o instanceof ArrayLikePredicate that
+            && inverse == that.inverse
+            && quantifier == that.quantifier
+            && ignoreCase == that.ignoreCase;
     }
 
     @Override

@@ -20,13 +20,13 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.junit.Assert.fail;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.coordination.DeterministicTaskQueue;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -65,7 +65,7 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
         transportService.start();
         transportService.acceptIncomingRequests();
 
-        final PlainActionFuture<Void> connectionFuture = new PlainActionFuture<>();
+        final PlainFuture<Void> connectionFuture = new PlainFuture<>();
         transportService.connectToNode(otherNode, connectionFuture);
         assertThat(connectionFuture.isDone()).isTrue();
 

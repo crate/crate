@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -44,9 +46,9 @@ public class StringSplitPartFunctionTest extends ScalarTestCase {
 
     @Test
     public void split_part_index_smaller_one_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("index in split_part must be greater than zero");
-        assertEvaluate("split_part('abc~@~def~@~ghi', '~@~', 0)", "");
+        assertThatThrownBy(() -> assertEvaluate("split_part('abc~@~def~@~ghi', '~@~', 0)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("index in split_part must be greater than zero");
     }
 
     @Test
@@ -88,6 +90,4 @@ public class StringSplitPartFunctionTest extends ScalarTestCase {
     public void repeating_delimiter_last() {
         assertEvaluate("split_part('+++++++++++a+++b', '+++', 5)", "b");
     }
-
-
 }

@@ -86,7 +86,7 @@ public class DocReferencesTest {
         var references = List.of(stringRef("name"), stringRef("first_name"));
         var referenceMap = references.stream()
                 .collect(Collectors.toMap(Reference::column, reference -> reference));
-        var indexReference = new IndexReference.Builder(new ReferenceIdent(RELATION_ID, new ColumnIdent("ft")))
+        var indexReference = new IndexReference.Builder(new ReferenceIdent(RELATION_ID, ColumnIdent.of("ft")))
                 .sources(List.of("name", "first_name"))
                 .build(referenceMap);
         long[] oid = new long[1];

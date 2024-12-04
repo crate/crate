@@ -37,7 +37,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.planner.operators.JoinPlanBuilder;
 import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -82,38 +81,6 @@ public class JoinPlanBuilderTest extends CrateDummyClusterServiceUnitTest {
         assertThat(joinPair.condition()).isSQL("(doc.t1.a = doc.t2.b)");
         assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
         assertThat(remainingQueries).hasSize(1);
-    }
-
-    @Test
-    public void testImplicitToExplicit_InnerJoinPairWithConditionAlreadyExists() {
-        List<JoinPair> joinPairs = new ArrayList<>();
-        joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
-        Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
-        List<JoinPair> newJoinPairs =
-            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
-
-        assertThat(newJoinPairs).hasSize(1);
-        JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition()).isSQL("((doc.t1.a = doc.t2.b) AND (doc.t1.x = doc.t2.y))");
-        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
-        assertThat(remainingQueries).isEmpty();
-    }
-
-    @Test
-    public void testImplicitToExplicit_CrossJoinPairAlreadyExists() {
-        List<JoinPair> joinPairs = new ArrayList<>();
-        joinPairs.add(JoinPair.of(T3.T1, T3.T2, JoinType.CROSS, null));
-        Map<Set<RelationName>, Symbol> remainingQueries = new HashMap<>();
-        remainingQueries.put(Set.of(T3.T1, T3.T2), asSymbol("t1.x = t2.y"));
-        List<JoinPair> newJoinPairs =
-            JoinPlanBuilder.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
-
-        assertThat(newJoinPairs).hasSize(1);
-        JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition()).isSQL("(doc.t1.x = doc.t2.y)");
-        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
-        assertThat(remainingQueries).isEmpty();
     }
 
     @Test

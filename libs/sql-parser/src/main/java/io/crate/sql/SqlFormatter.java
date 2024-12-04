@@ -43,7 +43,8 @@ import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
-import io.crate.sql.tree.AlterRole;
+import io.crate.sql.tree.AlterRoleReset;
+import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -66,6 +67,7 @@ import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
@@ -94,6 +96,7 @@ import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GeneratedExpressionConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Insert;
@@ -496,12 +499,18 @@ public final class SqlFormatter {
                     .append('\n');
             }
 
-            if (!node.getGroupBy().isEmpty()) {
-                append(indent,
-                    "GROUP BY " + node.getGroupBy().stream()
-                        .map(e -> formatStandaloneExpression(e, parameters))
-                        .collect(COMMA_JOINER))
-                    .append('\n');
+            if (node.getGroupBy().isPresent()) {
+                GroupBy groupBy = node.getGroupBy().get();
+                if (groupBy.isAll()) {
+                    append(indent, "GROUP BY ALL\n");
+                } else if (!groupBy.getExpressions().isEmpty()) {
+                    append(indent, "GROUP BY ");
+                    append(indent,
+                        groupBy.getExpressions().stream()
+                            .map(e -> formatStandaloneExpression(e, parameters))
+                            .collect(COMMA_JOINER));
+                    builder.append('\n');
+                }
             }
 
             if (node.getHaving().isPresent()) {
@@ -678,6 +687,18 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitCreateTableAs(CreateTableAs<?> node, Integer indent) {
+            builder.append("CREATE TABLE ");
+            if (node.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            node.name().accept(this, indent);
+            builder.append(" AS ");
+            node.query().accept(this, indent);
+            return null;
+        }
+
+        @Override
         public Void visitCreateForeignTable(CreateForeignTable createTable, Integer indent) {
             builder.append("CREATE FOREIGN TABLE ");
             if (createTable.ifNotExists()) {
@@ -749,7 +770,6 @@ public final class SqlFormatter {
                     builder.append(optionName);
                     builder.append(" ");
                     value.accept(this, indent);
-
                     if (it.hasNext()) {
                         builder.append(", ");
                     }
@@ -825,13 +845,31 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitAlterRole(AlterRole<?> node, Integer indent) {
+        public Void visitAlterRoleSet(AlterRoleSet<?> node, Integer indent) {
             builder.append("ALTER ROLE ");
             builder.append(quoteIdentifierIfNeeded(node.name()));
-            if (node.properties().properties().isEmpty() == false) {
+            if (node.properties().isEmpty() == false) {
                 builder.append("SET (");
-                appendProperties(node.properties().properties(), 0);
+                appendProperties(node.properties(), 0);
                 builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitAlterRoleReset(AlterRoleReset node, Integer indent) {
+            builder.append("ALTER ROLE ");
+            builder.append(quoteIdentifierIfNeeded(node.name()));
+            builder.append("RESET ");
+            String property = node.property();
+            if (property == null) {
+                builder.append("ALL");
+            } else {
+                if (property.contains(".")) {
+                    builder.append(String.format(Locale.ENGLISH, "\"%s\"", property));
+                } else {
+                    builder.append(property);
+                }
             }
             return null;
         }
@@ -870,9 +908,9 @@ public final class SqlFormatter {
 
         @Override
         public Void visitGenericProperties(GenericProperties<?> node, Integer indent) {
-            if (node.properties().isEmpty() == false) {
+            if (node.isEmpty() == false) {
                 builder.append("WITH (\n");
-                appendProperties(node.properties(), indent);
+                appendProperties(node, indent);
                 append(indent, ")");
             }
             return null;
@@ -1161,7 +1199,9 @@ public final class SqlFormatter {
                 int max = node.tables().size();
                 for (Table<?> table : node.tables()) {
                     table.accept(this, indent);
-                    if (++count < max) builder.append(",");
+                    if (++count < max) {
+                        builder.append(",");
+                    }
                 }
             } else {
                 builder.append(" ALL");
@@ -1485,10 +1525,10 @@ public final class SqlFormatter {
             return null;
         }
 
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        private void appendProperties(Map<String, ?> properties, Integer indent) {
+        @SuppressWarnings("unchecked")
+        private void appendProperties(GenericProperties<?> properties, Integer indent) {
             int count = 0;
-            TreeMap<String, Expression> sortedMap = new TreeMap(properties);
+            Map<String, Expression> sortedMap = ((GenericProperties<Expression>) properties).toMap(TreeMap::new);
             for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
                 builder.append(indentString(indent + 1));
                 String key = propertyEntry.getKey();
@@ -1497,7 +1537,9 @@ public final class SqlFormatter {
                 }
                 builder.append(key).append(" = ");
                 propertyEntry.getValue().accept(this, indent);
-                if (++count < properties.size()) builder.append(",");
+                if (++count < properties.size()) {
+                    builder.append(",");
+                }
                 builder.append("\n");
             }
         }
@@ -1569,7 +1611,9 @@ public final class SqlFormatter {
             builder.append("(");
             for (Node node : nodes) {
                 node.accept(this, indent);
-                if (++count < max) builder.append(", ");
+                if (++count < max) {
+                    builder.append(", ");
+                }
             }
             builder.append(")");
         }
@@ -1581,7 +1625,9 @@ public final class SqlFormatter {
             for (Node node : nodes) {
                 builder.append(indentString(indent + 1));
                 node.accept(this, indent + 1);
-                if (++count < max) builder.append(",");
+                if (++count < max) {
+                    builder.append(",");
+                }
                 builder.append("\n");
             }
             append(indent, ")");
