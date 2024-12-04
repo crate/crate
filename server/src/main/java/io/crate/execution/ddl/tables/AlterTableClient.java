@@ -213,7 +213,7 @@ public class AlterTableClient {
             PartitionName partitionName = analysis.partitionName();
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
-                partitionName == null ? null : partitionName.asIndexName(),
+                partitionName == null ? List.of() : partitionName.values(),
                 analysis.isPartitioned(),
                 analysis.excludePartitions(),
                 analysis.settings()

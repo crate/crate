@@ -96,7 +96,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         settingsBuilder.remove(TableParameters.COLUMN_POLICY.getKey());
         Settings settings = settingsBuilder.build();
         if (request.isPartitioned()) {
-            if (request.partitionIndexName() != null) {
+            if (!request.partitionValues().isEmpty()) {
                 for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
                     if (tableOnlySetting.exists(settings)) {
                         throw new IllegalArgumentException(String.format(
@@ -106,7 +106,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                         ));
                     }
                 }
-                Index[] concreteIndices = resolveIndices(currentState, request.partitionIndexName());
+                String indexName = new PartitionName(request.tableIdent(), request.partitionValues()).asIndexName();
+                Index[] concreteIndices = resolveIndices(currentState, indexName);
                 currentState = updateSettings(currentState, settings, concreteIndices);
             } else {
                 // using settings from request with column policy still present
