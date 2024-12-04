@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
@@ -368,6 +369,18 @@ public class LogicalPlanner {
         }
 
         @Override
+        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> context) {
+            var lhsRel = joinRelation.left();
+            var rhsRel = joinRelation.right();
+            return new JoinPlan(
+                joinRelation.left().accept(this, lhsRel.outputs()),
+                joinRelation.right().accept(this, rhsRel.outputs()),
+                joinRelation.joinType(),
+                joinRelation.joinCondition()
+            );
+        }
+
+        @Override
         public LogicalPlan visitAnalyzedRelation(AnalyzedRelation relation, List<Symbol> outputs) {
             throw new UnsupportedOperationException(relation.getClass().getSimpleName() + " NYI");
         }
@@ -457,7 +470,6 @@ public class LogicalPlanner {
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
                 relation.where(),
-                relation.joinPairs(),
                 subQueries,
                 rel -> {
                     if (relation.from().size() == 1) {
@@ -481,12 +493,6 @@ public class LogicalPlanner {
                             symbol.any(addFiltered);
                         }
                         relation.where().any(addFiltered);
-                        for (var joinPair : relation.joinPairs()) {
-                            var condition = joinPair.condition();
-                            if (condition != null) {
-                                condition.any(addFiltered);
-                            }
-                        }
                         return rel.accept(this, List.copyOf(toCollect));
                     }
                 }
