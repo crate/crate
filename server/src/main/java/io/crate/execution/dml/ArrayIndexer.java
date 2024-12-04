@@ -49,6 +49,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.UndefinedType;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
@@ -77,6 +78,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         DataType<?> valueType = Optional
             .ofNullable(getRef.apply(arrayRef.column())) // null if the arrayRef is dynamically added
             .orElse(arrayRef).valueType();
+
+        if (ArrayType.unnest(valueType) instanceof UndefinedType) {
+            return ARRAY_LENGTH_FIELD_PREFIX + arrayRef.storageIdentLeafName();
+        }
 
         // if the arrayRef is a ReadReference
         if (!arrayRef.valueType().equals(valueType)) {
@@ -121,11 +126,13 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     protected final Streamer<List<T>> bytesConverter;
     protected final String arrayLengthFieldName;
     protected final Reference reference;
+    protected final Function<ColumnIdent, Reference> getRef;
 
     protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
         this.bytesConverter = (Streamer<List<T>>) reference.valueType().streamer();
         this.reference = reference;
+        this.getRef = getRef;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
     }
 
@@ -201,7 +208,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         StorageSupport<?> storageSupport = type.storageSupport();
         assert storageSupport != null;  // null storage will have thrown an exception in buildReference
         ValueIndexer<Object> indexer
-            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> ref);
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, getRef);
         indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 
