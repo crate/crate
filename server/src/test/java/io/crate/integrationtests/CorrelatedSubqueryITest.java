@@ -271,8 +271,21 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 mountain = (SELECT t.mountain) ORDER BY height desc limit 3
             """;
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "");
+        assertThat(response).hasLines(
+            "Eval[mountain, region]",
+            "  └ Limit[3::bigint;0]",
+            "    └ OrderBy[height DESC]",
+            "      └ Filter[(mountain = (SELECT mountain FROM (empty_row)))]",
+            "        └ CorrelatedJoin[mountain, region, height, (SELECT mountain FROM (empty_row))]",
+            "          └ NestedLoopJoin[CROSS]",
+            "            ├ Rename[mountain, region, height] AS t",
+            "            │  └ Collect[sys.summits | [mountain, region, height] | true]",
+            "            └ Collect[sys.cluster | [] | true]",
+            "          └ SubPlan",
+            "            └ Eval[mountain]",
+            "              └ Limit[2::bigint;0::bigint]",
+            "                └ TableFunction[empty_row | [mountain] | true]"
+        );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Mont Blanc| Mont Blanc massif\n" +

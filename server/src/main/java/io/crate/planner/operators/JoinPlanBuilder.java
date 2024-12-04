@@ -62,10 +62,15 @@ public class JoinPlanBuilder {
         }
 
         Iterator<LogicalPlan> implicitJoins = logicalPlans.iterator();
-        JoinPlan joinPlan = new JoinPlan(implicitJoins.next(), implicitJoins.next(), JoinType.CROSS, null);
+        LogicalPlan joinPlan = new JoinPlan(implicitJoins.next(), implicitJoins.next(), JoinType.CROSS, null);
         while (implicitJoins.hasNext()) {
             joinPlan = new JoinPlan(joinPlan, implicitJoins.next(), JoinType.CROSS, null);
         }
+        var correlatedSubQueries = extractCorrelatedSubQueries(whereClause);
+        if (correlatedSubQueries.correlatedSubQueries.isEmpty() == false) {
+            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        }
+
         return Filter.create(joinPlan, whereClause);
     }
 
