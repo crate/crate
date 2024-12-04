@@ -83,6 +83,7 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableClient;
@@ -237,10 +238,7 @@ public class MetadataCreateIndexService {
 
     public void resize(ResizeRequest request, ActionListener<ClusterStateUpdateResponse> listener) {
         ResizeTableTask updateTask = new ResizeTableTask(allocationService, indexScopedSettings, request);
-        clusterService.submitStateUpdateTask(
-            "resize-table",
-            updateTask
-        );
+        clusterService.submitStateUpdateTask("resize-table", updateTask);
         updateTask.completionFuture().whenComplete((resp, err) -> {
             if (err != null) {
                 listener.onFailure(Exceptions.toException(err));
@@ -336,7 +334,7 @@ public class MetadataCreateIndexService {
                     );
                     newSettings.put(
                         IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getKey() + "_id",
-                        Strings.arrayToCommaDelimitedString(nodesToAllocateOn.toArray())
+                        Lists.joinOn(",", nodesToAllocateOn, x -> x)
                     );
                 } else {
                     validateSplitIndex(
@@ -365,7 +363,12 @@ public class MetadataCreateIndexService {
             newMetadata.addTable(
                 table.name(),
                 table.columns(),
-                table.settings(),
+                request.partitionValues().isEmpty()
+                    ? Settings.builder()
+                        .put(table.settings())
+                        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, request.newNumShards())
+                        .build()
+                    : table.settings(),
                 table.routingColumn(),
                 table.columnPolicy(),
                 table.pkConstraintName(),

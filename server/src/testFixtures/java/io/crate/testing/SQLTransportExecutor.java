@@ -25,6 +25,7 @@ import static io.crate.session.Session.UNNAMED;
 import static io.crate.types.ResultSetParser.getObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -96,8 +97,11 @@ public class SQLTransportExecutor {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
-    public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-        Objects.requireNonNullElse(System.getenv(SQL_REQUEST_TIMEOUT), "10")), TimeUnit.SECONDS);
+    public static final TimeValue REQUEST_TIMEOUT = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+        .anyMatch(s -> s.contains("-agentlib:jdwp"))
+            ? new TimeValue(30, TimeUnit.MINUTES)
+            : new TimeValue(Long.parseLong(
+                Objects.requireNonNullElse(System.getenv(SQL_REQUEST_TIMEOUT), "10")), TimeUnit.SECONDS);
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
