@@ -19,20 +19,21 @@
 
 package org.elasticsearch.index.engine;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -43,11 +44,10 @@ import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /*
  * Holds all the configuration that is used to create an {@link Engine}.
@@ -77,6 +77,7 @@ public final class EngineConfig {
     private final CircuitBreakerService circuitBreakerService;
     private final LongSupplier globalCheckpointSupplier;
     private final Supplier<RetentionLeases> retentionLeasesSupplier;
+    private final boolean virtualIdField;
 
     /**
      * A supplier of the outstanding retention leases. This is used during merged operations to determine which operations that have been
@@ -135,7 +136,8 @@ public final class EngineConfig {
                         LongSupplier globalCheckpointSupplier,
                         Supplier<RetentionLeases> retentionLeasesSupplier,
                         LongSupplier primaryTermSupplier,
-                        TombstoneDocSupplier tombstoneDocSupplier) {
+                        TombstoneDocSupplier tombstoneDocSupplier,
+                        boolean virtualIdField) {
         this.shardId = shardId;
         this.indexSettings = indexSettings;
         this.threadPool = threadPool;
@@ -170,6 +172,7 @@ public final class EngineConfig {
         this.retentionLeasesSupplier = Objects.requireNonNull(retentionLeasesSupplier);
         this.primaryTermSupplier = primaryTermSupplier;
         this.tombstoneDocSupplier = tombstoneDocSupplier;
+        this.virtualIdField = virtualIdField;
     }
 
     /**
@@ -240,6 +243,10 @@ public final class EngineConfig {
      */
     public LongSupplier getGlobalCheckpointSupplier() {
         return globalCheckpointSupplier;
+    }
+
+    public boolean isIdFieldVirtual() {
+        return virtualIdField;
     }
 
     /**

@@ -113,6 +113,18 @@ public class DocTableInfoFactory {
         );
     }
 
+    public static boolean hasVirtualPrimaryKey(IndexMetadata indexMetadata) {
+        MappingMetadata mapping = indexMetadata.mapping();
+        Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
+        List<ColumnIdent> primaryKeys = getPrimaryKeys(metaMap);
+        if (primaryKeys.size() != 1) {
+            return false;
+        }
+        var col = primaryKeys.getFirst();
+        return Objects.equals(SysColumns.Names.ID, col.fqn()) == false && Objects.equals(SysColumns.Names.UID, col.fqn()) == false;
+    }
+
     public void validateSchema(IndexMetadata indexMetadata) {
         String indexName = indexMetadata.getIndex().getName();
         if (IndexName.isDangling(indexName)) {

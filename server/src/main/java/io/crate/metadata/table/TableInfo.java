@@ -26,6 +26,7 @@ import static io.crate.types.ArrayType.makeArray;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -38,6 +39,7 @@ import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -55,6 +57,22 @@ public interface TableInfo extends RelationInfo {
      */
     @Nullable
     Reference getReference(ColumnIdent columnIdent);
+
+    /**
+     * returns a Reference that can be used to get the primary key,
+     *         or {@code null} if such a Reference is not available
+     */
+    @Nullable
+    default Reference primaryKeyReference() {
+        if (primaryKey().size() != 1) {
+            return null;
+        }
+        var col = primaryKey().getFirst();
+        if (Objects.equals(col.fqn(), SysColumns.Names.ID) || Objects.equals(col.fqn(), SysColumns.Names.UID)) {
+            return null;
+        }
+        return getReference(col);
+    }
 
     /**
      * This is like {@link #getReference(ColumnIdent)},

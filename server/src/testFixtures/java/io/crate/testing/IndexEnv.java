@@ -91,6 +91,7 @@ public final class IndexEnv implements AutoCloseable {
         luceneReferenceResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
+            table.primaryKeyReference(),
             table.isParentReferenceIgnored()
         );
         indexService = indexModule.newIndexService(
@@ -112,7 +113,8 @@ public final class IndexEnv implements AutoCloseable {
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
             IndicesQueryCache.createCache(Settings.EMPTY),
-            () -> table
+            () -> table,
+            false
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);

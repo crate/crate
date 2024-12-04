@@ -239,6 +239,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final Analyzer indexAnalyzer;
 
     private final DocTableInfoFactory tableFactory;
+    private final boolean hasVirtualPrimaryKey;
 
     public IndexShard(
             NodeContext nodeContext,
@@ -255,7 +256,9 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
-            RetentionLeaseSyncer retentionLeaseSyncer, CircuitBreakerService circuitBreakerService) throws IOException {
+            RetentionLeaseSyncer retentionLeaseSyncer,
+            CircuitBreakerService circuitBreakerService,
+            boolean hasVirtualPrimaryKey) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;
@@ -276,6 +279,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.path = path;
         this.circuitBreakerService = circuitBreakerService;
         this.tableFactory = new DocTableInfoFactory(nodeContext);
+        this.hasVirtualPrimaryKey = hasVirtualPrimaryKey;
         /* create engine config */
         logger.debug("state: [CREATED]");
 
@@ -2596,7 +2600,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             globalCheckpointSupplier,
             replicationTracker::getRetentionLeases,
             this::getOperationPrimaryTerm,
-            tombstoneDocSupplier()
+            tombstoneDocSupplier(),
+            hasVirtualPrimaryKey
         );
     }
 

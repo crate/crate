@@ -105,6 +105,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private Supplier<TranslogIndexer> getTranslogIndexer = () -> {
         throw new IllegalStateException("Translog called before schema validation");
     };
+    private final boolean hasVirtualPrimaryKey;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -143,6 +144,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
             Supplier<TableInfo> getTableInfo,
+            boolean hasVirtualPrimaryKey,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
         this.nodeContext = nodeContext;
@@ -174,6 +176,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             };
         }
+        this.hasVirtualPrimaryKey = hasVirtualPrimaryKey;
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -396,7 +399,9 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
-                retentionLeaseSyncer, circuitBreakerService
+                retentionLeaseSyncer,
+                circuitBreakerService,
+                hasVirtualPrimaryKey
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);

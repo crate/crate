@@ -452,7 +452,7 @@ public class IndicesService extends AbstractLifecycleComponent
             idxSettings.getNumberOfReplicas(),
             indexCreationContext);
 
-        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry,engineFactoryProviders, directoryFactories);
+        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, engineFactoryProviders, directoryFactories);
         for (IndexingOperationListener operationListener : indexingOperationListeners) {
             indexModule.addIndexOperationListener(operationListener);
         }
@@ -471,7 +471,8 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
-            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName))
+            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName)),
+            DocTableInfoFactory.hasVirtualPrimaryKey(indexMetadata)
         );
     }
 

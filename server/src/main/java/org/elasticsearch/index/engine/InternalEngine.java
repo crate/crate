@@ -2293,7 +2293,8 @@ public class InternalEngine extends Engine {
                     Lucene.SOFT_DELETES_FIELD,
                     softDeletesPolicy::getRetentionQuery,
                     new PrunePostingsMergePolicy(mergePolicy, SysColumns.Names.ID)
-                )
+                ),
+                engineConfig.isIdFieldVirtual()
             );
         }
         boolean shuffleForcedMerge = Booleans.parseBoolean(System.getProperty("es.shuffle_forced_merge", Boolean.TRUE.toString()));
