@@ -47,34 +47,39 @@ optimizer. An example output looks like this::
     ... SELECT employees.id
     ... FROM employees, departments
     ... WHERE employees.dept_id = departments.id AND departments.name = 'IT';
-    +------------------------------------+----------------------------------------------------------------------+
-    | STEP                               | QUERY PLAN                                                           |
-    +------------------------------------+----------------------------------------------------------------------+
-    | Initial logical plan               | Eval[id] (rows=0)                                                    |
-    |                                    |   └ Filter[(name = 'IT')] (rows=0)                                   |
-    |                                    |     └ Join[INNER | (dept_id = id)] (rows=3)                          |
-    |                                    |       ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)      |
-    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
-    | optimizer_move_filter_beneath_join | Eval[id] (rows=3)                                                    |
-    |                                    |   └ Join[INNER | (dept_id = id)] (rows=3)                            |
-    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
-    |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
-    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
-    | optimizer_rewrite_join_plan        | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
-    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
-    |                                    |     └ Filter[(name = 'IT')] (rows=1)                                 |
-    |                                    |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
-    | optimizer_merge_filter_and_collect | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
-    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
-    |                                    |     └ Collect[doc.departments | [id, name] | (name = 'IT')] (rows=1) |
-    | Final logical plan                 | Eval[id] (rows=3)                                                    |
-    |                                    |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
-    |                                    |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
-    |                                    |     └ Collect[doc.departments | [id] | (name = 'IT')] (rows=1)       |
-    +------------------------------------+----------------------------------------------------------------------+
-    EXPLAIN 5 rows in set (... sec)
+    +------------------------------------------------------+----------------------------------------------------------------------+
+    | STEP                                                 | QUERY PLAN                                                           |
+    +------------------------------------------------------+----------------------------------------------------------------------+
+    | Initial logical plan                                 | Eval[id] (rows=3)                                                    |
+    |                                                      |   └ Filter[((dept_id = id) AND (name = 'IT'))] (rows=3)              |
+    |                                                      |     └ Join[CROSS] (rows=108)                                         |
+    |                                                      |       ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)      |
+    |                                                      |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_rewrite_filter_on_cross_join_to_inner_join | Eval[id] (rows=0)                                                    |
+    |                                                      |   └ Filter[(name = 'IT')] (rows=0)                                   |
+    |                                                      |     └ Join[INNER | (dept_id = id)] (rows=3)                          |
+    |                                                      |       ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)      |
+    |                                                      |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_move_filter_beneath_join                   | Eval[id] (rows=3)                                                    |
+    |                                                      |   └ Join[INNER | (dept_id = id)] (rows=3)                            |
+    |                                                      |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                                      |     └ Filter[(name = 'IT')] (rows=1)                                 |
+    |                                                      |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_rewrite_join_plan                          | Eval[id] (rows=3)                                                    |
+    |                                                      |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
+    |                                                      |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                                      |     └ Filter[(name = 'IT')] (rows=1)                                 |
+    |                                                      |       └ Collect[doc.departments | [id, name] | true] (rows=6)        |
+    | optimizer_merge_filter_and_collect                   | Eval[id] (rows=3)                                                    |
+    |                                                      |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
+    |                                                      |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                                      |     └ Collect[doc.departments | [id, name] | (name = 'IT')] (rows=1) |
+    | Final logical plan                                   | Eval[id] (rows=3)                                                    |
+    |                                                      |   └ HashJoin[INNER | (dept_id = id)] (rows=3)                        |
+    |                                                      |     ├ Collect[doc.employees | [id, dept_id] | true] (rows=18)        |
+    |                                                      |     └ Collect[doc.departments | [id] | (name = 'IT')] (rows=1)       |
+    +------------------------------------------------------+----------------------------------------------------------------------+
+    EXPLAIN 6 rows in set (... sec)
 
 When issuing ``EXPLAIN ANALYZE`` or ``EXPLAIN (ANALYZE TRUE)`` the plan of the
 statement is executed and timings of the different phases of the plan are returned.
