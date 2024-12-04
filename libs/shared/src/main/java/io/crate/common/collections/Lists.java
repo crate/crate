@@ -157,6 +157,17 @@ public final class Lists {
         return copy;
     }
 
+    public static <I, O> List<O> flatMap(Collection<I> list, Function<? super I, Collection<? extends O>> mapper) {
+        if (list.isEmpty()) {
+            return List.of();
+        }
+        ArrayList<O> copy = new ArrayList<>();
+        for (I item : list) {
+            copy.addAll(mapper.apply(item));
+        }
+        return copy;
+    }
+
     /**
      * Like `map` but ensures that the same list is returned if no elements changed.
      * But is a view onto the original list and applies the mapper lazy on a need basis.
