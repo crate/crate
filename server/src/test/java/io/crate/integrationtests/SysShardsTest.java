@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
@@ -164,12 +165,13 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertThat(response.rowCount()).isEqualTo(26L);
-        assertThat(response.cols().length).isEqualTo(21);
+        assertThat(response.cols().length).isEqualTo(22);
         assertThat(response.cols()).containsExactly(
             "blob_path",
             "closed",
             "flush_stats",
             "id",
+            "index_uuid",
             "min_lucene_version",
             "node",
             "num_docs",

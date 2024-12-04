@@ -955,6 +955,9 @@ Table schema
     * - ``partition_ident``
       - The partition ident of a partitioned table. Empty for non-partitioned tables.
       - ``TEXT``
+    * - ``index_uuid``
+      - Internal id for the index the shard is part of.
+      - ``TEXT``
     * - ``path``
       - Path to the shard directory on the filesystem. This directory contains state and index files.
       - ``TEXT``
