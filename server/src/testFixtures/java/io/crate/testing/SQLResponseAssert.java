@@ -95,4 +95,9 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
         assertThat(actual.rows()).isEmpty();
         return this;
     }
+
+    public SQLResponseAssert isNotEmpty() {
+        assertThat(actual.rows()).isNotEmpty();
+        return this;
+    }
 }
