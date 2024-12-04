@@ -78,7 +78,7 @@ public final class UnassignedShard {
     private final String partitionIdent;
     private final String state;
     private final boolean orphanedPartition;
-    private final String indexUUID;
+    private final String partitionUUID;
 
     private static final String UNASSIGNED = "UNASSIGNED";
     private static final String INITIALIZING = "INITIALIZING";
@@ -98,7 +98,7 @@ public final class UnassignedShard {
         this.primary = primary;
         this.id = shardId;
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;
-        this.indexUUID = index.getUUID();
+        this.partitionUUID = index.getUUID();
     }
 
     public String tableName() {
@@ -117,8 +117,8 @@ public final class UnassignedShard {
         return partitionIdent;
     }
 
-    public String indexUUID() {
-        return indexUUID;
+    public String partitionUUID() {
+        return partitionUUID;
     }
 
     public Boolean primary() {

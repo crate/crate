@@ -124,7 +124,7 @@ public class ShardRowContext {
         return partitionIdent;
     }
 
-    public String indexUUID() {
+    public String partitionUUID() {
         return indexShard.shardId().getIndex().getUUID();
     }
 

@@ -165,18 +165,17 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertThat(response.rowCount()).isEqualTo(26L);
-        assertThat(response.cols().length).isEqualTo(22);
         assertThat(response.cols()).containsExactly(
             "blob_path",
             "closed",
             "flush_stats",
             "id",
-            "index_uuid",
             "min_lucene_version",
             "node",
             "num_docs",
             "orphan_partition",
             "partition_ident",
+            "partition_uuid",
             "path",
             "primary",
             "recovery",
