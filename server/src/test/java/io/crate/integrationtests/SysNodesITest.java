@@ -88,6 +88,17 @@ public class SysNodesITest extends IntegTestCase {
     }
 
     @Test
+    public void test_can_select_node_attributes_sub_fields() {
+        execute("SELECT attributes['color'] FROM sys.nodes order by 1");
+        int numDataNodes = cluster().numDataNodes();
+        String[] expectedRows = new String[numDataNodes];
+        for (int i = 0; i < numDataNodes; i++) {
+            expectedRows[i] = getColor(i);
+        }
+        assertThat(response).hasRows(expectedRows);
+    }
+
+    @Test
     public void test_filter_on_not_selected_column_on_sys_nodes_returns_record() throws Exception {
         execute("select fs from sys.nodes where name = 'node_s0'");
         assertThat(response.rowCount()).isEqualTo(1L);

@@ -27,7 +27,6 @@ import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.types.DataTypes.UNTYPED_OBJECT;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.monitor.fs.FsInfo;
@@ -102,7 +101,7 @@ public class SysNodesTableInfo {
         .add("name", STRING, NodeStatsContext::name)
         .add("hostname", STRING, NodeStatsContext::hostname)
         .add("rest_url", STRING, NodeStatsContext::restUrl)
-        .add("attributes", UNTYPED_OBJECT, NodeStatsContext::attributes)
+        .addDynamicObject("attributes", STRING, NodeStatsContext::attributes)
         .startObject("port")
             .add("http", INTEGER, NodeStatsContext::httpPort)
             .add("transport", INTEGER, NodeStatsContext::transportPort)
