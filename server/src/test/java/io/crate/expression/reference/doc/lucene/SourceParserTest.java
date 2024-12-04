@@ -38,6 +38,7 @@ import org.locationtech.spatial4j.shape.Point;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
@@ -143,7 +144,7 @@ public class SourceParserTest extends ESTestCase {
     public void test_uses_inner_type_info_to_parse_objects() throws Exception {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
         BitStringType bitStringType = new BitStringType(4);
-        ObjectType objectType = ObjectType.builder()
+        ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("bs", bitStringType)
             .build();
         sourceParser.register(ColumnIdent.of("_doc", List.of("o")), objectType);
@@ -165,10 +166,10 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_null_object_sibling_subcolumn_has_same_name() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
-        ObjectType innerObjectType = ObjectType.builder()
+        ObjectType innerObjectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("target", DataTypes.FLOAT)
             .build();
-        ObjectType outerObjectType = ObjectType.builder()
+        ObjectType outerObjectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("inner_object", innerObjectType)
             .setInnerType("target", DataTypes.STRING)
             .build();
@@ -197,7 +198,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_null_object_next_not_sibling_column_has_same_name() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
-        ObjectType objectType = ObjectType.builder()
+        ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("target", DataTypes.FLOAT)
             .build();
         sourceParser.register(ColumnIdent.of("_doc", List.of("obj")), objectType);
@@ -230,7 +231,7 @@ public class SourceParserTest extends ESTestCase {
         //   "s" string
         //   )))));
         //   SELECT a['b'] from test; -- a['b'] is array(array(object))
-        ArrayType<?> type = new ArrayType<>(new ArrayType<>(ObjectType.builder().setInnerType("s", DataTypes.STRING).build()));
+        ArrayType<?> type = new ArrayType<>(new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("s", DataTypes.STRING).build()));
         sourceParser.register(ColumnIdent.of("_doc", List.of("a", "b")), type);
         var result = sourceParser.parse(new BytesArray(
             """
@@ -321,13 +322,13 @@ public class SourceParserTest extends ESTestCase {
             UnaryOperator.identity(),
             true
         );
-        var ooType = new ObjectType.Builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .setInnerType("s", DataTypes.INTEGER)
             .setInnerType("t", DataTypes.INTEGER)
             .build();
-        var oType = new ObjectType.Builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .setInnerType("oo", ooType)
@@ -353,11 +354,11 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_drop_sub_column_with_children_collect_parent_column() {
-        var ooType = new ObjectType.Builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .build();
-        var oType = new ObjectType.Builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("oo", ooType)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
@@ -411,13 +412,13 @@ public class SourceParserTest extends ESTestCase {
             UnaryOperator.identity(),
             true
         );
-        var ooType = new ObjectType.Builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .setInnerType("s", DataTypes.INTEGER)
             .setInnerType("t", DataTypes.INTEGER)
             .build();
-        var oType = new ObjectType.Builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .setInnerType("oo", new ArrayType<>(ooType))
@@ -460,11 +461,11 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_nested_dropped_columns_are_not_collected() {
-        var ooType = new ObjectType.Builder()
+        var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("a", DataTypes.INTEGER)
                 .setInnerType("b", DataTypes.INTEGER)
                 .build();
-        var oType = new ObjectType.Builder()
+        var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
                 .setInnerType("oo", ooType)
                 .setInnerType("a", DataTypes.INTEGER)
                 .setInnerType("b", DataTypes.INTEGER)
@@ -493,7 +494,7 @@ public class SourceParserTest extends ESTestCase {
     public void test_parse_long_from_object_array() throws Exception {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
 
-        var objType = new ObjectType.Builder()
+        var objType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.LONG)
             .build();
         var objArray = new ArrayType<>(objType);

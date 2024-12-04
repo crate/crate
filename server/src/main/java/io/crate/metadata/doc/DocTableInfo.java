@@ -340,7 +340,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     public Predicate<Reference> isParentReferenceIgnored() {
-        return ref -> findParentReferenceMatching(ref, r -> r.columnPolicy() == ColumnPolicy.IGNORED) != null;
+        return ref -> findParentReferenceMatching(ref, r -> r.valueType().columnPolicy() == ColumnPolicy.IGNORED) != null;
+    }
+
+    public boolean isIgnoredOrImmediateChildOfIgnored(Reference ref) {
+        if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objectType) {
+            return objectType.columnPolicy() == ColumnPolicy.IGNORED;
+        }
+        for (Reference parent : getParents(ref.column())) {
+            if (parent == null) {
+                continue;
+            }
+            return parent.valueType().columnPolicy() == ColumnPolicy.IGNORED;
+        }
+        return false;
     }
 
     private ReferenceTree referenceTree() {
@@ -652,7 +665,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
         for (var parent : getParents(ident)) {
             if (parent != null) {
-                parentPolicy = parent.columnPolicy();
+                parentPolicy = parent.valueType().columnPolicy();
                 position = parent.position();
                 break;
             }
@@ -681,7 +694,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return new DynamicReference(
                 new ReferenceIdent(ident(), ident),
                 rowGranularity(),
-                ColumnPolicy.IGNORED,
                 position
             );
         }

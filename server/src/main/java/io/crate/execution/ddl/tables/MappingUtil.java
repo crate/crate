@@ -222,18 +222,19 @@ public final class MappingUtil {
             valueType = arrayType.innerType();
             properties = arrayMapping;
         }
-        if (valueType.id() == ObjectType.ID) {
-            objectMapping(position, leafProperties, reference, tree);
+        if (valueType instanceof ObjectType objectType) {
+            objectMapping(position, leafProperties, objectType, reference.column(), tree);
         }
         return properties;
     }
 
     private static void objectMapping(AllocPosition position,
                                       Map<String, Object> propertiesMap,
-                                      Reference reference,
+                                      ObjectType objectType,
+                                      ColumnIdent columnIdent,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put(ColumnPolicy.MAPPING_KEY, reference.columnPolicy().toMappingValue());
-        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
+        propertiesMap.put(ColumnPolicy.MAPPING_KEY, (objectType.columnPolicy().toMappingValue()));
+        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, columnIdent, tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

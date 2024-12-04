@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import io.crate.metadata.FunctionType;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
@@ -39,7 +40,7 @@ public class SignatureTest {
 
     @Test
     public void test_streaming_of_signature_and_type_signatures() throws Exception {
-        var objectType = ObjectType.builder()
+        var objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.INTEGER)
             .build();
 

@@ -278,7 +278,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     refIdent,
                     rowGranularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,
@@ -296,7 +295,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 ref = new GeoReference(
                     refIdent,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     position,
@@ -313,7 +311,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     refIdent,
                     rowGranularity,
                     type,
-                    columnPolicy,
                     indexType,
                     nullable,
                     hasDocValues,

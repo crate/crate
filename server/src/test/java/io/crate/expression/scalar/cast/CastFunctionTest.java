@@ -50,6 +50,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -243,7 +244,7 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_resolve_cast_with_correct_return_type_based_on_function_argument() {
-        var returnType = ObjectType.builder()
+        var returnType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("field", DataTypes.STRING)
             .build();
 

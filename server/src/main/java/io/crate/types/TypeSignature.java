@@ -43,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.signatures.antlr.TypeSignaturesLexer;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class TypeSignature implements Writeable, Accountable {
 
@@ -172,7 +173,7 @@ public class TypeSignature implements Writeable, Accountable {
             DataType<?> innerType = parameters.get(0).createType();
             return new ArrayType<>(innerType);
         } else if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
-            var builder = ObjectType.builder();
+            var builder = ObjectType.of(ColumnPolicy.DYNAMIC);
             // Only build typed objects if we receive parameter key-value pairs which may not exist on generic
             // object signatures with type information only, no key strings
             if (parameters.size() > 1) {

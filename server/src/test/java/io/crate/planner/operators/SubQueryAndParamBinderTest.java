@@ -32,6 +32,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -49,7 +50,7 @@ public class SubQueryAndParamBinderTest extends ESTestCase {
 
     @Test
     public void test_nested_conversion_exception_are_not_ignored() {
-        var paramSymbol = new ParameterSymbol(0, ObjectType.builder().setInnerType("x", DataTypes.INTEGER).build());
+        var paramSymbol = new ParameterSymbol(0, ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("x", DataTypes.INTEGER).build());
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(new Row1(Map.of("x", "foo")), SubQueryResults.EMPTY);
 
         assertThatThrownBy(() -> paramBinder.apply(paramSymbol))

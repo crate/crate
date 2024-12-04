@@ -133,7 +133,7 @@ public class AlterTableClient {
         } else {
             for (Reference newRef : newReferences) {
                 if (newReferences.stream().anyMatch(r -> r.column().isChildOf(newRef.column()))
-                    && newRef.columnPolicy().equals(ColumnPolicy.IGNORED)) {
+                    && (newRef.valueType().columnPolicy() == ColumnPolicy.IGNORED)) {
                     warning = "Adding a sub column to an OBJECT(IGNORED) parent may shade existing data of this column as the table isn't empty";
                     break;
                 }
