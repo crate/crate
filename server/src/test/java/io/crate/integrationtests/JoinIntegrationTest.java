@@ -1793,11 +1793,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("REFRESH TABLE doc.t0, doc.t1");
 
         String query = "SELECT t0.c0 FROM t1 RIGHT  JOIN  (SELECT t0.c0 AS col0 FROM t0) AS sub0  ON true, t0 RIGHT  JOIN  (SELECT true) AS sub1  ON t0.c0 WHERE t0.c1 != t0.c1";
+        execute(query);
         assertThat(response.rows()).isEmpty();
     }
-
-
-
-
-
 }

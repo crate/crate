@@ -49,10 +49,11 @@ public class JoinPlanBuilder {
                                      Symbol whereClause,
                                      SubQueries subQueries,
                                      Function<AnalyzedRelation, LogicalPlan> toLogicalPlan) {
-
+        // Only one relation, this means we have no implicit joins
         if (from.size() == 1) {
-            LogicalPlan source = subQueries.applyCorrelatedJoin(toLogicalPlan.apply(from.getFirst()));
-            return Filter.create(source, whereClause);
+            LogicalPlan logicalPlan = toLogicalPlan.apply(from.getFirst());
+            LogicalPlan correlatedJoin = subQueries.applyCorrelatedJoin(logicalPlan);
+            return Filter.create(correlatedJoin, whereClause);
         }
         // We have more than 1 relation, this means we have implicit joins in the query
         // Therefore, convert all relations from the from-clause to logical plans and join them
@@ -66,9 +67,15 @@ public class JoinPlanBuilder {
         while (implicitJoins.hasNext()) {
             joinPlan = new JoinPlan(joinPlan, implicitJoins.next(), JoinType.CROSS, null);
         }
-        var correlatedSubQueries = extractCorrelatedSubQueries(whereClause);
+
+        CorrelatedSubQueries correlatedSubQueries = extractCorrelatedSubQueries(whereClause);
+
         if (correlatedSubQueries.correlatedSubQueries.isEmpty() == false) {
             joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        }
+
+        if (subQueries.correlated().isEmpty() == false) {
+            System.out.println("correlatedSubQueries = " + correlatedSubQueries);
         }
 
         return Filter.create(joinPlan, whereClause);
