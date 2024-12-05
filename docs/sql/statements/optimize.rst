@@ -31,9 +31,11 @@ Description
 ===========
 
 The OPTIMIZE TABLE command optimizes tables and table partitions by merging the
-segments of a table or a partition and reducing their number. It is also used
-to upgrade tables and table partitions to the current version of the storage
-engine. This command will block until the optimization process is complete. If
+segments of a table or a partition and reducing their number.  It will also
+drop deleted rows, and where possible remove redundant source and soft-delete
+data structures for rows that have been fully replicated.
+
+This command will block until the optimization process is complete. If
 the connection to CrateDB is lost, the request will continue in the background,
 and any new requests will block until the previous optimization is complete.
 
