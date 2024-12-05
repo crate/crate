@@ -72,10 +72,12 @@ public class JoinPlanBuilder {
 
         if (correlatedSubQueries.correlatedSubQueries.isEmpty() == false) {
             joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+            return Filter.create(joinPlan, whereClause);
         }
 
         if (subQueries.correlated().isEmpty() == false) {
-            System.out.println("correlatedSubQueries = " + correlatedSubQueries);
+            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+            return joinPlan;
         }
 
         return Filter.create(joinPlan, whereClause);

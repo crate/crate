@@ -62,6 +62,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -367,11 +368,13 @@ public class LogicalPlanner {
         public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> context) {
             var lhsRel = joinRelation.left();
             var rhsRel = joinRelation.right();
+            var correlatedSubQueries = JoinPlanBuilder.extractCorrelatedSubQueries(joinRelation.joinCondition());
+//            subqueryPlanner.planSubQueries()
             return new JoinPlan(
                 joinRelation.left().accept(this, lhsRel.outputs()),
                 joinRelation.right().accept(this, rhsRel.outputs()),
                 joinRelation.joinType(),
-                joinRelation.joinCondition()
+                AndOperator.join(correlatedSubQueries.remainder())
             );
         }
 
