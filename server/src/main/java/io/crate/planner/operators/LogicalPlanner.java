@@ -492,6 +492,7 @@ public class LogicalPlanner {
                         for (Symbol symbol : splitPoints.toCollect()) {
                             symbol.any(addFiltered);
                         }
+                        // check symbols from join condition
                         relation.where().any(addFiltered);
                         return rel.accept(this, List.copyOf(toCollect));
                     }
