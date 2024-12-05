@@ -384,7 +384,7 @@ public class LogicalPlanner {
                     AndOperator.join(correlatedSubQueries.remainder())
                 );
                 for (Symbol symbol : correlatedSubQueries.correlatedSubQueries()) {
-                     source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
+                    source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
                 }
                 return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
             }
