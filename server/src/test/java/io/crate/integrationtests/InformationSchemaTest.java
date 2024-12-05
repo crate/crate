@@ -59,14 +59,18 @@ public class InformationSchemaTest extends IntegTestCase {
     public void testDefaultTables() {
         execute("select * from information_schema.tables order by table_schema, table_name");
         assertThat(response).hasRows(
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| administrable_role_authorizations| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| applicable_roles| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| columns| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| enabled_roles| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_server_options| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_servers| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_table_options| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_tables| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| key_column_usage| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| referential_constraints| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| role_table_grants| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| routines| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| schemata| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| sql_features| information_schema| BASE TABLE| NULL",
@@ -208,13 +212,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(68L);
+        assertThat(response.rowCount()).isEqualTo(72L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(69L);
+        assertThat(response.rowCount()).isEqualTo(73L);
     }
 
     @Test
@@ -571,7 +575,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1023);
+        assertThat(response.rowCount()).isEqualTo(1038);
     }
 
     @Test
@@ -892,7 +896,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(71L);
+        assertThat(response.rows()[0][0]).isEqualTo(75L);
     }
 
     @Test

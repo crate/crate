@@ -24,6 +24,7 @@ package io.crate.metadata.information;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
@@ -136,6 +137,38 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     (txnCtx, role) -> completedFuture(Arrays.asList(new Void[]{null})),
                     InformationCharacterSetsTable.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationEnabledRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.enabledRoles(role, roles)),
+                    InformationEnabledRolesTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationApplicableRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
+                    InformationApplicableRolesTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationRoleTableGrantsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.roleTableGrants(role, roles)),
+                    InformationRoleTableGrantsTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationAdministrableRoleAuthorizationsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(List.of()),
+                    InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),

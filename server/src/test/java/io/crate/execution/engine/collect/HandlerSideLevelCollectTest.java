@@ -185,16 +185,16 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             .toList();
 
         String expected = """
+            grantee| text| administrable_role_authorizations
+            is_grantable| boolean| administrable_role_authorizations
+            role_name| text| administrable_role_authorizations
+            grantee| text| applicable_roles
+            is_grantable| boolean| applicable_roles
+            role_name| text| applicable_roles
             character_repertoire| text| character_sets
             character_set_catalog| text| character_sets
             character_set_name| text| character_sets
             character_set_schema| text| character_sets
-            default_collate_catalog| text| character_sets
-            default_collate_name| text| character_sets
-            default_collate_schema| text| character_sets
-            form_of_use| text| character_sets
-            character_maximum_length| integer| columns
-            character_octet_length| integer| columns
             """;
 
 

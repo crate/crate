@@ -28,6 +28,7 @@ import static java.util.stream.StreamSupport.stream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -48,6 +49,8 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
+import io.crate.expression.roles.ApplicableRole;
+import io.crate.expression.roles.RoleTableGrant;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -80,6 +83,11 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.GrantedRole;
+import io.crate.role.Permission;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
@@ -412,6 +420,60 @@ public class InformationSchemaIterables implements ClusterStateListener {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
             metadata.custom(UserDefinedFunctionsMetadata.TYPE));
         routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
+    }
+
+    public Set<String> enabledRoles(Role role, Roles roles) {
+        Set<String> result = new HashSet<>();
+        Set<ApplicableRole> applicableRoles = applicableRoles(role, roles);
+        for (ApplicableRole applicableRole: applicableRoles) {
+            result.add(applicableRole.roleName());
+        }
+        return result;
+    }
+
+    public Set<ApplicableRole> applicableRoles(Role role, Roles roles) {
+        Set<ApplicableRole> applicableRoles = new HashSet<>();
+
+        for (GrantedRole grantedRole: role.grantedRoles()) {
+            ApplicableRole newRole = new ApplicableRole(
+                role.name(),
+                grantedRole.roleName(),
+                roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null)
+            );
+            Role retrievedRole = roles.findRole(grantedRole.roleName());
+            if (retrievedRole != null) {
+                if (!retrievedRole.grantedRoles().isEmpty()) {
+                    applicableRoles.addAll(applicableRoles(retrievedRole, roles));
+                }
+            }
+            applicableRoles.add(newRole);
+        }
+
+        return applicableRoles;
+    }
+
+    public Iterable<RoleTableGrant> roleTableGrants(Role role, Roles roles) {
+        List<RoleTableGrant> roleTableGrants = new ArrayList<>();
+        role.privileges().forEach(p -> {
+            Securable securableType = p.subject().securable();
+            if (securableType.equals(Securable.TABLE)) {
+                String[] fqn = Objects.requireNonNull(p.subject().ident()).split("\\.");
+
+                RoleTableGrant roleTableGrant = new RoleTableGrant(
+                    p.grantor(),
+                    role.name(),
+                    "doc",
+                    fqn[0],
+                    fqn[1],
+                    p.subject().permission().name(),
+                    roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null),
+                    p.subject().permission().equals(Permission.DQL)
+                );
+                roleTableGrants.add(roleTableGrant);
+            }
+        });
+
+        return roleTableGrants;
     }
 
     /**
