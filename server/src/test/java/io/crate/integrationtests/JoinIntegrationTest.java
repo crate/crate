@@ -1615,13 +1615,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         var stmt = "SELECT * FROM t1,t2, t3 WHERE t3.c = t1.a AND t3.c = t2.b AND t1.a = t2.b and t1.x = t2.y";
         execute("explain (costs false) " + stmt);
 
-//        assertThat(response).hasLines(
-//            "HashJoin[INNER | ((c = a) AND (c = b))]",
-//            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
-//            "  │  ├ Collect[doc.t1 | [a, x] | true]",
-//            "  │  └ Collect[doc.t2 | [b, y] | true]",
-//            "  └ Collect[doc.t3 | [c] | true]"
-//        );
+        assertThat(response).hasLines(
+            "HashJoin[INNER | ((c = a) AND (c = b))]",
+            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
+            "  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "  │  └ Collect[doc.t2 | [b, y] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
 
         execute(stmt);
         assertThat(response).hasRows("1| 2| 1| 2| 1");
@@ -1764,16 +1764,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("REFRESH TABLE doc.t0, doc.t1");
         String query = "SELECT * FROM doc.t0, doc.t1 RIGHT JOIN (SELECT 1) AS sub0 ON true WHERE (NOT ((doc.t0.c1)>=(doc.t0.c1)))";
         execute("EXPLAIN " + query);
-
-//        assertThat(response).hasLines(
-//            "Eval[c1, c0, \"1\"] (rows=unknown)",
-//            "  └ NestedLoopJoin[CROSS] (rows=unknown)",
-//            "    ├ NestedLoopJoin[RIGHT | true] (rows=unknown)",
-//            "    │  ├ Collect[doc.t1 | [c0] | true] (rows=unknown)",
-//            "    │  └ Rename[\"1\"] AS sub0 (rows=unknown)",
-//            "    │    └ TableFunction[empty_row | [1] | true] (rows=unknown)",
-//            "    └ Collect[doc.t0 | [c1] | (NOT (c1 >= c1))] (rows=unknown)"
-//        );
 
         execute(query);
         assertThat(response.rows()).isEmpty();
