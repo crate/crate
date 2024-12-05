@@ -33,6 +33,8 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -87,7 +89,7 @@ public class SystemCollectSourceTest extends IntegTestCase {
             false
         ).apply(Collections.singletonList(new UnassignedShard(
             1,
-            "foo",
+            new Index("foo", UUIDs.randomBase64UUID()),
             mock(ClusterService.class),
             true,
             ShardRoutingState.UNASSIGNED)));
