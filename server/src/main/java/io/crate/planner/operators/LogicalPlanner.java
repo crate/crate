@@ -369,13 +369,25 @@ public class LogicalPlanner {
             var lhsRel = joinRelation.left();
             var rhsRel = joinRelation.right();
             var correlatedSubQueries = JoinPlanBuilder.extractCorrelatedSubQueries(joinRelation.joinCondition());
-//            subqueryPlanner.planSubQueries()
-            return new JoinPlan(
-                joinRelation.left().accept(this, lhsRel.outputs()),
-                joinRelation.right().accept(this, rhsRel.outputs()),
-                joinRelation.joinType(),
-                AndOperator.join(correlatedSubQueries.remainder())
-            );
+            if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
+                return new JoinPlan(
+                    joinRelation.left().accept(this, lhsRel.outputs()),
+                    joinRelation.right().accept(this, rhsRel.outputs()),
+                    joinRelation.joinType(),
+                    joinRelation.joinCondition()
+                );
+            } else {
+                LogicalPlan source = new JoinPlan(
+                    joinRelation.left().accept(this, lhsRel.outputs()),
+                    joinRelation.right().accept(this, rhsRel.outputs()),
+                    joinRelation.joinType(),
+                    AndOperator.join(correlatedSubQueries.remainder())
+                );
+                for (Symbol symbol : correlatedSubQueries.correlatedSubQueries()) {
+                     source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
+                }
+                return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
+            }
         }
 
         @Override
