@@ -104,7 +104,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         assertThat(subPlanAnalysis).containsKeys("Phases", "Total");
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) subPlanAnalysis.get("Phases");
         assertThat(phasesAnalysis).isNotNull();
-        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler");
+        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler", "2-fetchPhase");
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
