@@ -203,11 +203,11 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     private String httpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
-        return "http://" + address.getAddress().getCanonicalHostName() + ":" + address.getPort();
+        return "http://" + address.getAddress().getHostAddress() + ":" + address.getPort();
     }
 
     private String invalidHttpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
-        return "http://invalid." + address.getAddress().getCanonicalHostName() + ":" + address.getPort();
+        return "http://127.0.0.0:" + address.getPort();
     }
 }
