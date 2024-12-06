@@ -92,4 +92,10 @@ public class SysNodesITest extends IntegTestCase {
         execute("select fs from sys.nodes where name = 'node_s0'");
         assertThat(response.rowCount()).isEqualTo(1L);
     }
+
+    @Test
+    public void test_can_select_node_attributes_sub_fields() {
+        execute("SELECT attributes['color'] FROM sys.nodes");
+        assertThat(response).isNotEmpty();
+    }
 }
