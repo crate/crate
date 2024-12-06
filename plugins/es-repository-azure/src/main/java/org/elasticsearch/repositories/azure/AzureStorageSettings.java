@@ -22,6 +22,7 @@ package org.elasticsearch.repositories.azure;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.UnknownHostException;
 
 import org.elasticsearch.common.Strings;
