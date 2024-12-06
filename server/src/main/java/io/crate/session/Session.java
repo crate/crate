@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -164,6 +165,22 @@ public class Session implements AutoCloseable {
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
 
+    Session(Session session) {
+        this.id = session.id;
+        this.connectionProperties = session.connectionProperties;
+        this.timeCreated = session.timeCreated;
+        this.secret = session.secret;
+        this.analyzer = session.analyzer;
+        this.planner = session.planner;
+        this.jobsLogs = session.jobsLogs;
+        this.isReadOnly = session.isReadOnly;
+        this.executor = session.executor;
+        this.sessionSettings = session.sessionSettings;
+        this.onClose = session.onClose;
+        this.tempErrorRetryCount = session.tempErrorRetryCount;
+
+    }
+
     /**
      * @param connectionProperties client connection details. If null this is considered a system session
      **/
@@ -226,6 +243,7 @@ public class Session implements AutoCloseable {
     /**
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
+     * This is used for system calls and statement_timeout is not accounted for here.
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         lastStmt = statement;
@@ -315,7 +333,9 @@ public class Session implements AutoCloseable {
         return sessionSettings;
     }
 
-    public void parse(String statementName, String query, List<DataType<?>> paramTypes) {
+    public TimeoutToken parse(String statementName, String query, List<DataType<?>> paramTypes) {
+        TimeoutToken timeoutToken = new TimeoutToken(sessionSettings.statementTimeout().millis());
+        long startTime = System.currentTimeMillis();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
         }
@@ -331,13 +351,19 @@ public class Session implements AutoCloseable {
                 throw t;
             }
         }
-        analyze(statementName, statement, paramTypes, query);
+        long phaseTime = phaseTime("parsing", startTime);
+        timeoutToken.failIfExpired(query, "parsing", phaseTime);
+
+        analyze(statementName, statement, paramTypes, query, timeoutToken);
+        return timeoutToken;
     }
 
-    public void analyze(String statementName,
+    public TimeoutToken analyze(String statementName,
                         Statement statement,
                         List<DataType<?>> paramTypes,
-                        @Nullable String query) {
+                        @Nullable String query,
+                        TimeoutToken timeoutToken) {
+        long startTime = System.currentTimeMillis();
         AnalyzedStatement analyzedStatement;
         DataType<?>[] parameterTypes;
         try {
@@ -360,6 +386,9 @@ public class Session implements AutoCloseable {
         preparedStatements.put(
             statementName,
             new PreparedStmt(statement, analyzedStatement, query, parameterTypes));
+        long phaseTime = phaseTime("analysis", startTime);
+        timeoutToken.failIfExpired(query, "analysis", phaseTime);
+        return timeoutToken;
     }
 
     public void bind(String portalName,
@@ -458,6 +487,10 @@ public class Session implements AutoCloseable {
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
+    }
+
+    protected long phaseTime(String phase, long phaseStart) {
+        return System.currentTimeMillis() - phaseStart;
     }
 
     @Nullable
@@ -939,5 +972,29 @@ public class Session implements AutoCloseable {
             ", mostRecentJobID=" + mostRecentJobID +
             ", id=" + id +
             "}";
+    }
+
+    /**
+     * Controls execution time of all lifecycle phases of a statement (parse/analysis/plan/execution).
+     * If statement_timeout is specified, statement is stopped when processing exceeds it.
+     */
+    public static class TimeoutToken {
+
+        private final long sessionTimeout;
+        private long timeSpentSoFar;
+
+        public TimeoutToken(long sessionTimeout) {
+            this.sessionTimeout = sessionTimeout;
+        }
+
+        public void failIfExpired(String statement, String phase, long addedTime) {
+            if (sessionTimeout > 0 && timeSpentSoFar + addedTime > sessionTimeout) {
+                throw new IllegalStateException(
+                    String.format(Locale.ENGLISH,"Statement %s %s exceeded %d ms statement_timeout", statement, phase, sessionTimeout)
+                );
+            } else {
+                timeSpentSoFar += addedTime;
+            }
+        }
     }
 }

@@ -246,7 +246,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                                                                     List<Object> args,
                                                                     boolean includeTypes) throws IOException {
         long startTimeInNs = System.nanoTime();
-        session.parse(UNNAMED, stmt, emptyList());
+        // session.parse also invokes analysis, timeoutToken accounts for that as well.
+        Session.TimeoutToken timeoutToken = session.parse(UNNAMED, stmt, emptyList());
         session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : args, null);
         DescribeResult description = session.describe('P', UNNAMED);
         List<Symbol> resultFields = description.getFields();
@@ -270,6 +271,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             );
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
         }
+        // TODO: pass token here to execute and use it there
         session.execute(UNNAMED, 0, resultReceiver);
         return session.sync()
             .thenCompose(ignored -> resultReceiver.completionFuture());
@@ -279,11 +281,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                                                                   String stmt,
                                                                   List<List<Object>> bulkArgs) {
         final long startTimeInNs = System.nanoTime();
-        session.parse(UNNAMED, stmt, emptyList());
+        // session.parse also invokes analysis, timeoutToken accounts for that as well.
+        Session.TimeoutToken timeoutToken = session.parse(UNNAMED, stmt, emptyList());
         final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
         for (int i = 0; i < bulkArgs.size(); i++) {
             session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
             var resultReceiver = new RestBulkRowCountReceiver(results, i);
+            // TODO: pass token here to execute and use it there
             session.execute(UNNAMED, 0, resultReceiver);
         }
         if (results.length > 0) {
