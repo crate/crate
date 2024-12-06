@@ -15,20 +15,26 @@ Introduction
 
 In CrateDB every table (or if partitioned every partition) consists of
 segments. When inserting/deleting/updating data new segments are created
-following as an append-only strategy, which gives the advantage of fast writes
-but on the other hand can result into a big number of segments. As the number
+following an append-only strategy, which gives the advantage of fast writes
+but on the other hand can result in a large number of segments. As the number
 of segments increases the read operations become slower since more segments
 need to be visited. Moreover each segment consumes file handles, memory and
 CPU. CrateDB solves this problem by merging segments automatically in the
 background. Small segments are merged into bigger segments, which, in turn, are
-merged into even bigger segments. Furthermore any deleted rows and documents
-are not copied to the new bigger segment during this process.
+merged into even bigger segments. Furthermore any deleted rows
+are not copied to the new bigger segment during this process, and recovery
+source and soft-delete markers which are necessary for peer-recovery can be
+removed for rows that have been fully replicated.
 
 If required one or more tables or table partitions can be optimized explicitly
 in order to improve performance. A few parameters can also be configured for
 the optimization process, like the max number of segments you wish to have when
 optimization is completed, or if you only wish to merge segments with deleted
 data, etc. See :ref:`sql-optimize` for detailed description of parameters.
+
+Disk usage after an ``OPTIMIZE`` call should be lower than it was before,
+but the optimization process itself may temporarily use up to twice as much disk
+space as the initial size of the table or partition.
 
 ::
 
