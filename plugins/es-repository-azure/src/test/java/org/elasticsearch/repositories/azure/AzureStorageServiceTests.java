@@ -49,7 +49,7 @@ public class AzureStorageServiceTests extends ESTestCase {
     @Test
     public void test_cannot_set_endpoint_and_endpoint_suffix() {
         final Settings settings = Settings.builder().put(buildClientCredSettings())
-            .put("endpoint", "my_endpoint")
+            .put("endpoint", "http://my-endpoint")
             .put("endpoint_suffix", "my_endpoint_suffix").build();
         assertThatThrownBy(() -> storageServiceWithSettings(settings))
             .isExactlyInstanceOf(SettingsException.class)
@@ -59,7 +59,7 @@ public class AzureStorageServiceTests extends ESTestCase {
     @Test
     public void test_cannot_set_secondary_endpoint_without_endpoint() {
         final Settings settings = Settings.builder().put(buildClientCredSettings())
-            .put("secondary_endpoint", "my_secondary_endpoint").build();
+            .put("secondary_endpoint", "http://my-secondary-endpoint").build();
         assertThatThrownBy(() -> storageServiceWithSettings(settings))
             .isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Cannot specify secondary_endpoint without specifying endpoint");

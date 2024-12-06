@@ -1190,7 +1190,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     metadata.name(),
                     errorInfo.getClass().getSimpleName(),
                     errorInfo.getMessage()
-                )
+                ),
+                errorInfo
             );
         }
     }
