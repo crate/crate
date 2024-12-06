@@ -112,7 +112,6 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         var relation = new QueriedSelectRelation(
             false,
             List.of(tableRelation),
-            List.of(),
             List.of(new OuterColumn(tableRelation, b)),
             Literal.BOOLEAN_TRUE,
             List.of(),

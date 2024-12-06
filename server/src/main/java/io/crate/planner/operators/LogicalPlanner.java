@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
@@ -61,6 +62,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -368,6 +370,32 @@ public class LogicalPlanner {
         }
 
         @Override
+        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> context) {
+            var lhsRel = joinRelation.left();
+            var rhsRel = joinRelation.right();
+            var correlatedSubQueries = JoinPlanBuilder.extractCorrelatedSubQueries(joinRelation.joinCondition());
+            if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
+                return new JoinPlan(
+                    joinRelation.left().accept(this, lhsRel.outputs()),
+                    joinRelation.right().accept(this, rhsRel.outputs()),
+                    joinRelation.joinType(),
+                    joinRelation.joinCondition()
+                );
+            } else {
+                LogicalPlan source = new JoinPlan(
+                    joinRelation.left().accept(this, lhsRel.outputs()),
+                    joinRelation.right().accept(this, rhsRel.outputs()),
+                    joinRelation.joinType(),
+                    AndOperator.join(correlatedSubQueries.remainder())
+                );
+                for (Symbol symbol : correlatedSubQueries.correlatedSubQueries()) {
+                    source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
+                }
+                return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
+            }
+        }
+
+        @Override
         public LogicalPlan visitAnalyzedRelation(AnalyzedRelation relation, List<Symbol> outputs) {
             throw new UnsupportedOperationException(relation.getClass().getSimpleName() + " NYI");
         }
@@ -457,7 +485,6 @@ public class LogicalPlanner {
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
                 relation.where(),
-                relation.joinPairs(),
                 subQueries,
                 rel -> {
                     if (relation.from().size() == 1) {
@@ -480,13 +507,8 @@ public class LogicalPlanner {
                         for (Symbol symbol : splitPoints.toCollect()) {
                             symbol.any(addFiltered);
                         }
+                        // check symbols from join condition
                         relation.where().any(addFiltered);
-                        for (var joinPair : relation.joinPairs()) {
-                            var condition = joinPair.condition();
-                            if (condition != null) {
-                                condition.any(addFiltered);
-                            }
-                        }
                         return rel.accept(this, List.copyOf(toCollect));
                     }
                 }
