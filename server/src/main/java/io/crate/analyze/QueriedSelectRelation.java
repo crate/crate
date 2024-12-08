@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -97,7 +98,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (match != null || column.isRoot()) {
             return match;
         }
-        ColumnIdent root = column.getRoot();
 
         // Try to optimize child-column access to use a Reference instead of a subscript function
         //
@@ -112,21 +112,27 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         //
         // -> Resolve both root field and child-field from source again.
         //    If the root field matches output -> it's not shadowed
-        for (AnalyzedRelation source : from) {
-            Symbol field = source.getField(column, operation, errorOnUnknownObjectKey);
-            if (field != null) {
-                if (match != null) {
-                    throw new AmbiguousColumnException(column, match);
+        List<String> childPath = new ArrayList<>();
+        childPath.add(column.leafName());
+        for (ColumnIdent parent = column.getParent(); parent != null; parent = parent.getParent()) {
+            for (Symbol output : outputs()) {
+                Symbol symbol = output;
+                while (symbol instanceof AliasSymbol alias) {
+                    symbol = alias.symbol();
                 }
-                Symbol rootField = source.getField(root, operation, errorOnUnknownObjectKey);
-                for (Symbol output : outputs()) {
-                    Symbol symbol = output;
-                    while (symbol instanceof AliasSymbol alias) {
-                        symbol = alias.symbol();
-                    }
-                    if (symbol.equals(rootField) || output.equals(rootField)) {
-                        match = field;
-                        break;
+                ColumnIdent unAliasedSymbol = symbol.toColumn();
+                ColumnIdent unAliasedChild = unAliasedSymbol;
+                for (String child : childPath) {
+                    unAliasedChild = unAliasedSymbol.getChild(child);
+                }
+                for (AnalyzedRelation source : from) {
+                    Symbol unAliasedChildSymbol = source.getField(unAliasedChild, operation, errorOnUnknownObjectKey);
+                    if (unAliasedChildSymbol != null) {
+                        if (match == null) {
+                            match = new AliasSymbol(column.sqlFqn(), unAliasedChildSymbol);
+                        } else {
+                            throw new AmbiguousColumnException(column, match);
+                        }
                     }
                 }
             }
