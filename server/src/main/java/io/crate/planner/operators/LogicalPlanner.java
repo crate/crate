@@ -150,6 +150,7 @@ public class LogicalPlanner {
         new MergeAggregateAndCollectToCount(),
         new MergeAggregateRenameAndCollectToCount(),
         new MergeFilters(),
+        new RewriteFilterOnCrossJoinToInnerJoin(),
         new MoveFilterBeneathRename(),
         new MoveFilterBeneathEval(),
         new MoveFilterBeneathOrder(),
@@ -165,7 +166,6 @@ public class LogicalPlanner {
         new MergeFilterAndCollect(),
         new MergeFilterAndForeignCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
-        new RewriteFilterOnCrossJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
         new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathEval(),
@@ -177,11 +177,11 @@ public class LogicalPlanner {
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
         new RewriteLeftOuterJoinToHashJoin(),
-        new RewriteRightOuterJoinToHashJoin(),
-        new RewriteJoinPlan()
+        new RewriteRightOuterJoinToHashJoin()
     );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
+        new RewriteJoinPlan(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );
