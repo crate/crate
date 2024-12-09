@@ -26,12 +26,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -79,9 +77,13 @@ public class SwapRelationsOperation {
         RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
 
         for (RelationName dropRelation : dropRelations) {
-            for (Index index : IndexNameExpressionResolver.concreteIndices(
-                    stateAfterRename.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
-
+            List<Index> indices = stateAfterRename.metadata().getIndices(
+                dropRelation,
+                List.of(),
+                false,
+                IndexMetadata::getIndex
+            );
+            for (Index index : indices) {
                 String indexName = index.getName();
                 updatedMetadata.remove(indexName);
                 routingBuilder.remove(indexName);
@@ -162,12 +164,10 @@ public class SwapRelationsOperation {
                                    RoutingTable.Builder routingBuilder,
                                    Metadata.Builder updatedMetadata,
                                    RelationName name) {
-        String aliasOrIndexName = name.indexNameOrAlias();
         String templateName = PartitionName.templateName(name.schema(), name.name());
         Metadata metadata = state.metadata();
-        for (Index index : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, aliasOrIndexName)) {
-
+        List<Index> indices = metadata.getIndices(name, List.of(), false, IndexMetadata::getIndex);
+        for (Index index : indices) {
             String indexName = index.getName();
             routingBuilder.remove(indexName);
             updatedMetadata.remove(indexName);
@@ -185,10 +185,8 @@ public class SwapRelationsOperation {
                                                      Consumer<String> onProcessedIndex) {
         String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
         IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
-
-        for (Index sourceIndex : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
-
+        List<Index> sourceIndices = metadata.getIndices(source, List.of(), false, IndexMetadata::getIndex);
+        for (Index sourceIndex : sourceIndices) {
             String sourceIndexName = sourceIndex.getName();
             IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
             IndexMetadata targetMd;
