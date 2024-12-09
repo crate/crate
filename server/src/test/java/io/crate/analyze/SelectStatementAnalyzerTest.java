@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
@@ -2295,8 +2296,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 "(select u1.friends as f1, u2.friends as f2 from doc.users u1, doc.users u2) joined");
         assertThat(relation.outputs())
             .satisfiesExactly(
-                isFunction(SubscriptFunction.NAME, isField("f1"), isLiteral("id")),
-                isFunction(SubscriptFunction.NAME, isField("f2"), isLiteral("id")));
+                isScopedSymbol("f1['id']"),
+                isScopedSymbol("f2['id']")
+            );
     }
 
     @Test

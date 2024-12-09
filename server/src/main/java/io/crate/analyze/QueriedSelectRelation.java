@@ -116,20 +116,29 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         childPath.add(column.leafName());
         for (ColumnIdent parent = column.getParent(); parent != null; parent = parent.getParent()) {
             for (Symbol output : outputs()) {
-                Symbol symbol = output;
-                while (symbol instanceof AliasSymbol alias) {
-                    symbol = alias.symbol();
+                boolean isAliased = false;
+                if (output instanceof AliasSymbol aliasSymbol) {
+                    if (parent.sqlFqn().equals(aliasSymbol.alias())) {
+                        isAliased = true;
+                        output = aliasSymbol.symbol();
+                    } else {
+                        continue;
+                    }
                 }
-                ColumnIdent unAliasedSymbol = symbol.toColumn();
+                ColumnIdent unAliasedSymbol = output.toColumn();
                 ColumnIdent unAliasedChild = unAliasedSymbol;
                 for (String child : childPath) {
                     unAliasedChild = unAliasedSymbol.getChild(child);
                 }
                 for (AnalyzedRelation source : from) {
+                    Symbol unAliasedParentSymbol = source.getField(unAliasedSymbol, operation, errorOnUnknownObjectKey);
+                    if (!output.equals(unAliasedParentSymbol)) {
+                        continue;
+                    }
                     Symbol unAliasedChildSymbol = source.getField(unAliasedChild, operation, errorOnUnknownObjectKey);
                     if (unAliasedChildSymbol != null) {
                         if (match == null) {
-                            match = new AliasSymbol(column.sqlFqn(), unAliasedChildSymbol);
+                            match = isAliased ? new AliasSymbol(column.sqlFqn(), unAliasedChildSymbol) : unAliasedChildSymbol;
                         } else {
                             throw new AmbiguousColumnException(column, match);
                         }
