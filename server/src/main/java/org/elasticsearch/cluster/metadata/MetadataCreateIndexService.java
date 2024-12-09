@@ -54,7 +54,6 @@ import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -391,7 +390,10 @@ public class MetadataCreateIndexService {
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
+                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                .put(
+                    IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(),
+                    currentState.nodes().getSmallestNonClientNodeVersion());
 
             if (request.resizeType() == null && request.copySettings() == false) {
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
@@ -401,7 +403,6 @@ public class MetadataCreateIndexService {
                     indexSettingsBuilder.put(AutoExpandReplicas.SETTING_KEY, settings.get(AutoExpandReplicas.SETTING_KEY));
                 }
             }
-            setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
             validateSoftDeletesSetting(indexSettingsBuilder.build());
 
             final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
@@ -693,15 +694,6 @@ public class MetadataCreateIndexService {
                 "Creating tables with soft-deletes disabled is no longer supported. "
                 + "Please do not specify a value for setting [soft_deletes.enabled]."
             );
-        }
-    }
-
-    public static void setIndexVersionCreatedSetting(Settings.Builder indexSettingsBuilder, ClusterState clusterState) {
-        if (indexSettingsBuilder.get(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
-            final DiscoveryNodes nodes = clusterState.nodes();
-            final Version createdVersion = Version.min(Version.CURRENT,
-                                                       nodes.getSmallestNonClientNodeVersion());
-            indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
         }
     }
 
