@@ -43,11 +43,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -57,7 +55,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,7 +68,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.DynamicReference;
@@ -461,37 +457,22 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     public String[] concreteIndices(Metadata metadata) {
-        try {
-            return IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                isPartitioned
-                    ? IndicesOptions.LENIENT_EXPAND_OPEN
-                    : IndicesOptions.STRICT_EXPAND_OPEN,
-                ident.indexNameOrAlias()
-            );
-        } catch (IndexNotFoundException e) {
-            throw new RelationUnknown(ident.fqn(), e);
-        }
+        boolean strict = !isPartitioned;
+        return metadata
+            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getName())
+            .toArray(String[]::new);
     }
 
     public String[] concreteOpenIndices(Metadata metadata) {
-        if (!isPartitioned) {
-            IndexMetadata index = metadata.index(ident.indexNameOrAlias());
-            if (index == null) {
-                throw new RelationUnknown(ident);
-            }
-            String[] concreteIndices = concreteIndices(metadata);
-            if (concreteIndices.length == 0) {
-                throw new RelationUnknown(ident);
-            }
-            return concreteIndices;
-        } else {
-            return IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED),
-                ident.indexNameOrAlias()
-            );
-        }
+        boolean strict = !isPartitioned;
+        return metadata
+            .getIndices(
+                ident,
+                List.of(),
+                strict,
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+            )
+            .toArray(String[]::new);
     }
 
     /**
@@ -520,26 +501,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!isPartitioned) {
             throw new IllegalArgumentException("Relation " + ident + " isn't partitioned, cannot get partitions");
         }
-        String[] concreteIndices = concreteIndices(metadata);
-        ArrayList<PartitionName> partitions = new ArrayList<>(concreteIndices.length);
-        for (String indexName : concreteIndices) {
-            partitions.add(PartitionName.fromIndexOrTemplate(indexName));
-        }
-        return partitions;
+        return metadata.getIndices(
+            ident,
+            List.of(),
+            false,
+            imd -> PartitionName.fromIndexOrTemplate(imd.getIndex().getName())
+        );
     }
 
     public List<PartitionInfo> getPartitions(Metadata metadata) {
         if (!isPartitioned) {
             return List.of();
         }
-        Index[] indices = IndexNameExpressionResolver.concreteIndices(
-            metadata,
-            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
-            ident.indexNameOrAlias()
-        );
-        ArrayList<PartitionInfo> result = new ArrayList<>(indices.length);
-        for (Index index : indices) {
-            IndexMetadata indexMetadata = metadata.index(index);
+        return metadata.getIndices(ident, List.of(), false, indexMetadata -> {
+            Index index = indexMetadata.getIndex();
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(index.getName());
             List<String> values = partitionName.values();
             Map<String, Object> valuesMap = HashMap.newHashMap(values.size());
@@ -556,7 +531,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             Settings settings = indexMetadata.getSettings();
             // Not using numberOfShards/numberOfReplicas/... properties because PartitionInfo
             // needs to show the values of the partition, not the table/template
-            PartitionInfo partitionInfo = new PartitionInfo(
+            return new PartitionInfo(
                 partitionName,
                 indexMetadata.getNumberOfShards(),
                 NumberOfReplicas.getVirtualValue(settings),
@@ -566,9 +541,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 valuesMap,
                 settings
             );
-            result.add(partitionInfo);
-        }
-        return result;
+        });
     }
 
 

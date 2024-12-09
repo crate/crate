@@ -41,14 +41,12 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
@@ -479,17 +477,12 @@ public final class MetadataTracker implements Closeable {
                 continue;
             }
             // Check for possible dropped partitions
-            var concreteIndices = IndexNameExpressionResolver.concreteIndices(
-                subscriberClusterState.metadata(),
-                IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
-                relationName.indexNameOrAlias()
-            );
-            for (var concreteIndex : concreteIndices) {
-                var subscriberIndexMetadata = subscriberMetadata.index(concreteIndex);
-                String indexUUID = PUBLISHER_INDEX_UUID.get(subscriberIndexMetadata.getSettings());
+            List<IndexMetadata> concreteIndices = subscriberMetadata.getIndices(relationName, List.of(), false, x -> x);
+            for (IndexMetadata concreteIndex : concreteIndices) {
+                String indexUUID = PUBLISHER_INDEX_UUID.get(concreteIndex.getSettings());
                 boolean publisherContainsIndex = publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
                 if (!publisherContainsIndex) {
-                    partitionsToRemove.add(concreteIndex);
+                    partitionsToRemove.add(concreteIndex.getIndex());
                 }
             }
         }
