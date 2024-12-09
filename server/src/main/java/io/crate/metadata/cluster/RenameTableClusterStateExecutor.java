@@ -21,6 +21,7 @@
 
 package io.crate.metadata.cluster;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,12 +31,10 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
@@ -103,12 +102,9 @@ public class RenameTableClusterStateExecutor {
         logger.info("renaming table '{}' to '{}'", source.fqn(), target.fqn());
 
         try {
-            Index[] sourceIndices = IndexNameExpressionResolver.concreteIndices(
-                currentState.metadata(), STRICT_INDICES_OPTIONS, source.indexNameOrAlias());
-
-            for (Index sourceIndex : sourceIndices) {
-                IndexMetadata sourceIndexMetadata = currentMetadata.getIndexSafe(sourceIndex);
-                String sourceIndexName = sourceIndex.getName();
+            List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
+            for (IndexMetadata sourceIndex : sourceIndices) {
+                String sourceIndexName = sourceIndex.getIndex().getName();
                 newMetadata.remove(sourceIndexName);
                 newRoutingTable.remove(sourceIndexName);
                 blocksBuilder.removeIndexBlocks(sourceIndexName);
@@ -117,13 +113,13 @@ public class RenameTableClusterStateExecutor {
                 if (isPartitioned) {
                     PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
                     String targetIndexName = IndexName.encode(target, partitionName.ident());
-                    targetMd = IndexMetadata.builder(sourceIndexMetadata)
+                    targetMd = IndexMetadata.builder(sourceIndex)
                         .removeAllAliases()
                         .putAlias(new AliasMetadata(target.indexNameOrAlias()))
                         .index(targetIndexName)
                         .build();
                 } else {
-                    targetMd = IndexMetadata.builder(sourceIndexMetadata)
+                    targetMd = IndexMetadata.builder(sourceIndex)
                         .index(target.indexNameOrAlias())
                         .build();
                 }
