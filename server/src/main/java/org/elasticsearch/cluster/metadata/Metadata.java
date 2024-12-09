@@ -69,6 +69,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
