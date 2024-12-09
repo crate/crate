@@ -165,22 +165,6 @@ public class Session implements AutoCloseable {
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
 
-    Session(Session session) {
-        this.id = session.id;
-        this.connectionProperties = session.connectionProperties;
-        this.timeCreated = session.timeCreated;
-        this.secret = session.secret;
-        this.analyzer = session.analyzer;
-        this.planner = session.planner;
-        this.jobsLogs = session.jobsLogs;
-        this.isReadOnly = session.isReadOnly;
-        this.executor = session.executor;
-        this.sessionSettings = session.sessionSettings;
-        this.onClose = session.onClose;
-        this.tempErrorRetryCount = session.tempErrorRetryCount;
-
-    }
-
     /**
      * @param connectionProperties client connection details. If null this is considered a system session
      **/

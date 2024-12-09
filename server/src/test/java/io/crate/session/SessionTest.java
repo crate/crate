@@ -27,8 +27,11 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -99,7 +102,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_select_query_executed_on_session_execute_method() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
 
         var activeExecutionFuture = CompletableFuture.completedFuture(null);
         doReturn(activeExecutionFuture)
@@ -131,7 +134,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).setPlanner(planner)
             .build()
             .addTable("create table users (name text)");
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
@@ -381,7 +384,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.sync();
 
         verify(client, times(1))
-            .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
+            .execute(eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
     }
 
     @Test
@@ -392,8 +395,10 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .build();
         try (Session session = sqlExecutor.createSession()) {
             session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
-            TestSession testSession = new TestSession(session, 11, 1);
-            assertThatThrownBy(() -> testSession.parse(UNNAMED, "SELECT 1", List.of()))
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(11L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(1L);
+            assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessage("Statement SELECT 1 parsing exceeded 10 ms statement_timeout");
         }
@@ -407,9 +412,10 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .build();
         try (Session session = sqlExecutor.createSession()) {
             session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
-            // Both parsing and analysis times don't exceed timeout, but combined time exceed the timeout.
-            TestSession testSession = new TestSession(session, 1, 10);
-            assertThatThrownBy(() -> testSession.parse(UNNAMED, "SELECT 1", List.of()))
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(1L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(10L);
+            assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessage("Statement SELECT 1 analysis exceeded 10 ms statement_timeout");
         }
@@ -424,40 +430,14 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         try (Session session = sqlExecutor.createSession()) {
             session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
 
-            // Overall spent time is 10 millis. We must reset the time when we are done with one query,
-            // so that the next query starts from the clean state and time spent in previous queries doesn't add up.
-            TestSession testSession = new TestSession(session, 5, 5);
-            testSession.parse(UNNAMED, "SELECT 1", List.of());
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(5L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(5L);
+            spy.parse(UNNAMED, "SELECT 1", List.of());
 
             // New statement runs for 10 (5 + 5) seconds as well, timeout must not be exceeded.
-            testSession.parse(UNNAMED, "SELECT 2", List.of());
+            spy.parse(UNNAMED, "SELECT 2", List.of());
         }
     }
 
-    /**
-     * A {@link Session} with possibility to prolong execution time of parsing and analysis.
-     * All times must be provided in milliseconds.
-     */
-    private static class TestSession extends Session {
-
-        private final long parseTime;
-        private final long analyzeTime;
-
-        public TestSession(Session session, long parseTime, long analyzeTime) {
-            super(session);
-            this.parseTime = parseTime;
-            this.analyzeTime = analyzeTime;
-        }
-
-        @Override
-        protected long phaseTime(String phase, long phaseStart) {
-            if (phase.equals("parsing")) {
-                return parseTime;
-            } else if (phase.equals("analysis")) {
-                return analyzeTime;
-            } else {
-                return System.currentTimeMillis() - phaseStart;
-            }
-        }
-    }
 }
