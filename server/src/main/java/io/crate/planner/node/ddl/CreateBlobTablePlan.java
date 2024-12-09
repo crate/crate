@@ -21,11 +21,11 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 
 import java.util.function.Function;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -41,6 +41,9 @@ import io.crate.analyze.TableProperties;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.CreateBlobTableRequest;
+import io.crate.execution.ddl.tables.CreateTableResponse;
+import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -85,11 +88,18 @@ public class CreateBlobTablePlan implements Plan {
             subQueryResults,
             numberOfShards);
 
-        CreateIndexRequest createIndexRequest = new CreateIndexRequest(fullIndexName(relationName.name()), settings);
 
-        OneRowActionListener<CreateIndexResponse> listener =
-            new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
-        dependencies.client().execute(CreateIndexAction.INSTANCE, createIndexRequest).whenComplete(listener);
+        if (plannerContext.clusterState().nodes().getSmallestNonClientNodeVersion().onOrAfter(Version.V_5_10_0)) {
+            CreateBlobTableRequest request = new CreateBlobTableRequest(relationName, settings);
+            OneRowActionListener<CreateTableResponse> listener =
+                new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
+            dependencies.client().execute(TransportCreateBlobTableAction.ACTION, request).whenComplete(listener);
+        } else {
+            CreateIndexRequest createIndexRequest = new CreateIndexRequest(relationName.indexNameOrAlias(), settings);
+            OneRowActionListener<CreateIndexResponse> listener =
+                new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
+            dependencies.client().execute(CreateIndexAction.INSTANCE, createIndexRequest).whenComplete(listener);
+        }
     }
 
     @VisibleForTesting

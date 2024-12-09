@@ -99,6 +99,7 @@ import io.crate.blob.TransportStartBlobAction;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
@@ -174,6 +175,7 @@ public class ActionModule extends AbstractModule {
 
         ActionRegistry actions = new ActionRegistry();
         actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
+        actions.register(TransportCreateBlobTableAction.ACTION, TransportCreateBlobTableAction.class);
         actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
         actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
