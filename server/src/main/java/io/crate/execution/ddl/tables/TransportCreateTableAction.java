@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
@@ -138,9 +137,11 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put(request.settings())
+            .put(
+                IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(),
+                state.nodes().getSmallestNonClientNodeVersion())
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
 
-        setIndexVersionCreatedSetting(settingsBuilder, state);
         Settings normalizedSettings = settingsBuilder.build();
 
         validateSoftDeletesSetting(normalizedSettings);
