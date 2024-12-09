@@ -21,13 +21,17 @@
 
 package io.crate.session;
 
+import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -98,7 +102,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_select_query_executed_on_session_execute_method() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
 
         var activeExecutionFuture = CompletableFuture.completedFuture(null);
         doReturn(activeExecutionFuture)
@@ -130,7 +134,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).setPlanner(planner)
             .build()
             .addTable("create table users (name text)");
-        Session session = Mockito.spy(sqlExecutor.createSession());
+        Session session = spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
@@ -380,6 +384,60 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.sync();
 
         verify(client, times(1))
-            .execute(Mockito.eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
+            .execute(eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
     }
+
+    @Test
+    public void test_parsing_throws_an_error_on_exceeding_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(11L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(1L);
+            assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Statement SELECT 1 parsing exceeded 10 ms statement_timeout");
+        }
+    }
+
+    @Test
+    public void test_analysis_throws_an_error_on_exceeding_statement_timeout() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(1L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(10L);
+            assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Statement SELECT 1 analysis exceeded 10 ms statement_timeout");
+        }
+    }
+
+    @Test
+    public void test_statement_timeout_previous_statement_time_is_not_accounted_for() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
+
+            Session spy = spy(session);
+            when(spy.phaseTime(eq("parsing"), anyLong())).thenReturn(5L);
+            when(spy.phaseTime(eq("analysis"), anyLong())).thenReturn(5L);
+            spy.parse(UNNAMED, "SELECT 1", List.of());
+
+            // New statement runs for 10 (5 + 5) seconds as well, timeout must not be exceeded.
+            spy.parse(UNNAMED, "SELECT 2", List.of());
+        }
+    }
+
 }
