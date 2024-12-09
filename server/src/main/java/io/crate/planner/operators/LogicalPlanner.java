@@ -138,7 +138,7 @@ public class LogicalPlanner {
     private final IterativeOptimizer optimizer;
     // Join ordering optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
-    private final IterativeOptimizer joinOrderOptimizer;
+    private final IterativeOptimizer joinImplementationOptimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -179,7 +179,7 @@ public class LogicalPlanner {
         new RewriteRightOuterJoinToHashJoin()
     );
 
-    public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
+    public static final List<Rule<?>> JOIN_IMPLEMENTATION_OPTIMIZER_RULES = List.of(
         new RewriteJoinPlan(),
         new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
@@ -206,10 +206,10 @@ public class LogicalPlanner {
             minNodeVersionInCluster,
             ITERATIVE_OPTIMIZER_RULES
         );
-        this.joinOrderOptimizer = new IterativeOptimizer(
+        this.joinImplementationOptimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            JOIN_ORDER_OPTIMIZER_RULES
+            JOIN_IMPLEMENTATION_OPTIMIZER_RULES
         );
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
@@ -301,7 +301,7 @@ public class LogicalPlanner {
             plannerContext.transactionContext(),
             plannerContext.optimizerTracer()
         );
-        optimizedPlan = joinOrderOptimizer.optimize(
+        optimizedPlan = joinImplementationOptimizer.optimize(
             optimizedPlan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
