@@ -75,7 +75,13 @@ public class PreparedStmt {
         return rawStatement;
     }
 
+    /**
+     * @return copy of the token storing information how much time spent for processing.
+     * Original token is reset to 0 since prepared statement can be re-used.
+     */
     public Session.TimeoutToken timeoutToken() {
-        return timeoutToken;
+        var copy = new Session.TimeoutToken(timeoutToken.sessionTimeout(), timeoutToken.timeSpentSoFar());
+        timeoutToken.reset();
+        return copy;
     }
 }
