@@ -24,10 +24,13 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -117,6 +120,11 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void test_drop_tables_which_is_read_only() throws Exception {
         execute("create blob table b1 with (number_of_replicas = 0)");
+
+        RelationName name = new RelationName("blob", "b1");
+        RelationMetadata relation = clusterService().state().metadata().getRelation(name);
+        assertThat(relation).isNotNull();
+
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=true)");
 
         Asserts.assertSQLError(() -> execute("drop blob table b1"))
@@ -127,6 +135,9 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=false)");
         execute("drop blob table b1");
         assertThat(response.rowCount()).isEqualTo(1L);
+
+        relation = clusterService().state().metadata().getRelation(name);
+        assertThat(relation).isNull();
     }
 
     private void blobUpload(String[] contents, String... tables) throws Exception {
