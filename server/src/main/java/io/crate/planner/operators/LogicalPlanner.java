@@ -167,7 +167,6 @@ public class LogicalPlanner {
         new MergeFilterAndForeignCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathEval(),
         new MoveOrderBeneathRename(),
         new DeduplicateOrder(),
@@ -182,6 +181,7 @@ public class LogicalPlanner {
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
         new RewriteJoinPlan(),
+        new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );

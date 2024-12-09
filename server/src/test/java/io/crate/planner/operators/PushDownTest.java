@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.isReference;
 
 import java.io.IOException;
 
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -104,6 +105,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @TestLogging("io.crate.planner.optimizer.tracer:TRACE")
     public void testOrderByOnJoinWithMultipleRelationsPushedDown() {
         LogicalPlan plan = plan(
             """
