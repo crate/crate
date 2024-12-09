@@ -25,12 +25,14 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.EquiJoinDetector;
@@ -70,22 +72,32 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
         JoinPlan crossJoin = captures.get(joinCapture);
         Symbol query = equiJoinConditionFilter.query();
         Map<Set<RelationName>, Symbol> filterRelations = QuerySplitter.split(query);
+        ArrayList<RelationName> relationNames = new ArrayList<>();
+        ArrayList<Symbol> joinCondition = new ArrayList<>();
+        ArrayList<Symbol> newFilterQuery = new ArrayList<>();
+        for (var entry : filterRelations.entrySet()) {
+            Set<RelationName> key = entry.getKey();
+            Symbol value = entry.getValue();
+            if (EquiJoinDetector.isEquiJoin(value)) {
+                relationNames.addAll(key);
+                joinCondition.add(value);
+            } else {
+                newFilterQuery.add(value);
+            }
+        }
 
         List<RelationName> lhs = crossJoin.lhs().relationNames();
         List<RelationName> rhs = crossJoin.rhs().relationNames();
-        // TODO this could be extended to also support nested-joins with more than 2 relations
-        if (lhs.size() == 1 && rhs.size() == 1) {
-            HashSet<RelationName> sources = HashSet.newHashSet(2);
-            sources.addAll(lhs);
-            sources.addAll(rhs);
-            if (filterRelations.containsKey(sources)) {
-                return new JoinPlan(
-                    crossJoin.lhs(),
-                    crossJoin.rhs(),
-                    JoinType.INNER,
-                    query
-                );
-            }
+        HashSet<RelationName> sources = HashSet.newHashSet(2);
+        sources.addAll(lhs);
+        sources.addAll(rhs);
+        if (relationNames.containsAll(sources)) {
+            return Filter.create(new JoinPlan(
+                crossJoin.lhs(),
+                crossJoin.rhs(),
+                JoinType.INNER,
+                AndOperator.join(joinCondition)
+            ), AndOperator.join(newFilterQuery));
         }
         return null;
     }
