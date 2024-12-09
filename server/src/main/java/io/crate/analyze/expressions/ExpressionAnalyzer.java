@@ -1051,14 +1051,17 @@ public class ExpressionAnalyzer {
                 return Literal.EMPTY_OBJECT;
             }
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
+            var typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             for (Map.Entry<String, Expression> entry : values.entrySet()) {
                 arguments.add(Literal.of(entry.getKey()));
                 arguments.add(entry.getValue().accept(this, context));
+                typeBuilder.setInnerType(entry.getKey(), entry.getValue().accept(this, context).valueType());
             }
-            return allocateFunction(
-                MapFunction.NAME,
+            return new Function(
+                MapFunction.SIGNATURE,
                 arguments,
-                context);
+                typeBuilder.build()
+            );
         }
 
         private static final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
