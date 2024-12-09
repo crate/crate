@@ -83,7 +83,10 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added ``CHAR`` and `"CHAR"` to the list of non-reserved keywords e.g.
+  to allow using it as an alias in a query::
+
+        SELECT 'foo' AS "CHAR";
 
 Data Types
 ----------
@@ -146,7 +149,7 @@ Administration and Operations
   objects. For example::
 
     CREATE TABLE tbl (obj OBJECT(STRICT) AS (x INT));
-    SELECT obj['unknown'] FROM (SELECT obj FROM tbl) AS t; 
+    SELECT obj['unknown'] FROM (SELECT obj FROM tbl) AS t;
 
   now throws a ``ColumnUnknownException`` as expected.
 

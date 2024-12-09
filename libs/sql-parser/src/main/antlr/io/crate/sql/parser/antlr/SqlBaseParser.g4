@@ -884,6 +884,8 @@ nonReserved
     | CASCADE
     | CATALOGS
     | CHARACTER
+    | CHAR
+    | CHAR_SPECIAL
     | CHARACTERISTICS
     | CHAR_FILTERS
     | CHECK
