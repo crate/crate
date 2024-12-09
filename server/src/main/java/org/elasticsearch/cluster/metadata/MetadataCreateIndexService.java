@@ -289,9 +289,10 @@ public class MetadataCreateIndexService {
         public ClusterState execute(ClusterState currentState) throws Exception {
             String indexName = request.name().indexNameOrAlias();
             Version versionCreated = currentState.nodes().getSmallestNonClientNodeVersion();
+            String indexUUID = UUIDs.randomBase64UUID();
             Settings settings = Settings.builder()
                 .put(request.settings())
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                .put(SETTING_INDEX_UUID, indexUUID)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), versionCreated)
                 .build();
@@ -300,11 +301,13 @@ public class MetadataCreateIndexService {
                 .settings(settings)
                 .build();
             return indicesService.withTempIndexService(indexMetadata, indexService -> {
+                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
+                    .addBlobTable(request.name(), indexUUID);
                 ClusterState updatedState = addIndex(
                     allocationService,
                     indexService,
                     currentState,
-                    Metadata.builder(currentState.metadata()),
+                    mdBuilder,
                     indexName,
                     indexMetadata,
                     new MappingMetadata(Map.of()),

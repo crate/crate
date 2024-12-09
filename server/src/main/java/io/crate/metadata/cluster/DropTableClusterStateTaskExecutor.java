@@ -21,11 +21,11 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.List;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
@@ -48,12 +48,19 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
-        Set<Index> concreteIndices = Set.of(IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()));
+        Metadata currentMetadata = currentState.metadata();
 
-        currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
+        Collection<Index> indices = currentMetadata.getIndices(
+            relationName,
+            List.of(),
+            false,
+            IndexMetadata::getIndex
+        );
+        currentState = ClusterState.builder(currentState)
+            .metadata(Metadata.builder(currentMetadata).dropRelation(relationName))
+            .build();
+
+        currentState = deleteIndexService.deleteIndices(currentState, indices);
         Metadata metadata = currentState.metadata();
 
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());

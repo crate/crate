@@ -43,6 +43,11 @@ public final class Diffs {
     private Diffs() {
     }
 
+    @SuppressWarnings("unchecked")
+    public static <T> Diff<T> empty() {
+        return (Diff<T>) AbstractDiffable.EMPTY;
+    }
+
     /**
      * Returns a map key serializer for String keys
      */

@@ -19,11 +19,11 @@
 
 package org.elasticsearch.cluster;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract diffable object with simple diffs implementation that sends the entire object if object has changed or
@@ -31,7 +31,7 @@ import java.io.IOException;
  */
 public abstract class AbstractDiffable<T extends Diffable<T>> implements Diffable<T> {
 
-    private static final Diff<?> EMPTY = new CompleteDiff<>();
+    static final Diff<?> EMPTY = new CompleteDiff<>();
 
     @SuppressWarnings("unchecked")
     @Override
