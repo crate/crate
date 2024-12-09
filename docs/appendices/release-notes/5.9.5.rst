@@ -57,4 +57,8 @@ Fixes
   on another. Example::
 
       SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t;
-      
+
+- Return a proper error message when using an invalid
+  :ref:`sql-create-repo-azure-endpoint` or
+  :ref:`sql-create-repo-azure-secondary_endpoint` URI for defining an
+  :ref:`azure repository <sql-create-repo-azure>`.

@@ -54,7 +54,6 @@ import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -83,7 +82,9 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.CreateBlobTableRequest;
 import io.crate.execution.ddl.tables.CreateTableRequest;
+import io.crate.execution.ddl.tables.CreateTableResponse;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexName;
@@ -235,8 +236,86 @@ public class MetadataCreateIndexService {
                     nodeContext));
     }
 
+    public void addBlobTable(CreateBlobTableRequest request, ActionListener<CreateTableResponse> listener) {
+        String indexName = request.name().indexNameOrAlias();
+        ActionListener<ClusterStateUpdateResponse> stateUpdateListener = withWaitForShards(
+            listener,
+            indexName,
+            ActiveShardCount.DEFAULT,
+            request.ackTimeout(),
+            (stateAcked, shardsAcked) -> new CreateTableResponse(stateAcked && shardsAcked)
+        );
+        clusterService.submitStateUpdateTask(
+            "create-blob-table",
+            new CreateBlobTableTask(
+                request,
+                stateUpdateListener,
+                indicesService,
+                allocationService,
+                nodeContext
+            )
+        );
+    }
+
     interface IndexValidator {
         void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state);
+    }
+
+    static class CreateBlobTableTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
+
+        private final IndicesService indicesService;
+        private final CreateBlobTableRequest request;
+        private final AllocationService allocationService;
+        private final NodeContext nodeContext;
+
+        public CreateBlobTableTask(CreateBlobTableRequest request,
+                                   ActionListener<ClusterStateUpdateResponse> listener,
+                                   IndicesService indicesService,
+                                   AllocationService allocationService,
+                                   NodeContext nodeContext) {
+            super(Priority.HIGH, request, listener);
+            this.request = request;
+            this.indicesService = indicesService;
+            this.allocationService = allocationService;
+            this.nodeContext = nodeContext;
+        }
+
+        @Override
+        protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+            return new ClusterStateUpdateResponse(acknowledged);
+        }
+
+        @Override
+        public ClusterState execute(ClusterState currentState) throws Exception {
+            String indexName = request.name().indexNameOrAlias();
+            Version versionCreated = currentState.nodes().getSmallestNonClientNodeVersion();
+            Settings settings = Settings.builder()
+                .put(request.settings())
+                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), versionCreated)
+                .build();
+            int numShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(settings);
+            IndexMetadata indexMetadata = IndexMetadata.builder(indexName)
+                .settings(settings)
+                .build();
+            return indicesService.withTempIndexService(indexMetadata, indexService -> {
+                ClusterState updatedState = addIndex(
+                    allocationService,
+                    indexService,
+                    currentState,
+                    Metadata.builder(currentState.metadata()),
+                    indexName,
+                    indexMetadata,
+                    new MappingMetadata(Map.of()),
+                    List.of(),
+                    calculateNumRoutingShards(numShards, versionCreated)
+                );
+                // ensure table can be parsed
+                new DocTableInfoFactory(nodeContext).create(request.name(), updatedState.metadata());
+                return updatedState;
+            });
+        }
     }
 
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
@@ -311,7 +390,10 @@ public class MetadataCreateIndexService {
             Settings.Builder indexSettingsBuilder = Settings.builder()
                 .put(request.settings())
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
+                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                .put(
+                    IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(),
+                    currentState.nodes().getSmallestNonClientNodeVersion());
 
             if (request.resizeType() == null && request.copySettings() == false) {
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
@@ -321,7 +403,6 @@ public class MetadataCreateIndexService {
                     indexSettingsBuilder.put(AutoExpandReplicas.SETTING_KEY, settings.get(AutoExpandReplicas.SETTING_KEY));
                 }
             }
-            setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
             validateSoftDeletesSetting(indexSettingsBuilder.build());
 
             final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
@@ -613,15 +694,6 @@ public class MetadataCreateIndexService {
                 "Creating tables with soft-deletes disabled is no longer supported. "
                 + "Please do not specify a value for setting [soft_deletes.enabled]."
             );
-        }
-    }
-
-    public static void setIndexVersionCreatedSetting(Settings.Builder indexSettingsBuilder, ClusterState clusterState) {
-        if (indexSettingsBuilder.get(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
-            final DiscoveryNodes nodes = clusterState.nodes();
-            final Version createdVersion = Version.min(Version.CURRENT,
-                                                       nodes.getSmallestNonClientNodeVersion());
-            indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
         }
     }
 

@@ -18,11 +18,11 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
+          java-version: "23"
           distribution: "temurin"
           cache: maven
 
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        run: mvn test -Dtests.crate.run-windows-incompatible=false -Dcheckstyle.skip
+        run: mvn "-Dtests.crate.run-windows-incompatible=false" "-Dcheckstyle.skip" test

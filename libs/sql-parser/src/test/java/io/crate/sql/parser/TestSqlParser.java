@@ -534,6 +534,12 @@ public class TestSqlParser {
     }
 
     @Test
+    void test_use_char_as_alias() {
+        assertThat(SqlParser.createStatement("SELECT 1 AS char")).isExactlyInstanceOf(Query.class);
+        assertThat(SqlParser.createStatement("SELECT 1 AS \"char\"")).isExactlyInstanceOf(Query.class);
+    }
+
+    @Test
     public void test_dollar_quoted_strings_with_valid_tags() {
         assertThat(((StringLiteral) SqlParser.createExpression("$$$$")).getValue()).isEmpty();
         assertThat(((StringLiteral) SqlParser.createExpression("$a$ a$a $a$")).getValue()).isEqualTo(" a$a ");

@@ -121,7 +121,10 @@ public class FileReadingCollectorTest extends ESTestCase {
     @Test
     public void testNoErrorIfNoSuchFile() throws Throwable {
         assertThat(collect("file:///some/path/that/shouldnt/exist/foo.json")).satisfiesExactly(
-            line1 -> assertThat(line1.failure()).hasMessageContaining("No such file or directory")
+            line1 -> assertThat(line1.failure().getMessage()).containsAnyOf(
+                "No such file or directory", // Linux
+                "The system cannot find the path specified" // Windows
+            )
         );
         assertThat(collect("file:///some/path/that/shouldnt/exist/*")).isEmpty();
     }
