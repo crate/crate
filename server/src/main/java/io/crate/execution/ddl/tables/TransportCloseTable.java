@@ -53,6 +53,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -298,37 +299,22 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
      * should start to reject writing operations and we can proceed with step 2.
      */
     private static ClusterState addCloseBlocks(ClusterState currentState,
-                                               Index[] indices,
+                                               List<Index> openIndices,
                                                Map<Index, ClusterBlock> blockedIndices) {
         Metadata.Builder metadata = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
 
-        Set<Index> indicesToClose = new HashSet<>();
-        for (Index index : indices) {
-            final IndexMetadata indexMetadata = metadata.getSafe(index);
-            if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
-                indicesToClose.add(index);
-            } else {
-                LOGGER.debug("index {} is already closed, ignoring", index);
-                assert currentState.blocks().hasIndexBlock(index.getName(), IndexMetadata.INDEX_CLOSED_BLOCK);
-
-            }
-        }
-        if (indicesToClose.isEmpty()) {
-            return currentState;
-        }
-
-        Set<Index> restoringIndices = RestoreService.restoringIndices(currentState, indicesToClose);
+        Set<Index> restoringIndices = RestoreService.restoringIndices(currentState, openIndices);
         if (restoringIndices.isEmpty() == false) {
             throw new IllegalArgumentException("Cannot close indices that are being restored: " + restoringIndices);
         }
-        Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToClose);
+        Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, openIndices);
         if (snapshottingIndices.isEmpty() == false) {
             throw new SnapshotInProgressException("Cannot close indices that are being snapshotted: " + snapshottingIndices +
                 ". Try again after snapshot finishes or cancel the currently running snapshot.");
         }
 
-        for (var index : indicesToClose) {
+        for (var index : openIndices) {
             ClusterBlock indexBlock = null;
             final Set<ClusterBlock> clusterBlocks = currentState.blocks().indices().get(index.getName());
             if (clusterBlocks != null) {
@@ -381,25 +367,16 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             RelationName table = request.table();
-            Index[] indices;
-            if (request.partitionValues().isEmpty()) {
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    currentState.metadata(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN,
-                    table.indexNameOrAlias()
-                );
-            } else {
-                String indexName = new PartitionName(table, request.partitionValues()).asIndexName();
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    currentState.metadata(),
-                    IndicesOptions.LENIENT_EXPAND_OPEN,
-                    indexName
-                );
-            }
-            if (indices.length == 0) {
+            List<Index> openIndices = currentState.metadata().getIndices(
+                table,
+                request.partitionValues(),
+                false,
+                imd -> imd.getState() == State.CLOSE ? null : imd.getIndex()
+            );
+            if (openIndices.isEmpty()) {
                 return currentState;
             }
-            return addCloseBlocks(currentState, indices, blockedIndices);
+            return addCloseBlocks(currentState, openIndices, blockedIndices);
         }
 
         @Override

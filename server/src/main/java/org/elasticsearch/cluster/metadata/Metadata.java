@@ -1197,11 +1197,22 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         IndicesOptions indicesOptions = strict
             ? IndicesOptions.STRICT_EXPAND_OPEN
             : IndicesOptions.LENIENT_EXPAND_OPEN;
-        Index[] indices = IndexNameExpressionResolver.concreteIndices(
-            this,
-            indicesOptions,
-            relationName.indexNameOrAlias()
-        );
+
+        Index[] indices;
+        if (partitionValues.isEmpty()) {
+            indices = IndexNameExpressionResolver.concreteIndices(
+                this,
+                indicesOptions,
+                relationName.indexNameOrAlias()
+            );
+        } else {
+            PartitionName partitionName = new PartitionName(relationName, partitionValues);
+            indices = IndexNameExpressionResolver.concreteIndices(
+                this,
+                indicesOptions,
+                partitionName.asIndexName()
+            );
+        }
         ArrayList<T> result = new ArrayList<>(indices.length);
         for (int i = 0; i < indices.length; i++) {
             Index index = indices[i];
