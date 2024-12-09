@@ -778,6 +778,7 @@ public class PostgresWireProtocol {
 
     @VisibleForTesting
     void handleSimpleQuery(ByteBuf buffer, final DelayableWriteChannel channel) {
+        assert session != null : "Session must be created when running a simple query";
         Session.TimeoutToken timeoutToken = new Session.TimeoutToken(session.sessionSettings().statementTimeout().millis());
         long startTime = System.currentTimeMillis();
         String queryString = readCString(buffer);
