@@ -52,7 +52,7 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");
-        t2 = e.logicalPlan("SELECT c FROM t3");
+        t3 = e.logicalPlan("SELECT c FROM t3");
     }
 
     @Test
@@ -107,15 +107,16 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
             e.ruleContext());
 
         assertThat(result).hasOperators(
-            "Join[INNER | ((a = b) AND (a = 10))]",
-            "  ├ Collect[doc.t1 | [a] | true]",
-            "  └ Collect[doc.t2 | [b] | true]"
+            "Filter[(a = 10)]",
+            "  └ Join[INNER | (a = b)]",
+            "    ├ Collect[doc.t1 | [a] | true]",
+            "    └ Collect[doc.t2 | [b] | true]"
         );
     }
 
     @Test
-    public void test_nested() {
-        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+    public void test_rewrite_equ_join_filter_on_top_of_nested_cross_join_to_inner_join() {
+        var join1 = new JoinPlan(t1, t3, JoinType.CROSS, null);
         var join2 = new JoinPlan(t1, join1, JoinType.CROSS, null);
         var filter = new Filter(join2, e.asSymbol("doc.t1.a = doc.t2.b and doc.t1.a = doc.t3.c"));
 
@@ -148,7 +149,7 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
     }
 
     @Test
-    public void test_nested_() {
+    public void test_rewrite_equ_join_filter_on_top_of_nested__cross_join_to_inner_join_on_split_query() {
         var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
         var join2 = new JoinPlan(t1, join1, JoinType.CROSS, null);
         var filter = new Filter(join2, e.asSymbol("doc.t1.a = doc.t2.b and doc.t1.a = doc.t3.c and doc.t1.a > 1"));
@@ -159,7 +160,7 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
             "    ├ Collect[doc.t1 | [a] | true]",
             "    └ Join[CROSS]",
             "      ├ Collect[doc.t1 | [a] | true]",
-            "      └ Collect[doc.t3 | [c] | true]"
+            "      └ Collect[doc.t2 | [b] | true]"
         );
 
         var rule = new RewriteFilterOnCrossJoinToInnerJoin();
@@ -173,11 +174,12 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
             e.ruleContext());
 
         assertThat(result).hasOperators(
-            "Join[INNER | ((a = b) AND (a = c))]",
-            "  ├ Collect[doc.t1 | [a] | true]",
-            "  └ Join[CROSS]",
+            "Filter[(a > 1)]",
+            "  └ Join[INNER | ((a = b) AND (a = c))]",
             "    ├ Collect[doc.t1 | [a] | true]",
-            "    └ Collect[doc.t3 | [c] | true]"
+            "    └ Join[CROSS]",
+            "      ├ Collect[doc.t1 | [a] | true]",
+            "      └ Collect[doc.t2 | [b] | true]"
         );
     }
 

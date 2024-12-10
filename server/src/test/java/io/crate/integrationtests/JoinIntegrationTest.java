@@ -1077,12 +1077,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(0L);
     }
 
+    @UseHashJoins(value = 1.0)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
     @Test
     public void test_many_table_join_with_filter_pushdown() throws Exception {
         // regression this; optimization rule resulted in a endless loop
         String stmt = """
             SELECT
-               *
+               pkn.nspacl
             FROM
                 pg_catalog.pg_namespace pkn,
                 pg_catalog.pg_class pkc,
@@ -1240,14 +1243,14 @@ public class JoinIntegrationTest extends IntegTestCase {
                 shards.id
             """;
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-//        assertThat(response).hasLines(
-//            "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
-//            "  └ OrderBy[id ASC id ASC]",
-//            "    └ HashJoin[INNER | (node['id'] = id)]",
-//            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
-//            "      └ Rename[id, name] AS nodes",
-//            "        └ Collect[sys.nodes | [id, name] | true]"
-//        );
+        assertThat(response).hasLines(
+            "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
+            "  └ OrderBy[id ASC id ASC]",
+            "    └ HashJoin[INNER | (node['id'] = id)]",
+            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
+            "      └ Rename[id, name] AS nodes",
+            "        └ Collect[sys.nodes | [id, name] | true]"
+        );
         execute(stmt);
         assertThat(response).hasRowCount(0L);
     }
@@ -1327,17 +1330,17 @@ public class JoinIntegrationTest extends IntegTestCase {
             """;
 
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-//        assertThat(response).hasLines(
-//            "Eval[id, reference]",
-//            "  └ HashJoin[LEFT | (cluster_id = id)]",
-//            "    ├ HashJoin[INNER | (cluster_id = id)]",
-//            "    │  ├ HashJoin[INNER | (subscription_id = id)]",
-//            "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
-//            "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
-//            "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
-//            "    └ Rename[cluster_id] AS temp",
-//            "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
-//        );
+        assertThat(response).hasLines(
+            "Eval[id, reference]",
+            "  └ HashJoin[LEFT | (cluster_id = id)]",
+            "    ├ HashJoin[INNER | (cluster_id = id)]",
+            "    │  ├ HashJoin[INNER | (subscription_id = id)]",
+            "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
+            "    │  │  └ Collect[doc.t1 | [id, subscription_id] | true]",
+            "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
+            "    └ Rename[cluster_id] AS temp",
+            "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
+        );
 
         execute(stmt);
         assertThat(response).hasRows("2| bazinga");

@@ -1055,7 +1055,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(logicalPlan).isEqualTo(
                 """
-              HashJoin[INNER | ((x = z) AND (y = z))]
+              HashJoin[INNER | ((y = z) AND (x = z))]
                 ├ HashJoin[INNER | (x = y)]
                 │  ├ Collect[doc.j1 | [x] | true]
                 │  └ Collect[doc.j2 | [y] | true]

@@ -24,6 +24,7 @@ package io.crate.common.collections;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -59,7 +60,7 @@ public final class Maps {
         if (m2.isEmpty()) {
             return m1;
         }
-        var result = new HashMap<K, V>();
+        var result = new LinkedHashMap<K, V>();
         for (var m1Entry : m1.entrySet()) {
             var m1Key = m1Entry.getKey();
             var m1Values = m1Entry.getValue();

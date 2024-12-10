@@ -176,11 +176,11 @@ public class LogicalPlanner {
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
         new RewriteLeftOuterJoinToHashJoin(),
-        new RewriteRightOuterJoinToHashJoin()
-    );
+        new RewriteRightOuterJoinToHashJoin(),
+        new RewriteJoinPlan()
+        );
 
     public static final List<Rule<?>> JOIN_IMPLEMENTATION_OPTIMIZER_RULES = List.of(
-        new RewriteJoinPlan(),
         new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
