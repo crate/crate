@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -175,7 +176,7 @@ public class DocTableInfoFactory {
         List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
             refExpressionAnalyzer,
             expressionAnalysisContext,
-            metaMap
+            Maps.get(metaMap, "check_constraints")
         );
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
         new DocTableInfo(
@@ -199,6 +200,10 @@ public class DocTableInfoFactory {
     }
 
     public DocTableInfo create(RelationName relation, Metadata metadata) {
+        RelationMetadata relationMetadata = metadata.getRelation(relation);
+        if (false && relationMetadata instanceof RelationMetadata.Table table) {
+            return tableFromRelationMetadata(table);
+        }
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         Version versionCreated;
@@ -299,7 +304,7 @@ public class DocTableInfoFactory {
         List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
             refExpressionAnalyzer,
             expressionAnalysisContext,
-            metaMap
+            Maps.get(metaMap, "check_constraints")
         );
         PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
@@ -327,6 +332,60 @@ public class DocTableInfoFactory {
         );
     }
 
+    private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table) {
+        Map<ColumnIdent, Reference> columns = table.columns().stream()
+            .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
+            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+        Map<ColumnIdent, IndexReference> indexColumns = table.columns().stream()
+            .filter(ref -> ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty())
+            .map(ref -> (IndexReference) ref)
+            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            systemTransactionContext,
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            new TableReferenceResolver(columns, table.name()),
+            null
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
+
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
+        Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+        ColumnIdent routingColumn = table.routingColumn();
+        if (routingColumn == null) {
+            routingColumn = table.primaryKeys().size() == 1
+                ? table.primaryKeys().get(0)
+                : SysColumns.ID.COLUMN;
+        }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            expressionAnalyzer,
+            expressionAnalysisContext,
+            table.checkConstraints()
+        );
+        return new DocTableInfo(
+            table.name(),
+            columns,
+            indexColumns,
+            table.pkConstraintName(),
+            table.primaryKeys(),
+            checkConstraints,
+            routingColumn,
+            table.settings(),
+            table.partitionedBy(),
+            table.columnPolicy(),
+            versionCreated,
+            versionUpgraded,
+            table.state() == State.CLOSE,
+            Operation.buildFromIndexSettingsAndState(
+                table.settings(),
+                table.state(),
+                false // TODO: publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
+            ),
+            0
+        );
+    }
+
     private static ColumnIdent getClusteredBy(List<ColumnIdent> primaryKeys, @Nullable String routing) {
         if (routing != null) {
             return ColumnIdent.fromPath(routing);
@@ -340,8 +399,7 @@ public class DocTableInfoFactory {
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
             ExpressionAnalyzer expressionAnalyzer,
             ExpressionAnalysisContext expressionAnalysisContext,
-            Map<String, Object> metaMap) {
-        Map<String, String> checkConstraints = Maps.get(metaMap, "check_constraints");
+            @Nullable Map<String, String> checkConstraints) {
         if (checkConstraints == null) {
             return List.of();
         }

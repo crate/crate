@@ -1042,11 +1042,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             columnPolicy,
             clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));
-        for (String indexName : concreteIndices(metadata)) {
+        String[] concreteIndices = concreteIndices(metadata);
+        ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
+        for (String indexName : concreteIndices) {
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
+            indexUUIDs.add(indexMetadata.getIndexUUID());
 
             long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
             if (allColumns.size() > allowedTotalColumns) {
@@ -1079,6 +1082,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .build();
             metadataBuilder.put(template);
         }
+        metadataBuilder.addTable(
+            ident,
+            allColumns,
+            tableParameters,
+            clusteredBy,
+            columnPolicy,
+            pkConstraintName,
+            checkConstraintMap,
+            primaryKeys,
+            partitionedBy,
+            closed ? State.CLOSE : State.OPEN,
+            indexUUIDs
+        );
+
         return metadataBuilder;
     }
 
