@@ -291,7 +291,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             } else if (ArrayType.unnest(type).id() == GeoShapeType.ID) {
                 Map<String, Object> geoMap = new HashMap<>();
                 GeoSettingsApplier.applySettings(geoMap, indexProperties.map(toValue), indexMethod);
-                Float distError = (Float) geoMap.get("distance_error_pct");
+                Double distError = (Double) geoMap.get("distance_error_pct");
                 ref = new GeoReference(
                     refIdent,
                     type,
