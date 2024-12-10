@@ -119,11 +119,6 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
             return Response::new;
         }
 
-        @Override
-        protected boolean resolveIndex(Request request) {
-            return true;
-        }
-
         @Nullable
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {

@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -115,8 +114,6 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
     protected abstract Writeable.Reader<Response> getResponseReader();
 
-    protected abstract boolean resolveIndex(Request request);
-
     protected ClusterBlockException checkGlobalBlock(ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.READ);
     }
@@ -137,6 +134,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         private volatile Exception lastFailure;
 
         private AsyncSingleAction(Request request, ActionListener<Response> listener) {
+            this.request = request;
             this.listener = listener;
 
             ClusterState clusterState = clusterService.state();
@@ -149,16 +147,9 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 throw blockException;
             }
 
-            String concreteIndexName;
-            if (resolveIndex(request)) {
-                concreteIndexName = IndexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
-            } else {
-                concreteIndexName = request.index();
-            }
-            this.request = request;
 
             ClusterBlocks blocks = clusterState.blocks();
-            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, concreteIndexName);
+            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, request.index());
             if (blockException != null) {
                 throw blockException;
             }
