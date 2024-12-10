@@ -2936,4 +2936,23 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             output -> assertThat(output.valueType()).isEqualTo(makeArray(DataTypes.INTEGER, 2))
         );
     }
+
+    @Test
+    public void test_nested_subscripts_on_aliased_objects() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (o object as (o2 object as (o3 object as (o4 object))))");
+
+        QueriedSelectRelation relation = executor.analyze("select o['o2']['o3'] from (select o from t) tbl");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isScopedSymbol("o['o2']['o3']")
+        );
+        relation = executor.analyze("select alias['o2']['o3'] from (select o as alias from t) tbl");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isScopedSymbol("alias['o2']['o3']")
+        );
+        relation = executor.analyze("select alias['o3']['o4'] from (select o['o2'] as alias from t) tbl");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isScopedSymbol("alias['o3']['o4']")
+        );
+    }
 }

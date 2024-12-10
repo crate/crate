@@ -110,41 +110,44 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         //
         //      SELECT obj['x'] FROM (SELECT unnest(obj) as obj FROM ...)
         //
-        // -> Resolve both root field and child-field from source again.
-        //    If the root field matches output -> it's not shadowed
+        // -> Resolve both parent field and child-field from source again.
+        //    If the parent field matches output -> it's not shadowed
         List<String> childPath = new ArrayList<>();
         childPath.add(column.leafName());
-        for (ColumnIdent parent = column.getParent(); parent != null; parent = parent.getParent()) {
+        for (ColumnIdent parentIdent = column.getParent(); parentIdent != null; parentIdent = parentIdent.getParent()) {
             for (Symbol output : outputs()) {
-                boolean isAliased = false;
                 if (output instanceof AliasSymbol aliasSymbol) {
-                    if (parent.sqlFqn().equals(aliasSymbol.alias())) {
-                        isAliased = true;
+                    if (parentIdent.sqlFqn().equals(aliasSymbol.alias())) {
                         output = aliasSymbol.symbol();
                     } else {
                         continue;
                     }
+                } else {
+                    if (!parentIdent.equals(output.toColumn())) {
+                        continue;
+                    }
                 }
-                ColumnIdent unAliasedSymbol = output.toColumn();
-                ColumnIdent unAliasedChild = unAliasedSymbol;
+                ColumnIdent unAliasedParent = output.toColumn();
+                ColumnIdent unAliasedChild = unAliasedParent;
                 for (String child : childPath) {
-                    unAliasedChild = unAliasedSymbol.getChild(child);
+                    unAliasedChild = unAliasedChild.getChild(child);
                 }
                 for (AnalyzedRelation source : from) {
-                    Symbol unAliasedParentSymbol = source.getField(unAliasedSymbol, operation, errorOnUnknownObjectKey);
+                    Symbol unAliasedParentSymbol = source.getField(unAliasedParent, operation, errorOnUnknownObjectKey);
                     if (!output.equals(unAliasedParentSymbol)) {
                         continue;
                     }
                     Symbol unAliasedChildSymbol = source.getField(unAliasedChild, operation, errorOnUnknownObjectKey);
                     if (unAliasedChildSymbol != null) {
                         if (match == null) {
-                            match = isAliased ? new AliasSymbol(column.sqlFqn(), unAliasedChildSymbol) : unAliasedChildSymbol;
+                            match = unAliasedChildSymbol;
                         } else {
                             throw new AmbiguousColumnException(column, match);
                         }
                     }
                 }
             }
+            childPath.addFirst(parentIdent.leafName());
         }
         return match;
     }
