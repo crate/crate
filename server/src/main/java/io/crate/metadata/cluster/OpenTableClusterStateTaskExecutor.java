@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -71,12 +72,25 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         Context context = prepare(currentState, request);
         List<IndexMetadata> closedIndices = context.closedIndices();
         IndexTemplateMetadata templateMetadata = context.templateMetadata();
-
-        if (closedIndices.isEmpty() && templateMetadata == null) {
+        RelationMetadata.Table table = currentState.metadata().getRelation(request.relation());
+        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+        if (request.partitionValues().isEmpty()) {
+            mdBuilder.setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.OPEN,
+                table.indexUUIDs()
+            );
+        } else if (closedIndices.isEmpty() && templateMetadata == null) {
             return currentState;
         }
-
-        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
         final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()

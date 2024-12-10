@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +49,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 
 public class CreateTableIntegrationTest extends IntegTestCase {
@@ -94,6 +96,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                 return ClusterState.builder(currentState)
                     .metadata(
                         Metadata.builder(metadata)
+                            .dropRelation(new RelationName("doc", "tbl"))
                             .put(
                                 IndexMetadata.builder(indexMetadata)
                                     .putMapping(new MappingMetadata(new CompressedXContent(newMapping)))
