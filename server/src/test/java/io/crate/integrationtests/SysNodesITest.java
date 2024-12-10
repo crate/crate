@@ -89,7 +89,7 @@ public class SysNodesITest extends IntegTestCase {
 
     @Test
     public void test_can_select_node_attributes_sub_fields() {
-        execute("SELECT attributes['color'] FROM sys.nodes order by 1");
+        execute("SELECT attributes['color'] FROM sys.nodes order by name");
         int numDataNodes = cluster().numDataNodes();
         String[] expectedRows = new String[numDataNodes];
         for (int i = 0; i < numDataNodes; i++) {
