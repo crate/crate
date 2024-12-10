@@ -1,20 +1,26 @@
-.. _version_5.9.5:
+.. _version_5.9.6:
 
-=============
-Version 5.9.5
-=============
+==========================
+Version 5.9.6 - Unreleased
+==========================
 
 
-Released on 2024-12-10.
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.9.6 isn't released yet. These are the release notes for
+    the upcoming release.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.9.5.
+    before you upgrade to 5.9.6.
 
     We recommend that you upgrade to the latest 5.8 release before moving to
-    5.9.4.
+    5.9.6.
 
-    A rolling upgrade from 5.8.x to 5.9.5 is supported.
+    A rolling upgrade from 5.8.x to 5.9.6 is supported.
 
     Before upgrading, you should `back up your data`_.
 
@@ -40,19 +46,3 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 
 Fixes
 =====
-
-- Fixed an issue that caused wrong results when implicit joins were combined
-  with outer-joins within the same query e.g.::
-
-      SELECT * FROM t1, t2 RIGHT JOIN t3 ON true
-
-- Fixed an issue leading to an error when running SELECT COUNT(*) on a Subquery
-  with ``UNION ALL`` having a table on the one side and a renamed table or view
-  on another. Example::
-
-      SELECT count(*) FROM (SELECT id FROM users UNION ALL SELECT 1 as renamed) t;
-
-- Return a proper error message when using an invalid
-  :ref:`sql-create-repo-azure-endpoint` or
-  :ref:`sql-create-repo-azure-secondary_endpoint` URI for defining an
-  :ref:`azure repository <sql-create-repo-azure>`.
