@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.isReference;
 
 import java.io.IOException;
 
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -104,6 +105,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    @TestLogging("io.crate.planner.optimizer.tracer:TRACE")
     public void testOrderByOnJoinWithMultipleRelationsPushedDown() {
         LogicalPlan plan = plan(
             """
@@ -133,7 +135,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             Eval[y, b, i]
               └ NestedLoopJoin[INNER | (a = b)]
                 ├ OrderBy[x DESC]
-                │  └ Collect[doc.t1 | [i, x, a] | true]
+                │  └ Collect[doc.t1 | [a, x, i] | true]
                 └ Collect[doc.t2 | [y, b] | true]
             """);
     }
@@ -233,7 +235,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             Eval[i, i]
               └ NestedLoopJoin[INNER | (x = y)]
                 ├ OrderBy[lower(b) ASC]
-                │  └ Collect[doc.t2 | [i, b, y] | true]
+                │  └ Collect[doc.t2 | [b, y, i] | true]
                 └ Collect[doc.t1 | [i, x] | true]
             """
         );

@@ -113,6 +113,13 @@ public final class RelationNames {
         }
 
         @Override
+        public Void visitJoinRelation(JoinRelation joinRelation, Collection<RelationName> context) {
+            joinRelation.left().accept(this, context);
+            joinRelation.right().accept(this, context);
+            return null;
+        }
+
+        @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Collection<RelationName> context) {
             for (AnalyzedRelation analyzedRelation : relation.from()) {
                 analyzedRelation.accept(this, context);

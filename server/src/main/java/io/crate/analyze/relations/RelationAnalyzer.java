@@ -32,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -195,7 +194,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new QueriedSelectRelation(
             false,
             List.of(childRelation),
-            List.of(),
             selectAnalysis.outputSymbols(),
             Literal.BOOLEAN_TRUE,
             List.of(),
@@ -282,30 +280,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 );
             }
         }
-        JoinRelation joinRelation = new JoinRelation(leftRel, rightRel, node.getType(), joinCondition);
-        JoinPair joinPair = extractJoinPair(joinRelation, statementContext.currentRelationContext().sourceNames());
-        statementContext.currentRelationContext().addJoinPair(joinPair);
-        return joinRelation;
-    }
-
-    private static JoinPair extractJoinPair(JoinRelation joinRelation, List<RelationName> relevantRelationsInOrder) {
-        assert relevantRelationsInOrder.size() >= 2 : "sources must be added first, cannot add join pair for only 1 source";
-
-        var joinCondition = joinRelation.joinCondition();
-        if (joinCondition != null) {
-            Set<RelationName> relationsInJoinConditions = RelationNames.getShallow(joinCondition);
-            if (relationsInJoinConditions.size() > 1) {
-                // We have join conditions with two relations or more. The join conditions such as
-                // `t1.x = t2.x` determines which relations are joined together.
-                // For this reason we keep only the relations which are part of the join conditions.
-                // This makes sure we don't pick the wrong relations at the right/left assignment
-                // for the join pair but keep the original order.
-                relevantRelationsInOrder.retainAll(relationsInJoinConditions);
-            }
-        }
-        var left = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 2);
-        var right = relevantRelationsInOrder.get(relevantRelationsInOrder.size() - 1);
-        return JoinPair.of(left, right, joinRelation.joinType(), joinCondition);
+        return new JoinRelation(leftRel, rightRel, node.getType(), joinCondition);
     }
 
     private static Expression validateAndExtractFromUsing(List<Symbol> leftOutputs,
@@ -382,16 +357,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         RelationAnalysisContext currentRelationContext = statementContext.startRelation();
 
+        ArrayList<AnalyzedRelation> relations = new ArrayList<>();
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            relation.accept(this, statementContext);
+            relations.add(relation.accept(this, statementContext));
             statementContext.endRelation();
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
-            }
-            for (JoinPair joinPair : innerContext.joinPairs()) {
-                currentRelationContext.addJoinPair(joinPair);
             }
         }
 
@@ -438,8 +411,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
-            List.copyOf(context.sources().values()),
-            context.joinPairs(),
+            relations,
             selectAnalysis.outputSymbols(),
             where,
             groupBy,
