@@ -430,7 +430,7 @@ public class MetadataCreateIndexService {
                 .settings(indexSettingsBuilder)
                 .setRoutingNumShards(routingNumShards);
 
-            assert tmpImdBuilder.numberOfShards() == request.newNumShards() : "number of shards must be set";
+            assert tmpImdBuilder.numberOfShards() == newNumShards : "number of shards must be set";
 
             /*
              * We need to arrange that the primary term on all the shards in the shrunken index is at least as large as
@@ -448,6 +448,27 @@ public class MetadataCreateIndexService {
             }
 
             Builder metadataBuilder = Metadata.builder(metadata);
+            if (request.partitionValues().isEmpty()) {
+                RelationMetadata relation = metadata.getRelation(request.table());
+                if (relation instanceof RelationMetadata.Table table) {
+                    metadataBuilder.addTable(
+                        table.name(),
+                        table.columns(),
+                        Settings.builder()
+                            .put(table.settings())
+                            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, newNumShards)
+                            .build(),
+                        table.routingColumn(),
+                        table.columnPolicy(),
+                        table.pkConstraintName(),
+                        table.checkConstraints(),
+                        table.primaryKeys(),
+                        table.partitionedBy(),
+                        table.state(),
+                        table.indexUUIDs()
+                    );
+                }
+            }
             IndexMetadata tmpImd = tmpImdBuilder.build();
 
             validator.validateShardLimit(tmpImd.getSettings(), currentState);
