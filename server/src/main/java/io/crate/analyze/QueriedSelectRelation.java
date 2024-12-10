@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -97,7 +98,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (match != null || column.isRoot()) {
             return match;
         }
-        ColumnIdent root = column.getRoot();
 
         // Try to optimize child-column access to use a Reference instead of a subscript function
         //
@@ -112,21 +112,36 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         //
         // -> Resolve both root field and child-field from source again.
         //    If the root field matches output -> it's not shadowed
-        for (AnalyzedRelation source : from) {
-            Symbol field = source.getField(column, operation, errorOnUnknownObjectKey);
-            if (field != null) {
-                if (match != null) {
-                    throw new AmbiguousColumnException(column, match);
-                }
-                Symbol rootField = source.getField(root, operation, errorOnUnknownObjectKey);
-                for (Symbol output : outputs()) {
-                    Symbol symbol = output;
-                    while (symbol instanceof AliasSymbol alias) {
-                        symbol = alias.symbol();
+        List<String> childPath = new ArrayList<>();
+        childPath.add(column.leafName());
+        for (ColumnIdent parent = column.getParent(); parent != null; parent = parent.getParent()) {
+            for (Symbol output : outputs()) {
+                boolean isAliased = false;
+                if (output instanceof AliasSymbol aliasSymbol) {
+                    if (parent.sqlFqn().equals(aliasSymbol.alias())) {
+                        isAliased = true;
+                        output = aliasSymbol.symbol();
+                    } else {
+                        continue;
                     }
-                    if (symbol.equals(rootField) || output.equals(rootField)) {
-                        match = field;
-                        break;
+                }
+                ColumnIdent unAliasedSymbol = output.toColumn();
+                ColumnIdent unAliasedChild = unAliasedSymbol;
+                for (String child : childPath) {
+                    unAliasedChild = unAliasedSymbol.getChild(child);
+                }
+                for (AnalyzedRelation source : from) {
+                    Symbol unAliasedParentSymbol = source.getField(unAliasedSymbol, operation, errorOnUnknownObjectKey);
+                    if (!output.equals(unAliasedParentSymbol)) {
+                        continue;
+                    }
+                    Symbol unAliasedChildSymbol = source.getField(unAliasedChild, operation, errorOnUnknownObjectKey);
+                    if (unAliasedChildSymbol != null) {
+                        if (match == null) {
+                            match = isAliased ? new AliasSymbol(column.sqlFqn(), unAliasedChildSymbol) : unAliasedChildSymbol;
+                        } else {
+                            throw new AmbiguousColumnException(column, match);
+                        }
                     }
                 }
             }
