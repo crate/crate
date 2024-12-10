@@ -444,6 +444,18 @@
       </properties>
     </profile>
     <profile>
+      <id>x86_64</id>
+      <activation>
+        <property>
+          <name>os.arch</name>
+          <value>x86_64</value>
+        </property>
+      </activation>
+      <properties>
+        <os.arch.classifier>x86_64</os.arch.classifier>
+      </properties>
+    </profile>
+    <profile>
       <id>aarch64</id>
       <activation>
         <property>
