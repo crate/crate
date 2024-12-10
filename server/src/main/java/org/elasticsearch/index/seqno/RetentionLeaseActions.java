@@ -76,10 +76,10 @@ public class RetentionLeaseActions {
         }
 
         @Override
-        protected ShardsIterator shards(final ClusterState state, final InternalRequest request) {
+        protected ShardsIterator shards(final ClusterState state, final T request) {
             return state
                 .routingTable()
-                .shardRoutingTable(request.concreteIndex(), request.request().getShardId().id())
+                .shardRoutingTable(request.getShardId().getIndexName(), request.getShardId().id())
                 .primaryShardIt();
         }
 

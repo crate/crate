@@ -35,6 +35,7 @@ import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -120,26 +121,18 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         return state.blocks().globalBlockedException(ClusterBlockLevel.READ);
     }
 
-    protected ClusterBlockException checkRequestBlock(ClusterState state, InternalRequest request) {
-        return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.concreteIndex());
-    }
-
-    protected void resolveRequest(ClusterState state, InternalRequest request) {
-
-    }
-
     /**
      * Returns the candidate shards to execute the operation on or <code>null</code> the execute
      * the operation locally (the node that received the request)
      */
     @Nullable
-    protected abstract ShardsIterator shards(ClusterState state, InternalRequest request);
+    protected abstract ShardsIterator shards(ClusterState state, Request request);
 
     class AsyncSingleAction {
 
         private final ActionListener<Response> listener;
         private final ShardsIterator shardIt;
-        private final InternalRequest internalRequest;
+        private final Request request;
         private final DiscoveryNodes nodes;
         private volatile Exception lastFailure;
 
@@ -156,21 +149,21 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 throw blockException;
             }
 
-            String concreteSingleIndex;
+            String concreteIndexName;
             if (resolveIndex(request)) {
-                concreteSingleIndex = IndexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
+                concreteIndexName = IndexNameExpressionResolver.concreteSingleIndex(clusterState, request).getName();
             } else {
-                concreteSingleIndex = request.index();
+                concreteIndexName = request.index();
             }
-            this.internalRequest = new InternalRequest(request, concreteSingleIndex);
-            resolveRequest(clusterState, internalRequest);
+            this.request = request;
 
-            blockException = checkRequestBlock(clusterState, internalRequest);
+            ClusterBlocks blocks = clusterState.blocks();
+            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, concreteIndexName);
             if (blockException != null) {
                 throw blockException;
             }
 
-            this.shardIt = shards(clusterState, internalRequest);
+            this.shardIt = shards(clusterState, request);
         }
 
         public void start() {
@@ -180,7 +173,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 transportService.sendRequest(
                     clusterService.localNode(),
                     transportShardAction,
-                    internalRequest.request(),
+                    request,
                     new TransportResponseHandler<Response>() {
                         @Override
                         public Response read(StreamInput in) throws IOException {
@@ -210,8 +203,8 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
         private void onFailure(ShardRouting shardRouting, Exception e) {
             if (e != null) {
-                logger.trace(() -> new ParameterizedMessage("{}: failed to execute [{}]", shardRouting,
-                                                            internalRequest.request()), e);
+                logger.trace(() -> new ParameterizedMessage(
+                    "{}: failed to execute [{}]", shardRouting, request), e);
             }
             perform(e);
         }
@@ -226,13 +219,13 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             if (shardRouting == null) {
                 Exception failure = lastFailure;
                 if (failure == null || isShardNotAvailableException(failure)) {
-                    failure = new NoShardAvailableActionException(null,
-                                                                  LoggerMessageFormat.format(
-                                                                      "No shard available for [{}]",
-                                                                      internalRequest.request()), failure);
+                    failure = new NoShardAvailableActionException(
+                        null,
+                        LoggerMessageFormat.format("No shard available for [{}]", request),
+                        failure
+                    );
                 } else {
-                    logger.debug(() -> new ParameterizedMessage("{}: failed to execute [{}]", null,
-                                                                internalRequest.request()), failure);
+                    logger.debug(() -> new ParameterizedMessage("{}: failed to execute [{}]", null, request), failure);
                 }
                 listener.onFailure(failure);
                 return;
@@ -241,12 +234,12 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             if (node == null) {
                 onFailure(shardRouting, new NoShardAvailableActionException(shardRouting.shardId()));
             } else {
-                internalRequest.request().internalShardId = shardRouting.shardId();
+                request.internalShardId = shardRouting.shardId();
                 if (logger.isTraceEnabled()) {
                     logger.trace(
                         "sending request [{}] to shard [{}] on node [{}]",
-                        internalRequest.request(),
-                        internalRequest.request().internalShardId,
+                        request,
+                        request.internalShardId,
                         node
                     );
                 }
@@ -254,7 +247,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 transportService.sendRequest(
                     node,
                     transportShardAction,
-                    internalRequest.request(),
+                    request,
                     new TransportResponseHandler<Response>() {
 
                         @Override
@@ -301,27 +294,6 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             asyncShardOperation(request,
                                 request.internalShardId,
                                 new ChannelActionListener<>(channel, transportShardAction, request));
-        }
-    }
-
-    /**
-     * Internal request class that gets built on each node. Holds the original request plus additional info.
-     */
-    protected class InternalRequest {
-        final Request request;
-        final String concreteIndex;
-
-        InternalRequest(Request request, String concreteIndex) {
-            this.request = request;
-            this.concreteIndex = concreteIndex;
-        }
-
-        public Request request() {
-            return request;
-        }
-
-        public String concreteIndex() {
-            return concreteIndex;
         }
     }
 

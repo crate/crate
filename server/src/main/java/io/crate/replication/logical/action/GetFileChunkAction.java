@@ -21,7 +21,8 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.replication.logical.repository.PublisherRestoreService;
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,9 +43,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
+
+import io.crate.replication.logical.repository.PublisherRestoreService;
 
 public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> {
 
@@ -125,9 +126,8 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
 
         @Nullable
         @Override
-        protected ShardsIterator shards(ClusterState state,
-                                        InternalRequest request) {
-            return state.routingTable().shardRoutingTable(request.request().shardId()).primaryShardIt();
+        protected ShardsIterator shards(ClusterState state, Request request) {
+            return state.routingTable().shardRoutingTable(request.shardId()).primaryShardIt();
         }
     }
 
