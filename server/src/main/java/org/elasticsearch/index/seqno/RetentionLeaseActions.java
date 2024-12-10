@@ -108,12 +108,6 @@ public class RetentionLeaseActions {
         protected Writeable.Reader<Response> getResponseReader() {
             return Response::new;
         }
-
-        @Override
-        protected boolean resolveIndex(final T request) {
-            return false;
-        }
-
     }
 
     public static class Add extends ActionType<Response> {

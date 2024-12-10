@@ -110,11 +110,6 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
             return Response::new;
         }
 
-        @Override
-        protected boolean resolveIndex(Request request) {
-            return true;
-        }
-
         @Nullable
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {

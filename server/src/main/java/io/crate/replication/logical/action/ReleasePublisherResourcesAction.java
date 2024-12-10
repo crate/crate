@@ -101,11 +101,6 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
             return AcknowledgedResponse::new;
         }
 
-        @Override
-        protected boolean resolveIndex(Request request) {
-            return true;
-        }
-
         @Nullable
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {
