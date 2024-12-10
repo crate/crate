@@ -55,7 +55,6 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionType;
@@ -1151,8 +1150,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             GroupHashAggregate[address['postcode']]
-              └ Rename[address] AS u
-                └ Collect[doc.users | [address] | true]
+              └ Rename[address['postcode']] AS u
+                └ Collect[doc.users | [address['postcode']] | true]
             """
         );
     }
@@ -1168,18 +1167,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan).isEqualTo(
             """
-            Eval[address['postcode']]
+            Rename[address['postcode']] AS u
               └ OrderBy[address['postcode'] ASC]
-                └ Rename[address] AS u
-                  └ Collect[doc.users | [address] | true]
+                └ Collect[doc.users | [address['postcode']] | true]
             """
         );
         Merge merge = e.plan(stmt);
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
-        assertThat(collectPhase.projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
+        assertThat(collectPhase.projections()).isEmpty();
+        assertThat(collectPhase.orderBy().toString()).isEqualTo("OrderBy{address['postcode'] ASC}");
     }
 
     @Test

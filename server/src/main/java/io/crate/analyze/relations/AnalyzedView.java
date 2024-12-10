@@ -62,7 +62,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
             var column = output.toColumn();
             outputs.add(new ScopedSymbol(name, column, output));
         }
-        this.outputSymbols = List.copyOf(outputs);
+        this.outputSymbols = outputs;
     }
 
     @NotNull
@@ -98,6 +98,8 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         int i = outputSymbols.indexOf(scopedSymbol);
         if (i >= 0) {
             return outputSymbols.get(i);
+        } else {
+            outputSymbols.add(scopedSymbol);
         }
         return scopedSymbol;
     }

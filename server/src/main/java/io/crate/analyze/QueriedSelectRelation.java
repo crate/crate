@@ -149,6 +149,9 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             }
             childPath.addFirst(parentIdent.leafName());
         }
+        if (match != null) {
+            outputs.add(match);
+        }
         return match;
     }
 

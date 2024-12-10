@@ -85,7 +85,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.PartitionName;
@@ -103,6 +102,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import io.crate.types.TimeTZ;
+import io.crate.types.UndefinedType;
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -2731,8 +2731,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasName("obj_dy['missing_key']");
+            .isScopedSymbol("obj_dy['missing_key']")
+            .hasDataType(UndefinedType.INSTANCE);
 
         assertThatThrownBy(() -> executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -2817,9 +2817,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select alias.o['unknown_key'] from (select * from t) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasColumnIdent(ColumnIdent.of("o", "unknown_key"))
-            .hasTableIdent(new RelationName(null, "alias"));
+            .isScopedSymbol("o['unknown_key']")
+            .hasDataType(UndefinedType.INSTANCE);
     }
 
     @Test
@@ -2953,6 +2952,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = executor.analyze("select alias['o3']['o4'] from (select o['o2'] as alias from t) tbl");
         assertThat(relation.outputs()).satisfiesExactly(
             x -> assertThat(x).isScopedSymbol("alias['o3']['o4']")
+        );
+        relation = executor.analyze("select alias['o4'] from (select alias['o3'] as alias from (select o['o2'] as alias from t) tbl) tbl2");
+        assertThat(relation.outputs()).satisfiesExactly(
+            x -> assertThat(x).isScopedSymbol("alias['o4']")
         );
     }
 }

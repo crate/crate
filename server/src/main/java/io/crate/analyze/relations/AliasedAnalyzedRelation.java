@@ -33,9 +33,7 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 
@@ -116,11 +114,14 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         if (field == null) {
             return null;
         }
+        /*
         if (field instanceof VoidReference voidReference) {
             return new VoidReference(
                 new ReferenceIdent(alias, voidReference.column()),
                 voidReference.position());
         }
+
+         */
         ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field);
 
         // If the scopedSymbol exists already, return that instance.
@@ -131,6 +132,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             return scopedSymbols.get(i);
         }
         scopedSymbols.add(scopedSymbol);
+        outputs.add(scopedSymbol);
         return scopedSymbol;
     }
 
