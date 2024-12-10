@@ -230,11 +230,10 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
 
         @Nullable
         @Override
-        protected ShardsIterator shards(ClusterState state,
-                                        TransportSingleShardAction<Request, Response>.InternalRequest request) {
+        protected ShardsIterator shards(ClusterState state, Request request) {
             return state.routingTable().shardRoutingTable(
-                request.request().shardId().getIndexName(),
-                request.request().shardId().id()
+                request.shardId().getIndexName(),
+                request.shardId().id()
             ).activeInitializingShardsRandomIt();
         }
     }

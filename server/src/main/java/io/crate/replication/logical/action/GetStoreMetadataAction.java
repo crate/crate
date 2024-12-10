@@ -117,9 +117,8 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
 
         @Nullable
         @Override
-        protected ShardsIterator shards(ClusterState state,
-                                        InternalRequest request) {
-            return state.routingTable().shardRoutingTable(request.request().shardId()).primaryShardIt();
+        protected ShardsIterator shards(ClusterState state, Request request) {
+            return state.routingTable().shardRoutingTable(request.shardId()).primaryShardIt();
         }
     }
 
