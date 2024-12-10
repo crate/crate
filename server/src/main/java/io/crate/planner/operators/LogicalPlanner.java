@@ -272,7 +272,7 @@ public class LogicalPlanner {
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         OptimizerTracer tracer = plannerContext.optimizerTracer();
         LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
+        optimizedPlan = joinImplementationOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs())
             : "Pruned plan must have the same outputs as original plan";

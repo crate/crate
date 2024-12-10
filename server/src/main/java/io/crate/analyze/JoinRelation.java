@@ -63,8 +63,7 @@ public class JoinRelation implements AnalyzedRelation {
         this.right = right;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
-        this.name = new RelationName(null, List.of(left.relationName(), right.relationName()).toString());
-
+        this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
     }
 
     public AnalyzedRelation left() {
