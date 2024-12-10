@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -115,6 +116,7 @@ public record ForeignTable(RelationName name,
                     case "references":
                         references = new HashMap<>();
                         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
+                        Set<Reference> droppedColumns = new HashSet<>();
 
                         Map<String, Object> properties = parser.map();
                         DocTableInfoFactory.parseColumns(
@@ -127,7 +129,8 @@ public record ForeignTable(RelationName name,
                             List.of(),
                             properties,
                             indexColumns,
-                            references
+                            references,
+                            droppedColumns
                         );
                         break;
 

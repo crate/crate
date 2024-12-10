@@ -56,6 +56,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -164,15 +165,31 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             updatedState = ClusterState.builder(currentState).metadata(metadata).build();
         }
 
+        RelationMetadata.Table table = updatedState.metadata().getRelation(target.table());
         List<String> partitionValues = target.partitionValues();
+        final Metadata.Builder metadata;
         if (partitionValues.isEmpty()) {
             updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            metadata = Metadata.builder(updatedState.metadata());
+            metadata.setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.CLOSE,
+                table.indexUUIDs()
+            );
         } else {
             PartitionName partitionName = new PartitionName(target.table(), partitionValues);
             updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
+            metadata = Metadata.builder(updatedState.metadata());
         }
 
-        final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
         final ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(updatedState.blocks());
         final RoutingTable.Builder routingTable = RoutingTable.builder(updatedState.routingTable());
         final Set<String> closedIndices = new HashSet<>();

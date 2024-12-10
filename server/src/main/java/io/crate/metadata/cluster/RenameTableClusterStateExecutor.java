@@ -33,15 +33,18 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.Templates;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 
@@ -96,6 +99,8 @@ public class RenameTableClusterStateExecutor {
             renameTemplate(newMetadata, indexTemplateMetadata, target);
         }
 
+
+
         RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
 
@@ -134,6 +139,27 @@ public class RenameTableClusterStateExecutor {
             // empty partition case, no indices, just a template exists
         }
 
+        RelationMetadata relation = currentMetadata.getRelation(source);
+        if (relation instanceof RelationMetadata.Table table) {
+            newMetadata
+                .dropRelation(source)
+                .setTable(
+                    target,
+                    Lists.map(
+                        table.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                    ),
+                    table.settings(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs()
+                );
+        }
         ClusterState clusterStateAfterRename = ClusterState.builder(currentState)
             .metadata(newMetadata)
             .routingTable(newRoutingTable.build())
