@@ -113,8 +113,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.columns()).hasSize(2);
         assertThat(newTable.droppedColumns()).satisfiesExactly(
             x -> assertThat(x)
-                .hasFieldOrPropertyWithValue("dropped", true)
                 .hasName("y")
+                .hasFieldOrPropertyWithValue("dropped", true)
                 .hasPosition(2)
         );
     }

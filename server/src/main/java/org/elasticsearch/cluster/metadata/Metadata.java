@@ -1105,6 +1105,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             AtomicInteger positions = new AtomicInteger(0);
             LongSupplier oidSupplier = columnOidSupplier;
             Map<ColumnIdent, Reference> columnMap = columns.stream()
+                .filter(ref -> !ref.isDropped())
                 .map(ref -> ref.withOidAndPosition(oidSupplier, positions::incrementAndGet))
                 .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
 
@@ -1121,6 +1122,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
                 finalColumns.add(newRef);
             }
+            columns.stream()
+                .filter(Reference::isDropped)
+                .forEach(ref -> finalColumns.add(ref));
             RelationMetadata.Table table = new RelationMetadata.Table(
                 relationName,
                 finalColumns,
