@@ -19,6 +19,7 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntFunction;
@@ -82,11 +83,13 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
 
     @Override
     protected ClusterBlockException checkBlock(ResizeRequest request, ClusterState state) {
-        if (request.partitionValues().isEmpty()) {
-            return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.table().indexNameOrAlias());
-        }
-        PartitionName partitionName = new PartitionName(request.table(), request.partitionValues());
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, partitionName.asIndexName());
+        List<String> indices = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            false,
+            idxMd -> idxMd.getIndex().getName()
+        );
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices.toArray(String[]::new));
     }
 
     @Override

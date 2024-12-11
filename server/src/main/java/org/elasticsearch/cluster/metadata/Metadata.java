@@ -29,11 +29,14 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +50,7 @@ import org.elasticsearch.cluster.NamedDiffableValueSerializer;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -69,10 +73,15 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
@@ -1081,6 +1090,57 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return builder.build();
         }
 
+        public Builder addTable(RelationName relationName,
+                                List<Reference> columns,
+                                Settings settings,
+                                @Nullable ColumnIdent routingColumn,
+                                ColumnPolicy columnPolicy,
+                                @Nullable String pkConstraintName,
+                                Map<String,
+                                String> checkConstraints,
+                                List<ColumnIdent> primaryKeys,
+                                List<ColumnIdent> partitionedBy,
+                                State state,
+                                List<String> indexUUIDs) {
+            AtomicInteger positions = new AtomicInteger(0);
+            LongSupplier oidSupplier = columnOidSupplier;
+            Map<ColumnIdent, Reference> columnMap = columns.stream()
+                .filter(ref -> !ref.isDropped())
+                .map(ref -> ref.withOidAndPosition(oidSupplier, positions::incrementAndGet))
+                .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+
+            ArrayList<Reference> finalColumns = new ArrayList<>(columns.size());
+            for (var column : columnMap.values()) {
+                Reference newRef;
+                if (column instanceof GeneratedReference genRef) {
+                    newRef = new GeneratedReference(
+                        genRef.reference(),
+                        RefReplacer.replaceRefs(genRef.generatedExpression(), ref -> columnMap.get(ref.column()))
+                    );
+                } else {
+                    newRef = column;
+                }
+                finalColumns.add(newRef);
+            }
+            columns.stream()
+                .filter(Reference::isDropped)
+                .forEach(ref -> finalColumns.add(ref));
+            RelationMetadata.Table table = new RelationMetadata.Table(
+                relationName,
+                finalColumns,
+                settings,
+                routingColumn,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraints,
+                primaryKeys,
+                partitionedBy,
+                state,
+                indexUUIDs
+            );
+            addToSchema(table);
+            return this;
+        }
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {
@@ -1153,6 +1213,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
         ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
         if (foreignTables.contains(tableName)) {
+            return true;
+        }
+        SchemaMetadata schemaMetadata = schemas.get(tableName.schema());
+        if (schemaMetadata != null && schemaMetadata.relations().containsKey(tableName.name())) {
             return true;
         }
         return false;

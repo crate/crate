@@ -23,13 +23,10 @@ package io.crate.metadata.cluster;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
@@ -41,9 +38,9 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ContentPath;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.Constants;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.PartitionName;
@@ -87,19 +84,6 @@ public class DDLClusterStateHelpers {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static Set<IndexMetadata> indexMetadataSetFromIndexNames(Metadata metadata,
-                                                             String[] indices,
-                                                             IndexMetadata.State state) {
-        Set<IndexMetadata> indicesMetadata = new HashSet<>();
-        for (String indexName : indices) {
-            IndexMetadata indexMetadata = metadata.index(indexName);
-            if (indexMetadata != null && indexMetadata.getState() != state) {
-                indicesMetadata.add(indexMetadata);
-            }
-        }
-        return indicesMetadata;
     }
 
     @Nullable
