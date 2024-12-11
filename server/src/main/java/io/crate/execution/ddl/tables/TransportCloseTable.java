@@ -54,9 +54,9 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -165,15 +165,31 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             updatedState = ClusterState.builder(currentState).metadata(metadata).build();
         }
 
+        RelationMetadata.Table table = updatedState.metadata().getRelation(target.table());
         List<String> partitionValues = target.partitionValues();
+        final Metadata.Builder metadata;
         if (partitionValues.isEmpty()) {
             updatedState = ddlClusterStateService.onCloseTable(updatedState, target.table());
+            metadata = Metadata.builder(updatedState.metadata());
+            metadata.addTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.CLOSE,
+                table.indexUUIDs()
+            );
         } else {
             PartitionName partitionName = new PartitionName(target.table(), partitionValues);
             updatedState = ddlClusterStateService.onCloseTablePartition(updatedState, partitionName);
+            metadata = Metadata.builder(updatedState.metadata());
         }
 
-        final Metadata.Builder metadata = Metadata.builder(updatedState.metadata());
         final ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(updatedState.blocks());
         final RoutingTable.Builder routingTable = RoutingTable.builder(updatedState.routingTable());
         final Set<String> closedIndices = new HashSet<>();
@@ -255,33 +271,24 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        List<String> partitionValues = request.partitionValues();
-        String[] indexNames;
-        if (partitionValues.isEmpty()) {
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                request.table().indexNameOrAlias()
-            );
-        } else {
-            String indexName = new PartitionName(request.table(), partitionValues).asIndexName();
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                indexName
-            );
-        }
+        String[] indexNames = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            false,
+            idxMd -> idxMd.getIndex().getName()
+        ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
                                                   ClusterState clusterState) {
-        var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            clusterState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()
+        List<IndexMetadata> indices = clusterState.metadata().getIndices(
+            relationName,
+            List.of(),
+            false,
+            imd -> imd
         );
-        if (concreteIndices.length > 0) {
+        if (!indices.isEmpty()) {
             return false;
         }
 

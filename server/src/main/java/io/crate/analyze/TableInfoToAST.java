@@ -214,7 +214,7 @@ public class TableInfoToAST {
                 if (geoReference.distanceErrorPct() != null) {
                     properties.put(
                         "distance_error_pct",
-                        Literal.fromObject(geoReference.distanceErrorPct())
+                        Literal.fromObject(geoReference.distanceErrorPct().floatValue())
                     );
                 }
                 if (geoReference.precision() != null) {

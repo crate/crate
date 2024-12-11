@@ -1082,20 +1082,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .build();
             metadataBuilder.put(template);
         }
-        metadataBuilder.addTable(
-            ident,
-            allColumns,
-            tableParameters,
-            clusteredBy,
-            columnPolicy,
-            pkConstraintName,
-            checkConstraintMap,
-            primaryKeys,
-            partitionedBy,
-            closed ? State.CLOSE : State.OPEN,
-            indexUUIDs
-        );
-
+        if (versionCreated.onOrAfter(Version.V_5_10_0)) {
+            metadataBuilder.addTable(
+                ident,
+                allColumns,
+                tableParameters,
+                clusteredBy,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraintMap,
+                primaryKeys,
+                partitionedBy,
+                closed ? State.CLOSE : State.OPEN,
+                indexUUIDs
+            );
+        }
         return metadataBuilder;
     }
 
