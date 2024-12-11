@@ -45,6 +45,7 @@ import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
+import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -208,7 +209,41 @@ public final class SqlFormatter {
                     String optionName = entry.getKey();
                     Expression optionValue = entry.getValue();
                     append(indent, optionName);
+                    append(indent, " ");
                     optionValue.accept(this, indent);
+                    if (it.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
+                append(indent, ")");
+            }
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public Void visitAlterServer(AlterServer<?> alterServerGen, Integer indent) {
+            AlterServer<Expression> alterServer = (AlterServer<Expression>) alterServerGen;
+            append(indent, "ALTER SERVER ");
+            append(indent, alterServer.name());
+            List<AlterServer.Option<Expression>> options = alterServer.options();
+            if (!options.isEmpty()) {
+                append(indent, " OPTIONS (");
+                Iterator<AlterServer.Option<Expression>> it = options.iterator();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    AlterServer.Operation operation = entry.operation();
+                    String optionName = entry.key();
+                    Expression optionValue = entry.value();
+                    if (operation != null) {
+                        append(indent, operation.name());
+                        append(indent, " ");
+                    }
+                    append(indent, optionName);
+                    append(indent, " ");
+                    if (optionValue != null) {
+                        optionValue.accept(this, indent);
+                    }
                     if (it.hasNext()) {
                         append(indent, ", ");
                     }

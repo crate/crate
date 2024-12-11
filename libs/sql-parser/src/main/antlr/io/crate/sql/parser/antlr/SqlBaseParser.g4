@@ -143,6 +143,7 @@ alterStmt
     | ALTER PUBLICATION name=ident
         ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
+    | ALTER SERVER  name=ident alterServerOptions                                    #alterServer
     ;
 
 
@@ -636,6 +637,17 @@ kvOptions
 kvOption
     : ident parameterOrLiteral
     ;
+
+alterServerOptions
+    : OPTIONS OPEN_ROUND_BRACKET kvOptionWithOperation (COMMA kvOptionWithOperation)* CLOSE_ROUND_BRACKET
+    ;
+
+kvOptionWithOperation
+    : operation=(ADD | SET)? ident parameterOrLiteral
+    | ident parameterOrLiteral
+    | operation=DROP ident
+    ;
+
 
 
 functionArgument

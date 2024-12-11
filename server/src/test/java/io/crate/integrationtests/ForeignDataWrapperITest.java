@@ -429,4 +429,28 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             .isExactlyInstanceOf(RuntimeException.class)
             .hasMessageContaining("FATAL: trust authentication failed for user \"foreign-user-a\"");
     }
+
+    @Test
+    public void test_alter_server() {
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+        String createServerStmt = "CREATE SERVER pg FOREIGN DATA WRAPPER jdbc OPTIONS (url ?)";
+        execute(createServerStmt, new Object[] { url });
+
+        String newUrl = "jdbc:postgresql://example.com:5432/";
+        execute("ALTER SERVER pg OPTIONS (SET url ?)", new Object[]{ newUrl});
+        execute(
+            """
+            SELECT
+                foreign_server_name,
+                option_name,
+                option_value
+            FROM
+                information_schema.foreign_server_options
+            ORDER BY
+                option_name DESC
+            """);
+        assertThat(response).hasRows(new Object[] { "pg", "url", newUrl });
+    }
 }

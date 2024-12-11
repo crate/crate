@@ -32,6 +32,7 @@ import org.junit.Test;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.execution.dsl.phases.ForeignCollectPhase;
+import io.crate.planner.AlterServerPlan;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
 import io.crate.planner.CreateUserMappingPlan;
@@ -186,5 +187,39 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
         var query = ((ForeignCollectPhase) collect.collectPhase()).query();
         // Without any logic (e.g. using the EvaluationNormalizer) to remove aliases, the query would be `(some_alias = 1)`
         assertThat(query.toString()).isEqualTo("(id = 1)");
+    }
+
+
+    @Test
+    public void test_cannot_use_unsupported_options_in_alter_server() throws Exception {
+        Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
+        AlterServerPlan plan = e.plan("ALTER SERVER pg OPTIONS (ADD wrong_option 10)");
+        assertThatThrownBy(() -> e.execute(plan).getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unsupported server options for foreign data wrapper `jdbc`: wrong_option. Valid options are: url");
+    }
+
+    @Test
+    public void test_cannot_use_duplicate_options_in_alter_server() throws Exception {
+        Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
+        AlterServerPlan plan = e.plan("ALTER SERVER pg OPTIONS (SET url 'foo', DROP url)");
+        assertThatThrownBy(() -> e.execute(plan).getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Option `url` is specified multiple times for server `pg`");
+    }
+
+    @Test
+    public void test_cannot_drop_mandatory_options_in_alter_server() throws Exception {
+        Settings options = Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options);
+        AlterServerPlan plan = e.plan("ALTER SERVER pg OPTIONS (DROP url)");
+        assertThatThrownBy(() -> e.execute(plan).getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot remove mandatory server option `url` for server `pg`");
     }
 }
