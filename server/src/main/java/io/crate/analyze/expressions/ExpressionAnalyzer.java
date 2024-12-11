@@ -754,17 +754,19 @@ public class ExpressionAnalyzer {
                         context
                     );
                 }
-                DataType<?> currentType = baseType;
-                ColumnPolicy parentPolicy = baseType.columnPolicy();
-                for (String p : parts) {
-                    if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
-                        parentPolicy = objectType.columnPolicy();
-                        currentType = objectType.innerType(p);
+                if ((baseType == UndefinedType.INSTANCE) == false) {
+                    DataType<?> currentType = baseType;
+                    ColumnPolicy parentPolicy = baseType.columnPolicy();
+                    for (String p : parts) {
+                        if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
+                            parentPolicy = objectType.columnPolicy();
+                            currentType = objectType.innerType(p);
+                        }
                     }
-                }
-                if (parentPolicy == ColumnPolicy.STRICT ||
-                    (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
-                    throw e;
+                    if (parentPolicy == ColumnPolicy.STRICT ||
+                        (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
+                        throw e;
+                    }
                 }
                 return allocateFunction(
                     SubscriptFunction.NAME,
