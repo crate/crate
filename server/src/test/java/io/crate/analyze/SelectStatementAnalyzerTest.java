@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -2872,6 +2873,47 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .hasMessage("Column obj['unknown'] unknown");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         executor.analyze("select obj['unknown'] from (select unnest(obj) as obj from t) tbl");
+    }
+
+    @Test
+    public void test_subscript_expression_with_aliased_subscript_expression_as_the_base() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (obj_dynamic object, obj_ignored object(ignored), obj_strict object(strict))");
+
+        // dynamic
+        assertThatThrownBy(() -> executor.analyze(
+            "select alias['u'] from (select obj_dynamic['u'] as alias from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['u'] unknown");
+
+        // ignored
+        var analyzed = executor.analyze("select alias['u'] from (select obj_ignored['u'] as alias from t) tbl");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+
+        // strict
+        assertThatThrownBy(() -> executor.analyze(
+            "select alias['u'] from (select obj_strict['u'] as alias from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_strict['u'] unknown");
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        // dynamic
+        analyzed = executor.analyze("select alias['u'] from (select obj_dynamic['u'] as alias from t) tbl");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+
+        // ignored
+        executor.analyze("select alias['u'] from (select obj_ignored['u'] as alias from t) tbl");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+
+        // strict
+        assertThatThrownBy(() -> executor.analyze(
+            "select alias['u'] from (select obj_strict['u'] as alias from t) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_strict['u'] unknown");
     }
 
     @Test
