@@ -304,6 +304,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analyzedCreateServer, context);
     }
 
+    public R visitAlterServer(AnalyzedAlterServer analyzedAlterServer, C context) {
+        return visitAnalyzedStatement(analyzedAlterServer, context);
+    }
+
     public R visitCreateForeignTable(AnalyzedCreateForeignTable analyzedCreateForeignTable, C context) {
         return visitAnalyzedStatement(analyzedCreateForeignTable, context);
     }

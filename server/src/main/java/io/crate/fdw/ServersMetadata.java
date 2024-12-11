@@ -151,6 +151,10 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
             return options.getAsStructuredMap().entrySet().stream()
                 .map(x -> new Option(name, owner, x.getKey(), DataTypes.STRING.implicitCast(x.getValue())));
         }
+
+        public Server withOptions(Settings options) {
+            return new Server(name, fdw, owner, users, options);
+        }
     }
 
     private final Map<String, Server> servers;
@@ -198,8 +202,13 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                                String fdw,
                                String owner,
                                Settings options) {
-        HashMap<String, Server> servers = new HashMap<>(this.servers);
         Server server = new Server(name, fdw, owner, Map.of(), options);
+        return put(name, server);
+    }
+
+    public ServersMetadata put(String name,
+                               Server server) {
+        HashMap<String, Server> servers = new HashMap<>(this.servers);
         servers.put(name, server);
         return new ServersMetadata(servers);
     }
@@ -331,7 +340,7 @@ public final class ServersMetadata extends AbstractNamedDiffable<Metadata.Custom
                     .flatMap(e -> e.getValue().getAsStructuredMap().entrySet().stream()
                         .map(setting -> new UserMappingOptionsTableInfo.UserMappingOptions(
                             e.getKey(), server.name(), setting.getKey(), setting.getValue().toString())
-                ))).iterator();
+                        ))).iterator();
     }
 
     public Iterable<Option> getOptions() {

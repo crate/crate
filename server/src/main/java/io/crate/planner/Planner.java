@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedAlterRole;
+import io.crate.analyze.AnalyzedAlterServer;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
@@ -670,6 +671,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateServer(AnalyzedCreateServer createServer, PlannerContext context) {
         return new CreateServerPlan(foreignDataWrappers, createServer);
+    }
+
+    @Override
+    public Plan visitAlterServer(AnalyzedAlterServer alterServer, PlannerContext context) {
+        return new AlterServerPlan(foreignDataWrappers, alterServer);
     }
 
     @Override

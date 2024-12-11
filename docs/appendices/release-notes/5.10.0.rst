@@ -80,6 +80,9 @@ SQL Statements
     FROM employees
     GROUP BY department, title;
 
+- Added support for the :ref:`ref-alter-server` statement to change
+  the options of an existing :ref:`foreign server <administration-fdw>`.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
