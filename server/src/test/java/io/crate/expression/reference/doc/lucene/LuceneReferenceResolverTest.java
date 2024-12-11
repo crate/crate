@@ -49,6 +49,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
         List.of(),
+        null,
         (_) -> false
     );
 
@@ -116,6 +117,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
             table.partitionedByColumns(),
+            null,
             table.isParentReferenceIgnored()
         );
         Reference year = table.getReference(ColumnIdent.of("year"));

@@ -24,6 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
@@ -57,13 +59,17 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     private final List<Reference> partitionColumns;
     private final String indexName;
     private final Predicate<Reference> isParentRefIgnored;
+    @Nullable
+    private final Reference idColumn;
 
     public LuceneReferenceResolver(final String indexName,
                                    final List<Reference> partitionColumns,
+                                   @Nullable Reference idColumn,
                                    Predicate<Reference> isParentRefIgnored) {
         this.indexName = indexName;
         this.partitionColumns = partitionColumns;
         this.isParentRefIgnored = isParentRefIgnored;
+        this.idColumn = idColumn;
     }
 
     public String getIndexName() {
@@ -82,7 +88,11 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
             case SysColumns.Names.UID:
             case SysColumns.Names.ID:
-                return new IdCollectorExpression();
+                if (idColumn == null) {
+                    return new IdCollectorExpression();
+                } else {
+                    return new VirtualIdCollectorExpression(getImplementation(idColumn));
+                }
 
             case SysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();

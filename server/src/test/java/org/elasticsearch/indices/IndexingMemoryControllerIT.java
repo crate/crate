@@ -71,7 +71,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
                                     config.getQueryCachingPolicy(), config.getTranslogConfig(), config.getFlushMergesAfter(),
                                     config.getExternalRefreshListener(), config.getInternalRefreshListener(),
                                     config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.retentionLeasesSupplier(),
-                                    config.getPrimaryTermSupplier(), config.getTombstoneDocSupplier());
+                                    config.getPrimaryTermSupplier(), config.getTombstoneDocSupplier(), config.isIdFieldVirtual());
         }
 
         @Override

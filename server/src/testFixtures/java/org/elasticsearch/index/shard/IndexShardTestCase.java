@@ -532,7 +532,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                retentionLeaseSyncer, breakerService
+                retentionLeaseSyncer, breakerService,
+                false
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;

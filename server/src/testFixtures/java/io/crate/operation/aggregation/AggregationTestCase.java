@@ -221,6 +221,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
             List.of(),
+            null,
             (_) -> false
         );
 
@@ -563,7 +564,9 @@ public abstract class AggregationTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 List.of(),
                 () -> { },
-                RetentionLeaseSyncer.EMPTY, new NoneCircuitBreakerService()
+                RetentionLeaseSyncer.EMPTY,
+                new NoneCircuitBreakerService(),
+                false
             );
         } catch (IOException e) {
             IOUtils.close(store);

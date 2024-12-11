@@ -276,7 +276,8 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache indicesQueryCache,
-            Supplier<TableInfo> getTable) throws IOException {
+            Supplier<TableInfo> getTable,
+            boolean hasVirtualPrimaryKey) throws IOException {
 
         final IndexEventListener eventListener = freeze();
         eventListener.beforeIndexCreated(indexSettings.getIndex(), indexSettings.getSettings());
@@ -302,6 +303,7 @@ public final class IndexModule {
             directoryFactory,
             eventListener,
             getTable,
+            hasVirtualPrimaryKey,
             indexOperationListeners
         );
     }
