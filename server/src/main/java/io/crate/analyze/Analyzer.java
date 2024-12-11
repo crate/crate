@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.elasticsearch.cluster.service.ClusterService;
@@ -52,6 +53,7 @@ import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
+import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -768,6 +770,28 @@ public class Analyzer {
                 createServer.name(),
                 createServer.fdw(),
                 createServer.ifNotExists(),
+                options
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterServer(AlterServer<?> alterServer, Analysis context) {
+            AlterServer<Expression> alterServerExpr = (AlterServer<Expression>) alterServer;
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                context.transactionContext(),
+                nodeCtx,
+                context.paramTypeHints(),
+                FieldProvider.UNSUPPORTED,
+                null
+            );
+            ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(context.sessionSettings());
+            ArrayList<AlterServer.Option<Symbol>> options = new ArrayList<>();
+            for (var option : alterServerExpr.options()) {
+                var symbol = option.value() == null ? null : expressionAnalyzer.convert(option.value(), exprCtx);
+                options.add(new AlterServer.Option<>(option.operation(), option.key(), symbol));
+            }
+            return new AnalyzedAlterServer(
+                alterServerExpr.name(),
                 options
             );
         }

@@ -39,6 +39,7 @@ import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
+import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
@@ -2157,6 +2158,22 @@ public class TestStatementBuilder {
     }
 
     @Test
+    void test_alter_server() {
+        printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo', SET dbname 'cratedb', DROP port)");
+        printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo')");
+        printStatement("ALTER SERVER jarvis OPTIONS (SET dbname 'cratedb')");
+        printStatement("ALTER SERVER jarvis OPTIONS (DROP port)");
+        printStatement("ALTER SERVER jarvis OPTIONS (host 'foo')");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void test_alter_server_default_option_operation_is_add() {
+        AlterServer<Expression> alterServer = (AlterServer<Expression>) SqlParser.createStatement("ALTER SERVER jarvis OPTIONS (host 'foo')");
+        assertThat(alterServer.options()).contains(new AlterServer.Option<>(AlterServer.Operation.ADD, "host", new StringLiteral("foo")));
+    }
+
+    @Test
     public void test_drop_server() throws Exception {
         printStatement("drop server jarvis");
         printStatement("drop server pg1, pg2");
@@ -2251,6 +2268,7 @@ public class TestStatementBuilder {
             statement instanceof Fetch ||
             statement instanceof Close ||
             statement instanceof CreateServer ||
+            statement instanceof AlterServer ||
             statement instanceof CreateUserMapping ||
             statement instanceof DropServer ||
             statement instanceof DropForeignTable ||
