@@ -268,7 +268,7 @@ public final class Symbols {
                     } else if (ref instanceof VoidReference
                                && t instanceof ScopedSymbol tScopedSymbol
                                && tScopedSymbol.relation().equals(ref.ident().tableIdent())
-                               && tScopedSymbol.column().equals(root)) {
+                               && (tScopedSymbol.column().equals(root) || tScopedSymbol.column().equals(ref.column()))) {
                         consumer.accept(t);
                         break;
                     }
