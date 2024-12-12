@@ -77,6 +77,7 @@ import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
+import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -2409,6 +2410,34 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         String name = getIdentText(ctx.name);
         String fdw = getIdentText(ctx.fdw);
         return new CreateServer(name, fdw, ctx.EXISTS() != null, getOptions(ctx.kvOptions()));
+    }
+
+    @Override
+    public Node visitAlterServer(SqlBaseParser.AlterServerContext ctx) {
+        String name = getIdentText(ctx.name);
+        ArrayList<AlterServer.Option<Expression>> options = new ArrayList<>();
+        var optionsContext = ctx.alterServerOptions();
+        if (optionsContext != null) {
+            for (var kvOption : optionsContext.kvOptionWithOperation()) {
+                String optionName = getIdentText(kvOption.ident());
+                AlterServer.Operation operation = getOptionOperation(kvOption.operation);
+                Expression value = kvOption.parameterOrLiteral() == null ? null : (Expression) kvOption.parameterOrLiteral().accept(this);
+                options.add(new AlterServer.Option<>(operation, optionName, value));
+            }
+        }
+        return new AlterServer<>(name, options);
+    }
+
+    private static AlterServer.Operation getOptionOperation(Token operation) {
+        if (operation == null) {
+            return AlterServer.Operation.ADD;
+        }
+        return switch (operation.getType()) {
+            case SqlBaseLexer.ADD -> AlterServer.Operation.ADD;
+            case SqlBaseLexer.SET -> AlterServer.Operation.SET;
+            case SqlBaseLexer.DROP -> AlterServer.Operation.DROP;
+            default -> throw new UnsupportedOperationException("Unsupported option operation: " + operation.getText());
+        };
     }
 
     @Override

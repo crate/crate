@@ -11,8 +11,9 @@ SQL Statements
 
     alter-cluster
     alter-publication
-    alter-table
     alter-role
+    alter-server
+    alter-table
     alter-user
     analyze
     begin

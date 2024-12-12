@@ -800,6 +800,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_alter_server_requires_al() throws Exception {
+        analyze("ALTER SERVER pg OPTIONS (SET url 'foo')", normalUser);
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
     public void test_drop_server_requires_al() throws Exception {
         analyze("drop server pg", normalUser);
         assertAskedForCluster(Permission.AL);

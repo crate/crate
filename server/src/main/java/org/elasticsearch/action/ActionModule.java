@@ -121,6 +121,7 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.fdw.TransportAlterServerAction;
 import io.crate.fdw.TransportCreateForeignTableAction;
 import io.crate.fdw.TransportCreateServerAction;
 import io.crate.fdw.TransportCreateUserMappingAction;
@@ -240,6 +241,7 @@ public class ActionModule extends AbstractModule {
         actions.register(DropSubscriptionAction.INSTANCE, DropSubscriptionAction.TransportAction.class);
 
         actions.register(TransportCreateServerAction.ACTION, TransportCreateServerAction.class);
+        actions.register(TransportAlterServerAction.ACTION, TransportAlterServerAction.class);
         actions.register(TransportCreateForeignTableAction.ACTION, TransportCreateForeignTableAction.class);
         actions.register(TransportCreateUserMappingAction.ACTION, TransportCreateUserMappingAction.class);
         actions.register(TransportDropServerAction.ACTION, TransportDropServerAction.class);

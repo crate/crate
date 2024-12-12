@@ -160,5 +160,6 @@ Example::
 .. seealso::
 
    - :ref:`ref-create-server`
+   - :ref:`ref-alter-server`
    - :ref:`ref-create-foreign-table`
    - :ref:`ref-create-user-mapping`
