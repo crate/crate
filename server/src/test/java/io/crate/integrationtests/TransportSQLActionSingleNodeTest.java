@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -240,6 +241,20 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         assertThat(response.rows()[0][1]).isEqualTo("is");
     }
 
+    @Test
+    public void testNullValuesInIgnoredObjects() {
+        execute("create table test (id integer primary key, document object(dynamic))");
+        execute("insert into test (id, document) values (1, {field=null, id=1})");
+        execute("insert into test (id, document) values (2, {field='foo', id=2})");
+        execute("refresh table test");
+        execute("select document, id from test order by id");
+        assertThat(response).hasRowCount(2L);
+        Map<String, Object> expectedWithNull = new HashMap<>();
+        expectedWithNull.put("field", null);
+        expectedWithNull.put("id", 1L);
+        assertThat(response.rows()[0][0]).isEqualTo(expectedWithNull);
+        assertThat(response.rows()[1][0]).isEqualTo(Map.of("field", "foo", "id", 2L));
+    }
 
     @Test
     public void testKilledAllLog() throws Exception {
