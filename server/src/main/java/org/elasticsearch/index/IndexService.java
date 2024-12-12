@@ -82,6 +82,7 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -499,10 +500,12 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             return;
         }
         var tableInfo = tableFactory.create(RelationName.fromIndexName(indexName), metadata);
-        this.getTranslogIndexer = () -> new TranslogIndexer(tableInfo);
+        var indexer = new TranslogIndexer(tableInfo);
+        this.getTranslogIndexer = () -> indexer;
     }
 
-    private TranslogIndexer getTranslogIndexer() {
+    @VisibleForTesting
+    TranslogIndexer getTranslogIndexer() {
         return this.getTranslogIndexer.get();
     }
 
