@@ -85,7 +85,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.PartitionName;
@@ -2730,8 +2729,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasName("obj_dy['missing_key']");
+            .isField("obj_dy['missing_key']");
 
         assertThatThrownBy(() -> executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -2816,9 +2814,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select alias.o['unknown_key'] from (select * from t) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasColumnIdent(ColumnIdent.of("o", "unknown_key"))
-            .hasTableIdent(new RelationName(null, "alias"));
+            .isField("o['unknown_key']", new RelationName(null, "alias"));
     }
 
     @Test
