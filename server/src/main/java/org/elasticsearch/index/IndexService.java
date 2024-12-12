@@ -499,7 +499,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             return;
         }
         var tableInfo = tableFactory.create(RelationName.fromIndexName(indexName), metadata);
-        this.getTranslogIndexer = () -> new TranslogIndexer(tableInfo);
+        var indexer = new TranslogIndexer(tableInfo);
+        this.getTranslogIndexer = () -> indexer;
     }
 
     private TranslogIndexer getTranslogIndexer() {

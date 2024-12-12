@@ -46,3 +46,6 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 
 Fixes
 =====
+
+- Fixed a performance issue in transaction log replay, where the TranslogIndexer object was being
+  recreated for each operation rather than being shared between all operations on a shard.
