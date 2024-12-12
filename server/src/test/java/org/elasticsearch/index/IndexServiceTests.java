@@ -52,6 +52,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.TranslogIndexer;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
@@ -460,6 +461,18 @@ public class IndexServiceTests extends IntegTestCase {
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
         assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("20s");
+    }
+
+    @Test
+    public void testTranslogIndexerInstanceIsShared() {
+        execute("create table test (x int, y object(ignored))");
+        IndexService indexService = getIndexService("test");
+        TranslogIndexer ti1 = indexService.getTranslogIndexer();
+        TranslogIndexer ti2 = indexService.getTranslogIndexer();
+        assertThat(ti1).isSameAs(ti2);
+        execute("alter table test add column z int");
+        TranslogIndexer ti3 = indexService.getTranslogIndexer();
+        assertThat(ti1).isNotSameAs(ti3);
     }
 
     private IndexService getIndexService(String index) {
