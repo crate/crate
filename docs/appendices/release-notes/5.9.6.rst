@@ -52,3 +52,12 @@ Fixes
 
 - Fixed a possible deadlock where concurrent delete requests could take a lock but then never
   release it, leading to requests timing out and threads parked in infinite waits.
+
+- Fixed an issue that caused an ``UnsupportedFeatureException`` when querying a
+  column with subscript from a subquery. Example ::
+
+      CREATE TABLE t (o OBJECT);
+      SET error_on_unknown_object_key = 'false';
+      SELECT o['unknown'] FROM (SELECT o['unknown'] FROM t) t2;
+      UnsupportedFeatureException[Can't handle Symbol [VoidReference: o['unknown']]]
+
