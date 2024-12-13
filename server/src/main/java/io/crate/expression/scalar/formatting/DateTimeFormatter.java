@@ -70,7 +70,6 @@ public class DateTimeFormatter {
         P_M_LOWER("p.m."),
         YEAR_WITH_COMMA("Y,YYY"),
         YEAR_YYYY("YYYY"),
-        YEAR_LOWER_YYYY("yyyy"),
         YEAR_YYY("YYY"),
         YEAR_YY("YY"),
         YEAR_Y("Y"),
@@ -211,6 +210,18 @@ public class DateTimeFormatter {
                 nextTokenNode = null;
             } else {
                 nextTokenNode = currentTokenNode.children.get(pattern_to_consume.charAt(idx));
+
+                if (nextTokenNode == null) {
+                    /*
+                    Both queries below are valid in Postgres:
+                     - SELECT to_char('2024-12-13'::timestamp, 'yyyy-mm-dd');
+                     - SELECT to_char('2024-12-13'::timestamp, 'YYYY-MM-DD');
+                    We register patterns only in uppercase
+                    unless it's a special ones that control output by the case (like Mon, MON, mon).
+                    If matching "as is" didn't work, try upper case.
+                    */
+                    nextTokenNode = currentTokenNode.children.get(Character.toUpperCase(pattern_to_consume.charAt(idx)));
+                }
             }
 
             if (nextTokenNode == null && idx > 0) {
@@ -301,7 +312,7 @@ public class DateTimeFormatter {
                 String s = String.valueOf(datetime.getYear());
                 yield s.substring(0, 1) + "," + s.substring(1);
             }
-            case YEAR_YYYY, YEAR_LOWER_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
+            case YEAR_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
             case YEAR_YYY -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 3);
