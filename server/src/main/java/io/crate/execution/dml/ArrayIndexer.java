@@ -201,7 +201,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         StorageSupport<?> storageSupport = type.storageSupport();
         assert storageSupport != null;  // null storage will have thrown an exception in buildReference
         ValueIndexer<Object> indexer
-            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> ref);
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> null);
         indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 
