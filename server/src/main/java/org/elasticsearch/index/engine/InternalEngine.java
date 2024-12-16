@@ -1290,59 +1290,58 @@ public class InternalEngine extends Engine {
         int reservedDocs = 0;
         try (ReleasableLock ignored = readLock.acquire(); Releasable ignored2 = versionMap.acquireLock(delete.uid().bytes())) {
             ensureOpen();
-            if (doThrottle) {
-                throttle.acquireThrottle();
-            }
-            lastWriteNanos = delete.startTime();
-            final DeletionStrategy plan = deletionStrategyForOperation(delete);
-            reservedDocs = plan.reservedDocs;
-            if (plan.earlyResultOnPreflightError.isPresent()) {
-                assert delete.origin() == Operation.Origin.PRIMARY : delete.origin();
-                deleteResult = plan.earlyResultOnPreflightError.get();
-            } else {
-                // generate or register sequence number
-                if (delete.origin() == Operation.Origin.PRIMARY) {
-                    delete = new Delete(
-                        delete.id(),
-                        delete.uid(),
-                        generateSeqNoForOperationOnPrimary(delete),
-                        delete.primaryTerm(),
-                        delete.version(),
-                        delete.versionType(),
-                        delete.origin(),
-                        delete.startTime(),
-                        delete.getIfSeqNo(),
-                        delete.getIfPrimaryTerm()
-                    );
-
-                    advanceMaxSeqNoOfUpdatesOrDeletesOnPrimary(delete.seqNo());
+            try (Releasable _ = doThrottle ? throttle.acquireThrottle() : () -> {}) {
+                lastWriteNanos = delete.startTime();
+                final DeletionStrategy plan = deletionStrategyForOperation(delete);
+                reservedDocs = plan.reservedDocs;
+                if (plan.earlyResultOnPreflightError.isPresent()) {
+                    assert delete.origin() == Operation.Origin.PRIMARY : delete.origin();
+                    deleteResult = plan.earlyResultOnPreflightError.get();
                 } else {
-                    markSeqNoAsSeen(delete.seqNo());
-                }
+                    // generate or register sequence number
+                    if (delete.origin() == Operation.Origin.PRIMARY) {
+                        delete = new Delete(
+                            delete.id(),
+                            delete.uid(),
+                            generateSeqNoForOperationOnPrimary(delete),
+                            delete.primaryTerm(),
+                            delete.version(),
+                            delete.versionType(),
+                            delete.origin(),
+                            delete.startTime(),
+                            delete.getIfSeqNo(),
+                            delete.getIfPrimaryTerm()
+                        );
 
-                assert delete.seqNo() >= 0 : "ops should have an assigned seq no.; origin: " + delete.origin();
+                        advanceMaxSeqNoOfUpdatesOrDeletesOnPrimary(delete.seqNo());
+                    } else {
+                        markSeqNoAsSeen(delete.seqNo());
+                    }
 
-                if (plan.deleteFromLucene || plan.addStaleOpToLucene) {
-                    deleteResult = deleteInLucene(delete, plan);
-                } else {
-                    deleteResult = new DeleteResult(
-                        plan.versionOfDeletion, delete.primaryTerm(), delete.seqNo(), plan.currentlyDeleted == false);
+                    assert delete.seqNo() >= 0 : "ops should have an assigned seq no.; origin: " + delete.origin();
+
+                    if (plan.deleteFromLucene || plan.addStaleOpToLucene) {
+                        deleteResult = deleteInLucene(delete, plan);
+                    } else {
+                        deleteResult = new DeleteResult(
+                            plan.versionOfDeletion, delete.primaryTerm(), delete.seqNo(), plan.currentlyDeleted == false);
+                    }
                 }
+                if (delete.origin().isFromTranslog() == false
+                    && deleteResult.getResultType() == Result.Type.SUCCESS) {
+                    final Translog.Location location = translog.add(new Translog.Delete(delete, deleteResult));
+                    deleteResult.setTranslogLocation(location);
+                }
+                localCheckpointTracker.markSeqNoAsProcessed(deleteResult.getSeqNo());
+                if (deleteResult.getTranslogLocation() == null) {
+                    // the op is coming from the translog (and is hence persisted already) or does not have a sequence number (version conflict)
+                    assert delete.origin().isFromTranslog() || deleteResult.getSeqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO :
+                        "version conflict: delete operation not coming from translog should not have seqNo, but found [" +
+                            deleteResult.getSeqNo() + "]";
+                    localCheckpointTracker.markSeqNoAsPersisted(deleteResult.getSeqNo());
+                }
+                deleteResult.freeze();
             }
-            if (delete.origin().isFromTranslog() == false
-                && deleteResult.getResultType() == Result.Type.SUCCESS) {
-                final Translog.Location location = translog.add(new Translog.Delete(delete, deleteResult));
-                deleteResult.setTranslogLocation(location);
-            }
-            localCheckpointTracker.markSeqNoAsProcessed(deleteResult.getSeqNo());
-            if (deleteResult.getTranslogLocation() == null) {
-                // the op is coming from the translog (and is hence persisted already) or does not have a sequence number (version conflict)
-                assert delete.origin().isFromTranslog() || deleteResult.getSeqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO :
-                    "version conflict: delete operation not coming from translog should not have seqNo, but found [" +
-                    deleteResult.getSeqNo() + "]";
-                localCheckpointTracker.markSeqNoAsPersisted(deleteResult.getSeqNo());
-            }
-            deleteResult.freeze();
         } catch (RuntimeException | IOException e) {
             try {
                 maybeFailEngine("delete", e);
