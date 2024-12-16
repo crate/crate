@@ -2984,4 +2984,19 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
     }
+
+    @Test
+    public void test_accessing_sub_column_of_aliased_unknown_sub_column() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (obj_dynamic object)");
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['u']['u2'] from (select obj_dynamic['u'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['u'] unknown");
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        var analyzed = executor.analyze("select obj_dynamic['u']['u2'] from (select obj_dynamic['u'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+    }
 }
