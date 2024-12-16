@@ -983,7 +983,7 @@ public class Session implements AutoCloseable {
      */
     public static class TimeoutToken {
 
-        private TimeValue statementTimeout;
+        protected TimeValue statementTimeout;
         private long startNanos;
         private boolean enabled = true;
 

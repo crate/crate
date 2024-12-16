@@ -421,7 +421,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
     @Test
     public void test_pk_extraction_interrupted_when_exceeds_timeout() {
-        Session.TimeoutToken token = new Session.TimeoutToken(TimeValue.timeValueMillis(10), System.nanoTime());
+        Session.TimeoutToken token = new TestToken(TimeValue.timeValueMillis(10), 3);
         StringJoiner sj = new StringJoiner(" or ");
         for (int j = 0; j < 20; j++) {
             sj.add("x = ? AND i = ?");
@@ -443,4 +443,24 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
             .isExactlyInstanceOf(JobKilledException.class)
             .hasMessage("Job killed. statement_timeout (10ms)");
     }
+
+    private static class TestToken extends Session.TimeoutToken {
+
+        private final int maxChecks;
+        private int checks;
+
+        public TestToken(TimeValue statementTimeout, int maxChecks) {
+            super(statementTimeout, System.nanoTime());
+            this.checks = 0;
+            this.maxChecks = maxChecks;
+        }
+
+        public void check() {
+            checks++;
+            if (statementTimeout.nanos() > 0 && checks > maxChecks) {
+                throw JobKilledException.of("statement_timeout (" + statementTimeout + ")");
+            }
+        }
+    }
+
 }
