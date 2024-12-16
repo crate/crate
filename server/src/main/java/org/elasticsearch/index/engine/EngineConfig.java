@@ -19,20 +19,22 @@
 
 package org.elasticsearch.index.engine;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -43,11 +45,10 @@ import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /*
  * Holds all the configuration that is used to create an {@link Engine}.
@@ -69,11 +70,8 @@ public final class EngineConfig {
     private final Engine.EventListener eventListener;
     private final QueryCache queryCache;
     private final QueryCachingPolicy queryCachingPolicy;
-    @Nullable
-    private final List<ReferenceManager.RefreshListener> externalRefreshListener;
-    @Nullable
-    private final List<ReferenceManager.RefreshListener> internalRefreshListener;
-    @Nullable
+    private final List<ReferenceManager.RefreshListener> externalRefreshListeners = new ArrayList<>();
+    private final List<ReferenceManager.RefreshListener> internalRefreshListeners = new ArrayList<>();
     private final CircuitBreakerService circuitBreakerService;
     private final LongSupplier globalCheckpointSupplier;
     private final Supplier<RetentionLeases> retentionLeasesSupplier;
@@ -98,18 +96,16 @@ public final class EngineConfig {
      * allocated on both `kind` of nodes.
      */
     public static final Setting<String> INDEX_CODEC_SETTING = new Setting<>("index.codec", "default", s -> {
-        switch (s) {
-            case "default":
-            case "best_compression":
-            case "lucene_default":
-                return s;
-            default:
+        return switch (s) {
+            case "default", "best_compression", "lucene_default" -> s;
+            default -> {
                 if (Codec.availableCodecs().contains(s) == false) { // we don't error message the not officially supported ones
                     throw new IllegalArgumentException(
                         "unknown value for [index.codec] must be one of [default, best_compression] but was: " + s);
                 }
-                return s;
-        }
+                yield s;
+            }
+        };
     }, DataTypes.STRING, Property.IndexScope, Property.NodeScope);
 
     private final TranslogConfig translogConfig;
@@ -129,8 +125,8 @@ public final class EngineConfig {
                         QueryCachingPolicy queryCachingPolicy,
                         TranslogConfig translogConfig,
                         TimeValue flushMergesAfter,
-                        List<ReferenceManager.RefreshListener> externalRefreshListener,
-                        List<ReferenceManager.RefreshListener> internalRefreshListener,
+                        List<ReferenceManager.RefreshListener> externalRefreshListeners,
+                        List<ReferenceManager.RefreshListener> internalRefreshListeners,
                         CircuitBreakerService circuitBreakerService,
                         LongSupplier globalCheckpointSupplier,
                         Supplier<RetentionLeases> retentionLeasesSupplier,
@@ -163,8 +159,8 @@ public final class EngineConfig {
         this.queryCachingPolicy = queryCachingPolicy;
         this.translogConfig = translogConfig;
         this.flushMergesAfter = flushMergesAfter;
-        this.externalRefreshListener = externalRefreshListener;
-        this.internalRefreshListener = internalRefreshListener;
+        this.externalRefreshListeners.addAll(externalRefreshListeners);
+        this.internalRefreshListeners.addAll(internalRefreshListeners);
         this.circuitBreakerService = circuitBreakerService;
         this.globalCheckpointSupplier = globalCheckpointSupplier;
         this.retentionLeasesSupplier = Objects.requireNonNull(retentionLeasesSupplier);
@@ -310,15 +306,15 @@ public final class EngineConfig {
     /**
      * The refresh listeners to add to Lucene for externally visible refreshes
      */
-    public List<ReferenceManager.RefreshListener> getExternalRefreshListener() {
-        return externalRefreshListener;
+    public List<ReferenceManager.RefreshListener> getExternalRefreshListeners() {
+        return externalRefreshListeners;
     }
 
     /**
      * The refresh listeners to add to Lucene for internally visible refreshes. These listeners will also be invoked on external refreshes
      */
-    public List<ReferenceManager.RefreshListener> getInternalRefreshListener() {
-        return internalRefreshListener;
+    public List<ReferenceManager.RefreshListener> getInternalRefreshListeners() {
+        return internalRefreshListeners;
     }
 
     /**
