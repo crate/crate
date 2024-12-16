@@ -27,6 +27,7 @@ import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SET
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.function.IntFunction;
@@ -39,10 +40,10 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
@@ -53,6 +54,7 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.lucene.search.UnscoredLeafCollector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.engine.Engine;
@@ -237,9 +239,8 @@ public final class ReservoirSampler {
 
     @VisibleForTesting
     static void sampleDocIds(Reservoir reservoir, int readerIdx, IndexSearcher searcher) {
-        var collector = new ReservoirCollector(reservoir, readerIdx);
         try {
-            searcher.search(new MatchAllDocsQuery(), collector);
+            searcher.search(new MatchAllDocsQuery(), new ReservoirCollectorManager(reservoir, readerIdx));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -390,49 +391,32 @@ public final class ReservoirSampler {
         }
     }
 
-    private static class ReservoirCollector implements Collector {
+    private record ReservoirCollectorManager(Reservoir reservoir,
+                                             int readerIdx) implements CollectorManager<Collector, Reservoir> {
 
-        private final Reservoir reservoir;
-        private final int readerIdx;
+        @Override
+        public Collector newCollector() throws IOException {
+            return new Collector() {
+                @Override
+                public LeafCollector getLeafCollector(LeafReaderContext context) {
+                    return (UnscoredLeafCollector) doc -> {
+                        var shouldContinue = reservoir.update(FetchId.encode(readerIdx, doc + context.docBase));
+                        if (shouldContinue == false) {
+                            throw new CollectionTerminatedException();
+                        }
+                    };
+                }
 
-        ReservoirCollector(Reservoir reservoir, int readerIdx) {
-            this.reservoir = reservoir;
-            this.readerIdx = readerIdx;
+                @Override
+                public ScoreMode scoreMode() {
+                    return ScoreMode.COMPLETE_NO_SCORES;
+                }
+            };
         }
 
         @Override
-        public LeafCollector getLeafCollector(LeafReaderContext context) {
-            return new ReservoirLeafCollector(reservoir, readerIdx, context);
-        }
-
-        @Override
-        public ScoreMode scoreMode() {
-            return ScoreMode.COMPLETE_NO_SCORES;
-        }
-    }
-
-    private static class ReservoirLeafCollector implements LeafCollector {
-
-        private final Reservoir reservoir;
-        private final int readerIdx;
-        private final LeafReaderContext context;
-
-        ReservoirLeafCollector(Reservoir reservoir, int readerIdx, LeafReaderContext context) {
-            this.reservoir = reservoir;
-            this.readerIdx = readerIdx;
-            this.context = context;
-        }
-
-        @Override
-        public void setScorer(Scorable scorer) {
-        }
-
-        @Override
-        public void collect(int doc) {
-            var shouldContinue = reservoir.update(FetchId.encode(readerIdx, doc + context.docBase));
-            if (shouldContinue == false) {
-                throw new CollectionTerminatedException();
-            }
+        public Reservoir reduce(Collection<Collector> collectors) {
+            return reservoir;
         }
     }
 
