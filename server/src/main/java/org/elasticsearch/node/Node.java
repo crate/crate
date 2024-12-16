@@ -367,7 +367,7 @@ public class Node implements Closeable {
             resourcesToClose.add(() -> ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS));
 
             final List<Setting<?>> additionalSettings = new ArrayList<>(pluginsService.getPluginSettings());
-            for (final ExecutorBuilder<?> builder : threadPool.builders()) {
+            for (final ExecutorBuilder builder : threadPool.builders()) {
                 additionalSettings.addAll(builder.getRegisteredSettings());
             }
             client = new NodeClient(settings, threadPool);

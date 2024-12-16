@@ -69,7 +69,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
                                     new CodecService(),
                                     config.getEventListener(), config.getQueryCache(),
                                     config.getQueryCachingPolicy(), config.getTranslogConfig(), config.getFlushMergesAfter(),
-                                    config.getExternalRefreshListener(), config.getInternalRefreshListener(),
+                                    config.getExternalRefreshListeners(), config.getInternalRefreshListeners(),
                                     config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.retentionLeasesSupplier(),
                                     config.getPrimaryTermSupplier(), config.getTombstoneDocSupplier());
         }
