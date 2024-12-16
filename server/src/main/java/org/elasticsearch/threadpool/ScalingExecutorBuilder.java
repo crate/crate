@@ -19,12 +19,6 @@
 
 package org.elasticsearch.threadpool;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.node.Node;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -32,10 +26,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.node.Node;
+
+import io.crate.common.unit.TimeValue;
+
 /**
  * A builder for scaling executors.
  */
-public final class ScalingExecutorBuilder extends ExecutorBuilder<ScalingExecutorBuilder.ScalingExecutorSettings> {
+public final class ScalingExecutorBuilder extends ExecutorBuilder {
 
     private final Setting<Integer> coreSetting;
     private final Setting<Integer> maxSetting;
@@ -81,23 +82,15 @@ public final class ScalingExecutorBuilder extends ExecutorBuilder<ScalingExecuto
     }
 
     @Override
-    ScalingExecutorSettings getSettings(Settings settings) {
+    ThreadPool.ExecutorHolder build(final Settings settings) {
         final String nodeName = Node.NODE_NAME_SETTING.get(settings);
-        final int coreThreads = coreSetting.get(settings);
-        final int maxThreads = maxSetting.get(settings);
+        final int core = coreSetting.get(settings);
+        final int max = maxSetting.get(settings);
         final TimeValue keepAlive = keepAliveSetting.get(settings);
-        return new ScalingExecutorSettings(nodeName, coreThreads, maxThreads, keepAlive);
-    }
-
-    @Override
-    ThreadPool.ExecutorHolder build(final ScalingExecutorSettings settings) {
-        TimeValue keepAlive = settings.keepAlive;
-        int core = settings.core;
-        int max = settings.max;
         final ThreadPool.Info info = new ThreadPool.Info(name(), ThreadPool.ThreadPoolType.SCALING, core, max, keepAlive, null);
-        final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(EsExecutors.threadName(settings.nodeName, name()));
+        final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(EsExecutors.threadName(nodeName, name()));
         final ExecutorService executor = EsExecutors.newScaling(
-            settings.nodeName + "/" + name(),
+            nodeName + "/" + name(),
             core,
             max,
             keepAlive.millis(),
@@ -116,19 +109,4 @@ public final class ScalingExecutorBuilder extends ExecutorBuilder<ScalingExecuto
             info.getMax(),
             info.getKeepAlive());
     }
-
-    static class ScalingExecutorSettings extends ExecutorBuilder.ExecutorSettings {
-
-        private final int core;
-        private final int max;
-        private final TimeValue keepAlive;
-
-        ScalingExecutorSettings(final String nodeName, final int core, final int max, final TimeValue keepAlive) {
-            super(nodeName);
-            this.core = core;
-            this.max = max;
-            this.keepAlive = keepAlive;
-        }
-    }
-
 }

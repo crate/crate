@@ -19,24 +19,8 @@
 
 package org.elasticsearch.threadpool;
 
-import io.crate.common.unit.TimeValue;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.SizeValue;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
-import org.elasticsearch.node.Node;
+import static java.util.Collections.unmodifiableMap;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,7 +36,24 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Collections.unmodifiableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.SizeValue;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
+import org.elasticsearch.node.Node;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.unit.TimeValue;
 
 public class ThreadPool implements Scheduler {
 
@@ -110,34 +111,14 @@ public class ThreadPool implements Scheduler {
         }
     }
 
-    public static final Map<String, ThreadPoolType> THREAD_POOL_TYPES = Map.ofEntries(
-        Map.entry(Names.SAME, ThreadPoolType.DIRECT),
-        Map.entry(Names.GENERIC, ThreadPoolType.SCALING),
-        Map.entry(Names.LISTENER, ThreadPoolType.FIXED),
-        Map.entry(Names.GET, ThreadPoolType.FIXED),
-        Map.entry(Names.WRITE, ThreadPoolType.FIXED),
-        Map.entry(Names.SEARCH, ThreadPoolType.FIXED),
-        Map.entry(Names.MANAGEMENT, ThreadPoolType.SCALING),
-        Map.entry(Names.FLUSH, ThreadPoolType.SCALING),
-        Map.entry(Names.REFRESH, ThreadPoolType.SCALING),
-        Map.entry(Names.WARMER, ThreadPoolType.SCALING),
-        Map.entry(Names.SNAPSHOT, ThreadPoolType.SCALING),
-        Map.entry(Names.FORCE_MERGE, ThreadPoolType.FIXED),
-        Map.entry(Names.FETCH_SHARD_STARTED, ThreadPoolType.SCALING),
-        Map.entry(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING),
-        Map.entry(Names.LOGICAL_REPLICATION, ThreadPoolType.FIXED)
-    );
-
     private final Map<String, ExecutorHolder> executors;
 
     private final CachedTimeThread cachedTimeThread;
 
-    @SuppressWarnings("rawtypes")
     private final Map<String, ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;
 
-    @SuppressWarnings("rawtypes")
     public Collection<ExecutorBuilder> builders() {
         return builders.values();
     }
@@ -176,8 +157,7 @@ public class ThreadPool implements Scheduler {
 
         final Map<String, ExecutorHolder> executors = new HashMap<>();
         for (final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
-            final ExecutorBuilder.ExecutorSettings executorSettings = entry.getValue().getSettings(settings);
-            final ExecutorHolder executorHolder = entry.getValue().build(executorSettings);
+            final ExecutorHolder executorHolder = entry.getValue().build(settings);
             if (executors.containsKey(executorHolder.info.getName())) {
                 throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.getName() + "] registered");
             }
@@ -196,7 +176,7 @@ public class ThreadPool implements Scheduler {
 
     /**
      * Returns a value of milliseconds that may be used for relative time calculations.
-     *
+     * <p/>
      * This method should only be used for calculating time deltas. For an epoch based
      * timestamp, see {@link #absoluteTimeInMillis()}.
      */
@@ -206,7 +186,7 @@ public class ThreadPool implements Scheduler {
 
     /**
      * Returns the value of milliseconds since UNIX epoch.
-     *
+     * <p/>
      * This method should only be used for exact date/time formatting. For calculating
      * time deltas that should not suffer from negative deltas, which are possible with
      * this method, see {@link #relativeTimeInMillis()}.
@@ -229,8 +209,7 @@ public class ThreadPool implements Scheduler {
             long rejected = -1;
             int largest = -1;
             long completed = -1;
-            if (holder.executor() instanceof ThreadPoolExecutor) {
-                ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) holder.executor();
+            if (holder.executor() instanceof ThreadPoolExecutor threadPoolExecutor) {
                 threads = threadPoolExecutor.getPoolSize();
                 queue = threadPoolExecutor.getQueue().size();
                 active = threadPoolExecutor.getActiveCount();
@@ -394,7 +373,7 @@ public class ThreadPool implements Scheduler {
         return ((availableProcessors * 3) / 2) + 1;
     }
 
-    class ThreadedRunnable implements Runnable {
+    static class ThreadedRunnable implements Runnable {
 
         private final Runnable runnable;
 
@@ -426,7 +405,7 @@ public class ThreadPool implements Scheduler {
 
         @Override
         public boolean equals(Object obj) {
-            return runnable.equals(obj);
+            return obj instanceof ThreadedRunnable && runnable.equals(obj);
         }
 
         @Override
@@ -438,7 +417,7 @@ public class ThreadPool implements Scheduler {
     /**
      * A thread to cache millisecond time values from
      * {@link System#nanoTime()} and {@link System#currentTimeMillis()}.
-     *
+     * <p/>
      * The values are updated at a specified interval.
      */
     static class CachedTimeThread extends Thread {
@@ -501,19 +480,10 @@ public class ThreadPool implements Scheduler {
         }
     }
 
-    static class ExecutorHolder {
-        private final Executor executor;
-        public final Info info;
-
-        ExecutorHolder(Executor executor, Info info) {
+    record ExecutorHolder(Executor executor, Info info) {
+        ExecutorHolder {
             assert executor instanceof EsThreadPoolExecutor || executor == EsExecutors.directExecutor()
                 : "Executor must either be the DIRECT_EXECUTOR or an instance of EsThreadPoolExecutor";
-            this.executor = executor;
-            this.info = info;
-        }
-
-        Executor executor() {
-            return executor;
         }
     }
 

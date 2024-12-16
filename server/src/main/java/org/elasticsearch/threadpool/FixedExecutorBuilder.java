@@ -19,6 +19,12 @@
 
 package org.elasticsearch.threadpool;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadFactory;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.SizeValue;
@@ -27,16 +33,10 @@ import org.elasticsearch.node.Node;
 
 import io.crate.types.DataTypes;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadFactory;
-
 /**
  * A builder for fixed executors.
  */
-public final class FixedExecutorBuilder extends ExecutorBuilder<FixedExecutorBuilder.FixedExecutorSettings> {
+public final class FixedExecutorBuilder extends ExecutorBuilder {
 
     private final Setting<Integer> sizeSetting;
     private final Setting<Integer> queueSizeSetting;
@@ -82,20 +82,13 @@ public final class FixedExecutorBuilder extends ExecutorBuilder<FixedExecutorBui
     }
 
     @Override
-    FixedExecutorSettings getSettings(Settings settings) {
+    ThreadPool.ExecutorHolder build(final Settings settings) {
         final String nodeName = Node.NODE_NAME_SETTING.get(settings);
         final int size = sizeSetting.get(settings);
         final int queueSize = queueSizeSetting.get(settings);
-        return new FixedExecutorSettings(nodeName, size, queueSize);
-    }
-
-    @Override
-    ThreadPool.ExecutorHolder build(final FixedExecutorSettings settings) {
-        int size = settings.size;
-        int queueSize = settings.queueSize;
-        final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(EsExecutors.threadName(settings.nodeName, name()));
+        final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(EsExecutors.threadName(nodeName, name()));
         final ExecutorService executor = EsExecutors.newFixed(
-            settings.nodeName + "/" + name(),
+            nodeName + "/" + name(),
             size,
             queueSize,
             threadFactory
@@ -113,19 +106,6 @@ public final class FixedExecutorBuilder extends ExecutorBuilder<FixedExecutorBui
             info.getName(),
             info.getMax(),
             info.getQueueSize() == null ? "unbounded" : info.getQueueSize());
-    }
-
-    static class FixedExecutorSettings extends ExecutorBuilder.ExecutorSettings {
-
-        private final int size;
-        private final int queueSize;
-
-        FixedExecutorSettings(final String nodeName, final int size, final int queueSize) {
-            super(nodeName);
-            this.size = size;
-            this.queueSize = queueSize;
-        }
-
     }
 
 }
