@@ -729,11 +729,25 @@ public class ExpressionAnalyzer {
             if (operation != Operation.READ) {
                 throw e;
             }
+            //
+            //   From the perspective of the outer query for `select o['a']['b'] from (select o['a'] from t) t2`,
+            //   the base column of `o['a']['b']` could be `o` or `o['a']`. Need to skip the potential base columns
+            //   that throw ColumnUnknownExceptions. In this case, `o` throws.
+            //
             try {
-                Symbol base = fieldProvider.resolveField(qualifiedName,
-                    List.of(),
-                    operation,
-                    context.errorOnUnknownObjectKey());
+                Symbol base = null;
+                for (int i = parts.size() - 1; i >= 0; i--) {
+                    try {
+                        base = fieldProvider.resolveField(qualifiedName,
+                            parts.subList(0, i),
+                            operation,
+                            context.errorOnUnknownObjectKey());
+                        if (base != null) {
+                            break;
+                        }
+                    } catch (ColumnUnknownException _) {
+                    }
+                }
                 DataType<?> baseType = base.valueType();
                 // Need to double-check that the base type does not hold the inner type before throwing. For instance,
                 //     create table t (o array(object as (a int)));
