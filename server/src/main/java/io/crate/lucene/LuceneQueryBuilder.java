@@ -106,6 +106,7 @@ public class LuceneQueryBuilder {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
+            table.primaryKeyReference(),
             table.isParentReferenceIgnored()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
@@ -117,7 +118,6 @@ public class LuceneQueryBuilder {
             queryCache,
             indexAnalyzers,
             indexName,
-            table.partitionedByColumns(),
             query
         );
         ctx.query = eliminateNullsIfPossible(
@@ -153,7 +153,6 @@ public class LuceneQueryBuilder {
                 QueryCache queryCache,
                 IndexAnalyzers indexAnalyzers,
                 String indexName,
-                List<Reference> partitionColumns,
                 Symbol parentQuery) {
             this.table = table;
             this.shardCreatedVersion = shardCreatedVersion;
@@ -164,7 +163,8 @@ public class LuceneQueryBuilder {
                 nodeCtx,
                 new LuceneReferenceResolver(
                     indexName,
-                    partitionColumns,
+                    table.partitionedByColumns(),
+                    table.primaryKeyReference(),
                     table.isParentReferenceIgnored()
                 )
             );

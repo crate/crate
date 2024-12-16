@@ -3220,7 +3220,8 @@ public class InternalEngineTests extends EngineTestCase {
             () -> UNASSIGNED_SEQ_NO,
             () -> RetentionLeases.EMPTY,
             primaryTerm::get,
-            tombstoneDocSupplier()
+            tombstoneDocSupplier(),
+            false
         );
         assertThatThrownBy(() -> new InternalEngine(brokenConfig))
             .isExactlyInstanceOf(EngineCreationFailureException.class);

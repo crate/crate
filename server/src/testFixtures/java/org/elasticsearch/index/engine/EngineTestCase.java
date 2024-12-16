@@ -217,7 +217,8 @@ public abstract class EngineTestCase extends ESTestCase {
             globalCheckpointSupplier,
             config.retentionLeasesSupplier(),
             config.getPrimaryTermSupplier(),
-            tombstoneDocSupplier()
+            tombstoneDocSupplier(),
+            config.isIdFieldVirtual()
         );
     }
 
@@ -241,7 +242,8 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getGlobalCheckpointSupplier(),
             config.retentionLeasesSupplier(),
             config.getPrimaryTermSupplier(),
-            config.getTombstoneDocSupplier());
+            config.getTombstoneDocSupplier(),
+            config.isIdFieldVirtual());
     }
 
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
@@ -264,7 +266,8 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getGlobalCheckpointSupplier(),
             config.retentionLeasesSupplier(),
             config.getPrimaryTermSupplier(),
-            config.getTombstoneDocSupplier()
+            config.getTombstoneDocSupplier(),
+            config.isIdFieldVirtual()
         );
     }
 
@@ -701,7 +704,8 @@ public abstract class EngineTestCase extends ESTestCase {
             globalCheckpointSupplier,
             retentionLeasesSupplier,
             primaryTerm,
-            tombstoneDocSupplier());
+            tombstoneDocSupplier(),
+            false);
     }
 
     protected EngineConfig config(EngineConfig config,
@@ -736,7 +740,8 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getGlobalCheckpointSupplier(),
             config.retentionLeasesSupplier(),
             config.getPrimaryTermSupplier(),
-            tombstoneDocSupplier);
+            tombstoneDocSupplier,
+            config.isIdFieldVirtual());
     }
 
     protected EngineConfig noOpConfig(IndexSettings indexSettings, Store store, Path translogPath) {
