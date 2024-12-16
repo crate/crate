@@ -1920,6 +1920,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return getEngine().segments(verbose);
     }
 
+    @Nullable
     public String getHistoryUUID() {
         return getEngine().getHistoryUUID();
     }
