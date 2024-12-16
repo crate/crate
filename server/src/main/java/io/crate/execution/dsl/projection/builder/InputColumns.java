@@ -49,6 +49,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.VoidReference;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -262,6 +263,15 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
         return inputColumn;
     }
 
+    @Override
+    public Symbol visitVoidReference(VoidReference ref, SourceSymbols sourceSymbols) {
+        var symbol = lookupValueByColumn(sourceSymbols.inputs, ref.column());
+        if (symbol != null) {
+            return symbol;
+        } else {
+            return visitReference(ref, sourceSymbols);
+        }
+    }
 
     @Override
     public Symbol visitField(ScopedSymbol field, SourceSymbols sourceSymbols) {
