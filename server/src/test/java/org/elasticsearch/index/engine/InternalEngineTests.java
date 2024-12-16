@@ -117,7 +117,6 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.Lock;
@@ -179,7 +178,6 @@ import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 
 import io.crate.common.collections.Tuple;
@@ -187,7 +185,6 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.doc.SysColumns;
 
-@Seed("1CFE74DE6B4C12A5:E8E04461DD2F1464")
 public class InternalEngineTests extends EngineTestCase {
 
     static final long UNSET_AUTO_GENERATED_TIMESTAMP = -1L;
@@ -723,9 +720,8 @@ public class InternalEngineTests extends EngineTestCase {
             recoveringEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
             recoveringEngine.refresh("test");
             try (Engine.Searcher searcher = recoveringEngine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new MatchAllDocsQuery(), collector);
-                assertThat(collector.getTotalHits()).isEqualTo(operations.get(operations.size() - 1) instanceof Engine.Delete ? 0 : 1);
+                var totalHits = searcher.count(new MatchAllDocsQuery());
+                assertThat(totalHits).isEqualTo(operations.getLast() instanceof Engine.Delete ? 0 : 1);
             }
         }
     }
@@ -1836,16 +1832,14 @@ public class InternalEngineTests extends EngineTestCase {
 
         if (lastFieldValueDoc1 != null) {
             try (Searcher searcher = engine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValueDoc1)), collector);
-                assertThat(collector.getTotalHits()).isEqualTo(1);
+                var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValueDoc1)));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
         if (lastFieldValueDoc2 != null) {
             try (Searcher searcher = engine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValueDoc2)), collector);
-                assertThat(collector.getTotalHits()).isEqualTo(1);
+                var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValueDoc2)));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
 
@@ -2070,9 +2064,8 @@ public class InternalEngineTests extends EngineTestCase {
                 // first op and it failed.
                 if (docDeleted == false && lastFieldValue != null) {
                     try (Searcher searcher = engine.acquireSearcher("test")) {
-                        final TotalHitCountCollector collector = new TotalHitCountCollector();
-                        searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                        assertThat(collector.getTotalHits()).isEqualTo(1);
+                        var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                        assertThat(totalHits).isEqualTo(1);
                     }
                 }
             }
@@ -2096,11 +2089,10 @@ public class InternalEngineTests extends EngineTestCase {
         assertVisibleCount(engine, docDeleted ? 0 : 1);
         if (docDeleted == false) {
             try (Searcher searcher = engine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
                 // lastFieldValue can be null if all index ops had a version conflict
                 if (lastFieldValue != null) {
-                    searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                    assertThat(collector.getTotalHits()).isEqualTo(1);
+                    var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                    assertThat(totalHits).isEqualTo(1);
                 }
             }
         }
@@ -2183,9 +2175,8 @@ public class InternalEngineTests extends EngineTestCase {
         if (docDeleted == false) {
             logger.info("searching for [{}]", lastFieldValue);
             try (Searcher searcher = engine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                assertThat(collector.getTotalHits()).isEqualTo(1);
+                var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
     }
@@ -2206,9 +2197,8 @@ public class InternalEngineTests extends EngineTestCase {
             replicaEngine,
             new Engine.Get(lastReplicaOp.uid().text(), lastReplicaOp.uid())).v1();
         try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
-            final TotalHitCountCollector collector = new TotalHitCountCollector();
-            searcher.search(new MatchAllDocsQuery(), collector);
-            if (collector.getTotalHits() > 0) {
+            var totalHits = searcher.count(new MatchAllDocsQuery());
+            if (totalHits > 0) {
                 // last op wasn't delete
                 assertThat(currentSeqNo).isEqualTo(finalReplicaSeqNo + opsOnPrimary);
             }
@@ -2234,9 +2224,8 @@ public class InternalEngineTests extends EngineTestCase {
         assertVisibleCount(engine, lastFieldValue == null ? 0 : 1);
         if (lastFieldValue != null) {
             try (Searcher searcher = engine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                assertThat(collector.getTotalHits()).isEqualTo(1);
+                var totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
     }
@@ -3492,7 +3481,7 @@ public class InternalEngineTests extends EngineTestCase {
         if (randomBoolean()) {
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), n -> assertThat(n).isEqualTo(1L));
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), n -> assertThat(n).isEqualTo(0));
             assertThat(indexResult.getTranslogLocation()).isNotNull();
             Engine.IndexResult retryResult = engine.index(retry);
             assertLuceneOperations(engine, 1, create ? 0 : 1, 0);
