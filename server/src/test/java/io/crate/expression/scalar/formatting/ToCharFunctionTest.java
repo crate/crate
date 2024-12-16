@@ -39,6 +39,14 @@ public class ToCharFunctionTest extends ScalarTestCase {
         );
     }
 
+
+    @Test
+    public void test_lower_case_patterns() throws Exception {
+        assertEvaluate("to_char('2024-12-13'::timestamp, 'yyyy-mm-dd')", "2024-12-13");
+    }
+
+
+
     @Test
     public void test_lower_case_yyyy_supported() throws Exception {
         assertEvaluate("to_char(timestamp '1970-01-01', 'yyyy')", "1970");
