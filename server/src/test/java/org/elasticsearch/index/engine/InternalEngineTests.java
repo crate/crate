@@ -6201,6 +6201,7 @@ public class InternalEngineTests extends EngineTestCase {
         }).when(delete).startTime();
         engine.activateThrottling();
         engine.delete(delete);
+        assertThat(engine.throttleLockIsHeldByCurrentThread()).isFalse();
         engine.deactivateThrottling();
     }
 
