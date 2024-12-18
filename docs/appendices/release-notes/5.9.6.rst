@@ -72,3 +72,11 @@ Fixes
     FROM information_schema.table_partitions alias
     WHERE values['ts_month'] = '2022-08-01'
 
+
+- Fixed a ``ColumnUnknownException`` thrown when querying a user-defined table
+  setting. For example ::
+
+      CREATE TABLE t (a INT) WITH ("routing.allocation.exclude.foo" = 'bar')
+      SELECT settings['routing']['allocation']['exclude']['foo'] FROM information_schema.tables WHERE table_name = 't';
+      ColumnUnknownException[Column settings['routing']['allocation']['exclude']['foo'] unknown]
+
