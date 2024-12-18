@@ -22,10 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
@@ -178,12 +176,9 @@ public class TableSettingsTest extends IntegTestCase {
 
     @Test
     public void testSelectConcreteDynamicSetting() {
-        Asserts.assertSQLError(() -> execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
-            "where table_name = 'settings_table'")
-        )
-            .hasPGError(UNDEFINED_COLUMN)
-            .hasHTTPError(NOT_FOUND, 4043)
-            .hasMessageContaining("Column settings['routing']['allocation']['exclude']['foo'] unknown");
+        execute("select settings['routing']['allocation']['exclude']['foo'] from information_schema.tables " +
+            "where table_name = 'settings_table'");
+        assertThat(printedTable(response.rows())).isEqualTo("bar\n");
     }
 
     @Test
