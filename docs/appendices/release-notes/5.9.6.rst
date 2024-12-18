@@ -61,3 +61,11 @@ Fixes
   accuracy of the result can be now controlled and adjusted to the user's needs.
   Be aware that higher ``compression`` values will lead to slightly higher memory
   consumption.
+
+- Fixed a ``ColumnUnknownException`` thrown when querying a user-defined table
+  setting. For example ::
+
+      CREATE TABLE t (a INT) WITH ("routing.allocation.exclude.foo" = 'bar')
+      SELECT settings['routing']['allocation']['exclude']['foo'] FROM information_schema.tables WHERE table_name = 't';
+      ColumnUnknownException[Column settings['routing']['allocation']['exclude']['foo'] unknown]
+
