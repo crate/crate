@@ -25,6 +25,7 @@ import static io.crate.copy.azure.AzureCopyPlugin.OPEN_DAL_SCHEME;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -32,16 +33,39 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
+import org.apache.opendal.OperatorOutputStream;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
+import sun.misc.Unsafe;
 
 public class AzureFileOutput implements FileOutput {
 
     private final Map<String, String> config;
     private final Operator operator;
     private final String resourcePath;
+
+    // Change hardcoded chunk size to a bigger value to avoid BlockCountExceedsLimit error.
+    // TODO: Revert this once https://github.com/apache/opendal/issues/5421 is released.
+    static {
+        try {
+            final Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            Unsafe unsafe = (Unsafe) unsafeField.get(null);
+
+            final Field maxBytesField = OperatorOutputStream.class.getDeclaredField("MAX_BYTES");
+            //noinspection removal
+            Object fieldBase = unsafe.staticFieldBase(maxBytesField);
+            //noinspection removal
+            long fieldOffset = unsafe.staticFieldOffset(maxBytesField);
+
+            //noinspection removal
+            unsafe.putObject(fieldBase, fieldOffset, 16384 * 10);
+        } catch (Exception e) {
+            // Do nothing, use hardcoded buffer size.
+        }
+    }
 
     public AzureFileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
         AzureURI azureURI = AzureURI.of(uri);

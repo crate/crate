@@ -52,3 +52,7 @@ Fixes
 
 - Fixed a possible deadlock where concurrent delete requests could take a lock but then never
   release it, leading to requests timing out and threads parked in infinite waits.
+
+- Fixed an issue leading to an error when exporting big tables via ``COPY TO``
+  to the :ref:`Azure Blob Storage <sql-copy-to-az>`.
+  This also has a positive effect on performance.
