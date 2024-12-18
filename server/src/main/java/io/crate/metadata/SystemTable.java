@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -362,7 +363,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public ObjectBuilder<T, P> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
-            return add(new DynamicColumn<>(baseColumn.getChild(column), leafType, getObject));
+            return add(new DynamicColumn<>(baseColumn.getChild(column), leafType, t -> Objects.requireNonNullElse(getObject.apply(t), Map.of())));
         }
 
         @Override
@@ -393,13 +394,9 @@ public final class SystemTable<T> implements TableInfo {
             ObjectType objectType = typeBuilder.build();
             parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren, objectIsNull)));
             for (Column<T, ?> column : columns) {
-                addColumnToParent(column);
+                parent.add(column);
             }
             return parent;
-        }
-
-        private <U> void addColumnToParent(Column<T, U> column) {
-            parent.add(new Column<>(column.column, column.type, column.getProperty));
         }
     }
 
