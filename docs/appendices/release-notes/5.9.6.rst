@@ -52,3 +52,12 @@ Fixes
 
 - Fixed a possible deadlock where concurrent delete requests could take a lock but then never
   release it, leading to requests timing out and threads parked in infinite waits.
+
+- Fixed a regression introduced with :ref:`version_5.6.0` which caused the
+  :ref:`percentile() <aggregation-percentile>` aggregation function to return
+  results with high deviations for some data sets and data distribution. By the
+  added support for passing in an optional 3rd ``compression`` parameter to the
+  :ref:`percentile() <aggregation-percentile>` aggregation function, the
+  accuracy of the result can be now controlled and adjusted to the user's needs.
+  Be aware that higher ``compression`` values will lead to slightly higher memory
+  consumption.
