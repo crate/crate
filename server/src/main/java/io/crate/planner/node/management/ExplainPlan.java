@@ -209,8 +209,12 @@ public class ExplainPlan implements Plan {
         timer.start();
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
         RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
-        NodeOperationTree operationTree = LogicalPlanner.getNodeOperationTree(
-            plan, executor, plannerContext, params, subQueryResults);
+        NodeOperationTree operationTree = null;
+        try {
+            operationTree = LogicalPlanner.getNodeOperationTree(plan, executor, plannerContext, params, subQueryResults);
+        } catch (Throwable e) {
+            consumer.accept(null, e);
+        }
 
         resultReceiver.completionFuture()
             .whenComplete(createResultConsumer(executor, consumer, plannerContext.jobId(), timer, operationTree, subQueryExplainResults));
