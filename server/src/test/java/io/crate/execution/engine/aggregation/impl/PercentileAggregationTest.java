@@ -24,6 +24,10 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -274,10 +278,53 @@ public class PercentileAggregationTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(72L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(104L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(96L);
+    }
+
+    @Test
+    public void test_custom_compression_setting_is_used() throws Exception {
+        var signature = Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+            .argumentTypes(
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature())
+            .returnType(DataTypes.DOUBLE.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
+
+        double fraction = 0.5;
+        double customCompression = 300.0;
+
+        // We must use a fixed data set to ensure that the compression setting is actually used (and changes the result)
+        var dataFile = Paths.get(getClass().getResource("/essetup/data/percentile_data.csv").toURI()).toFile();
+        ArrayList<Object[]> rowsDefault = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
+            String line;
+            while ((line = br.readLine()) != null && line.isEmpty() == false) {
+                double value = Double.parseDouble(line);
+                rowsDefault.add(new Object[]{value, fraction, TDigestState.DEFAULT_COMPRESSION});
+            }
+        }
+
+        Object resultDefault = executeAggregation(
+            signature,
+            rowsDefault.toArray(new Object[0][]),
+            List.of()
+        );
+        Object resultCustom = executeAggregation(
+            signature,
+            rowsDefault.stream()
+                .map(row -> new Object[]{row[0], row[1], customCompression})
+                .toArray(Object[][]::new),
+            List.of()
+        );
+
+        assertThat(resultCustom).isNotEqualTo(resultDefault);
+        // Let's assert a concrete value to get failures if the implementation changes and reveals a different result
+        assertThat(resultCustom).isEqualTo(97.0);
     }
 }
