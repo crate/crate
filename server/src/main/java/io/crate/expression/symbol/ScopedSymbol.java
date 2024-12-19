@@ -82,6 +82,14 @@ public final class ScopedSymbol implements Symbol {
     }
 
     /**
+     * Creates a ScopedSymbol describing the output from a relation, pointing to a single specific symbol of a child
+     * relation.
+     * <p>
+     * It uses the hashCode of the symbol to disambiguate columns with the same name but different source relations.
+     * Using the identity of the symbol is not possible because dynamic or void references are not cached and are
+     * created on the fly on every look up. This would lead to different identities for the same symbol.
+     * </p>
+     *
      * @param relation owner of this symbol
      * @param column name of the symbol
      * @param symbol the symbol this ScopedSymbol is pointing towards
@@ -90,7 +98,7 @@ public final class ScopedSymbol implements Symbol {
         this.relation = relation;
         this.column = column;
         this.dataType = symbol.valueType();
-        this.identity = System.identityHashCode(symbol);
+        this.identity = symbol.hashCode();
     }
 
     public RelationName relation() {
