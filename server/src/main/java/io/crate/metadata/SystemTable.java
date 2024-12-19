@@ -397,7 +397,14 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         private <U> void addColumnToParent(Column<T, U> column) {
-            parent.add(new Column<>(column.column, column.type, column.getProperty));
+            if (column instanceof DynamicColumn dynamicColumn) {
+                parent.add(new DynamicColumn<>(
+                    dynamicColumn.column,
+                    dynamicColumn.leafType,
+                    t -> objectIsNull.test(t) ? Map.of() : (Map<String, Object>) dynamicColumn.getProperty.apply(t)));
+            } else {
+                parent.add(new Column<>(column.column, column.type, column.getProperty));
+            }
         }
     }
 
