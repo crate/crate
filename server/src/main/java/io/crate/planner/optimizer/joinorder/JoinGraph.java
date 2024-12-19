@@ -23,7 +23,8 @@ package io.crate.planner.optimizer.joinorder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,7 +137,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
     }
 
     public static JoinGraph create(LogicalPlan plan, UnaryOperator<LogicalPlan> resolvePlan) {
-        return plan.accept(new GraphBuilder(resolvePlan), new HashMap<>());
+        return plan.accept(new GraphBuilder(resolvePlan), new LinkedHashMap<>());
     }
 
     private static class GraphBuilder extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
@@ -247,7 +248,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
                 if (values == null) {
                     values = Set.of(edge);
                 } else {
-                    values = new HashSet<>(values);
+                    values = new LinkedHashSet<>(values);
                     values.add(edge);
                 }
                 edges.put(from, values);
