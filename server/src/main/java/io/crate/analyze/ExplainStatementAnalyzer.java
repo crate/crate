@@ -47,9 +47,13 @@ public class ExplainStatementAnalyzer {
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
         var isVerboseActivated = node.isOptionActivated(Explain.Option.VERBOSE);
+        var isAnalyzeActivated = node.isOptionActivated(Explain.Option.ANALYZE);
 
         Statement statement = node.getStatement();
-        statement.accept(isVerboseActivated ? EXPLAIN_VERBOSE_CHECK_VISITOR : EXPLAIN_CHECK_VISITOR, null);
+        statement.accept(
+            isVerboseActivated ? EXPLAIN_VERBOSE_CHECK_VISITOR :
+                (isAnalyzeActivated ? EXPLAIN_ANALYZE_CHECK_VISITOR : EXPLAIN_CHECK_VISITOR),
+            null);
 
         if (node.options().isEmpty()) {
             // default case, no options, show costs
@@ -57,7 +61,6 @@ public class ExplainStatementAnalyzer {
         }
 
         var isCostsActivated = node.isOptionActivated(Explain.Option.COSTS);
-        var isAnalyzeActivated = node.isOptionActivated(Explain.Option.ANALYZE);
 
         if (isCostsActivated && isAnalyzeActivated) {
             throw new IllegalArgumentException("The ANALYZE and COSTS options are not allowed together");
@@ -92,6 +95,7 @@ public class ExplainStatementAnalyzer {
             return null;
         }
 
+        @Override
         public Void visitInsert(io.crate.sql.tree.Insert<?> node, Void context) {
             return node.insertSource().accept(this, context);
         }
@@ -112,6 +116,19 @@ public class ExplainStatementAnalyzer {
         @Override
         protected Void visitNode(Node node, Void context) {
             throw new UnsupportedFeatureException("EXPLAIN VERBOSE is not supported for " + node);
+        }
+    };
+
+    private static final AstVisitor<Void, Void> EXPLAIN_ANALYZE_CHECK_VISITOR = new AstVisitor<>() {
+
+        @Override
+        protected Void visitQuery(Query node, Void context) {
+            return null;
+        }
+
+        @Override
+        protected Void visitNode(Node node, Void context) {
+            throw new UnsupportedFeatureException("EXPLAIN ANALYZE is not supported for " + node);
         }
     };
 }
