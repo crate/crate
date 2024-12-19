@@ -119,4 +119,11 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessageStartingWith("EXPLAIN VERBOSE is not supported for CopyFrom");
     }
+
+    @Test
+    public void test_explain_analyze_insert_unsupported() {
+        assertThatThrownBy(() -> e.analyze("explain analyze insert into users(id) values (1)"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessageStartingWith("EXPLAIN ANALYZE is not supported for Insert");
+    }
 }
