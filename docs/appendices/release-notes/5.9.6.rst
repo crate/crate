@@ -61,3 +61,14 @@ Fixes
   accuracy of the result can be now controlled and adjusted to the user's needs.
   Be aware that higher ``compression`` values will lead to slightly higher memory
   consumption.
+
+- Fixed a regression introduced with :ref:`version_5.8.5` which caused queries
+  containing a symbol pointing to an ignored column or dynamic system column of
+  an aliased relation to fail with an planner error. This happens only if the
+  related symbol was used multiple times, e.g. as a select item and inside the
+  where clause. Example::
+
+    SELECT values['ts_month']
+    FROM information_schema.table_partitions alias
+    WHERE values['ts_month'] = '2022-08-01'
+
