@@ -343,6 +343,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return ref -> findParentReferenceMatching(ref, r -> r.valueType().columnPolicy() == ColumnPolicy.IGNORED) != null;
     }
 
+    /**
+     * Checks if the ref is an ignored object type or a non-object type that is a child of ignored object.
+     */
     public boolean isIgnoredOrImmediateChildOfIgnored(Reference ref) {
         if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objectType) {
             return objectType.columnPolicy() == ColumnPolicy.IGNORED;

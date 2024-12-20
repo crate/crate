@@ -652,8 +652,8 @@ If all input values are null, null is returned as a result.
 
 .. _aggregation-percentile:
 
-``percentile(column, {fraction | fractions})``
-----------------------------------------------
+``percentile(column, {fraction | fractions} [, compression])``
+--------------------------------------------------------------
 
 The ``percentile`` aggregate function computes a `Percentile`_ over numeric
 non-null values in a column.
@@ -700,14 +700,18 @@ result is returned.
 To be able to calculate percentiles over a huge amount of data and to scale out
 CrateDB calculates approximate instead of accurate percentiles. The algorithm
 used by the percentile metric is called `TDigest`_. The accuracy/size trade-off
-of the algorithm is defined by a single compression parameter which has a
-constant value of ``100``. However, there are a few guidelines to keep in mind
-in this implementation:
+of the algorithm is defined by a single ``compression`` parameter which has a
+default value of ``100.0``, but can be defined by passing in an optional 3rd
+``double`` value argument as the ``compression``. However, there are a few
+guidelines to keep in mind in this implementation:
 
 - Extreme percentiles (e.g. 99%) are more accurate.
 - For small sets, percentiles are highly accurate.
 - It is difficult to generalize the exact level of accuracy, as it depends
   on your data distribution and volume of data being aggregated.
+- The ``compression`` parameter is a trade-off between accuracy and memory
+  usage. A higher value will result in more accurate percentiles but will
+  consume more memory.
 
 
 .. _aggregation-sum:

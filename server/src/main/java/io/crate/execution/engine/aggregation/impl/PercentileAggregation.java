@@ -52,22 +52,52 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature(),
-                                    DataTypes.DOUBLE.getTypeSignature())
-                            .returnType(DataTypes.DOUBLE.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    PercentileAggregation::new
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()
+                    )
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
+                PercentileAggregation::new
             );
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature(),
-                                    DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                            .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    PercentileAggregation::new
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature()
+                    )
+                    .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
+                PercentileAggregation::new
+            );
+
+            // Optional 3rd `compression` setting argument
+            builder.add(
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()
+                    )
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
+                PercentileAggregation::new
+            );
+            builder.add(
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()
+                    )
+                    .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
+                PercentileAggregation::new
             );
         }
     }
@@ -107,6 +137,10 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                                 Input<?>... args) throws CircuitBreakingException {
         if (state.isEmpty()) {
             Object fractionValue = args[1].value();
+            if (args.length > 2) {
+                Double compression = DataTypes.DOUBLE.sanitizeValue(args[2].value());
+                state = new TDigestState(compression, new double[]{});
+            }
             initState(state, fractionValue, ramAccounting);
         }
         Double value = DataTypes.DOUBLE.sanitizeValue(args[0].value());

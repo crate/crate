@@ -21,26 +21,25 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.tdunning.math.stats.AVLTreeDigest;
-import com.tdunning.math.stats.Centroid;
+import java.io.IOException;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import com.tdunning.math.stats.AVLTreeDigest;
+import com.tdunning.math.stats.Centroid;
 
 class TDigestState extends AVLTreeDigest {
 
     public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TDigestState.class);
 
-    private static final int DEFAULT_COMPRESSION = 100;
-    private final double compression;
+    public static final double DEFAULT_COMPRESSION = 100.0;
+
     private double[] fractions;
 
     TDigestState(double compression, double[] fractions) {
         super(compression);
-        this.compression = compression;
         this.fractions = fractions;
     }
 
@@ -52,11 +51,6 @@ class TDigestState extends AVLTreeDigest {
         return fractions.length == 0;
     }
 
-    @Override
-    public double compression() {
-        return compression;
-    }
-
     double[] fractions() {
         return fractions;
     }
@@ -66,7 +60,7 @@ class TDigestState extends AVLTreeDigest {
     }
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
-        out.writeDouble(state.compression);
+        out.writeDouble(state.compression());
         out.writeDoubleArray(state.fractions);
         out.writeVInt(state.centroidCount());
         for (Centroid centroid : state.centroids()) {
