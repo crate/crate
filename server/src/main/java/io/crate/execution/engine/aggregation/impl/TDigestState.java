@@ -27,14 +27,14 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import com.tdunning.math.stats.AVLTreeDigest;
 import com.tdunning.math.stats.Centroid;
+import com.tdunning.math.stats.MergingDigest;
 
-class TDigestState extends AVLTreeDigest {
+class TDigestState extends MergingDigest {
 
     public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TDigestState.class);
 
-    public static final double DEFAULT_COMPRESSION = 100.0;
+    public static final double DEFAULT_COMPRESSION = 200.0;
 
     private double[] fractions;
 
