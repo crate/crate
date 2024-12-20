@@ -34,7 +34,7 @@ class TDigestState extends MergingDigest {
 
     public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TDigestState.class);
 
-    public static final double DEFAULT_COMPRESSION = 100.0;
+    public static final double DEFAULT_COMPRESSION = 200.0;
 
     private double[] fractions;
 
