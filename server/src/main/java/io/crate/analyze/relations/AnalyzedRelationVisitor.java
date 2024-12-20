@@ -25,6 +25,7 @@ import java.util.Locale;
 
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.fdw.ForeignTableRelation;
 
@@ -77,4 +78,9 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitForeignTable(ForeignTableRelation foreignTableRelation, C context) {
         return visitAnalyzedRelation(foreignTableRelation, context);
     }
+
+    public R visitJoinRelation(JoinRelation joinRelation, C context) {
+        return visitAnalyzedRelation(joinRelation, context);
+    }
+
 }

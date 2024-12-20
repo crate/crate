@@ -27,9 +27,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
@@ -42,8 +41,7 @@ public class RelationAnalysisContext {
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
-    @Nullable
-    private List<JoinPair> joinPairs;
+    private final List<Symbol> joinConditions = new ArrayList<>();
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
@@ -61,23 +59,8 @@ public class RelationAnalysisContext {
         return sources;
     }
 
-    public List<RelationName> sourceNames() {
-        // sources is backed up by a LinkedHashMap and thus keeps insertion order.
-        return new ArrayList<>(sources().keySet());
-    }
-
-    void addJoinPair(JoinPair joinType) {
-        if (joinPairs == null) {
-            joinPairs = new ArrayList<>();
-        }
-        joinPairs.add(joinType);
-    }
-
-    List<JoinPair> joinPairs() {
-        if (joinPairs == null) {
-            return List.of();
-        }
-        return joinPairs;
+    List<Symbol> joinConditions() {
+        return joinConditions;
     }
 
     void addSourceRelation(AnalyzedRelation relation) {

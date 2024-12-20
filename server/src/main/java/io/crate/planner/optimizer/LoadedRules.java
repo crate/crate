@@ -47,7 +47,7 @@ public class LoadedRules implements SessionSettingProvider {
     private LoadedRules() {
         List<Collection<Rule<?>>> rules = List.of(
             LogicalPlanner.ITERATIVE_OPTIMIZER_RULES,
-            LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES,
+            LogicalPlanner.JOIN_IMPLEMENTATION_OPTIMIZER_RULES,
             LogicalPlanner.FETCH_OPTIMIZER_RULES,
             LogicalPlanner.WRITE_OPTIMIZER_RULES
         );
