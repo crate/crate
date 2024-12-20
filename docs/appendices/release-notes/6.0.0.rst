@@ -79,6 +79,15 @@ Breaking Changes
 
     SELECT 'a%' LIKE ANY(['a__']);
 
+- Updated the default ``compression`` of
+  :ref:`percentile aggregation <aggregation-percentile>` from ``100.0`` to
+  ``200.0`` which increases the accuracy of the approximations but with the
+  cost of slightly more memory consumption and increased execution time,
+  depending on the used data set.
+  To regain existing behaviour, adjust the ``compression`` argument of the
+  :ref:`percentile aggregation <aggregation-percentile>` accordingly.
+
+
 Deprecations
 ============
 
@@ -126,6 +135,9 @@ Scalar and Aggregation Functions
 - Added support for the :ref:`aggregation-stddev-pop` function to compute
   the population standard deviation.
 
+- Replaced `t-digest <https://github.com/tdunning/t-digest>`_ algorithm used by
+  :ref:`percentile aggregation <aggregation-percentile>` from ``AVLTreeDigest``
+  to ``MergingDigest`` to improve the consistency and accuracy of the result.
 
 Performance and Resilience Improvements
 ---------------------------------------
