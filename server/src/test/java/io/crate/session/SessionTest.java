@@ -51,6 +51,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.where.EqualityExtractorTest;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -420,10 +421,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(10));
             Session spy = spy(session);
             when(spy.newTimeoutToken()).thenReturn(
-                new Session.TimeoutToken(
-                    session.sessionSettings().statementTimeout(),
-                    System.nanoTime() - TimeValue.timeValueMillis(5).nanos() // Operation started 5 millis ago, fits into timeout
-                )
+                // max check 2 reflects the fact that we use a new token in the parse that calls analyze and they both check the token.
+                // For a new statement we issue a new token.
+                new EqualityExtractorTest.TestToken(TimeValue.timeValueMillis(10), 2),
+                // use new instance for the second parse, otherwise default mocking setup, creates a singleton and returns for all calls
+                new EqualityExtractorTest.TestToken(TimeValue.timeValueMillis(10), 2)
             );
             spy.parse(UNNAMED, "SELECT 1", List.of());
 
