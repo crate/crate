@@ -444,7 +444,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
             .hasMessage("Job killed. statement_timeout (10ms)");
     }
 
-    private static class TestToken extends Session.TimeoutToken {
+    public static class TestToken extends Session.TimeoutToken {
 
         private final int maxChecks;
         private int checks;
