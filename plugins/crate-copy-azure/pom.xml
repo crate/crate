@@ -26,12 +26,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.opendal</groupId>
-            <artifactId>opendal-java</artifactId>
+            <artifactId>opendal</artifactId>
             <version>${versions.opendal}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.opendal</groupId>
-            <artifactId>opendal-java</artifactId>
+            <artifactId>opendal</artifactId>
             <version>${versions.opendal}</version>
             <classifier>${os.classifier}</classifier>
         </dependency>
