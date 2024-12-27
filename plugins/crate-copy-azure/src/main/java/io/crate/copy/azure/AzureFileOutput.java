@@ -43,6 +43,11 @@ public class AzureFileOutput implements FileOutput {
     private final Operator operator;
     private final String resourcePath;
 
+    // 256 KiB, 16x size of the OperatorOutputStream's default buffer size.
+    // Helps to avoid uploading too many chunks which causes BlockCountExceedsLimit error.
+    // This also speeds up file upload to the Azure Blob Storage.
+    private static final int MAX_BYTES = 262144;
+
     public AzureFileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
         AzureURI azureURI = AzureURI.of(uri);
         this.config = OperatorHelper.config(azureURI, settings, false);
@@ -52,7 +57,7 @@ public class AzureFileOutput implements FileOutput {
 
     @Override
     public OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException {
-        OutputStream outputStream = operator.createOutputStream(resourcePath);
+        OutputStream outputStream = operator.createOutputStream(resourcePath, MAX_BYTES);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
