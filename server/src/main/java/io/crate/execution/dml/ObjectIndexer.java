@@ -101,7 +101,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
+            boolean noValue = false;
             if (value.containsKey(innerName) == false) {
+                noValue = true;
                 var synth = docBuilder.getSyntheticValue(child.ident());
                 if (synth != null) {
                     // directly modify the map so that containing types will see the value
@@ -110,7 +112,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 }
             }
             var innerValue = value.get(innerName);
-            docBuilder.checkColumnConstraint(child.ident(), innerValue);
+            docBuilder.checkColumnConstraint(child.ident(), innerValue, noValue);
             if (innerValue == null) {
                 continue;
             }
