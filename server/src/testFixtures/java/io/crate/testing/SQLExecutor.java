@@ -135,7 +135,6 @@ import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.fdw.FdwAnalyzer;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -323,7 +322,7 @@ public class SQLExecutor {
             var tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
-            Path homeDir = CrateLuceneTestCase.createTempDir();
+            Path homeDir = TestingHelpers.createTempDir();
             Environment environment = new Environment(
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
                 homeDir.resolve("config")
