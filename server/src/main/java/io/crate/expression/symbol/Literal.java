@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -115,6 +116,18 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
             // lets do the expensive "deep" map value conversion only after everything else succeeded
             Map<String, Object> safeValue = objectType.sanitizeValue(value);
             return safeValue.size() == mapValue.size();
+        }
+        // `sanitizeValue` is converting arrays to list so we need to do the same before the equality check
+        if (value instanceof Double[] doubles) {
+            return Objects.equals(type.sanitizeValue(value), Arrays.asList(doubles));
+        }
+        if (value instanceof Double[][] doubles) {
+            return Objects.equals(
+                type.sanitizeValue(value),
+                Arrays.stream(doubles)
+                    .map(Arrays::asList)
+                    .collect(Collectors.toList())
+            );
         }
 
         return Objects.equals(type.sanitizeValue(value), value);
@@ -216,7 +229,8 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
     }
 
     public static Literal<Map<String, Object>> of(Map<String, Object> value) {
-        return new Literal<>(DataTypes.UNTYPED_OBJECT, value);
+        ObjectType type = (ObjectType) DataTypes.guessType(value);
+        return new Literal<>(type, value);
     }
 
     public static <T> Literal<List<T>> of(List<T> value, DataType<List<T>> dataType) {
