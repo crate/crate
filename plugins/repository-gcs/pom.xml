@@ -52,33 +52,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-credentials</artifactId>
-            <version>${versions.google.auth}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>${versions.google.oauth2}</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
             <version>${versions.google.cloud.storage}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core-http</artifactId>
-            <version>${versions.google.cloud.core.http}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core</artifactId>
-            <version>${versions.google.cloud.core}</version>
         </dependency>
 
         <!-- Pin version of external dependencies -->
