@@ -50,3 +50,7 @@ Fixes
 - Fixed an issue leading to an error when exporting big tables via ``COPY TO``
   to the :ref:`Azure Blob Storage <sql-copy-to-az>`.
   This also has a positive effect on performance.
+
+- Fixed an issue that could prevent the creation of new partitions if data was
+  written to a partitioned table during a rolling upgrade and that table had
+  setting ``warmer.enabled`` specified before the upgrade.
