@@ -24,12 +24,14 @@ package org.elasticsearch.action.admin.indices.create;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+import static org.elasticsearch.gateway.GatewayMetaState.applyPluginUpgraders;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -65,6 +67,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
+import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
@@ -95,6 +98,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     private final AllocationService allocationService;
     private final ActiveShardsObserver activeShardsObserver;
     private final ShardLimitValidator shardLimitValidator;
+    private final MetadataUpgrader metadataUpgrader;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
         ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
         for (CreatePartitionsRequest request : tasks) {
@@ -108,18 +112,23 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         return builder.build(currentState);
     };
 
+    private final AtomicBoolean upgraded;
+
     @Inject
     public TransportCreatePartitionsAction(TransportService transportService,
                                            ClusterService clusterService,
                                            ThreadPool threadPool,
                                            IndicesService indicesService,
                                            AllocationService allocationService,
-                                           ShardLimitValidator shardLimitValidator) {
+                                           ShardLimitValidator shardLimitValidator,
+                                           MetadataUpgrader metadataUpgrader) {
         super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.shardLimitValidator = shardLimitValidator;
+        this.metadataUpgrader = metadataUpgrader;
+        this.upgraded = new AtomicBoolean(false);
     }
 
     @Override
@@ -167,7 +176,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
      * This code is more or less the same as the stuff in {@link MetadataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
-    private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
+    public ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
         String removalReason = null;
         Index testIndex = null;
         try {
@@ -182,7 +191,30 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             String firstIndex = indicesToCreate.get(0);
             String templateName = PartitionName.templateName(firstIndex);
 
-            IndexTemplateMetadata template = currentState.metadata().templates().get(templateName);
+
+            final Metadata metadata = currentState.metadata();
+            Metadata.Builder newMetadataBuilder = Metadata.builder(metadata);
+
+            // After https://github.com/crate/crate/commit/c8edfff8fe7713b071841b9db1aea26e3f500245,
+            // we upgrade templates only on node startup in GatewayMetaState or on logical replication or on a snapshot restore.
+            // That is not enough to prevent old templates being applied on new nodes.
+
+            // Say, we are running a rolling upgrade.
+            // One node has been upgraded to VERSION.CURRENT and a master node, which is on old version < CURRENT
+            // creates partitions/new indices with old metadata/removed settings.
+            // All upgraded nodes will get incoming old template via IndicesClusterStateService
+            // and keep it forever as they already accomplished upgrade-on-startup.
+
+            // We upgrade on the fly as a trade-off to the pre-5.6.0 state
+            // where we used to upgrade template on each cluster change and submit synchronous  request via PutTemplate API to the master node to apply it.
+            // Each new node either never becomes a master and doesn't really need upgrade or eventually upgrades when it becomes a master.
+            // Since upgrade can be expensive for bulk inserts, we do it only once (per active master node).
+            // After re-election, a new master will run it again, but only once.
+            if (upgraded.compareAndSet(false, true)) {
+                upgradeTemplates(metadata, newMetadataBuilder);
+            }
+
+            IndexTemplateMetadata template = newMetadataBuilder.getTemplate(templateName);
             if (template == null) {
                 // Normally should be impossible, as it would mean that we are inserting into a partitioned table without template,
                 // i.e inserting after CREATE TABLE failed
@@ -233,7 +265,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             testIndex = indexService.index();
 
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
-            Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
+
             MappingMetadata mappingMetadata = new MappingMetadata(template.mapping());
             for (String index : indicesToCreate) {
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
@@ -284,6 +316,15 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 );
             }
         }
+    }
+
+    public void upgradeTemplates(Metadata metadata, Metadata.Builder newMetadataBuilder) {
+        applyPluginUpgraders(
+            metadata.templates(),
+            metadataUpgrader.indexTemplateMetadataUpgraders,
+            newMetadataBuilder::removeTemplate,
+            (_, indexTemplateMetadata) -> newMetadataBuilder.put(indexTemplateMetadata)
+        );
     }
 
     @VisibleForTesting
