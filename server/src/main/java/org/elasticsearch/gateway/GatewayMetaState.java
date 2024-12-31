@@ -249,7 +249,7 @@ public class GatewayMetaState implements Closeable {
         return changed ? upgradedMetadata.build() : metadata;
     }
 
-    private static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
+    public static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
                                                        UnaryOperator<Map<String, Data>> upgrader,
                                                        Consumer<String> removeData,
                                                        BiConsumer<String, Data> putData) {
