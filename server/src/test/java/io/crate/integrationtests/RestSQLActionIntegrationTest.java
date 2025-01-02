@@ -171,7 +171,10 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
                 "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `bigint`. Cannot add same column with type `text`]\"}}",
             "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
                 "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
-                "{\"rowcount\":1}"
+                "{\"rowcount\":1}",
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast object element `a` with value `2` to type `text`]\"}}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast object element `a` with value `22` to type `text`]\"}}," +
+                "{\"rowcount\":1}]}"
         );
     }
 
