@@ -26,6 +26,7 @@ import static org.elasticsearch.gateway.GatewayMetaStateTests.randomMetadata;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -53,7 +54,8 @@ public class LicenseCustomMetadataUpgraderTest {
         var customMetadataUpgraderLoader = new CustomMetadataUpgraderLoader(Settings.EMPTY);
         var metadataUpgrader = new MetadataUpgrader(
             List.of(customs -> customMetadataUpgraderLoader.apply(customs)),
-            List.of()
+            List.of(),
+            UnaryOperator.identity()
         );
         var upgrade = GatewayMetaState.upgradeMetadata(metadata, new GatewayMetaStateTests.MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();

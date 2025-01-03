@@ -32,11 +32,12 @@ import java.util.function.UnaryOperator;
  */
 public class MetadataUpgrader {
     public final UnaryOperator<Map<String, Metadata.Custom>> customMetadataUpgraders;
-
     public final UnaryOperator<Map<String, IndexTemplateMetadata>> indexTemplateMetadataUpgraders;
+    public final UnaryOperator<Metadata> indexTemplateVersionCreatedFixer;
 
     public MetadataUpgrader(Collection<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders,
-                            Collection<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders) {
+                            Collection<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders,
+                            UnaryOperator<Metadata> indexTemplateVersionCreatedFixer) {
         this.customMetadataUpgraders = customs -> {
             Map<String, Metadata.Custom> upgradedCustoms = new HashMap<>(customs);
             for (UnaryOperator<Map<String, Metadata.Custom>> customMetadataUpgrader : customMetadataUpgraders) {
@@ -52,5 +53,7 @@ public class MetadataUpgrader {
             }
             return upgradedTemplates;
         };
+
+        this.indexTemplateVersionCreatedFixer = indexTemplateVersionCreatedFixer;
     }
 }
