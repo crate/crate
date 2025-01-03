@@ -24,6 +24,7 @@ package io.crate.analyze;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +52,7 @@ public class JoinRelation implements AnalyzedRelation {
     private final List<Symbol> outputs;
     private final JoinType joinType;
     private final Symbol joinCondition;
-    private static final String UNSUPPORTED_OPERATION = "Joins do not support this operation";
+    private final RelationName name;
 
     public JoinRelation(AnalyzedRelation left,
                         AnalyzedRelation right,
@@ -62,6 +63,7 @@ public class JoinRelation implements AnalyzedRelation {
         this.right = right;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
+        this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
     }
 
     public AnalyzedRelation left() {
@@ -83,7 +85,7 @@ public class JoinRelation implements AnalyzedRelation {
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+        return visitor.visitJoinRelation(this, context);
     }
 
     @Nullable
@@ -91,7 +93,7 @@ public class JoinRelation implements AnalyzedRelation {
     public Symbol getField(ColumnIdent column,
                            Operation operation,
                            boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+        throw new UnsupportedOperationException("Joins do not support this operation");
     }
 
     @Override
@@ -101,12 +103,14 @@ public class JoinRelation implements AnalyzedRelation {
         }
         left.visitSymbols(consumer);
         right.visitSymbols(consumer);
-        consumer.accept(joinCondition);
+        if (joinCondition != null) {
+            consumer.accept(joinCondition);
+        }
     }
 
     @Override
     public RelationName relationName() {
-        throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
+        return name;
     }
 
     @NotNull

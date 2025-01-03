@@ -52,10 +52,10 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
             Rename[id] AS doc.v1
               └ Eval[id]
                 └ HashJoin[LEFT | (o['i'] = o['i'])]
-                  ├ Rename[o['i']] AS g1
-                  │  └ Collect[doc.t1 | [o['i']] | true]
-                  └ Rename[id, o['i']] AS b
-                    └ Collect[doc.t1 | [id, o['i']] | true]
+                  ├ Rename[o, o['i']] AS g1
+                  │  └ Collect[doc.t1 | [o, o['i']] | true]
+                  └ Rename[id, o, o['i']] AS b
+                    └ Collect[doc.t1 | [id, o, o['i']] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
     }

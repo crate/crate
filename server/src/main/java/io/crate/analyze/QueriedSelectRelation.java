@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.JoinPair;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -42,7 +41,7 @@ import io.crate.metadata.table.Operation;
 public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final List<AnalyzedRelation> from;
-    private final List<JoinPair> joinPairs;
+    private final List<Symbol> joinConditions;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
     private final Symbol whereClause;
@@ -58,8 +57,8 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
-                                 List<JoinPair> joinPairs,
                                  List<Symbol> outputs,
+                                 List<Symbol> joinConditions,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
                                  @Nullable Symbol having,
@@ -76,7 +75,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         assert !from.isEmpty() : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
         this.from = from;
-        this.joinPairs = joinPairs;
+        this.joinConditions = joinConditions;
     }
 
     public List<AnalyzedRelation> from() {
@@ -183,13 +182,17 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return offset;
     }
 
+    public List<Symbol> joinConditions() {
+        return joinConditions;
+    }
+
     @Override
     public String toString() {
         return "SELECT "
-               + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
-               + " FROM ("
-               + Lists.joinOn(", ", from, x -> x.relationName().toString())
-               + ')';
+            + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
+            + " FROM ("
+            + Lists.joinOn(", ", Lists.flatMap(from, RelationNames::getDeep), RelationName::toString)
+            + ')';
     }
 
     @Override
@@ -213,14 +216,5 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (offset != null) {
             consumer.accept(offset);
         }
-        for (var joinPair : joinPairs) {
-            if (joinPair.condition() != null) {
-                consumer.accept(joinPair.condition());
-            }
-        }
-    }
-
-    public List<JoinPair> joinPairs() {
-        return joinPairs;
     }
 }
