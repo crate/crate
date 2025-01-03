@@ -207,6 +207,7 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.upgrade.IndexTemplateCreatedVersionFixer;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
@@ -587,7 +588,8 @@ public class Node implements Closeable {
 
             final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(
                 customMetadataUpgraders,
-                indexTemplateMetadataUpgraders);
+                indexTemplateMetadataUpgraders,
+                new IndexTemplateCreatedVersionFixer());
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 nodeContext,
                 indexScopedSettings,

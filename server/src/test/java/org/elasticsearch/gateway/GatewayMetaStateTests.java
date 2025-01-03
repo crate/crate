@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -54,7 +55,8 @@ public class GatewayMetaStateTests extends ESTestCase {
                 customs.put(CustomMetadata1.TYPE, new CustomMetadata1("modified_data1"));
                 return customs;
             }),
-            Collections.emptyList()
+            Collections.emptyList(),
+            UnaryOperator.identity()
         );
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();
@@ -70,7 +72,8 @@ public class GatewayMetaStateTests extends ESTestCase {
                 customs.remove(CustomMetadata1.TYPE);
                 return customs;
             }),
-            Collections.emptyList()
+            Collections.emptyList(),
+            UnaryOperator.identity()
         );
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();
@@ -85,13 +88,14 @@ public class GatewayMetaStateTests extends ESTestCase {
                 customs.put(CustomMetadata1.TYPE, new CustomMetadata1("modified_data1"));
                 return customs;
             }),
-            Collections.emptyList()
+            Collections.emptyList(),
+            UnaryOperator.identity()
         );
     }
 
     public void testNoMetadataUpgrade() {
         Metadata metadata = randomMetadata(new CustomMetadata1("data"));
-        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of());
+        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(), UnaryOperator.identity());
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade).isSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
@@ -102,7 +106,7 @@ public class GatewayMetaStateTests extends ESTestCase {
 
     public void testCustomMetadataValidation() {
         Metadata metadata = randomMetadata(new CustomMetadata1("data"));
-        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of());
+        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(), UnaryOperator.identity());
         try {
             GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         } catch (IllegalStateException e) {
@@ -112,7 +116,7 @@ public class GatewayMetaStateTests extends ESTestCase {
 
     public void testIndexMetadataUpgrade() {
         Metadata metadata = randomMetadata();
-        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of());
+        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(), UnaryOperator.identity());
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(true), metadataUpgrader);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
@@ -123,7 +127,7 @@ public class GatewayMetaStateTests extends ESTestCase {
 
     public void testCustomMetadataNoChange() {
         Metadata metadata = randomMetadata(new CustomMetadata1("data"));
-        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(HashMap::new));
+        MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(HashMap::new), UnaryOperator.identity());
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade).isSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
@@ -137,7 +141,8 @@ public class GatewayMetaStateTests extends ESTestCase {
         MetadataUpgrader metadataUpgrader = new MetadataUpgrader(List.of(), List.of(
             customs -> {
                 throw new IllegalStateException("template is incompatible");
-            }));
+            }),
+            UnaryOperator.identity());
         assertThatThrownBy(() -> GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader))
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage("template is incompatible");
@@ -187,7 +192,7 @@ public class GatewayMetaStateTests extends ESTestCase {
                     }
                     return indexTemplateMetadatas;
             }
-        ));
+        ), UnaryOperator.identity());
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata).isTrue();
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
