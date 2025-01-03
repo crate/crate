@@ -290,7 +290,7 @@ public class Indexer {
 
     public interface ColumnConstraint {
 
-        void verify(Object providedValue, boolean noValue);
+        void verify(Object providedValue);
     }
 
     interface TableConstraint {
@@ -334,9 +334,9 @@ public class Indexer {
     record MultiCheck(List<ColumnConstraint> checks) implements ColumnConstraint {
 
         @Override
-        public void verify(Object providedValue, boolean noValue) {
+        public void verify(Object providedValue) {
             for (var check : checks) {
-                check.verify(providedValue, noValue);
+                check.verify(providedValue);
             }
         }
 
@@ -354,7 +354,7 @@ public class Indexer {
 
     record NotNull(ColumnIdent column) implements ColumnConstraint {
 
-        public void verify(Object providedValue, boolean noValue) {
+        public void verify(Object providedValue) {
             if (providedValue == null) {
                 throw new IllegalArgumentException("\"" + column + "\" must not be null");
             }
@@ -365,11 +365,7 @@ public class Indexer {
 
         @SuppressWarnings("unchecked")
         @Override
-        public void verify(Object providedValue, boolean noValue) {
-            if (noValue) {
-                // Value has been generated and no value has been provided, nothing to verify, skip the check.
-                return;
-            }
+        public void verify(Object providedValue) {
             DataType<Object> valueType = (DataType<Object>) ref.valueType();
             Object generatedValue = input.value();
             int compare = Comparator
@@ -744,8 +740,7 @@ public class Indexer {
             Object value = valueForInsert(reference.valueType(), values[i]);
             ColumnConstraint check = columnConstraints.get(reference.column());
             if (check != null) {
-                // Value is provided explicitly
-                check.verify(value, false);
+                check.verify(value);
             }
             if (reference.granularity() == RowGranularity.PARTITION) {
                 continue;
@@ -858,8 +853,7 @@ public class Indexer {
                 Object value = valueForInsert(reference.valueType(), values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
-                    // Value is provided explicitly
-                    check.verify(value, false);
+                    check.verify(value);
                 }
                 if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
