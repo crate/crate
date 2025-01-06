@@ -33,9 +33,9 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -80,7 +80,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             true,
             true,
             true,
-            RestStatus.INTERNAL_SERVER_ERROR,
+            HttpErrorStatus.UNHANDLED_SERVER_ERROR,
             EnumSet.of(ClusterBlockLevel.METADATA_WRITE)
         );
         var newState = ClusterState.builder(clusterService.state())
@@ -138,7 +138,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             true,
             true,
             true,
-            RestStatus.INTERNAL_SERVER_ERROR,
+            HttpErrorStatus.UNHANDLED_SERVER_ERROR,
             EnumSet.of(ClusterBlockLevel.METADATA_WRITE)
         );
         var newState = ClusterState.builder(clusterService.state())
@@ -167,7 +167,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             true,
             true,
             true,
-            RestStatus.SERVICE_UNAVAILABLE,
+            HttpErrorStatus.SERVICE_UNAVAILABLE,
             EnumSet.of(ClusterBlockLevel.METADATA_READ)
         );
         var newState = ClusterState.builder(clusterService.state())

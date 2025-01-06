@@ -61,7 +61,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.apache.http.ConnectionClosedException;
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -76,13 +75,11 @@ import org.elasticsearch.common.lucene.store.ByteArrayIndexInput;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.threeten.bp.Duration;
-
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.StorageException;
@@ -90,10 +87,10 @@ import com.google.cloud.storage.StorageOptions;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountDown;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class GCSBlobContainerRetriesTests extends IntegTestCase {
 
@@ -148,7 +145,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 final int rangeStart = getRangeStart(exchange);
                 assertThat(rangeStart).isLessThan(bytes.length);
                 exchange.getResponseHeaders().add("Content-Type", bytesContentType());
-                exchange.sendResponseHeaders(HttpStatus.SC_OK, bytes.length - rangeStart);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), bytes.length - rangeStart);
                 exchange.getResponseBody().write(bytes, rangeStart, bytes.length - rangeStart);
                 exchange.close();
                 return;
@@ -156,11 +153,11 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             if (randomBoolean()) {
                 exchange.sendResponseHeaders(
                     randomFrom(
-                        HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        HttpStatus.SC_BAD_GATEWAY,
-                        HttpStatus.SC_SERVICE_UNAVAILABLE,
-                        HttpStatus.SC_GATEWAY_TIMEOUT
-                    ),
+                        HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                        HttpResponseStatus.BAD_GATEWAY,
+                        HttpResponseStatus.SERVICE_UNAVAILABLE,
+                        HttpResponseStatus.GATEWAY_TIMEOUT
+                    ).code(),
                     -1
                 );
             } else if (randomBoolean()) {
@@ -213,18 +210,18 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 final int effectiveRangeEnd = Math.min(bytes.length - 1, rangeEnd);
                 final int length = (effectiveRangeEnd - rangeStart) + 1;
                 exchange.getResponseHeaders().add("Content-Type", bytesContentType());
-                exchange.sendResponseHeaders(HttpStatus.SC_OK, length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), length);
                 exchange.getResponseBody().write(bytes, rangeStart, length);
                 exchange.close();
                 return;
             } else {
                 exchange.sendResponseHeaders(
                     randomFrom(
-                        HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        HttpStatus.SC_BAD_GATEWAY,
-                        HttpStatus.SC_SERVICE_UNAVAILABLE,
-                        HttpStatus.SC_GATEWAY_TIMEOUT
-                    ),
+                        HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                        HttpResponseStatus.BAD_GATEWAY,
+                        HttpResponseStatus.SERVICE_UNAVAILABLE,
+                        HttpResponseStatus.GATEWAY_TIMEOUT
+                    ).code(),
                     -1
                 );
             }
@@ -371,7 +368,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             final Tuple<Long, Long> range = getRange(exchange);
             final int offset = Math.toIntExact(range.v1());
             final byte[] chunk = Arrays.copyOfRange(bytes, offset, Math.toIntExact(Math.min(range.v2() + 1, bytes.length)));
-            exchange.sendResponseHeaders(RestStatus.OK.getStatus(), chunk.length);
+            exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), chunk.length);
             if (randomBoolean() && countDown.decrementAndGet() >= 0) {
                 exchange.getResponseBody().write(chunk, 0, chunk.length - 1);
                 exchange.close();
@@ -402,10 +399,10 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 if (Objects.deepEquals(bytes, BytesReference.toBytes(content.get().v2()))) {
                     byte[] response = ("{\"bucket\":\"bucket\",\"name\":\"" + content.get().v1() + "\"}").getBytes(UTF_8);
                     exchange.getResponseHeaders().add("Content-Type", "application/json");
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                     exchange.getResponseBody().write(response);
                 } else {
-                    exchange.sendResponseHeaders(HttpStatus.SC_BAD_REQUEST, -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.BAD_REQUEST.code(), -1);
                 }
                 return;
             }
@@ -414,7 +411,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                     Streams.readFully(exchange.getRequestBody(), new byte[randomIntBetween(1, Math.max(1, bytes.length - 1))]);
                 } else {
                     Streams.readFully(exchange.getRequestBody());
-                    exchange.sendResponseHeaders(HttpStatus.SC_INTERNAL_SERVER_ERROR, -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), -1);
                 }
             }
         }));
@@ -484,7 +481,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                             "Location",
                             httpServerUrl() + "/upload/storage/v1/b/bucket/o?uploadType=resumable&upload_id=" + sessionUploadId.get()
                         );
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                     exchange.getResponseBody().write(response);
                     return;
                 }
@@ -497,7 +494,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                 final String uploadId = params.get("upload_id");
                 if (uploadId.equals(sessionUploadId.get()) == false) {
                     assertThat(wrongChunk).isGreaterThan(0);
-                    exchange.sendResponseHeaders(HttpStatus.SC_GONE, -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.GONE.code(), -1);
                     return;
                 }
 
@@ -514,7 +511,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
                         countInits.set(nbErrors);
                         countUploads.set(nbErrors * totalChunks);
 
-                        exchange.sendResponseHeaders(HttpStatus.SC_GONE, -1);
+                        exchange.sendResponseHeaders(HttpResponseStatus.GONE.code(), -1);
                         return;
                     }
                 }
@@ -530,7 +527,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
 
                     final Integer limit = getContentRangeLimit(range);
                     if (limit != null) {
-                        exchange.sendResponseHeaders(RestStatus.OK.getStatus(), -1);
+                        exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), -1);
                         return;
                     } else {
                         exchange.getResponseHeaders().add("Range", String.format(Locale.ROOT, "bytes=%d/%d", rangeStart, rangeEnd));
@@ -542,7 +539,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             }
 
             if (randomBoolean()) {
-                exchange.sendResponseHeaders(HttpStatus.SC_INTERNAL_SERVER_ERROR, -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), -1);
             }
         }));
 
@@ -607,7 +604,7 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             length = bytes.length - rangeStart;
         }
         exchange.getResponseHeaders().add("Content-Type", bytesContentType());
-        exchange.sendResponseHeaders(HttpStatus.SC_OK, length);
+        exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), length);
         int minSend = Math.min(0, length - 1);
         final int bytesToSend = randomIntBetween(minSend, length - 1);
         if (bytesToSend > 0) {

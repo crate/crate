@@ -19,15 +19,16 @@
 
 package org.elasticsearch.cluster.block;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
+import static java.util.Collections.unmodifiableSet;
 
 import java.io.IOException;
 import java.util.Set;
 
-import static java.util.Collections.unmodifiableSet;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 public class ClusterBlockException extends ElasticsearchException {
     private final Set<ClusterBlock> blocks;
@@ -74,12 +75,12 @@ public class ClusterBlockException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        RestStatus status = null;
+    public HttpErrorStatus httpErrorStatus() {
+        HttpErrorStatus status = null;
         for (ClusterBlock block : blocks) {
             if (status == null) {
                 status = block.status();
-            } else if (status.getStatus() < block.status().getStatus()) {
+            } else if (status.errorCode() < block.status().errorCode()) {
                 status = block.status();
             }
         }

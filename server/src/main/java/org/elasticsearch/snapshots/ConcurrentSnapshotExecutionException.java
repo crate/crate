@@ -19,10 +19,9 @@
 
 package org.elasticsearch.snapshots;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
-
 import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
  * Thrown when a user tries to multiple conflicting snapshot/restore operations at the same time.
@@ -39,10 +38,5 @@ public class ConcurrentSnapshotExecutionException extends SnapshotException {
 
     public ConcurrentSnapshotExecutionException(StreamInput in) throws IOException {
         super(in);
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
     }
 }

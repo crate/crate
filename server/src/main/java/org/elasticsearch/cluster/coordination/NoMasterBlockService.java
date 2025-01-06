@@ -19,24 +19,24 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import java.util.EnumSet;
+
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.RestStatus;
 
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.types.DataTypes;
-
-import java.util.EnumSet;
 
 public class NoMasterBlockService {
     public static final int NO_MASTER_BLOCK_ID = 2;
     public static final ClusterBlock NO_MASTER_BLOCK_WRITES = new ClusterBlock(NO_MASTER_BLOCK_ID, "no master", true, false, false,
-        RestStatus.SERVICE_UNAVAILABLE, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
+        HttpErrorStatus.MASTER_NOT_DISCOVERED, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
     public static final ClusterBlock NO_MASTER_BLOCK_ALL = new ClusterBlock(NO_MASTER_BLOCK_ID, "no master", true, true, false,
-        RestStatus.SERVICE_UNAVAILABLE, ClusterBlockLevel.ALL);
+        HttpErrorStatus.MASTER_NOT_DISCOVERED, ClusterBlockLevel.ALL);
 
     public static final Setting<ClusterBlock> NO_MASTER_BLOCK_SETTING = new Setting<>(
         "cluster.no_master_block",

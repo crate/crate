@@ -76,7 +76,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.transport.MockTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -91,6 +90,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.rest.action.HttpErrorStatus;
 
 
 /**
@@ -118,7 +118,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
     public void setUp() throws Exception {
         super.setUp();
         globalBlock = randomBoolean();
-        RestStatus restStatus = randomFrom(RestStatus.values());
+        HttpErrorStatus restStatus = randomFrom(HttpErrorStatus.values());
         block = new ClusterBlock(randomIntBetween(1, 10), randomAlphaOfLength(5), false, true, false, restStatus, ClusterBlockLevel.ALL);
         clusterService = createClusterService(threadPool);
 

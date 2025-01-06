@@ -48,7 +48,6 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
@@ -222,9 +221,8 @@ public class ReplicationOperation<
                     shard.shardId(), opType, shard, replicaRequest), replicaException);
                 // Only report "critical" exceptions - TODO: Reach out to the master node to get the latest shard state then report.
                 if (SQLExceptions.isShardNotAvailable(replicaException) == false) {
-                    RestStatus restStatus = SQLExceptions.status(replicaException);
                     shardReplicaFailures.add(new ReplicationResponse.ShardInfo.Failure(
-                        shard.shardId(), shard.currentNodeId(), replicaException, restStatus, false));
+                        shard.shardId(), shard.currentNodeId(), replicaException, false));
                 }
                 String message = String.format(Locale.ROOT, "failed to perform %s on replica %s", opType, shard);
                 replicasProxy.failShardIfNeeded(shard, primaryTerm, message, replicaException,

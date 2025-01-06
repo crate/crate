@@ -32,11 +32,11 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.health.Health;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class SysClusterHealth {
 
@@ -54,7 +54,7 @@ public class SysClusterHealth {
 
     public static Iterable<ClusterHealth> compute(ClusterState clusterState, long numPendingTasks) {
         // Following implementation of {@link org.elasticsearch.cluster.health.ClusterStateHealth}
-        Set<ClusterBlock> blocksRed = clusterState.blocks().global(RestStatus.SERVICE_UNAVAILABLE);
+        Set<ClusterBlock> blocksRed = clusterState.blocks().global(HttpErrorStatus.SERVICE_UNAVAILABLE);
         if (!blocksRed.isEmpty()) {
             var block = blocksRed.iterator().next();
             ClusterHealth clusterHealth = new ClusterHealth(

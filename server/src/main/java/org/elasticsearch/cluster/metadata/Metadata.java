@@ -66,7 +66,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -88,6 +87,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
@@ -124,13 +124,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         Setting.boolSetting("cluster.blocks.read_only", false, Property.Dynamic, Property.NodeScope);
 
     public static final ClusterBlock CLUSTER_READ_ONLY_BLOCK = new ClusterBlock(6, "cluster read-only (api)", false, false,
-        false, RestStatus.FORBIDDEN, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
+        false, HttpErrorStatus.RELATION_READ_ONLY, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
     public static final Setting<Boolean> SETTING_READ_ONLY_ALLOW_DELETE_SETTING =
         Setting.boolSetting("cluster.blocks.read_only_allow_delete", false, Property.Dynamic, Property.NodeScope);
 
     public static final ClusterBlock CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK = new ClusterBlock(13, "cluster read-only / allow delete (api)",
-        false, false, true, RestStatus.FORBIDDEN, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
+        false, false, true, HttpErrorStatus.RELATION_READ_DELETE_ONLY, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
     public static final Metadata EMPTY_METADATA = builder().build();
 

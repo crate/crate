@@ -19,11 +19,12 @@
 
 package org.elasticsearch.discovery;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class MasterNotDiscoveredException extends ElasticsearchException {
 
@@ -35,12 +36,12 @@ public class MasterNotDiscoveredException extends ElasticsearchException {
         super(cause);
     }
 
-    @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
-    }
-
     public MasterNotDiscoveredException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.MASTER_NOT_DISCOVERED;
     }
 }

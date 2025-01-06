@@ -23,7 +23,8 @@ package io.crate.blob.v2;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 public class BlobsDisabledException extends ElasticsearchException {
 
@@ -32,7 +33,7 @@ public class BlobsDisabledException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.DOCUMENT_NOT_FOUND;
     }
 }

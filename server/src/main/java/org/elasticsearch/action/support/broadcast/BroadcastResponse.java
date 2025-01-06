@@ -25,7 +25,6 @@ import java.util.List;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
 
 /**
@@ -73,17 +72,6 @@ public class BroadcastResponse extends TransportResponse {
      */
     public int getFailedShards() {
         return failedShards;
-    }
-
-    /**
-     * The REST status that should be used for the response
-     */
-    public RestStatus getStatus() {
-        if (failedShards > 0) {
-            return shardFailures[0].status();
-        } else {
-            return RestStatus.OK;
-        }
     }
 
     /**

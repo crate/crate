@@ -19,11 +19,12 @@
 
 package org.elasticsearch;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class ResourceAlreadyExistsException extends ElasticsearchException {
 
@@ -41,7 +42,7 @@ public class ResourceAlreadyExistsException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
     }
 }

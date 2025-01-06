@@ -38,12 +38,12 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.rest.RestStatus;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 
 /**
@@ -80,7 +80,7 @@ public class AzureHttpHandler implements HttpHandler {
 
                 final String blockId = params.get("blockid");
                 blobs.put(blockId, Streams.readFully(exchange.getRequestBody()));
-                exchange.sendResponseHeaders(RestStatus.CREATED.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.CREATED.code(), -1);
 
             } else if (Regex.simpleMatch("PUT /" + container + "/*comp=blocklist*", request)) {
                 // Put Block List (https://docs.microsoft.com/en-us/rest/api/storageservices/put-block-list)
@@ -97,7 +97,7 @@ public class AzureHttpHandler implements HttpHandler {
                     block.writeTo(blob);
                 }
                 blobs.put(exchange.getRequestURI().getPath(), new BytesArray(blob.toByteArray()));
-                exchange.sendResponseHeaders(RestStatus.CREATED.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.CREATED.code(), -1);
 
             } else if (Regex.simpleMatch("PUT /" + container + "/*", request)) {
                 // PUT Blob (see https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob)
@@ -105,31 +105,31 @@ public class AzureHttpHandler implements HttpHandler {
                 if ("*".equals(ifNoneMatch)) {
                     if (blobs.putIfAbsent(exchange.getRequestURI().getPath(),
                                           Streams.readFully(exchange.getRequestBody())) != null) {
-                        sendError(exchange, RestStatus.CONFLICT);
+                        sendError(exchange, HttpResponseStatus.CONFLICT);
                         return;
                     }
                 } else {
                     blobs.put(exchange.getRequestURI().getPath(), Streams.readFully(exchange.getRequestBody()));
                 }
-                exchange.sendResponseHeaders(RestStatus.CREATED.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.CREATED.code(), -1);
 
             } else if (Regex.simpleMatch("HEAD /" + container + "/*", request)) {
                 // Get Blob Properties (see https://docs.microsoft.com/en-us/rest/api/storageservices/get-blob-properties)
                 final BytesReference blob = blobs.get(exchange.getRequestURI().getPath());
                 if (blob == null) {
-                    sendError(exchange, RestStatus.NOT_FOUND);
+                    sendError(exchange, HttpResponseStatus.NOT_FOUND);
                     return;
                 }
                 exchange.getResponseHeaders().add("x-ms-blob-content-length", String.valueOf(blob.length()));
                 exchange.getResponseHeaders().add("Content-Length", String.valueOf(blob.length()));
                 exchange.getResponseHeaders().add("x-ms-blob-type", "blockblob");
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), -1);
 
             } else if (Regex.simpleMatch("GET /" + container + "/*", request)) {
                 // GET Blob https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob?tabs=microsoft-entra-id
                 final BytesReference blob = blobs.get(exchange.getRequestURI().getPath());
                 if (blob == null) {
-                    sendError(exchange, RestStatus.NOT_FOUND);
+                    sendError(exchange, HttpResponseStatus.NOT_FOUND);
                     return;
                 }
 
@@ -155,13 +155,13 @@ public class AzureHttpHandler implements HttpHandler {
                 exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
                 exchange.getResponseHeaders().add("x-ms-blob-content-length", String.valueOf(length));
                 exchange.getResponseHeaders().add("x-ms-blob-type", "blockblob");
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), length);
                 exchange.getResponseBody().write(blob.toBytesRef().bytes, start, length);
 
             } else if (Regex.simpleMatch("DELETE /" + container + "/*", request)) {
                 // Delete Blob (https://docs.microsoft.com/en-us/rest/api/storageservices/delete-blob)
                 blobs.entrySet().removeIf(blob -> blob.getKey().startsWith(exchange.getRequestURI().getPath()));
-                exchange.sendResponseHeaders(RestStatus.ACCEPTED.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.ACCEPTED.code(), -1);
 
             } else if (Regex.simpleMatch("GET /" + container + "?restype=container&comp=list*", request)) {
                 // List Blobs (https://docs.microsoft.com/en-us/rest/api/storageservices/list-blobs)
@@ -210,11 +210,11 @@ public class AzureHttpHandler implements HttpHandler {
 
                 byte[] response = list.toString().getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/xml");
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                 exchange.getResponseBody().write(response);
 
             } else {
-                sendError(exchange, RestStatus.BAD_REQUEST);
+                sendError(exchange, HttpResponseStatus.BAD_REQUEST);
             }
         }
     }
@@ -223,7 +223,7 @@ public class AzureHttpHandler implements HttpHandler {
         return blobs;
     }
 
-    public static void sendError(final HttpExchange exchange, final RestStatus status) throws IOException {
+    public static void sendError(final HttpExchange exchange, final HttpResponseStatus status) throws IOException {
         final Headers headers = exchange.getResponseHeaders();
         headers.add("Content-Type", "application/xml");
 
@@ -239,12 +239,12 @@ public class AzureHttpHandler implements HttpHandler {
         headers.add("x-ms-error-code", errorCode);
 
         if ("HEAD".equals(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(status.getStatus(), -1L);
+            exchange.sendResponseHeaders(status.code(), -1L);
         } else {
             final byte[] response = ("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Error><Code>" + errorCode +
                                      "</Code><Message>"
                                      + status + "</Message></Error>").getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(status.getStatus(), response.length);
+            exchange.sendResponseHeaders(status.code(), response.length);
             exchange.getResponseBody().write(response);
         }
     }
@@ -258,16 +258,16 @@ public class AzureHttpHandler implements HttpHandler {
     }
 
     // See https://docs.microsoft.com/en-us/rest/api/storageservices/common-rest-api-error-codes
-    private static String toAzureErrorCode(final RestStatus status) {
-        assert status.getStatus() >= 400;
-        return switch (status) {
-            case BAD_REQUEST -> "InvalidMetadata";
-            case NOT_FOUND -> "BlobNotFound";
-            case INTERNAL_SERVER_ERROR -> "InternalError";
-            case SERVICE_UNAVAILABLE -> "ServerBusy";
-            case CONFLICT -> "BlobAlreadyExists";
+    private static String toAzureErrorCode(final HttpResponseStatus status) {
+        assert status.code() >= 400;
+        return switch (status.code()) {
+            case 400 -> "InvalidMetadata";
+            case 404 -> "BlobNotFound";
+            case 500 -> "InternalError";
+            case 503 -> "ServerBusy";
+            case 409 -> "BlobAlreadyExists";
             default -> throw new IllegalArgumentException(
-                "Error code [" + status.getStatus() + "] is not mapped to an existing Azure code");
+                "Error code [" + status.code() + "] is not mapped to an existing Azure code");
         };
     }
 }

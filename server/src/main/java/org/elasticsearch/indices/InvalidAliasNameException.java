@@ -19,12 +19,13 @@
 
 package org.elasticsearch.indices;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class InvalidAliasNameException extends ElasticsearchException {
 
@@ -42,7 +43,7 @@ public class InvalidAliasNameException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.GENERIC_BAD_REQUEST;
     }
 }

@@ -22,7 +22,6 @@ package org.elasticsearch.snapshots;
 import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ResourceUnknownException;
@@ -37,21 +36,12 @@ public class SnapshotMissingException extends SnapshotException implements Resou
         super(repositoryName, snapshotId, "is missing", cause);
     }
 
-    public SnapshotMissingException(final String repositoryName, final SnapshotId snapshotId) {
-        super(repositoryName, snapshotId, "is missing");
-    }
-
     public SnapshotMissingException(final String repositoryName, final String snapshotName) {
         super(repositoryName, snapshotName, "is missing");
     }
 
     public SnapshotMissingException(StreamInput in) throws IOException {
         super(in);
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
     }
 
     @Override

@@ -67,7 +67,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -82,6 +81,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
 
@@ -118,7 +118,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             false,
             false,
             false,
-            RestStatus.FORBIDDEN,
+            HttpErrorStatus.RELATION_CLOSED,
             EnumSet.of(ClusterBlockLevel.WRITE));
 
         setState(

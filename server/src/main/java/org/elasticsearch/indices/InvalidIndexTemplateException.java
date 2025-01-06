@@ -19,12 +19,13 @@
 
 package org.elasticsearch.indices;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class InvalidIndexTemplateException extends ElasticsearchException {
 
@@ -39,10 +40,6 @@ public class InvalidIndexTemplateException extends ElasticsearchException {
         return this.name;
     }
 
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
-    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
@@ -53,5 +50,10 @@ public class InvalidIndexTemplateException extends ElasticsearchException {
     public InvalidIndexTemplateException(StreamInput in) throws IOException {
         super(in);
         name = in.readOptionalString();
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.GENERIC_BAD_REQUEST;
     }
 }

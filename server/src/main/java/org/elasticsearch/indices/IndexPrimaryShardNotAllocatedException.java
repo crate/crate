@@ -19,12 +19,11 @@
 
 package org.elasticsearch.indices;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
-
-import java.io.IOException;
 
 /**
  * Thrown when some action cannot be performed because the primary shard of
@@ -39,10 +38,5 @@ public class IndexPrimaryShardNotAllocatedException extends ElasticsearchExcepti
     public IndexPrimaryShardNotAllocatedException(Index index) {
         super("primary not allocated post api");
         setIndex(index);
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.INTERNAL_SERVER_ERROR;
     }
 }

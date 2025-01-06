@@ -27,12 +27,10 @@ import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.server.xcontent.XContentParserUtils;
@@ -288,20 +286,6 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, Writeable {
             ", version=" + version +
             ", shardFailures=" + shardFailures +
             '}';
-    }
-
-    /**
-     * Returns snapshot REST status
-     */
-    public RestStatus status() {
-        if (state == SnapshotState.FAILED) {
-            return RestStatus.INTERNAL_SERVER_ERROR;
-        }
-        if (shardFailures.size() == 0) {
-            return RestStatus.OK;
-        }
-        return RestStatus.status(successfulShards, totalShards,
-                                 shardFailures.toArray(new ShardOperationFailedException[shardFailures.size()]));
     }
 
     /**

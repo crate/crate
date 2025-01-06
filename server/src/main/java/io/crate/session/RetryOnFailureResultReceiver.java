@@ -29,12 +29,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
@@ -81,7 +81,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
         if (attempt <= maxRetryCount &&
             (SQLExceptions.isShardNotAvailable(error) || error instanceof ConnectTransportException)) {
 
-            if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+            if (clusterService.state().blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
             } else {
                 attempt += 1;
