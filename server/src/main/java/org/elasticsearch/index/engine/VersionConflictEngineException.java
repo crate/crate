@@ -19,13 +19,14 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+
 import org.elasticsearch.Assertions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class VersionConflictEngineException extends EngineException {
 
@@ -56,11 +57,6 @@ public class VersionConflictEngineException extends EngineException {
         super(shardId, msg, cause, params);
     }
 
-    @Override
-    public RestStatus status() {
-        return RestStatus.CONFLICT;
-    }
-
     public VersionConflictEngineException(StreamInput in) throws IOException {
         super(in);
     }
@@ -71,5 +67,10 @@ public class VersionConflictEngineException extends EngineException {
             return super.fillInStackTrace();
         }
         return this;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.VERSION_CONFLICT;
     }
 }

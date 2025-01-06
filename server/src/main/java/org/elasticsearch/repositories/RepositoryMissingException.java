@@ -22,7 +22,6 @@ package org.elasticsearch.repositories;
 import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ResourceUnknownException;
@@ -35,11 +34,6 @@ public class RepositoryMissingException extends RepositoryException implements R
 
     public RepositoryMissingException(String repository) {
         super(repository, "missing");
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
     }
 
     public RepositoryMissingException(StreamInput in) throws IOException {

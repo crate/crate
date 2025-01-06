@@ -26,8 +26,9 @@ import java.util.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 public class ClusterBlock implements Writeable {
 
@@ -38,7 +39,7 @@ public class ClusterBlock implements Writeable {
     private final boolean retryable;
     private final boolean disableStatePersistence;
     private final boolean allowReleaseResources;
-    private final RestStatus status;
+    private final HttpErrorStatus status;
 
     public ClusterBlock(StreamInput in) throws IOException {
         id = in.readVInt();
@@ -47,17 +48,28 @@ public class ClusterBlock implements Writeable {
         this.levels = in.readEnumSet(ClusterBlockLevel.class);
         retryable = in.readBoolean();
         disableStatePersistence = in.readBoolean();
-        status = RestStatus.readFrom(in);
+        status = HttpErrorStatus.readFrom(in);
         allowReleaseResources = in.readBoolean();
     }
 
-    public ClusterBlock(int id, String description, boolean retryable, boolean disableStatePersistence,
-                        boolean allowReleaseResources, RestStatus status, EnumSet<ClusterBlockLevel> levels) {
+    public ClusterBlock(int id,
+                        String description,
+                        boolean retryable,
+                        boolean disableStatePersistence,
+                        boolean allowReleaseResources,
+                        HttpErrorStatus status,
+                        EnumSet<ClusterBlockLevel> levels) {
         this(id, null, description, retryable, disableStatePersistence, allowReleaseResources, status, levels);
     }
 
-    public ClusterBlock(int id, String uuid, String description, boolean retryable, boolean disableStatePersistence,
-                        boolean allowReleaseResources, RestStatus status, EnumSet<ClusterBlockLevel> levels) {
+    public ClusterBlock(int id,
+                        String uuid,
+                        String description,
+                        boolean retryable,
+                        boolean disableStatePersistence,
+                        boolean allowReleaseResources,
+                        HttpErrorStatus status,
+                        EnumSet<ClusterBlockLevel> levels) {
         this.id = id;
         this.uuid = uuid;
         this.description = description;
@@ -80,7 +92,7 @@ public class ClusterBlock implements Writeable {
         return this.description;
     }
 
-    public RestStatus status() {
+    public HttpErrorStatus status() {
         return this.status;
     }
 
@@ -120,7 +132,7 @@ public class ClusterBlock implements Writeable {
         out.writeEnumSet(levels);
         out.writeBoolean(retryable);
         out.writeBoolean(disableStatePersistence);
-        RestStatus.writeTo(out, status);
+        HttpErrorStatus.writeTo(out, status);
         out.writeBoolean(allowReleaseResources);
     }
 

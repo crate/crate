@@ -170,3 +170,7 @@ Client interfaces
 - Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
   issued over the :ref`interface-http` containing details of the error that
   caused the bulk operation to fail.
+
+- Added more detailed errors and their corresponding
+  :ref:`http error codes <http-error-codes>` for some of which were previously
+  mapped to generic error.

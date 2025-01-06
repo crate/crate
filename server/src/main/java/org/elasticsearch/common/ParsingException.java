@@ -26,7 +26,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentLocation;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.rest.RestStatus;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Exception that can be used when parsing queries with a given {@link
@@ -77,14 +78,14 @@ public class ParsingException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeInt(lineNumber);
         out.writeInt(columnNumber);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
     }
 }

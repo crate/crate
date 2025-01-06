@@ -22,9 +22,10 @@ package org.elasticsearch.common.io.stream;
 import java.io.IOException;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.Version;
 
 import io.crate.exceptions.SQLExceptions;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * This exception can be used to wrap a given, not serializable exception
@@ -36,7 +37,7 @@ import io.crate.exceptions.SQLExceptions;
 public final class NotSerializableExceptionWrapper extends ElasticsearchException {
 
     private final String name;
-    private final RestStatus status;
+    private final HttpErrorStatus status;
 
     public NotSerializableExceptionWrapper(Throwable other) {
         super(ElasticsearchException.getExceptionName(other) + ": " + other.getMessage(), other.getCause());
@@ -60,14 +61,22 @@ public final class NotSerializableExceptionWrapper extends ElasticsearchExceptio
     public NotSerializableExceptionWrapper(StreamInput in) throws IOException {
         super(in);
         name = in.readString();
-        status = RestStatus.readFrom(in);
+        if (in.getVersion().before(Version.V_5_10_0)) {
+            status = HttpErrorStatus.fromRestStatus(in.readString());
+        } else {
+            status = HttpErrorStatus.readFrom(in);
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(name);
-        RestStatus.writeTo(out, status);
+        if (out.getVersion().before(Version.V_5_10_0)) {
+            out.writeString("INTERNAL_SERVER_ERROR");
+        } else {
+            HttpErrorStatus.writeTo(out, status);
+        }
     }
 
     @Override
@@ -76,7 +85,7 @@ public final class NotSerializableExceptionWrapper extends ElasticsearchExceptio
     }
 
     @Override
-    public RestStatus status() {
+    public HttpErrorStatus httpErrorStatus() {
         return status;
     }
 }

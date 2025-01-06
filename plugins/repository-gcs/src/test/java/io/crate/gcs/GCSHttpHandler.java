@@ -53,19 +53,19 @@ import java.util.zip.GZIPInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.Streams;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.CompositeBytesReference;
-import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.regex.Regex;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import io.crate.common.collections.Tuple;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 
 /**
@@ -100,11 +100,11 @@ public class GCSHttpHandler implements HttpHandler {
                 final String key = exchange.getRequestURI().getPath().replace("/storage/v1/b/" + bucket + "/o/", "");
                 final BytesReference blob = blobs.get(key);
                 if (blob == null) {
-                    exchange.sendResponseHeaders(RestStatus.NOT_FOUND.getStatus(), -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.NOT_FOUND.code(), -1);
                 } else {
                     final byte[] response = buildBlobInfoJson(key, blob.length()).getBytes(UTF_8);
                     exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                     exchange.getResponseBody().write(response);
                 }
             } else if (Regex.simpleMatch("GET /storage/v1/b/" + bucket + "/o*", request)) {
@@ -135,7 +135,7 @@ public class GCSHttpHandler implements HttpHandler {
                     "]}").getBytes(UTF_8);
 
                 exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                 exchange.getResponseBody().write(response);
 
             } else if (Regex.simpleMatch("GET /storage/v1/b/" + bucket + "*", request)) {
@@ -165,10 +165,10 @@ public class GCSHttpHandler implements HttpHandler {
                     if (offset > 0 || bufferedLength > end) {
                         response = response.slice(offset, Math.min(end + 1 - offset, bufferedLength - offset));
                     }
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length());
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length());
                     response.writeTo(exchange.getResponseBody());
                 } else {
-                    exchange.sendResponseHeaders(RestStatus.NOT_FOUND.getStatus(), -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.NOT_FOUND.code(), -1);
                 }
 
             } else if (Regex.simpleMatch("POST /batch/storage/v1", request)) {
@@ -189,7 +189,7 @@ public class GCSHttpHandler implements HttpHandler {
                 }
                 byte[] response = batch.toString().getBytes(UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", exchange.getRequestHeaders().getFirst("Content-Type"));
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                 exchange.getResponseBody().write(response);
 
             } else if (Regex.simpleMatch("POST /upload/storage/v1/b/" + bucket + "/*uploadType=multipart*", request)) {
@@ -200,7 +200,7 @@ public class GCSHttpHandler implements HttpHandler {
 
                     byte[] response = ("{\"bucket\":\"" + bucket + "\",\"name\":\"" + content.get().v1() + "\"}").getBytes(UTF_8);
                     exchange.getResponseHeaders().add("Content-Type", "application/json");
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                     exchange.getResponseBody().write(response);
                 } else {
                     throw new AssertionError("Could not read multi-part request to [" + request + "] with headers ["
@@ -219,7 +219,7 @@ public class GCSHttpHandler implements HttpHandler {
                     + "uploadType=resumable"
                     + "&upload_id=" + UUIDs.randomBase64UUID()
                     + "&test_blob_name=" + blobName); // not a Google Storage parameter, but it allows to pass the blob name
-                exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                 exchange.getResponseBody().write(response);
 
             } else if (Regex.simpleMatch("PUT /upload/storage/v1/b/" + bucket + "/o?*uploadType=resumable*", request)) {
@@ -228,7 +228,7 @@ public class GCSHttpHandler implements HttpHandler {
 
                 final String blobName = params.get("test_blob_name");
                 if (blobs.containsKey(blobName) == false) {
-                    exchange.sendResponseHeaders(RestStatus.NOT_FOUND.getStatus(), -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.NOT_FOUND.code(), -1);
                     return;
                 }
                 BytesReference blob = blobs.get(blobName);
@@ -248,19 +248,19 @@ public class GCSHttpHandler implements HttpHandler {
                     if (limit > blob.length()) {
                         throw new AssertionError("Requesting more bytes than available for blob");
                     }
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), -1);
                 }
             } else if (Regex.simpleMatch("DELETE /storage/v1/b/" + bucket + "/o/*", request)) {
                 // DELETE bucket https://cloud.google.com/storage/docs/json_api/v1/buckets/delete
                 var key = exchange.getRequestURI().getPath().replace("/storage/v1/b/" + bucket + "/o/", "");
                 var blob = blobs.remove(key);
                 if (blob == null) {
-                    exchange.sendResponseHeaders(RestStatus.NOT_FOUND.getStatus(), -1);
+                    exchange.sendResponseHeaders(HttpResponseStatus.NOT_FOUND.code(), -1);
                 } else {
-                    exchange.sendResponseHeaders(RestStatus.OK.getStatus(), 0);
+                    exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), 0);
                 }
             } else {
-                exchange.sendResponseHeaders(RestStatus.NOT_FOUND.getStatus(), -1);
+                exchange.sendResponseHeaders(HttpResponseStatus.NOT_FOUND.code(), -1);
             }
         } finally {
             int read = exchange.getRequestBody().read();

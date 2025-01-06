@@ -19,13 +19,14 @@
 
 package org.elasticsearch.action;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class UnavailableShardsException extends ElasticsearchException {
 
@@ -53,7 +54,7 @@ public class UnavailableShardsException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.NO_SHARD_AVAILABLE;
     }
 }

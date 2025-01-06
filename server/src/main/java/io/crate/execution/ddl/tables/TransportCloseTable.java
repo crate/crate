@@ -74,7 +74,6 @@ import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -87,6 +86,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.rest.action.HttpErrorStatus;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
@@ -349,7 +349,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                     false,
                     false,
                     false,
-                    RestStatus.FORBIDDEN,
+                    HttpErrorStatus.RELATION_CLOSED,
                     EnumSet.of(ClusterBlockLevel.WRITE)
                 );
             }

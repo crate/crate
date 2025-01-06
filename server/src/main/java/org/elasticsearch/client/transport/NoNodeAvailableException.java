@@ -19,11 +19,12 @@
 
 package org.elasticsearch.client.transport;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * An exception indicating no node is available to perform the operation.
@@ -34,16 +35,12 @@ public class NoNodeAvailableException extends ElasticsearchException {
         super(message);
     }
 
-    public NoNodeAvailableException(String message, Throwable t) {
-        super(message, t);
-    }
-
     public NoNodeAvailableException(StreamInput in) throws IOException {
         super(in);
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.NO_NODE_AVAILABLE;
     }
 }

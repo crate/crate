@@ -19,16 +19,9 @@
 
 package org.elasticsearch.rest;
 
-import static java.util.Collections.unmodifiableMap;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
+/**
+ * @deprecated Use {@link io.crate.rest.action.HttpErrorStatus} instead.
+ */
 public enum RestStatus {
     /**
      * The client SHOULD continue with its request. This interim response is used to inform the client that the
@@ -481,18 +474,8 @@ public enum RestStatus {
      */
     INSUFFICIENT_STORAGE(507);
 
-    private static final Map<Integer, RestStatus> CODE_TO_STATUS;
 
-    static {
-        RestStatus[] values = values();
-        Map<Integer, RestStatus> codeToStatus = new HashMap<>(values.length);
-        for (RestStatus value : values) {
-            codeToStatus.put(value.status, value);
-        }
-        CODE_TO_STATUS = unmodifiableMap(codeToStatus);
-    }
-
-    private int status;
+    private final int status;
 
     RestStatus(int status) {
         this.status = (short) status;
@@ -502,38 +485,4 @@ public enum RestStatus {
         return status;
     }
 
-    public static RestStatus readFrom(StreamInput in) throws IOException {
-        return RestStatus.valueOf(in.readString());
-    }
-
-    public static void writeTo(StreamOutput out, RestStatus status) throws IOException {
-        out.writeString(status.name());
-    }
-
-    public static RestStatus status(int successfulShards, int totalShards, ShardOperationFailedException... failures) {
-        if (failures.length == 0) {
-            if (successfulShards == 0 && totalShards > 0) {
-                return RestStatus.SERVICE_UNAVAILABLE;
-            }
-            return RestStatus.OK;
-        }
-        RestStatus status = RestStatus.OK;
-        if (successfulShards == 0 && totalShards > 0) {
-            for (ShardOperationFailedException failure : failures) {
-                RestStatus shardStatus = failure.status();
-                if (shardStatus.getStatus() >= status.getStatus()) {
-                    status = failure.status();
-                }
-            }
-            return status;
-        }
-        return status;
-    }
-
-    /**
-     * Turn a status code into a {@link RestStatus}, returning null if we don't know that status.
-     */
-    public static RestStatus fromCode(int code) {
-        return CODE_TO_STATUS.get(code);
-    }
 }
