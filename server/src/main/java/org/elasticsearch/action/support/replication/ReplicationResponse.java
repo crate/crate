@@ -22,12 +22,12 @@ package org.elasticsearch.action.support.replication;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TransportResponse;
 import org.jetbrains.annotations.Nullable;
 
@@ -125,16 +125,6 @@ public class ReplicationResponse extends TransportResponse {
             return failures;
         }
 
-        public RestStatus status() {
-            RestStatus status = RestStatus.OK;
-            for (Failure failure : failures) {
-                if (failure.primary() && failure.status().getStatus() > status.getStatus()) {
-                    status = failure.status();
-                }
-            }
-            return status;
-        }
-
         @Override
         public String toString() {
             return "ShardInfo{" +
@@ -153,9 +143,8 @@ public class ReplicationResponse extends TransportResponse {
             public Failure(ShardId shardId,
                            @Nullable String nodeId,
                            Exception cause,
-                           RestStatus status,
                            boolean primary) {
-                super(shardId.getIndexName(), shardId.id(), Exceptions.stackTrace(cause), status, cause);
+                super(shardId.getIndexName(), shardId.id(), Exceptions.stackTrace(cause), cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;
@@ -187,7 +176,9 @@ public class ReplicationResponse extends TransportResponse {
                 index = shardId.getIndexName();
                 nodeId = in.readOptionalString();
                 cause = in.readException();
-                status = RestStatus.readFrom(in);
+                if (in.getVersion().before(Version.V_6_2_0)) {
+                    in.readString(); // ignore old RestStatus
+                }
                 primary = in.readBoolean();
             }
 
@@ -196,7 +187,9 @@ public class ReplicationResponse extends TransportResponse {
                 shardId.writeTo(out);
                 out.writeOptionalString(nodeId);
                 out.writeException(cause);
-                RestStatus.writeTo(out, status);
+                if (out.getVersion().before(Version.V_6_2_0)) {
+                    out.writeString("INTERNAL_SERVER_ERROR");
+                }
                 out.writeBoolean(primary);
             }
         }

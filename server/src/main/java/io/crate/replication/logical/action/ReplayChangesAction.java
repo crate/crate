@@ -47,7 +47,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -162,10 +161,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                     failure.accept(e);
                     return;
                 }
-                if (engineResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED ||
-                    (engineResult.getResultType() == Engine.Result.Type.FAILURE &&
-                     engineResult.getFailure() instanceof StrictDynamicMappingException)
-                ) {
+                if (engineResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     // Retry to process the translog operations, once the mappings are updated
                     retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure);
                     return;

@@ -19,12 +19,13 @@
 
 package org.elasticsearch.index.shard;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class IllegalIndexShardStateException extends ElasticsearchException {
 
@@ -56,7 +57,7 @@ public class IllegalIndexShardStateException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.GENERIC_NOT_FOUND;
     }
 }

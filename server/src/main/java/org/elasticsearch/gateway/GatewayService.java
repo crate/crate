@@ -41,10 +41,10 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class GatewayService extends AbstractLifecycleComponent implements ClusterStateListener {
 
@@ -81,7 +81,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
         Setting.intSetting("gateway.recover_after_master_nodes", 0, 0, Property.NodeScope, Property.Deprecated);
 
     public static final ClusterBlock STATE_NOT_RECOVERED_BLOCK = new ClusterBlock(1, "state not recovered / initialized", true, true,
-        false, RestStatus.SERVICE_UNAVAILABLE, ClusterBlockLevel.ALL);
+        false, HttpErrorStatus.STATE_NOT_RECOVERED, ClusterBlockLevel.ALL);
 
     private final ThreadPool threadPool;
 

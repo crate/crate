@@ -43,7 +43,6 @@ import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -53,7 +52,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -101,19 +99,6 @@ public class SQLExceptions {
             result = cause;
         }
         return result;
-    }
-
-    public static RestStatus status(Throwable t) {
-        if (t != null) {
-            if (t instanceof ElasticsearchException) {
-                return ((ElasticsearchException) t).status();
-            } else if (t instanceof IllegalArgumentException) {
-                return RestStatus.BAD_REQUEST;
-            } else if (t instanceof EsRejectedExecutionException) {
-                return RestStatus.TOO_MANY_REQUESTS;
-            }
-        }
-        return RestStatus.INTERNAL_SERVER_ERROR;
     }
 
     /**

@@ -74,7 +74,6 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -86,6 +85,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountDown;
 import io.crate.protocols.ConnectionStats;
+import io.crate.rest.action.HttpErrorStatus;
 import io.netty.channel.ChannelFuture;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
@@ -782,13 +782,13 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             super(msg);
         }
 
-        @Override
-        public RestStatus status() {
-            return RestStatus.BAD_REQUEST;
-        }
-
         public HttpRequestOnTransportException(StreamInput in) throws IOException {
             super(in);
+        }
+
+        @Override
+        public HttpErrorStatus httpErrorStatus() {
+            return HttpErrorStatus.GENERIC_BAD_REQUEST;
         }
     }
 

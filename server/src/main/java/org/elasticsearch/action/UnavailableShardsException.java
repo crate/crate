@@ -24,13 +24,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
-
 import io.crate.exceptions.TableScopeException;
 import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;
@@ -73,11 +70,6 @@ public class UnavailableShardsException extends ElasticsearchException implement
             name = null;
         }
         this.relationName = name;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
     }
 
     @Override

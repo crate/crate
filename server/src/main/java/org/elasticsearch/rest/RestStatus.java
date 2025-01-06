@@ -19,16 +19,16 @@
 
 package org.elasticsearch.rest;
 
-import static java.util.Collections.unmodifiableMap;
+import java.util.Locale;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import com.carrotsearch.hppc.IntObjectHashMap;
 
-import org.elasticsearch.action.ShardOperationFailedException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.rest.action.HttpErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * @deprecated Use {@link io.crate.rest.action.HttpErrorStatus} instead.
+ */
 public enum RestStatus {
     /**
      * The client SHOULD continue with its request. This interim response is used to inform the client that the
@@ -481,18 +481,54 @@ public enum RestStatus {
      */
     INSUFFICIENT_STORAGE(507);
 
-    private static final Map<Integer, RestStatus> CODE_TO_STATUS;
+
+    private static final IntObjectHashMap<RestStatus> HTTP_CODE_TO_REST_STATUS;
+    private static final IntObjectHashMap<HttpErrorStatus> HTTP_CODE_TO_HTTP_ERROR;
 
     static {
-        RestStatus[] values = values();
-        Map<Integer, RestStatus> codeToStatus = new HashMap<>(values.length);
-        for (RestStatus value : values) {
-            codeToStatus.put(value.status, value);
+        HttpErrorStatus[] httpErrorValues = HttpErrorStatus.values();
+        IntObjectHashMap<HttpErrorStatus> codeToHttpStatus = new IntObjectHashMap<>(httpErrorValues.length);
+        for (HttpErrorStatus value : httpErrorValues) {
+            int errorCode = value.errorCode();
+            if (errorCode % 10 == 0) {
+                int threeDigitErrorCode = Integer.parseInt(String.format(Locale.ENGLISH, "%d", errorCode).substring(0, 3));
+                codeToHttpStatus.put(threeDigitErrorCode, value);
+            }
         }
-        CODE_TO_STATUS = unmodifiableMap(codeToStatus);
+        HTTP_CODE_TO_HTTP_ERROR = codeToHttpStatus;
+
+        RestStatus[] values = values();
+        IntObjectHashMap<RestStatus> codeToRestStatus = new IntObjectHashMap<>(values.length);
+        for (RestStatus status : values) {
+            codeToRestStatus.put(status.getStatus(), status);
+        }
+        HTTP_CODE_TO_REST_STATUS = codeToRestStatus;
     }
 
-    private int status;
+    /**
+     * Tries to convert a RestStatus name comping from some old node to a HttpErrorStatus.
+     * Falls back to UNHANDLED_SERVER_ERROR if the mapping is not possible.
+     * Can be removed, once rolling upgrades from Version < 6.2.0 are not supported anymore.
+     */
+    public static HttpErrorStatus toHttpErrorStatus(String restStatusName) {
+        var restStatus = RestStatus.valueOf(restStatusName);
+        var responseStatus = HttpResponseStatus.valueOf(restStatus.getStatus());
+        var status = HTTP_CODE_TO_HTTP_ERROR.get(responseStatus.code());
+        if (status != null) {
+            return status;
+        }
+        return HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+    }
+
+    public static RestStatus of(HttpErrorStatus httpErrorStatus) {
+        RestStatus restStatus = HTTP_CODE_TO_REST_STATUS.get(httpErrorStatus.httpResponseStatus().code());
+        if (restStatus != null) {
+            return restStatus;
+        }
+        return RestStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    private final int status;
 
     RestStatus(int status) {
         this.status = (short) status;
@@ -502,38 +538,4 @@ public enum RestStatus {
         return status;
     }
 
-    public static RestStatus readFrom(StreamInput in) throws IOException {
-        return RestStatus.valueOf(in.readString());
-    }
-
-    public static void writeTo(StreamOutput out, RestStatus status) throws IOException {
-        out.writeString(status.name());
-    }
-
-    public static RestStatus status(int successfulShards, int totalShards, ShardOperationFailedException... failures) {
-        if (failures.length == 0) {
-            if (successfulShards == 0 && totalShards > 0) {
-                return RestStatus.SERVICE_UNAVAILABLE;
-            }
-            return RestStatus.OK;
-        }
-        RestStatus status = RestStatus.OK;
-        if (successfulShards == 0 && totalShards > 0) {
-            for (ShardOperationFailedException failure : failures) {
-                RestStatus shardStatus = failure.status();
-                if (shardStatus.getStatus() >= status.getStatus()) {
-                    status = failure.status();
-                }
-            }
-            return status;
-        }
-        return status;
-    }
-
-    /**
-     * Turn a status code into a {@link RestStatus}, returning null if we don't know that status.
-     */
-    public static RestStatus fromCode(int code) {
-        return CODE_TO_STATUS.get(code);
-    }
 }

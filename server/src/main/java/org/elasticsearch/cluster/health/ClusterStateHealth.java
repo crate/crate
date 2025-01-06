@@ -34,7 +34,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
+import io.crate.rest.action.HttpErrorStatus;
 
 
 public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, Writeable {
@@ -89,7 +89,7 @@ public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, W
             }
         }
 
-        if (clusterState.blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+        if (clusterState.blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)) {
             computeStatus = Health.RED;
         }
 

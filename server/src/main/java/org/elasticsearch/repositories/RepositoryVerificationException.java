@@ -19,10 +19,11 @@
 
 package org.elasticsearch.repositories;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
-
 import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Repository verification exception
@@ -38,13 +39,13 @@ public class RepositoryVerificationException extends RepositoryException {
         super(repository, msg, t);
     }
 
-    @Override
-    public RestStatus status() {
-        return RestStatus.INTERNAL_SERVER_ERROR;
-    }
-
     public RepositoryVerificationException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.REPOSITORY_VERIFICATION_FAILED;
     }
 }
 
