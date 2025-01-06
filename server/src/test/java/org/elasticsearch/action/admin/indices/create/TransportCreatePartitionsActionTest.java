@@ -199,4 +199,40 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         // Without do-once logic would have been 2
         verify(actionSpy, times(1)).upgradeTemplates(any(), any());
     }
+
+    @Test
+    public void test_version_created_settings_for_new_partitions_from_old_template_do_not_follow_old_templates_version() throws Exception {
+        execute("create table tbl (a int) partitioned by (a) ");
+        ensureYellow();
+
+        ClusterState clusterState = cluster().clusterService().state();
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterState.metadata());
+
+        String tableTemplateName = PartitionName.templateName("doc", "tbl");
+        IndexTemplateMetadata indexTemplateMetadata = clusterState.metadata().templates().get(tableTemplateName);
+        assertThat(indexTemplateMetadata).isNotNull();
+
+        // modify the template's version created to V_5_7_5
+        metadataBuilder.removeTemplate(tableTemplateName);
+        IndexTemplateMetadata.Builder templateBuilder = IndexTemplateMetadata.builder(tableTemplateName)
+            .version(1)
+            .patterns(indexTemplateMetadata.patterns())
+            .putMapping(indexTemplateMetadata.mapping())
+            .settings(Settings.builder()
+                .put(indexTemplateMetadata.settings())
+                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_7_5)
+            );
+        metadataBuilder.put(templateBuilder);
+        ClusterState artificialState = new ClusterState.Builder(clusterState).metadata(metadataBuilder).build();
+
+        // Imitation of "insert into tbl (a) values (1)".
+        CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
+
+        ClusterState newState = action.executeCreateIndices(artificialState, request);
+        assertThat(newState.metadata().indices().values().size()).isEqualTo(1);
+        IndexMetadata indexMetadata = newState.metadata().indices().values().iterator().next().value;
+        Version newPartitionVersion = indexMetadata.getSettings().getAsVersion(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_EMPTY);
+        assertThat(newPartitionVersion).isEqualTo(clusterState.nodes().getSmallestNonClientNodeVersion());
+        assertThat(newPartitionVersion).isNotEqualTo(Version.V_5_7_5);
+    }
 }
