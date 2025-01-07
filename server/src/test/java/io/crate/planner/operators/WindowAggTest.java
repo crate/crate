@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -141,6 +142,13 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY y ORDER BY x)"));
         assertThat(orderBy).isNotNull();
         assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("y"), isReference("x"));
+    }
+
+    @Test
+    public void test_window_functions_do_not_support_filter_clause() throws Exception {
+        assertThatThrownBy(() -> plan("SELECT ROW_NUMBER() FILTER (WHERE x > 1) OVER (ORDER BY x) FROM t1"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("FILTER is not implemented for non-aggregate window functions (row_number)");
     }
 
     private WindowDefinition wd(String expression) {
