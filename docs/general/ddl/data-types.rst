@@ -128,6 +128,13 @@ CrateDB supports the following data types. Scroll down for more details.
       - A fixed length vector of floating point numbers
       - ``[3.14, 42.21]``
 
+    * - ``ROW``
+      - A composite type made up of a number of inner types/fields. Similar to a
+        ``tuple`` in other languages.
+      - No literal support yet. Result format depends on the used protocol. HTTP
+        uses a list. PostgreSQL serializes it via the ``record`` type (``oid``
+        2249).
+
 
 .. _data-types-ranges-widths:
 
@@ -2993,6 +3000,29 @@ requires an intermediate cast:
     Nested arrays cannot be created dynamically, either as a
     :ref:`top level column <column_policy>`
     or as part of a :ref:`dynamic object <type-object-columns-dynamic>`
+
+.. _type-row:
+
+``ROW``
+=======
+
+A row type is a composite type made up of an arbitrary number of other types,
+similar to a ``tuple`` in programming languages like ``python``.
+
+There is currently no type literal to create values of such a type, but the type
+is used for the result of table functions used in the select list of a statement
+if the table function returns more than one column.
+
+::
+
+    cr> SELECT unnest([1, 2], ['Arthur', 'Trillian']);
+    +----------------------------------------+
+    | unnest([1, 2], ['Arthur', 'Trillian']) |
+    +----------------------------------------+
+    | [1, "Arthur"]                          |
+    | [2, "Trillian"]                        |
+    +----------------------------------------+
+    SELECT 2 rows in set (... sec)
 
 .. _type-float_vector:
 
