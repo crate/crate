@@ -789,7 +789,7 @@ Parameters
 .. _AWS API endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html
 .. _AWS region: https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
 .. _Azure Blob storage: https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction
-.. _Azure service region: https://azure.microsoft.com/en-us/global-infrastructure/geographies/
+.. _Azure service region: https://azure.microsoft.com/en-us/explore/global-infrastructure/geographies/
 .. _Canned ACL: https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
 .. _endpoint suffix: https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string#create-a-connection-string-with-an-endpoint-suffix
 .. _IAM roles: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
