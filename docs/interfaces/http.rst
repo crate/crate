@@ -284,6 +284,8 @@ IDs of all currently available data types:
      - Unchecked object
    * - 17
      - :ref:`INTERVAL <type-interval>`
+   * - 18
+     - :ref:`ROW <type-row>`
    * - 19
      - :ref:`REGPROC <type-regproc>`
    * - 20
