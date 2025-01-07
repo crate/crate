@@ -47,6 +47,9 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``FILTER`` clauses on non-aggregate window
+  functions to be ignored instead of raising an unsupported error.
+
 - Fixed an issue leading to an error when exporting big tables via ``COPY TO``
   to the :ref:`Azure Blob Storage <sql-copy-to-az>`.
   This also has a positive effect on performance.

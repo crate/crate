@@ -1279,6 +1279,9 @@ public class ExpressionAnalyzer {
                             functionName));
                     }
                 }
+            } else if (filter != null) {
+                throw new UnsupportedOperationException(
+                    "FILTER is not implemented for non-aggregate window functions (" + functionName + ")");
             }
             newFunction = new WindowFunction(
                 signature,
