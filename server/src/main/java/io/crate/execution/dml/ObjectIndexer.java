@@ -140,7 +140,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 // at read time, so we need to store them explicitly
                 docBuilder.addField(new StoredField(
                     ref.storageIdentLeafName(),
-                    toBytes(columnsToStore, docBuilder.getTableVersionCreated()).toBytesRef()
+                    toBytes(columnsToStore, docBuilder.getShardVersionCreated()).toBytesRef()
                 ));
             } else if (value.isEmpty()) {
                 // A completely empty object doesn't store anything in doc values, so we need to
@@ -148,7 +148,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 // null value
                 docBuilder.addField(new StoredField(
                     ref.storageIdentLeafName(),
-                    toBytes(value, docBuilder.getTableVersionCreated()).toBytesRef()
+                    toBytes(value, docBuilder.getShardVersionCreated()).toBytesRef()
                 ));
             }
         }

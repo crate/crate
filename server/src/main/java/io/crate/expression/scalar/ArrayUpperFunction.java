@@ -179,7 +179,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         int cmpVal = cmpNumber.intValue();
         // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
         // see ArrayIndexer for details
-        if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
+        if (context.getShardCreatedVersion().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
             return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, context.tableInfo()::getReference);
         }
 
