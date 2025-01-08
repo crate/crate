@@ -139,6 +139,10 @@ Performance and Resilience Improvements
   or it can be removed explicitly by an ``OPTIMIZE`` operation after indexing
   to a table or partition has completed.
 
+- Lowered the default ``max_concurrency`` and ``queue_size``
+  :ref:`overload_protection` values, this should help cluster stability without
+  slowing down operations.
+
 Administration and Operations
 -----------------------------
 

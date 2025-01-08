@@ -1319,7 +1319,7 @@ The minimum number of concurrent operations allowed per target node.
 .. _overload_protection.dml.max_concurrency:
 
 **overload_protection.dml.max_concurrency**
-  | *Default:* ``2000``
+  | *Default:* ``100``
   | *Runtime:* ``yes``
 
 The maximum number of concurrent operations allowed per target node.
@@ -1327,7 +1327,7 @@ The maximum number of concurrent operations allowed per target node.
 .. _overload_protection.dml.queue_size:
 
 **overload_protection.dml.queue_size**
-  | *Default:* ``200``
+  | *Default:* ``25``
   | *Runtime:* ``yes``
 
 How many operations are allowed to queue up.
