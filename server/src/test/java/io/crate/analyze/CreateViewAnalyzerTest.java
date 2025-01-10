@@ -25,7 +25,6 @@ import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -135,5 +134,14 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "CREATE OR REPLACE VIEW subselect_view_any AS SELECT (SELECT 1) = ANY([5])");
         assertList(stmt.analyzedQuery().outputs())
             .isSQL("((SELECT 1 FROM (empty_row)) = ANY([5]))");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/17188
+    @Test
+    public void test_create_view_preserves_quoted_function_names() {
+        // "Abs"(1) refers to an undefined UDF so not being resolved to a builtin abs() implies the correct behaviour
+        assertThatThrownBy(() -> e.analyze("CREATE VIEW v AS SELECT \"Abs\"(1)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Invalid query used in CREATE VIEW. Unknown function: Abs(1). Query: SELECT \"Abs\"(1)");
     }
 }
