@@ -4,7 +4,7 @@ on:
     types: [opened, synchronize, unlabeled]
 jobs:
   check-author-signed-cla:
-    uses: crate/cla-check/.github/workflows/cla-check-workflow.yml@main
+    uses: crate/actions/.github/workflows/cla-check-workflow.yml@main
     # with: 
       # simulate_no_cla: true
     secrets: inherit
