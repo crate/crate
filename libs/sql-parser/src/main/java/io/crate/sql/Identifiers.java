@@ -62,10 +62,21 @@ public final class Identifiers {
 
     public static final Collection<Keyword> KEYWORDS = identifierCandidates();
 
-    static final Set<String> RESERVED_KEYWORDS = KEYWORDS.stream()
+    private static final Set<String> RESERVED_KEYWORDS = KEYWORDS.stream()
         .filter(Keyword::isReserved)
         .map(Keyword::getWord)
         .collect(Collectors.toSet());
+
+    public static final Set<String> PARENTHESIS_LESS_FUNCTIONS = Set.of(
+        "current_date",
+        "current_time",
+        "current_timestamp",
+        "current_schema",
+        "current_user",
+        "current_role",
+        "user",
+        "session_user"
+    );
 
     private Identifiers() {}
 
@@ -81,14 +92,25 @@ public final class Identifiers {
      * i.e. when it contain a double-quote, has upper case letters or is a SQL keyword
      */
     public static String quoteIfNeeded(String identifier) {
-        if (quotesRequired(identifier)) {
+        if (quotesRequired(false, identifier)) {
             return quote(identifier);
         }
         return identifier;
     }
 
-    private static boolean quotesRequired(String identifier) {
-        return isKeyWord(identifier) || !quotesNotRequired(identifier);
+    public static String quoteFunctionIfNeeded(String identifier) {
+        if (quotesRequired(true, identifier)) {
+            return quote(identifier);
+        }
+        return identifier;
+    }
+
+    private static boolean quotesRequired(boolean isFunction, String identifier) {
+        return (isKeyWord(identifier) && !isParenthesisLessFunction(isFunction, identifier)) || !quotesNotRequired(identifier);
+    }
+
+    private static boolean isParenthesisLessFunction(boolean isFunction, String identifier) {
+        return isFunction && PARENTHESIS_LESS_FUNCTIONS.contains(identifier);
     }
 
     public static boolean isKeyWord(String identifier) {

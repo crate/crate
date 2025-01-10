@@ -71,5 +71,8 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("_col")).isEqualTo("_col");
         assertThat(Identifiers.quoteIfNeeded("col_1")).isEqualTo("col_1");
         assertThat(Identifiers.quoteIfNeeded("col['a']")).isEqualTo("\"col['a']\"");
+        // current_schema can be a parenthesisless function, and it can also be a column
+        assertThat(Identifiers.quoteIfNeeded("current_schema")).isEqualTo("\"current_schema\"");
+        assertThat(Identifiers.quoteFunctionIfNeeded("current_schema")).isEqualTo("current_schema");
     }
 }
