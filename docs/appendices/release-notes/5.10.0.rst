@@ -45,7 +45,12 @@ Version 5.10.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Duplicate Object`` error from ``4100`` to ``40910`` as it is a conflict.
+
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Query killed`` error from ``5030`` to ``5005`` as it is an internal server
+  error.
 
 Deprecations
 ============
