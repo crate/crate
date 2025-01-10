@@ -144,7 +144,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         );
         assertSQLError(() -> execute(createUserMappingStmt))
             .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
-            .hasHTTPError(HttpResponseStatus.CONFLICT, 4100)
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 40910)
             .hasMessageContaining("USER MAPPING for 'trillian' and server 'pg' already exists");
 
         execute("explain select * from doc.dummy order by x");
