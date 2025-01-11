@@ -424,7 +424,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Set<String> enabledRoles(Role role, Roles roles) {
         Set<String> result = new HashSet<>();
-        Set<ApplicableRole> applicableRoles = applicableRoles(role, roles);
+        Iterable<ApplicableRole> applicableRoles = applicableRoles(role, roles);
         for (ApplicableRole applicableRole: applicableRoles) {
             result.add(applicableRole.roleName());
         }
