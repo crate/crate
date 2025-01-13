@@ -354,6 +354,7 @@
 
     <versions.guava>32.0.1-jre</versions.guava>
     <versions.google.gson>1.43.1</versions.google.gson>
+    <versions.google.protobuf>3.25.5</versions.google.protobuf>
     <versions.google.errorprone>2.19.1</versions.google.errorprone>
     <versions.google.j2objc>2.8</versions.google.j2objc>
     <versions.checkerframework>3.48.2</versions.checkerframework>
