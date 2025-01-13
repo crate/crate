@@ -29,26 +29,59 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.session.Session;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
-public class EqualityExtractorTest extends EqualityExtractorBaseTest {
+public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final ColumnIdent x = ColumnIdent.of("x");
-    private static final ColumnIdent i = ColumnIdent.of("i");
+    protected final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+    private SqlExpressions expressions;
+    protected EvaluatingNormalizer normalizer;
+    private EqualityExtractor ee;
+
+    private final ColumnIdent x = ColumnIdent.of("x");
+    private final ColumnIdent i = ColumnIdent.of("i");
+
+    @Before
+    public void prepare() throws Exception {
+        Map<RelationName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1), clusterService);
+
+        DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
+        expressions = new SqlExpressions(sources, tr1);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
+        ee = new EqualityExtractor(normalizer);
+    }
+
+    private List<List<Symbol>> analyzeExact(Symbol query, List<ColumnIdent> primaryKeys) {
+        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
+    }
+
+    /**
+     * Convert a query expression as text into a normalized query {@link Symbol}.
+     * @param expression The query expression as text
+     * @return the query expression as Symbol
+     */
+    private Symbol query(String expression) {
+        return expressions.normalize(expressions.asSymbol(expression));
+    }
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
-        return analyzeParent(query, List.of(x));
+        return ee.extractParentMatches(List.of(x), query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
