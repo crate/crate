@@ -69,6 +69,13 @@
             <version>${versions.google.cloud.storage}</version>
         </dependency>
 
+        <!-- Explicitly use version without https://scout.docker.com/vulnerabilities/id/CVE-2021-22573 -->
+        <dependency>
+            <groupId>com.google.oauth-client</groupId>
+            <artifactId>google-oauth-client</artifactId>
+            <version>${versions.google.oauth.client}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-core-http</artifactId>
