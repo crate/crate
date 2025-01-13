@@ -24,15 +24,14 @@ package io.crate.execution.jobs;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.concurrent.ConcurrencyLimit;
-
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.concurrent.ConcurrencyLimit;
 
 /**
  * Tracks concurrency limits per node
@@ -49,9 +48,9 @@ public class NodeLimits {
     public static final Setting<Integer> MIN_CONCURRENCY =
         Setting.intSetting("overload_protection.dml.min_concurrency", 1, Property.NodeScope, Property.Dynamic, Property.Exposed);
     public static final Setting<Integer> MAX_CONCURRENCY =
-        Setting.intSetting("overload_protection.dml.max_concurrency", 2000, Property.NodeScope, Property.Dynamic, Property.Exposed);
+        Setting.intSetting("overload_protection.dml.max_concurrency", 100, Property.NodeScope, Property.Dynamic, Property.Exposed);
     public static final Setting<Integer> QUEUE_SIZE =
-        Setting.intSetting("overload_protection.dml.queue_size", 200, Property.NodeScope, Property.Dynamic, Property.Exposed);
+        Setting.intSetting("overload_protection.dml.queue_size", 25, Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     private static final double SMOOTHING = 0.2;
     private static final int LONG_WINDOW = 600;
