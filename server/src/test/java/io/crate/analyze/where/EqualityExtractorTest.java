@@ -447,4 +447,13 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             List.of(x, i), query(sj.toString()), coordinatorTxnCtx).matches();
         assertThat(matches).isNotNull();
     }
+
+    @Test
+    public void test_no_exact_result_on_partial_match() throws Exception {
+        // https://github.com/crate/crate/issues/17197
+        // It is important that the query first hits a non-pk column
+        Symbol query = query("(i = 1 or x = 2) and (i = 2 and a = 'foo')");
+        List<List<Symbol>> analyzeExact = analyzeExact(query, List.of(ColumnIdent.of("x")));
+        assertThat(analyzeExact).isNull();
+    }
 }
