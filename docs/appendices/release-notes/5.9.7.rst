@@ -47,6 +47,10 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could cause queries to run into a ``NullPointerException``
+  if having a query condition like ``(nonPrimaryKey = ? AND primaryKeyPart =
+  ?)``
+
 - Fixed an issue that caused ``FILTER`` clauses on non-aggregate window
   functions to be ignored instead of raising an unsupported error.
 
