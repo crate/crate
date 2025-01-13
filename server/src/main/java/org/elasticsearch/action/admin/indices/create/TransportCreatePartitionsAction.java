@@ -366,14 +366,15 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {
-        Version minVersion = currentState.nodes().getSmallestNonClientNodeVersion();
-        Settings.Builder indexSettingsBuilder = Settings.builder()
-            .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), minVersion);
+        Settings.Builder indexSettingsBuilder = Settings.builder();
 
         // apply template
         if (template != null) {
             indexSettingsBuilder.put(template.settings());
         }
+
+        Version minVersion = currentState.nodes().getSmallestNonClientNodeVersion();
+        indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), minVersion);
 
         validateSoftDeletesSetting(indexSettingsBuilder.build());
 
