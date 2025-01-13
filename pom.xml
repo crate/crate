@@ -353,7 +353,8 @@
     <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
     <versions.guava>32.0.1-jre</versions.guava>
-    <versions.google.gson>1.43.1</versions.google.gson>
+    <versions.google.http.client.gson>1.43.1</versions.google.http.client.gson>
+    <versions.google.gson>2.8.9</versions.google.gson>
     <versions.google.protobuf>3.25.5</versions.google.protobuf>
     <versions.google.errorprone>2.19.1</versions.google.errorprone>
     <versions.google.j2objc>2.8</versions.google.j2objc>

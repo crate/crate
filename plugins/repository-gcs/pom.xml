@@ -83,10 +83,11 @@
             <version>${versions.google.oauth.client}</version>
         </dependency>
 
+        <!-- Explicitly use version without https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-25647 -->
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core-http</artifactId>
-            <version>${versions.google.cloud.core.http}</version>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${versions.google.gson}</version>
         </dependency>
 
         <dependency>
@@ -112,7 +113,7 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client-gson</artifactId>
-            <version>${versions.google.gson}</version>
+            <version>${versions.google.http.client.gson}</version>
         </dependency>
 
         <dependency>
