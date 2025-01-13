@@ -477,6 +477,15 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("Job killed. statement_timeout (10ms)");
     }
 
+    @Test
+    public void test_no_exact_result_on_partial_match() throws Exception {
+        // https://github.com/crate/crate/issues/17197
+        // It is important that the query first hits a non-pk column
+        Symbol query = query("(i = 1 or x = 2) and (i = 2 and a = 'foo')");
+        List<List<Symbol>> analyzeExact = analyzeExact(query, List.of(ColumnIdent.of("x")));
+        assertThat(analyzeExact).isNull();
+    }
+
     public static class TestToken extends Session.TimeoutToken {
 
         private final int maxChecks;

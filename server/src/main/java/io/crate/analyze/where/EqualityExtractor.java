@@ -485,7 +485,7 @@ public class EqualityExtractor {
                     proxyBelowPost = ctx.proxyBelow || proxyBelowPost;
                 }
                 if ((ctx.foundPKColumnUnderOr && ctx.foundNonPKColumnUnderOr) || ctx.foundPKColumnUnderNot) {
-                    return null;
+                    return Literal.BOOLEAN_FALSE;
                 }
                 ctx.isUnderNotPredicate = prevIsUnderNotPredicate;
                 ctx.proxyBelow = proxyBelowPost;
