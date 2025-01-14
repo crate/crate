@@ -19,10 +19,11 @@
 
 package org.elasticsearch;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
-
 import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Unchecked exception that is translated into a {@code 400 BAD REQUEST} error when it bubbles out over HTTP.
@@ -42,7 +43,7 @@ public class ElasticsearchParseException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
     }
 }

@@ -19,13 +19,14 @@
 
 package org.elasticsearch;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
-
 import java.io.IOException;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import io.crate.rest.action.HttpErrorStatus;
+
 /**
- * Generic ResourceNotFoundException corresponding to the {@link RestStatus#NOT_FOUND} status code
+ * Generic ResourceNotFoundException corresponding to the {@link HttpErrorStatus#GENERIC_NOT_FOUND} status code
  */
 public class ResourceNotFoundException extends ElasticsearchException {
 
@@ -42,7 +43,7 @@ public class ResourceNotFoundException extends ElasticsearchException {
     }
 
     @Override
-    public final RestStatus status() {
-        return RestStatus.NOT_FOUND;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.GENERIC_NOT_FOUND;
     }
 }

@@ -139,7 +139,6 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
@@ -155,6 +154,7 @@ import io.crate.execution.dml.TranslogMappingUpdateException;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.SysColumns;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
@@ -1447,7 +1447,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 onOperationRecovered.run();
             } catch (Exception e) {
                 // TODO: Don't enable this leniency unless users explicitly opt-in
-                if (origin == Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY && SQLExceptions.status(e) == RestStatus.BAD_REQUEST) {
+                if (origin == Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY && SQLExceptions.status(e) == HttpErrorStatus.FIELD_VALIDATION_FAILED) {
                     // mainly for MapperParsingException and Failure to detect xcontent
                     logger.info("ignoring recovery of a corrupt translog entry", e);
                 } else {

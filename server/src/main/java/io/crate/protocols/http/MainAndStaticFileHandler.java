@@ -44,9 +44,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.rest.action.HttpErrorStatus;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelFutureListener;
@@ -139,7 +139,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                                                                    ClusterStateResponse response,
                                                                    ByteBufAllocator alloc,
                                                                    @Nullable String nodeName) {
-        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)
+        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)
             ? HttpResponseStatus.SERVICE_UNAVAILABLE
             : HttpResponseStatus.OK;
         try {

@@ -19,12 +19,13 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.common.unit.TimeValue;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class ProcessClusterEventTimeoutException extends ElasticsearchException {
 
@@ -37,7 +38,7 @@ public class ProcessClusterEventTimeoutException extends ElasticsearchException 
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.PROCESS_CLUSTER_EVENT_TIMEOUT;
     }
 }

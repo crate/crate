@@ -31,11 +31,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
@@ -84,7 +84,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
         if (attempt <= maxRetryCount &&
             (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
 
-            if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
+            if (clusterService.state().blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
             } else {
                 attempt += 1;

@@ -27,10 +27,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 
-import org.elasticsearch.rest.RestStatus;
-
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class FakeOAuth2HttpHandler implements HttpHandler {
 
@@ -42,7 +42,7 @@ public class FakeOAuth2HttpHandler implements HttpHandler {
             while (exchange.getRequestBody().read(BUFFER) >= 0) ;
             byte[] response = ("{\"access_token\":\"foo\",\"token_type\":\"Bearer\",\"expires_in\":3600}").getBytes(UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(RestStatus.OK.getStatus(), response.length);
+            exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
             exchange.getResponseBody().write(response);
         } finally {
             int read = exchange.getRequestBody().read();

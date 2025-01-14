@@ -69,7 +69,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute(createServerStmt, new Object[] { url });
         assertSQLError(() -> execute(createServerStmt, new Object[] { url }))
             .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
-            .hasHTTPError(HttpResponseStatus.CONFLICT, 4100);
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 40910);
 
         execute("select foreign_server_name, foreign_data_wrapper_name from information_schema.foreign_servers");
         assertThat(response).hasRows(
@@ -144,7 +144,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         );
         assertSQLError(() -> execute(createUserMappingStmt))
             .hasPGError(PGErrorStatus.DUPLICATE_OBJECT)
-            .hasHTTPError(HttpResponseStatus.CONFLICT, 4100)
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 40910)
             .hasMessageContaining("USER MAPPING for 'trillian' and server 'pg' already exists");
 
         execute("explain select * from doc.dummy order by x");

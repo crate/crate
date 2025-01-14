@@ -52,7 +52,6 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -63,6 +62,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.auth.AccessControl;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.parser.ParsingException;
 
 public class SQLExceptions {
@@ -102,17 +102,17 @@ public class SQLExceptions {
         return result;
     }
 
-    public static RestStatus status(Throwable t) {
+    public static HttpErrorStatus status(Throwable t) {
         if (t != null) {
             if (t instanceof ElasticsearchException) {
-                return ((ElasticsearchException) t).status();
+                return ((ElasticsearchException) t).httpErrorStatus();
             } else if (t instanceof IllegalArgumentException) {
-                return RestStatus.BAD_REQUEST;
+                return HttpErrorStatus.GENERIC_BAD_REQUEST;
             } else if (t instanceof EsRejectedExecutionException) {
-                return RestStatus.TOO_MANY_REQUESTS;
+                return HttpErrorStatus.TOO_MANY_REQUESTS;
             }
         }
-        return RestStatus.INTERNAL_SERVER_ERROR;
+        return HttpErrorStatus.UNHANDLED_SERVER_ERROR;
     }
 
     /**

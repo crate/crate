@@ -40,10 +40,11 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Represents current cluster level blocks to block dirty operations done against the cluster.
@@ -136,7 +137,7 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
     /**
      * Is there a global block with the provided status?
      */
-    public boolean hasGlobalBlockWithStatus(final RestStatus status) {
+    public boolean hasGlobalBlockWithStatus(final HttpErrorStatus status) {
         for (ClusterBlock clusterBlock : global) {
             if (clusterBlock.status().equals(status)) {
                 return true;

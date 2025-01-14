@@ -22,10 +22,10 @@ package org.elasticsearch.snapshots;
 import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ConflictException;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Thrown on the attempt to create a snapshot with invalid name
@@ -41,8 +41,8 @@ public class InvalidSnapshotNameException extends SnapshotException implements C
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.SNAPSHOT_INVALID_NAME;
     }
 }
 

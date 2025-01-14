@@ -24,7 +24,6 @@ import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.transport.TransportResponse;
 import org.jetbrains.annotations.Nullable;
@@ -60,21 +59,6 @@ public class CreateSnapshotResponse extends TransportResponse {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeOptionalWriteable(snapshotInfo);
-    }
-
-    /**
-     * Returns HTTP status
-     * <ul>
-     * <li>{@link RestStatus#ACCEPTED} if snapshot is still in progress</li>
-     * <li>{@link RestStatus#OK} if snapshot was successful or partially successful</li>
-     * <li>{@link RestStatus#INTERNAL_SERVER_ERROR} if snapshot failed completely</li>
-     * </ul>
-     */
-    public RestStatus status() {
-        if (snapshotInfo == null) {
-            return RestStatus.ACCEPTED;
-        }
-        return snapshotInfo.status();
     }
 
     @Override

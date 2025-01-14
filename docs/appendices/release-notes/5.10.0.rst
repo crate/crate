@@ -45,7 +45,12 @@ Version 5.10.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Duplicate Object`` error from ``4100`` to ``40910`` as it is a conflict.
+
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Query killed`` error from ``5030`` to ``5005`` as it is an internal server
+  error.
 
 Deprecations
 ============
@@ -169,3 +174,7 @@ Client interfaces
 - Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
   issued over the :ref`interface-http` containing details of the error that
   caused the bulk operation to fail.
+
+- Added more detailed errors and their corresponding
+  :ref:`http error codes <http-error-codes>` for some of which were previously
+  mapped to generic error.

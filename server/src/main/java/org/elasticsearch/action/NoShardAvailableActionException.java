@@ -19,12 +19,13 @@
 
 package org.elasticsearch.action;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class NoShardAvailableActionException extends ElasticsearchException {
 
@@ -41,12 +42,12 @@ public class NoShardAvailableActionException extends ElasticsearchException {
         setShard(shardId);
     }
 
-    @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
-    }
-
     public NoShardAvailableActionException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.NO_SHARD_AVAILABLE;
     }
 }
