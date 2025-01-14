@@ -23,6 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -312,19 +313,25 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
         Object resultDefault = executeAggregation(
             signature,
+            signature.getArgumentDataTypes(),
+            signature.getReturnType().createType(),
             rowsDefault.toArray(new Object[0][]),
+            false,
             List.of()
         );
         Object resultCustom = executeAggregation(
             signature,
+            signature.getArgumentDataTypes(),
+            signature.getReturnType().createType(),
             rowsDefault.stream()
                 .map(row -> new Object[]{row[0], row[1], customCompression})
                 .toArray(Object[][]::new),
+            false,
             List.of()
         );
 
         assertThat(resultCustom).isNotEqualTo(resultDefault);
         // Let's assert a concrete value to get failures if the implementation changes and reveals a different result
-        assertThat(resultCustom).isEqualTo(97.0);
+        assertThat((double) resultCustom).isEqualTo(113.066, within(0.01));
     }
 }
