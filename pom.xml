@@ -334,7 +334,7 @@
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.1.8</versions.caffeine>
     <versions.jodatime>2.12.7</versions.jodatime>
-    <versions.aws>1.12.353</versions.aws>
+    <versions.aws>1.12.638</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.17.1</versions.commonscodec>
