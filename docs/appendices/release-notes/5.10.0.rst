@@ -163,6 +163,9 @@ Administration and Operations
 - Updated :ref:`statement_timeout setting <conf-session-statement-timeout>` to
   also account for parsing, analysis and planning phases.
 
+- Added a ``policy`` sub-column to ``column_details`` in the
+  ``information_schema.columns`` table.
+
 Client interfaces
 -----------------
 
