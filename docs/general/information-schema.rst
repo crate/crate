@@ -358,36 +358,37 @@ infinite recursion of your mind, beware!)::
     | column_details           | object     |               12 |
     | column_details['name']   | text       |               13 |
     | column_details['path']   | text_array |               14 |
-    | column_name              | text       |               15 |
-    | data_type                | text       |               16 |
-    | datetime_precision       | integer    |               17 |
-    | domain_catalog           | text       |               18 |
-    | domain_name              | text       |               19 |
-    | domain_schema            | text       |               20 |
-    | generation_expression    | text       |               21 |
-    | identity_cycle           | boolean    |               22 |
-    | identity_generation      | text       |               23 |
-    | identity_increment       | text       |               24 |
-    | identity_maximum         | text       |               25 |
-    | identity_minimum         | text       |               26 |
-    | identity_start           | text       |               27 |
-    | interval_precision       | integer    |               28 |
-    | interval_type            | text       |               29 |
-    | is_generated             | text       |               30 |
-    | is_identity              | boolean    |               31 |
-    | is_nullable              | boolean    |               32 |
-    | numeric_precision        | integer    |               33 |
-    | numeric_precision_radix  | integer    |               34 |
-    | numeric_scale            | integer    |               35 |
-    | ordinal_position         | integer    |               36 |
-    | table_catalog            | text       |               37 |
-    | table_name               | text       |               38 |
-    | table_schema             | text       |               39 |
-    | udt_catalog              | text       |               40 |
-    | udt_name                 | text       |               41 |
-    | udt_schema               | text       |               42 |
+    | column_details['policy'] | text       |               15 |
+    | column_name              | text       |               16 |
+    | data_type                | text       |               17 |
+    | datetime_precision       | integer    |               18 |
+    | domain_catalog           | text       |               19 |
+    | domain_name              | text       |               20 |
+    | domain_schema            | text       |               21 |
+    | generation_expression    | text       |               22 |
+    | identity_cycle           | boolean    |               23 |
+    | identity_generation      | text       |               24 |
+    | identity_increment       | text       |               25 |
+    | identity_maximum         | text       |               26 |
+    | identity_minimum         | text       |               27 |
+    | identity_start           | text       |               28 |
+    | interval_precision       | integer    |               29 |
+    | interval_type            | text       |               30 |
+    | is_generated             | text       |               31 |
+    | is_identity              | boolean    |               32 |
+    | is_nullable              | boolean    |               33 |
+    | numeric_precision        | integer    |               34 |
+    | numeric_precision_radix  | integer    |               35 |
+    | numeric_scale            | integer    |               36 |
+    | ordinal_position         | integer    |               37 |
+    | table_catalog            | text       |               38 |
+    | table_name               | text       |               39 |
+    | table_schema             | text       |               40 |
+    | udt_catalog              | text       |               41 |
+    | udt_name                 | text       |               42 |
+    | udt_schema               | text       |               43 |
     +--------------------------+------------+------------------+
-    SELECT 42 rows in set (... sec)
+    SELECT 43 rows in set (... sec)
 
 
 .. rubric:: Schema

@@ -572,13 +572,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1024);
+        assertThat(response.rowCount()).isEqualTo(1025);
     }
 
     @Test
     public void testColumnsColumns() {
         execute("select column_name, data_type from information_schema.columns where table_schema='information_schema' and table_name='columns' order by column_name asc");
-        assertThat(response.rowCount()).isEqualTo(42L);
         assertThat(response).hasRows(
             "character_maximum_length| integer",
             "character_octet_length| integer",
@@ -594,6 +593,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "column_details| object",
             "column_details['name']| text",
             "column_details['path']| text_array",
+            "column_details['policy']| text",
             "column_name| text",
             "data_type| text",
             "datetime_precision| integer",
@@ -777,10 +777,14 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[4][cols.get("numeric_precision")]).isEqualTo(53);
         assertThat(response.rows()[5][cols.get("numeric_precision")]).isEqualTo(24);
 
-        assertThat(response.rows()[7][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of())); // column_details
-        assertThat(response.rows()[8][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1"))); // column_details
-        assertThat(response.rows()[9][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1","level2"))); // column_details
-        assertThat(response.rows()[10][cols.get("column_details")]).isEqualTo(Map.of("name","stuff","path", List.of("level1","level2_nullable"))); // column_details
+        assertThat(response.rows()[7][cols.get("column_details")])
+            .isEqualTo(Map.of("name","stuff","path", List.of(), "policy", "dynamic"));
+        assertThat(response.rows()[8][cols.get("column_details")])
+            .isEqualTo(Map.of("name","stuff","path", List.of("level1"), "policy", "dynamic"));
+        assertThat(response.rows()[9][cols.get("column_details")])
+            .isEqualTo(Map.of("name","stuff","path", List.of("level1","level2"), "policy", "strict"));
+        assertThat(response.rows()[10][cols.get("column_details")])
+            .isEqualTo(Map.of("name","stuff","path", List.of("level1","level2_nullable"), "policy", "strict"));
     }
 
     @Test
