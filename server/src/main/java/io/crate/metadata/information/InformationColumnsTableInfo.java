@@ -118,6 +118,7 @@ public class InformationColumnsTableInfo {
         .startObject("column_details")
             .add("name", STRING , r -> r.ref().column().name())
             .add("path", STRING_ARRAY, r -> r.ref().column().path())
+            .add("policy", STRING, r -> r.ref().valueType().columnPolicy().lowerCaseName())
         .endObject()
         .setPrimaryKeys(
             ColumnIdent.of("table_catalog"),
