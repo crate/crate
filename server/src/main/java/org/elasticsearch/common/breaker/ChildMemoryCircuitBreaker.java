@@ -94,14 +94,9 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * Method used to trip the breaker, delegates to the parent to determine
      * whether to trip the breaker or not
      */
-    private void circuitBreak(String fieldName, long bytesNeeded) {
+    private void circuitBreak(String fieldName, long bytesAdded, long bytesUsed) {
         this.trippedCount.incrementAndGet();
-        final String message = "[" + this.name + "] Data too large, data for [" + fieldName + "]" +
-                " would be [" + bytesNeeded + "/" + new ByteSizeValue(bytesNeeded) + "]" +
-                ", which is larger than the limit of [" +
-                memoryBytesLimit + "/" + new ByteSizeValue(memoryBytesLimit) + "]";
-        logger.debug("{}", message);
-        throw new CircuitBreakingException(message, bytesNeeded, memoryBytesLimit);
+        throw new CircuitBreakingException(bytesAdded, bytesUsed, memoryBytesLimit, fieldName);
     }
 
     /**
@@ -116,7 +111,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     public double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException {
         // short-circuit on no data allowed, immediately throwing an exception
         if (memoryBytesLimit == 0) {
-            circuitBreak(label, bytes);
+            circuitBreak(label, bytes, -1);
         }
 
         long newUsed;
@@ -181,7 +176,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
                     memoryBytesLimit,
                     ByteSizeValue.humanReadableBytes(memoryBytesLimit)
                 );
-                circuitBreak(label, newUsed);
+                circuitBreak(label, bytes, newUsed);
             }
             // Attempt to set the new used value, but make sure it hasn't changed
             // underneath us, if it has, keep trying until we are able to set it

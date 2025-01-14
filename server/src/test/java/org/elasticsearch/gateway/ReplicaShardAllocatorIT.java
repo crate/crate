@@ -357,7 +357,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                     } catch (InterruptedException e) {
                         throw new AssertionError(e);
                     }
-                    throw new CircuitBreakingException("not enough memory for indexing", 100, 50);
+                    throw new CircuitBreakingException(100, 150, 120, "dummy");
                 }
             }
             connection.sendRequest(requestId, action, request, options);

@@ -78,14 +78,9 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
     /**
      * Method used to trip the breaker
      */
-    private void circuitBreak(String fieldName, long bytesNeeded) throws CircuitBreakingException {
+    private void circuitBreak(String fieldName, long bytesAdded, long bytesUsed) throws CircuitBreakingException {
         this.trippedCount.incrementAndGet();
-        final String message = "[" + getName() + "] Data too large, data for field [" + fieldName + "]" +
-                " would be [" + bytesNeeded + "/" + new ByteSizeValue(bytesNeeded) + "]" +
-                ", which is larger than the limit of [" +
-                memoryBytesLimit + "/" + new ByteSizeValue(memoryBytesLimit) + "]";
-        logger.debug("{}", message);
-        throw new CircuitBreakingException(message, bytesNeeded, memoryBytesLimit);
+        throw new CircuitBreakingException(bytesAdded, bytesUsed, memoryBytesLimit, getName());
     }
 
     /**
@@ -100,7 +95,7 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
     public double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException {
         // short-circuit on no data allowed, immediately throwing an exception
         if (memoryBytesLimit == 0) {
-            circuitBreak(label, bytes);
+            circuitBreak(label, bytes, -1);
         }
 
         long newUsed;
@@ -134,7 +129,7 @@ public class MemoryCircuitBreaker implements CircuitBreaker {
                 logger.warn("New used memory {} [{}] from field [{}] would be larger than configured breaker: {} [{}], breaking",
                         newUsedWithOverhead, new ByteSizeValue(newUsedWithOverhead), label,
                         memoryBytesLimit, new ByteSizeValue(memoryBytesLimit));
-                circuitBreak(label, newUsedWithOverhead);
+                circuitBreak(label, bytes, newUsedWithOverhead);
             }
             // Attempt to set the new used value, but make sure it hasn't changed
             // underneath us, if it has, keep trying until we are able to set it
