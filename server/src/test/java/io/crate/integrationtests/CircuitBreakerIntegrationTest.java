@@ -70,10 +70,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
         execute("set global \"indices.breaker.query.limit\"='100b'");
 
         Asserts.assertSQLError(() -> execute("select text from t1 group by text"))
-            .hasMessageContainingAll(
-                "[query] Data too large, data for [collect: 0] would be ",
-                "which is larger than the limit of [100/100b]"
-            )
+            .hasMessageContaining("Allocating 120b for 'collect: 0' failed, breaker would use 120b in total. Limit is 100b. Either increase memory and limit, change the query or reduce concurrent query load")
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000);
     }

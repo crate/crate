@@ -40,8 +40,8 @@ import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.TypedRowAccounting;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
@@ -156,6 +156,6 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
                 new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
                 new KeyIterable<>(1, Collections.singletonList(TEST_ROWS[1])))))
             .isExactlyInstanceOf(CircuitBreakingException.class)
-            .hasMessage("[query] Data too large, data for field [test] would be [288/288b], which is larger than the limit of [197/197b]");
+            .hasMessage("Allocating 144b for 'query' failed, breaker would use 288b in total. Limit is 197b. Either increase memory and limit, change the query or reduce concurrent query load");
     }
 }

@@ -19,6 +19,16 @@
 
 package org.elasticsearch.indices.breaker;
 
+import static java.util.Objects.requireNonNull;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
@@ -32,17 +42,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import io.crate.types.DataTypes;
-
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * CircuitBreakerService that attempts to redistribute space between breakers
@@ -273,19 +272,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 return;
             }
             this.parentTripCount.incrementAndGet();
-            final StringBuilder message = new StringBuilder(
-                "[parent] Data too large, data for [" + label + "]" +
-                " would be [" + totalUsed + "/" + new ByteSizeValue(totalUsed) + "]" +
-                ", which is larger than the limit of [" +
-                parentLimit + "/" + new ByteSizeValue(parentLimit) + "]");
-            message.append(", usages [");
-            message.append(this.breakers.entrySet().stream().map(e -> {
-                final CircuitBreaker breaker = e.getValue();
-                final long breakerUsed = breaker.getUsed();
-                return e.getKey() + "=" + breakerUsed + "/" + new ByteSizeValue(breakerUsed);
-            }).collect(Collectors.joining(", ")));
-            message.append("]");
-            throw new CircuitBreakingException(message.toString(), totalUsed, parentLimit);
+            throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
         }
     }
 

@@ -46,7 +46,6 @@ public class GroupByAggregateBreakerTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("select region, count(*) from sys.summits group by 1"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("[query] Data too large, data for [collect: 0] would be [280/280b], " +
-                                         "which is larger than the limit of [256/256b]");
+            .hasMessageContaining("Allocating 112b for 'collect: 0' failed, breaker would use 280b in total. Limit is 256b. Either increase memory and limit, change the query or reduce concurrent query load");
     }
 }

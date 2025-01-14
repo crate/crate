@@ -20,10 +20,12 @@
 package org.elasticsearch.common.breaker;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.rest.RestStatus;
 
 /**
@@ -46,10 +48,20 @@ public class CircuitBreakingException extends ElasticsearchException {
         bytesWanted = in.readLong();
     }
 
-    public CircuitBreakingException(String message, long bytesWanted, long byteLimit) {
-        super(message);
-        this.bytesWanted = bytesWanted;
-        this.byteLimit = byteLimit;
+    public CircuitBreakingException(long bytesAdded,
+                                    long bytesUsed,
+                                    long bytesLimit,
+                                    String component) {
+        super(String.format(
+            Locale.ENGLISH,
+            "Allocating %s for '%s' failed, breaker would use %s in total. Limit is %s. Either increase memory and limit, change the query or reduce concurrent query load",
+            new ByteSizeValue(bytesAdded),
+            component,
+            new ByteSizeValue(bytesUsed),
+            new ByteSizeValue(bytesLimit)
+        ));
+        this.bytesWanted = bytesUsed;
+        this.byteLimit = bytesLimit;
     }
 
     @Override
