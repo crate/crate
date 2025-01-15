@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -416,7 +415,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     }
 
     @Test
-    public void test_nested_arrays_throw_exception() throws IOException {
+    public void test_nested_arrays_can_be_dynamically_inserted() {
 
         execute(
             """
@@ -426,16 +425,16 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
                 ) with (column_policy = 'dynamic');
                 """
         );
+        execute("insert into t (tb) values ([{t1 = [[1, 2], [3, 4]]},{t2 = {}}])");
+        execute("insert into t (n) values ([[1, 2], [3, 4]])");
+        execute("refresh table t");
 
-        // We don't support dynamically creating nested arrays under objects
-        assertThatThrownBy(
-            () -> execute("insert into t (tb) values ([{t1 = [[1, 2], [3, 4]]},{t2 = {}}])")
-        ).hasMessageContaining("Dynamic nested arrays are not supported");
+        execute("select array_length(tb['t1'], 1) from t");
+        assertThat(response).hasRowsInAnyOrder("2", "NULL");
 
-        // We don't support dynamically creating nested arrays as top-level columns
-        assertThatThrownBy(
-            () -> execute("insert into t (n) values ([[1, 2], [3, 4]])")
-        ).hasMessageContaining("Dynamic nested arrays are not supported");
+        execute("select array_length(n, 1) from t");
+        assertThat(response).hasRowsInAnyOrder("NULL", "2");
+
     }
 
     @Test
@@ -452,7 +451,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
                 ('2', {"name" = { "a" = 2 }}),
                 ('3', {"name" = { "a" = null }})
             ;
-              """
+            """
         );
         execute("REFRESH TABLE exp1");
         execute("SELECT id FROM exp1 order by id");
