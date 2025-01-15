@@ -163,6 +163,12 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             BigInteger bigInt = BigInteger.valueOf(longValue);
             return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
         }
+        // Can be double if coming from source
+        if (value instanceof Double doubleVal) {
+            MathContext mathContext = mathContext();
+            BigDecimal bd = new BigDecimal(doubleVal, mathContext);
+            return scale == null ? bd : bd.setScale(scale, mathContext.getRoundingMode());
+        }
         return (BigDecimal) value;
     }
 
