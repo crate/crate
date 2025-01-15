@@ -473,12 +473,13 @@ public class SQLTypeMappingTest extends IntegTestCase {
     @Test
     public void test_dynamic_nested_array_of_null_upcast() {
         execute("create table t (a int) with (column_policy= 'dynamic')");
-        Asserts.assertSQLError(() -> execute("insert into t(a,b) values (1, [[]])"))
-                .hasMessageContaining("Dynamic nested arrays are not supported");
-
-        execute("insert into t(a, b) values (1, [])");
-        Asserts.assertSQLError(() -> execute("insert into t(a,b) values (1, [[]])"))
-            .hasMessageContaining("Dynamic nested arrays are not supported");
+        execute("insert into t(a, b) values (1, [[]])");
+        execute("insert into t(a, b) values (2, [[1, 2], [3, 4]])");
+        execute("refresh table t");
+        execute("select data_type from information_schema.columns as tt where tt.table_name = 't' and tt.column_name = 'b'");
+        assertThat(response).hasRows("integer_array_array");
+        execute("select b from t");
+        assertThat(response).hasRowsInAnyOrder("[[]]", "[[1, 2], [3, 4]]");
     }
 
     @Test
