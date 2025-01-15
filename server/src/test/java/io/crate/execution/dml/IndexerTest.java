@@ -28,9 +28,11 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,6 +55,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Ignore;
@@ -66,6 +69,7 @@ import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.AlterTableTask;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -77,6 +81,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
@@ -1424,6 +1429,21 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
+    }
+
+    @Test
+    public void test_numeric_can_be_read_as_decimal_from_source() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x numeric(5, 2))");
+        Indexer indexer = getIndexer(executor, "tbl", "x");
+        Reference x = indexer.columns().get(0);
+        BigDecimal inputValue = new BigDecimal("3.10");
+        ParsedDocument doc = indexer.index(item(inputValue));
+        Map<String, Object> source = XContentHelper.toMap(doc.source(), XContentType.JSON);
+        Object value = StoredRow.extractValue(source, List.of(x.storageIdent()), 0);
+        assertThat(value).isExactlyInstanceOf(Double.class);
+        Object sanitizeValue = x.valueType().sanitizeValue(value);
+        assertThat(sanitizeValue).isEqualTo(inputValue);
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
