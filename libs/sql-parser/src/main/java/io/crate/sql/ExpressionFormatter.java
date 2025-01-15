@@ -27,7 +27,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 import java.util.stream.Collector;
@@ -98,9 +97,6 @@ public final class ExpressionFormatter {
     private static final Formatter DEFAULT_FORMATTER = new Formatter();
 
     private static final Collector<CharSequence, ?, String> COMMA_JOINER = Collectors.joining(", ");
-
-    private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = Set.of(
-        "current_catalog", "current_schema", "current_user", "session_user", "user");
 
     private ExpressionFormatter() {
     }
@@ -358,8 +354,13 @@ public final class ExpressionFormatter {
                 );
             }
 
-            builder.append(node.getName());
-            if (!FUNCTION_CALLS_WITHOUT_PARENTHESIS.contains(node.getName().toString())) {
+            var name = node.getName().getParts();
+            for (int i = 0; i < name.size() - 1; i++) {
+                builder.append(Identifiers.quoteIfNeeded(name.get(i)));
+                builder.append(".");
+            }
+            builder.append(Identifiers.quoteFunctionIfNeeded(name.getLast()));
+            if (!Identifiers.PARENTHESIS_LESS_FUNCTIONS.contains(node.getName().toString())) {
                 builder.append('(').append(arguments).append(')');
             }
 
