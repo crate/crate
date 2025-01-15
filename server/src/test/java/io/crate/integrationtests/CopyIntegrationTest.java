@@ -544,19 +544,20 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyFromNestedArrayRow() throws Exception {
-        // assert that rows with nested arrays are not imported, because they would
-        // dynamically create a new nested array column which is not supported
         execute("create table users (id int, " +
             "name string) with (number_of_replicas=0, column_policy = 'dynamic')");
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
-        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRowCount(2L);
         execute("refresh table users");
 
-        execute("select * from users");
-        assertThat(response).hasRowCount(1L);
+        execute("select * from users order by id");
+        assertThat(response).hasRowCount(2L);
 
-        assertThat(printedTable(response.rows())).isEqualTo("2| Trillian\n");
+        assertThat(printedTable(response.rows())).isEqualTo("""
+            1| Ford| [[1, 2, 3]]
+            2| Trillian| NULL
+            """);
     }
 
     @Test

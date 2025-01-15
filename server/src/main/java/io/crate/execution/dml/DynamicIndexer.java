@@ -64,7 +64,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * Create a new Reference based on a dynamically detected type
      */
     public static Reference buildReference(ReferenceIdent refIdent, DataType<?> type, int position, long oid) {
-        throwOnNestedArray(type);
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
             throw new IllegalArgumentException(
@@ -164,18 +163,5 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             return ArrayType.makeArray(DataTypes.upcast(innerType), dimensions);
         }
         return DataTypes.upcast(type);
-    }
-
-    /**
-     * We don't support dynamically-created nested arrays as the MapperParser code
-     * used when reading from the translog can't handle them.  So we also check
-     * here that we're not trying to dynamically create one.
-     */
-    private static void throwOnNestedArray(DataType<?> type) {
-        if (type instanceof ArrayType<?> at) {
-            if (at.innerType() instanceof ArrayType<?>) {
-                throw new IllegalArgumentException("Dynamic nested arrays are not supported");
-            }
-        }
     }
 }

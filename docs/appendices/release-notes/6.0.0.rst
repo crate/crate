@@ -63,6 +63,8 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
+- Added support for dynamic mapping of nested arrays.
+
 Scalar and Aggregation Functions
 --------------------------------
 
