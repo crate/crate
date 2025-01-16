@@ -660,16 +660,8 @@ public final class DataTypes {
             .orElse(DataTypes.UNDEFINED);
     }
 
-    public static boolean isArrayOf(DataType<?> type, DataType<?> innerType) {
-        return type instanceof ArrayType<?> at && at.innerType().id() == innerType.id();
-    }
-
     public static boolean isArrayOfNulls(DataType<?> type) {
-        return isArrayOf(type, UndefinedType.INSTANCE);
-    }
-
-    public static boolean isNestedArray(DataType<?> type) {
-        return type instanceof ArrayType<?> at && at.innerType() instanceof ArrayType<?>;
+        return ArrayType.unnest(type) == UndefinedType.INSTANCE;
     }
 
     public static boolean hasPath(DataType<?> dataType, List<String> path) {

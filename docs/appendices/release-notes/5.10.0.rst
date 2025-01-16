@@ -105,6 +105,8 @@ Data Types
   :ref:`COT`<scalar-cot>`, :ref:`LN<scalar-ln>` and :ref:`LOG<scalar-log>` (for
   the variation of only one arguement).
 
+- Added support for dynamic mapping of nested arrays.
+
 Scalar and Aggregation Functions
 --------------------------------
 
