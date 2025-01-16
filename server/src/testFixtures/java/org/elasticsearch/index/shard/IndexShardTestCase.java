@@ -525,7 +525,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 store,
                 queryCache,
                 testAnalysis.indexAnalyzers.getDefaultIndexAnalyzer(),
-                () -> new TranslogIndexer(getDocTable(indexSettings::getIndexMetadata)),
+                () -> new TranslogIndexer(getDocTable(indexSettings::getIndexMetadata), Version.CURRENT),
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,

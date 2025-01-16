@@ -1293,7 +1293,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
 
-        assertTranslogParses(doc, e.resolveTableInfo("tbl"));
+        assertTranslogParses(doc, e.resolveTableInfo("tbl"), Version.V_5_4_0);
     }
 
     @UseNewCluster
@@ -1336,7 +1336,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
 
-        assertTranslogParses(doc, e.resolveTableInfo("tbl"));
+        assertTranslogParses(doc, e.resolveTableInfo("tbl"), Version.V_5_4_0);
     }
 
     /**
@@ -1466,8 +1466,12 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(storedField.binaryValue().utf8ToString()).isEqualTo("{\"1\":[{\"2\":[{\"3\":1}]}]}");
     }
 
-    public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
-        TranslogIndexer ti = new TranslogIndexer(info);
+    public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
+        assertTranslogParses(doc, info, Version.CURRENT);
+    }
+
+    public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info, Version shardCreatedVersion) {
+        TranslogIndexer ti = new TranslogIndexer(info, shardCreatedVersion);
         ParsedDocument d = ti.index(doc.id(), doc.source());
         assertThat(doc).parsesTo(d);
     }
