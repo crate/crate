@@ -622,12 +622,9 @@ public class MetadataCreateIndexService {
     }
 
     public static void setIndexVersionCreatedSetting(Settings.Builder indexSettingsBuilder, ClusterState clusterState) {
-        if (indexSettingsBuilder.get(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey()) == null) {
-            final DiscoveryNodes nodes = clusterState.nodes();
-            final Version createdVersion = Version.min(Version.CURRENT,
-                                                       nodes.getSmallestNonClientNodeVersion());
-            indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
-        }
+        final DiscoveryNodes nodes = clusterState.nodes();
+        final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
+        indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), createdVersion);
     }
 
     /**
