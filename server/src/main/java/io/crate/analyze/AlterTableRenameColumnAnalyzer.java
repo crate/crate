@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -88,6 +89,11 @@ public class AlterTableRenameColumnAnalyzer {
         Reference targetRef = (Reference) expressionAnalyzer.convert(renameColumn.newName(), expressionContext);
         ColumnIdent sourceCol = sourceRef.column();
         ColumnIdent targetCol = targetRef.column();
+
+        if (sourceRef.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH, "Cannot rename a column that does not have an OID assigned: %s", sourceCol));
+        }
 
         if (sourceCol.path().size() != targetCol.path().size()) {
             throw new IllegalArgumentException(

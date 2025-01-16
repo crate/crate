@@ -24,9 +24,11 @@ package io.crate.analyze;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -98,6 +100,12 @@ public class AlterTableDropColumnAnalyzer {
 
     /** Validate restrictions based on properties that cannot change */
     private static void validateStatic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
+        for (DropColumn c : dropColumns) {
+            if (c.ref().oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+                throw new IllegalStateException(
+                    String.format(Locale.ENGLISH, "Cannot rename a column that does not have an OID assigned: %s", c.ref().column()));
+            }
+        }
         if (tableInfo.versionCreated().before(Version.V_5_5_0)) {
             throw new UnsupportedOperationException(
                 "Dropping columns of a table created before version 5.5 is not supported"
