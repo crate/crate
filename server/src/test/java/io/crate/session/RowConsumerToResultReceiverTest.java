@@ -25,9 +25,12 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.data.Row;
@@ -52,9 +55,10 @@ public class RowConsumerToResultReceiverTest {
         final List<Object[]> collectedRows = new ArrayList<>();
         BaseResultReceiver resultReceiver = new BaseResultReceiver() {
             @Override
-            public void setNextRow(Row row) {
-                super.setNextRow(row);
+            public CompletableFuture<Void> setNextRow(Row row) {
+                var f = super.setNextRow(row);
                 collectedRows.add(row.materialize());
+                return f;
             }
         };
         RowConsumerToResultReceiver batchConsumer =
@@ -76,5 +80,45 @@ public class RowConsumerToResultReceiverTest {
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
         assertThat(resultReceiver.completionFuture().isCompletedExceptionally()).isTrue();
+    }
+
+    @Test
+    public void test_consumer_pauses_and_resume_based_on_receivers_writablility() throws Exception {
+        BatchSimulatingIterator<Row> batchSimulatingIterator =
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
+                2,
+                5,
+                null);
+
+        AtomicReference<CompletableFuture<Void>> writeFutureRef = new AtomicReference<>(new CompletableFuture<>());
+        int[] rowCount = new int[1];
+        boolean[] writable = new boolean[]{false};
+        BaseResultReceiver resultReceiver = new BaseResultReceiver() {
+            @Override
+            @Nullable
+            public CompletableFuture<Void> setNextRow(Row row) {
+                rowCount[0]++;
+                return writeFutureRef.get();
+            }
+
+            @Override
+            public boolean isWritable() {
+                return writable[0];
+            }
+        };
+        RowConsumerToResultReceiver batchConsumer =
+            new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
+
+        batchConsumer.accept(batchSimulatingIterator, null);
+
+        assertThat(rowCount[0]).isEqualTo(1);
+        assertThat(batchConsumer.suspended()).isTrue();
+
+        writable[0] = true;
+        writeFutureRef.get().complete(null);
+        resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
+
+        assertThat(batchConsumer.suspended()).isFalse();
+        assertThat(rowCount[0]).isEqualTo(10);
     }
 }

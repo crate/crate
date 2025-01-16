@@ -565,8 +565,10 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        @Nullable
+        public CompletableFuture<Void> setNextRow(Row row) {
             rows.add(row.materialize());
+            return null;
         }
 
         @Override
@@ -621,8 +623,9 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        public CompletableFuture<Void> setNextRow(Row row) {
             rowCount = (long) row.get(0);
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
@@ -660,7 +663,8 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        @Nullable
+        public CompletableFuture<Void> setNextRow(Row row) {
             long rowCount = (long) row.get(0);
             Throwable failure = null;
             // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
@@ -668,6 +672,7 @@ public class SQLTransportExecutor {
                 failure = (Throwable) row.get(1);
             }
             bulkResponse.update(resultIdx, rowCount, failure);
+            return null;
         }
 
         @Override

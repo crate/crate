@@ -24,6 +24,8 @@ package io.crate.session;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
@@ -32,6 +34,8 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
+
+    private static final Logger LOGGER = LogManager.getLogger(RowConsumerToResultReceiver.class);
 
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
@@ -74,7 +78,17 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             try {
                 while (iterator.moveNext()) {
                     rowCount++;
-                    resultReceiver.setNextRow(iterator.currentElement());
+                    CompletableFuture<Void> writeFuture = resultReceiver.setNextRow(iterator.currentElement());
+                    if (!resultReceiver.isWritable()) {
+                        assert writeFuture != null : "writeFuture must not be null if resultReceiver is not writable";
+                        LOGGER.trace("Suspended execution after {} rows as the receiver is not writable anymore", rowCount);
+                        activeIt = iterator;
+                        writeFuture.thenRun(() -> {
+                            LOGGER.trace("Resume execution after {} rows", rowCount);
+                            resume();
+                        });
+                        return;
+                    }
 
                     if (maxRows > 0 && rowCount % maxRows == 0) {
                         activeIt = iterator;
