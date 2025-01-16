@@ -33,6 +33,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
@@ -64,8 +65,9 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     }
 
     @Override
-    public void setNextRow(Row row) {
-        delegate.setNextRow(row);
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
+        return delegate.setNextRow(row);
     }
 
     @Override
@@ -115,5 +117,10 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
                ", jobId=" + jobId +
                ", attempt=" + attempt +
                '}';
+    }
+
+    @Override
+    public boolean isWritable() {
+        return delegate.isWritable();
     }
 }
