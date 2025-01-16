@@ -220,6 +220,8 @@ public class GatewayMetaState implements Closeable {
     public static Metadata upgradeMetadata(Metadata metadata,
                                     MetadataIndexUpgradeService metadataIndexUpgradeService,
                                     MetadataUpgrader metadataUpgrader) {
+        metadata = metadataUpgrader.indexTemplateVersionCreatedFixer.apply(metadata);
+
         boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
 
