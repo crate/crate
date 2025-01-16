@@ -220,7 +220,7 @@ public final class EqOperator extends Operator<Object> {
                                               boolean hasDocValues,
                                               IndexType indexType,
                                               Occur termQueryOccur) {
-        var canUseArrayLengthIndex = context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0);
+        var canUseArrayLengthIndex = context.getShardCreatedVersion().onOrAfter(Version.V_5_9_0);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
         if (values.isEmpty()) {

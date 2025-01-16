@@ -135,7 +135,7 @@ public final class QueryTester implements AutoCloseable {
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
-                Version.CURRENT,
+                table.versionCreated(),
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
@@ -151,7 +151,7 @@ public final class QueryTester implements AutoCloseable {
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
-                Version.CURRENT,
+                table.versionCreated(),
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
@@ -180,7 +180,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(() -> StoredRowLookup.create(Version.CURRENT, table, indexEnv.luceneReferenceResolver().getIndexName())),
+                new CollectorContext(() -> StoredRowLookup.create(table.versionCreated(), table, indexEnv.luceneReferenceResolver().getIndexName())),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
@@ -211,7 +211,7 @@ public final class QueryTester implements AutoCloseable {
                     indexEnv.indexService().index().getName(),
                     indexEnv.indexService().indexAnalyzers(),
                     table,
-                    Version.CURRENT,
+                    table.versionCreated(),
                     indexEnv.queryCache()
                 ).query(),
                 indexEnv

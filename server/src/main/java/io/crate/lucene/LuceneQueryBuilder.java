@@ -237,6 +237,10 @@ public class LuceneQueryBuilder {
             return table;
         }
 
+        public Version getShardCreatedVersion() {
+            return shardCreatedVersion;
+        }
+
         public TransactionContext transactionContext() {
             return txnCtx;
         }

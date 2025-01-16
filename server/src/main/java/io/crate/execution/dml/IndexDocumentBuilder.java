@@ -50,7 +50,7 @@ public class IndexDocumentBuilder {
     private final TranslogWriter translogWriter;
     private final ValueIndexer.Synthetics synthetics;
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
-    private final Version tableVersionCreated;
+    private final Version shardVersionCreated;
     private final boolean addStoredField;
     private final boolean addArrayLengthField;
 
@@ -61,16 +61,16 @@ public class IndexDocumentBuilder {
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
-        Version tableVersionCreated
+        Version shardVersionCreated
     ) {
         this(
             new Document(),
             translogWriter,
             synthetics,
             constraints,
-            tableVersionCreated,
-            tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION),
-            tableVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)
+            shardVersionCreated,
+            shardVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION),
+            shardVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)
         );
     }
 
@@ -79,7 +79,7 @@ public class IndexDocumentBuilder {
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
-        Version tableVersionCreated,
+        Version shardVersionCreated,
         boolean addStoredField,
         boolean addArrayLengthField
     ) {
@@ -87,7 +87,7 @@ public class IndexDocumentBuilder {
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
         this.constraints = constraints;
-        this.tableVersionCreated = tableVersionCreated;
+        this.shardVersionCreated = shardVersionCreated;
         this.addStoredField = addStoredField;
         this.addArrayLengthField = addArrayLengthField;
     }
@@ -146,7 +146,7 @@ public class IndexDocumentBuilder {
      * ordering and duplication, so child indexers do not need to store their values separately.
      */
     public IndexDocumentBuilder noStoredField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false, addArrayLengthField);
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, shardVersionCreated, false, addArrayLengthField);
     }
 
     /**
@@ -157,7 +157,7 @@ public class IndexDocumentBuilder {
      * index array lengths.
      */
     public IndexDocumentBuilder noArrayLengthField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, addStoredField, false);
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, shardVersionCreated, addStoredField, false);
     }
 
     /**
@@ -168,7 +168,7 @@ public class IndexDocumentBuilder {
      * preserve ordering and duplication.
      */
     public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
-        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField, addArrayLengthField);
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, shardVersionCreated, addStoredField, addArrayLengthField);
     }
 
     /**
@@ -181,7 +181,7 @@ public class IndexDocumentBuilder {
 
         BytesReference translog = translogWriter.bytes();
         BytesRef translogRef = translog.toBytesRef();
-        if (tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
+        if (shardVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
             addField(new StoredField(SysColumns.Source.RECOVERY_NAME, translogRef.bytes, translogRef.offset, translogRef.length));
             addField(new NumericDocValuesField(SysColumns.Source.RECOVERY_NAME, 1));
         } else {
@@ -200,7 +200,7 @@ public class IndexDocumentBuilder {
         return new ParsedDocument(version, seqID, id, doc, translog);
     }
 
-    public Version getTableVersionCreated() {
-        return tableVersionCreated;
+    public Version getShardVersionCreated() {
+        return shardVersionCreated;
     }
 }

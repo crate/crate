@@ -158,7 +158,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
-            output.setVersion(docBuilder.getTableVersionCreated());
+            output.setVersion(docBuilder.getShardVersionCreated());
             bytesConverter.writeValueTo(output, values);
             return output.bytes();
         } catch (IOException e) {

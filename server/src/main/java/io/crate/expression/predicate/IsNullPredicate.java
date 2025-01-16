@@ -123,7 +123,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (context.tableInfo().versionCreated().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
+            if (context.getShardCreatedVersion().onOrAfter(ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
                 // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
                 // such that FieldExistsQuery can be used.
                 return ArrayIndexer.arrayLengthExistsQuery(ref, context.tableInfo()::getReference);

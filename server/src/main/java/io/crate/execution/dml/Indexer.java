@@ -115,7 +115,7 @@ public class Indexer {
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final Function<ColumnIdent, Reference> getRef;
     private final boolean writeOids;
-    private final Version tableVersionCreated;
+    private final Version shardVersionCreated;
 
     record IndexColumn(Reference reference, List<Input<?>> inputs) {
     }
@@ -531,7 +531,7 @@ public class Indexer {
             }
         }
         this.expressions = ctxForRefs.expressions();
-        this.tableVersionCreated = shardVersionCreated;
+        this.shardVersionCreated = shardVersionCreated;
     }
 
     /**
@@ -732,7 +732,7 @@ public class Indexer {
         }
 
         TranslogWriter translogWriter = new XContentTranslogWriter();
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(translogWriter, synthetics::get, columnConstraints, tableVersionCreated);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(translogWriter, synthetics::get, columnConstraints, shardVersionCreated);
         Object[] values = item.insertValues();
 
         for (int i = 0; i < values.length; i++) {

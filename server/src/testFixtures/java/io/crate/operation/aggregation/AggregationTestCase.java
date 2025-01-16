@@ -404,7 +404,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         Indexer indexer = new Indexer(
             shard.shardId().getIndexName(),
             table,
-            Version.CURRENT,
+            table.versionCreated(),
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
             targetColumns,
