@@ -23,15 +23,19 @@ package io.crate.session;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.annotations.OverridingMethodsMustInvokeSuper;
 import io.crate.data.Row;
 
 public class BaseResultReceiver implements ResultReceiver<Void> {
 
-    private CompletableFuture<Void> completionFuture = new CompletableFuture<>();
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
+        return null;
     }
 
     @Override

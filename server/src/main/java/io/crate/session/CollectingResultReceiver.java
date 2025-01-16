@@ -26,6 +26,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Row;
 
 /**
@@ -51,8 +53,10 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     }
 
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
         accumulator.accept(state, row);
+        return null;
     }
 
     @Override

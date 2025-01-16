@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
@@ -59,13 +60,16 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     }
 
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
         try {
             rowAccounting.accountForAndMaybeBreak(row);
             builder.addRow(row, outputFields.size());
             rowCount++;
+            return null;
         } catch (IOException e) {
             fail(e);
+            return null;
         }
     }
 
