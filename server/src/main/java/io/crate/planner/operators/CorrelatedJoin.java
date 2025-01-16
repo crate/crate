@@ -149,10 +149,10 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         var toCollect = new LinkedHashSet<>(outputsToKeep);
+        toCollect.remove(selectSymbol);
         selectSymbol.relation().visitSymbols(tree ->
             tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
         );
-        toCollect.remove(selectSymbol);
         LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
 
         if (inputPlan == newInputPlan) {
