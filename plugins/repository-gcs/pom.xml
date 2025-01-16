@@ -51,6 +51,13 @@
             <version>${versions.google.gax}</version>
         </dependency>
 
+        <!-- Use version that doesn't have https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-7254 -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${versions.google.protobuf}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-credentials</artifactId>
@@ -69,10 +76,18 @@
             <version>${versions.google.cloud.storage}</version>
         </dependency>
 
+        <!-- Explicitly use version without https://scout.docker.com/vulnerabilities/id/CVE-2021-22573 -->
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core-http</artifactId>
-            <version>${versions.google.cloud.core.http}</version>
+            <groupId>com.google.oauth-client</groupId>
+            <artifactId>google-oauth-client</artifactId>
+            <version>${versions.google.oauth.client}</version>
+        </dependency>
+
+        <!-- Explicitly use version without https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-25647 -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${versions.google.gson}</version>
         </dependency>
 
         <dependency>
@@ -98,7 +113,7 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client-gson</artifactId>
-            <version>${versions.google.gson}</version>
+            <version>${versions.google.http.client.gson}</version>
         </dependency>
 
         <dependency>
