@@ -53,13 +53,13 @@ public class TranslogIndexer {
     private final Map<String, List<String>> tableIndexSources = new HashMap<>();
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
-    private final Version tableVersionCreated;
+    private final Version shardCreatedVersion;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
      */
     @SuppressWarnings("unchecked")
-    public TranslogIndexer(DocTableInfo table) {
+    public TranslogIndexer(DocTableInfo table, Version shardCreatedVersion) {
         sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), false);
         for (var ref : table.columns()) {
             var storageSupport = ref.valueType().storageSupport();
@@ -79,7 +79,7 @@ public class TranslogIndexer {
             }
         }
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
-        tableVersionCreated = table.versionCreated();
+        this.shardCreatedVersion = shardCreatedVersion;
     }
 
     /**
@@ -99,7 +99,7 @@ public class TranslogIndexer {
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), tableVersionCreated);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), shardCreatedVersion);
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);

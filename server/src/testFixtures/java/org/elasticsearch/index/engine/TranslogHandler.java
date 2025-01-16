@@ -85,7 +85,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             Set.of(),
             0
         );
-        return new TranslogIndexer(table);
+        return new TranslogIndexer(table, Version.CURRENT);
     }
 
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
