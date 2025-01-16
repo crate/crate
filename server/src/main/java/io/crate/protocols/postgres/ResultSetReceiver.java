@@ -22,15 +22,16 @@
 package io.crate.protocols.postgres;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
+import io.crate.session.BaseResultReceiver;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 
@@ -39,7 +40,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     private final String query;
     private final DelayableWriteChannel channel;
     private final List<PGType<?>> columnTypes;
-    private final TransactionState transactionState;
     private final AccessControl accessControl;
     private final Channel directChannel;
     private final DelayedWrites delayedWrites;
@@ -52,7 +52,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     ResultSetReceiver(String query,
                       DelayableWriteChannel channel,
                       DelayedWrites delayedWrites,
-                      TransactionState transactionState,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
@@ -60,19 +59,48 @@ class ResultSetReceiver extends BaseResultReceiver {
         this.channel = channel;
         this.delayedWrites = delayedWrites;
         this.directChannel = channel.bypassDelay();
-        this.transactionState = transactionState;
         this.accessControl = accessControl;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
     }
 
+    /**
+     * Writes the row to the pg channel and flushes the channel if necessary.
+     * The caller should check {@link #isWritable()} after each call, and if it's false, the consumer should be
+     * suspended until the receiver becomes writable again. Otherwise, this can lead to OOM errors as the channel
+     * outbound buffer keeps growing.
+     *
+     * @return a future that is completed once the row was successfully written (flushed)
+     */
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
         rowCount++;
-        Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
-        if (rowCount % 1000 == 0) {
+        ChannelFuture sendDataRow = Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
+        CompletableFuture<Void> future;
+        boolean isWritable = isWritable();
+        if (isWritable) {
+            future = null;
+        } else {
+            future = new CompletableFuture<>();
+            sendDataRow.addListener(f -> {
+                if (f.isDone() == false) {
+                    return;
+                }
+                if (f.isSuccess()) {
+                    future.complete(null);
+                } else {
+                    future.completeExceptionally(f.cause());
+                }
+            });
+        }
+
+        // Flush the channel only every 1000 rows for better performance.
+        // But flushing must be forced once the channel outbound buffer is full (= channel not in writable state)
+        if (isWritable == false || rowCount % 1000 == 0) {
             directChannel.flush();
         }
+        return future;
     }
 
     @Override
@@ -101,5 +129,10 @@ class ResultSetReceiver extends BaseResultReceiver {
         channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendErrorResponse.addListener(f -> super.fail(throwable));
+    }
+
+    @Override
+    public boolean isWritable() {
+        return directChannel.isWritable();
     }
 }

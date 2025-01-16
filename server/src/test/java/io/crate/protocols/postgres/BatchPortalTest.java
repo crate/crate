@@ -27,8 +27,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -79,8 +81,10 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         final ArrayList<Object[]> s1Rows = new ArrayList<>();
         session.execute("Portal", 0, new BaseResultReceiver() {
             @Override
-            public void setNextRow(Row row) {
+            @Nullable
+            public CompletableFuture<Void> setNextRow(Row row) {
                 s1Rows.add(row.materialize());
+                return null;
             }
         });
 
@@ -89,8 +93,10 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         final ArrayList<Object[]> s2Rows = new ArrayList<>();
         session.execute("Portal", 0, new BaseResultReceiver() {
             @Override
-            public void setNextRow(Row row) {
+            @Nullable
+            public CompletableFuture<Void> setNextRow(Row row) {
                 s2Rows.add(row.materialize());
+                return null;
             }
         });
         session.sync().get(5, TimeUnit.SECONDS);

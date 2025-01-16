@@ -320,7 +320,7 @@ public class Messages {
      * The value of the column, in the format indicated by the associated format code. n is the above length.
      */
     @SuppressWarnings({"unchecked","rawtypes"})
-    static void sendDataRow(Channel channel, Row row, List<PGType<?>> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    static ChannelFuture sendDataRow(Channel channel, Row row, List<PGType<?>> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
         assert columnTypes.size() == row.numColumns()
             : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
@@ -360,7 +360,7 @@ public class Messages {
         }
 
         buffer.setInt(1, length);
-        channel.write(buffer);
+        return channel.write(buffer);
     }
 
     static void writeCString(ByteBuf buffer, byte[] valBytes) {
