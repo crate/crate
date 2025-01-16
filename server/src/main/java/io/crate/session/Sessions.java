@@ -56,6 +56,7 @@ import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Securable;
+import io.netty.channel.ChannelHandlerContext;
 
 
 @Singleton
@@ -252,5 +253,11 @@ public class Sessions {
                 || session.sessionSettings().sessionUser().equals(user))
             .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
             .iterator();
+    }
+
+    public void handleWritabilityChanged(ChannelHandlerContext ctx) {
+        for (var session : sessions.values()) {
+            session.handleWritablilityChanged(ctx.channel().isWritable());
+        }
     }
 }

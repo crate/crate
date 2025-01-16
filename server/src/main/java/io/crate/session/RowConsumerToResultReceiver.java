@@ -24,6 +24,8 @@ package io.crate.session;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
@@ -32,6 +34,8 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
+
+    private static final Logger LOGGER = LogManager.getLogger(RowConsumerToResultReceiver.class);
 
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
@@ -73,12 +77,23 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         while (true) {
             try {
                 while (iterator.moveNext()) {
+                    /*
+                    if (resultReceiver.isWritable() == false) {
+                        activeIt = iterator;
+                        resultReceiver.batchFinished();
+                        LOGGER.info("Suspended execution after {} rows, isWritable={}", rowCount, resultReceiver.isWritable());
+                        return; // resumed via postgres protocol, close is done later
+
+                    }
+
+                     */
                     rowCount++;
                     resultReceiver.setNextRow(iterator.currentElement());
 
-                    if (maxRows > 0 && rowCount % maxRows == 0) {
+                    if (resultReceiver.isWritable() == false || (maxRows > 0 && rowCount % maxRows == 0)) {
                         activeIt = iterator;
                         resultReceiver.batchFinished();
+                        LOGGER.info("Suspended execution after {} rows, isWritable={}", rowCount, resultReceiver.isWritable());
                         return; // resumed via postgres protocol, close is done later
                     }
                 }
@@ -132,7 +147,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     public boolean suspended() {
-        return activeIt != null;
+        return activeIt != null || (completionFuture.isDone() == false && rowCount > 0);
     }
 
     public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
@@ -146,6 +161,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     public void resume() {
+        if (activeIt == null && rowCount != 0) {
+            // Assume that all rows are consumed but the resultReceiver wasn't able to write the final completion
+            // message because the channel was not writable.
+            resultReceiver.allFinished();
+            return;
+        }
         assert activeIt != null : "resume must only be called if suspended() returned true and activeIt is not null";
         BatchIterator<Row> iterator = this.activeIt;
         this.activeIt = null;

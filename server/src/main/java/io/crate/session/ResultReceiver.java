@@ -39,4 +39,8 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
     void allFinished();
 
     void fail(Throwable t);
+
+    default boolean isWritable() {
+        return true;
+    }
 }

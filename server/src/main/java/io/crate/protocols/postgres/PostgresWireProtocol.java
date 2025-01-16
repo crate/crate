@@ -412,6 +412,11 @@ public class PostgresWireProtocol {
             closeSession();
             super.channelUnregistered(ctx);
         }
+
+        @Override
+        public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+            sessions.handleWritabilityChanged(ctx);
+        }
     }
 
     private void handleStartupBody(ByteBuf buffer, Channel channel) {

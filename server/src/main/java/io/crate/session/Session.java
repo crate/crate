@@ -977,6 +977,24 @@ public class Session implements AutoCloseable {
             "}";
     }
 
+    public void handleWritablilityChanged(boolean writable) {
+        LOGGER.info("method=handleWritablilityChanged writable={}", writable);
+        if (!writable) {
+            return;
+        }
+        for (var portal : portals.values()) {
+            var activeConsumer = portal.activeConsumer();
+            if (activeConsumer != null && activeConsumer.suspended()) {
+                LOGGER.info("method=handleWritablilityChanged, portal='{}' resuming active consumer", portal.name());
+                activeConsumer.resume();
+            } else if (activeConsumer != null) {
+                LOGGER.info("method=handleWritablilityChanged, portal='{}' active consumer not suspended, won't resume", portal.name());
+            } else {
+                LOGGER.info("method=handleWritablilityChanged, portal='{}', no active consumer found, won't resume", portal.name());
+            }
+        }
+    }
+
     /**
      * Controls execution time of all lifecycle phases of a statement (parse/analysis/plan/execution).
      * If statement_timeout is specified, statement is stopped when processing exceeds it.

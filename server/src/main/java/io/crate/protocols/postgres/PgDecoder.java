@@ -191,6 +191,7 @@ public class PgDecoder extends ByteToMessageDecoder {
                 payloadLength = in.readInt() - 4; // exclude length itself
 
                 if (in.readableBytes() < payloadLength) {
+                    LOGGER.trace("MSG payload: Readable bytes: {} < payloadLength: {}. Reset buffer", in.readableBytes(), payloadLength);
                     in.resetReaderIndex();
                     return null;
                 }
@@ -199,6 +200,7 @@ public class PgDecoder extends ByteToMessageDecoder {
             default:
                 // bad message, skip any remaining data
                 in.skipBytes(in.readableBytes());
+                LOGGER.error("Invalid state {}", state);
                 throw new IllegalStateException("Invalid state " + state);
         }
     }
