@@ -83,3 +83,15 @@ Fixes
 
 - Fixed an issue that caused new partitions' versions created to follow the
   table's version instead of the minimum node version of the cluster.
+
+- Fixed an issue that caused an error when running a distributed query with a
+  window function on a virtual table, partitioned by a sub-column that is not
+  explicitly selected from the virtual table. Example::
+
+    SELECT ROW_NUMBER() OVER (
+         PARTITION BY obj ['a']
+    ) AS RK
+    FROM (
+        SELECT obj
+        FROM test
+    ) t;

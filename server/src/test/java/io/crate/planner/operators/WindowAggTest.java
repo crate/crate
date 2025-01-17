@@ -21,18 +21,30 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -43,7 +55,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void init() throws Exception {
         e = SQLExecutor.of(clusterService)
-            .addTable("CREATE TABLE t1 (x int, y int)");
+            .addTable("CREATE TABLE t1 (x int, y int, obj object as (a int))");
     }
 
     private LogicalPlan plan(String statement) {
@@ -149,6 +161,41 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> plan("SELECT ROW_NUMBER() FILTER (WHERE x > 1) OVER (ORDER BY x) FROM t1"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("FILTER is not implemented for non-aggregate window functions (row_number)");
+    }
+
+    @Test
+    public void test_partition_by_sub_column_source_plan_output_has_only_parent_in_outputs() throws Exception {
+        LogicalPlan plan = plan("""
+            SELECT ROW_NUMBER() OVER (
+                PARTITION BY obj ['a']
+            ) AS RK
+            FROM (
+                SELECT obj
+                FROM t1
+            ) t
+            """);
+
+        // This tests tracks distributed execution specific bug.
+        // Enforce ExecutionPhases.executesOnHandler to return true
+        PlannerContext plannerContext = spy(e.getPlannerContext());
+        when(plannerContext.handlerNode()).thenReturn("dummy");
+
+        Merge merge = (Merge) plan.build(
+            mock(DependencyCarrier.class),
+            plannerContext,
+            Set.of(),
+            new ProjectionBuilder(e.nodeCtx),
+            NO_LIMIT,
+            NO_OFFSET,
+            null,
+            null,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        // distributeByColumn used to be not found be -1 due to  virtual table having only top-level column in its outputs.
+        var collect = (Collect) ((Merge) merge.subPlan()).subPlan();
+        assertThat(collect.collectPhase().distributionInfo().distributeByColumn()).isEqualTo(0);
     }
 
     private WindowDefinition wd(String expression) {
