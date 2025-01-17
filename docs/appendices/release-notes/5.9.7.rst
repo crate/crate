@@ -75,3 +75,15 @@ Fixes
   :ref:`information_schema.table_partitions <is_table_partitions>` for
   partitioned tables and their new partitions to the latest version following a
   node upgrade.
+
+- Fixed an issue that caused an error when running a distributed query with a
+  window function on a virtual table, partitioned by a sub-column that is not
+  explicitly selected from the virtual table. Example::
+
+    SELECT ROW_NUMBER() OVER (
+         PARTITION BY obj ['a']
+    ) AS RK
+    FROM (
+        SELECT obj
+        FROM test
+    ) t;
