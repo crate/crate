@@ -56,7 +56,7 @@ import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 @UseRandomizedOptimizerRules(0)
-@IntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends IntegTestCase {
 
@@ -1135,27 +1135,5 @@ public class DDLIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
-    }
-
-    @Test
-    public void temporal_to_be_replaced() {
-        execute("""
-            CREATE TABLE test (
-            	obj OBJECT as (a int)
-            ) CLUSTERED INTO 2 SHARDS
-            WITH (number_of_replicas=0);
-            """);
-
-
-        execute("""
-            SELECT ROW_NUMBER() OVER (
-            		PARTITION BY obj ['a']
-            		) AS RK
-            FROM (
-            		SELECT obj
-            		FROM test
-            		) t
-
-            """);
     }
 }
