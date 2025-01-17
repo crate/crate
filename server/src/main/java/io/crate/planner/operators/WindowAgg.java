@@ -185,9 +185,19 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 sourcePlan.addProjection(projection);
             }
         } else {
-            sourcePlan.setDistributionInfo(new DistributionInfo(
-                DistributionType.MODULO,
-                source.outputs().indexOf(windowDefinition.partitions().iterator().next()))
+            Symbol firstPartition = windowDefinition.partitions().getFirst();
+            int index = source.outputs().indexOf(firstPartition);
+            if (index == -1) {
+                //  We can have a top-level object column in outputs and partition by a sub-column.
+                //  Find index of the top column.
+                List<Symbol> intersection = new ArrayList<>();
+                Symbols.intersection(firstPartition, source.outputs(), intersection::add);
+                assert !intersection.isEmpty() : "Intersection of source outputs and partition definition must not be empty";
+                index = source.outputs().indexOf(intersection.getFirst());
+            }
+            assert index >= 0 && index < source.outputs().size() : "Column to distribute must be present in the source plan outputs";
+            sourcePlan.setDistributionInfo(
+                new DistributionInfo(DistributionType.MODULO, index)
             );
             MergePhase distWindowAgg = new MergePhase(
                 UUIDs.dirtyUUID(),
