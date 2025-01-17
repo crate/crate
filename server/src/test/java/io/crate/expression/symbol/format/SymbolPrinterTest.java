@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +58,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
+import io.crate.expression.symbol.format.Style;
 
 public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -217,15 +219,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertPrint(Literal.of("bla'bla"), "'bla''bla'");
 
     }
-
     @Test
     public void testObjectLiteral() {
-        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
-        map.put("field", "value");
-        map.put("array", List.of(1, 2, 3));
-        map.put("nestedMap", Map.of("inner", -0.00005d));
-        Literal<Map<String, Object>> l = Literal.of(map);
+        ObjectValue objectValue = new ObjectValue(new Object[]{"value", List.of(1, 2, 3), Map.of("inner", -0.00005d)});
+        Literal<ObjectValue> l = Literal.of(objectValue);
         assertPrint(l, "{\"field\"='value', \"array\"=[1, 2, 3], \"nestedMap\"={\"inner\"=-5.0E-5}}");
+    }
     }
 
     @Test
