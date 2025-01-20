@@ -138,7 +138,7 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME COLUMN a to b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Renaming columns of a table created before version 5.5 is not supported");
+            .hasMessage("Renaming columns of a table created before version 5.5.0 is not supported");
     }
 
     @Test
