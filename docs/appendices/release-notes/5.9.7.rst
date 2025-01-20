@@ -80,3 +80,6 @@ Fixes
   partitioned tables and their new partitions to the latest version following a
   node upgrade. The fix can't fully repair incorrectly updated versions but
   includes mitigation logic that infers the version based on existing partitions.
+
+- Fixed an issue that caused new partitions' versions created to follow the
+  table's version instead of the minimum node version of the cluster.
