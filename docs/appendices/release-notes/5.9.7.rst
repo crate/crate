@@ -65,6 +65,11 @@ Fixes
   written to a partitioned table during a rolling upgrade and that table had
   setting ``warmer.enabled`` specified before the upgrade.
 
+- Fixed an issue that caused uppercase letters in quoted function names from
+  a ``CREATE VIEW`` statement to be converted to lowercases, leading to an
+  ``UnsupportedFeatureException`` or a false resolution to a different function
+  with the same name but in lowercases.
+
 - Fixed an issue that incorrectly updated ``VERSION`` settings from
   :ref:`information_schema.tables <information_schema_tables>` and
   :ref:`information_schema.table_partitions <is_table_partitions>` for
