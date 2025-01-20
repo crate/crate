@@ -47,6 +47,10 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that prevented the optimizer from creating a valid execution
+  plan for queries involving aliases on the output of a correlated join, leading
+  to a ``Couldn't create execution plan from logical plan`` error.
+
 - Fixed an issue that could lead to a ``class java.lang.Double cannot be cast to
   class java.math.BigDecimal`` error when using the ``numeric`` type.
 
