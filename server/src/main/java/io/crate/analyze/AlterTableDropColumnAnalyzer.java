@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.elasticsearch.Version;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -98,7 +96,7 @@ public class AlterTableDropColumnAnalyzer {
 
     /** Validate restrictions based on properties that cannot change */
     private static void validateStatic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
-        if (tableInfo.versionCreated().before(Version.V_5_5_0)) {
+        if (tableInfo.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)) {
             throw new UnsupportedOperationException(
                 "Dropping columns of a table created before version 5.5 is not supported"
             );

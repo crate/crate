@@ -23,15 +23,19 @@ package io.crate.metadata.doc;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -87,5 +91,90 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata()))
             .isExactlyInstanceOf(RelationUnknown.class)
             .hasMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
+    }
+
+    @Test
+    public void test_sets_created_version_based_on_oldest_partition() throws Exception {
+        // Mitigation for https://github.com/crate/crate/pull/17178
+
+        String schema = randomSchema();
+        RelationName tbl = new RelationName(schema, "tbl");
+        PartitionName p1 = new PartitionName(tbl, List.of("p1"));
+
+        String templateName = PartitionName.templateName(schema, "tbl");
+        String mapping = """
+            {
+                "default": {
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "position": 1,
+                            "index": "not_analyzed",
+                            "oid": 1
+                        }
+                    }
+                }
+            }
+            """;
+        IndexTemplateMetadata template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of(PartitionName.templatePrefix(schema, "tbl")))
+            .settings(Settings.builder()
+                .put("index.version.created", Version.V_5_9_6)
+                .put("index.number_of_shards", 5)
+                .build()
+            )
+            .putMapping(mapping)
+            .putAlias(new AliasMetadata(tbl.indexNameOrAlias()))
+            .build();
+        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(p1.asIndexName())
+            .settings(Settings.builder().put("index.version.created", Version.V_5_7_5).build())
+            .numberOfReplicas(0)
+            .numberOfShards(5)
+            .putMapping(
+                mapping);
+        Metadata metadata = Metadata.builder()
+                .put(indexMetadataBuilder)
+                .put(template)
+                .build();
+
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
+        DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
+        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_9_6);
+    }
+
+    @Test
+    public void test_uses_5_4_0_as_version_if_mapping_has_no_oid() throws Exception {
+        String schema = randomSchema();
+        RelationName tbl = new RelationName(schema, "tbl");
+        String templateName = PartitionName.templateName(schema, "tbl");
+        String mapping = """
+            {
+                "default": {
+                    "properties": {
+                        "id": {
+                            "type": "integer",
+                            "position": 1,
+                            "index": "not_analyzed"
+                        }
+                    }
+                }
+            }
+            """;
+        IndexTemplateMetadata template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of(PartitionName.templatePrefix(schema, "tbl")))
+            .settings(Settings.builder()
+                .put("index.version.created", Version.V_5_9_6)
+                .put("index.number_of_shards", 5)
+                .build()
+            )
+            .putMapping(mapping)
+            .putAlias(new AliasMetadata(tbl.indexNameOrAlias()))
+            .build();
+        Metadata metadata = Metadata.builder()
+                .put(template)
+                .build();
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
+        DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
+        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_4_0);
     }
 }

@@ -398,7 +398,7 @@ public class Indexer {
                    Symbol[] returnValues) {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
-        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
         this.getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)

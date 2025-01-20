@@ -167,6 +167,11 @@ import io.crate.types.ObjectType;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
+    /**
+     * Tables created on or after this version use oids in the mapping
+     **/
+    public static final Version COLUMN_OID_VERSION = Version.V_5_5_0;
+
     public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> DEPTH_LIMIT_SETTING =

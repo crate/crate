@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,9 +69,9 @@ public class AlterTableRenameColumnAnalyzer {
             sessionSettings.sessionUser(),
             sessionSettings.searchPath()
         );
-        if (tableInfo.versionCreated().before(Version.V_5_5_0)) {
+        if (tableInfo.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)) {
             throw new UnsupportedOperationException(
-                "Renaming columns of a table created before version 5.5 is not supported"
+                "Renaming columns of a table created before version " + DocTableInfo.COLUMN_OID_VERSION + " is not supported"
             );
         }
         var expressionAnalyzer = new ExpressionAnalyzer(
