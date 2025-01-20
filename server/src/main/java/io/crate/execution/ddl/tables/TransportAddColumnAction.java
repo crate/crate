@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -37,6 +36,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.doc.DocTableInfo;
 
 @Singleton
 public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
@@ -45,7 +45,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
     public static final AlterTableTask.AlterTableOperator<AddColumnRequest> ADD_COLUMN_OPERATOR =
         (req, doctableInfo, metadataBuilder, nodeCtx) -> doctableInfo.addColumns(
             nodeCtx,
-            doctableInfo.versionCreated().onOrAfter(Version.V_5_5_0) ?
+            doctableInfo.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
                 metadataBuilder.columnOidSupplier() :
                 () -> Metadata.COLUMN_OID_UNASSIGNED,
             req.references(),

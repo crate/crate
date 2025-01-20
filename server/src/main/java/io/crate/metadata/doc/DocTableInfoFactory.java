@@ -21,6 +21,8 @@
 
 package io.crate.metadata.doc;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -242,6 +244,15 @@ public class DocTableInfoFactory {
             mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
             tableParameters = indexTemplateMetadata.settings();
             versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+            // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
+            // See https://github.com/crate/crate/pull/17178
+            // To mitigate the impact, this looks through partitions and takes their lowest version:
+            for (String indexName : concreteIndices) {
+                IndexMetadata indexMetadata = metadata.index(indexName);
+                if (indexMetadata != null) {
+                    versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+                }
+            }
             versionUpgraded = null;
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
@@ -303,6 +314,15 @@ public class DocTableInfoFactory {
         );
         PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
+        if (indexTemplateMetadata != null && versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+            // Due to https://github.com/crate/crate/pull/17178 the created version in the template
+            // can be wrong; inferring the correct version from partitions can also fail if old partitions
+            // are deleted.
+            // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
+            if (references.values().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+                versionCreated = Version.V_5_4_0;
+            }
+        }
         return new DocTableInfo(
             relation,
             references,

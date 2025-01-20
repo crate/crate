@@ -74,4 +74,5 @@ Fixes
   :ref:`information_schema.tables <information_schema_tables>` and
   :ref:`information_schema.table_partitions <is_table_partitions>` for
   partitioned tables and their new partitions to the latest version following a
-  node upgrade.
+  node upgrade. The fix can't fully repair incorrectly updated versions but
+  includes mitigation logic that infers the version based on existing partitions.
