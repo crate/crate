@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
@@ -38,6 +40,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -127,11 +130,28 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE,
             true
         );
-        CorrelatedJoin join = new CorrelatedJoin(collect, selectSymbol, null);
-        assertThat(join.outputs()).containsExactly(a, b, selectSymbol);
-        LogicalPlan pruned = join.pruneOutputsExcept(List.of(b, selectSymbol));
-        assertThat(pruned.outputs())
-            .as("removes unused a")
-            .containsExactly(b, selectSymbol);
+        {
+            CorrelatedJoin join = new CorrelatedJoin(collect, selectSymbol, null);
+            assertThat(join.outputs()).containsExactly(a, b, selectSymbol);
+            LogicalPlan pruned = join.pruneOutputsExcept(List.of(b, selectSymbol));
+            assertThat(pruned.outputs())
+                .as("removes unused a")
+                .containsExactly(b, selectSymbol);
+        }
+        {
+            LogicalPlan eval = Eval.create(collect, List.of(a, b, Literal.of(1)));
+            CorrelatedJoin join = new CorrelatedJoin(eval, selectSymbol, null);
+            AliasSymbol subqueryAlias = new AliasSymbol("s", selectSymbol);
+            LogicalPlan pruned = join.pruneOutputsExcept(List.of(b, subqueryAlias));
+            assertThat(pruned.outputs())
+                .as("Must not create additional aliased selectSymbol output")
+                .satisfiesExactly(
+                    x -> assertThat(x).isEqualTo(b),
+                    x -> assertThat(x).isEqualTo(selectSymbol)
+                );
+            assertThat(pruned.sources().getFirst().outputs())
+                .as("Pruning eval doesn't add outputs")
+                .containsExactly(b);
+        }
     }
 }
