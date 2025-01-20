@@ -36,6 +36,7 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -98,21 +99,19 @@ public class CorrelatedJoin implements LogicalPlan {
                                Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan sourcePlan = Merge.ensureOnHandler(
-            inputPlan.build(
-                executor,
-                plannerContext,
-                planHints,
-                projectionBuilder,
-                LimitAndOffset.NO_LIMIT,
-                LimitAndOffset.NO_OFFSET,
-                null,
-                null,
-                params,
-                subQueryResults
-            ),
-            plannerContext
+        ExecutionPlan inputExecutionPlan = inputPlan.build(
+            executor,
+            plannerContext,
+            planHints,
+            projectionBuilder,
+            LimitAndOffset.NO_LIMIT,
+            LimitAndOffset.NO_OFFSET,
+            null,
+            null,
+            params,
+            subQueryResults
         );
+        ExecutionPlan sourcePlan = Merge.ensureOnHandler(inputExecutionPlan, plannerContext);
         var projection = new CorrelatedJoinProjection(
             executor,
             subQueryPlan,
@@ -148,17 +147,17 @@ public class CorrelatedJoin implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        var toCollect = new LinkedHashSet<>(outputsToKeep);
+        LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
+        for (Symbol toKeep : outputsToKeep) {
+            Symbols.intersection(toKeep, inputPlan.outputs(), toCollect::add);
+        }
         selectSymbol.relation().visitSymbols(tree ->
             tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
         );
-        toCollect.remove(selectSymbol);
         LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
-
         if (inputPlan == newInputPlan) {
             return this;
         }
-
         return new CorrelatedJoin(
             newInputPlan,
             selectSymbol,
