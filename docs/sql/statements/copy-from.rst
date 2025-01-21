@@ -313,8 +313,8 @@ For example:
 
 .. code-block:: text
 
-    COPY source
-    TO DIRECTORY 'az://myaccount.blob.core.windows.net/my-container/dir1/dir2/file1.json'
+    COPY t
+    FROM 'az://myaccount.blob.core.windows.net/my-container/dir1/dir2/file1.json'
     WITH (
         key = 'key'
     )
