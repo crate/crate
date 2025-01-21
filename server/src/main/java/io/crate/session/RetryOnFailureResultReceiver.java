@@ -118,9 +118,4 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
                ", attempt=" + attempt +
                '}';
     }
-
-    @Override
-    public boolean isWritable() {
-        return delegate.isWritable();
-    }
 }

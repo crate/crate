@@ -66,9 +66,6 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     /**
      * Writes the row to the pg channel and flushes the channel if necessary.
-     * The caller should check {@link #isWritable()} after each call, and if it's false, the consumer should be
-     * suspended until the receiver becomes writable again. Otherwise, this can lead to OOM errors as the channel
-     * outbound buffer keeps growing.
      *
      * @return a future that is completed once the row was successfully written (flushed)
      */
@@ -78,7 +75,7 @@ class ResultSetReceiver extends BaseResultReceiver {
         rowCount++;
         ChannelFuture sendDataRow = Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
         CompletableFuture<Void> future;
-        boolean isWritable = isWritable();
+        boolean isWritable = directChannel.isWritable();
         if (isWritable) {
             future = null;
         } else {
@@ -129,10 +126,5 @@ class ResultSetReceiver extends BaseResultReceiver {
         channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendErrorResponse.addListener(f -> super.fail(throwable));
-    }
-
-    @Override
-    public boolean isWritable() {
-        return directChannel.isWritable();
     }
 }
