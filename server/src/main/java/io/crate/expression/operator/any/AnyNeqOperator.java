@@ -21,7 +21,6 @@
 
 package io.crate.expression.operator.any;
 
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
@@ -29,23 +28,34 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
 
 public final class AnyNeqOperator extends AnyOperator<Object> {
 
-    public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
+    public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"),
+            TypeSignature.parse("array(E)"))
+        .returnType(Operator.RETURN_TYPE.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+        .build();
 
     AnyNeqOperator(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
@@ -78,7 +88,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             if (fromPrimitive == null) {
                 return null;
             }
-            andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
+            andBuilder.add(fromPrimitive, Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context);
         return new BooleanQuery.Builder()
@@ -87,13 +97,12 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             .build();
     }
 
-    @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+    public static Query literalMatchesAnyArrayRef(Literal<?> probe, Reference candidates) {
+        // 1 != any ( col ) -->  gt 1 or lt 1
         if (DataTypes.isArray(probe.valueType())) {
             return null;
         }
-        // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
         if (storageSupport == null) {
@@ -126,8 +135,13 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             assert lt != null || gt == null : "If lt is null, gt must be null";
             return null;
         }
-        query.add(gt, BooleanClause.Occur.SHOULD);
-        query.add(lt, BooleanClause.Occur.SHOULD);
+        query.add(gt, Occur.SHOULD);
+        query.add(lt, Occur.SHOULD);
         return query.build();
+    }
+
+    @Override
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        return literalMatchesAnyArrayRef(probe, candidates);
     }
 }
