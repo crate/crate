@@ -291,4 +291,8 @@ query where scalar functions are allowed.
 
 .. _GeoJSON: https://geojson.org/
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
+<<<<<<< HEAD
 .. _ISO 19107: https://www.iso.org/standard/66175.html
+=======
+.. _ISO 19107: https://www.iso.org/standard/26012.html
+>>>>>>> 92e1791b29 (Fix link to ISO ISO 19107:2003 used in `GEO` search docs)
