@@ -34,8 +34,8 @@ import io.crate.data.Row;
 public interface ResultReceiver<T> extends CompletionListenable<T> {
 
     /**
-     * @return CompletableFuture that will be completed when the row has been processed or null if the processing is
-     *         done immediately (avoid unnecessary allocations).
+     * @return CompletableFuture or null. If a future, the callee must wait for its completion before
+     *         calling `setNextRow` again.
      */
     @Nullable
     CompletableFuture<Void> setNextRow(Row row);
@@ -48,8 +48,4 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
     void allFinished();
 
     void fail(Throwable t);
-
-    default boolean isWritable() {
-        return true;
-    }
 }

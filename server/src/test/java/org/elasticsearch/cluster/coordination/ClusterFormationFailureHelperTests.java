@@ -194,7 +194,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
 
 
         assertThat(new ClusterFormationState(Settings.EMPTY, clusterState, emptyList(), emptyList(), 1L, electionStrategy,
-                new StatusInfo(HEALTHY, "healthy-info")).getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v5+) cluster, and " +
+                new StatusInfo(HEALTHY, "healthy-info")).getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v6+) cluster, and " +
                 "[cluster.initial_master_nodes] is empty on this node: have discovered []; " +
                 "discovery will continue using [] from hosts providers and [" + localNode +
                 "] from last-known cluster state; node term 1, last-accepted version 7 in term 4");
@@ -208,7 +208,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         final TransportAddress otherAddress = buildNewFakeTransportAddress();
         assertThat(new ClusterFormationState(Settings.EMPTY, clusterState, singletonList(otherAddress), emptyList(), 2L, electionStrategy,
                 new StatusInfo(HEALTHY, "healthy-info"))
-                .getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v5+) cluster, and " +
+                .getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v6+) cluster, and " +
                 "[cluster.initial_master_nodes] is empty on this node: have discovered []; " +
                 "discovery will continue using [" + otherAddress + "] from hosts providers and [" + localNode +
                 "] from last-known cluster state; node term 2, last-accepted version 7 in term 4");
@@ -216,14 +216,14 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         final DiscoveryNode otherNode = new DiscoveryNode("other", buildNewFakeTransportAddress(), Version.CURRENT);
         assertThat(new ClusterFormationState(Settings.EMPTY, clusterState, emptyList(), singletonList(otherNode), 3L, electionStrategy,
                 new StatusInfo(HEALTHY, "healthy-info"))
-                .getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v5+) cluster, and " +
+                .getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v6+) cluster, and " +
                 "[cluster.initial_master_nodes] is empty on this node: have discovered [" + otherNode + "]; " +
                 "discovery will continue using [] from hosts providers and [" + localNode +
                 "] from last-known cluster state; node term 3, last-accepted version 7 in term 4");
 
         assertThat(new ClusterFormationState(Settings.builder().putList(INITIAL_MASTER_NODES_SETTING.getKey(), "other").build(),
                 clusterState, emptyList(), emptyList(), 4L, electionStrategy,
-                new StatusInfo(HEALTHY, "healthy-info")).getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v5+) cluster, and " +
+                new StatusInfo(HEALTHY, "healthy-info")).getDescription()).isEqualTo("master not discovered yet, this node has not previously joined a bootstrapped (v6+) cluster, and " +
                 "this node must discover master-eligible nodes [other] to bootstrap a cluster: have discovered []; " +
                 "discovery will continue using [] from hosts providers and [" + localNode +
                 "] from last-known cluster state; node term 4, last-accepted version 7 in term 4");
