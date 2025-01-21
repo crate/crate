@@ -85,14 +85,13 @@ public class JoinTaskExecutorTests extends ESTestCase {
         Settings.builder().build();
         Metadata.Builder metaBuilder = Metadata.builder();
         IndexMetadata indexMetadata = IndexMetadata.builder("test")
-            .settings(settings(Version.V_4_3_3))
+            .settings(settings(Version.V_5_3_3))
             .numberOfShards(1)
             .numberOfReplicas(1).build();
         metaBuilder.put(indexMetadata, false);
         Metadata metadata = metaBuilder.build();
 
-        JoinTaskExecutor.ensureIndexCompatibility(Version.V_4_3_2,
-            metadata);
+        JoinTaskExecutor.ensureIndexCompatibility(Version.V_5_3_2, metadata);
     }
 
     @Test
