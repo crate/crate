@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
+import org.junit.Test;
 
 public class InboundDecoderTests extends ESTestCase {
 
@@ -40,6 +41,7 @@ public class InboundDecoderTests extends ESTestCase {
         super.setUp();
     }
 
+    @Test
     public void testDecode() throws IOException {
         boolean isRequest = randomBoolean();
         String action = "test-request";
@@ -92,43 +94,7 @@ public class InboundDecoderTests extends ESTestCase {
         assertThat(endMarker).isEqualTo(InboundDecoder.END_CONTENT);
     }
 
-    public void testDecodePreHeaderSizeVariableInt() throws IOException {
-        // TODO: Can delete test on 9.0
-        boolean isCompressed = randomBoolean();
-        String action = "test-request";
-        long requestId = randomNonNegativeLong();
-        final Version preHeaderVariableInt = Version.V_4_4_0;
-        final String contentValue = randomAlphaOfLength(100);
-        final OutboundMessage message = new OutboundMessage.Request(new TestRequest(contentValue),
-            preHeaderVariableInt, action, requestId, true, isCompressed);
-
-        final BytesReference totalBytes = message.serialize(new BytesStreamOutput());
-        int partialHeaderSize = TcpHeader.headerSize(preHeaderVariableInt);
-
-        InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
-        final ArrayList<Object> fragments = new ArrayList<>();
-        final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(totalBytes);
-        int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertThat(bytesConsumed).isEqualTo(partialHeaderSize);
-        assertThat(releasable1.refCount()).isEqualTo(1);
-
-        final Header header = (Header) fragments.get(0);
-        assertThat(header.getRequestId()).isEqualTo(requestId);
-        assertThat(header.getVersion()).isEqualTo(preHeaderVariableInt);
-        assertThat(header.isCompressed()).isEqualTo(isCompressed);
-        assertThat(header.isHandshake()).isTrue();
-        assertThat(header.isRequest()).isTrue();
-        assertThat(header.needsToReadVariableHeader()).isTrue();
-        fragments.clear();
-
-        final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
-        final ReleasableBytesReference releasable2 = ReleasableBytesReference.wrap(bytes2);
-        int bytesConsumed2 = decoder.decode(releasable2, fragments::add);
-        assertThat(fragments.size()).isEqualTo(2);
-        assertThat(fragments.get(fragments.size() - 1)).isEqualTo(InboundDecoder.END_CONTENT);
-        assertThat(bytesConsumed2).isEqualTo(totalBytes.length() - bytesConsumed);
-    }
-
+    @Test
     public void testDecodeHandshakeCompatibility() throws IOException {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
@@ -137,7 +103,7 @@ public class InboundDecoderTests extends ESTestCase {
             handshakeCompat, action, requestId, true, false);
 
         final BytesReference bytes = message.serialize(new BytesStreamOutput());
-        int totalHeaderSize = TcpHeader.headerSize(handshakeCompat);
+        int totalHeaderSize = TcpHeader.headerSize(handshakeCompat) + bytes.getInt(TcpHeader.VARIABLE_HEADER_SIZE_POSITION);
 
         InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final ArrayList<Object> fragments = new ArrayList<>();
@@ -152,11 +118,11 @@ public class InboundDecoderTests extends ESTestCase {
         assertThat(header.isCompressed()).isFalse();
         assertThat(header.isHandshake()).isTrue();
         assertThat(header.isRequest()).isTrue();
-        // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertThat(header.needsToReadVariableHeader()).isTrue();
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
     }
 
+    @Test
     public void testCompressedDecode() throws IOException {
         boolean isRequest = randomBoolean();
         String action = "test-request";
@@ -214,6 +180,7 @@ public class InboundDecoderTests extends ESTestCase {
         assertThat(endMarker).isEqualTo(InboundDecoder.END_CONTENT);
     }
 
+    @Test
     public void testCompressedDecodeHandshakeCompatibility() throws IOException {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
@@ -222,7 +189,7 @@ public class InboundDecoderTests extends ESTestCase {
             handshakeCompat, action, requestId, true, true);
 
         final BytesReference bytes = message.serialize(new BytesStreamOutput());
-        int totalHeaderSize = TcpHeader.headerSize(handshakeCompat);
+        int totalHeaderSize = TcpHeader.headerSize(handshakeCompat) + bytes.getInt(TcpHeader.VARIABLE_HEADER_SIZE_POSITION);
 
         InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final ArrayList<Object> fragments = new ArrayList<>();
@@ -237,8 +204,7 @@ public class InboundDecoderTests extends ESTestCase {
         assertThat(header.isCompressed()).isTrue();
         assertThat(header.isHandshake()).isTrue();
         assertThat(header.isRequest()).isTrue();
-        // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertThat(header.needsToReadVariableHeader()).isTrue();
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
     }
 
@@ -260,17 +226,18 @@ public class InboundDecoderTests extends ESTestCase {
         assertThat(releasable1.refCount()).isEqualTo(1);
     }
 
+    @Test
     public void testEnsureVersionCompatibility() throws IOException {
         IllegalStateException ise = InboundDecoder.ensureVersionCompatibility(VersionUtils.randomVersionBetween(random(),
             Version.CURRENT.minimumCompatibilityVersion(), Version.CURRENT), Version.CURRENT, randomBoolean());
         assertThat(ise).isNull();
 
-        final Version version = Version.fromString("4.0.0");
-        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("4.0.0"), version, true);
+        final Version version = Version.fromString("5.0.0");
+        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("5.0.0"), version, true);
         assertThat(ise).isNull();
 
-        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("3.0.0"), version, false);
-        assertThat(ise.getMessage()).isEqualTo("Received message from unsupported version: [3.0.0] minimal compatible version is: ["
+        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("4.0.0"), version, false);
+        assertThat(ise.getMessage()).isEqualTo("Received message from unsupported version: [4.0.0] minimal compatible version is: ["
             + version.minimumCompatibilityVersion() + "]");
     }
 }

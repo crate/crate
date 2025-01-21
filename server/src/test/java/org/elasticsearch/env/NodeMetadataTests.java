@@ -65,7 +65,7 @@ public class NodeMetadataTests extends ESTestCase {
     @Test
     public void testReadsFormatWithoutVersion() throws IOException, URISyntaxException {
         // the behaviour tested here is only appropriate if the current version is compatible with versions 7 and earlier
-        assertThat(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_4_0_0)).isTrue();
+        assertThat(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_5_0_0)).isTrue();
         // when the current version is incompatible with version 4, the behaviour should change to reject files like the given resource
         // which do not have the version field
 
@@ -123,8 +123,8 @@ public class NodeMetadataTests extends ESTestCase {
 
     @Test
     public void test_downgrade_hotfix_version() {
-        var nodeMetadata = new NodeMetadata("test", Version.V_4_5_1);
-        nodeMetadata = nodeMetadata.upgradeToVersion(Version.V_4_5_0);
-        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_4_5_0);
+        var nodeMetadata = new NodeMetadata("test", Version.V_5_5_1);
+        nodeMetadata = nodeMetadata.upgradeToVersion(Version.V_5_5_0);
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_5_5_0);
     }
 }

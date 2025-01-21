@@ -29,12 +29,13 @@ public class VersionTest {
 
     @Test
     public void test_compatible_current_version_is_compatible_to_4_0_0() {
-        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isTrue();
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isFalse();
+        assertThat(Version.CURRENT.isCompatible(Version.V_5_0_0)).isTrue();
     }
 
     @Test
-    public void test_min_version_is_4_0_0() {
-        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+    public void test_min_version_is_5_0_0() {
+        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_5_0_0);
     }
 
     @Test

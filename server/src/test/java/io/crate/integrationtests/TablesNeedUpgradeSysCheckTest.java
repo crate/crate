@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -47,14 +47,8 @@ public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpgradeRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip");
-        execute("select * from sys.shards where min_lucene_version = '8.6.2'");
-        assertThat(response.rowCount()).isEqualTo(1L);
-        execute("select * from sys.checks where id = 3");
-        assertThat(response.rowCount()).isEqualTo(1L);
-        assertThat(response.rows()[0][0]).isEqualTo(
-            "The following tables need to be recreated for compatibility with " +
-            "future major versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3");
+    public void test_4x_indices_not_supported() throws Exception {
+        assertThatThrownBy(() -> startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip"))
+            .hasMessageContaining("was created with version [4.3.0] but the minimum compatible version is [5.0.0]");
     }
 }
