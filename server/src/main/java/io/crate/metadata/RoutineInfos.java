@@ -21,24 +21,26 @@
 
 package io.crate.metadata;
 
-import io.crate.common.collections.Iterators;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
-
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Locale;
 
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType;
-import static java.util.Collections.emptyIterator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.collections.Iterators;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.FulltextAnalyzerResolver.CustomType;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private static final Logger LOGGER = LogManager.getLogger(RoutineInfos.class);
-    private final UserDefinedFunctionsMetadata functionsMetadata;
-    private FulltextAnalyzerResolver ftResolver;
+    private final FulltextAnalyzerResolver ftResolver;
+    private final ClusterService clusterService;
 
     private enum RoutineType {
         ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
@@ -57,9 +59,9 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
-    public RoutineInfos(FulltextAnalyzerResolver ftResolver, UserDefinedFunctionsMetadata functionsMetadata) {
+    public RoutineInfos(FulltextAnalyzerResolver ftResolver, ClusterService clusterService) {
         this.ftResolver = ftResolver;
-        this.functionsMetadata = functionsMetadata;
+        this.clusterService = clusterService;
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
@@ -87,10 +89,12 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     }
 
     private Iterator<RoutineInfo> userDefinedFunctions() {
-        if (functionsMetadata == null) {
-            return emptyIterator();
+        Metadata metadata = clusterService.state().metadata();
+        UserDefinedFunctionsMetadata udf = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udf == null) {
+            return Collections.emptyIterator();
         }
-        return functionsMetadata.functionsMetadata().stream()
+        return udf.functionsMetadata().stream()
             .map(x -> new RoutineInfo(
                         x.name(),
                         RoutineType.FUNCTION.getName(),
