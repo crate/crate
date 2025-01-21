@@ -21,7 +21,10 @@
 
 package io.crate.protocols.postgres;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.session.BaseResultReceiver;
 import io.crate.auth.AccessControl;
@@ -48,7 +51,8 @@ class RowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
         rowCount = (long) row.get(0);
         /*
          * In Crate -1 means row-count unknown, and -2 means error. In JDBC -2 means row-count unknown and -3 means error.
@@ -57,6 +61,7 @@ class RowCountReceiver extends BaseResultReceiver {
         if (rowCount < 0) {
             rowCount--;
         }
+        return null;
     }
 
     @Override

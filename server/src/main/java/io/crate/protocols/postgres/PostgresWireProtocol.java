@@ -730,7 +730,6 @@ public class PostgresWireProtocol {
                 query,
                 channel,
                 delayedWrites,
-                session.transactionState(),
                 getAccessControl.apply(session.sessionSettings()),
                 Lists.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
@@ -847,7 +846,6 @@ public class PostgresWireProtocol {
                     query,
                     channel,
                     delayedWrites,
-                    TransactionState.IDLE,
                     accessControl,
                     Lists.map(fields, x -> PGTypes.get(x.valueType())),
                     null

@@ -21,6 +21,8 @@
 
 package io.crate.rest.action;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,12 +43,14 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void setNextRow(Row row) {
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
         rowCount = (long) row.get(0);
         // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
         if (results.length > 1) {
             failure = (Throwable) row.get(1);
         }
+        return null;
     }
 
     @Override
