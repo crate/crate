@@ -71,6 +71,8 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance of the queries involving ``= ALL`` array operator.
+
 Administration and Operations
 -----------------------------
 

@@ -25,6 +25,7 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -830,5 +831,110 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         query = convert("f = 0.99999999"); // float to double conparison
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(f = 0.99999999)");
+    }
+
+    public void test_all_eq_on_empty_array_literal() {
+        Query query = convert("y = all([])");
+        assertThat(query).hasToString("*:*");
+    }
+
+    @Test
+    public void test_all_eq_on_array_literal_containing_null_elements() {
+        Query query = convert("y = all([1, null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"If the array literal contains nulls, it is either false or null; hence a no-match\")");
+        query = convert("y = all([2, null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"If the array literal contains nulls, it is either false or null; hence a no-match\")");
+
+    }
+
+    @Test
+    public void test_all_eq_on_array_literal_containing_more_than_one_unique_elements() {
+        Query query = convert("y = all([1, 2])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"A single value cannot match more than one unique values\")");
+    }
+
+    @Test
+    public void test_all_eq_on_array_literal_containing_duplicates() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int)");
+        builder.indexValue("a", 1);
+        builder.indexValue("a", 2);
+        builder.indexValue("a", null);
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("a = all([1, 1])");
+            assertThat(query).hasToString("a:[1 TO 1]");
+            assertThat(tester.runQuery("a", "a = all([1, 1])")).containsExactly(1);
+        }
+    }
+
+    @Test
+    public void test_all_eq_on_array_ref() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        var listOfOneAndNull = new ArrayList<Integer>();
+        listOfOneAndNull.add(1);
+        listOfOneAndNull.add(null);
+        var listOfTwoAndNull = new ArrayList<Integer>();
+        listOfTwoAndNull.add(2);
+        listOfTwoAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int[])");
+        builder.indexValue("a", List.of(1));
+        builder.indexValue("a", List.of(1, 1));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", listOfNulls);
+        builder.indexValue("a", null);
+        builder.indexValue("a", listOfOneAndNull);
+        builder.indexValue("a", listOfTwoAndNull);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("a", "1 = all(a)"))
+                .containsExactly(List.of(1), List.of(1, 1), List.of());
+        }
+    }
+
+    @Test
+    public void test_all_eq_on_nested_array_ref_with_automatic_dimension_leveling() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        var listOfOneAndNull = new ArrayList<Integer>();
+        listOfOneAndNull.add(1);
+        listOfOneAndNull.add(null);
+        var listOfTwoAndNull = new ArrayList<Integer>();
+        listOfTwoAndNull.add(2);
+        listOfTwoAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int[][])");
+        builder.indexValue("a", List.of(List.of(1)));
+        builder.indexValue("a", List.of(List.of(1, 1)));
+        builder.indexValue("a", List.of(List.of()));
+        builder.indexValue("a", List.of(listOfNulls));
+        builder.indexValue("a", null);
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", List.of(listOfOneAndNull));
+        builder.indexValue("a", List.of(listOfTwoAndNull));
+
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("1 = all(a)");
+            assertThat(query)
+                .hasToString("+(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1)) #(NOT (1 <> ANY(array_unnest(a))))");
+            assertThat(tester.runQuery("a", "1 = all(a)"))
+                .containsExactly(
+                    List.of(List.of(1)),
+                    List.of(List.of(1, 1)),
+                    List.of(List.of()),
+                    List.of()
+                );
+        }
     }
 }
