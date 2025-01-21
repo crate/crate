@@ -89,3 +89,6 @@ Fixes
         SELECT obj
         FROM test
     ) t;
+
+- Fixed an issue which could lead to OutOfMemory errors when requesting large
+  result sets over the PostgreSQL protocol.

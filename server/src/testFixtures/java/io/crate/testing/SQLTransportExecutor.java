@@ -565,8 +565,10 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        @Nullable
+        public CompletableFuture<Void> setNextRow(Row row) {
             rows.add(row.materialize());
+            return null;
         }
 
         @Override
@@ -621,8 +623,9 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        public CompletableFuture<Void> setNextRow(Row row) {
             rowCount = (long) row.get(0);
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
@@ -661,8 +664,10 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void setNextRow(Row row) {
+        @Nullable
+        public CompletableFuture<Void> setNextRow(Row row) {
             rowCount = (long) row.get(0);
+            return null;
         }
 
         @Override

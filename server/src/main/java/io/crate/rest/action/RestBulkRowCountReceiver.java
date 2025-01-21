@@ -21,6 +21,8 @@
 
 package io.crate.rest.action;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,8 +42,10 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void setNextRow(Row row) {
-        rowCount = ((long) row.get(0));
+    @Nullable
+    public CompletableFuture<Void> setNextRow(Row row) {
+        rowCount = (long) row.get(0);
+        return null;
     }
 
     @Override

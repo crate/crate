@@ -21,6 +21,10 @@
 
 package io.crate.session;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
 
@@ -29,7 +33,12 @@ import io.crate.data.Row;
  */
 public interface ResultReceiver<T> extends CompletionListenable<T> {
 
-    void setNextRow(Row row);
+    /**
+     * @return CompletableFuture that will be completed when the row has been processed or null if the processing is
+     *         done immediately (avoid unnecessary allocations).
+     */
+    @Nullable
+    CompletableFuture<Void> setNextRow(Row row);
 
     void batchFinished();
 
@@ -39,4 +48,8 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
     void allFinished();
 
     void fail(Throwable t);
+
+    default boolean isWritable() {
+        return true;
+    }
 }
