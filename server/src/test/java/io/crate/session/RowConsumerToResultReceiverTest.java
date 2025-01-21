@@ -92,18 +92,12 @@ public class RowConsumerToResultReceiverTest {
 
         AtomicReference<CompletableFuture<Void>> writeFutureRef = new AtomicReference<>(new CompletableFuture<>());
         int[] rowCount = new int[1];
-        boolean[] writable = new boolean[]{false};
         BaseResultReceiver resultReceiver = new BaseResultReceiver() {
             @Override
             @Nullable
             public CompletableFuture<Void> setNextRow(Row row) {
                 rowCount[0]++;
                 return writeFutureRef.get();
-            }
-
-            @Override
-            public boolean isWritable() {
-                return writable[0];
             }
         };
         RowConsumerToResultReceiver batchConsumer =
@@ -114,7 +108,6 @@ public class RowConsumerToResultReceiverTest {
         assertThat(rowCount[0]).isEqualTo(1);
         assertThat(batchConsumer.suspended()).isTrue();
 
-        writable[0] = true;
         writeFutureRef.get().complete(null);
         resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
 

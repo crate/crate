@@ -47,4 +47,5 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a race-condition regression introduced in :ref:`version_5.9.7` that could
+  lead to a ``NullPointerException`` when using the PostgreSQL protocol.

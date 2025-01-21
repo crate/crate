@@ -79,8 +79,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                 while (iterator.moveNext()) {
                     rowCount++;
                     CompletableFuture<Void> writeFuture = resultReceiver.setNextRow(iterator.currentElement());
-                    if (!resultReceiver.isWritable()) {
-                        assert writeFuture != null : "writeFuture must not be null if resultReceiver is not writable";
+                    if (writeFuture != null) {
                         LOGGER.trace("Suspended execution after {} rows as the receiver is not writable anymore", rowCount);
                         activeIt = iterator;
                         writeFuture.thenRun(() -> {
