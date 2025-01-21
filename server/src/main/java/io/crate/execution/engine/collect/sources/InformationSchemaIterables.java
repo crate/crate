@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.function.Function;
@@ -39,8 +38,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -48,7 +45,6 @@ import org.elasticsearch.common.inject.Inject;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
@@ -84,7 +80,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
 
-public class InformationSchemaIterables implements ClusterStateListener {
+public class InformationSchemaIterables {
 
     public static final String PK_SUFFIX = "_pk";
 
@@ -108,11 +104,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<PgProcTable.Entry> pgTypeReceiveFunctions;
     private final Iterable<PgProcTable.Entry> pgTypeSendFunctions;
     private final NodeContext nodeCtx;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final ClusterService clusterService;
-
-    private Iterable<RoutineInfo> routines;
-    private boolean initialClusterStateReceived = false;
+    private final RoutineInfos routineInfos;
 
     @Inject
     public InformationSchemaIterables(NodeContext nodeCtx,
@@ -121,7 +114,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
         Schemas schemas = nodeCtx.schemas();
-        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
         relations = () -> {
@@ -173,11 +165,9 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .iterator();
 
         partitionInfos = new PartitionInfos(clusterService, schemas);
+        routineInfos = new RoutineInfos(fulltextAnalyzerResolver, clusterService);
 
         referentialConstraints = emptyList();
-        // these are initialized on a clusterState change
-        routines = emptyList();
-        clusterService.addListener(this);
 
         pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
         pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
@@ -314,7 +304,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<RoutineInfo> routines() {
-        return routines;
+        return routineInfos;
     }
 
     public Iterable<SqlFeatureContext> features() {
@@ -392,26 +382,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
             ForeignTablesMetadata.EMPTY
         );
         return foreignTables.tableOptions();
-    }
-
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        if (initialClusterStateReceived) {
-            Set<String> changedCustomMetadataSet = event.changedCustomMetadataSet();
-            if (changedCustomMetadataSet.contains(UserDefinedFunctionsMetadata.TYPE) == false) {
-                return;
-            }
-            createMetadataBasedIterables(event.state().metadata());
-        } else {
-            initialClusterStateReceived = true;
-            createMetadataBasedIterables(event.state().metadata());
-        }
-    }
-
-    private void createMetadataBasedIterables(Metadata metadata) {
-        RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
-            metadata.custom(UserDefinedFunctionsMetadata.TYPE));
-        routines = () -> sequentialStream(routineInfos).filter(Objects::nonNull).iterator();
     }
 
     /**
