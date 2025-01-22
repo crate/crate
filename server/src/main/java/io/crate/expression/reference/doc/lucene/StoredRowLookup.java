@@ -75,7 +75,7 @@ public abstract class StoredRowLookup implements StoredRow {
         if (shardCreatedVersion.before(PARTIAL_STORED_SOURCE_VERSION) || fromTranslog) {
             return new FullStoredRowLookup(table, indexName, columns);
         }
-        return new ColumnAndStoredRowLookup(table, indexName, columns);
+        return new ColumnAndStoredRowLookup(table, shardCreatedVersion, indexName, columns);
     }
 
     private StoredRowLookup(DocTableInfo table, String indexName) {
@@ -195,9 +195,9 @@ public abstract class StoredRowLookup implements StoredRow {
         private final List<ColumnExpression> expressions = new ArrayList<>();
         private final ColumnFieldVisitor fieldsVisitor;
 
-        private ColumnAndStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
+        private ColumnAndStoredRowLookup(DocTableInfo table, Version shardVersionCreated, String indexName, List<Symbol> columns) {
             super(table, indexName);
-            this.fieldsVisitor = new ColumnFieldVisitor(table);
+            this.fieldsVisitor = new ColumnFieldVisitor(table, shardVersionCreated);
             register(columns);
         }
 
