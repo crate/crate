@@ -35,6 +35,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.unit.TimeValue;
 
@@ -66,11 +67,7 @@ final class TransportHandshaker {
             () -> handler.handleLocalException(new TransportException("handshake failed because connection reset"))));
         boolean success = false;
         try {
-            // for the request we use the minCompatVersion since we don't know what's the version of the node we talk to
-            // we also have no payload on the request but the response will contain the actual version of the node we talk
-            // to as the payload.
-            final Version minCompatVersion = version.minimumCompatibilityVersion();
-            handshakeRequestSender.sendRequest(node, channel, requestId, minCompatVersion);
+            handshakeRequestSender.sendRequest(node, channel, requestId, version);
 
             threadPool.schedule(
                 () -> handler.handleLocalException(new ConnectTransportException(node, "handshake_timeout[" + timeout + "]")),
@@ -89,8 +86,17 @@ final class TransportHandshaker {
     }
 
     void handleHandshake(TransportChannel channel, long requestId, StreamInput stream) throws IOException {
-        // Must read the handshake request to exhaust the stream
-        new HandshakeRequest(stream);
+        HandshakeRequest request = new HandshakeRequest(stream);
+
+        if (stream.getVersion().equals(version) == false) {
+            if (version.isCompatible(stream.getVersion(), request.minimumCompatibilityVersion) == false) {
+                IllegalStateException invalidVersion = new IllegalStateException(
+                    "Received handshake message from unsupported version: [" + stream.getVersion()
+                    + "] minimal compatible version is: [" + version.minimumCompatibilityVersion() + "]");
+                channel.sendResponse(invalidVersion);
+                throw invalidVersion;
+            }
+        }
 
         final int nextByte = stream.read();
         if (nextByte != -1) {
@@ -133,8 +139,9 @@ final class TransportHandshaker {
         @Override
         public void handleResponse(HandshakeResponse response) {
             if (isDone.compareAndSet(false, true)) {
-                Version version = response.responseVersion;
-                if (currentVersion.isCompatible(version) == false) {
+                Version remoteVersion = response.getResponseVersion();
+                Version remoteMinimalCompatibleVersion = response.responseMinimalCompatibleVersion();
+                if (currentVersion.isCompatible(remoteVersion, remoteMinimalCompatibleVersion) == false) {
                     listener.onFailure(new IllegalStateException("Received message from unsupported version: [" + version
                         + "] minimal compatible version is: [" + currentVersion.minimumCompatibilityVersion() + "]"));
                 } else {
@@ -165,10 +172,10 @@ final class TransportHandshaker {
 
     static final class HandshakeRequest extends TransportRequest {
 
-        private final Version version;
+        private final Version minimumCompatibilityVersion;
 
         HandshakeRequest(Version version) {
-            this.version = version;
+            this.minimumCompatibilityVersion = version.minimumCompatibilityVersion();
         }
 
         HandshakeRequest(StreamInput streamInput) throws IOException {
@@ -180,10 +187,10 @@ final class TransportHandshaker {
                 remainingMessage = null;
             }
             if (remainingMessage == null) {
-                version = null;
+                minimumCompatibilityVersion = null;
             } else {
                 try (StreamInput messageStreamInput = remainingMessage.streamInput()) {
-                    this.version = Version.readVersion(messageStreamInput);
+                    this.minimumCompatibilityVersion = Version.readVersion(messageStreamInput);
                 }
             }
         }
@@ -191,9 +198,9 @@ final class TransportHandshaker {
         @Override
         public void writeTo(StreamOutput streamOutput) throws IOException {
             super.writeTo(streamOutput);
-            assert version != null;
+            assert minimumCompatibilityVersion != null;
             try (BytesStreamOutput messageStreamOutput = new BytesStreamOutput(4)) {
-                Version.writeVersion(version, messageStreamOutput);
+                Version.writeVersion(minimumCompatibilityVersion, messageStreamOutput);
                 BytesReference reference = messageStreamOutput.bytes();
                 streamOutput.writeBytesReference(reference);
             }
@@ -203,23 +210,32 @@ final class TransportHandshaker {
     static final class HandshakeResponse extends TransportResponse {
 
         private final Version responseVersion;
+        private final Version responseMinimalCompatibleVersion;
 
         HandshakeResponse(Version version) {
             this.responseVersion = version;
+            this.responseMinimalCompatibleVersion = version.minimumCompatibilityVersion();
         }
 
-        private HandshakeResponse(StreamInput in) throws IOException {
-            responseVersion = Version.readVersion(in);
+        @VisibleForTesting
+        HandshakeResponse(StreamInput in) throws IOException {
+            responseVersion = in.getVersion();
+            responseMinimalCompatibleVersion = Version.readVersion(in);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            assert responseVersion != null;
-            Version.writeVersion(responseVersion, out);
+            // Only write the minimal compatible version, the response version is already written into the header
+            assert responseMinimalCompatibleVersion != null;
+            Version.writeVersion(responseMinimalCompatibleVersion, out);
         }
 
         Version getResponseVersion() {
             return responseVersion;
+        }
+
+        Version responseMinimalCompatibleVersion() {
+            return responseMinimalCompatibleVersion;
         }
     }
 

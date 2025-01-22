@@ -46,13 +46,13 @@ import io.crate.netty.NettyBootstrap;
 public class TransportActionProxyTests extends ESTestCase {
     protected ThreadPool threadPool;
     // we use always a non-alpha or beta version here otherwise minimumCompatibilityVersion will be different for the two used versions
-    private static final Version CURRENT_VERSION = Version.fromString(String.valueOf(Version.CURRENT.major) + ".0.0");
+    private static final Version CURRENT_VERSION = Version.fromId(Version.CURRENT.major * 1000000 + 99);
     protected static final Version version0 = CURRENT_VERSION.minimumCompatibilityVersion();
 
     protected DiscoveryNode nodeA;
     protected MockTransportService serviceA;
 
-    protected static final Version version1 = Version.fromId(CURRENT_VERSION.externalId + 1);
+    protected static final Version version1 = Version.fromId(CURRENT_VERSION.major * 1000000 + 199);
     protected DiscoveryNode nodeB;
     protected MockTransportService serviceB;
 

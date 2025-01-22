@@ -89,10 +89,9 @@ public final class OutboundHandler {
                             final String action,
                             final TransportRequest request,
                             final TransportRequestOptions options,
-                            final Version channelVersion,
                             final boolean compressRequest,
                             final boolean isHandshake) throws IOException, TransportException {
-        Version version = Version.min(this.version, channelVersion);
+        Version version = this.version;
         OutboundMessage.Request message = new OutboundMessage.Request(
             request,
             version,
@@ -110,14 +109,13 @@ public final class OutboundHandler {
      * objects back to the caller.
      *
      */
-    void sendResponse(final Version nodeVersion,
-                      final CloseableChannel channel,
+    void sendResponse(final CloseableChannel channel,
                       final long requestId,
                       final String action,
                       final TransportResponse response,
                       final boolean compress,
                       final boolean isHandshake) throws IOException {
-        Version version = Version.min(this.version, nodeVersion);
+        Version version = this.version;
         OutboundMessage.Response message = new OutboundMessage.Response(
             response,
             version,
@@ -132,12 +130,11 @@ public final class OutboundHandler {
     /**
      * Sends back an error response to the caller via the given channel
      */
-    void sendErrorResponse(final Version nodeVersion,
-                           final CloseableChannel channel,
+    void sendErrorResponse(final CloseableChannel channel,
                            final long requestId,
                            final String action,
                            final Exception error) throws IOException {
-        Version version = Version.min(this.version, nodeVersion);
+        Version version = this.version;
         TransportAddress address = new TransportAddress(channel.getLocalAddress());
         RemoteTransportException tx = new RemoteTransportException(nodeName, address, action, error);
         OutboundMessage.Response message = new OutboundMessage.Response(

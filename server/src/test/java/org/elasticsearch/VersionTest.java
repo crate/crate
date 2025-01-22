@@ -28,14 +28,33 @@ import org.junit.Test;
 public class VersionTest {
 
     @Test
-    public void test_compatible_current_version_is_compatible_to_4_0_0() {
-        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isFalse();
-        assertThat(Version.CURRENT.isCompatible(Version.V_5_0_0)).isTrue();
+    public void test_compatible_current_version() {
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_8_4)).isFalse();
+        assertThat(Version.CURRENT.isCompatible(Version.V_5_10_0)).isFalse();
+        // 5.10.1 is compatible with current version even that it's minimum compatibility version is lower
+        // -> real version precedes minimum compatibility version
+        assertThat(Version.CURRENT.isCompatible(Version.V_5_10_1)).isTrue();
+        // Current version is compatible with 5.10.1 as it's minimum compatibility version is compatible with 5.10.1
+        assertThat(Version.V_5_10_1.isCompatible(Version.CURRENT)).isTrue();
     }
 
     @Test
-    public void test_min_version_is_5_0_0() {
-        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_5_0_0);
+    public void test_min_version_is_5_10_1() {
+        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_5_10_1);
+    }
+
+    @Test
+    public void test_version_minimum_compatibility() {
+        assertThat(Version.fromString("2.0.0").minimumCompatibilityVersion()).isEqualTo(Version.fromString("1.1.0"));
+        assertThat(Version.fromString("3.0.0").minimumCompatibilityVersion()).isEqualTo(Version.fromString("2.3.0"));
+
+        assertThat(Version.V_4_0_0.minimumCompatibilityVersion()).isEqualTo(Version.fromString("3.0.0"));
+        assertThat(Version.V_4_1_0.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+
+        assertThat(Version.V_5_0_0.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+        assertThat(Version.V_5_10_1.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+
+        assertThat(Version.CURRENT.minimumCompatibilityVersion()).isEqualTo(Version.V_5_10_1);
     }
 
     @Test
