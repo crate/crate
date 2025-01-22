@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,7 +30,6 @@ import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.VersionUtils;
 
 public class InboundDecoderTests extends ESTestCase {
 
@@ -132,7 +130,7 @@ public class InboundDecoderTests extends ESTestCase {
     public void testDecodeHandshakeCompatibility() throws IOException {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
-        Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion().minimumCompatibilityVersion();
+        Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion();
         OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
             handshakeCompat, action, requestId, true, false);
 
@@ -217,7 +215,7 @@ public class InboundDecoderTests extends ESTestCase {
     public void testCompressedDecodeHandshakeCompatibility() throws IOException {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
-        Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion().minimumCompatibilityVersion();
+        Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion();
         OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
             handshakeCompat, action, requestId, true, true);
 
@@ -240,37 +238,5 @@ public class InboundDecoderTests extends ESTestCase {
         // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
         assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
-    }
-
-    public void testVersionIncompatibilityDecodeException() throws IOException {
-        String action = "test-request";
-        long requestId = randomNonNegativeLong();
-        Version incompatibleVersion = Version.fromString("3.2.0");
-        OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
-            incompatibleVersion, action, requestId, false, true);
-
-        final BytesReference bytes = message.serialize(new BytesStreamOutput());
-
-        InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
-        final ArrayList<Object> fragments = new ArrayList<>();
-        final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(bytes);
-        assertThatThrownBy(() -> decoder.decode(releasable1, fragments::add))
-            .isExactlyInstanceOf(IllegalStateException.class);
-        // No bytes are retained
-        assertThat(releasable1.refCount()).isEqualTo(1);
-    }
-
-    public void testEnsureVersionCompatibility() throws IOException {
-        IllegalStateException ise = InboundDecoder.ensureVersionCompatibility(VersionUtils.randomVersionBetween(random(),
-            Version.CURRENT.minimumCompatibilityVersion(), Version.CURRENT), Version.CURRENT, randomBoolean());
-        assertThat(ise).isNull();
-
-        final Version version = Version.fromString("4.0.0");
-        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("4.0.0"), version, true);
-        assertThat(ise).isNull();
-
-        ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("3.0.0"), version, false);
-        assertThat(ise.getMessage()).isEqualTo("Received message from unsupported version: [3.0.0] minimal compatible version is: ["
-            + version.minimumCompatibilityVersion() + "]");
     }
 }

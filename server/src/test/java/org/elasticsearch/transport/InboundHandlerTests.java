@@ -232,7 +232,7 @@ public class InboundHandlerTests extends ESTestCase {
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         final BytesReference responseBytesReference = Netty4Utils.toBytesReference(msg);
-        final Header responseHeader = InboundDecoder.readHeader(remoteVersion, responseBytesReference.length(), responseBytesReference);
+        final Header responseHeader = InboundDecoder.readHeader(responseBytesReference.length(), responseBytesReference);
         assertThat(responseHeader.isResponse()).isTrue();
         assertThat(responseHeader.isError()).isTrue();
     }
@@ -261,7 +261,7 @@ public class InboundHandlerTests extends ESTestCase {
             final AtomicBoolean isClosed = new AtomicBoolean();
             channel.addCloseListener(ActionListener.wrap(() -> assertThat(isClosed.compareAndSet(false, true)).isTrue()));
 
-            final Version remoteVersion = Version.fromId(randomIntBetween(0, version.minimumCompatibilityVersion().internalId - 1));
+            final Version remoteVersion = Version.fromId(randomIntBetween(5_00_00_00, version.minimumCompatibilityVersion().internalId - 1));
             final long requestId = randomNonNegativeLong();
             final Header requestHeader = new Header(between(0, 100), requestId,
                 TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), remoteVersion);
@@ -279,6 +279,130 @@ public class InboundHandlerTests extends ESTestCase {
         }
     }
 
+    @Test
+    public void test_handshake_precedes_stream_version_for_compatibility() throws Exception {
+        Version remoteVersion = Version.V_4_0_0;
+        int headerSize = TcpHeader.headerSize(remoteVersion);
+
+        final long requestId = randomNonNegativeLong();
+        final Header requestHeader = new Header(between(0, 100), requestId,
+            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), remoteVersion);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TransportHandshaker.HandshakeRequest(remoteVersion),
+            remoteVersion,
+            TransportHandshaker.HANDSHAKE_ACTION_NAME,
+            requestId,
+            true,
+            false
+        );
+
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_10_1);
+        ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
+        BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
+        Header responseHeader = InboundDecoder.readHeader(fullResponseBytes.length(), fullResponseBytes);
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
+
+        TransportHandshaker.HandshakeResponse response = new TransportHandshaker.HandshakeResponse(responseMessage.openOrGetStreamInput());
+        assertThat(response.getResponseVersion()).isEqualTo(Version.V_5_10_1);
+    }
+
+    /**
+     * Tests a handshake initiated by a newer node to an older node while the newer nodes minimum compatible version matches.
+     * <p/>
+     *  5.0.0 -> send handshake request -> 4.1.0       (4.1.0 accepts this as the minimum compatible version sent is 4.0.0)
+     *  4.1.0 -> send handshake response -> 5.0.0      (5.0.0 accepts this as the minimum compatible version defined is 4.0.0)
+     *
+     */
+    @Test
+    public void test_handshake_checks_minimum_compatible_version_if_normal_version_is_not_compatible() throws Exception {
+        Version localVersion = Version.V_4_1_0;
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
+        TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (n, c, r, v) -> {});
+        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
+        OutboundHandler outboundHandler = new OutboundHandler("node", localVersion, new StatsTracker(), threadPool,
+            BigArrays.NON_RECYCLING_INSTANCE);
+        InboundHandler handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive, requestHandlers,
+            responseHandlers);
+
+
+        int headerSize = TcpHeader.headerSize(localVersion);
+
+        final long requestId = randomNonNegativeLong();
+        final Header requestHeader = new Header(between(0, 100), requestId,
+            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), Version.V_5_0_0);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TransportHandshaker.HandshakeRequest(Version.V_5_0_0),
+            Version.V_5_0_0,
+            TransportHandshaker.HANDSHAKE_ACTION_NAME,
+            requestId,
+            true,
+            false
+        );
+
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        int responseHeaderSize = TcpHeader.headerSize(localVersion);
+        ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
+        BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
+        Header responseHeader = InboundDecoder.readHeader(fullResponseBytes.length(), fullResponseBytes);
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
+
+        TransportHandshaker.HandshakeResponse response = new TransportHandshaker.HandshakeResponse(responseMessage.openOrGetStreamInput());
+
+        assertThat(response.getResponseVersion()).isEqualTo(Version.V_4_1_0);
+    }
+
+    @Test
+    public void test_handshake_error_if_version_and_minimum_compatible_version_is_not_compatible() throws Exception {
+        Version remoteVersion = Version.fromString("3.3.0");
+        int headerSize = TcpHeader.headerSize(remoteVersion);
+
+        final long requestId = randomNonNegativeLong();
+        final Header requestHeader = new Header(between(0, 100), requestId,
+            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), remoteVersion);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TransportHandshaker.HandshakeRequest(remoteVersion),
+            remoteVersion,
+            TransportHandshaker.HANDSHAKE_ACTION_NAME,
+            requestId,
+            true,
+            false
+        );
+
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_0_0);
+        ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
+        BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
+        Header responseHeader = InboundDecoder.readHeader(fullResponseBytes.length(), fullResponseBytes);
+        assertThat(responseHeader.isError()).isTrue();
+
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
+        Exception exception = responseMessage.openOrGetStreamInput().readException();
+        assertThat(exception).isInstanceOf(RemoteTransportException.class);
+        assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
+        assertThat(exception.getCause().getMessage()).isEqualTo(
+            "Received handshake message from unsupported version: [3.3.0] minimal compatible version is: [4.0.0]");
+    }
+
+    @Test
     public void testLogsSlowInboundProcessing() throws Exception {
         final MockLogAppender mockAppender = new MockLogAppender();
         mockAppender.start();

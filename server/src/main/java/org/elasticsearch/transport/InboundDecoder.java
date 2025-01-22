@@ -19,17 +19,18 @@
 
 package org.elasticsearch.transport;
 
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
+import java.util.function.Consumer;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.PageCacheRecycler;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import java.io.IOException;
-import java.util.function.Consumer;
+import io.crate.common.io.IOUtils;
 
 public class InboundDecoder implements Releasable {
 
@@ -73,7 +74,7 @@ public class InboundDecoder implements Releasable {
                 } else {
                     totalNetworkSize = messageLength + TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE;
 
-                    Header header = readHeader(version, messageLength, reference);
+                    Header header = readHeader(messageLength, reference);
                     bytesConsumed += headerBytesToRead;
                     if (header.isCompressed()) {
                         decompressor = new TransportDecompressor(recycler);
@@ -168,23 +169,20 @@ public class InboundDecoder implements Releasable {
     }
 
     @VisibleForTesting
-    static Header readHeader(Version version, int networkMessageSize, BytesReference bytesReference) throws IOException {
+    static Header readHeader(int networkMessageSize, BytesReference bytesReference) throws IOException {
         try (StreamInput streamInput = bytesReference.streamInput()) {
             streamInput.skip(TcpHeader.BYTES_REQUIRED_FOR_MESSAGE_SIZE);
             long requestId = streamInput.readLong();
             byte status = streamInput.readByte();
             Version remoteVersion = Version.fromId(streamInput.readInt());
             Header header = new Header(networkMessageSize, requestId, status, remoteVersion);
-            final IllegalStateException invalidVersion = ensureVersionCompatibility(remoteVersion, version, header.isHandshake());
-            if (invalidVersion != null) {
-                throw invalidVersion;
-            } else {
-                if (remoteVersion.onOrAfter(TcpHeader.VERSION_WITH_HEADER_SIZE)) {
-                    // Skip since we already have ensured enough data available
-                    streamInput.readInt();
-                    header.finishParsingHeader(streamInput);
-                }
+
+            if (remoteVersion.onOrAfter(TcpHeader.VERSION_WITH_HEADER_SIZE)) {
+                // Skip since we already have ensured enough data available
+                streamInput.readInt();
+                header.finishParsingHeader(streamInput);
             }
+
             return header;
         }
     }
@@ -197,19 +195,5 @@ public class InboundDecoder implements Releasable {
         if (isClosed) {
             throw new IllegalStateException("Decoder is already closed");
         }
-    }
-
-    static IllegalStateException ensureVersionCompatibility(Version remoteVersion, Version currentVersion, boolean isHandshake) {
-        // for handshakes we are compatible with N-2 since otherwise we can't figure out our initial version
-        // since we are compatible with N-1 and N+1 so we always send our minCompatVersion as the initial version in the
-        // handshake. This looks odd but it's required to establish the connection correctly we check for real compatibility
-        // once the connection is established
-        final Version compatibilityVersion = isHandshake ? currentVersion.minimumCompatibilityVersion() : currentVersion;
-        if (remoteVersion.isCompatible(compatibilityVersion) == false) {
-            final Version minCompatibilityVersion = isHandshake ? compatibilityVersion : compatibilityVersion.minimumCompatibilityVersion();
-            String msg = "Received " + (isHandshake ? "handshake " : "") + "message from unsupported version: [";
-            return new IllegalStateException(msg + remoteVersion + "] minimal compatible version is: [" + minCompatibilityVersion + "]");
-        }
-        return null;
     }
 }
