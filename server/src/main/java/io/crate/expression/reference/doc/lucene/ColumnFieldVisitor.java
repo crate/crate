@@ -50,16 +50,16 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     private final Map<String, Field> fields = new HashMap<>();
     private final Set<ColumnIdent> droppedColumns;
     private final SourceParser storedSourceParser;
-    private final Version tableVersion;
+    private final Version shardVersion;
 
     /**
      * Creates a new ColumnFieldVisitor for the given table
      */
-    public ColumnFieldVisitor(DocTableInfo table) {
+    public ColumnFieldVisitor(DocTableInfo table, Version shardVersionCreated) {
         this.droppedColumns
             = table.droppedColumns().stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
         this.storedSourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), true);
-        this.tableVersion = table.versionCreated();
+        this.shardVersion = shardVersionCreated;
     }
 
     private record Field(StorageSupport<?> storageSupport, ColumnIdent column) implements Comparable<Field> {
@@ -127,7 +127,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        var v = field.decode(storedSourceParser, tableVersion, value);
+        var v = field.decode(storedSourceParser, shardVersion, value);
         this.doc.put(field, v);
     }
 
