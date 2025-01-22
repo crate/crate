@@ -25,10 +25,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
+import org.elasticsearch.common.lucene.search.Queries;
 
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyNeqOperator;
@@ -40,6 +44,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
 
 public final class AllEqOperator extends AllOperator<Object> {
 
@@ -95,6 +100,31 @@ public final class AllEqOperator extends AllOperator<Object> {
 
     @Override
     protected Query literalMatchesAllArrayRef(Function allEq, Literal<?> literal, Reference ref, LuceneQueryBuilder.Context context) {
+        if (ArrayType.dimensions(ref.valueType()) == 1 &&
+            context.tableInfo().versionCreated().onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
+            // 1 = all(array_ref) --> returns true for arrays satisfying the following conditions:
+            //   1) array_ref containing 1 only OR 2) empty
+            // where 1) is equivalent to `array_ref that does not contain null` AND `array_ref that does not contain values other than 1`
+            var arraysWithoutNullElementsQuery = ArrayIndexer.arraysWithoutNullElementsQuery(ref, context.tableInfo()::getReference);
+            if (arraysWithoutNullElementsQuery != null) {
+                var anyNeq = AnyNeqOperator.literalMatchesAnyArrayRef(literal, ref);
+                if (anyNeq != null) {
+                    var doesNotContainValuesOtherThanLiteral = Queries.not(anyNeq); // `not(array_ref > 1 || array_ref < 1)`
+                    var emptyArrays = ArrayIndexer.arrayLengthTermQuery(ref, 0, context.tableInfo()::getReference);
+                    return new BooleanQuery.Builder()
+                        .setMinimumNumberShouldMatch(1)
+                        // 1)
+                        .add(new BooleanQuery.Builder()
+                            .add(arraysWithoutNullElementsQuery, Occur.MUST)
+                            .add(doesNotContainValuesOtherThanLiteral, Occur.MUST)
+                            .build(), Occur.SHOULD)
+                        // 2)
+                        .add(emptyArrays, Occur.SHOULD)
+                        .build();
+                }
+            }
+        }
+
         // 1 = ALL(array_col)
         // --> 1 = array_col[1] and 1 = array_col[2] and 1 = array_col[3]
         // --> not(1 != array_col[1] or 1 != array_col[2] or 1 != array_col[3])
