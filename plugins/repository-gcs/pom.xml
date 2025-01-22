@@ -46,12 +46,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.api</groupId>
-            <artifactId>gax</artifactId>
-            <version>${versions.google.gax}</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-credentials</artifactId>
             <version>${versions.google.auth}</version>
