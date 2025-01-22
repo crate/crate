@@ -347,7 +347,7 @@
     <versions.google.gax>2.43.0</versions.google.gax>
     <versions.google.auth>1.23.0</versions.google.auth>
     <versions.google.oauth2>1.23.0</versions.google.oauth2>
-    <versions.google.cloud.storage>1.113.1</versions.google.cloud.storage>
+    <versions.google.cloud.storage>2.47.0</versions.google.cloud.storage>
     <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
     <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
