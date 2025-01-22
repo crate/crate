@@ -424,6 +424,10 @@ public class Version implements Comparable<Version> {
     public final byte build;
     public final org.apache.lucene.util.Version luceneVersion;
 
+    // lazy initialized because we don't yet have the declared versions ready when instantiating the cached Version
+    // instances
+    private Version minCompatVersion;
+
     Version(int internalId, boolean isSnapshot, org.apache.lucene.util.Version luceneVersion) {
         this(internalId, internalId - INTERNAL_OFFSET, isSnapshot, luceneVersion);
     }
@@ -494,7 +498,6 @@ public class Version implements Comparable<Version> {
         static final List<Version> DECLARED_VERSIONS = Collections.unmodifiableList(getDeclaredVersions(Version.class));
     }
 
-
     /**
      * Returns the minimum compatible version based on the current
      * version. Ie a node needs to have at least the return version in order
@@ -503,7 +506,34 @@ public class Version implements Comparable<Version> {
      * is a beta or RC release then the version itself is returned.
      */
     public Version minimumCompatibilityVersion() {
-        return V_4_0_0;
+        Version res = minCompatVersion;
+        if (res == null) {
+            res = computeMinCompatVersion();
+            minCompatVersion = res;
+        }
+        return res;
+    }
+
+    private Version computeMinCompatVersion() {
+        int crateDBMajor = major - (INTERNAL_OFFSET / 1_00_00_00);
+        assert crateDBMajor >= 2 : "only CrateDB 2.x and later versions are supported";
+
+        if (crateDBMajor == 2) {
+            return Version.fromString("1.1.0");
+        } else if (crateDBMajor == 3) {
+            return Version.fromString("2.3.0");
+        } else if (crateDBMajor == 4) {
+            if (minor >= 1) {
+                // CrateDB >= 4.1 is only compatible with CrateDB 4.0, while 4.0 is compatible with 3.x (default)
+                return Version.V_4_0_0;
+            }
+        } else if (crateDBMajor == 6) {
+            // CrateDB 6 is only compatible with CrateDB 5.10.1 onwards due to a handshake compatibility issue
+            return Version.V_5_10_1;
+        }
+
+        // By default, CrateDB is always compatible with the previous major initial (x.0.0) version release
+        return Version.fromId((major - 1) * 1000000 + 99);
     }
 
     /**
@@ -521,7 +551,11 @@ public class Version implements Comparable<Version> {
      * Returns <code>true</code> iff both version are compatible. Otherwise <code>false</code>
      */
     public boolean isCompatible(Version version) {
-        boolean compatible = onOrAfter(version.minimumCompatibilityVersion())
+        return isCompatible(version, version.minimumCompatibilityVersion());
+    }
+
+    public boolean isCompatible(Version version, Version minimumCompatibilityVersion) {
+        boolean compatible = onOrAfter(minimumCompatibilityVersion)
             && version.onOrAfter(minimumCompatibilityVersion());
 
         assert compatible == false || Math.max(major, version.major) - Math.min(major, version.major) <= 1;

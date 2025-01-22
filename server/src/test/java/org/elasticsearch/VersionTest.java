@@ -38,6 +38,24 @@ public class VersionTest {
     }
 
     @Test
+    public void test_compatible_current_version() {
+        assertThat(Version.CURRENT.isCompatible(Version.fromString("3.3.0"))).isFalse();
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0)).isTrue();
+    }
+
+    @Test
+    public void test_version_minimum_compatibility() {
+        assertThat(Version.fromString("2.0.0").minimumCompatibilityVersion()).isEqualTo(Version.fromString("1.1.0"));
+        assertThat(Version.fromString("3.0.0").minimumCompatibilityVersion()).isEqualTo(Version.fromString("2.3.0"));
+
+        assertThat(Version.V_4_0_0.minimumCompatibilityVersion()).isEqualTo(Version.fromString("3.0.0"));
+        assertThat(Version.V_4_1_0.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+
+        assertThat(Version.V_5_0_0.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+        assertThat(Version.V_5_10_1.minimumCompatibilityVersion()).isEqualTo(Version.V_4_0_0);
+    }
+
+    @Test
     public void test_can_parse_next_patch_release_version() {
         int internalId = Version.CURRENT.internalId + 100;
         Version futureVersion = Version.fromId(internalId);

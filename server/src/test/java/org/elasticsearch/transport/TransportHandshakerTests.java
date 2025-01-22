@@ -75,7 +75,7 @@ public class TransportHandshakerTests extends ESTestCase {
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
-        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
+        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT);
 
         assertThat(versionFuture.isDone()).isFalse();
 
@@ -95,11 +95,25 @@ public class TransportHandshakerTests extends ESTestCase {
     }
 
     @Test
+    public void test_handshake_request_includes_minimumCompatibilityVersion() throws Exception {
+        TransportHandshaker.HandshakeRequest handshakeRequest = new TransportHandshaker.HandshakeRequest(Version.CURRENT);
+        BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
+        handshakeRequest.writeTo(bytesStreamOutput);
+        StreamInput streamInput = bytesStreamOutput.bytes().streamInput();
+        TaskId.readFromStream(streamInput);
+
+        try (StreamInput messageInput = streamInput.readBytesReference().streamInput()) {
+            Version minimumCompatibilityVersion = Version.fromId(messageInput.readVInt());
+            assertThat(minimumCompatibilityVersion).isEqualTo(Version.CURRENT.minimumCompatibilityVersion());
+        }
+    }
+
+    @Test
     public void testHandshakeRequestFutureVersionsCompatibility() throws Exception {
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), new FutureActionListener<>());
 
-        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
+        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT);
 
         TransportHandshaker.HandshakeRequest handshakeRequest = new TransportHandshaker.HandshakeRequest(Version.CURRENT);
         BytesStreamOutput currentHandshakeBytes = new BytesStreamOutput();
@@ -110,7 +124,7 @@ public class TransportHandshakerTests extends ESTestCase {
         TaskId.EMPTY_TASK_ID.writeTo(lengthCheckingHandshake);
         TaskId.EMPTY_TASK_ID.writeTo(futureHandshake);
         try (BytesStreamOutput internalMessage = new BytesStreamOutput()) {
-            Version.writeVersion(Version.CURRENT, internalMessage);
+            Version.writeVersion(Version.CURRENT.minimumCompatibilityVersion(), internalMessage);
             lengthCheckingHandshake.writeBytesReference(internalMessage.bytes());
             internalMessage.write(new byte[1024]);
             futureHandshake.writeBytesReference(internalMessage.bytes());
@@ -136,7 +150,7 @@ public class TransportHandshakerTests extends ESTestCase {
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
-        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
+        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT);
 
         assertThat(versionFuture.isDone()).isFalse();
 
@@ -154,8 +168,7 @@ public class TransportHandshakerTests extends ESTestCase {
     public void testSendRequestThrowsException() throws IOException {
         FutureActionListener<Version> versionFuture = new FutureActionListener<>();
         long reqId = randomLongBetween(1, 10);
-        Version compatibilityVersion = Version.CURRENT.minimumCompatibilityVersion();
-        doThrow(new IOException("boom")).when(requestSender).sendRequest(node, channel, reqId, compatibilityVersion);
+        doThrow(new IOException("boom")).when(requestSender).sendRequest(node, channel, reqId, Version.CURRENT);
 
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(30, TimeUnit.SECONDS), versionFuture);
 
@@ -173,7 +186,7 @@ public class TransportHandshakerTests extends ESTestCase {
         long reqId = randomLongBetween(1, 10);
         handshaker.sendHandshake(reqId, node, channel, new TimeValue(100, TimeUnit.MILLISECONDS), versionFuture);
 
-        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
+        verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT);
 
         assertThatThrownBy(versionFuture::get)
             .cause()
