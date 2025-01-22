@@ -19,7 +19,7 @@ Version 6.0.0 - Unreleased
     We recommend that you upgrade to the latest 5.10 release before moving to
     6.0.0.
 
-    A rolling upgrade from 5.10.x to 6.0.0 is supported.
+    A rolling upgrade from >= 5.10.1 to 6.0.0 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::

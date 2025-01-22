@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.io.StreamCorruptedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -187,25 +188,11 @@ public class InboundPipelineTests extends ESTestCase {
         final InboundPipeline pipeline = new InboundPipeline(statsTracker, millisSupplier, decoder, aggregator, messageHandler);
 
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
-            String actionName = "actionName";
-            final Version invalidVersion = Version.fromString("3.2.0");
-            final String value = randomAlphaOfLength(1000);
-            final boolean isRequest = randomBoolean();
-            final long requestId = randomNonNegativeLong();
-
-            OutboundMessage message;
-            if (isRequest) {
-                message = new OutboundMessage.Request(new TestRequest(value),
-                    invalidVersion, actionName, requestId, false, false);
-            } else {
-                message = new OutboundMessage.Response(new TestResponse(value),
-                    invalidVersion, requestId, false, false);
-            }
-
-            final BytesReference reference = message.serialize(streamOutput);
+            streamOutput.writeString("broken header");
+            BytesReference reference = streamOutput.bytes();
             try (ReleasableBytesReference releasable = ReleasableBytesReference.wrap(reference)) {
                 assertThatThrownBy(() -> pipeline.handleBytes(fakeChannel(), releasable))
-                    .isExactlyInstanceOf(IllegalStateException.class);
+                    .isExactlyInstanceOf(StreamCorruptedException.class);
             }
 
             // Pipeline cannot be reused after uncaught exception
