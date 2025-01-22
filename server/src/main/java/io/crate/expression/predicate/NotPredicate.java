@@ -22,7 +22,6 @@
 package io.crate.expression.predicate;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.search.BooleanClause;
@@ -32,14 +31,12 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Input;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -51,7 +48,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
@@ -91,7 +87,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args.length == 1 : "number of args must be 1";
         Boolean value = args[0].value();
         return value != null ? !value : null;
@@ -244,23 +241,5 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             return builder.build();
         }
         return notX;
-    }
-
-    /**
-     * i.e.:: countEmptyArrays('a != [1] AND a != []', a)
-     *        => [] != [1] AND [] != []
-     *        => true AND false
-     *        => false => do not need to count empty arrays since the query will evaluate it to false.
-     */
-    private static boolean countEmptyArrays(Symbol query, Reference reference, LuceneQueryBuilder.Context context) {
-        if (!DataTypes.isArray(reference.valueType())) {
-            return false;
-        }
-        var querySymbolReplacedRefs = RefReplacer.replaceRefs(
-            query,
-            r -> r.equals(reference) ? Literal.of(new ArrayType<>(r.valueType()), List.of()) : r
-        );
-        var evaluated = SymbolEvaluator.evaluateWithoutParams(context.transactionContext(), context.nodeContext(), querySymbolReplacedRefs);
-        return !(evaluated instanceof Boolean b) || b;
     }
 }
