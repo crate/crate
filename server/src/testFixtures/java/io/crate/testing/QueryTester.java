@@ -72,6 +72,7 @@ public final class QueryTester implements AutoCloseable {
     private final BiFunction<String, Object[], Symbol> expressionToSymbol;
     private final Function<Symbol, Query> symbolToQuery;
     private final IndexEnv indexEnv;
+    private final DocTableInfo tableInfo;
 
     public static class Builder {
 
@@ -80,6 +81,7 @@ public final class QueryTester implements AutoCloseable {
         private final PlannerContext plannerContext;
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
+        private final Version indexVersion;
 
         public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
@@ -114,7 +116,8 @@ public final class QueryTester implements AutoCloseable {
                 sqlExecutor.nodeCtx,
                 threadPool,
                 table,
-                clusterService.state(), indexVersion
+                clusterService.state(),
+                indexVersion
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
             var docTableRelation = new DocTableRelation(table);
@@ -122,6 +125,7 @@ public final class QueryTester implements AutoCloseable {
                 Collections.singletonMap(table.ident(), docTableRelation),
                 docTableRelation
             );
+            this.indexVersion = indexVersion;
         }
 
         public Builder indexValues(String column, Object ... values) throws IOException {
@@ -135,7 +139,7 @@ public final class QueryTester implements AutoCloseable {
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
-                Version.CURRENT,
+                indexVersion,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
@@ -151,7 +155,7 @@ public final class QueryTester implements AutoCloseable {
             Indexer indexer = new Indexer(
                 table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
-                Version.CURRENT,
+                indexVersion,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
@@ -180,7 +184,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(() -> StoredRowLookup.create(Version.CURRENT, table, indexEnv.luceneReferenceResolver().getIndexName())),
+                new CollectorContext(() -> StoredRowLookup.create(indexVersion, table, indexEnv.luceneReferenceResolver().getIndexName())),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
@@ -211,9 +215,10 @@ public final class QueryTester implements AutoCloseable {
                     indexEnv.indexService().index().getName(),
                     indexEnv.indexService().indexAnalyzers(),
                     table,
-                    Version.CURRENT,
+                    indexVersion,
                     indexEnv.queryCache()
                 ).query(),
+                table,
                 indexEnv
             );
         }
@@ -222,11 +227,17 @@ public final class QueryTester implements AutoCloseable {
     private QueryTester(BiFunction<ColumnIdent, Query, LuceneBatchIterator> getIterator,
                         BiFunction<String, Object[], Symbol> expressionToSymbol,
                         Function<Symbol, Query> symbolToQuery,
+                        DocTableInfo tableInfo,
                         IndexEnv indexEnv) {
         this.getIterator = getIterator;
         this.expressionToSymbol = expressionToSymbol;
         this.symbolToQuery = symbolToQuery;
+        this.tableInfo = tableInfo;
         this.indexEnv = indexEnv;
+    }
+
+    public DocTableInfo tableInfo() {
+        return tableInfo;
     }
 
     public IndexSearcher searcher() throws IOException {

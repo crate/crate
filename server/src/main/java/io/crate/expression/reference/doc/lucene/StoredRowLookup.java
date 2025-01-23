@@ -158,7 +158,7 @@ public abstract class StoredRowLookup implements StoredRow {
         // On build source map, load via StoredFieldsVisitor and pass to SourceParser
         @Override
         public Map<String, Object> asMap() {
-            if (docVisited == false) {
+            if (parsedSource == null) {
                 parsedSource = partitionValueInjector.injectValues(sourceParser.parse(loadStoredFields()));
             }
             return parsedSource;
@@ -166,11 +166,8 @@ public abstract class StoredRowLookup implements StoredRow {
 
         @Override
         public String asRaw() {
-            if (docVisited == false) {
-                loadStoredFields();
-            }
             try {
-                return CompressorFactory.uncompressIfNeeded(fieldsVisitor.source()).utf8ToString();
+                return CompressorFactory.uncompressIfNeeded(loadStoredFields()).utf8ToString();
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to decompress source", e);
             }
@@ -179,8 +176,10 @@ public abstract class StoredRowLookup implements StoredRow {
 
         private BytesReference loadStoredFields() {
             try {
-                readerContext.visitDocument(doc, fieldsVisitor);
-                docVisited = true;
+                if (docVisited == false) {
+                    readerContext.visitDocument(doc, fieldsVisitor);
+                    docVisited = true;
+                }
                 return fieldsVisitor.source();
             } catch (IOException e) {
                 throw new RuntimeException(e);
