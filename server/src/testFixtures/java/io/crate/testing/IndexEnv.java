@@ -71,7 +71,8 @@ public final class IndexEnv implements AutoCloseable {
     public IndexEnv(NodeContext nodeContext,
                     ThreadPool threadPool,
                     DocTableInfo table,
-                    ClusterState clusterState, Version indexVersion) throws IOException {
+                    ClusterState clusterState,
+                    Version indexVersion) throws IOException {
         String indexName = table.ident().indexNameOrAlias();
         assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 
