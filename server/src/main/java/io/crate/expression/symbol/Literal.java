@@ -21,6 +21,9 @@
 
 package io.crate.expression.symbol;
 
+import static io.crate.types.DataTypes.UNDEFINED;
+import static io.crate.types.DataTypes.guessType;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +41,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
 
+import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
@@ -269,5 +273,17 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
 
     public static Literal<Period> newInterval(Period value) {
         return new Literal<>(DataTypes.INTERVAL, value);
+    }
+
+    public static Literal<?> childOf(Literal<Map<String, Object>> objectLiteral, List<String> path) {
+        assert objectLiteral.valueType().id() == ObjectType.ID : "An object literal expected";
+        ObjectType objectType = (ObjectType) objectLiteral.valueType();
+        DataType<?> childType = objectType.innerType(path);
+        Object childValue = Maps.getByPath(objectLiteral.value(), path);
+        if (childType.id() == UNDEFINED.id()) {
+            // TODO: inner types are missing when the parent object type is returned from a function
+            childType = guessType(childValue);
+        }
+        return Literal.ofUnchecked(childType, childValue);
     }
 }

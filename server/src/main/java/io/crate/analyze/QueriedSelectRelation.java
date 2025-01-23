@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
@@ -34,10 +35,13 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 public class QueriedSelectRelation implements AnalyzedRelation {
 
@@ -97,6 +101,30 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (match != null || column.isRoot()) {
             return match;
         }
+
+        // Try to optimize child-column access from aliased object literals
+        // i.e. allow resolving o['a'] from `select o['a'] from (select {a=1} as o) t2;`
+        for (ColumnIdent parent = column.getParent(); parent != null; parent = parent.getParent()) {
+            for (Symbol output : outputs()) {
+                if (!output.toColumn().sqlFqn().startsWith(parent.sqlFqn())) {
+                    continue;
+                }
+                if (output instanceof AliasSymbol aliasSymbol && aliasSymbol.symbol() instanceof Literal<?> literal &&
+                    literal.valueType().id() == ObjectType.ID) {
+                    Literal<?> childLiteral = Literal.childOf((Literal<Map<String, Object>>) literal, column.path());
+                    if (childLiteral.valueType().id() != UndefinedType.ID) {
+                        if (match != null) {
+                            throw new AmbiguousColumnException(column, output);
+                        }
+                        match = childLiteral;
+                    }
+                }
+            }
+        }
+        if (match != null) {
+            return match;
+        }
+
         ColumnIdent root = column.getRoot();
 
         // Try to optimize child-column access to use a Reference instead of a subscript function

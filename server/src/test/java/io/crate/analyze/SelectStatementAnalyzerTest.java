@@ -2976,4 +2976,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             output -> assertThat(output.valueType()).isEqualTo(makeArray(DataTypes.INTEGER, 2))
         );
     }
+
+    @Test
+    public void test_access_child_column_of_aliased_object_literal() {
+        var executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation relation = executor.analyze("select o['a'] from (select {a=1} as o) t2");
+        assertThat(relation.outputs()).satisfiesExactly(
+            output -> assertThat(output).isScopedSymbol("o['a']").hasDataType(DataTypes.INTEGER)
+        );
+    }
+
+    @Test
+    public void test_access_ambiguous_child_column_of_aliased_object_literal() {
+        var executor = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> executor.analyze("select o['a'] from (select {a=1} as o, {a='abc'} as o) t2"))
+            .isExactlyInstanceOf(AmbiguousColumnException.class)
+            .hasMessage("Column \"o['a']\" is ambiguous");
+    }
 }
