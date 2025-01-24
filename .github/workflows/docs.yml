@@ -14,17 +14,27 @@ jobs:
   linkcheck:
     name: Sphinx linkcheck
     runs-on: ubuntu-latest
+    env:
+      UV_SYSTEM_PYTHON: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.13
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: |
+            blackbox/requirements.txt
+          enable-cache: true
+          version: "latest"
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install -r blackbox/requirements.txt
+          uv pip install --upgrade pip setuptools
+          uv pip install -r blackbox/requirements.txt
 
       - name: Run linkcheck
         run: |
