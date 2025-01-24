@@ -1,7 +1,7 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way you think it should
 labels:
-  - triage
+  - triage, bug
 body:
   - type: input
     id: cratedb_version
