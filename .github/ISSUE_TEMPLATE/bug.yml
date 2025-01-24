@@ -1,8 +1,11 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way you think it should
+projects:
+  - crate/21
 labels:
   - triage
   - bug
+
 body:
   - type: input
     id: cratedb_version
@@ -11,6 +14,7 @@ body:
       placeholder: 4.6.1
     validations:
       required: true
+
   - type: textarea
     id: config
     attributes:
