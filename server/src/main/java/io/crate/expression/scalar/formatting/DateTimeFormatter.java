@@ -44,22 +44,38 @@ import io.crate.common.collections.Lists;
 
 public class DateTimeFormatter {
 
-    private enum Token {
+
+    public enum Token {
         HOUR_OF_DAY("HH"),
+        HOUR_OF_DAY_LOWER("hh"),
         HOUR_OF_DAY12("HH12"),
+        HOUR_OF_DAY12_LOWER("hh12"),
         HOUR_OF_DAY24("HH24"),
+        HOUR_OF_DAY24_LOWER("hh24"),
         MINUTE("MI"),
+        MINUTE_LOWER("mi"),
         SECOND("SS"),
+        SECOND_LOWER("ss"),
         MILLISECOND("MS"),
+        MILLISECOND_LOWER("ms"),
         MICROSECOND("US"),
+        MICROSECOND_LOWER("us"),
         TENTH_OF_SECOND("FF1"),
+        TENTH_OF_SECOND_LOWER("ff1"),
         HUNDREDTH_OF_SECOND("FF2"),
+        HUNDREDTH_OF_SECOND_LOWER("ff2"),
         MILLISECOND_FF("FF3"),
+        MILLISECOND_FF_LOWER("ff3"),
         TENTH_OF_MILLISECOND("FF4"),
+        TENTH_OF_MILLISECOND_LOWER("ff4"),
         HUNDREDTH_OF_MILLISECOND("FF5"),
+        HUNDREDTH_OF_MILLISECOND_LOWER("ff5"),
         MICROSECOND_FF("FF6"),
+        MICROSECOND_FF_LOWER("ff6"),
         SECONDS_PAST_MIDNIGHT("SSSS"),
+        SECONDS_PAST_MIDNIGHT_LOWER("ssss"),
         SECONDS_PAST_MIDNIGHT_S("SSSSS"),
+        SECONDS_PAST_MIDNIGHT_S_LOWER("sssss"),
         AM_UPPER("AM"),
         AM_LOWER("am"),
         PM_UPPER("PM"),
@@ -69,15 +85,23 @@ public class DateTimeFormatter {
         P_M_UPPER("P.M."),
         P_M_LOWER("p.m."),
         YEAR_WITH_COMMA("Y,YYY"),
+        YEAR_WITH_COMMA_LOWER("y,yyy"),
         YEAR_YYYY("YYYY"),
         YEAR_LOWER_YYYY("yyyy"),
         YEAR_YYY("YYY"),
+        YEAR_YYY_LOWER("yyy"),
         YEAR_YY("YY"),
+        YEAR_YY_LOWER("yy"),
         YEAR_Y("Y"),
+        YEAR_Y_LOWER("y"),
         ISO_YEAR_YYY("IYYY"),
+        ISO_YEAR_YYY_LOWER("iyyy"),
         ISO_YEAR_YY("IYY"),
+        ISO_YEAR_YY_LOWER("iyy"),
         ISO_YEAR_Y("IY"),
+        ISO_YEAR_Y_LOWER("iy"),
         ISO_YEAR("I"),
+        ISO_YEAR_LOWER("i"),
         BC_ERA_UPPER("BC"),
         BC_ERA_LOWER("bc"),
         AD_ERA_UPPER("AD"),
@@ -93,6 +117,7 @@ public class DateTimeFormatter {
         ABBREVIATED_MONTH_CAPITALIZED("Mon"),
         ABBREVIATED_MONTH_LOWER("mon"),
         MONTH_NUMBER("MM"),
+        MONTH_NUMBER_LOWER("mm"),
         DAY_UPPER("DAY"),
         DAY_CAPITALIZED("Day"),
         DAY_LOWER("day"),
@@ -100,23 +125,37 @@ public class DateTimeFormatter {
         ABBREVIATED_DAY_CAPITALIZED("Dy"),
         ABBREVIATED_DAY_LOWER("dy"),
         DAY_OF_YEAR("DDD"),
+        DAY_OF_YEAR_LOWER("ddd"),
         DAY_OF_ISO_WEEK_NUMBERING_YEAR("IDDD"),
+        DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER("iddd"),
         DAY_OF_MONTH("DD"),
+        DAY_OF_MONTH_LOWER("dd"),
         DAY_OF_WEEK("D"),
+        DAY_OF_WEEK_LOWER("d"),
         ISO_DAY_OF_WEEK("ID"),
+        ISO_DAY_OF_WEEK_LOWER("id"),
         WEEK_OF_MONTH("W"),
+        WEEK_OF_MONTH_LOWER("w"),
         WEEK_NUMBER_OF_YEAR("WW"),
+        WEEK_NUMBER_OF_YEAR_LOWER("ww"),
         WEEK_NUMBER_OF_ISO_YEAR("IW"),
+        WEEK_NUMBER_OF_ISO_YEAR_LOWER("iw"),
         CENTURY("CC"),
+        CENTURY_LOW("cc"),
         JULIAN_DAY("J"),
+        JULIAN_DAY_LOWER("j"),
         QUARTER("Q"),
+        QUARTER_LOWER("q"),
         ROMAN_MONTH_UPPER("RM"),
         ROMAN_MONTH_LOWER("rm"),
         TIMEZONE_UPPER("TZ"),
         TIMEZONE_LOWER("tz"),
         TIMEZONE_HOURS("TZH"),
+        TIMEZONE_HOURS_LOWER("tzh"),
         TIMEZONE_MINUTES("TZM"),
-        TIMEZONE_OFFSET_FROM_UTC("OF"),;
+        TIMEZONE_MINUTES_LOWER("tzm"),
+        TIMEZONE_OFFSET_FROM_UTC("OF"),
+        TIMEZONE_OFFSET_FROM_UTC_LOWER("of");
 
         private final String token;
 
@@ -268,7 +307,7 @@ public class DateTimeFormatter {
 
     private static String getElement(Token token, LocalDateTime datetime) {
         Object element = switch (token) {
-            case HOUR_OF_DAY, HOUR_OF_DAY12 -> {
+            case HOUR_OF_DAY, HOUR_OF_DAY12, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12_LOWER -> {
                 if (datetime.getHour() >= 12) {
                     yield padStart(
                         String.valueOf(datetime.getHour() - 12),
@@ -278,18 +317,18 @@ public class DateTimeFormatter {
                     yield padStart(String.valueOf(datetime.getHour()), 2, '0');
                 }
             }
-            case HOUR_OF_DAY24 -> padStart(String.valueOf(datetime.getHour()), 2, '0');
-            case MINUTE -> padStart(String.valueOf(datetime.getMinute()), 2, '0');
-            case SECOND -> padStart(String.valueOf(datetime.getSecond()), 2, '0');
-            case MILLISECOND -> padStart(String.valueOf(datetime.getNano() / 1000000), 3, '0');
-            case MICROSECOND -> padStart(String.valueOf(datetime.getNano() / 1000), 6, '0');
-            case TENTH_OF_SECOND -> datetime.getNano() / 100000000;
-            case HUNDREDTH_OF_SECOND -> datetime.getNano() / 10000000;
-            case MILLISECOND_FF -> datetime.getNano() / 1000000;
-            case TENTH_OF_MILLISECOND -> datetime.getNano() / 100000;
-            case HUNDREDTH_OF_MILLISECOND -> datetime.getNano() / 10000;
-            case MICROSECOND_FF -> datetime.getNano() / 1000;
-            case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_S -> {
+            case HOUR_OF_DAY24, HOUR_OF_DAY24_LOWER -> padStart(String.valueOf(datetime.getHour()), 2, '0');
+            case MINUTE, MINUTE_LOWER -> padStart(String.valueOf(datetime.getMinute()), 2, '0');
+            case SECOND, SECOND_LOWER -> padStart(String.valueOf(datetime.getSecond()), 2, '0');
+            case MILLISECOND, MILLISECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000000), 3, '0');
+            case MICROSECOND, MICROSECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000), 6, '0');
+            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> datetime.getNano() / 100000000;
+            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> datetime.getNano() / 10000000;
+            case MILLISECOND_FF, MILLISECOND_FF_LOWER -> datetime.getNano() / 1000000;
+            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> datetime.getNano() / 100000;
+            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> datetime.getNano() / 10000;
+            case MICROSECOND_FF, MICROSECOND_FF_LOWER -> datetime.getNano() / 1000;
+            case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_LOWER, SECONDS_PAST_MIDNIGHT_S_LOWER -> {
                 Instant midnight = datetime.toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC);
                 yield String.valueOf(Duration.between(midnight, datetime.toInstant(ZoneOffset.UTC)).getSeconds());
             }
@@ -297,33 +336,33 @@ public class DateTimeFormatter {
             case AM_LOWER, PM_LOWER -> datetime.getHour() >= 12 ? "pm" : "am";
             case A_M_UPPER, P_M_UPPER -> datetime.getHour() >= 12 ? "P.M." : "A.M.";
             case A_M_LOWER, P_M_LOWER -> datetime.getHour() >= 12 ? "p.m." : "a.m.";
-            case YEAR_WITH_COMMA -> {
+            case YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> {
                 String s = String.valueOf(datetime.getYear());
                 yield s.substring(0, 1) + "," + s.substring(1);
             }
             case YEAR_YYYY, YEAR_LOWER_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
-            case YEAR_YYY -> {
+            case YEAR_YYY, YEAR_YYY_LOWER -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 3);
             }
-            case YEAR_YY -> {
+            case YEAR_YY, YEAR_YY_LOWER -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 2);
             }
-            case YEAR_Y -> {
+            case YEAR_Y, YEAR_Y_LOWER -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 1);
             }
-            case ISO_YEAR_YYY -> String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
-            case ISO_YEAR_YY -> {
+            case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER -> String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
+            case ISO_YEAR_YY, ISO_YEAR_YY_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
                 yield s.substring(s.length() - 3);
             }
-            case ISO_YEAR_Y -> {
+            case ISO_YEAR_Y, ISO_YEAR_Y_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
                 yield s.substring(s.length() - 2);
             }
-            case ISO_YEAR -> {
+            case ISO_YEAR, ISO_YEAR_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
                 yield s.substring(s.length() - 1);
             }
@@ -350,7 +389,7 @@ public class DateTimeFormatter {
                     datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
                 );
             case ABBREVIATED_MONTH_LOWER -> datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
-            case MONTH_NUMBER -> padStart(
+            case MONTH_NUMBER, MONTH_NUMBER_LOWER -> padStart(
                     String.valueOf(datetime.getMonth().getValue()),
                     2,
                     '0'
@@ -373,38 +412,38 @@ public class DateTimeFormatter {
                     datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
                 );
             case ABBREVIATED_DAY_LOWER -> datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
-            case DAY_OF_YEAR -> padStart(
+            case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> padStart(
                     String.valueOf(datetime.getDayOfYear()),
                     3,
                     '0'
                 );
-            case DAY_OF_ISO_WEEK_NUMBERING_YEAR -> padStart(
+            case DAY_OF_ISO_WEEK_NUMBERING_YEAR, DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER -> padStart(
                     String.valueOf(
                         ((datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) - 1) * 7) + datetime.getDayOfWeek().getValue()),
                     3,
                     '0'
                 );
-            case DAY_OF_MONTH -> padStart(
+            case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> padStart(
                     String.valueOf(datetime.getDayOfMonth()),
                     2,
                     '0'
                 );
-            case DAY_OF_WEEK -> (datetime.getDayOfWeek().getValue() % 7) + 1;
-            case ISO_DAY_OF_WEEK -> datetime.getDayOfWeek().getValue();
-            case WEEK_OF_MONTH -> (datetime.getDayOfMonth() / 7) + 1;
-            case WEEK_NUMBER_OF_YEAR -> padStart(
+            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> (datetime.getDayOfWeek().getValue() % 7) + 1;
+            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> datetime.getDayOfWeek().getValue();
+            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> (datetime.getDayOfMonth() / 7) + 1;
+            case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> padStart(
                     String.valueOf(datetime.get(WEEK_OF_YEAR)),
                     2,
                     '0'
                 );
-            case WEEK_NUMBER_OF_ISO_YEAR -> padStart(
+            case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> padStart(
                     String.valueOf(datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)),
                     2,
                     '0'
                 );
-            case CENTURY -> ((datetime.getYear() - 1) / 100) + 1;
-            case JULIAN_DAY -> datetime.getLong(JulianFields.JULIAN_DAY);
-            case QUARTER -> (datetime.getMonthValue() + 2) / 3;
+            case CENTURY, CENTURY_LOW -> ((datetime.getYear() - 1) / 100) + 1;
+            case JULIAN_DAY, JULIAN_DAY_LOWER -> datetime.getLong(JulianFields.JULIAN_DAY);
+            case QUARTER, QUARTER_LOWER -> (datetime.getMonthValue() + 2) / 3;
             case ROMAN_MONTH_UPPER -> padEnd(
                     toRoman(datetime.getMonthValue()).toUpperCase(Locale.ENGLISH),
                     4,
@@ -415,7 +454,14 @@ public class DateTimeFormatter {
                     4,
                     ' '
                 );
-            case TIMEZONE_UPPER, TIMEZONE_LOWER, TIMEZONE_HOURS, TIMEZONE_MINUTES, TIMEZONE_OFFSET_FROM_UTC -> "";
+            case TIMEZONE_UPPER,
+                 TIMEZONE_LOWER,
+                 TIMEZONE_HOURS,
+                 TIMEZONE_HOURS_LOWER,
+                 TIMEZONE_MINUTES,
+                 TIMEZONE_MINUTES_LOWER,
+                 TIMEZONE_OFFSET_FROM_UTC,
+                 TIMEZONE_OFFSET_FROM_UTC_LOWER -> "";
             default -> "";
         };
 
