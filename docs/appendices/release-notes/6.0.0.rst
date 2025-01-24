@@ -60,6 +60,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added support for lower case format patterns to the
+  :ref:`to_char <scalar-to_char>` scalar function.
+
 Data Types
 ----------
 
