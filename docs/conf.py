@@ -25,6 +25,7 @@ extensions.append('crate.sphinx.csv')
 
 linkcheck_ignore = [
     'https://www.iso.org/obp/ui/.*',  # Breaks accessibility via JS ¯\_(ツ)_/¯
+    'https://dev.mysql.com/.*',  # 403 Client Error: Forbidden for url
 ]
 linkcheck_retries = 3
 
