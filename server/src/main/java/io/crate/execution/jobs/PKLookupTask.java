@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -60,7 +61,7 @@ public final class PKLookupTask extends AbstractTask {
     private final TransactionContext txnCtx;
     private final PKLookupOperation pkLookupOperation;
     private final boolean ignoreMissing;
-    private final Map<ShardId, List<PKAndVersion>> idsByShard;
+    private final Map<ShardId, SequencedSet<PKAndVersion>> idsByShard;
     private final Collection<? extends Projection> shardProjections;
     private final RowConsumer consumer;
     private final InputRow inputRow;
@@ -86,7 +87,7 @@ public final class PKLookupTask extends AbstractTask {
                  PKLookupOperation pkLookupOperation,
                  List<ColumnIdent> partitionedByColumns,
                  List<Symbol> toCollect,
-                 Map<ShardId, List<PKAndVersion>> idsByShard,
+                 Map<ShardId, SequencedSet<PKAndVersion>> idsByShard,
                  Collection<? extends Projection> shardProjections,
                  RowConsumer consumer) {
         super(phaseId);
