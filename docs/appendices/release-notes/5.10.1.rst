@@ -43,3 +43,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 
 Fixes
 =====
+
+- Fixed an issue that could cause duplicate records to be returned when
+  filtering on a table by PRIMARY KEY, using query parameters, and binding the
+  same value to them, e.g.::
+
+    SELECT * FROM tbl WHERE pk_col = ? OR pk_col = ?
+    -- Bind the same value to both query parameters
