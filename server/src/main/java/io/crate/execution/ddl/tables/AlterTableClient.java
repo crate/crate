@@ -25,7 +25,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRIT
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +38,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -55,8 +55,6 @@ import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
-import io.crate.execution.support.ChainableAction;
-import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -237,44 +235,30 @@ public class AlterTableClient {
         validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
         validateReadOnlyIndexForResize(sourceIndexMetadata);
 
-        final List<ChainableAction<Long>> actions = new ArrayList<>();
         final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
-        deleteLeftOverFromPreviousOperations(currentState, actions, resizedIndex);
+
+        CompletableFuture<Long> future;
+        if (currentState.metadata().hasIndex(resizedIndex)) {
+            future = deleteIndex(resizedIndex);
+        } else {
+            future = CompletableFuture.completedFuture(1L);
+        }
 
         final ResizeRequest request = new ResizeRequest(
             table.ident(),
             partitionName == null ? List.of() : partitionName.values(),
             targetNumberOfShards
         );
-
-        actions.add(new ChainableAction<>(
-            () -> transportResizeAction.execute(request, r -> r.isAcknowledged() ? 1L : 0L),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-        actions.add(new ChainableAction<>(
-            () -> swapAndDropIndex(resizedIndex, sourceIndexName)
-                .exceptionally(error -> {
+        return future.thenCompose(_ -> transportResizeAction.execute(request).thenCompose(response -> {
+            if (response.isAcknowledged() && response.isShardsAcknowledged()) {
+                return swapAndDropIndex(resizedIndex, sourceIndexName);
+            } else {
+                return deleteIndex(resizedIndex).handle((_, err) -> {
                     throw new IllegalStateException(
-                        "The resize operation to change the number of shards completed partially but run into a failure. " +
-                        "Please retry the operation or clean up the internal indices with ALTER CLUSTER GC DANGLING ARTIFACTS. "
-                        + error.getMessage(), error
-                    );
-                }),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-        return ChainableActions.run(actions);
-    }
-
-    private void deleteLeftOverFromPreviousOperations(ClusterState currentState,
-                                                      List<ChainableAction<Long>> actions,
-                                                      String resizeIndex) {
-
-        if (currentState.metadata().hasIndex(resizeIndex)) {
-            actions.add(new ChainableAction<>(
-                () -> deleteIndex(resizeIndex),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-        }
+                        "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
+                });
+            }
+        }));
     }
 
     @VisibleForTesting
@@ -346,6 +330,7 @@ public class AlterTableClient {
 
     private CompletableFuture<Long> deleteIndex(String... indexNames) {
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
         return transportDeleteIndexAction.execute(request, _ -> 0L);
     }
 
