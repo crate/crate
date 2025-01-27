@@ -61,3 +61,9 @@ Fixes
 
     SELECT * FROM tbl WHERE pk_col = ? OR pk_col = ?
     -- Bind the same value to both query parameters
+
+- Fixed an issue that caused an error when using a PreparedStatement and
+  selecting an expression, involving a parameter and a column used in
+  ``ORDER BY`` and query had a ``LIMIT`` clause. Example.::
+
+    SELECT a, b + ? as sum FROM tbl ORDER BY sum LIMIT 10
