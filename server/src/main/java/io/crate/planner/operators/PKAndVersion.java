@@ -21,31 +21,16 @@
 
 package io.crate.planner.operators;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-
-public final class PKAndVersion implements Writeable {
-
-    private final String id;
-    private final long version;
-    private final long seqNo;
-    private final long primaryTerm;
-
-    public PKAndVersion(String id, long version, long seqNo, long primaryTerm) {
-        this.id = id;
-        this.version = version;
-        this.seqNo = seqNo;
-        this.primaryTerm = primaryTerm;
-    }
+public record PKAndVersion(String id, long version, long seqNo, long primaryTerm) implements Writeable {
 
     public PKAndVersion(StreamInput in) throws IOException {
-        this.id = in.readString();
-        this.version = in.readLong();
-        this.seqNo = in.readLong();
-        this.primaryTerm = in.readLong();
+        this(in.readString(), in.readLong(), in.readLong(), in.readLong());
     }
 
     @Override
