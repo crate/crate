@@ -44,6 +44,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a regression from ``5.10.0`` that caused a ``ColumnUnknownException``
+  when accessing a child of an object literal from an aliased table.
+
 - Fixed an issue that could lead to a ``Scale of numeric must be less than the
   precision`` error when using the ``AVG`` aggregation in a way that involved
   values of type ``NUMERIC``.

@@ -744,17 +744,9 @@ public class ExpressionAnalyzer {
                 //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
                 //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
                 // Another example is selecting sub-column of an object that is union-ed.
-                if (DataTypes.hasPath(baseType, parts)) {
-                    return allocateFunction(
-                        SubscriptFunction.NAME,
-                        List.of(
-                            node.base().accept(this, context),
-                            node.index().accept(this, context)
-                        ),
-                        context
-                    );
-                }
-                if ((baseType == UndefinedType.INSTANCE) == false) {
+                if (baseType != UndefinedType.INSTANCE
+                    && baseType != ObjectType.UNTYPED
+                    && !DataTypes.hasPath(baseType, parts)) {
                     DataType<?> currentType = baseType;
                     ColumnPolicy parentPolicy = baseType.columnPolicy();
                     for (String p : parts) {
