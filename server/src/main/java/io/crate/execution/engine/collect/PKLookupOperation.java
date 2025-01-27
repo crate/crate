@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -124,14 +124,14 @@ public final class PKLookupOperation {
                                      Supplier<RamAccounting> ramAccountingSupplier,
                                      Supplier<MemoryManager> memoryManagerSupplier,
                                      boolean ignoreMissing,
-                                     Map<ShardId, Set<PKAndVersion>> idsByShard,
+                                     Map<ShardId, SequencedSet<PKAndVersion>> idsByShard,
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
                                      DocTableInfo table,
                                      List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
-        for (Map.Entry<ShardId, Set<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
+        for (Map.Entry<ShardId, SequencedSet<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
             IndexService indexService = indicesService.indexService(shardId.getIndex());
             if (indexService == null) {
