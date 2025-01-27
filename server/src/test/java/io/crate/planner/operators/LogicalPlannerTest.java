@@ -28,18 +28,24 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row1;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.ProjectionType;
+import io.crate.expression.symbol.FetchReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -749,6 +755,30 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                   └ Rename[true] AS s
                     └ Limit[2::bigint;0::bigint]
                       └ Collect[doc.t1 | [true] | (x = x)]"""
+        );
+    }
+
+    @Test
+    public void test_select_expression_with_a_non_fetchable_column_and_parameter() {
+        QueryThenFetch queryThenFetch = sqlExecutor.plan(
+            "select name, ints + ? as sum from doc.users order by sum limit 10", UUID.randomUUID(), 0, new Row1(1));
+        var collect = (io.crate.planner.node.dql.Collect) queryThenFetch.subPlan();
+        FetchProjection fetchProjection = (FetchProjection) collect
+            .collectPhase()
+            .projections()
+            .stream()
+            .filter(projection -> projection.projectionType() == ProjectionType.FETCH)
+            .findFirst()
+            .get();
+
+        // There can be _doc['ints'] refs in FetchReference-s but regular Reference-s must not be in the FetchProjection outputs.
+        assertThat(fetchProjection.outputSymbols()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(FetchReference.class),
+            x -> assertThat(x).isFunction("add",
+                arg -> assertThat(arg).isExactlyInstanceOf(FetchReference.class),
+                arg -> assertThat(arg).isLiteral(1)
+            ),
+            x -> assertThat(x).isInputColumn(1)
         );
     }
 }

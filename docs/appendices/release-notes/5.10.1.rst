@@ -62,3 +62,9 @@ Fixes
 - Fixed a handshake version compatibility issue that causes a node with a
   higher major version (e.g. ``6.x``) to fail to join a cluster of version
   < :ref:`version_5.10.1` (rolling upgrade scenario).
+
+- Fixed an issue that caused an error when using a PreparedStatement and
+  selecting an expression, involving a parameter and a column used in
+  ``ORDER BY`` and query had a ``LIMIT`` clause. Example.::
+
+    SELECT a, b + ? as sum FROM tbl ORDER BY sum LIMIT 10
