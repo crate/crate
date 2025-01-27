@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -594,7 +594,7 @@ public class JobSetup {
             Collection<? extends Projection> shardProjections = shardProjections(pkLookupPhase.projections());
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
-            Map<ShardId, Set<PKAndVersion>> idsByShardId =
+            Map<ShardId, SequencedSet<PKAndVersion>> idsByShardId =
                 pkLookupPhase.getIdsByShardId(clusterService.localNode().getId());
 
             CircuitBreaker breaker = breaker();

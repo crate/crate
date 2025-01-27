@@ -21,32 +21,16 @@
 
 package io.crate.planner.operators;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-import java.util.Objects;
-
-public final class PKAndVersion implements Writeable {
-
-    private final String id;
-    private final long version;
-    private final long seqNo;
-    private final long primaryTerm;
-
-    public PKAndVersion(String id, long version, long seqNo, long primaryTerm) {
-        this.id = id;
-        this.version = version;
-        this.seqNo = seqNo;
-        this.primaryTerm = primaryTerm;
-    }
+public record PKAndVersion(String id, long version, long seqNo, long primaryTerm) implements Writeable {
 
     public PKAndVersion(StreamInput in) throws IOException {
-        this.id = in.readString();
-        this.version = in.readLong();
-        this.seqNo = in.readLong();
-        this.primaryTerm = in.readLong();
+        this(in.readString(), in.readLong(), in.readLong(), in.readLong());
     }
 
     @Override
@@ -71,23 +55,5 @@ public final class PKAndVersion implements Writeable {
 
     public long primaryTerm() {
         return primaryTerm;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        PKAndVersion that = (PKAndVersion) o;
-        return version == that.version && seqNo == that.seqNo && primaryTerm == that.primaryTerm
-            && Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, version, seqNo, primaryTerm);
     }
 }
