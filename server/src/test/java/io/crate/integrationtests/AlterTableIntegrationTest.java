@@ -28,6 +28,8 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
 
@@ -36,6 +38,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
@@ -390,5 +393,25 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
         execute("SELECT obj['a'] FROM t1 WHERE obj['a'] IS NOT NULL ORDER BY obj['a']");
         assertThat(response).hasRows("bar");
+    }
+
+    @Test
+    public void test_increase_num_shards_does_not_delete_source_index_on_alloc_failures() throws Exception {
+        execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");
+        execute("insert into tbl (x, p) values (1, 1), (1, 2), (2, 1), (2, 2)");
+        execute("refresh table tbl");
+        execute("alter table tbl partition (p = 1) set (\"blocks.write\" = true)");
+        int numShards = (cluster().numNodes() + 1) * 2;
+        assertThatThrownBy(() ->
+            execute("alter table tbl partition (p = 1) set (number_of_shards = ?)", new Object[] { numShards }, TimeValue.timeValueSeconds(30))
+        ).extracting(ex -> ex.getMessage()).satisfiesAnyOf(
+            x -> assertThat(x).contains("Resize operation wasn't acknowledged. Check shard allocation and retry"),
+            x -> assertThat(x).contains("Timeout while running")
+        );
+        assertThat(execute("select * from tbl")).hasRowCount(4);
+
+        execute("alter table tbl set (\"routing.allocation.total_shards_per_node\" = 200)");
+        execute("alter table tbl partition (p = 1) set (number_of_shards = ?)", new Object[] { numShards }, TimeValue.timeValueSeconds(30));
+        assertBusy(() -> assertThat(execute("select * from tbl")).hasRowCount(4));
     }
 }
