@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -1654,7 +1655,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int primary key)");
         Collect plan = e.plan("SELECT * FROM tbl WHERE x = ? OR x = ?", UUID.randomUUID(), 10, new RowN(1, 1));
         assertThat(plan.collectPhase()).isInstanceOf(PKLookupPhase.class);
-        Collection<Set<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
+        Collection<SequencedSet<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
             .getIdsByShardId("n1").values();
         assertThat(pkAndVersions).hasSize(1);
         assertThat(pkAndVersions.iterator().next()).hasSize(1);
@@ -1671,7 +1672,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             """,
             UUID.randomUUID(), 10, new RowN(1, 2, 1, 2));
         assertThat(plan.collectPhase()).isInstanceOf(PKLookupPhase.class);
-        Collection<Set<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
+        Collection<SequencedSet<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
             .getIdsByShardId("n1").values();
         assertThat(pkAndVersions).hasSize(1);
         assertThat(pkAndVersions.iterator().next()).hasSize(1);
