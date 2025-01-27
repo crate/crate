@@ -25,6 +25,7 @@ import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLU
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,6 +72,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.execution.dml.TranslogIndexer;
@@ -436,13 +438,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public String[] concreteIndices(Metadata metadata) {
         try {
-            return IndexNameExpressionResolver.concreteIndexNames(
+            String[] indexNames = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
                 isPartitioned
                     ? IndicesOptions.lenientExpandOpen()
                     : IndicesOptions.strictExpandOpen(),
                 ident.indexNameOrAlias()
             );
+            return Arrays.stream(indexNames)
+                .filter(s -> !s.startsWith(AlterTableOperation.RESIZE_PREFIX))
+                .toArray(String[]::new);
         } catch (IndexNotFoundException e) {
             throw new RelationUnknown(ident.fqn(), e);
         }
@@ -460,11 +465,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             return concreteIndices;
         } else {
-            return IndexNameExpressionResolver.concreteIndexNames(
+            String[] indexNames = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
                 IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()),
                 ident.indexNameOrAlias()
             );
+            return Arrays.stream(indexNames)
+                .filter(s -> !s.startsWith(AlterTableOperation.RESIZE_PREFIX))
+                .toArray(String[]::new);
         }
     }
 
