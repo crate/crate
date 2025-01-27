@@ -25,8 +25,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRIT
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -39,9 +37,11 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -50,18 +50,16 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
-import io.crate.execution.support.ChainableAction;
-import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -236,43 +234,29 @@ public class AlterTableOperation {
         final int targetNumberOfShards = getNumberOfShards(analysis.tableParameter().settings());
         validateForResizeRequest(sourceIndexMetadata, targetNumberOfShards);
 
-        final List<ChainableAction<Long>> actions = new ArrayList<>();
         final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
-        deleteLeftOverFromPreviousOperations(currentState, actions, resizedIndex);
 
-        actions.add(new ChainableAction<>(
-            () -> resizeIndex(
+        CompletableFuture<Long> future;
+        if (currentState.metadata().hasIndex(resizedIndex)) {
+            future = deleteIndex(resizedIndex);
+        } else {
+            future = CompletableFuture.completedFuture(1L);
+        }
+        return future.thenCompose(ignored -> resizeIndex(
                 currentState.metadata().index(sourceIndexName),
                 sourceIndexAlias,
                 resizedIndex,
                 targetNumberOfShards
-            ),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-        actions.add(new ChainableAction<>(
-            () -> swapAndDropIndex(resizedIndex, sourceIndexName)
-                .exceptionally(error -> {
-                    throw new IllegalStateException(
-                        "The resize operation to change the number of shards completed partially but run into a failure. " +
-                        "Please retry the operation or clean up the internal indices with ALTER CLUSTER GC DANGLING ARTIFACTS. "
-                        + error.getMessage(), error
-                    );
-                }),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
-        return ChainableActions.run(actions);
-    }
-
-    private void deleteLeftOverFromPreviousOperations(ClusterState currentState,
-                                                      List<ChainableAction<Long>> actions,
-                                                      String resizeIndex) {
-
-        if (currentState.metadata().hasIndex(resizeIndex)) {
-            actions.add(new ChainableAction<>(
-                () -> deleteIndex(resizeIndex),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
-        }
+            ).thenCompose(response -> {
+                if (response.isAcknowledged() && response.isShardsAcknowledged()) {
+                    return swapAndDropIndex(resizedIndex, sourceIndexName);
+                } else {
+                    return deleteIndex(resizedIndex).handle((ignoredResp, err) -> {
+                        throw new IllegalStateException(
+                                "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
+                    });
+                }
+            }));
     }
 
     private static void validateForResizeRequest(IndexMetadata sourceIndex, int targetNumberOfShards) {
@@ -347,10 +331,10 @@ public class AlterTableOperation {
         }
     }
 
-    private CompletableFuture<Long> resizeIndex(IndexMetadata sourceIndex,
-                                                @Nullable String sourceIndexAlias,
-                                                String targetIndexName,
-                                                int targetNumberOfShards) {
+    private CompletableFuture<ResizeResponse> resizeIndex(IndexMetadata sourceIndex,
+                                                          @Nullable String sourceIndexAlias,
+                                                          String targetIndexName,
+                                                          int targetNumberOfShards) {
         Settings targetIndexSettings = Settings.builder()
             .put(SETTING_NUMBER_OF_SHARDS, targetNumberOfShards)
             .build();
@@ -364,12 +348,13 @@ public class AlterTableOperation {
         request.setResizeType(targetNumberOfShards > currentNumShards ? ResizeType.SPLIT : ResizeType.SHRINK);
         request.setCopySettings(Boolean.TRUE);
         request.setWaitForActiveShards(ActiveShardCount.ONE);
-        return transportResizeAction.execute(request, r -> r.isAcknowledged() ? 1L : 0L);
+        return transportResizeAction.execute(request);
     }
 
     private CompletableFuture<Long> deleteIndex(String... indexNames) {
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
-        return transportDeleteIndexAction.execute(request, r -> 0L);
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
+        return transportDeleteIndexAction.execute(request, resp -> 0L);
     }
 
     private CompletableFuture<Long> swapAndDropIndex(String source, String target) {
