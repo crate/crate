@@ -44,6 +44,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``Scale of numeric must be less than the
+  precision`` error when using the ``AVG`` aggregation in a way that involved
+  values of type ``NUMERIC``.
+
 - Fixed an issue that could cause data loss if increasing the number of shards
   using ``ALTER TABLE ... SET (number_of_shards = ?)`` while having other
   allocation settings in place that prevent the shard allocation.
