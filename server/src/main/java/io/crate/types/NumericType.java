@@ -75,10 +75,10 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             if (precision == null) {
                 throw new IllegalArgumentException("If scale is set for NUMERIC, precision must be set too");
             }
-            if (scale >= precision) {
+            if (scale > precision) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
-                    "Scale of numeric must be less than the precision. NUMERIC(%d, %d) is unsupported.",
+                    "Scale of numeric must be less or equal the precision. NUMERIC(%d, %d) is unsupported.",
                     precision,
                     scale
                 ));
