@@ -25,6 +25,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
@@ -58,6 +59,12 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         IndexMetadata sourceIndex = metadata.index(sourceIndexName);
         if (sourceIndex == null) {
             throw new IllegalArgumentException("Source index must exist: " + sourceIndexName);
+        }
+
+        IndexRoutingTable index = currentState.routingTable().index(sourceIndex.getIndex());
+        if (!index.allPrimaryShardsActive()) {
+            throw new UnsupportedOperationException(
+                "Cannot swap and drop index if source '" + sourceIndexName + "' has unallocated primaries");
         }
 
         IndexMetadata newIndexMetadata = IndexMetadata.builder(sourceIndex).index(targetIndexName).build();
