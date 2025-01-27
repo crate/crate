@@ -36,7 +36,7 @@ import io.crate.sql.tree.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-public class MoveEquJoinFilterIntoInnerJoinTest extends CrateDummyClusterServiceUnitTest {
+public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServiceUnitTest {
 
     private LogicalPlan t1;
     private LogicalPlan t2;
@@ -70,7 +70,7 @@ public class MoveEquJoinFilterIntoInnerJoinTest extends CrateDummyClusterService
             "      └ Collect[doc.t2 | [b] | true]"
         );
 
-        var rule = new MoveEquJoinFilterIntoInnerJoin();
+        var rule = new MoveEquiJoinFilterIntoInnerJoin();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         Assertions.assertThat(match.isPresent()).isTrue();
@@ -104,7 +104,7 @@ public class MoveEquJoinFilterIntoInnerJoinTest extends CrateDummyClusterService
             "      └ Collect[doc.t2 | [b] | true]"
         );
 
-        var rule = new MoveEquJoinFilterIntoInnerJoin();
+        var rule = new MoveEquiJoinFilterIntoInnerJoin();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         Assertions.assertThat(match.isPresent()).isFalse();
@@ -125,7 +125,7 @@ public class MoveEquJoinFilterIntoInnerJoinTest extends CrateDummyClusterService
             "      └ Collect[doc.t2 | [b] | true]"
         );
 
-        var rule = new MoveEquJoinFilterIntoInnerJoin();
+        var rule = new MoveEquiJoinFilterIntoInnerJoin();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
 
         Assertions.assertThat(match.isPresent()).isTrue();

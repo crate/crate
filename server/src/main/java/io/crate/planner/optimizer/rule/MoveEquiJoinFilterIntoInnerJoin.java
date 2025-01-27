@@ -41,12 +41,12 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
-public class MoveEquJoinFilterIntoInnerJoin implements Rule<Filter> {
+public class MoveEquiJoinFilterIntoInnerJoin implements Rule<Filter> {
 
     private final Capture<JoinPlan> joinCapture;
     private final Pattern<Filter> pattern;
 
-    public MoveEquJoinFilterIntoInnerJoin() {
+    public MoveEquiJoinFilterIntoInnerJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(f -> EquiJoinDetector.isEquiJoin(f.query()))
