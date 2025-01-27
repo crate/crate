@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public final class PKAndVersion implements Writeable {
 
@@ -70,5 +71,23 @@ public final class PKAndVersion implements Writeable {
 
     public long primaryTerm() {
         return primaryTerm;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        PKAndVersion that = (PKAndVersion) o;
+        return version == that.version && seqNo == that.seqNo && primaryTerm == that.primaryTerm
+            && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, version, seqNo, primaryTerm);
     }
 }
