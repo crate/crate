@@ -2976,4 +2976,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             output -> assertThat(output.valueType()).isEqualTo(makeArray(DataTypes.INTEGER, 2))
         );
     }
+
+    @Test
+    public void test_subscript_expressions_over_object_types_returned_from_functions_are_resolved_to_subscript_functions() {
+        var executor = SQLExecutor.of(clusterService);
+        var analyzed = executor.analyze("select o['a'] from (select {a=1} as o) tbl"); // `o` is an object literal returned from MapFunction
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+
+        analyzed = executor.analyze("select o3['a'] from (select ({a=1} || {b=1}) as o3) t2"); // `o3` is an object literal returned from ConcatFunction
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+    }
 }
