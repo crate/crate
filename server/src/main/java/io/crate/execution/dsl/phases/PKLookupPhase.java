@@ -26,8 +26,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,14 +49,14 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
 
     private final List<ColumnIdent> partitionedByColumns;
     private final List<Symbol> toCollect;
-    private final Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode;
+    private final Map<String, Map<ShardId, Set<PKAndVersion>>> idsByShardByNode;
     private DistributionInfo distInfo = DistributionInfo.DEFAULT_BROADCAST;
 
     public PKLookupPhase(UUID jobId,
                          int phaseId,
                          List<ColumnIdent> partitionedByColumns,
                          List<Symbol> toCollect,
-                         Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode) {
+                         Map<String, Map<ShardId, Set<PKAndVersion>>> idsByShardByNode) {
         super(jobId, phaseId, "pkLookup", Collections.emptyList());
         assert toCollect.stream().noneMatch(
             st -> st.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol))
@@ -74,12 +76,12 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         for (int nodeIdx = 0; nodeIdx < numNodes; nodeIdx++) {
             String nodeId = in.readString();
             int numShards = in.readVInt();
-            HashMap<ShardId, List<PKAndVersion>> idsByShard = new HashMap<>(numShards);
+            HashMap<ShardId, Set<PKAndVersion>> idsByShard = new HashMap<>(numShards);
             idsByShardByNode.put(nodeId, idsByShard);
             for (int shardIdx = 0; shardIdx < numShards; shardIdx++) {
                 ShardId shardId = new ShardId(in);
                 int numPks = in.readVInt();
-                ArrayList<PKAndVersion> pks = new ArrayList<>(numPks);
+                Set<PKAndVersion> pks = new LinkedHashSet<>(numPks);
                 for (int pkIdx = 0; pkIdx < numPks; pkIdx++) {
                     pks.add(new PKAndVersion(in));
                 }
@@ -105,12 +107,12 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         Symbols.toStream(toCollect, out);
 
         out.writeVInt(idsByShardByNode.size());
-        for (Map.Entry<String, Map<ShardId, List<PKAndVersion>>> byNodeEntry : idsByShardByNode.entrySet()) {
-            Map<ShardId, List<PKAndVersion>> idsByShard = byNodeEntry.getValue();
+        for (Map.Entry<String, Map<ShardId, Set<PKAndVersion>>> byNodeEntry : idsByShardByNode.entrySet()) {
+            Map<ShardId, Set<PKAndVersion>> idsByShard = byNodeEntry.getValue();
             out.writeString(byNodeEntry.getKey());
             out.writeVInt(idsByShard.size());
-            for (Map.Entry<ShardId, List<PKAndVersion>> shardEntry : idsByShard.entrySet()) {
-                List<PKAndVersion> ids = shardEntry.getValue();
+            for (Map.Entry<ShardId, Set<PKAndVersion>> shardEntry : idsByShard.entrySet()) {
+                Set<PKAndVersion> ids = shardEntry.getValue();
 
                 shardEntry.getKey().writeTo(out);
                 out.writeVInt(ids.size());
@@ -164,7 +166,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         return visitor.visitPKLookup(this, context);
     }
 
-    public Map<ShardId,List<PKAndVersion>> getIdsByShardId(String nodeId) {
+    public Map<ShardId, Set<PKAndVersion>> getIdsByShardId(String nodeId) {
         return idsByShardByNode.getOrDefault(nodeId, Collections.emptyMap());
     }
 

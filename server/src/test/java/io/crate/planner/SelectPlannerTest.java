@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,7 @@ import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.PKAndVersion;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -1645,4 +1647,33 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
     }
 
+    // tracks a bug: https://github.com/crate/crate/issues/17266
+    @Test
+    public void test_binding_same_params_to_pk_filtering() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int primary key)");
+        Collect plan = e.plan("SELECT * FROM tbl WHERE x = ? OR x = ?", UUID.randomUUID(), 10, new RowN(1, 1));
+        assertThat(plan.collectPhase()).isInstanceOf(PKLookupPhase.class);
+        Collection<Set<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
+            .getIdsByShardId("n1").values();
+        assertThat(pkAndVersions).hasSize(1);
+        assertThat(pkAndVersions.iterator().next()).hasSize(1);
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/17266
+    @Test
+    public void test_binding_same_params_to_primary_term_and_seq_no_filtering() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int primary key)");
+        Collect plan = e.plan("""
+            SELECT * FROM tbl
+            WHERE x = 10 AND ((_seq_no = ? AND _primary_term = ?) OR (_seq_no = ? AND _primary_term = ?))
+            """,
+            UUID.randomUUID(), 10, new RowN(1, 2, 1, 2));
+        assertThat(plan.collectPhase()).isInstanceOf(PKLookupPhase.class);
+        Collection<Set<PKAndVersion>> pkAndVersions = ((PKLookupPhase) plan.collectPhase())
+            .getIdsByShardId("n1").values();
+        assertThat(pkAndVersions).hasSize(1);
+        assertThat(pkAndVersions.iterator().next()).hasSize(1);
+    }
 }
