@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
+import java.util.SequencedSet;
 import java.util.Set;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -101,7 +102,7 @@ public class Get implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        HashMap<String, Map<ShardId, Set<PKAndVersion>>> idsByShardByNode = new HashMap<>();
+        HashMap<String, Map<ShardId, SequencedSet<PKAndVersion>>> idsByShardByNode = new HashMap<>();
         DocTableInfo docTableInfo = tableRelation.tableInfo();
         for (DocKeys.DocKey docKey : docKeys) {
             String id = docKey.getId(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
@@ -141,12 +142,12 @@ public class Get implements LogicalPlan {
             long primaryTerm = docKey.primaryTerm(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
 
-            Map<ShardId, Set<PKAndVersion>> idsByShard = idsByShardByNode.get(currentNodeId);
+            Map<ShardId, SequencedSet<PKAndVersion>> idsByShard = idsByShardByNode.get(currentNodeId);
             if (idsByShard == null) {
                 idsByShard = new HashMap<>();
                 idsByShardByNode.put(currentNodeId, idsByShard);
             }
-            Set<PKAndVersion> pkAndVersions = idsByShard.get(shardRouting.shardId());
+            SequencedSet<PKAndVersion> pkAndVersions = idsByShard.get(shardRouting.shardId());
             if (pkAndVersions == null) {
                 pkAndVersions = new LinkedHashSet<>();
                 idsByShard.put(shardRouting.shardId(), pkAndVersions);
