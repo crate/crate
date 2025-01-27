@@ -47,7 +47,7 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
     public void test_scale_must_be_lt_precision() throws Exception {
         assertThatThrownBy(() -> new NumericType(2, 4))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Scale of numeric must be less than the precision. NUMERIC(2, 4) is unsupported.");
+            .hasMessage("Scale of numeric must be less or equal the precision. NUMERIC(2, 4) is unsupported.");
     }
 
     @Test
