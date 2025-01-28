@@ -490,6 +490,10 @@ public class LogicalPlanner {
         }
 
         private static List<Symbol> mergeOutputs(AnalyzedRelation relation, List<Symbol> outputs) {
+            // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
+            // We could get rid of `SplitPoints` and the logic here if we
+            // a) introduce a column pruning
+            // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
             LinkedHashSet<Symbol> result = new LinkedHashSet<>(relation.outputs());
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getDeep(relation);
             Predicate<Symbol> addFiltered = node -> {
@@ -523,10 +527,6 @@ public class LogicalPlanner {
                     if (relation.from().size() == 1) {
                         return rel.accept(this, toCollect);
                     } else {
-                        // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
-                        // We could get rid of `SplitPoints` and the logic here if we
-                        // a) introduce a column pruning
-                        // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
                         List<Symbol> mergedOutputs = mergeOutputs(rel, toCollect);
                         return rel.accept(this, mergedOutputs);
                     }
