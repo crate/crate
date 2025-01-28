@@ -33,6 +33,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.planner.DependencyCarrier;
@@ -80,7 +81,8 @@ public class DropTablePlan implements Plan {
                 consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
             } else {
                 err = SQLExceptions.unwrap(err);
-                if (dropTable.dropIfExists() && err instanceof IndexNotFoundException) {
+                boolean doesntExist = err instanceof IndexNotFoundException || err instanceof RelationUnknown;
+                if (dropTable.dropIfExists() && doesntExist) {
                     consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
                 } else {
                     consumer.accept(null, err);
