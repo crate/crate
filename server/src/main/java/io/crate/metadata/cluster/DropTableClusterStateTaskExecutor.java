@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -50,6 +51,9 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         RelationName relationName = request.tableIdent();
         Metadata currentMetadata = currentState.metadata();
 
+        if (!currentMetadata.contains(relationName)) {
+            throw new RelationUnknown(relationName);
+        }
         Collection<Index> indices = currentMetadata.getIndices(
             relationName,
             List.of(),
