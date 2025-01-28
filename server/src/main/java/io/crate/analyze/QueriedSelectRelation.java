@@ -188,10 +188,12 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     @Override
     public String toString() {
+        List<RelationName> relationNames = from.stream()
+            .flatMap(x -> RelationNames.getDeep(x).stream()).toList();
         return "SELECT "
             + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
             + " FROM ("
-            + Lists.joinOn(", ", Lists.flatMap(from, RelationNames::getDeep), RelationName::toString)
+            + Lists.joinOn(", ", relationNames, RelationName::toString)
             + ')';
     }
 
