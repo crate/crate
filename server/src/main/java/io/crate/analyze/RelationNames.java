@@ -71,7 +71,11 @@ public final class RelationNames {
         return get(symbol, false);
     }
 
-    public static SequencedSet<RelationName> getDeep(AnalyzedRelation relation) {
+    /**
+     * Extracts all relation names from the AnalyzedRelation and the underlying nested AnalyzedRelation
+     * if present.
+     */
+    public static SequencedSet<RelationName> getRelationNames(AnalyzedRelation relation) {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         relation.accept(RELATION_TABLE_IDENT_EXTRACTOR, relationNames);
         return relationNames;
