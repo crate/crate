@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -188,13 +189,14 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     @Override
     public String toString() {
-        List<RelationName> relationNames = from.stream()
-            .flatMap(x -> RelationNames.getDeep(x).stream()).toList();
         return "SELECT "
             + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
             + " FROM ("
-            + Lists.joinOn(", ", relationNames, RelationName::toString)
-            + ')';
+            + from.stream()
+                .flatMap(rel -> RelationNames.getDeep(rel).stream())
+                .map(RelationName::toString)
+                .collect(Collectors.joining(", ")) +
+            +')';
     }
 
     @Override
