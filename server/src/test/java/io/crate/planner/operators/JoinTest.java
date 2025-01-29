@@ -200,11 +200,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         LogicalPlan plan = buildLogicalPlan(mss);
-        assertThat(plan).isEqualTo("""
-            Eval[name, id]
-              └ HashJoin[INNER | (id = id)]
-                ├ Collect[doc.users | [name, id] | true]
-                └ Collect[doc.locations | [id] | true]""");
+        assertThat(plan).hasOperators(
+            "Eval[name, id]",
+            "  └ HashJoin[INNER | (id = id)]",
+            "    ├ Collect[doc.users | [id, name] | true]",
+            "    └ Collect[doc.locations | [id] | true]"
+        );
 
         var hashjoin = plan.sources().getFirst();
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
@@ -305,7 +306,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
                 Eval[name, id]
                   └ HashJoin[INNER | (id = id)]
-                    ├ Collect[doc.users | [name, id] | true]
+                    ├ Collect[doc.users | [id, name] | true]
                     └ Collect[doc.locations | [id] | true]"""
         );
         var hashJoin = plan.sources().getFirst();
@@ -335,7 +336,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             Eval[name, id]
               └ HashJoin[INNER | (id = id)]
                 ├ Collect[doc.locations | [id] | true]
-                └ Collect[doc.users | [name, id] | true]""");
+                └ Collect[doc.users | [id, name] | true]""");
 
         LogicalPlan hashjoin = plan.sources().getFirst();
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
@@ -661,9 +662,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Eval[a, x, i, b, y, i, c, z]",
             "  └ HashJoin[INNER | (z = y)]",
             "    ├ HashJoin[INNER | (z = x)]",
-            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
-            "    │  └ Collect[doc.t3 | [c, z] | true]",
-            "    └ Collect[doc.t2 | [b, y, i] | true]"
+            "    │  ├ Collect[doc.t1 | [x, a, i] | true]",
+            "    │  └ Collect[doc.t3 | [z, c] | true]",
+            "    └ Collect[doc.t2 | [y, b, i] | true]"
         );
     }
 
@@ -724,8 +725,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Eval[a, x, i, b]
               └ HashJoin[INNER | (x = y)]
-                ├ Collect[doc.t1 | [a, x, i] | true]
-                └ Collect[doc.t2 | [b, y] | (b = 'abc')]
+                ├ Collect[doc.t1 | [x, a, i] | true]
+                └ Collect[doc.t2 | [y, b] | (b = 'abc')]
             """);
     }
 
@@ -739,15 +740,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             WHERE t2.y IN (SELECT z FROM t3);
             """;
         LogicalPlan logicalPlan = e.logicalPlan(statement);
-        assertThat(logicalPlan).isEqualTo(
-            """
-            MultiPhase
-              └ HashJoin[INNER | (i = i)]
-                ├ Collect[doc.t1 | [a, x, i] | true]
-                └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]
-              └ OrderBy[z ASC]
-                └ Collect[doc.t3 | [z] | true]
-            """);
+        assertThat(logicalPlan).hasOperators(
+            "MultiPhase",
+            "  └ Eval[a, x, i, b, y, i]",
+            "    └ HashJoin[INNER | (i = i)]",
+            "      ├ Collect[doc.t1 | [i, a, x] | true]",
+            "      └ Collect[doc.t2 | [i, b, y] | (y = ANY((SELECT z FROM (doc.t3))))]",
+            "  └ OrderBy[z ASC]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
 
         Object plan = e.plan(statement);
         assertThat(plan).isExactlyInstanceOf(Merge.class);
@@ -819,12 +820,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   """);
 
         assertThat(logicalPlan).hasOperators(
-            "HashJoin[INNER | ((foo = i) AND (i = foo))]",
-            "  ├ HashJoin[INNER | (i = i)]",
-            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
-            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
-            "  └ Rename[foo] AS temp",
-            "    └ TableFunction[empty_row | [1 AS foo] | true]"
+            "Eval[a, x, i, b, y, i, foo]",
+            "  └ HashJoin[INNER | ((foo = i) AND (i = foo))]",
+            "    ├ HashJoin[INNER | (i = i)]",
+            "    │  ├ Collect[doc.t1 | [i, a, x] | true]",
+            "    │  └ Collect[doc.t2 | [i, b, y] | true]",
+            "    └ Rename[foo] AS temp",
+            "      └ TableFunction[empty_row | [1 AS foo] | true]"
         );
     }
 
@@ -876,16 +878,16 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │  ├ HashJoin[INNER | (atttypid = oid)]",
             "    │  │  ├ HashJoin[INNER | (oid = attrelid)]",
             "    │  │  │  ├ HashJoin[INNER | (relnamespace = oid)]",
-            "    │  │  │  │  ├ Rename[oid, relname, relnamespace] AS c",
-            "    │  │  │  │  │  └ Collect[pg_catalog.pg_class | [oid, relname, relnamespace] | true]",
-            "    │  │  │  │  └ Rename[nspname, oid] AS n",
-            "    │  │  │  │    └ Collect[pg_catalog.pg_namespace | [nspname, oid] | true]",
-            "    │  │  │  └ Rename[attnum, attname, attnotnull, attidentity, attrelid, atttypid] AS a",
-            "    │  │  │    └ Collect[pg_catalog.pg_attribute | [attnum, attname, attnotnull, attidentity, attrelid, atttypid] | true]",
-            "    │  │  └ Rename[typtype, typnotnull, oid] AS t",
-            "    │  │    └ Collect[pg_catalog.pg_type | [typtype, typnotnull, oid] | true]",
-            "    │  └ Rename[adbin, adrelid, adnum] AS d",
-            "    │    └ Collect[pg_catalog.pg_attrdef | [adbin, adrelid, adnum] | true]",
+            "    │  │  │  │  ├ Rename[relnamespace, oid, relname] AS c",
+            "    │  │  │  │  │  └ Collect[pg_catalog.pg_class | [relnamespace, oid, relname] | true]",
+            "    │  │  │  │  └ Rename[oid, nspname] AS n",
+            "    │  │  │  │    └ Collect[pg_catalog.pg_namespace | [oid, nspname] | true]",
+            "    │  │  │  └ Rename[attrelid, atttypid, attnum, attname, attnotnull, attidentity] AS a",
+            "    │  │  │    └ Collect[pg_catalog.pg_attribute | [attrelid, atttypid, attnum, attname, attnotnull, attidentity] | true]",
+            "    │  │  └ Rename[oid, typtype, typnotnull] AS t",
+            "    │  │    └ Collect[pg_catalog.pg_type | [oid, typtype, typnotnull] | true]",
+            "    │  └ Rename[adrelid, adnum, adbin] AS d",
+            "    │    └ Collect[pg_catalog.pg_attrdef | [adrelid, adnum, adbin] | true]",
             "    └ Rename[oid, attnum] AS vals",
             "      └ Union[oid, attnum]",
             "        ├ TableFunction[empty_row | [-2002935028 AS oid, 1 AS attnum] | true]",

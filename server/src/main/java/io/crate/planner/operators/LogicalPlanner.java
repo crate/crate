@@ -494,7 +494,7 @@ public class LogicalPlanner {
             // We could get rid of `SplitPoints` and the logic here if we
             // a) introduce a column pruning
             // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
-            LinkedHashSet<Symbol> result = new LinkedHashSet<>(relation.outputs());
+            LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getRelationNames(relation);
             Predicate<Symbol> addFiltered = node -> {
                 if (node instanceof ScopedSymbol || node instanceof Reference) {

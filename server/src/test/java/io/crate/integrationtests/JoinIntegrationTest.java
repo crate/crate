@@ -1246,7 +1246,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
             "  └ OrderBy[id ASC id ASC]",
             "    └ HashJoin[INNER | (node['id'] = id)]",
-            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
+            "      ├ Collect[sys.shards | [node['id'], id, table_name, schema_name, partition_ident, state] | true]",
             "      └ Rename[id, name] AS nodes",
             "        └ Collect[sys.nodes | [id, name] | true]"
         );
@@ -1335,7 +1335,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    ├ HashJoin[INNER | (cluster_id = id)]",
             "    │  ├ HashJoin[INNER | (subscription_id = id)]",
             "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
-            "    │  │  └ Collect[doc.t1 | [id, subscription_id] | true]",
+            "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
             "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
             "    └ Rename[cluster_id] AS temp",
             "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
@@ -1545,8 +1545,8 @@ public class JoinIntegrationTest extends IntegTestCase {
             "  └ HashJoin[INNER | ((a = c) AND (d = e))] (rows=0)",
             "    ├ Collect[doc.t2 | [c, d] | true] (rows=2)",
             "    └ HashJoin[INNER | (b = f)] (rows=1)",
-            "      ├ Collect[doc.t1 | [a, b] | true] (rows=1)",
-            "      └ Collect[doc.t3 | [e, f] | true] (rows=1)"
+            "      ├ Collect[doc.t1 | [b, a] | true] (rows=1)",
+            "      └ Collect[doc.t3 | [f, e] | true] (rows=1)"
         );
 
         execute(stmt);

@@ -209,6 +209,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         for (Symbol groupKey : groupBy) {
             consumer.accept(groupKey);
         }
+
         if (having != null) {
             consumer.accept(having);
         }
@@ -220,6 +221,9 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         }
         if (offset != null) {
             consumer.accept(offset);
+        }
+        for (var joinCondition : joinConditions) {
+            consumer.accept(joinCondition);
         }
     }
 }
