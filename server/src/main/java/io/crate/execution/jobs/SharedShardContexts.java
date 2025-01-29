@@ -39,6 +39,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
+import io.crate.execution.engine.fetch.FetchTask;
 import io.crate.metadata.IndexName;
 
 public class SharedShardContexts {
@@ -90,16 +91,36 @@ public class SharedShardContexts {
         return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new));
     }
 
-    public SharedShardContext createContext(ShardId shardId, int readerId) throws IndexNotFoundException {
-        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        SharedShardContext sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
-        synchronized (this) {
-            assert !allocatedShards.containsKey(shardId) : "shardId shouldn't have been allocated yet";
-            allocatedShards.put(shardId, sharedShardContext);
+    /**
+     * Gets a context for the provided shardId and readerId.
+     * Creates the context if missing.
+     *
+     * This is intended to be called by {@link FetchTask} to create the contexts for shared by subsequent collect/fetch phases.
+     * Getting an existing context is an edge case for when there are multiple fetch tasks over the same query.
+     * (self-join involving virtual tables with limits and aggregations)
+     **/
+    public SharedShardContext prepareContext(ShardId shardId, int readerId) throws IndexNotFoundException {
+        SharedShardContext sharedShardContext = allocatedShards.get(shardId);
+        if (sharedShardContext == null) {
+            IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+            synchronized (this) {
+                sharedShardContext = allocatedShards.get(shardId);
+                if (sharedShardContext == null) {
+                    sharedShardContext = new SharedShardContext(indexService, shardId, readerId, wrapSearcher);
+                    allocatedShards.put(shardId, sharedShardContext);
+                }
+            }
         }
+        assert sharedShardContext.readerId() == readerId :
+            "FetchTask cannot create 2 contexts with same shardId and different readerId.\n" +
+            "readerId is computed deterministically based on shard id";
         return sharedShardContext;
     }
 
+    /**
+     * Gets a context for the provided shardId.
+     * Creates the context if missing with a readerId that auto-increments.
+     **/
     public SharedShardContext getOrCreateContext(ShardId shardId) throws IndexNotFoundException {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
