@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,7 @@ import io.crate.metadata.table.Operation;
 public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final List<AnalyzedRelation> from;
-    private final List<Symbol> joinConditions;
+    private final SequencedSet<Symbol> joinConditions;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
     private final Symbol whereClause;
@@ -59,7 +60,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
                                  List<Symbol> outputs,
-                                 List<Symbol> joinConditions,
+                                 SequencedSet<Symbol> joinConditions,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
                                  @Nullable Symbol having,
@@ -183,7 +184,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return offset;
     }
 
-    public List<Symbol> joinConditions() {
+    public SequencedSet<Symbol> joinConditions() {
         return joinConditions;
     }
 

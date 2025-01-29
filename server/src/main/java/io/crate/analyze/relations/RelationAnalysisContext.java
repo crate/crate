@@ -21,11 +21,11 @@
 
 package io.crate.analyze.relations;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.SequencedSet;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.expression.symbol.Symbol;
@@ -41,7 +41,7 @@ public class RelationAnalysisContext {
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
-    private final List<Symbol> joinConditions = new ArrayList<>();
+    private final LinkedHashSet<Symbol> joinConditions = new LinkedHashSet<>();
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
@@ -59,7 +59,7 @@ public class RelationAnalysisContext {
         return sources;
     }
 
-    List<Symbol> joinConditions() {
+    SequencedSet<Symbol> joinConditions() {
         return joinConditions;
     }
 

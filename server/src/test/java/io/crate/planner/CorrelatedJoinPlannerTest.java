@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.junit.Test;
@@ -114,7 +115,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             false,
             List.of(tableRelation),
             List.of(new OuterColumn(tableRelation, b)),
-            List.of(),
+            new LinkedHashSet<>(),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,

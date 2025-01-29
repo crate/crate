@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -195,7 +196,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             false,
             List.of(childRelation),
             selectAnalysis.outputSymbols(),
-            List.of(),
+            new LinkedHashSet<>(),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,

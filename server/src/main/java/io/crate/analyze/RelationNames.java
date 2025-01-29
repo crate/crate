@@ -72,8 +72,7 @@ public final class RelationNames {
     }
 
     /**
-     * Extracts all relation names from the AnalyzedRelation and the underlying nested AnalyzedRelation
-     * if present.
+     * Extracts all relation names from the AnalyzedRelation and the underlying nested AnalyzedRelations.
      */
     public static SequencedSet<RelationName> getRelationNames(AnalyzedRelation relation) {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
