@@ -193,10 +193,10 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
             + " FROM ("
             + from.stream()
-                .flatMap(rel -> RelationNames.getRelationNames(rel).stream())
-                .map(RelationName::toString)
-                .collect(Collectors.joining(", ")) +
-            +')';
+            .flatMap(rel -> RelationNames.getRelationNames(rel).stream())
+            .map(RelationName::toString)
+            .collect(Collectors.joining(", "))
+            + ')';
     }
 
     @Override
