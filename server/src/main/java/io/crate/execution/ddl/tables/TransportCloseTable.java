@@ -54,7 +54,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -255,39 +254,24 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        List<String> partitionValues = request.partitionValues();
-        String[] indexNames;
-        if (partitionValues.isEmpty()) {
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                request.table().indexNameOrAlias()
-            );
-        } else {
-            String indexName = new PartitionName(request.table(), partitionValues).asIndexName();
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                indexName
-            );
-        }
+        String[] indexNames = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            false,
+            idxMd -> idxMd.getIndex().getName()
+        ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
                                                   ClusterState clusterState) {
-        var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-            clusterState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()
+        List<IndexMetadata> indices = clusterState.metadata().getIndices(
+            relationName,
+            List.of(),
+            false,
+            imd -> imd
         );
-        if (concreteIndices.length > 0) {
-            return false;
-        }
-
-        var templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        var templateMetadata = clusterState.metadata().templates().get(templateName);
-        return templateMetadata != null;
+        return indices.isEmpty();
     }
 
 
