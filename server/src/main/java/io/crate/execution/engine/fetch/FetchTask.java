@@ -295,7 +295,7 @@ public class FetchTask implements Task {
                     SharedShardContext shardContext = shardContexts.get(readerId);
                     if (shardContext == null) {
                         try {
-                            shardContext = sharedShardContexts.createContext(shardId, readerId);
+                            shardContext = sharedShardContexts.prepareContext(shardId, readerId);
                             shardContexts.put(readerId, shardContext);
                             if (tablesWithFetchRefs.contains(ident)) {
                                 searchers.put(readerId, shardContext.acquireSearcher(source));
