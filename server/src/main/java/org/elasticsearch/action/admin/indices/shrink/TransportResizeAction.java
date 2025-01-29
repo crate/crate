@@ -82,11 +82,13 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
 
     @Override
     protected ClusterBlockException checkBlock(ResizeRequest request, ClusterState state) {
-        if (request.partitionValues().isEmpty()) {
-            return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.table().indexNameOrAlias());
-        }
-        PartitionName partitionName = new PartitionName(request.table(), request.partitionValues());
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, partitionName.asIndexName());
+        String[] indices = state.metadata().getIndices(
+            request.table(),
+            request.partitionValues(),
+            false,
+            idxMd -> idxMd.getIndex().getName()
+        ).toArray(String[]::new);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
 
     @Override
