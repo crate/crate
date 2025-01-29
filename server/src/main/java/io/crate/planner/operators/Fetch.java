@@ -155,7 +155,12 @@ public final class Fetch extends ForwardingLogicalPlan {
             }
         }
         List<DataType<?>> inputTypes = Symbols.typeView(source.outputs());
-        List<Symbol> fetchOutputs = InputColumns.create(boundOutputs, new InputColumns.SourceSymbols(source.outputs()));
+        // Must bind source outputs to ensure InputColumns.create can associate parameters. Example:
+        //      boundOutputs:         [FetchStub<_doc['name']>, Function(ints + 1)]
+        //      source.outputs():     [FetchMarker<_fetchid>, Function(ints + $1)]
+        //      boundedSourceOutputs: [FetchMarker<_fetchid>, Function(ints + 1)]
+        List<Symbol> boundSourceOutputs = Lists.map(source.outputs(), paramBinder);
+        List<Symbol> fetchOutputs = InputColumns.create(boundOutputs, new InputColumns.SourceSymbols(boundSourceOutputs));
         FetchProjection fetchProjection = new FetchProjection(
             fetchPhase.phaseId(),
             plannerContext.fetchSize(),

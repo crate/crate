@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.ActionListener;
@@ -40,7 +41,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -131,21 +131,15 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
         if (views != null && views.contains(request.sourceName())) {
             return null;
         }
-        try {
-            return state.blocks().indicesBlockedException(
-                ClusterBlockLevel.METADATA_WRITE,
-                IndexNameExpressionResolver.concreteIndexNames(
-                    state.metadata(),
-                    STRICT_INDICES_OPTIONS,
-                    request.sourceName().indexNameOrAlias()
-                )
-            );
-        } catch (IndexNotFoundException e) {
-            if (request.isPartitioned() == false) {
-                throw e;
-            }
-            // empty partition, no indices just a template exists.
-            return null;
-        }
+        boolean strict = !request.isPartitioned();
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            state.metadata().getIndices(
+                request.sourceName(),
+                List.of(),
+                strict,
+                imd -> imd.getIndex().getName()
+            ).toArray(String[]::new)
+        );
     }
 }
