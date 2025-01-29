@@ -119,7 +119,9 @@ The following parameters apply to all repository types:
 
 **max_restore_bytes_per_sec**
   The maximum rate (bytes per second) at which a single CrateDB node will read
-  snapshot data from this repository.
+  snapshot data from this repository. A value of ``0`` disables throttling.
+  Please note that the rate is additionally throttled through the
+  :ref:`recovery settings <indices.recovery>`.
 
   Default: ``40mb``
 
@@ -127,7 +129,7 @@ The following parameters apply to all repository types:
 
 **max_snapshot_bytes_per_sec**
   The maximum rate (bytes per second) at which a single CrateDB node will write
-  snapshot data to this repository.
+  snapshot data to this repository.. A value of ``0`` disables throttling.
 
   Default: ``40mb``
 
@@ -385,7 +387,7 @@ Parameters
   | *Values:*  ``standard``, ``reduced_redundancy`` or ``standard_ia``
   | *Default:* ``standard``
 
-  The S3 storage class used for objects stored in the repository. This only 
+  The S3 storage class used for objects stored in the repository. This only
   affects the S3 storage class used for newly created objects in the repository.
 
 .. _sql-create-repo-s3-use_path_style_access:
