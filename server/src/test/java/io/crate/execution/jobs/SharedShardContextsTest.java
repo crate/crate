@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -82,7 +83,7 @@ public class SharedShardContextsTest {
         }).limit(20).toList();
 
         var cf1 = CompletableFuture.runAsync(
-            () -> shards1.stream().parallel().forEach(shardId -> sharedShardContexts.createContext(shardId, shardId.id()))
+            () -> shards1.stream().parallel().forEach(shardId -> sharedShardContexts.prepareContext(shardId, shardId.id()))
         );
         var cf2 = CompletableFuture.runAsync(
             () -> shards2.stream().parallel().forEach(sharedShardContexts::getOrCreateContext)
@@ -95,5 +96,26 @@ public class SharedShardContextsTest {
         allShards.addAll(shards2);
         assertThat(sharedShardContexts.allocatedShards).hasSize(allShards.size());
         assertThat(sharedShardContexts.allocatedShards).containsOnlyKeys(allShards);
+    }
+
+    @Test
+    public void test_create_context_returns_existing_instance_for_given_shard_and_reader_id() {
+        IndicesService indicesService = mock(IndicesService.class);
+        IndexService indexService = mock(IndexService.class);
+        when(indicesService.indexServiceSafe(any())).thenReturn(indexService);
+
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, null);
+        ShardId shardId = new ShardId("dummy", "dummyUUID", 1);
+        int readerID = 1;
+
+        SharedShardContext sharedShardContext1 = sharedShardContexts.prepareContext(shardId, readerID);
+        SharedShardContext sharedShardContext2 = sharedShardContexts.prepareContext(shardId, readerID);
+
+        // Same shardId/readerId -> same instance
+        assertThat(sharedShardContext1).isSameAs(sharedShardContext2);
+
+        assertThatThrownBy(() -> sharedShardContexts.prepareContext(shardId, readerID + 1))
+            .isExactlyInstanceOf(AssertionError.class)
+            .hasMessageContaining("FetchTask cannot create 2 contexts with same shardId and different readerId");
     }
 }
