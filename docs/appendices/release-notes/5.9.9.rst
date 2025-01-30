@@ -1,17 +1,10 @@
 .. _version_5.9.9:
 
-==========================
-Version 5.9.9 - Unreleased
-==========================
+=============
+Version 5.9.9
+=============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.9.9 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2025-01-30.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -67,3 +60,4 @@ Fixes
   ``ORDER BY`` and query had a ``LIMIT`` clause. Example.::
 
     SELECT a, b + ? as sum FROM tbl ORDER BY sum LIMIT 10
+
