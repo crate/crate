@@ -201,6 +201,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_5_7_3 = new Version(8_07_03_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
     public static final Version V_5_7_4 = new Version(8_07_04_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
     public static final Version V_5_7_5 = new Version(8_07_05_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
+    public static final Version V_5_7_6 = new Version(8_07_06_99, false, org.apache.lucene.util.Version.LUCENE_9_10_0);
 
     public static final Version V_5_8_0 = new Version(8_08_00_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_8_1 = new Version(8_08_01_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
@@ -208,6 +209,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_5_8_3 = new Version(8_08_03_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_8_4 = new Version(8_08_04_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_8_5 = new Version(8_08_05_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_8_6 = new Version(8_08_06_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
 
     public static final Version V_5_9_0 = new Version(8_09_00_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_9_1 = new Version(8_09_01_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
@@ -218,6 +220,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_5_9_6 = new Version(8_09_06_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_9_7 = new Version(8_09_07_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
     public static final Version V_5_9_8 = new Version(8_09_08_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
+    public static final Version V_5_9_9 = new Version(8_09_09_99, false, org.apache.lucene.util.Version.LUCENE_9_11_1);
 
     public static final Version V_5_10_0 = new Version(8_10_00_99, false, org.apache.lucene.util.Version.LUCENE_9_12_0);
     public static final Version V_5_10_1 = new Version(8_10_01_99, true, org.apache.lucene.util.Version.LUCENE_9_12_0);
