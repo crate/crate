@@ -55,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
@@ -222,7 +223,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             DataType<?> objectArgType = argTypes.get(0);
             // Type could also be "undefined"
             if (objectArgType instanceof ObjectType objType) {
-                if (objType.innerTypes().containsKey(name)) {
+                if (objType.columnPolicy() == ColumnPolicy.IGNORED || objType.innerTypes().containsKey(name)) {
                     return null;
                 }
             }
