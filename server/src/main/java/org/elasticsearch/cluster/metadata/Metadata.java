@@ -507,7 +507,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             indices = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), INDEX_METADATA_DIFF_VALUE_READER);
             templates = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), TEMPLATES_DIFF_VALUE_READER);
             customs = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
-            if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+            if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
                 schemas = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), SCHEMA_DIFF_VALUE_READER);
             } else {
                 schemas = Diffs.empty();
@@ -528,7 +528,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             indices.writeTo(out);
             templates.writeTo(out);
             customs.writeTo(out);
-            if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+            if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
                 schemas.writeTo(out);
             }
         }
@@ -578,7 +578,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.putCustom(customIndexMetadata.getWriteableName(), customIndexMetadata);
         }
 
-        if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
             int numSchemas = in.readVInt();
             for (int i = 0; i < numSchemas; i++) {
                 String schemaName = in.readString();
@@ -622,7 +622,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
 
-        if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
             out.writeVInt(schemas.size());
             for (var cursor : schemas) {
                 String schemaName = cursor.key;
