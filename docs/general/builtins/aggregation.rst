@@ -840,7 +840,11 @@ Limitations
 
 .. _Aggregate function: https://en.wikipedia.org/wiki/Aggregate_function
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
+<<<<<<< HEAD
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
+=======
+.. _HyperLogLog++: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf
+>>>>>>> 8be91d878b (Fix link to HLL++ publication, use archive, original starts failing)
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
