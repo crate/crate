@@ -424,6 +424,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         if (metadata1.columnOID != metadata2.columnOID) {
             return false;
         }
+        if (!metadata1.schemas.equals(metadata2.schemas)) {
+            return false;
+        }
 
         // Check if any persistent metadata needs to be saved
         int customCount1 = 0;
