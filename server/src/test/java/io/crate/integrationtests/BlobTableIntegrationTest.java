@@ -140,6 +140,24 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(relation).isNull();
     }
 
+    @Test
+    public void test_blob_table_metadata_is_available_after_cluster_restart() throws Exception {
+        execute("CREATE BLOB TABLE myblobs CLUSTERED INTO 1 shards WITH (number_of_replicas = 0)");
+        ensureGreen();
+        execute("SELECT table_name, number_of_shards, number_of_replicas" +
+            " FROM information_schema.tables" +
+            " WHERE table_schema = 'blob'");
+        assertThat(response).hasRows("myblobs| 1| 0");
+
+        cluster().fullRestart();
+        ensureYellow();
+
+        execute("SELECT table_name, number_of_shards, number_of_replicas" +
+            " FROM information_schema.tables" +
+            " WHERE table_schema = 'blob'");
+        assertThat(response).hasRows("myblobs| 1| 0");
+    }
+
     private void blobUpload(String[] contents, String... tables) throws Exception {
         for (String content : contents) {
             for (String table : tables) {
