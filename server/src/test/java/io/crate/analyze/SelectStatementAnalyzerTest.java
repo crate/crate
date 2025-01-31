@@ -2998,5 +2998,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select obj_dynamic['u']['u2'] from (select obj_dynamic['u'] from t) t2");
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+        analyzed = executor.analyze("select obj_dynamic['u']['u2']['u3'] from (select obj_dynamic['u'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
     }
 }
