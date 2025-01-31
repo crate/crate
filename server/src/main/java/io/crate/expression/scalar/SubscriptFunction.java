@@ -219,11 +219,14 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 return result;
             }
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
-        } else if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+        } else if (!map.containsKey(name)) {
             DataType<?> objectArgType = argTypes.get(0);
             // Type could also be "undefined"
             if (objectArgType instanceof ObjectType objType) {
-                if (objType.columnPolicy() == ColumnPolicy.IGNORED || objType.innerTypes().containsKey(name)) {
+                ColumnPolicy columnPolicy = objType.columnPolicy();
+                if (columnPolicy == ColumnPolicy.IGNORED ||
+                    (columnPolicy == ColumnPolicy.DYNAMIC && !errorOnUnknownObjectKey) ||
+                    objType.innerTypes().containsKey(name)) {
                     return null;
                 }
             }
