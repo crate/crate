@@ -1750,6 +1750,13 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
+        try {
+            cluster().fullRestart();
+            ensureYellow();
+            execute("select health from sys.health");
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
         return execute(stmt, (Object[]) null);
     }
 
