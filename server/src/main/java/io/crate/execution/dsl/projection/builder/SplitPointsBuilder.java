@@ -27,8 +27,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
@@ -119,9 +123,9 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
 
-        for (var condition : relation.joinConditions()) {
-            toCollect.addAll(extractColumns(condition));
-        }
+        JoinConditionVisitor joinConditionVisitor = new JoinConditionVisitor();
+        relation.accept(joinConditionVisitor, toCollect);
+
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
         }
@@ -255,5 +259,37 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             context.standalone.add(symbol);
         }
         return super.visitReference(symbol, context);
+    }
+
+    static class JoinConditionVisitor extends AnalyzedRelationVisitor<LinkedHashSet<Symbol>, Void> {
+
+        @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, LinkedHashSet<Symbol> context) {
+            return null;
+        }
+
+        @Override
+        public Void visitUnionSelect(UnionSelect unionSelect, LinkedHashSet<Symbol> context) {
+            unionSelect.left().accept(this,context);
+            unionSelect.right().accept(this,context);
+            return null;
+        }
+
+        @Override
+        public Void visitJoinRelation(JoinRelation joinRelation, LinkedHashSet<Symbol> context) {
+            context.add(joinRelation.joinCondition());
+            joinRelation.left().accept(this, context);
+            joinRelation.right().accept(this, context);
+            return null;
+
+        }
+
+        @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, LinkedHashSet<Symbol> context) {
+            for (AnalyzedRelation analyzedRelation : relation.from()) {
+                analyzedRelation.accept(this, context);
+            }
+            return null;
+        }
     }
 }

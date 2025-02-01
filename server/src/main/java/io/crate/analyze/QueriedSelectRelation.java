@@ -222,8 +222,5 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (offset != null) {
             consumer.accept(offset);
         }
-        for (var joinCondition : joinConditions) {
-            consumer.accept(joinCondition);
-        }
     }
 }
