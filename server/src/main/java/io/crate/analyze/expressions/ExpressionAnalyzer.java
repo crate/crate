@@ -729,71 +729,71 @@ public class ExpressionAnalyzer {
             if (operation != Operation.READ) {
                 throw e;
             }
-            try {
-                Symbol base = null;
-                if (context.errorOnUnknownObjectKey()) {
+            Symbol base = null;
+            if (context.errorOnUnknownObjectKey()) {
+                try {
                     base = fieldProvider.resolveField(qualifiedName,
                         List.of(),
                         operation,
                         context.errorOnUnknownObjectKey());
-                } else {
-                    // From the perspective of the outer query for `select o['a']['b'] from (select o['a'] from t) t2`,
-                    // the base column of `o['a']['b']` could be `o` or `o['a']`. The search for the base col is limited
-                    // to `error_on_unknown_object_key = false` because if it was true, `o['a']` of the inner query already
-                    // should have thrown.
-                    for (int i = parts.size() - 1; i >= 0; i--) {
-                        try {
-                            base = fieldProvider.resolveField(qualifiedName,
-                                parts.subList(0, i),
-                                operation,
-                                context.errorOnUnknownObjectKey());
-                            if (base != null) {
-                                break;
-                            }
-                        } catch (ColumnUnknownException ignored) {
+                } catch (ColumnUnknownException ignored) {
+                    throw e;
+                }
+            } else {
+                // From the perspective of the outer query for `select o['a']['b'] from (select o['a'] from t) t2`,
+                // the base column of `o['a']['b']` could be `o` or `o['a']`. The search for the base col is limited
+                // to `error_on_unknown_object_key = false` because if it was true, `o['a']` of the inner query already
+                // should have thrown.
+                for (int i = parts.size() - 1; i >= 0; i--) {
+                    try {
+                        base = fieldProvider.resolveField(qualifiedName,
+                            parts.subList(0, i),
+                            operation,
+                            context.errorOnUnknownObjectKey());
+                        if (base != null) {
+                            break;
                         }
-                    }
-                    if (base == null) {
-                        throw e;
+                    } catch (ColumnUnknownException ignored) {
                     }
                 }
-                DataType<?> baseType = base.valueType();
-                // Need to double-check that the base type does not hold the inner type before throwing. For instance,
-                //     create table t (o array(object as (a int)));
-                //     select col['a'] from (select unnest(o) as col from t) t_alias;
-                // `col['a']` cannot be resolved(due to unnest), although we know o['a'] exists. Here `col`(the base)
-                // is resolved to a ScopedSymbol which holds `a` as the inner type.
-                // There are test cases that fail without checking inner types:
-                //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
-                //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
-                // Another example is selecting sub-column of an object that is union-ed.
-                if (baseType != UndefinedType.INSTANCE
-                    && baseType != ObjectType.UNTYPED
-                    && !DataTypes.hasPath(baseType, parts)) {
-                    DataType<?> currentType = baseType;
-                    ColumnPolicy parentPolicy = baseType.columnPolicy();
-                    for (String p : parts) {
-                        if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
-                            parentPolicy = objectType.columnPolicy();
-                            currentType = objectType.innerType(p);
-                        }
-                    }
-                    if (parentPolicy == ColumnPolicy.STRICT ||
-                        (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
-                        throw e;
-                    }
+                if (base == null) {
+                    throw e;
                 }
-                return allocateFunction(
-                    SubscriptFunction.NAME,
-                    List.of(
-                        node.base().accept(this, context),
-                        node.index().accept(this, context)
-                    ),
-                    context
-                );
-            } catch (ColumnUnknownException e2) {
-                throw e;
             }
+            DataType<?> baseType = base.valueType();
+            // Need to double-check that the base type does not hold the inner type before throwing. For instance,
+            //     create table t (o array(object as (a int)));
+            //     select col['a'] from (select unnest(o) as col from t) t_alias;
+            // `col['a']` cannot be resolved(due to unnest), although we know o['a'] exists. Here `col`(the base)
+            // is resolved to a ScopedSymbol which holds `a` as the inner type.
+            // There are test cases that fail without checking inner types:
+            //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
+            //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
+            // Another example is selecting sub-column of an object that is union-ed.
+            if (baseType != UndefinedType.INSTANCE
+                && baseType != ObjectType.UNTYPED
+                && !DataTypes.hasPath(baseType, parts)) {
+                DataType<?> currentType = baseType;
+                ColumnPolicy parentPolicy = baseType.columnPolicy();
+                for (String p : parts) {
+                    if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
+                        parentPolicy = objectType.columnPolicy();
+                        currentType = objectType.innerType(p);
+                    }
+                }
+                if (parentPolicy == ColumnPolicy.STRICT ||
+                    (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
+                    throw e;
+                }
+            }
+            return allocateFunction(
+                SubscriptFunction.NAME,
+                List.of(
+                    node.base().accept(this, context),
+                    node.index().accept(this, context)
+                ),
+                context
+            );
         }
 
         @Override
