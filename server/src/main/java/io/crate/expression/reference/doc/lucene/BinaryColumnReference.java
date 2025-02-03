@@ -28,6 +28,9 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 
@@ -36,6 +39,9 @@ public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression
     private final String columnName;
     private SortedSetDocValues values;
     private int docId;
+    private Cache<Long, T> cache;
+
+    private static final long CACHE_SIZE = 64;
 
     public BinaryColumnReference(String columnName) {
         this.columnName = columnName;
@@ -52,7 +58,23 @@ public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression
             if (values.docValueCount() > 1) {
                 throw new ArrayViaDocValuesUnsupportedException(columnName);
             }
-            return convert(values.lookupOrd(values.nextOrd()));
+            return loadValue(values.nextOrd());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private T loadValue(long ord) {
+        if (this.cache == null) {
+            return convert(uncheckedLoad(ord));
+        } else {
+            return cache.get(ord, o -> convert(uncheckedLoad(o)));
+        }
+    }
+
+    private BytesRef uncheckedLoad(long ord) {
+        try {
+            return values.lookupOrd(ord);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -66,6 +88,13 @@ public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression
     @Override
     public final void setNextReader(ReaderContext context) throws IOException {
         values = DocValues.getSortedSet(context.reader(), columnName);
+        long docCount = context.reader().maxDoc();
+        long valueCount = values.getValueCount();
+        if (valueCount < CACHE_SIZE || (docCount / valueCount) > 16) {
+            this.cache = Caffeine.newBuilder().maximumSize(CACHE_SIZE).build();
+        } else {
+            this.cache = null;
+        }
     }
 }
 
