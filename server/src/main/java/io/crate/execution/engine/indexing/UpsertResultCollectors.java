@@ -190,8 +190,16 @@ final class UpsertResultCollectors {
                     RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
                     String msg = null;
                     if (failure != null) {
-                        var throwable = SQLExceptions.prepareForClientTransmission(accessControl, failure.error());
-                        msg = throwable.getMessage();
+                        Throwable error = failure.error();
+                        if (error == null) {
+                            msg = "unknown failure";
+                        } else {
+                            var throwable = SQLExceptions.prepareForClientTransmission(
+                                accessControl,
+                                failure.error()
+                            );
+                            msg = throwable.getMessage();
+                        }
                     }
                     upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }
