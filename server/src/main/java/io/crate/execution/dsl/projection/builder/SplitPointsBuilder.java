@@ -168,7 +168,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         where.visit(Symbol.IS_COLUMN, toCollect::add);
         ArrayList<Symbol> outputs = new ArrayList<>();
         for (var output : toCollect) {
-            if (output.any(Symbol.IS_CORRELATED_SUBQUERY)) {
+            if (output != null && output.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 outputs.addAll(extractColumns(output));
             } else {
                 outputs.add(output);

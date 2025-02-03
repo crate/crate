@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -496,7 +496,7 @@ public class LogicalPlanner {
             // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getRelationNames(relation);
-            Predicate<Symbol> addFiltered = node -> {
+            Consumer<Symbol> consumer = node -> {
                 if (node instanceof ScopedSymbol || node instanceof Reference) {
                     SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
                     for (RelationName relationName : relationNamesFromSymbol) {
@@ -506,11 +506,8 @@ public class LogicalPlanner {
                         }
                     }
                 }
-                return false;
             };
-            for (Symbol symbol : outputs) {
-                symbol.any(addFiltered);
-            }
+            relation.visitSymbols(consumer);
             return List.copyOf(result);
         }
 
