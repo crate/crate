@@ -140,7 +140,7 @@ class UpsertResults {
                 sb.append("NODE: ").append(nodeName);
             }
         }
-        if (results.failure != null) {
+        if (results.failure != null && results.failure.error() != null) {
             sb.append(results.failure.error().getMessage());
         }
         var it = results.resultsByUri.entrySet().iterator();
