@@ -19,16 +19,15 @@
 
 package org.elasticsearch.search.profile.query;
 
+import java.io.IOException;
+import java.util.Collection;
+
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
-import org.apache.lucene.search.Weight;
 import org.elasticsearch.search.profile.Timer;
-
-import java.io.IOException;
-import java.util.Collection;
 
 /**
  * {@link Scorer} wrapper that will compute how much time is spent on moving
@@ -37,7 +36,6 @@ import java.util.Collection;
 final class ProfileScorer extends Scorer {
 
     private final Scorer scorer;
-    private ProfileWeight profileWeight;
 
     private final Timer scoreTimer;
     private final Timer nextDocTimer;
@@ -48,9 +46,7 @@ final class ProfileScorer extends Scorer {
     private final boolean isConstantScoreQuery;
 
     ProfileScorer(ProfileWeight w, Scorer scorer, QueryProfileBreakdown profile) throws IOException {
-        super(w);
         this.scorer = scorer;
-        this.profileWeight = w;
         scoreTimer = profile.getTimer(QueryTimingType.SCORE);
         nextDocTimer = profile.getTimer(QueryTimingType.NEXT_DOC);
         advanceTimer = profile.getTimer(QueryTimingType.ADVANCE);
@@ -64,7 +60,7 @@ final class ProfileScorer extends Scorer {
         } else if (w.getQuery() instanceof ConstantScoreQuery && scorer.getChildren().size() == 1) {
             //Case when we have a top N query. If the scorer has no children, it is because it is cached
             //and in that case we do not do any special treatment
-            Scorable childScorer = scorer.getChildren().iterator().next().child;
+            Scorable childScorer = scorer.getChildren().iterator().next().child();
             if (childScorer instanceof ProfileScorer) {
                 profileScorer = (ProfileScorer) childScorer;
             }
@@ -92,11 +88,6 @@ final class ProfileScorer extends Scorer {
         } finally {
             scoreTimer.stop();
         }
-    }
-
-    @Override
-    public Weight getWeight() {
-        return profileWeight;
     }
 
     @Override

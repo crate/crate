@@ -24,10 +24,11 @@ import java.util.Collections;
 
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.ByteVectorValues;
+import org.apache.lucene.index.DocValuesSkipIndexType;
+import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FloatVectorValues;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafMetaData;
@@ -56,10 +57,10 @@ final class TranslogLeafReader extends LeafReader {
 
     private final Translog.Index operation;
     private static final FieldInfo FAKE_SOURCE_FIELD
-        = new FieldInfo(SysColumns.Source.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
+        = new FieldInfo(SysColumns.Source.NAME, 1, false, false, false, IndexOptions.NONE, DocValuesType.NONE, DocValuesSkipIndexType.NONE, -1, Collections.emptyMap(),
         0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
     private static final FieldInfo FAKE_ID_FIELD
-        = new FieldInfo(SysColumns.Names.ID, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, -1, Collections.emptyMap(),
+        = new FieldInfo(SysColumns.Names.ID, 3, false, false, false, IndexOptions.NONE, DocValuesType.NONE, DocValuesSkipIndexType.NONE, -1, Collections.emptyMap(),
         0, 0, 0, 0, VectorEncoding.BYTE, VectorSimilarityFunction.EUCLIDEAN, false, false);
 
     TranslogLeafReader(Translog.Index operation) {
@@ -106,6 +107,10 @@ final class TranslogLeafReader extends LeafReader {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public DocValuesSkipper getDocValuesSkipper(String field) throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public FieldInfos getFieldInfos() {
@@ -133,11 +138,6 @@ final class TranslogLeafReader extends LeafReader {
     }
 
     @Override
-    public Fields getTermVectors(int docID) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public int numDocs() {
         return 1;
     }
@@ -145,11 +145,6 @@ final class TranslogLeafReader extends LeafReader {
     @Override
     public int maxDoc() {
         return 1;
-    }
-
-    @Override
-    public void document(int docID, StoredFieldVisitor visitor) throws IOException {
-        docFromOperation(docID, visitor, operation);
     }
 
     @Override

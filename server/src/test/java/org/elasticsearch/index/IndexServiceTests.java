@@ -299,7 +299,7 @@ public class IndexServiceTests extends IntegTestCase {
             // we are running on updateMetadata if the interval changes
             try (Engine.Searcher searcher = shard.acquireSearcher(indexName)) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertThat(search.totalHits.value).isEqualTo(1);
+                assertThat(search.totalHits.value()).isEqualTo(1);
             }
         });
         assertThat(refreshTask.isClosed()).isFalse();
@@ -312,7 +312,7 @@ public class IndexServiceTests extends IntegTestCase {
             // this one becomes visible due to the force refresh we are running on updateMetadata if the interval changes
             try (Engine.Searcher searcher = shard.acquireSearcher(indexName)) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertThat(search.totalHits.value).isEqualTo(2);
+                assertThat(search.totalHits.value()).isEqualTo(2);
             }
         });
         execute("insert into test (x, data) values (3, 'foo')");
@@ -321,7 +321,7 @@ public class IndexServiceTests extends IntegTestCase {
             // this one becomes visible due to the scheduled refresh
             try (Engine.Searcher searcher = shard.acquireSearcher("test")) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertThat(search.totalHits.value).isEqualTo(3);
+                assertThat(search.totalHits.value()).isEqualTo(3);
             }
         });
     }

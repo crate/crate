@@ -35,9 +35,6 @@ import java.util.Locale;
  *     <li>{@code NONE} - Disable support for all syntax options</li>
  *     <li>{@code ALL} - Enables support for all syntax options</li>
  * </ul>
- *
- * @see RegexpQueryBuilder#flags(RegexpFlag...)
- * @see RegexpQueryBuilder#flags(RegexpFlag...)
  */
 public enum RegexpFlag {
 
@@ -49,7 +46,7 @@ public enum RegexpFlag {
     /**
      * Enables complement expression of the form: {@code ~&lt;expression&gt;}
      */
-    COMPLEMENT(RegExp.COMPLEMENT),
+    COMPLEMENT(RegExp.DEPRECATED_COMPLEMENT),
 
     /**
      * Enables empty language expression: {@code #}

@@ -30,6 +30,7 @@ import org.apache.lucene.index.BaseTermsEnum;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.ImpactsEnum;
@@ -45,7 +46,6 @@ import org.apache.lucene.index.TermsEnum.SeekStatus;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.DataInput;
-import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RandomAccessInput;
 import org.apache.lucene.util.BytesRef;
@@ -67,8 +67,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     private int version = -1;
     private final boolean merging;
 
-    /** expert: instantiates a new reader
-     * @param mode*/
+    /** expert: instantiates a new reader */
     CustomLucene90DocValuesProducer(
             SegmentReadState state,
             String dataCodec,
@@ -86,7 +85,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         merging = false;
 
         // read in the entries from the metadata file.
-        try (ChecksumIndexInput in = state.directory.openChecksumInput(metaName, IOContext.READONCE)) {
+        try (ChecksumIndexInput in = state.directory.openChecksumInput(metaName)) {
             Throwable priorE = null;
 
             try {
@@ -1463,21 +1462,17 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     private final int maxDoc = CustomLucene90DocValuesProducer.this.maxDoc;
                     private int doc = -1;
                     private long start;
-                    private long end;
                     private int count;
 
                     @Override
                     public long nextOrd() throws IOException {
-                        if (start == end) {
-                            return NO_MORE_ORDS;
-                        }
                         return values.get(start++);
                     }
 
                     @Override
                     public boolean advanceExact(int target) throws IOException {
                         start = addresses.get(target);
-                        end = addresses.get(target + 1L);
+                        long end = addresses.get(target + 1L);
                         count = (int) (end - start);
                         doc = target;
                         return true;
@@ -1504,7 +1499,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                             return doc = NO_MORE_DOCS;
                         }
                         start = addresses.get(target);
-                        end = addresses.get(target + 1L);
+                        long end = addresses.get(target + 1L);
                         count = (int) (end - start);
                         return doc = target;
                     }
@@ -1526,15 +1521,12 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 return new BaseSortedSetDocValues(entry, data) {
 
                     boolean set;
-                    long start, end;
+                    long start;
                     int count;
 
                     @Override
                     public long nextOrd() throws IOException {
                         set();
-                        if (start == end) {
-                            return NO_MORE_ORDS;
-                        }
                         return values.get(start++);
                     }
 
@@ -1576,7 +1568,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                         if (set == false) {
                             final int index = disi.index();
                             start = addresses.get(index);
-                            end = addresses.get(index + 1L);
+                            long end = addresses.get(index + 1L);
                             count = (int) (end - start);
                             set = true;
                         }
@@ -1588,7 +1580,6 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         final SortedNumericDocValues ords = getSortedNumeric(entry.ordsEntry);
         return new BaseSortedSetDocValues(entry, data) {
 
-            int i = 0;
             int count = 0;
             boolean set = false;
 
@@ -1596,11 +1587,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             public long nextOrd() throws IOException {
                 if (set == false) {
                     set = true;
-                    i = 0;
                     count = ords.docValueCount();
-                }
-                if (i++ == count) {
-                    return NO_MORE_ORDS;
                 }
                 return ords.nextValue();
             }
@@ -1638,6 +1625,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 return ords.cost();
             }
         };
+    }
+
+    @Override
+    public DocValuesSkipper getSkipper(FieldInfo field) throws IOException {
+        throw new UnsupportedOperationException("CrateDB does not implement DocValuesSkippers");
     }
 
     @Override

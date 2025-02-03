@@ -19,7 +19,6 @@ package io.crate.lucene;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,7 +26,6 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.Impact;
 import org.apache.lucene.index.Impacts;
@@ -97,34 +95,6 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
     public Terms terms(String field) throws IOException {
         Terms terms = super.terms(field);
         return terms == null ? null : new AssertingTerms(terms);
-    }
-
-    @Override
-    public Fields getTermVectors(int docID) throws IOException {
-        Fields fields = super.getTermVectors(docID);
-        return fields == null ? null : new AssertingFields(fields);
-    }
-
-    /**
-     * Wraps a Fields but with additional asserts
-     */
-    public static class AssertingFields extends FilterFields {
-        public AssertingFields(Fields in) {
-            super(in);
-        }
-
-        @Override
-        public Iterator<String> iterator() {
-            Iterator<String> iterator = super.iterator();
-            assert iterator != null;
-            return iterator;
-        }
-
-        @Override
-        public Terms terms(String field) throws IOException {
-            Terms terms = super.terms(field);
-            return terms == null ? null : new AssertingTerms(terms);
-        }
     }
 
     /**
@@ -962,7 +932,7 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         private final int maxDoc;
         private final long valueCount;
         private int lastDocID = -1;
-        private long lastOrd = NO_MORE_ORDS;
+        private long lastOrd = Integer.MAX_VALUE;
         private boolean exists;
 
         private AssertingSortedSetDocValues(SortedSetDocValues in, int maxDoc) {
@@ -1040,11 +1010,10 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         @Override
         public long nextOrd() throws IOException {
             assertThread("Sorted set doc values", creationThread);
-            assert lastOrd != NO_MORE_ORDS;
             assert exists;
             long ord = in.nextOrd();
             assert ord < valueCount;
-            assert ord == NO_MORE_ORDS || ord > lastOrd;
+            assert ord > lastOrd;
             lastOrd = ord;
             return ord;
         }

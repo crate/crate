@@ -86,7 +86,7 @@ public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = [" + BIT_STRING + "]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         TermInSetQuery q = (TermInSetQuery) query;
         assertThat(q).hasToString("arr1:(" + BIT_STRING_IN_BYTES_REF.utf8ToString() + ")");
@@ -94,7 +94,7 @@ public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("arr2 = [" + BIT_STRING + "]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         // SortedSetDocValuesField.newSlowSetQuery is equal to TermInSetQuery + MultiTermQuery.DOC_VALUES_REWRITE
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         q = (TermInSetQuery) query;

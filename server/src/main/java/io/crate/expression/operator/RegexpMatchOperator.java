@@ -30,6 +30,7 @@ import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
+import org.apache.lucene.util.automaton.Operations;
 import org.apache.lucene.util.automaton.RegExp;
 
 import io.crate.data.Input;
@@ -81,7 +82,8 @@ public class RegexpMatchOperator extends Operator<String> {
             return source.matches(pattern);
         } else {
             RegExp regexp = new RegExp(pattern);
-            ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(regexp.toAutomaton());
+            var auto = Operations.determinize(regexp.toAutomaton(), Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
+            ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(auto);
             byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
             return regexpRunAutomaton.run(bytes, 0, bytes.length);
         }

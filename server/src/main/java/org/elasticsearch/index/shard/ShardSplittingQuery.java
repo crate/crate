@@ -36,6 +36,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BitSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -69,20 +70,30 @@ final class ShardSplittingQuery extends Query {
             }
 
             @Override
-            public Scorer scorer(LeafReaderContext context) throws IOException {
-                LeafReader leafReader = context.reader();
-                FixedBitSet bitSet = new FixedBitSet(leafReader.maxDoc());
-                Predicate<BytesRef> includeInShard = ref -> {
-                    int targetShardId = OperationRouting.generateShardId(indexMetadata,
-                        Uid.decodeId(ref.bytes, ref.offset, ref.length), null);
-                    return shardId == targetShardId;
+            public ScorerSupplier scorerSupplier(LeafReaderContext context) throws IOException {
+                return new ScorerSupplier() {
+                    @Override
+                    public Scorer get(long leadCost) throws IOException {
+                        LeafReader leafReader = context.reader();
+                        FixedBitSet bitSet = new FixedBitSet(leafReader.maxDoc());
+                        Predicate<BytesRef> includeInShard = ref -> {
+                            int targetShardId = OperationRouting.generateShardId(indexMetadata,
+                                Uid.decodeId(ref.bytes, ref.offset, ref.length), null);
+                            return shardId == targetShardId;
+                        };
+                        // this is the common case - no partitioning and no _routing values
+                        // in this case we also don't do anything special with regards to nested docs since we basically delete
+                        // by ID and parent and nested all have the same id.
+                        assert indexMetadata.isRoutingPartitionedIndex() == false;
+                        findSplitDocs(SysColumns.Names.ID, includeInShard, leafReader, bitSet::set);
+                        return new ConstantScoreScorer(score(), scoreMode, new BitSetIterator(bitSet, bitSet.length()));
+                    }
+
+                    @Override
+                    public long cost() {
+                        return context.reader().maxDoc();
+                    }
                 };
-                // this is the common case - no partitioning and no _routing values
-                // in this case we also don't do anything special with regards to nested docs since we basically delete
-                // by ID and parent and nested all have the same id.
-                assert indexMetadata.isRoutingPartitionedIndex() == false;
-                findSplitDocs(SysColumns.Names.ID, includeInShard, leafReader, bitSet::set);
-                return new ConstantScoreScorer(this, score(), scoreMode, new BitSetIterator(bitSet, bitSet.length()));
             }
 
             @Override

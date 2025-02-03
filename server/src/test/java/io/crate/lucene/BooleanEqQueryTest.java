@@ -97,13 +97,13 @@ public class BooleanEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = [true, false, null]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).hasToString("arr1:(F T)");
 
         query = convert("arr2 = [true, false, null]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         assertThat(query).hasToString("arr2: [0, 1]");
     }

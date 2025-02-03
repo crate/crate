@@ -51,7 +51,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(likeBQuery.clauses()).hasSize(3);
         for (int i = 0; i < 2; i++) {
             // like --> ConstantScoreQuery with regexp-filter
-            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
+            Query filteredQuery = likeBQuery.clauses().get(i).query();
             assertThat(filteredQuery).isExactlyInstanceOf(WildcardQuery.class);
         }
     }
@@ -63,7 +63,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
         assertThat(likeBQuery.clauses()).hasSize(3);
         for (int i = 0; i < 2; i++) {
-            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
+            Query filteredQuery = likeBQuery.clauses().get(i).query();
             assertThat(filteredQuery).isExactlyInstanceOf(CrateRegexQuery.class);
         }
     }
@@ -75,11 +75,11 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
         assertThat(notLikeBQuery.clauses()).hasSize(2);
         BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
-        assertThat(((BooleanQuery) clause.getQuery()).clauses()).hasSize(3);
-        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur()).isEqualTo(BooleanClause.Occur.MUST);
-            assertThat(innerClause.getQuery()).isExactlyInstanceOf(WildcardQuery.class);
+        assertThat(clause.occur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
+        assertThat(((BooleanQuery) clause.query()).clauses()).hasSize(3);
+        for (BooleanClause innerClause : ((BooleanQuery) clause.query()).clauses()) {
+            assertThat(innerClause.occur()).isEqualTo(BooleanClause.Occur.MUST);
+            assertThat(innerClause.query()).isExactlyInstanceOf(WildcardQuery.class);
         }
     }
 
@@ -90,11 +90,11 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
         assertThat(notLikeBQuery.clauses()).hasSize(2);
         BooleanClause clause = notLikeBQuery.clauses().get(1);
-        assertThat(clause.getOccur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
-        assertThat(((BooleanQuery) clause.getQuery()).clauses()).hasSize(3);
-        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
-            assertThat(innerClause.getOccur()).isEqualTo(BooleanClause.Occur.MUST);
-            assertThat(innerClause.getQuery()).isExactlyInstanceOf(CrateRegexQuery.class);
+        assertThat(clause.occur()).isEqualTo(BooleanClause.Occur.MUST_NOT);
+        assertThat(((BooleanQuery) clause.query()).clauses()).hasSize(3);
+        for (BooleanClause innerClause : ((BooleanQuery) clause.query()).clauses()) {
+            assertThat(innerClause.occur()).isEqualTo(BooleanClause.Occur.MUST);
+            assertThat(innerClause.query()).isExactlyInstanceOf(CrateRegexQuery.class);
         }
     }
 

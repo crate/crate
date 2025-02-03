@@ -26,7 +26,7 @@ import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.KnnVectorsReader;
 import org.apache.lucene.codecs.KnnVectorsWriter;
-import org.apache.lucene.codecs.lucene912.Lucene912Codec;
+import org.apache.lucene.codecs.lucene101.Lucene101Codec;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.elasticsearch.common.lucene.Lucene;
@@ -41,7 +41,7 @@ import io.crate.types.FloatVectorType;
  * the max supported vector dimension to {@link FloatVectorType#MAX_DIMENSIONS}
  */
 // LUCENE UPGRADE: make sure to move to a new codec depending on the lucene version
-public class CrateCodec extends Lucene912Codec {
+public class CrateCodec extends Lucene101Codec {
 
     static {
         assert Codec.forName(Lucene.LATEST_CODEC).getClass().isAssignableFrom(CrateCodec.class) : "CrateCodec must subclass the latest lucene codec: " + Lucene.LATEST_CODEC;

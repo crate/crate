@@ -51,10 +51,10 @@ public class Queries {
             List<BooleanClause> clauses = booleanQuery.clauses();
             BooleanClause fst = clauses.get(0);
             BooleanClause snd = clauses.get(1);
-            if (fst.getQuery() instanceof MatchAllDocsQuery
-                && fst.getOccur() == Occur.MUST
-                && snd.getOccur() == Occur.MUST_NOT) {
-                return snd.getQuery();
+            if (fst.query() instanceof MatchAllDocsQuery
+                && fst.occur() == Occur.MUST
+                && snd.occur() == Occur.MUST_NOT) {
+                return snd.query();
             }
         }
         return new BooleanQuery.Builder()
@@ -69,7 +69,7 @@ public class Queries {
         }
         int optionalClauses = 0;
         for (BooleanClause c : query.clauses()) {
-            if (c.getOccur() == BooleanClause.Occur.SHOULD) {
+            if (c.occur() == BooleanClause.Occur.SHOULD) {
                 optionalClauses++;
             }
         }

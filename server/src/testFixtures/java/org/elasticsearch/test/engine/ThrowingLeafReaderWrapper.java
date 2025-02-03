@@ -19,8 +19,9 @@
 
 package org.elasticsearch.test.engine;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
@@ -31,8 +32,6 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
-
-import java.io.IOException;
 
 /**
  * An FilterLeafReader that allows to throw exceptions if certain methods
@@ -89,35 +88,6 @@ public class ThrowingLeafReaderWrapper extends FilterLeafReader {
             return terms == null ? null : new ThrowingTerms(terms, thrower);
         }
         return terms;
-    }
-
-    @Override
-    public Fields getTermVectors(int docID) throws IOException {
-        Fields fields = super.getTermVectors(docID);
-        thrower.maybeThrow(Flags.TermVectors);
-        return fields == null ? null : new ThrowingFields(fields, thrower);
-    }
-
-    /**
-     * Wraps a Fields but with additional asserts
-     */
-    public static class ThrowingFields extends FilterFields {
-        private final Thrower thrower;
-
-        public ThrowingFields(Fields in, Thrower thrower) {
-            super(in);
-            this.thrower = thrower;
-        }
-
-        @Override
-        public Terms terms(String field) throws IOException {
-            Terms terms = super.terms(field);
-            if (thrower.wrapTerms(field)) {
-                thrower.maybeThrow(Flags.Terms);
-                return terms == null ? null : new ThrowingTerms(terms, thrower);
-            }
-            return terms;
-        }
     }
 
     /**
