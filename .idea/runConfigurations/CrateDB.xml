@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="io.crate.bootstrap.CrateDB" />
     <module name="crate-app" />
     <option name="PROGRAM_PARAMETERS" value="-Cpath.home=$PROJECT_DIR$/sandbox/crate" />
-    <option name="VM_PARAMETERS" value="-Dlog4j.shutdownHookEnabled=false -Dlog4j.skipJansi=true" />
+    <option name="VM_PARAMETERS" value="-Dlog4j.shutdownHookEnabled=false -Dlog4j.skipJansi=true --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />
     <RunnerSettings RunnerId="Debug">
       <option name="DEBUG_PORT" value="" />
