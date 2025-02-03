@@ -7,7 +7,7 @@
             "name": "Debug CrateDB",
             "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
             "cwd": "${workspaceFolder}/app",
-            "vmArgs": "-Xms2G -Xmx2G",
+            "vmArgs": "-Xms2G -Xmx2G --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector",
             "mainClass": "io.crate.bootstrap.CrateDB",
             "console": "integratedTerminal"
         },
@@ -17,7 +17,7 @@
             "name": "Debug CrateDB Node 2",
             "args": "-Cpath.home=${workspaceFolder}/sandbox/crate2",
             "cwd": "${workspaceFolder}/app",
-            "vmArgs": "-Xms2G -Xmx2G",
+            "vmArgs": "-Xms2G -Xmx2G --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector",
             "mainClass": "io.crate.bootstrap.CrateDB",
             "console": "integratedTerminal"
         },
@@ -27,7 +27,7 @@
             "name": "Run CrateDB",
             "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
             "cwd": "${workspaceFolder}/app",
-            "vmArgs": "-Xms2G -Xmx2G",
+            "vmArgs": "-Xms2G -Xmx2G --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector",
             "mainClass": "io.crate.bootstrap.CrateDB",
             "console": "integratedTerminal",
             "noDebug": true
