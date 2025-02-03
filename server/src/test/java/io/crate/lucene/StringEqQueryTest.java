@@ -114,14 +114,14 @@ public class StringEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = ['abc']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         assertThat(query).hasToString("arr1:(abc)");
 
         query = convert("arr2 = ['abc']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         // SortedSetDocValuesField.newSlowSetQuery is equal to TermInSetQuery + MultiTermQuery.DOC_VALUES_REWRITE
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         assertThat(((TermInSetQuery) query).getRewriteMethod()).isEqualTo(MultiTermQuery.DOC_VALUES_REWRITE);
@@ -130,7 +130,7 @@ public class StringEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("arr3 = ['abc']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         assertThat(query).hasToString("arr3:(abc)");
 
@@ -141,14 +141,14 @@ public class StringEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("arr5 = ['abc']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         assertThat(query).hasToString("arr5:(abc)");
 
         query = convert("arr6 = ['abc']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query).isExactlyInstanceOf(TermInSetQuery.class);
         assertThat(query).hasToString("arr6:(abc)");
     }

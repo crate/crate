@@ -95,14 +95,14 @@ public class FloatEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("FloatPoint$3"); // the query class is anonymous
         assertThat(query).hasToString("arr1:{1.1}");
 
         query = convert("arr2 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         // SortedNumericDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         long l = NumericUtils.floatToSortableInt(1.1f);
@@ -111,7 +111,7 @@ public class FloatEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("arr3 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("FloatPoint$3"); // the query class is anonymous
         assertThat(query).hasToString("arr3:{1.1}");
 

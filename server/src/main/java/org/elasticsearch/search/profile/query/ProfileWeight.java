@@ -19,16 +19,15 @@
 
 package org.elasticsearch.search.profile.query;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.BulkScorer;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.search.profile.Timer;
-
-import java.io.IOException;
 
 /**
  * Weight wrapper that will compute how much time it takes to build the
@@ -44,15 +43,6 @@ public final class ProfileWeight extends Weight {
         super(query);
         this.subQueryWeight = subQueryWeight;
         this.profile = profile;
-    }
-
-    @Override
-    public Scorer scorer(LeafReaderContext context) throws IOException {
-        ScorerSupplier supplier = scorerSupplier(context);
-        if (supplier == null) {
-            return null;
-        }
-        return supplier.get(Long.MAX_VALUE);
     }
 
     @Override
@@ -92,18 +82,6 @@ public final class ProfileWeight extends Weight {
                 }
             }
         };
-    }
-
-    @Override
-    public BulkScorer bulkScorer(LeafReaderContext context) throws IOException {
-        // We use the default bulk scorer instead of the specialized one. The reason
-        // is that Lucene's BulkScorers do everything at once: finding matches,
-        // scoring them and calling the collector, so they make it impossible to
-        // see where time is spent, which is the purpose of query profiling.
-        // The default bulk scorer will pull a scorer and iterate over matches,
-        // this might be a significantly different execution path for some queries
-        // like disjunctions, but in general this is what is done anyway
-        return super.bulkScorer(context);
     }
 
     @Override

@@ -43,7 +43,15 @@ Version 6.0.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- The ``dutch_kp`` and ``lovins`` token filters are no longer available, as they have
+  been removed from Apache Lucene 10.  If users have tables which use these token filters
+  for analysis, they will need to re-index with either plain ``dutch`` or ``english``
+  stemmers before upgrading.
+
+- The ``german2`` and ``german`` token filters now use the same underlying stemmer,
+  which always expands ``ä``, ``ö`` and ``ü`` to ``ae``, ``oe`` and ``ue`` respectively.
+  If users have tables which were using the ``german`` stemmer without a character
+  filter that already did this, they will need to re-index after upgrading.
 
 Deprecations
 ============

@@ -36,6 +36,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
@@ -109,8 +110,18 @@ public class GenericFunctionQuery extends Query {
             }
 
             @Override
-            public Scorer scorer(LeafReaderContext context) throws IOException {
-                return new ConstantScoreScorer(this, 0f, scoreMode, getTwoPhaseIterator(context));
+            public ScorerSupplier scorerSupplier(LeafReaderContext context) {
+                return new ScorerSupplier() {
+                    @Override
+                    public Scorer get(long leadCost) throws IOException {
+                        return new ConstantScoreScorer(0f, scoreMode, getTwoPhaseIterator(context));
+                    }
+
+                    @Override
+                    public long cost() {
+                        return context.reader().maxDoc();
+                    }
+                };
             }
         };
     }

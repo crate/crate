@@ -41,9 +41,4 @@ class DummyScorer extends Scorable {
         return score;
     }
 
-
-    @Override
-    public int docID() {
-        return 0;
-    }
 }

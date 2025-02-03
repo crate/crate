@@ -65,7 +65,7 @@ import io.crate.common.collections.Iterables;
 import io.crate.exceptions.SQLExceptions;
 
 public class Lucene {
-    public static final String LATEST_CODEC = "Lucene912";
+    public static final String LATEST_CODEC = "Lucene101";
 
     public static final String SOFT_DELETES_FIELD = "__soft_deletes";
 
@@ -82,6 +82,10 @@ public class Lucene {
             logger.warn(() -> new ParameterizedMessage("no version match {}, default to {}", version, defaultVersion), e);
             return defaultVersion;
         }
+    }
+
+    public static org.apache.lucene.util.Version luceneVersion(int major, int minor, int bugfix) {
+        return org.apache.lucene.util.Version.fromBits(major, minor, bugfix);
     }
 
     /**

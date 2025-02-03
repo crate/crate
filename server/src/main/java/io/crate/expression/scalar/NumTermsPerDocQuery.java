@@ -38,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
@@ -166,12 +167,19 @@ public class NumTermsPerDocQuery extends Query {
             }
 
             @Override
-            public Scorer scorer(LeafReaderContext context) {
-                return new ConstantScoreScorer(
-                    this,
-                    0f,
-                    scoreMode,
-                    new NumTermsPerDocTwoPhaseIterator(context.reader(), numTermsPerDocFactory.apply(context), matches));
+            public ScorerSupplier scorerSupplier(LeafReaderContext context) {
+                return new ScorerSupplier() {
+                    @Override
+                    public Scorer get(long leadCost) {
+                        var twoPhase = new NumTermsPerDocTwoPhaseIterator(context.reader(), numTermsPerDocFactory.apply(context), matches);
+                        return new ConstantScoreScorer(0f, scoreMode, twoPhase);
+                    }
+
+                    @Override
+                    public long cost() {
+                        return context.reader().maxDoc();
+                    }
+                };
             }
         };
     }

@@ -90,21 +90,21 @@ public class IntEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("IntPoint$3");
         assertThat(query).hasToString("arr1:{1 2 3}");
 
         query = convert("arr2 = [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         assertThat(query).hasToString("arr2: [1, 2, 3]");
 
         query = convert("arr3 = [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("IntPoint$3");
         assertThat(query).hasToString("arr3:{1 2 3}");
 
