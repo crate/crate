@@ -148,7 +148,12 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     public void add(int location, String id, Throwable error, boolean versionConflict) {
         locations.add(location);
-        var errorCount = failures.size();
+        int errorCount = 0;
+        for (var failure : failures) {
+            if (failure != null) {
+                errorCount++;
+            }
+        }
         failures.add(
             new Failure(
                 id,
