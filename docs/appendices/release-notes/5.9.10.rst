@@ -65,3 +65,16 @@ Fixes
         ) u
     ORDER BY name
 
+- Fixed an issue that caused an error when using a correlated sub-query and
+  a normal subquery on the same level together with an additional sub-query on
+  an outer level. Example::
+
+    WITH tbl AS (SELECT 1 as x)
+    SELECT (
+      SELECT x FROM tbl
+      WHERE t.x = tbl.x
+        AND tbl.x IN (SELECT x FROM unnest([1]))
+    ),
+    (SELECT y FROM unnest([2]) as t2(y))
+    FROM tbl t
+
