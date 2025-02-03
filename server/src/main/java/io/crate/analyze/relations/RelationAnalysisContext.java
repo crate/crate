@@ -22,13 +22,10 @@
 package io.crate.analyze.relations;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.SequencedSet;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
@@ -40,8 +37,6 @@ public class RelationAnalysisContext {
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
-
-    private final LinkedHashSet<Symbol> joinConditions = new LinkedHashSet<>();
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
@@ -57,10 +52,6 @@ public class RelationAnalysisContext {
 
     public Map<RelationName, AnalyzedRelation> sources() {
         return sources;
-    }
-
-    SequencedSet<Symbol> joinConditions() {
-        return joinConditions;
     }
 
     void addSourceRelation(AnalyzedRelation relation) {

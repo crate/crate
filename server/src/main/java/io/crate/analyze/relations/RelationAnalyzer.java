@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -196,7 +195,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             false,
             List.of(childRelation),
             selectAnalysis.outputSymbols(),
-            new LinkedHashSet<>(),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,
@@ -281,9 +279,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents())
                 );
             }
-        }
-        if (joinCondition != null) {
-            statementContext.currentRelationContext().joinConditions().add(joinCondition);
         }
         return new JoinRelation(leftRel, rightRel, node.getType(), joinCondition);
     }
@@ -371,9 +366,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             for (Map.Entry<RelationName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getValue());
             }
-            for (Symbol joinConditions : innerContext.joinConditions()) {
-                currentRelationContext.joinConditions().add(joinConditions);
-            }
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
@@ -421,7 +413,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             isDistinct,
             relations,
             selectAnalysis.outputSymbols(),
-            context.joinConditions(),
             where,
             groupBy,
             analyzeHaving(

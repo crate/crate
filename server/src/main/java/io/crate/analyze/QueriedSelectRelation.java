@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import java.util.List;
-import java.util.SequencedSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -43,7 +42,6 @@ import io.crate.metadata.table.Operation;
 public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final List<AnalyzedRelation> from;
-    private final SequencedSet<Symbol> joinConditions;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
     private final Symbol whereClause;
@@ -60,7 +58,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
                                  List<Symbol> outputs,
-                                 SequencedSet<Symbol> joinConditions,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
                                  @Nullable Symbol having,
@@ -77,7 +74,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         assert !from.isEmpty() : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
         this.from = from;
-        this.joinConditions = joinConditions;
     }
 
     public List<AnalyzedRelation> from() {
@@ -182,10 +178,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Nullable
     public Symbol offset() {
         return offset;
-    }
-
-    public SequencedSet<Symbol> joinConditions() {
-        return joinConditions;
     }
 
     @Override
