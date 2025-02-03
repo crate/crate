@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.CollectionBucket;
@@ -86,7 +87,6 @@ final class UpsertResultCollectors {
             return r -> new CollectionBucket(r.getResultRowsForNoUri());
         }
 
-        @SuppressWarnings("unused")
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
@@ -131,10 +131,9 @@ final class UpsertResultCollectors {
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
-            Failure failure = shardResponse.failures().stream()
-                .filter(x -> x != null && x.error() != null)
-                .findAny()
-                .orElse(null);
+            Failure failure = shardResponse.failures().isEmpty()
+                ? null
+                : shardResponse.failures().values().iterator().next().value;
             synchronized (lock) {
                 upsertResults.addResult(shardResponse.successRowCount(), failure);
             }
@@ -182,7 +181,7 @@ final class UpsertResultCollectors {
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfos) {
             synchronized (lock) {
-                List<ShardResponse.Failure> failures = shardResponse.failures();
+                IntObjectMap<ShardResponse.Failure> failures = shardResponse.failures();
                 IntArrayList locations = shardResponse.itemIndices();
                 for (int i = 0; i < failures.size(); i++) {
                     ShardResponse.Failure failure = failures.get(i);
@@ -190,8 +189,13 @@ final class UpsertResultCollectors {
                     RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
                     String msg = null;
                     if (failure != null) {
-                        var throwable = SQLExceptions.prepareForClientTransmission(accessControl, failure.error());
-                        msg = throwable.getMessage();
+                        Throwable error = failure.error();
+                        if (error == null) {
+                            msg = "unknown failure";
+                        } else {
+                            var throwable = SQLExceptions.prepareForClientTransmission(accessControl, error);
+                            msg = throwable.getMessage();
+                        }
                     }
                     upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }

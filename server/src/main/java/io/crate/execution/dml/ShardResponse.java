@@ -39,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -115,7 +116,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     }
 
     private IntArrayList locations = new IntArrayList();
-    private List<Failure> failures = new ArrayList<>();
+    private IntObjectMap<Failure> failures = new IntObjectHashMap<>();
 
     /**
      * Result rows are used to return values from updated rows.
@@ -143,13 +144,13 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     public void add(int location) {
         locations.add(location);
-        failures.add(null);
     }
 
     public void add(int location, String id, Throwable error, boolean versionConflict) {
         locations.add(location);
         var errorCount = failures.size();
-        failures.add(
+        failures.put(
+            location,
             new Failure(
                 id,
                 errorCount >= BULK_RESPONSE_MAX_ERRORS_PER_SHARD ? null : error,
@@ -174,7 +175,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         return locations;
     }
 
-    public List<Failure> failures() {
+    public IntObjectMap<Failure> failures() {
         return failures;
     }
 
@@ -190,13 +191,12 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         super(in);
         int size = in.readVInt();
         locations = new IntArrayList(size);
-        failures = new ArrayList<>(size);
+        failures = new IntObjectHashMap<>();
         for (int i = 0; i < size; i++) {
-            locations.add(in.readVInt());
+            int location = in.readVInt();
+            locations.add(location);
             if (in.readBoolean()) {
-                failures.add(new Failure(in));
-            } else {
-                failures.add(null);
+                failures.put(location, new Failure(in));
             }
         }
         if (in.readBoolean()) {
@@ -233,12 +233,14 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         super.writeTo(out);
         out.writeVInt(locations.size());
         for (int i = 0; i < locations.size(); i++) {
-            out.writeVInt(locations.get(i));
-            if (failures.get(i) == null) {
+            int location = locations.get(i);
+            out.writeVInt(location);
+            Failure locFailure = failures.get(location);
+            if (locFailure == null) {
                 out.writeBoolean(false);
             } else {
                 out.writeBoolean(true);
-                failures.get(i).writeTo(out);
+                locFailure.writeTo(out);
             }
         }
         if (failure != null) {
@@ -292,7 +294,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         public void update(ShardResponse response) {
             IntArrayList itemIndices = response.itemIndices();
-            List<Failure> failures = response.failures();
+            IntObjectMap<Failure> failures = response.failures();
             for (int i = 0; i < itemIndices.size(); i++) {
                 int location = itemIndices.get(i);
                 ShardResponse.Failure failure = failures.get(i);
@@ -337,13 +339,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     }
 
     public int successRowCount() {
-        int numSuccessful = 0;
-        for (int i = 0; i < locations.size(); i++) {
-            Failure failure = failures.get(i);
-            if (failure == null) {
-                numSuccessful++;
-            }
-        }
-        return numSuccessful;
+        return locations.size() - failures.size();
     }
 }
