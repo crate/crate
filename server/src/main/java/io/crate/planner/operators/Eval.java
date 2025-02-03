@@ -37,8 +37,10 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -118,18 +120,34 @@ public final class Eval extends ForwardingLogicalPlan {
         UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
         LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (Symbol sourceOutput : newSource.outputs()) {
+        List<Symbol> newSourceOutputs = newSource.outputs();
+        for (Symbol sourceOutput : newSourceOutputs) {
             if (sourceOutput instanceof FetchMarker) {
                 newOutputs.add(sourceOutput);
             }
         }
+        List<Symbol> oldSourceOutputs = source.outputs();
         for (Symbol output : outputs) {
-            newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            if (output.any(newSource.outputs()::contains)) {
-                newOutputs.add(output);
+            if (oldSourceOutputs.contains(output)) {
+                Symbol fetchStub = mapToFetchStubs.apply(output);
+                newReplacedOutputs.put(output, fetchStub);
+                if (output.any(newSourceOutputs::contains)) {
+                    newOutputs.add(output);
+                }
+            } else {
+                ColumnIdent outputIdent = output.toColumn();
+                for (Symbol oldSourceOutput : oldSourceOutputs) {
+                    if (outputIdent.isChildOf(oldSourceOutput.toColumn())) {
+                        Symbol fetchStub = mapToFetchStubs.apply(oldSourceOutput);
+                        // TODO: use correct path
+                        Symbol subscript = SubscriptFunctions.tryCreateSubscript(fetchStub, outputIdent.path());
+                        newReplacedOutputs.put(output, subscript);
+                    }
+                }
             }
         }
-        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
+        LogicalPlan newEval = Eval.create(newSource, newOutputs);
+        return new FetchRewrite(newReplacedOutputs, newEval);
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,

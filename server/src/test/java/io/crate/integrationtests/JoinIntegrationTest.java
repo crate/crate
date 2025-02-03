@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1779,6 +1780,8 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @Test
     public void test_fetch_rewrite_with_view() throws Exception {
         execute("""
             CREATE TABLE tbl1 (
@@ -1791,7 +1794,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             INSERT INTO tbl1
             SELECT a.b,{"arr"=[1,2]}
             FROM generate_series(1,100) a(b)
-        """);
+            """);
         execute("REFRESH TABLE tbl1");
         execute("CREATE TABLE tbl2 (field1 BIGINT)");
 

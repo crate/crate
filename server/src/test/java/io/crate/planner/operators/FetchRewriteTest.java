@@ -91,6 +91,27 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_fetch_rewrite_turns_subscript_symbol_into_subscript_function_if_child_collects_base() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int))");
+
+        DocTableInfo tableInfo = e.resolveTableInfo("tbl");
+        var o = e.asSymbol("o");
+        var ox = e.asSymbol("o['x']");
+        var relation = new DocTableRelation(tableInfo);
+        var collect = new Collect(relation, List.of(o), WhereClause.MATCH_ALL);
+        var eval = new Eval(
+            collect,
+            List.of(ox)
+        );
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(List.of());
+        assertThat(fetchRewrite).isNotNull();
+        assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
+        // assertThat(fetchRewrite.replacedOutputs())
+        assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet())).isEqualTo(eval.outputs());
+    }
+
+    @Test
     public void test_fetchrewrite_on_rename_puts_fetch_marker_into_alias_scope() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
