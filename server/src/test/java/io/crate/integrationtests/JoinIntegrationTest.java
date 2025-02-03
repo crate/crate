@@ -1778,6 +1778,47 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response.rows()).isEmpty();
     }
 
+    @UseRandomizedSchema(random = false)
+    public void test_fetch_rewrite_with_view() throws Exception {
+        execute("""
+            CREATE TABLE tbl1 (
+                "field1" BIGINT,
+                "field2" OBJECT(DYNAMIC) AS ("arr" ARRAY(INTEGER))
+            )
+            """);
 
+        execute("""
+            INSERT INTO tbl1
+            SELECT a.b,{"arr"=[1,2]}
+            FROM generate_series(1,100) a(b)
+        """);
+        execute("REFRESH TABLE tbl1");
+        execute("CREATE TABLE tbl2 (field1 BIGINT)");
 
+        execute("""
+            INSERT INTO tbl2
+            SELECT a.b
+            FROM generate_series(1,100) a(b),generate_series(1,1000) c(d)
+            """);
+
+        execute("REFRESH TABLE tbl2");
+
+        execute("create view vw1 as SELECT * FROM tbl1");
+
+        execute("""
+            SELECT vw1.field2['arr']
+                    FROM vw1
+                    INNER JOIN tbl2  on vw1.field1 = tbl2.field1
+                    LIMIT 10;
+            """);
+
+        execute("ANALYZE");
+
+        execute("""
+            SELECT vw1.field2['arr']
+                    FROM vw1
+                    INNER JOIN tbl2  on vw1.field1 = tbl2.field1
+                    LIMIT 10;
+            """);
+    }
 }
