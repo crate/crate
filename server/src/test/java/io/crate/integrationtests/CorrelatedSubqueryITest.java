@@ -446,7 +446,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
      * Tests a bug https://github.com/crate/crate/issues/15398.
      */
     @Test
-    public void test_can_mix_correlated_qubquery_and_sub_select() {
+    public void test_can_mix_correlated_subquery_and_sub_select() {
         execute("CREATE TABLE tbl(x int)");
         execute("INSERT INTO tbl(x) VALUES (1)");
         execute("refresh table tbl");
@@ -462,6 +462,23 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         assertThat(response).hasRows("1");
     }
 
+    /*
+     * https://github.com/crate/crate/issues/17307
+     */
+    @Test
+    public void test_can_mix_correlated_subquery_and_sub_selects_with_sub_select() {
+        execute("""
+            WITH tbl AS (SELECT 1 as x)
+            SELECT (
+              SELECT x FROM tbl
+              WHERE t.x = tbl.x
+                AND
+                tbl.x IN (SELECT x FROM unnest([1]))
+            ), (SELECT y FROM unnest([2]) as t2(y))
+            FROM tbl t
+            """);
+        assertThat(response).hasRows("1| 2");
+    }
 
     /*
      * https://github.com/crate/crate/issues/16124

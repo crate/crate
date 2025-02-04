@@ -22,6 +22,7 @@
 package io.crate.planner.operators;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,11 +47,10 @@ public class SubQueryResults {
     private Row inputRow = Row.EMPTY;
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery) {
-        this.valuesBySubQuery = valuesBySubQuery;
-        this.boundOuterColumns = EMPTY_OUTER_COLUMNS;
+        this(valuesBySubQuery, EMPTY_OUTER_COLUMNS);
     }
 
-    public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery,
+    private SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery,
                            ObjectIntMap<OuterColumn> boundOuterColumns) {
         this.valuesBySubQuery = valuesBySubQuery;
         this.boundOuterColumns = boundOuterColumns;
@@ -90,7 +90,15 @@ public class SubQueryResults {
     }
 
     public static SubQueryResults merge(SubQueryResults subQueryResults1, SubQueryResults subQueryResults2) {
-        // Correlated subquery related fields.
+        // Correlated subquery related fields, expect only one of them to contain correlated subquery fields.
+        assert subQueryResults1.boundOuterColumns.isEmpty()
+            || subQueryResults2.boundOuterColumns.isEmpty()
+            : "Can't merge two SubQueryResults with non-empty boundOuterColumns";
+
+        assert subQueryResults1.inputRow.equals(Row.EMPTY)
+            || subQueryResults2.inputRow.equals(Row.EMPTY)
+            : "Can't merge two SubQueryResults with non-empty inputRow";
+
         Row mergedRow = subQueryResults1.inputRow;
         ObjectIntMap<OuterColumn> mergedBoundOuterColumns = subQueryResults1.boundOuterColumns;
         if (mergedRow.equals(Row.EMPTY)) {
@@ -100,11 +108,11 @@ public class SubQueryResults {
             mergedBoundOuterColumns = subQueryResults2.boundOuterColumns;
         }
 
-        // Regular sub-select field.
-        Map<SelectSymbol, Object> mergedValuesBySubQuery = subQueryResults1.valuesBySubQuery;
-        if (mergedValuesBySubQuery.isEmpty()) {
-            mergedValuesBySubQuery = subQueryResults2.valuesBySubQuery;
-        }
+        // Fully merge regular sub-select field.
+        Map<SelectSymbol, Object> mergedValuesBySubQuery = new HashMap<>();
+        mergedValuesBySubQuery.putAll(subQueryResults1.valuesBySubQuery);
+        mergedValuesBySubQuery.putAll(subQueryResults2.valuesBySubQuery);
+
 
         SubQueryResults combinedSubQueryResults = new SubQueryResults(mergedValuesBySubQuery, mergedBoundOuterColumns);
         combinedSubQueryResults.bindOuterColumnInputRow(mergedRow);
