@@ -27,9 +27,9 @@ import static io.crate.testing.Asserts.isFetchMarker;
 import static io.crate.testing.Asserts.isFetchStub;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -42,7 +42,9 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -88,6 +90,31 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
                 toCondition(isFunction("add", isReference("x"), isReference("x"))),
                 toCondition(isFunction("add", isFetchStub("_doc['x']"), isFetchStub("_doc['x']"))));
         assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet())).isEqualTo(eval.outputs());
+    }
+
+    @Test
+    public void test_fetch_rewrite_turns_subscript_symbol_into_subscript_function_if_child_collects_base() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (oo object as (ooo object as (x int))))");
+        DocTableInfo tableInfo = e.resolveTableInfo("tbl");
+        var oo = e.asSymbol("o['oo']");
+        var relation = new DocTableRelation(tableInfo);
+        var collect = new Collect(relation, List.of(oo), WhereClause.MATCH_ALL);
+
+        var returnedSymbol = new ScopedSymbol(
+            new RelationName("doc", "tbl"), ColumnIdent.fromPath("o.oo.ooo.x"), DataTypes.INTEGER);
+        var eval = new Eval(
+            collect,
+            List.of(returnedSymbol)
+        );
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(List.of());
+        assertThat(fetchRewrite).isNotNull();
+        assertThat(fetchRewrite.newPlan()).isEqualTo("Collect[doc.tbl | [_fetchid] | true]");
+        assertThat(fetchRewrite.replacedOutputs().get(returnedSymbol)).isFunction(
+            "subscript_obj",
+            isFetchStub("_doc['o']['oo']"),
+            isLiteral("ooo"),
+            isLiteral("x"));
     }
 
     @Test

@@ -178,4 +178,20 @@ public class ColumnIdentTest {
         assertThat(aaa.replacePrefix(ab)).isEqualTo(aba);
         assertThat(aaa.replacePrefix(aab)).isEqualTo(aab);
     }
+
+    @Test
+    public void test_extract_path_from_parent() {
+        var o = ColumnIdent.of("o");
+        var oo = ColumnIdent.of("o", List.of("oo"));
+        var ooo = ColumnIdent.of("o", List.of("oo", "ooo"));
+        var ooox = ColumnIdent.of("o", List.of("oo", "ooo", "ooox"));
+
+        assertThatThrownBy(() -> oo.getRelativePath(ColumnIdent.of("a"))).isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> oo.getRelativePath(oo)).isExactlyInstanceOf(AssertionError.class);
+
+        assertThat(oo.getRelativePath(o)).containsExactly("oo");
+        assertThat(ooox.getRelativePath(o)).containsExactly("oo", "ooo","ooox");
+        assertThat(ooox.getRelativePath(oo)).containsExactly("ooo","ooox");
+        assertThat(ooox.getRelativePath(ooo)).containsExactly("ooox");
+    }
 }
