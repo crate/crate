@@ -279,4 +279,32 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    /*
+     * https://github.com/crate/crate/issues/17341
+     */
+    @Test
+    public void test_union_with_order_by_on_non_selected_symbol() throws Exception {
+        String stmt = """
+            SELECT id FROM (
+                SELECT id, other_id, name FROM users
+                UNION ALL
+                SELECT id, other_id, name FROM users
+                ) u
+            ORDER BY name
+            """;
+        LogicalPlan logicalPlan = e.logicalPlan(stmt);
+        assertThat(logicalPlan).isEqualTo("""
+            Rename[id] AS u
+              └ Union[id]
+                ├ OrderBy[name ASC]
+                │  └ Collect[doc.users | [id, name] | true]
+                └ OrderBy[name ASC]
+                  └ Collect[doc.users | [id, name] | true]
+            """
+        );
+
+        // Ensure that this plan can be built without any exception
+        // (Ensure Eval can handle fewer outputs than its source)
+        e.plan(stmt);
+    }
 }
