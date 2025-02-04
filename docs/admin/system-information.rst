@@ -1648,6 +1648,9 @@ before you can upgrade to a future major version of CrateDB.
 If you try to upgrade to a later major CrateDB version without reindexing the
 tables, CrateDB will refuse to start.
 
+
+.. _table_version_compatibility:
+
 CrateDB table version compatibility scheme
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
