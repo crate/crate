@@ -47,16 +47,17 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
                 """);
 
         var logicalPlan = e.logicalPlan("SELECT id FROM v1");
-
-        assertThat(logicalPlan).hasOperators(
-                "Rename[id] AS doc.v1",
-                "  └ Eval[id]",
-                "    └ HashJoin[LEFT | (o['i'] = o['i'])]",
-                "      ├ Rename[o] AS g1",
-                "      │  └ Collect[doc.t1 | [o] | true]",
-                "      └ Rename[id, o] AS b",
-                "        └ Collect[doc.t1 | [id, o] | true]"
-        );
+        var expectedPlan =
+            """
+            Rename[id] AS doc.v1
+              └ Eval[id]
+                └ HashJoin[LEFT | (o['i'] = o['i'])]
+                  ├ Rename[o] AS g1
+                  │  └ Collect[doc.t1 | [o] | true]
+                  └ Rename[id, o] AS b
+                    └ Collect[doc.t1 | [id, o] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
 
     @Test

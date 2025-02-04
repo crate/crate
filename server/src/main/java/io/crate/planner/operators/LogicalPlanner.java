@@ -141,7 +141,6 @@ import io.crate.types.DataTypes;
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
  */
 public class LogicalPlanner {
-
     private final IterativeOptimizer optimizer;
     // Join implementations optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
@@ -185,7 +184,7 @@ public class LogicalPlanner {
         new RewriteLeftOuterJoinToHashJoin(),
         new RewriteRightOuterJoinToHashJoin(),
         new RewriteJoinPlan()
-        );
+    );
 
     public static final List<Rule<?>> JOIN_IMPLEMENTATION_OPTIMIZER_RULES = List.of(
         new MoveOrderBeneathNestedLoop(),

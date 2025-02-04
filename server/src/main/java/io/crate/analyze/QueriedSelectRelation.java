@@ -201,7 +201,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         for (Symbol groupKey : groupBy) {
             consumer.accept(groupKey);
         }
-
         if (having != null) {
             consumer.accept(having);
         }
