@@ -41,7 +41,7 @@ public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression
     private int docId;
     private Cache<Long, T> cache;
 
-    private static final long CACHE_SIZE = 64;
+    private static final long CACHE_SIZE = 512;
 
     public BinaryColumnReference(String columnName) {
         this.columnName = columnName;
