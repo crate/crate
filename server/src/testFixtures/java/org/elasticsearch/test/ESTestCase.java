@@ -355,7 +355,9 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
                     l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())),
                     l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())),
                     l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())),
-                    l -> assertThat(l).anyMatch(s -> s.contains(OptimizeTableSettings.UPGRADE_SEGMENTS.getKey())));
+                    l -> assertThat(l).anyMatch(s -> s.contains(OptimizeTableSettings.UPGRADE_SEGMENTS.getKey())),
+                    l -> assertThat(l).anyMatch(s -> s.contains("_version system column is deprecated, " +
+                        "please use _seq_no and _primary_term instead.")));
         } finally {
             DeprecationLogger.resetWarnings();
         }

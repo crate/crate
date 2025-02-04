@@ -63,7 +63,9 @@ Breaking Changes
 Deprecations
 ============
 
-None
+ - Usage of :ref:`_version<sql_administration_system_column_version>` has been
+   deprecated completely. Please note that its usage for :ref:`sql_occ` has
+   already been deprecated since :ref:`version_4.0.0`.
 
 
 Changes
