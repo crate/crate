@@ -90,7 +90,7 @@ public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression
         values = DocValues.getSortedSet(context.reader(), columnName);
         long docCount = context.reader().maxDoc();
         long valueCount = values.getValueCount();
-        if (valueCount < CACHE_SIZE || (docCount / valueCount) > 16) {
+        if (valueCount < CACHE_SIZE || (docCount / valueCount) > 4) {
             this.cache = Caffeine.newBuilder().maximumSize(CACHE_SIZE).build();
         } else {
             this.cache = null;
