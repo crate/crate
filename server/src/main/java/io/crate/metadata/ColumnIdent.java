@@ -580,4 +580,14 @@ public abstract sealed class ColumnIdent
         path().forEach(x -> validateObjectKey(x));
     }
 
+    public List<String> getRelativePath(ColumnIdent parent) {
+        assert isChildOf(parent) : parent.sqlFqn() + " is not parent of: " + sqlFqn();
+        List<String> newPath = new ArrayList<>();
+        for (String p : path()) {
+            if (parent.path().contains(p) == false) {
+                newPath.add(p);
+            }
+        }
+        return newPath;
+    }
 }
