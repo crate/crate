@@ -96,3 +96,14 @@ Fixes
     (SELECT y FROM unnest([2]) as t2(y))
     FROM tbl t
 
+- Fixed an issue that caused a planner exception when using a query containing
+  an ``ORDER BY`` clause on top of a ``UNION`` clause, while the ordering column
+  is not part of the most-top select items. Example::
+
+    SELECT id FROM (
+        SELECT id, other_id, name FROM users
+        UNION ALL
+        SELECT id, other_id, name FROM users
+        ) u
+    ORDER BY name
+
