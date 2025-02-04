@@ -21,11 +21,15 @@
 
 package io.crate.planner.operators;
 
+import java.util.List;
+import java.util.Map;
+
+import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-
-import java.util.Map;
+import io.crate.metadata.ColumnIdent;
 
 public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbol, Symbol>> {
 
@@ -41,6 +45,25 @@ public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbo
     @Override
     protected Symbol visitSymbol(Symbol symbol, Map<Symbol, Symbol> map) {
         return map.getOrDefault(symbol, symbol);
+    }
+
+    @Override
+    public Symbol visitField(ScopedSymbol symbol, Map<Symbol, Symbol> map) {
+        Symbol replacedSymbol = map.get(symbol);
+        if (replacedSymbol != null) {
+            return replacedSymbol;
+        } else {
+            ColumnIdent symbolCol = symbol.toColumn();
+            for (var entry : map.entrySet()) {
+                ColumnIdent col = entry.getKey().toColumn();
+                if (symbolCol.isChildOf(col)) {
+                    Symbol fetchStub = entry.getValue();
+                    List<String> subscriptPath = symbolCol.getRelativePath(col);
+                    return SubscriptFunctions.tryCreateSubscript(fetchStub, subscriptPath);
+                }
+            }
+        }
+        return symbol;
     }
 
     @Override
