@@ -513,7 +513,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
                 schemas = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), SCHEMA_DIFF_VALUE_READER);
             } else {
-                schemas = Diffs.empty();
+                schemas = Diffs.diff(
+                    ImmutableOpenMap.<String, SchemaMetadata>of(),
+                    ImmutableOpenMap.<String, SchemaMetadata>of(),
+                    Diffs.stringKeySerializer()
+                );
             }
         }
 
