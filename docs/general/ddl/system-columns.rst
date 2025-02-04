@@ -17,10 +17,10 @@ and might contain underscores in between.
 
 .. NOTE::
 
-   Using the ``_version`` column for `Optimistic Concurrency Control`_ has been
-   deprecated in favour of using the :ref:`_seq_no
+   Usage of the ``_version`` column has been deprecated. For
+   `Optimistic Concurrency Control`_, :ref:`_seq_no
    <sql_administration_system_columns_seq_no>` and :ref:`_primary_term
-   <sql_administration_system_columns_primary_term>`.
+   <sql_administration_system_columns_primary_term>` should be used instead.
    See :ref:`sql_occ` for usage details.
 
 .. _sql_administration_system_columns_seq_no:

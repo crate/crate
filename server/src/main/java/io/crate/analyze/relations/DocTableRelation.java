@@ -25,6 +25,8 @@ import static io.crate.common.collections.Lists.concat;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -39,6 +41,9 @@ import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
+
+    public static final DeprecationLogger DEPRECATION_LOGGER =
+        new DeprecationLogger(LogManager.getLogger(DocTableRelation.class));
 
     public DocTableRelation(DocTableInfo tableInfo) {
         // System columns are excluded from `tableInfo.columns()` by default,
@@ -65,6 +70,12 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     @Override
     public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
             throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+        if (column.equals(SysColumns.VERSION)) {
+            DEPRECATION_LOGGER.deprecatedAndMaybeLog(
+                "syscol._version",
+                SysColumns.VERSION.sqlFqn() + " system column is deprecated, please use {} and {} instead.",
+                    SysColumns.SEQ_NO, SysColumns.PRIMARY_TERM);
+        }
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(column);
         }

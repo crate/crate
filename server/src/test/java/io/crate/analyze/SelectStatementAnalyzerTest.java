@@ -2984,4 +2984,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
     }
+
+    @Test
+    public void test_deprecation_logging_for__version_col() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (id int)");
+
+        DocTableRelation.DEPRECATION_LOGGER.resetLRU();
+        executor.analyze("select _version from t1");
+        assertWarnings("_version system column is deprecated, please use _seq_no and _primary_term instead.");
+    }
 }
