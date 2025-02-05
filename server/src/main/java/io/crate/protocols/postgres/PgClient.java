@@ -597,6 +597,7 @@ public class PgClient extends AbstractClient {
                 action,
                 request,
                 options,
+                version,
                 connectionProfile.getCompressionEnabled(),
                 false // isHandshake
             );
