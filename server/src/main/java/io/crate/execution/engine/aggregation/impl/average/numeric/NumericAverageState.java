@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl.average.numeric;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.math.MathContext;
 import java.util.Objects;
 
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +45,8 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
 
     public BigDecimal value() {
         if (count > 0) {
-            return sum.value().divide(BigDecimal.valueOf(count), RoundingMode.HALF_UP);
+            // Divide uses same rounding mode as regular division does.
+            return sum.value().divide(BigDecimal.valueOf(count), MathContext.DECIMAL64);
         } else {
             return null;
         }
