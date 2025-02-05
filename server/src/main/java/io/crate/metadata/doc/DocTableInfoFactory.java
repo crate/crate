@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -136,6 +137,7 @@ public class DocTableInfoFactory {
         Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
         Map<ColumnIdent, Reference> references = new HashMap<>();
+        Set<Reference> droppedColumns = new HashSet<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
 
         parseColumns(
@@ -148,7 +150,8 @@ public class DocTableInfoFactory {
             partitionedBy,
             properties,
             indexColumns,
-            references
+            references,
+            droppedColumns
         );
         var refExpressionAnalyzer = new ExpressionAnalyzer(
             systemTransactionContext,
@@ -177,7 +180,7 @@ public class DocTableInfoFactory {
         List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
             refExpressionAnalyzer,
             expressionAnalysisContext,
-            metaMap
+            Maps.get(metaMap, "check_constraints")
         );
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
         new DocTableInfo(
@@ -185,6 +188,7 @@ public class DocTableInfoFactory {
             references,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
+            droppedColumns,
             Maps.get(metaMap, "pk_constraint_name"),
             primaryKeys,
             checkConstraints,
@@ -201,6 +205,11 @@ public class DocTableInfoFactory {
     }
 
     public DocTableInfo create(RelationName relation, Metadata metadata) {
+        RelationMetadata relationMetadata = metadata.getRelation(relation);
+        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
+        if (relationMetadata instanceof RelationMetadata.Table table) {
+            return tableFromRelationMetadata(table, publicationsMetadata);
+        }
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         Version versionCreated;
@@ -270,6 +279,7 @@ public class DocTableInfoFactory {
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
         Map<ColumnIdent, Reference> references = new HashMap<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
+        Set<Reference> droppedColumns = new HashSet<>();
 
         parseColumns(
             expressionAnalyzer,
@@ -281,7 +291,8 @@ public class DocTableInfoFactory {
             partitionedBy,
             properties,
             indexColumns,
-            references
+            references,
+            droppedColumns
         );
         var refExpressionAnalyzer = new ExpressionAnalyzer(
             systemTransactionContext,
@@ -310,9 +321,8 @@ public class DocTableInfoFactory {
         List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
             refExpressionAnalyzer,
             expressionAnalysisContext,
-            metaMap
+            Maps.get(metaMap, "check_constraints")
         );
-        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
         if (indexTemplateMetadata != null && versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
             // Due to https://github.com/crate/crate/pull/17178 the created version in the template
@@ -328,6 +338,7 @@ public class DocTableInfoFactory {
             references,
             indexColumns.entrySet().stream()
                 .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
+            droppedColumns,
             Maps.get(metaMap, "pk_constraint_name"),
             primaryKeys,
             checkConstraints,
@@ -347,6 +358,65 @@ public class DocTableInfoFactory {
         );
     }
 
+    private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
+                                                   @Nullable PublicationsMetadata publicationsMetadata) {
+        Map<ColumnIdent, Reference> columns = table.columns().stream()
+            .filter(ref -> !ref.isDropped())
+            .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
+            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+        Map<ColumnIdent, IndexReference> indexColumns = table.columns().stream()
+            .filter(ref -> ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty())
+            .map(ref -> (IndexReference) ref)
+            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            systemTransactionContext,
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            new TableReferenceResolver(columns, table.name()),
+            null
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
+
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
+        Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+        ColumnIdent routingColumn = table.routingColumn();
+        if (routingColumn == null) {
+            routingColumn = table.primaryKeys().size() == 1
+                ? table.primaryKeys().get(0)
+                : SysColumns.ID.COLUMN;
+        }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            expressionAnalyzer,
+            expressionAnalysisContext,
+            table.checkConstraints()
+        );
+        return new DocTableInfo(
+            table.name(),
+            columns,
+            indexColumns,
+            table.columns().stream()
+                .filter(Reference::isDropped)
+                .collect(Collectors.toSet()),
+            table.pkConstraintName(),
+            table.primaryKeys(),
+            checkConstraints,
+            routingColumn,
+            table.settings(),
+            table.partitionedBy(),
+            table.columnPolicy(),
+            versionCreated,
+            versionUpgraded,
+            table.state() == State.CLOSE,
+            Operation.buildFromIndexSettingsAndState(
+                table.settings(),
+                table.state(),
+                publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name())
+            ),
+            0
+        );
+    }
+
     private static ColumnIdent getClusteredBy(List<ColumnIdent> primaryKeys, @Nullable String routing) {
         if (routing != null) {
             return ColumnIdent.fromPath(routing);
@@ -360,8 +430,7 @@ public class DocTableInfoFactory {
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
             ExpressionAnalyzer expressionAnalyzer,
             ExpressionAnalysisContext expressionAnalysisContext,
-            Map<String, Object> metaMap) {
-        Map<String, String> checkConstraints = Maps.get(metaMap, "check_constraints");
+            @Nullable Map<String, String> checkConstraints) {
         if (checkConstraints == null) {
             return List.of();
         }
@@ -389,7 +458,8 @@ public class DocTableInfoFactory {
                                     List<ColumnIdent> partitionedBy,
                                     Map<String, Object> properties,
                                     Map<ColumnIdent, IndexReference.Builder> indexColumns,
-                                    Map<ColumnIdent, Reference> references) {
+                                    Map<ColumnIdent, Reference> references,
+                                    Set<Reference> droppedColumns) {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         for (Entry<String,Object> entry : properties.entrySet()) {
             String columnName = entry.getKey();
@@ -450,7 +520,11 @@ public class DocTableInfoFactory {
                     treeLevels,
                     distanceErrorPct
                 );
-                references.put(column, ref);
+                if (isDropped) {
+                    droppedColumns.add(ref);
+                } else {
+                    references.put(column, ref);
+                }
             } else if (elementType.id() == ObjectType.ID) {
                 Reference ref = new SimpleReference(
                     refIdent,
@@ -464,7 +538,11 @@ public class DocTableInfoFactory {
                     isDropped,
                     defaultExpression
                 );
-                references.put(column, ref);
+                if (isDropped) {
+                    droppedColumns.add(ref);
+                } else {
+                    references.put(column, ref);
+                }
 
                 Map<String, Object> nestedProperties = Maps.get(columnProperties, "properties");
                 if (nestedProperties != null) {
@@ -478,7 +556,8 @@ public class DocTableInfoFactory {
                         partitionedBy,
                         nestedProperties,
                         indexColumns,
-                        references
+                        references,
+                        droppedColumns
                     );
                 }
             } else if (type != DataTypes.NOT_SUPPORTED) {
@@ -552,7 +631,11 @@ public class DocTableInfoFactory {
                             analyzer
                         );
                     }
-                    references.put(column, ref);
+                    if (isDropped) {
+                        droppedColumns.add(ref);
+                    } else {
+                        references.put(column, ref);
+                    }
                 }
             }
         }
