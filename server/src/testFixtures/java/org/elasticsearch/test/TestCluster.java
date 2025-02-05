@@ -146,7 +146,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.session.Sessions;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -155,8 +154,10 @@ import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationInfo.RelationType;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 
 /**
@@ -417,8 +418,10 @@ public final class TestCluster implements Closeable {
         if (size() > 0) {
             InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
             List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
+            List<RelationName> relationNames = new ArrayList<>();
             for (var relation : infoSchema.relations()) {
                 if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
+                    relationNames.add(relation.ident());
                     futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relation.ident())));
                 }
             }
@@ -427,6 +430,11 @@ public final class TestCluster implements Closeable {
                 List<AcknowledgedResponse> responses = allResponses.get(5, TimeUnit.SECONDS);
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
+            }
+            for (RelationName name : relationNames) {
+                assertThat(clusterService().state().metadata().contains(name))
+                    .as("wipeAllTables must remove " + name)
+                    .isFalse();
             }
         }
     }
