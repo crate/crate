@@ -738,7 +738,7 @@ public class MetadataCreateIndexService {
             MappingUtil.AllocPosition.forNewTable(),
             request.pkConstraintName(),
             DocReferences.applyOid(request.references(), metadataBuilder.columnOidSupplier()),
-            request.pKeyIndices(),
+            request.primaryKeys(),
             request.checkConstraints(),
             request.partitionedBy(),
             request.tableColumnPolicy(),

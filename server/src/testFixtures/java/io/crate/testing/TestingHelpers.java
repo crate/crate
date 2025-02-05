@@ -52,7 +52,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.BoundCreateTable;
@@ -354,7 +353,6 @@ public class TestingHelpers {
     }
 
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
-        IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
         var tableColumnPolicy = TableParameters.COLUMN_POLICY.get(boundCreateTable.settings());
         List<Reference> references;
@@ -371,7 +369,7 @@ public class TestingHelpers {
             MappingUtil.AllocPosition.forNewTable(),
             boundCreateTable.pkConstraintName(),
             references,
-            pKeysIndices,
+            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
             boundCreateTable.getCheckConstraints(),
             Lists.map(boundCreateTable.partitionedBy(), Reference::column),
             tableColumnPolicy,

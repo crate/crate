@@ -1028,13 +1028,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(ref -> !ref.column().isSystemColumn())
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .toList();
-        IntArrayList pKeyIndices = new IntArrayList(primaryKeys.size());
-        for (ColumnIdent pk : primaryKeys) {
-            int idx = Reference.indexOf(allColumns, pk);
-            if (idx >= 0) {
-                pKeyIndices.add(idx);
-            }
-        }
         LinkedHashMap<String, String> checkConstraintMap = LinkedHashMap.newLinkedHashMap(checkConstraints.size());
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
@@ -1044,7 +1037,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             allocPosition,
             pkConstraintName,
             allColumns,
-            pKeyIndices,
+            primaryKeys,
             checkConstraintMap,
             Lists.map(partitionedByColumns, Reference::column),
             columnPolicy,
