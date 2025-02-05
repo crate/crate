@@ -71,7 +71,6 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
@@ -502,7 +501,7 @@ public class LogicalPlanner {
             // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getRelationNames(relation);
-            Predicate<Symbol> consumer = node -> {
+            Predicate<Symbol> filter = node -> {
                 SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
                 for (RelationName relationName : relationNamesFromSymbol) {
                     if (relationNamesFromRelation.contains(relationName)) {
@@ -516,7 +515,7 @@ public class LogicalPlanner {
             };
 
             for (Symbol output : outputs) {
-                output.any(consumer);
+                output.any(filter);
             }
 
             return List.copyOf(result);
@@ -533,11 +532,11 @@ public class LogicalPlanner {
                 relation.where(),
                 subQueries,
                 rel -> {
-                    LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>(splitPoints.toCollect());
+                    List<Symbol> toCollect = splitPoints.toCollect();
                     if (relation.from().size() == 1) {
-                        return rel.accept(this, List.copyOf(toCollect));
+                        return rel.accept(this, toCollect);
                     } else {
-                        List<Symbol> mergedOutputs = mergeOutputs(rel, List.copyOf(toCollect));
+                        List<Symbol> mergedOutputs = mergeOutputs(rel, toCollect);
                         return rel.accept(this, mergedOutputs);
                     }
                 }
@@ -581,21 +580,6 @@ public class LogicalPlanner {
                 )
             );
         }
-    }
-
-    static List<Symbol> whereClause(QueriedSelectRelation queriedSelectRelation) {
-        Set<Symbol> toCollect = new LinkedHashSet<>();
-        Predicate<Symbol> addFiltered = node -> {
-            if (node instanceof Reference || node instanceof ScopedSymbol) {
-                toCollect.add(node);
-            }
-            if (node instanceof OuterColumn o) {
-                toCollect.add(o.symbol());
-            }
-            return false;
-        };
-        queriedSelectRelation.where().any(addFiltered);
-        return List.copyOf(toCollect);
     }
 
     static LogicalPlan buildImplicitJoins(List<AnalyzedRelation> from,
