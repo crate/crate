@@ -123,8 +123,13 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
 
+        LinkedHashSet<Symbol> joinConditions = new LinkedHashSet<Symbol>();
         JoinConditionVisitor joinConditionVisitor = new JoinConditionVisitor();
-        relation.accept(joinConditionVisitor, toCollect);
+        relation.accept(joinConditionVisitor, joinConditions);
+
+        for (var joinCondition : joinConditions) {
+            INSTANCE.process(joinCondition, context);
+        }
 
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
@@ -277,7 +282,10 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
         @Override
         public Void visitJoinRelation(JoinRelation joinRelation, LinkedHashSet<Symbol> context) {
-            context.add(joinRelation.joinCondition());
+            Symbol joinCondition = joinRelation.joinCondition();
+            if (joinCondition != null) {
+                context.add(joinCondition);
+            }
             joinRelation.left().accept(this, context);
             joinRelation.right().accept(this, context);
             return null;

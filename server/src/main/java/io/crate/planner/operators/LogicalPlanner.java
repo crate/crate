@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -71,6 +71,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
@@ -378,7 +379,13 @@ public class LogicalPlanner {
         }
 
         @Override
-        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> outputs) {
+        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> context) {
+            List<Symbol> outputs;
+            if (joinRelation.joinCondition() != null) {
+                outputs = Lists.concat(context, joinRelation.joinCondition());
+            } else {
+                outputs = context;
+            }
             List<Symbol> lhsOutputs = mergeOutputs(joinRelation.left(), outputs);
             List<Symbol> rhsOutputs = mergeOutputs(joinRelation.right(), outputs);
 
@@ -495,20 +502,27 @@ public class LogicalPlanner {
             // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getRelationNames(relation);
-            Consumer<Symbol> consumer = node -> {
-                if (node instanceof ScopedSymbol || node instanceof Reference) {
-                    SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
-                    for (RelationName relationName : relationNamesFromSymbol) {
-                        if (relationNamesFromRelation.contains(relationName)) {
+            Predicate<Symbol> consumer = node -> {
+                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
+                for (RelationName relationName : relationNamesFromSymbol) {
+                    if (relationNamesFromRelation.contains(relationName)) {
+                        if (node instanceof ScopedSymbol || node instanceof Reference) {
                             result.add(node);
                             break;
                         }
                     }
                 }
+                return false;
             };
-            relation.visitSymbols(consumer);
+
+            for (Symbol output : outputs) {
+                output.any(consumer);
+            }
+
             return List.copyOf(result);
         }
+
+
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
@@ -519,11 +533,11 @@ public class LogicalPlanner {
                 relation.where(),
                 subQueries,
                 rel -> {
-                    List<Symbol> toCollect = splitPoints.toCollect();
+                    LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>(splitPoints.toCollect());
                     if (relation.from().size() == 1) {
-                        return rel.accept(this, toCollect);
+                        return rel.accept(this, List.copyOf(toCollect));
                     } else {
-                        List<Symbol> mergedOutputs = mergeOutputs(rel, toCollect);
+                        List<Symbol> mergedOutputs = mergeOutputs(rel, List.copyOf(toCollect));
                         return rel.accept(this, mergedOutputs);
                     }
                 }
@@ -567,6 +581,21 @@ public class LogicalPlanner {
                 )
             );
         }
+    }
+
+    static List<Symbol> whereClause(QueriedSelectRelation queriedSelectRelation) {
+        Set<Symbol> toCollect = new LinkedHashSet<>();
+        Predicate<Symbol> addFiltered = node -> {
+            if (node instanceof Reference || node instanceof ScopedSymbol) {
+                toCollect.add(node);
+            }
+            if (node instanceof OuterColumn o) {
+                toCollect.add(o.symbol());
+            }
+            return false;
+        };
+        queriedSelectRelation.where().any(addFiltered);
+        return List.copyOf(toCollect);
     }
 
     static LogicalPlan buildImplicitJoins(List<AnalyzedRelation> from,

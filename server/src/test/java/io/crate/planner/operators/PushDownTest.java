@@ -133,8 +133,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             Eval[y, b, i]
               └ NestedLoopJoin[INNER | (a = b)]
                 ├ OrderBy[x DESC]
-                │  └ Collect[doc.t1 | [a, x, i] | true]
-                └ Collect[doc.t2 | [y, b] | true]
+                │  └ Collect[doc.t1 | [a, i, x] | true]
+                └ Collect[doc.t2 | [b, y] | true]
             """);
     }
 
@@ -232,8 +232,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "Eval[i, i]",
             "  └ NestedLoopJoin[INNER | (x = y)]",
             "    ├ OrderBy[lower(b) ASC]",
-            "    │  └ Collect[doc.t2 | [b, y, i] | true]",
-            "    └ Collect[doc.t1 | [i, x] | true]"
+            "    │  └ Collect[doc.t2 | [y, i, b] | true]",
+            "    └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 
@@ -263,9 +263,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Rename[a, x, i, b, y, i] AS tjoin",
-            "  └ HashJoin[INNER | (x = y)]",
-            "    ├ Collect[doc.t1 | [a, x, i] | (x = 10)]",
-            "    └ Collect[doc.t2 | [b, y, i] | true]"
+            "  └ Eval[a, x, i, b, y, i]",
+            "    └ HashJoin[INNER | (x = y)]",
+            "      ├ Collect[doc.t1 | [x, a, i] | (x = 10)]",
+            "      └ Collect[doc.t2 | [y, b, i] | true]"
         );
     }
 
@@ -301,10 +302,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Rename[a, x, i, b, y, i] AS tjoin",
-            "  └ Filter[((a || b) = '')]",
-            "    └ HashJoin[INNER | (x = y)]",
-            "      ├ Collect[doc.t1 | [a, x, i] | (x = 10)]",
-            "      └ Collect[doc.t2 | [b, y, i] | (y = 20)]"
+            "  └ Eval[a, x, i, b, y, i]",
+            "    └ Filter[((a || b) = '')]",
+            "      └ HashJoin[INNER | (x = y)]",
+            "        ├ Collect[doc.t1 | [x, a, i] | (x = 10)]",
+            "        └ Collect[doc.t2 | [y, b, i] | (y = 20)]"
         );
     }
 

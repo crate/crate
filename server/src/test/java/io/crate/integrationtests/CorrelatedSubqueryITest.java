@@ -304,22 +304,22 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 3
             """;
         execute("EXPLAIN (COSTS FALSE) " + stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "Eval[table_name, column_name]\n" +
-            "  └ Limit[3::bigint;0]\n" +
-            "    └ OrderBy[table_name ASC column_name DESC]\n" +
-            "      └ Filter[(attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)))]\n" +
-            "        └ CorrelatedJoin[table_name, column_name, table_schema, attrelid, attname, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
-            "          └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
-            "            ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
-            "            └ Rename[attrelid, attname] AS col_attr\n" +
-            "              └ Collect[pg_catalog.pg_attribute | [attrelid, attname] | true]\n" +
-            "          └ SubPlan\n" +
-            "            └ Eval[oid]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
-            "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
-            "                  └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n"
+        assertThat(response).hasLines(
+            "Eval[table_name, column_name]",
+            "  └ Limit[3::bigint;0]",
+            "    └ OrderBy[table_name ASC column_name DESC]",
+            "      └ Filter[(attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)))]",
+            "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]",
+            "          └ NestedLoopJoin[LEFT | (attname = column_name)]",
+            "            ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]",
+            "            └ Rename[attname, attrelid] AS col_attr",
+            "              └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]",
+            "          └ SubPlan",
+            "            └ Eval[oid]",
+            "              └ Limit[2::bigint;0::bigint]",
+            "                └ NestedLoopJoin[INNER | (oid = relnamespace)]",
+            "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]",
+            "                  └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -357,26 +357,26 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 3
             """;
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "Eval[table_name, column_name]\n" +
-            "  └ Limit[3::bigint;0]\n" +
-            "    └ OrderBy[table_name ASC column_name DESC]\n" +
-            "      └ Filter[((attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))) AND (attrelid = (SELECT attrelid FROM (empty_row))))]\n" +
-            "        └ CorrelatedJoin[table_name, column_name, table_schema, attrelid, attname, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)), (SELECT attrelid FROM (empty_row))]\n" +
-            "          └ CorrelatedJoin[table_name, column_name, table_schema, attrelid, attname, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
-            "            └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
-            "              ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
-            "              └ Rename[attrelid, attname] AS col_attr\n" +
-            "                └ Collect[pg_catalog.pg_attribute | [attrelid, attname] | true]\n" +
-            "            └ SubPlan\n" +
-            "              └ Eval[oid]\n" +
-            "                └ Limit[2::bigint;0::bigint]\n" +
-            "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
-            "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
-            "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
-            "          └ SubPlan\n" +
-            "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [attrelid] | true]\n"
+        assertThat(response).hasLines(
+            "Eval[table_name, column_name]",
+            "  └ Limit[3::bigint;0]",
+            "    └ OrderBy[table_name ASC column_name DESC]",
+            "      └ Filter[((attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))) AND (attrelid = (SELECT attrelid FROM (empty_row))))]",
+            "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)), (SELECT attrelid FROM (empty_row))]",
+            "          └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]",
+            "            └ NestedLoopJoin[LEFT | (attname = column_name)]",
+            "              ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]",
+            "              └ Rename[attname, attrelid] AS col_attr",
+            "                └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]",
+            "            └ SubPlan",
+            "              └ Eval[oid]",
+            "                └ Limit[2::bigint;0::bigint]",
+            "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]",
+            "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]",
+            "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]",
+            "          └ SubPlan",
+            "            └ Limit[2::bigint;0::bigint]",
+            "              └ TableFunction[empty_row | [attrelid] | true]"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
