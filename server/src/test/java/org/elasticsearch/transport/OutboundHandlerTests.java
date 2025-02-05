@@ -126,7 +126,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testSendRequest() throws IOException {
-        Version version = Version.CURRENT;
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         boolean isHandshake = randomBoolean();
@@ -148,7 +148,7 @@ public class OutboundHandlerTests extends ESTestCase {
                 requestRef.set(request);
             }
         });
-        handler.sendRequest(node, channel, requestId, action, request, options, compress, isHandshake);
+        handler.sendRequest(node, channel, requestId, action, request, options, version, compress, isHandshake);
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
@@ -182,7 +182,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testSendResponse() throws IOException {
-        Version version = Version.CURRENT;
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         boolean isHandshake = randomBoolean();
@@ -201,7 +201,7 @@ public class OutboundHandlerTests extends ESTestCase {
                 responseRef.set(response);
             }
         });
-        handler.sendResponse(channel, requestId, action, response, compress, isHandshake);
+        handler.sendResponse(version, channel, requestId, action, response, compress, isHandshake);
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
@@ -236,7 +236,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testErrorResponse() throws IOException {
-        Version version = Version.CURRENT;
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         ElasticsearchException error = new ElasticsearchException("boom");
@@ -252,7 +252,7 @@ public class OutboundHandlerTests extends ESTestCase {
                 responseRef.set(error);
             }
         });
-        handler.sendErrorResponse(channel, requestId, action, error);
+        handler.sendErrorResponse(version, channel, requestId, action, error);
 
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference reference = Netty4Utils.toBytesReference(msg);
