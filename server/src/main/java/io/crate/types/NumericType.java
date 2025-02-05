@@ -70,6 +70,8 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Nullable
     private final Integer precision;
 
+    private final MathContext mathContext;
+
     public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
         if (scale != null) {
             if (precision == null) {
@@ -89,11 +91,21 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         }
         this.precision = precision;
         this.scale = scale;
+        if (precision == null) {
+            mathContext = MathContext.UNLIMITED;
+        } else {
+            mathContext = new MathContext(precision);
+        }
     }
 
     public NumericType(StreamInput in) throws IOException {
         this.precision = in.readOptionalVInt();
         this.scale = in.readOptionalVInt();
+        if (precision == null) {
+            mathContext = MathContext.UNLIMITED;
+        } else {
+            mathContext = new MathContext(precision);
+        }
     }
 
     @Override
@@ -122,7 +134,6 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return null;
         }
 
-        var mathContext = mathContext();
         BigDecimal bd;
         if (value instanceof BigDecimal bigDecimal) {
             bd = bigDecimal.round(mathContext);
@@ -150,7 +161,6 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return null;
         }
         if (value instanceof String str) {
-            MathContext mathContext = mathContext();
             BigDecimal bigDecimal = new BigDecimal(str, mathContext);
             return scale == null
                 ? bigDecimal
@@ -160,7 +170,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         // See NumericStorage+LuceneSort+OrderByCollectorExpression
         if (value instanceof Long longValue) {
             BigInteger bigInt = BigInteger.valueOf(longValue);
-            return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
+            return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext);
         }
         return (BigDecimal) value;
     }
@@ -216,11 +226,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     public MathContext mathContext() {
-        if (precision == null) {
-            return MathContext.UNLIMITED;
-        } else {
-            return new MathContext(precision);
-        }
+        return mathContext;
     }
 
     private boolean unscaled() {
@@ -271,7 +277,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return new BigDecimal(
                 new BigInteger(bytes),
                 scale,
-                mathContext()
+                mathContext
             );
         } else {
             return null;
