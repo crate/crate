@@ -26,14 +26,17 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.SequencedSet;
 
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -68,6 +71,16 @@ public final class RelationNames {
         return get(symbol, false);
     }
 
+    /**
+     * Extracts all relation names from the AnalyzedRelation and the underlying nested AnalyzedRelations.
+     */
+    public static SequencedSet<RelationName> getRelationNames(AnalyzedRelation relation) {
+        LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
+        relation.accept(RELATION_TABLE_IDENT_EXTRACTOR, relationNames);
+        return relationNames;
+    }
+
+
     private static SequencedSet<RelationName> get(Symbol symbol, boolean deep) {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         symbol.any(node -> {
@@ -90,9 +103,28 @@ public final class RelationNames {
     private static class TableIdentRelationVisitor extends AnalyzedRelationVisitor<Collection<RelationName>, Void> {
 
         @Override
+        public Void visitUnionSelect(UnionSelect unionSelect, Collection<RelationName> context) {
+            unionSelect.left().accept(this, context);
+            unionSelect.right().accept(this, context);
+            return null;
+        }
+
+        @Override
+        public Void visitForeignTable(ForeignTableRelation foreignTableRelation, Collection<RelationName> context) {
+            context.add(foreignTableRelation.relationName());
+            return null;
+        }
+
+        @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, Collection<RelationName> context) {
             throw new IllegalStateException(String.format(Locale.ENGLISH,
                 "AnalyzedRelation '%s' not supported", relation.getClass()));
+        }
+
+        @Override
+        public Void visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, Collection<RelationName> context) {
+            context.add(relation.relationName());
+            return null;
         }
 
         @Override
@@ -109,6 +141,20 @@ public final class RelationNames {
 
         @Override
         public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, Collection<RelationName> context) {
+            context.add(tableFunctionRelation.relationName());
+            return null;
+        }
+
+        @Override
+        public Void visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, Collection<RelationName> context) {
+            context.add(explainAnalyzedStatement.relationName());
+            return null;
+        }
+
+        @Override
+        public Void visitJoinRelation(JoinRelation joinRelation, Collection<RelationName> context) {
+            joinRelation.left().accept(this, context);
+            joinRelation.right().accept(this, context);
             return null;
         }
 

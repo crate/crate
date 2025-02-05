@@ -22,7 +22,6 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -113,7 +112,6 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         var relation = new QueriedSelectRelation(
             false,
             List.of(tableRelation),
-            List.of(),
             List.of(new OuterColumn(tableRelation, b)),
             Literal.BOOLEAN_TRUE,
             List.of(),

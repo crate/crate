@@ -240,6 +240,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_merge_filter_and_foreign_collect| true| Indicates if the optimizer rule MergeFilterAndForeignCollect is activated.| NULL| NULL",
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.| NULL| NULL",
             "optimizer_move_constant_join_conditions_beneath_join| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathJoin is activated.| NULL| NULL",
+            "optimizer_move_equi_join_filter_into_inner_join| true| Indicates if the optimizer rule MoveEquiJoinFilterIntoInnerJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_correlated_join| true| Indicates if the optimizer rule MoveFilterBeneathCorrelatedJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.| NULL| NULL",
