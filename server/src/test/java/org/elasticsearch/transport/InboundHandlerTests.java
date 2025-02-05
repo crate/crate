@@ -302,7 +302,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
-        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_10_1);
+        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_10_1.minimumCompatibilityVersion());
         ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
@@ -336,9 +336,9 @@ public class InboundHandlerTests extends ESTestCase {
 
         final long requestId = randomNonNegativeLong();
         final Header requestHeader = new Header(between(0, 100), requestId,
-            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), Version.V_5_0_0);
+            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), Version.V_5_0_0.minimumCompatibilityVersion());
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new TransportHandshaker.HandshakeRequest(Version.V_5_0_0),
+            new TransportHandshaker.HandshakeRequest(Version.V_5_0_0.minimumCompatibilityVersion()),
             Version.V_5_0_0,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
@@ -387,7 +387,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
-        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_0_0);
+        int responseHeaderSize = TcpHeader.headerSize(Version.V_5_0_0.minimumCompatibilityVersion());
         ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
