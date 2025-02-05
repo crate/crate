@@ -33,7 +33,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -86,12 +85,6 @@ public final class RelationNames {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         symbol.any(node -> {
             switch (node) {
-                case Function fun -> {
-                    for (Symbol argument : fun.arguments()) {
-                        SequencedSet<RelationName> c = get(argument, false);
-                        relationNames.addAll(c);
-                    }
-                }
                 case Reference ref -> relationNames.add(ref.ident().tableIdent());
                 case ScopedSymbol scoped -> relationNames.add(scoped.relation());
                 case SelectSymbol selectSymbol -> {
