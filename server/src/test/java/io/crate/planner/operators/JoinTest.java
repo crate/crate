@@ -200,12 +200,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         e.updateTableStats(rowCountByTable);
 
         LogicalPlan plan = buildLogicalPlan(mss);
-        assertThat(plan).hasOperators(
-            "Eval[name, id]",
-            "  └ HashJoin[INNER | (id = id)]",
-            "    ├ Collect[doc.users | [name, id] | true]",
-            "    └ Collect[doc.locations | [id] | true]"
-        );
+        assertThat(plan).isEqualTo("""
+            Eval[name, id]
+              └ HashJoin[INNER | (id = id)]
+                ├ Collect[doc.users | [name, id] | true]
+                └ Collect[doc.locations | [id] | true]""");
 
         var hashjoin = plan.sources().getFirst();
         assertThat(hashjoin).isExactlyInstanceOf(HashJoin.class);
@@ -573,7 +572,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Eval[name]
               └ HashJoin[INNER | (a = address['postcode'])]
-                ├ Collect[doc.users | [name, address] | true]
+                ├ Collect[doc.users | [name, address['postcode']] | true]
                 └ Collect[doc.t1 | [a] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
@@ -586,8 +585,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             Eval[name]
               └ HashJoin[INNER | (a = address['postcode'])]
-                ├ Rename[name, address] AS u
-                │  └ Collect[doc.users | [name, address] | true]
+                ├ Rename[name, address['postcode']] AS u
+                │  └ Collect[doc.users | [name, address['postcode']] | true]
                 └ Collect[doc.t1 | [a] | true]
             """;
         assertThat(logicalPlan).isEqualTo(expectedPlan);
@@ -704,8 +703,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 │  │  └ TableFunction[generate_series | [generate_series] | true]
                 │  └ Rename[sensor_id] AS sensors
                 │    └ TableFunction[unnest | [unnest] | true]
-                └ Rename[time, sensor_id, battery_level] AS readings
-                  └ Collect[doc.sensor_readings | [time, sensor_id, battery_level] | true]
+                └ Rename[battery_level, time, sensor_id] AS readings
+                  └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]
             """
         );
 

@@ -1246,7 +1246,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
             "  └ OrderBy[id ASC id ASC]",
             "    └ HashJoin[INNER | (node['id'] = id)]",
-            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node] | true]",
+            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
             "      └ Rename[id, name] AS nodes",
             "        └ Collect[sys.nodes | [id, name] | true]"
         );
