@@ -241,4 +241,10 @@ public class AverageAggregationTest extends AggregationTestCase {
         );
         assertThat(((NumericAverageState<?>) result).value().toString()).isEqualTo(expected.toString());
     }
+
+    @Test
+    public void test_avg_numeric_non_terminating_decimal_expansion() throws Exception {
+        assertThat(executeAvgAgg(new NumericType(18, 3), new Object[][]{{BigDecimal.valueOf(6.0)}, {BigDecimal.valueOf(2.0)}, {BigDecimal.valueOf(2.0)}}))
+            .isEqualTo(BigDecimal.valueOf(3.333333333333333));
+    }
 }
