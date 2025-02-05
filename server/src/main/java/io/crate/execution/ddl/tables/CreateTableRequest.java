@@ -211,4 +211,19 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
     }
+
+    /**
+     * Primary key columnIdents derived from {@link #references()} and {@link #pKeyIndices()}
+     **/
+    public List<ColumnIdent> primaryKeys() {
+        if (pKeyIndices.isEmpty()) {
+            return List.of();
+        }
+        ArrayList<ColumnIdent> primaryKeys = new ArrayList<ColumnIdent>(pKeyIndices.size());
+        for (var cursor : pKeyIndices) {
+            Reference pkRef = columns.get(cursor.value);
+            primaryKeys.add(pkRef.column());
+        }
+        return primaryKeys;
+    }
 }

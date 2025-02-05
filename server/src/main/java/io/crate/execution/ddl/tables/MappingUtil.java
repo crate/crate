@@ -33,8 +33,6 @@ import java.util.function.ToIntFunction;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -103,7 +101,7 @@ public final class MappingUtil {
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
                                                     @Nullable String pkConstraintName,
                                                     List<Reference> columns,
-                                                    IntArrayList pKeyIndices,
+                                                    List<ColumnIdent> primaryKeys,
                                                     Map<String, String> checkConstraints,
                                                     List<ColumnIdent> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
@@ -118,7 +116,7 @@ public final class MappingUtil {
         if (pkConstraintName != null) {
             meta.put("pk_constraint_name", pkConstraintName);
         }
-        mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
+        mergeConstraints(meta, columns, primaryKeys, checkConstraints);
         if (routingColumn != null) {
             meta.put("routing", routingColumn.fqn());
         }
@@ -243,7 +241,7 @@ public final class MappingUtil {
     @SuppressWarnings("unchecked")
     public static void mergeConstraints(Map<String, Object> meta,
                                         List<Reference> references,
-                                        IntArrayList pKeyIndices,
+                                        List<ColumnIdent> primaryKeys,
                                         Map<String, String> checkConstraints) {
 
         // CHECK
@@ -261,17 +259,14 @@ public final class MappingUtil {
         }
 
         // PK
-        List<ColumnIdent> pkColumns = new ArrayList<>();
-        if (pKeyIndices.isEmpty() == false) {
-            List<String> primaryKeys = (List<String>) meta.get("primary_keys");
-            if (primaryKeys == null) {
-                primaryKeys = new ArrayList<>();
-                meta.put("primary_keys", primaryKeys);
+        if (primaryKeys.isEmpty() == false) {
+            List<String> fqPrimaryKeys = (List<String>) meta.get("primary_keys");
+            if (fqPrimaryKeys == null) {
+                fqPrimaryKeys = new ArrayList<>();
+                meta.put("primary_keys", fqPrimaryKeys);
             }
-            for (int i = 0; i < pKeyIndices.size(); i ++) {
-                Reference pkRef = references.get(pKeyIndices.get(i));
-                pkColumns.add(pkRef.column());
-                primaryKeys.add(pkRef.column().fqn());
+            for (ColumnIdent primaryKey : primaryKeys) {
+                fqPrimaryKeys.add(primaryKey.fqn());
             }
         }
 
@@ -280,7 +275,7 @@ public final class MappingUtil {
         for (int i = 0; i < references.size(); i++) {
             Reference ref = references.get(i);
             // primary keys are implicitly null and not explicitly stored within not null constraints
-            if (!ref.isNullable() && !pkColumns.contains(ref.column())) {
+            if (!ref.isNullable() && !primaryKeys.contains(ref.column())) {
                 newNotNulls.add(ref.column().fqn());
             }
         }
