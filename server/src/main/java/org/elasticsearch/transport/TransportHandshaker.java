@@ -142,10 +142,10 @@ final class TransportHandshaker {
                 Version remoteVersion = response.getResponseVersion();
                 Version remoteMinimalCompatibleVersion = response.responseMinimalCompatibleVersion();
                 if (currentVersion.isCompatible(remoteVersion, remoteMinimalCompatibleVersion) == false) {
-                    listener.onFailure(new IllegalStateException("Received message from unsupported version: [" + version
+                    listener.onFailure(new IllegalStateException("Received message from unsupported version: [" + remoteVersion
                         + "] minimal compatible version is: [" + currentVersion.minimumCompatibilityVersion() + "]"));
                 } else {
-                    listener.onResponse(version);
+                    listener.onResponse(remoteVersion);
                 }
             }
         }
@@ -207,6 +207,11 @@ final class TransportHandshaker {
         }
     }
 
+    /**
+     * At the handshake response, the minimal compatible version is written into the header to ensure transport
+     * encoding compatibility during the handshake while the real version is written into the body.
+     * This is the opposite of the handshake request.
+     */
     static final class HandshakeResponse extends TransportResponse {
 
         private final Version responseVersion;
@@ -219,15 +224,14 @@ final class TransportHandshaker {
 
         @VisibleForTesting
         HandshakeResponse(StreamInput in) throws IOException {
-            responseVersion = in.getVersion();
-            responseMinimalCompatibleVersion = Version.readVersion(in);
+            responseVersion = Version.readVersion(in);
+            responseMinimalCompatibleVersion = in.getVersion();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            // Only write the minimal compatible version, the response version is already written into the header
-            assert responseMinimalCompatibleVersion != null;
-            Version.writeVersion(responseMinimalCompatibleVersion, out);
+            // Only write the version, the response minimal compatible version is already written into the header
+            Version.writeVersion(responseVersion, out);
         }
 
         Version getResponseVersion() {

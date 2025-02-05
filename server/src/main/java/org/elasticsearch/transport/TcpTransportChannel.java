@@ -59,7 +59,7 @@ public final class TcpTransportChannel implements TransportChannel {
     @Override
     public void sendResponse(TransportResponse response) throws IOException {
         try {
-            outboundHandler.sendResponse(channel, requestId, action, response, compressResponse, isHandshake);
+            outboundHandler.sendResponse(version, channel, requestId, action, response, compressResponse, isHandshake);
         } finally {
             release(false);
         }
@@ -68,7 +68,7 @@ public final class TcpTransportChannel implements TransportChannel {
     @Override
     public void sendResponse(Exception exception) throws IOException {
         try {
-            outboundHandler.sendErrorResponse(channel, requestId, action, exception);
+            outboundHandler.sendErrorResponse(version, channel, requestId, action, exception);
         } finally {
             release(true);
         }
