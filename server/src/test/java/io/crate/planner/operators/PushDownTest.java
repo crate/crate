@@ -228,12 +228,14 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = sqlExecutor.logicalPlan(
             "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
 
-        assertThat(plan).hasOperators(
-            "Eval[i, i]",
-            "  └ NestedLoopJoin[INNER | (x = y)]",
-            "    ├ OrderBy[lower(b) ASC]",
-            "    │  └ Collect[doc.t2 | [i, b, y] | true]",
-            "    └ Collect[doc.t1 | [i, x] | true]"
+        assertThat(plan).isEqualTo(
+            """
+            Eval[i, i]
+              └ NestedLoopJoin[INNER | (x = y)]
+                ├ OrderBy[lower(b) ASC]
+                │  └ Collect[doc.t2 | [i, b, y] | true]
+                └ Collect[doc.t1 | [i, x] | true]
+            """
         );
     }
 
@@ -260,13 +262,14 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             WHERE tjoin.x = 10
             """
         );
-
-        assertThat(plan).hasOperators(
-            "Rename[a, x, i, b, y, i] AS tjoin",
-            "  └ HashJoin[INNER | (x = y)]",
-            "    ├ Collect[doc.t1 | [a, x, i] | (x = 10)]",
-            "    └ Collect[doc.t2 | [b, y, i] | true]"
-        );
+        var expectedPlan =
+            """
+            Rename[a, x, i, b, y, i] AS tjoin
+              └ HashJoin[INNER | (x = y)]
+                ├ Collect[doc.t1 | [a, x, i] | (x = 10)]
+                └ Collect[doc.t2 | [b, y, i] | true]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test
@@ -298,14 +301,15 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             WHERE tjoin.x = 10 AND tjoin.y = 20 AND (tjoin.a || tjoin.b = '')
             """
         );
-
-        assertThat(plan).hasOperators(
-            "Rename[a, x, i, b, y, i] AS tjoin",
-            "  └ Filter[((a || b) = '')]",
-            "    └ HashJoin[INNER | (x = y)]",
-            "      ├ Collect[doc.t1 | [a, x, i] | (x = 10)]",
-            "      └ Collect[doc.t2 | [b, y, i] | (y = 20)]"
-        );
+        var expectedPlan =
+            """
+            Rename[a, x, i, b, y, i] AS tjoin
+              └ Filter[((a || b) = '')]
+                └ HashJoin[INNER | (x = y)]
+                  ├ Collect[doc.t1 | [a, x, i] | (x = 10)]
+                  └ Collect[doc.t2 | [b, y, i] | (y = 20)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
     }
 
     @Test

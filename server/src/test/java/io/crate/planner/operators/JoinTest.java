@@ -739,14 +739,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             WHERE t2.y IN (SELECT z FROM t3);
             """;
         LogicalPlan logicalPlan = e.logicalPlan(statement);
-        assertThat(logicalPlan).hasOperators(
-            "MultiPhase",
-            "  └ HashJoin[INNER | (i = i)]",
-            "    ├ Collect[doc.t1 | [a, x, i] | true]",
-            "    └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]",
-            "  └ OrderBy[z ASC]",
-            "    └ Collect[doc.t3 | [z] | true]"
-        );
+        assertThat(logicalPlan).isEqualTo(
+            """
+            MultiPhase
+              └ HashJoin[INNER | (i = i)]
+                ├ Collect[doc.t1 | [a, x, i] | true]
+                └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]
+              └ OrderBy[z ASC]
+                └ Collect[doc.t3 | [z] | true]
+            """);
 
         Object plan = e.plan(statement);
         assertThat(plan).isExactlyInstanceOf(Merge.class);
