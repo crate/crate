@@ -53,7 +53,8 @@ public class EvalProjection extends Projection {
     public static EvalProjection castValues(List<DataType<?>> targetTypes, List<Symbol> sources) {
         ArrayList<Symbol> casts = new ArrayList<>(targetTypes.size());
         boolean requiresCasts = false;
-        for (int i = 0; i < sources.size(); i++) {
+        assert sources.size() >= targetTypes.size() : "sources size must be >= targetTypes size";
+        for (int i = 0; i < targetTypes.size(); i++) {
             Symbol source = sources.get(i);
             DataType<?> targetType = targetTypes.get(i);
             InputColumn inputColumn = new InputColumn(i, source.valueType());

@@ -30,7 +30,10 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class EvalProjectionTest extends ESTestCase {
 
@@ -44,5 +47,14 @@ public class EvalProjectionTest extends ESTestCase {
         var inProjection = new EvalProjection(in);
         assertThat(projection.requiredGranularity()).isEqualTo(inProjection.requiredGranularity());
         assertThat(projection.outputs()).isEqualTo(inProjection.outputs());
+    }
+
+    @Test
+    public void test_cast_target_types_can_be_less_than_source_outputs() {
+        List<DataType<?>> targetTypes = List.of(DataTypes.INTEGER);
+        List<Symbol> sources = List.of(Literal.of("1"), Literal.of("2"));
+        EvalProjection projection = EvalProjection.castValues(targetTypes, sources);
+        assertThat(projection).isNotNull();
+        assertThat(projection.outputs().size()).isEqualTo(targetTypes.size());
     }
 }
