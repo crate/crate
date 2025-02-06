@@ -291,7 +291,7 @@ public class IndexingMemoryController implements IndexingOperationListener, Clos
             List<IndexShard> availableShards = availableShards();
             for (IndexShard shard : availableShards) {
 
-                // Give shard a chance to transition to inactive so sync'd flush can happen:
+                // Give shard a chance to transition to inactive so we can flush:
                 checkIdle(shard, inactiveTime.nanos());
 
                 // How many bytes this shard is currently (async'd) moving from heap to disk:
@@ -384,7 +384,7 @@ public class IndexingMemoryController implements IndexingOperationListener, Clos
      */
     protected void checkIdle(IndexShard shard, long inactiveTimeNS) {
         try {
-            shard.checkIdle(inactiveTimeNS);
+            shard.flushOnIdle(inactiveTimeNS);
         } catch (AlreadyClosedException e) {
             LOGGER.trace(() -> new ParameterizedMessage("ignore exception while checking if shard {} is inactive", shard.shardId()), e);
         }

@@ -96,6 +96,10 @@ Performance and Resilience Improvements
 
 - Improved the performance of the queries involving ``= ALL`` array operator.
 
+- Improved the performance of :ref:`shard recovery<gloss-shard-recovery>` in
+  certain cases, where a shard has become idle after 5 minutes of no write
+  activity.
+
 Administration and Operations
 -----------------------------
 
