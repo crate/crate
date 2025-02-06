@@ -3322,48 +3322,13 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
-    public void testFlushOnInactive() throws Exception {
-        Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-            .build();
-        IndexMetadata metaData = IndexMetadata.builder("test")
-            .putMapping("{ \"properties\": { \"foo\":  { \"type\": \"text\", \"position\": 1}}}")
-            .settings(settings)
-            .primaryTerm(0, 1).build();
-        ShardRouting shardRouting =
-            TestShardRouting.newShardRouting(
-                new ShardId(metaData.getIndex(), 0),
-                "n1",
-                true,
-                ShardRoutingState.INITIALIZING,
-                RecoverySource.EmptyStoreRecoverySource.INSTANCE);
-        final ShardId shardId = shardRouting.shardId();
-        final NodeEnvironment.NodePath nodePath = new NodeEnvironment.NodePath(createTempDir());
-        ShardPath shardPath = new ShardPath(false, nodePath.resolve(shardId), nodePath.resolve(shardId), shardId);
-        AtomicBoolean markedInactive = new AtomicBoolean();
-        AtomicReference<IndexShard> primaryRef = new AtomicReference<>();
-        IndexShard primary = newShard(
-            shardRouting,
-            shardPath,
-            metaData,
-            null,
-            List.of(),
-            () -> { },
-            new IndexEventListener() {
-                @Override
-                public void onShardInactive(IndexShard indexShard) {
-                    markedInactive.set(true);
-                    primaryRef.get().flush(new FlushRequest());
-                }
-            });
-        primaryRef.set(primary);
-        recoverShardFromStore(primary);
+    public void testFlushOnIdle() throws Exception {
+        IndexShard shard = newStartedShard();
         for (int i = 0; i < 3; i++) {
-            indexDoc(primary, String.valueOf(i), "{\"foo\" : \"" + randomAlphaOfLength(10) + "\"}");
-            primary.refresh("test"); // produce segments
+            indexDoc(shard, String.valueOf(i));
+            shard.refresh("test"); // produce segments
         }
-        List<Segment> segments = primary.segments(false);
+        List<Segment> segments = shard.segments(false);
         Set<String> names = new HashSet<>();
         for (Segment segment : segments) {
             assertThat(segment.committed).isFalse();
@@ -3371,10 +3336,10 @@ public class IndexShardTests extends IndexShardTestCase {
             names.add(segment.getName());
         }
         assertThat(segments).hasSize(3);
-        primary.flush(new FlushRequest());
-        primary.forceMerge(new ForceMergeRequest().maxNumSegments(1).flush(false));
-        primary.refresh("test");
-        segments = primary.segments(false);
+        shard.flush(new FlushRequest());
+        shard.forceMerge(new ForceMergeRequest().maxNumSegments(1).flush(false));
+        shard.refresh("test");
+        segments = shard.segments(false);
         for (Segment segment : segments) {
             if (names.contains(segment.getName())) {
                 assertThat(segment.committed).isTrue();
@@ -3386,20 +3351,18 @@ public class IndexShardTests extends IndexShardTestCase {
         }
         assertThat(segments).hasSize(4);
 
-        assertThat(markedInactive.get()).isFalse();
-        assertBusy(() -> {
-            primary.checkIdle(0);
-            assertThat(primary.isActive()).isFalse();
-        });
+        shard.flushOnIdle(0);
+        assertThat(shard.isActive()).isFalse();
 
-        assertThat(markedInactive.get()).isTrue();
-        segments = primary.segments(false);
-        assertThat(1).isEqualTo(segments.size());
-        for (Segment segment : segments) {
-            assertThat(segment.committed).isTrue();
-            assertThat(segment.search).isTrue();
-        }
-        closeShards(primary);
+        assertBusy(() -> { // flush happens in the background using the flush threadpool
+            List<Segment> segmentsAfterFlush = shard.segments(false);
+            assertThat(segmentsAfterFlush).hasSize(1);
+            for (Segment segment : segmentsAfterFlush) {
+                assertThat(segment.committed).isTrue();
+                assertThat(segment.search).isTrue();
+            }
+        });
+        closeShards(shard);
     }
 
     @Test
