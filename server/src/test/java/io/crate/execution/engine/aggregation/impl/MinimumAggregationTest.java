@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.joda.time.Period;
@@ -36,6 +37,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 public class MinimumAggregationTest extends AggregationTestCase {
 
@@ -56,6 +58,13 @@ public class MinimumAggregationTest extends AggregationTestCase {
         for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             assertHasDocValueAggregator(MinimumAggregation.NAME, List.of(dataType));
         }
+    }
+
+    @Test
+    public void testNumeric() throws Exception {
+        Object result = executeAggregation(new NumericType(6, 4),
+            new Object[][]{{new BigDecimal("97.6543")}, {new BigDecimal("97.6542")}});
+        assertThat(result).isEqualTo(new BigDecimal("97.6542"));
     }
 
     @Test
