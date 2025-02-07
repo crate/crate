@@ -107,3 +107,8 @@ Fixes
         ) u
     ORDER BY name
 
+- Fixed an issue that would lead to wrong results when using
+  :ref:`MIN <aggregation-min>` or :ref:`MAX <aggregation-max>` aggregations on
+  :ref:`numeric <type-numeric>` values. Previously, the values where implicitly
+  casted to ``STRING`` and the aggregations where using alphanumeric ordering,
+  instead of numeric ordering.
