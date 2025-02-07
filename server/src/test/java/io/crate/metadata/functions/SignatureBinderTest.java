@@ -36,6 +36,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import io.crate.execution.engine.aggregation.impl.NumericMaxAggregation;
+import io.crate.execution.engine.aggregation.impl.NumericMinAggregation;
 import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
 import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
@@ -555,6 +557,12 @@ public class SignatureBinderTest extends ESTestCase {
     public void testNumericParameters() {
         NumericType dt = new NumericType(10, 2);
         assertThatSignature(NumericSumAggregation.SIGNATURE)
+            .boundTo(dt)
+            .hasReturnType(dt);
+        assertThatSignature(NumericMinAggregation.SIGNATURE)
+            .boundTo(dt)
+            .hasReturnType(dt);
+        assertThatSignature(NumericMaxAggregation.SIGNATURE)
             .boundTo(dt)
             .hasReturnType(dt);
     }
