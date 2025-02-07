@@ -21,9 +21,11 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.dml.Indexer.addIndexColumns;
+import static io.crate.execution.dml.Indexer.buildIndexColumns;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +36,16 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 
+import io.crate.common.collections.Maps;
+import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 /**
  * Parses transaction log entries based on column information from a {@link DocTableInfo}
@@ -50,10 +56,11 @@ public class TranslogIndexer {
     }
 
     private final Map<String, ColumnIndexer<?>> indexers = new HashMap<>();
-    private final Map<String, List<String>> tableIndexSources = new HashMap<>();
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version shardCreatedVersion;
+
+    private final List<Indexer.IndexColumn> indexColumns;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
@@ -73,13 +80,32 @@ public class TranslogIndexer {
                 sourceParser.register(DocReferences.toDocLookup(ref).column(), ref.valueType());
             }
         }
-        for (var ref : table.indexColumns()) {
-            for (var source : ref.columns()) {
-                tableIndexSources.computeIfAbsent(source.column().fqn(), _ -> new ArrayList<>()).add(ref.storageIdent());
-            }
-        }
+
+        this.indexColumns = buildIndexColumns(table.indexColumns(), table::getReference, reference -> new TranslogInput(reference.column()));
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.shardCreatedVersion = shardCreatedVersion;
+    }
+
+
+    private static class TranslogInput implements Input<Object> {
+
+        private final ColumnIdent ident;
+        private Object value;
+
+        TranslogInput(ColumnIdent ident) {
+            this.ident = ident;
+        }
+
+        @SuppressWarnings("unchecked")
+        public void prepareValue(Object value, DataType<?> dataType) {
+            this.value = dataType.id() != ObjectType.ID ? value
+                : Maps.getByPath((Map<String, Object>) value, ident.path());
+        }
+
+        @Override
+        public Object value() {
+            return value;
+        }
     }
 
     /**
@@ -113,9 +139,13 @@ public class TranslogIndexer {
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
                 indexer.valueIndexer.indexValue(castValue, docBuilder);
-                if (tableIndexSources.containsKey(column)) {
-                    addIndexField(docBuilder, tableIndexSources.get(column), castValue);
+                for (Indexer.IndexColumn indexColumn: indexColumns) {
+                    for (Input<?> input: indexColumn.inputs()) {
+                        TranslogInput translogInput = (TranslogInput) input;
+                        translogInput.prepareValue(castValue, indexer.dataType);
+                    }
                 }
+                addIndexColumns(indexColumns, docBuilder);
             }
         }
         return docBuilder;

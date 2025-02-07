@@ -46,6 +46,9 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that led to occasional empty results on ``MATCH`` queries on
+  a ``FULLTEXT`` index of the object sub-column.
+
 - Fixed an issue that would lead to errors when attempting to select a
   sub-column from a virtual table or view participating in a join, e.g.::
 
