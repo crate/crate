@@ -59,6 +59,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -117,7 +118,7 @@ public class Indexer {
     private final boolean writeOids;
     private final Version tableVersionCreated;
 
-    record IndexColumn(Reference reference, List<Input<?>> inputs) {
+    public record IndexColumn(Reference reference, List<Input<?>> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
@@ -494,21 +495,7 @@ public class Indexer {
                 undeterministic.add(synthetic);
             }
         }
-        this.indexColumns = new ArrayList<>(table.indexColumns().size());
-        for (var ref : table.indexColumns()) {
-            ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
-
-            for (var sourceRef : ref.columns()) {
-                Reference reference = table.getReference(sourceRef.column());
-                assert reference.equals(sourceRef) : "refs must match";
-
-                Input<?> input = ctxForRefs.add(sourceRef);
-                indexInputs.add(input);
-            }
-            if (ref.indexType() != IndexType.NONE) {
-                indexColumns.add(new IndexColumn(ref, indexInputs));
-            }
-        }
+        this.indexColumns = buildIndexColumns(table.indexColumns(), table::getReference, ctxForRefs::add);
         if (returnValues == null) {
             this.returnValueInputs = null;
         } else {
@@ -532,6 +519,27 @@ public class Indexer {
         }
         this.expressions = ctxForRefs.expressions();
         this.tableVersionCreated = shardVersionCreated;
+    }
+
+    public static List<IndexColumn> buildIndexColumns(Collection<IndexReference> indexReferences,
+                                                      Function<ColumnIdent, Reference> getRef,
+                                                      Function<Reference, Input<?>> createInput) {
+        List<IndexColumn> indexColumns = new ArrayList<>(indexReferences.size());
+        for (var ref : indexReferences) {
+            ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
+
+            for (var sourceRef : ref.columns()) {
+                Reference reference = getRef.apply(sourceRef.column());
+                assert reference.equals(sourceRef) : "refs must match";
+
+                Input<?> input = createInput.apply(sourceRef);
+                indexInputs.add(input);
+            }
+            if (ref.indexType() != IndexType.NONE) {
+                indexColumns.add(new IndexColumn(ref, indexInputs));
+            }
+        }
+        return indexColumns;
     }
 
     /**
@@ -769,6 +777,20 @@ public class Indexer {
             indexer.indexValue(value, docBuilder);
         }
 
+        addIndexColumns(indexColumns, docBuilder);
+
+        for (var constraint : tableConstraints) {
+            constraint.verify(item.insertValues());
+        }
+
+        return docBuilder.build(item.id());
+    }
+
+    /**
+     * Doesn't add fields for NULL values.
+     */
+    public static void addIndexColumns(List<IndexColumn> indexColumns,
+                                       IndexDocumentBuilder docBuilder) {
         for (var indexColumn : indexColumns) {
             String fqn = indexColumn.reference.storageIdent();
             for (var input : indexColumn.inputs) {
@@ -790,12 +812,6 @@ public class Indexer {
                 }
             }
         }
-
-        for (var constraint : tableConstraints) {
-            constraint.verify(item.insertValues());
-        }
-
-        return docBuilder.build(item.id());
     }
 
     private static <T> T valueForInsert(DataType<T> valueType, Object value) {
