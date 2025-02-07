@@ -656,6 +656,28 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_can_add_dedicated_fulltext_to_sub_column() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    id int,
+                    author object as (
+                        name string
+                    ),
+                    index nested_ft using fulltext(author['name'])
+                )
+            """);
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        var ref = table.indexColumn(ColumnIdent.of("nested_ft"));
+
+        var indexer = getIndexer(e, "tbl", "id", "author");
+        ParsedDocument doc = indexer.index(item(1, Map.of("name", "sub_col_name")));
+        IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
+        assertThat(fields).hasSize(1);
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
     public void test_can_index_all_storable_types() throws Exception {
         StringBuilder stmtBuilder = new StringBuilder()
             .append("create table tbl (");
