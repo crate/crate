@@ -178,8 +178,8 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgConstraintTable() {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(response).hasRows(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| 0| NULL| " +
-            "NULL| 728874843| p| 0| true| -874078436");
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pkey| -2048275947| true| 0| NULL| " +
+            "NULL| 728874843| p| 0| true| -1310475467");
     }
 
     @Test
@@ -404,7 +404,7 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @Test
-    public void test_pg_constrains_conkey_array_populated() throws Exception {
+    public void test_pg_constraints_conkey_array_populated() throws Exception {
         execute("CREATE TABLE doc.tbl (" +
             "not_null int not null," +
             "int_col int," +
@@ -418,7 +418,7 @@ public class PgCatalogITest extends IntegTestCase {
         assertThat(response).hasRows(
             "[2, 1, 3]| many_cols_and_functions| c",
             "[4]| positive| c",
-            "[2, 3]| tbl_pk| p"
+            "[2, 3]| tbl_pkey| p"
         );
     }
 
