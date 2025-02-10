@@ -28,14 +28,12 @@ import java.util.BitSet;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.BitString;
 
 public class BitStringIndexer implements ValueIndexer<BitString> {
@@ -68,17 +66,12 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
             docBuilder.addField(new Field(name, binaryValue, FIELD_TYPE));
         }
 
-        if (ref.hasDocValues()) {
-            docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
-        } else {
-            if (docBuilder.maybeAddStoredField()) {
-                docBuilder.addField(new StoredField(name, binaryValue));
-            }
-            docBuilder.addField(new Field(
-                SysColumns.FieldNames.NAME,
-                name,
-                SysColumns.FieldNames.FIELD_TYPE));
-        }
+        var storageSupport = ref.valueType().storageSupport();
+        assert ref.hasDocValues() &&
+            storageSupport != null && storageSupport.supportsDocValuesOff() == false :
+            "Should only be used with enabled doc values";
+
+        docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
         docBuilder.translogWriter().writeValue(bytes);
     }
 

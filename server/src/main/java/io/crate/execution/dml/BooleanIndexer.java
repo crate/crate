@@ -26,13 +26,11 @@ import java.io.IOException;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.SysColumns;
 
 public class BooleanIndexer implements ValueIndexer<Boolean> {
 
@@ -58,17 +56,13 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new Field(name, value ? "T" : "F", FIELD_TYPE));
         }
-        if (ref.hasDocValues()) {
-            docBuilder.addField(new SortedNumericDocValuesField(name, value ? 1 : 0));
-        } else {
-            if (docBuilder.maybeAddStoredField()) {
-                docBuilder.addField(new StoredField(name, value ? 1 : 0));
-            }
-            docBuilder.addField(new Field(
-                SysColumns.FieldNames.NAME,
-                name,
-                SysColumns.FieldNames.FIELD_TYPE));
-        }
+
+        var storageSupport = ref.valueType().storageSupport();
+        assert ref.hasDocValues() &&
+            storageSupport != null && storageSupport.supportsDocValuesOff() == false :
+            "Should only be used with enabled doc values";
+
+        docBuilder.addField(new SortedNumericDocValuesField(name, value ? 1 : 0));
         docBuilder.translogWriter().writeValue(value);
     }
 
