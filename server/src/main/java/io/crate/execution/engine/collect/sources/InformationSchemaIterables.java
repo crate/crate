@@ -83,8 +83,6 @@ import io.crate.types.Regproc;
 
 public class InformationSchemaIterables {
 
-    public static final String PK_SUFFIX = "_pk";
-
     private static final Set<String> IGNORED_SCHEMAS = Set.of(
         InformationSchemaInfo.NAME,
         SysSchemaInfo.NAME,
@@ -139,7 +137,7 @@ public class InformationSchemaIterables {
         Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
             .map(t -> new ConstraintInfo(
                 t,
-                t.pkConstraintName() == null ? t.ident().name() + PK_SUFFIX : t.pkConstraintName(),
+                t.pkConstraintNameOrDefault(),
                 ConstraintInfo.Type.PRIMARY_KEY))
             .iterator();
 
@@ -223,9 +221,7 @@ public class InformationSchemaIterables {
             Regclass.primaryOid(info),
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
-            info.pkConstraintName() != null
-                ? info.pkConstraintName()
-                : info.ident().name() + "_pkey",
+            info.pkConstraintNameOrDefault(),
             PgClassTable.Entry.Type.INDEX,
             info.columns().size(),
             !info.primaryKey().isEmpty());
@@ -337,14 +333,11 @@ public class InformationSchemaIterables {
         return sequentialStream(primaryKeys)
             .filter(tableInfo -> !IGNORED_SCHEMAS.contains(tableInfo.ident().schema()))
             .flatMap(tableInfo -> {
-                String pkName = tableInfo.pkConstraintName() != null
-                    ? tableInfo.pkConstraintName()
-                    : tableInfo.ident().name() + PK_SUFFIX;
                 List<ColumnIdent> pks = tableInfo.primaryKey();
                 PrimitiveIterator.OfInt ids = IntStream.range(1, pks.size() + 1).iterator();
                 RelationName ident = tableInfo.ident();
                 return pks.stream().map(
-                    pk -> new KeyColumnUsage(ident, pkName, pk, ids.next()));
+                    pk -> new KeyColumnUsage(ident, tableInfo.pkConstraintNameOrDefault(), pk, ids.next()));
             })::iterator;
     }
 
