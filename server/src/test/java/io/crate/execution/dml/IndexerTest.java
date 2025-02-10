@@ -683,7 +683,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 )
             """);
         DocTableInfo table = e.resolveTableInfo("tbl");
-        var ref = table.getReference(ColumnIdent.of("author", "name"));
+        var ref = table.indexColumn(ColumnIdent.of("nested_ft"));
 
         var indexer = getIndexer(e, "tbl", "author");
         ParsedDocument doc = indexer.index(item(Map.of("name", "sub_col_name")));
