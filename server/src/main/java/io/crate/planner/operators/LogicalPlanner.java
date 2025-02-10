@@ -500,7 +500,7 @@ public class LogicalPlanner {
             // a) introduce a column pruning
             // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
-            SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getRelationNames(relation);
+            SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getShallow(relation);
             Predicate<Symbol> filter = node -> {
                 SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
                 for (RelationName relationName : relationNamesFromSymbol) {

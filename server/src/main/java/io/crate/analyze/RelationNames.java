@@ -72,9 +72,10 @@ public final class RelationNames {
     }
 
     /**
-     * Extracts all relation names from the AnalyzedRelation and the underlying nested AnalyzedRelations.
+     * Extracts relation names from the AnalyzedRelation including its descendants.
+     * Does not traverse into scalar subqueries.
      */
-    public static SequencedSet<RelationName> getRelationNames(AnalyzedRelation relation) {
+    public static SequencedSet<RelationName> getShallow(AnalyzedRelation relation) {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         relation.accept(RELATION_TABLE_IDENT_EXTRACTOR, relationNames);
         return relationNames;
