@@ -26,12 +26,9 @@ import java.util.function.Consumer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Symbol;
-import io.crate.fdw.ForeignTableRelation;
 
 public class Relations {
 
@@ -73,21 +70,14 @@ public class Relations {
         }
 
         @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, Consumer<? super Symbol> context) {
+            return null;
+        }
+
+        @Override
         public Void visitUnionSelect(UnionSelect unionSelect, Consumer<? super Symbol> consumer) {
             unionSelect.visitSymbols(consumer);
-            unionSelect.left().accept(this, consumer);
-            unionSelect.right().accept(this, consumer);
-            return null;
-        }
-
-        @Override
-        public Void visitTableRelation(TableRelation tableRelation, Consumer<? super Symbol> consumer) {
-            return null;
-        }
-
-        @Override
-        public Void visitDocTableRelation(DocTableRelation relation, Consumer<? super Symbol> consumer) {
-            return null;
+            return super.visitUnionSelect(unionSelect, consumer);
         }
 
         @Override
@@ -99,31 +89,21 @@ public class Relations {
         }
 
         @Override
-        public Void visitForeignTable(ForeignTableRelation foreignTableRelation,
-                                      Consumer<? super Symbol> context) {
-            return null;
-        }
-
-        @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Consumer<? super Symbol> consumer) {
             relation.visitSymbols(consumer);
-            for (AnalyzedRelation analyzedRelation : relation.from()) {
-                analyzedRelation.accept(this, consumer);
-            }
-            return null;
+            return super.visitQueriedSelectRelation(relation, consumer);
         }
 
         @Override
         public Void visitJoinRelation(JoinRelation joinRelation, Consumer<? super Symbol> consumer) {
             joinRelation.visitSymbols(consumer);
-            return null;
+            return super.visitJoinRelation(joinRelation, consumer);
         }
 
         @Override
         public Void visitView(AnalyzedView analyzedView, Consumer<? super Symbol> consumer) {
             analyzedView.visitSymbols(consumer);
-            analyzedView.relation().accept(this, consumer);
-            return null;
+            return super.visitView(analyzedView, consumer);
         }
     }
 }
