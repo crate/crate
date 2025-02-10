@@ -1,26 +1,25 @@
-.. _version_5.9.10:
+.. _version_5.10.1:
 
 ===========================
-Version 5.9.10 - Unreleased
+Version 5.10.1 - Unreleased
 ===========================
 
 .. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
 .. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
 .. comment    (without a NOTE entry, simply starting from col 1 of the line)
 .. NOTE::
-
-    In development. 5.9.9 isn't released yet. These are the release notes for
+    In development. 5.10.1 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
+
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.9.10.
+    before you upgrade to 5.10.1.
 
-    We recommend that you upgrade to the latest 5.8 release before moving to
-    5.9.10.
+    We recommend that you upgrade to the latest 5.9 release before moving to
+    5.10.1.
 
-    A rolling upgrade from 5.8.x to 5.9.10 is supported.
-
+    A rolling upgrade from 5.9.x to 5.10.1 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -32,7 +31,6 @@ Version 5.9.10 - Unreleased
     `inserting the data into a new table`_.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
@@ -40,8 +38,8 @@ Version 5.9.10 - Unreleased
 .. contents::
    :local:
 
-See the :ref:`version_5.9.0` release notes for a full list of changes in the
-5.9 series.
+See the :ref:`version_5.10.0` release notes for a full list of changes in the
+5.10 series.
 
 Fixes
 =====
@@ -54,16 +52,36 @@ Fixes
     INNER JOIN tbl2 on vw1.col1 = tbl2.col1
     LIMIT 10;
 
-- Fixed an issue that caused a planner exception when using a query containing
-  an ``ORDER BY`` clause on top of a ``UNION`` clause, while the ordering column
-  is not part of the most-top select items. Example::
+- Fixed a regression from ``5.10.0`` that could get ``COPY FROM`` statements to
+  get stuck if used with ``RETURN SUMMARY``
 
-    SELECT id FROM (
-        SELECT id, other_id, name FROM users
-        UNION ALL
-        SELECT id, other_id, name FROM users
-        ) u
-    ORDER BY name
+- Fixed a regression from ``5.10.0`` that caused a ``ColumnUnknownException``
+  when accessing a child of an object literal from an aliased table.
+
+- Fixed an issue that could lead to a ``Scale of numeric must be less than the
+  precision`` error when using the ``AVG`` aggregation in a way that involved
+  values of type ``NUMERIC``.
+
+- Fixed an issue that could cause data loss if increasing the number of shards
+  using ``ALTER TABLE ... SET (number_of_shards = ?)`` while having other
+  allocation settings in place that prevent the shard allocation.
+
+- Fixed an issue that could cause duplicate records to be returned when
+  filtering on a table by PRIMARY KEY, using query parameters, and binding the
+  same value to them, e.g.::
+
+    SELECT * FROM tbl WHERE pk_col = ? OR pk_col = ?
+    -- Bind the same value to both query parameters
+
+- Fixed a handshake version compatibility issue that causes a node with a
+  higher major version (e.g. ``6.x``) to fail to join a cluster of version
+  < :ref:`version_5.10.1` (rolling upgrade scenario).
+
+- Fixed an issue that caused an error when using a PreparedStatement and
+  selecting an expression, involving a parameter and a column used in
+  ``ORDER BY`` and query had a ``LIMIT`` clause. Example.::
+
+    SELECT a, b + ? as sum FROM tbl ORDER BY sum LIMIT 10
 
 - Fixed an issue that caused an error when using a correlated sub-query and
   a normal subquery on the same level together with an additional sub-query on
@@ -77,6 +95,17 @@ Fixes
     ),
     (SELECT y FROM unnest([2]) as t2(y))
     FROM tbl t
+
+- Fixed an issue that caused a planner exception when using a query containing
+  an ``ORDER BY`` clause on top of a ``UNION`` clause, while the ordering column
+  is not part of the most-top select items. Example::
+
+    SELECT id FROM (
+        SELECT id, other_id, name FROM users
+        UNION ALL
+        SELECT id, other_id, name FROM users
+        ) u
+    ORDER BY name
 
 - Fixed an issue that would lead to wrong results when using
   :ref:`MIN <aggregation-min>` or :ref:`MAX <aggregation-max>` aggregations on
