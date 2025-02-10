@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin.extractCorrelatedSubQueries;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -86,6 +84,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.CorrelatedSubQueries;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -384,8 +383,7 @@ public class LogicalPlanner {
             List<Symbol> lhsOutputs = getOutputsForRelation(joinRelation.left(), allOutputs);
             List<Symbol> rhsOutputs = getOutputsForRelation(joinRelation.right(), allOutputs);
 
-            var correlatedSubQueries = extractCorrelatedSubQueries(joinCondition);
-
+            var correlatedSubQueries = CorrelatedSubQueries.of(joinCondition);
             if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
                 return new JoinPlan(
                     joinRelation.left().accept(this, lhsOutputs),
