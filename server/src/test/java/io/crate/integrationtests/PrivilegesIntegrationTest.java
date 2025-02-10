@@ -300,7 +300,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                 testUserSession);
             assertThat(response).hasRows(
                 "t2| my_schema_t2_x_not_null",
-                "t2| t2_pk");
+                "t2| t2_pkey");
             execute("select routine_schema from information_schema.routines order by routine_schema",
                     null,
                     testUserSession);
@@ -689,15 +689,15 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         try (Session testUserSession = testUserSession()) {
             execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession);
             assertThat(response).hasRows(
-                    "columns_pk",
-                    "key_column_usage_pk",
-                    "referential_constraints_pk",
-                    "schemata_pk",
-                    "sql_features_pk",
-                    "table_constraints_pk",
-                    "table_partitions_pk",
-                    "tables_pk",
-                    "views_pk");
+                    "columns_pkey",
+                    "key_column_usage_pkey",
+                    "referential_constraints_pkey",
+                    "schemata_pkey",
+                    "sql_features_pkey",
+                    "table_constraints_pkey",
+                    "table_partitions_pkey",
+                    "tables_pkey",
+                    "views_pkey");
 
             //create a table with constraints that a new user is not privileged to access
             executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
@@ -705,14 +705,14 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
             //make sure a new user cannot access constraints without privilege
             execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
+                    " where conname = 'my_table_pkey' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
                     null, testUserSession);
             assertThat(response).hasRowCount(0L);
 
             //if privilege is granted, the new user can access
             executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
             execute("select * from pg_catalog.pg_constraint" +
-                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
+                    " where conname = 'my_table_pkey' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
                     null, testUserSession);
             assertThat(response).hasRowCount(2L);
         }
@@ -720,7 +720,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
         executeAsSuperuser("select * from pg_catalog.pg_constraint" +
-                           " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
+                           " where conname = 'my_table_pkey' or conname like 'test_schema_my_table_my_col_check_%' order by conname");
         String superUserResult = printedTable(response.rows());
         assertThat(newUserWithPrivilegesResult).isEqualTo(superUserResult);
     }

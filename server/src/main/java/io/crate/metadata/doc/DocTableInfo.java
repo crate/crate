@@ -437,11 +437,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    @Nullable
     public String pkConstraintName() {
         return pkConstraintName;
     }
 
+    @Override
     public List<ColumnIdent> primaryKey() {
         return primaryKeys;
     }

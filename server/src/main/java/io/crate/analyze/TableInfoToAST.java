@@ -246,7 +246,9 @@ public class TableInfoToAST {
             if (tableInfo.primaryKey().size() == 1 && tableInfo.primaryKey().get(0).isSystemColumn()) {
                 return null;
             }
-            return new PrimaryKeyConstraint<>(tableInfo.pkConstraintName(), expressionsFromColumns(tableInfo.primaryKey()));
+            return new PrimaryKeyConstraint<>(
+                tableInfo.pkConstraintName(),
+                expressionsFromColumns(tableInfo.primaryKey()));
         }
         return null;
     }
