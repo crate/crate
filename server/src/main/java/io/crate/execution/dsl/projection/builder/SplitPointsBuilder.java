@@ -31,10 +31,8 @@ import java.util.List;
 import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
@@ -279,36 +277,12 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         }
 
         @Override
-        public Void visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, LinkedHashSet<Symbol> context) {
-            relation.relation().accept(this, context);
-            return null;
-        }
-
-        @Override
-        public Void visitUnionSelect(UnionSelect unionSelect, LinkedHashSet<Symbol> context) {
-            unionSelect.left().accept(this,context);
-            unionSelect.right().accept(this,context);
-            return null;
-        }
-
-        @Override
         public Void visitJoinRelation(JoinRelation joinRelation, LinkedHashSet<Symbol> context) {
             Symbol joinCondition = joinRelation.joinCondition();
             if (joinCondition != null) {
                 context.add(joinCondition);
             }
-            joinRelation.left().accept(this, context);
-            joinRelation.right().accept(this, context);
-            return null;
-
-        }
-
-        @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, LinkedHashSet<Symbol> context) {
-            for (AnalyzedRelation analyzedRelation : relation.from()) {
-                analyzedRelation.accept(this, context);
-            }
-            return null;
+            return super.visitJoinRelation(joinRelation, context);
         }
     }
 }

@@ -32,7 +32,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -104,13 +103,6 @@ public final class RelationNames {
     private static class TableIdentRelationVisitor extends AnalyzedRelationVisitor<Collection<RelationName>, Void> {
 
         @Override
-        public Void visitUnionSelect(UnionSelect unionSelect, Collection<RelationName> context) {
-            unionSelect.left().accept(this, context);
-            unionSelect.right().accept(this, context);
-            return null;
-        }
-
-        @Override
         public Void visitForeignTable(ForeignTableRelation foreignTableRelation, Collection<RelationName> context) {
             context.add(foreignTableRelation.relationName());
             return null;
@@ -149,21 +141,6 @@ public final class RelationNames {
         @Override
         public Void visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, Collection<RelationName> context) {
             context.add(explainAnalyzedStatement.relationName());
-            return null;
-        }
-
-        @Override
-        public Void visitJoinRelation(JoinRelation joinRelation, Collection<RelationName> context) {
-            joinRelation.left().accept(this, context);
-            joinRelation.right().accept(this, context);
-            return null;
-        }
-
-        @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Collection<RelationName> context) {
-            for (AnalyzedRelation analyzedRelation : relation.from()) {
-                analyzedRelation.accept(this, context);
-            }
             return null;
         }
     }

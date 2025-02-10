@@ -32,11 +32,13 @@ import io.crate.fdw.ForeignTableRelation;
 public abstract class AnalyzedRelationVisitor<C, R> {
 
     protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
-        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported", relation));
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported by %s", relation, this.getClass().getSimpleName()));
     }
 
     public R visitUnionSelect(UnionSelect unionSelect, C context) {
-        return visitAnalyzedRelation(unionSelect, context);
+        unionSelect.left().accept(this, context);
+        unionSelect.right().accept(this, context);
+        return null;
     }
 
     public R visitTableRelation(TableRelation tableRelation, C context) {
@@ -60,7 +62,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitQueriedSelectRelation(QueriedSelectRelation relation, C context) {
-        return visitAnalyzedRelation(relation, context);
+        for (AnalyzedRelation from : relation.from()) {
+            from.accept(this, context);
+        }
+        return null;
     }
 
     public R visitView(AnalyzedView analyzedView, C context) {
@@ -80,7 +85,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitJoinRelation(JoinRelation joinRelation, C context) {
-        return visitAnalyzedRelation(joinRelation, context);
+        joinRelation.left().accept(this, context);
+        joinRelation.right().accept(this, context);
+        return null;
     }
-
 }
