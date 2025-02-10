@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -179,26 +178,6 @@ public class TranslogIndexer {
         // Mapping could have changed since the translog entry was written, so we need to sanitize any column
         // leniently (use NULL on sanitization errors) to avoid failing the index operation.
         return valueType.valueForInsert(valueType.sanitizeValueLenient(value));
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, List<String> targetFields, Object value) {
-        if (value == null) {
-            return;
-        }
-        if (value instanceof Iterable<?> it) {
-            for (Object val : it) {
-                if (val == null) {
-                    continue;
-                }
-                targetFields.forEach(field -> addIndexField(docBuilder, field, val));
-            }
-        } else {
-            targetFields.forEach(field -> addIndexField(docBuilder, field, value));
-        }
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, String field, Object value) {
-        docBuilder.addField(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
     }
 
 }
