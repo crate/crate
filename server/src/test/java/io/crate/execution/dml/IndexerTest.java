@@ -688,7 +688,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var indexer = getIndexer(e, "tbl", "author");
         ParsedDocument doc = indexer.index(item(Map.of("name", "sub_col_name")));
         IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
-        assertThat(fields).hasSize(2);
+        assertThat(fields).hasSize(1);
         assertTranslogParses(doc, table);
     }
 
