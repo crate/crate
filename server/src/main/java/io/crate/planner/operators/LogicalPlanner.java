@@ -378,24 +378,20 @@ public class LogicalPlanner {
         }
 
         @Override
-        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> context) {
-            List<Symbol> outputs;
-            if (joinRelation.joinCondition() != null) {
-                outputs = Lists.concat(context, joinRelation.joinCondition());
-            } else {
-                outputs = context;
-            }
-            List<Symbol> lhsOutputs = mergeOutputs(joinRelation.left(), outputs);
-            List<Symbol> rhsOutputs = mergeOutputs(joinRelation.right(), outputs);
+        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> outputs) {
+            Symbol joinCondition = joinRelation.joinCondition();
+            List<Symbol> allOutputs = joinCondition == null ? outputs : Lists.concat(outputs, joinCondition);
+            List<Symbol> lhsOutputs = getOutputsForRelation(joinRelation.left(), allOutputs);
+            List<Symbol> rhsOutputs = getOutputsForRelation(joinRelation.right(), allOutputs);
 
-            var correlatedSubQueries = extractCorrelatedSubQueries(joinRelation.joinCondition());
+            var correlatedSubQueries = extractCorrelatedSubQueries(joinCondition);
 
             if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
                 return new JoinPlan(
                     joinRelation.left().accept(this, lhsOutputs),
                     joinRelation.right().accept(this, rhsOutputs),
                     joinRelation.joinType(),
-                    joinRelation.joinCondition()
+                    joinCondition
                 );
             } else {
                 LogicalPlan source = new JoinPlan(
@@ -494,15 +490,11 @@ public class LogicalPlanner {
             );
         }
 
-        private static List<Symbol> mergeOutputs(AnalyzedRelation relation, List<Symbol> outputs) {
-            // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
-            // We could get rid of `SplitPoints` and the logic here if we
-            // a) introduce a column pruning
-            // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
+        private static List<Symbol> getOutputsForRelation(AnalyzedRelation relation, List<Symbol> outputs) {
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getShallow(relation);
-            Predicate<Symbol> filter = node -> {
-                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getDeep(node);
+            Predicate<Symbol> collectFiltered = node -> {
+                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
                 for (RelationName relationName : relationNamesFromSymbol) {
                     if (relationNamesFromRelation.contains(relationName)) {
                         if (node instanceof ScopedSymbol || node instanceof Reference) {
@@ -513,11 +505,9 @@ public class LogicalPlanner {
                 }
                 return false;
             };
-
             for (Symbol output : outputs) {
-                output.any(filter);
+                output.any(collectFiltered);
             }
-
             return List.copyOf(result);
         }
 
@@ -532,12 +522,15 @@ public class LogicalPlanner {
                 relation.where(),
                 subQueries,
                 rel -> {
+                    // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
+                    // We could get rid of `SplitPoints` and the logic here if we
+                    // a) introduce a column pruning
+                    // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
                     List<Symbol> toCollect = splitPoints.toCollect();
                     if (relation.from().size() == 1) {
                         return rel.accept(this, toCollect);
                     } else {
-                        List<Symbol> mergedOutputs = mergeOutputs(rel, toCollect);
-                        return rel.accept(this, mergedOutputs);
+                        return rel.accept(this, getOutputsForRelation(rel, toCollect));
                     }
                 }
             );
