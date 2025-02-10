@@ -786,6 +786,10 @@ public class Indexer {
         return docBuilder.build(item.id());
     }
 
+    /**
+     * Uses sanitized values from the translog.
+     * Doesn't add fields for NULL values.
+     */
     public static void addIndexColumns(List<IndexColumn> indexColumns,
                                        IndexDocumentBuilder docBuilder) {
         for (var indexColumn : indexColumns) {

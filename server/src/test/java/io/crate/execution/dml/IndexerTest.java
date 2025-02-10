@@ -676,6 +676,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
+                    id int,
                     author object as (
                         name string
                     ),
@@ -685,8 +686,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         var ref = table.indexColumn(ColumnIdent.of("nested_ft"));
 
-        var indexer = getIndexer(e, "tbl", "author");
-        ParsedDocument doc = indexer.index(item(Map.of("name", "sub_col_name")));
+        var indexer = getIndexer(e, "tbl", "id", "author");
+        ParsedDocument doc = indexer.index(item(1, Map.of("name", "sub_col_name")));
         IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
         assertThat(fields).hasSize(1);
         assertTranslogParses(doc, table);

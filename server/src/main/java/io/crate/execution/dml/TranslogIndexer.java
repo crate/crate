@@ -26,6 +26,7 @@ import static io.crate.execution.dml.Indexer.buildIndexColumns;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +39,11 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
 
 /**
  * Parses transaction log entries based on column information from a {@link DocTableInfo}
@@ -80,7 +79,16 @@ public class TranslogIndexer {
             }
         }
 
-        this.indexColumns = buildIndexColumns(table.indexColumns(), table::getReference, reference -> new TranslogInput(reference.column()));
+        this.indexColumns = buildIndexColumns(
+            table.indexColumns(),
+            table::getReference,
+            reference -> {
+                List<String> fullPath = new ArrayList<>(reference.column().path().size() + 1);
+                fullPath.add(reference.column().name());
+                fullPath.addAll(reference.column().path());
+                return new TranslogInput(fullPath);
+            }
+        );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.shardCreatedVersion = shardCreatedVersion;
     }
@@ -88,22 +96,21 @@ public class TranslogIndexer {
 
     private static class TranslogInput implements Input<Object> {
 
-        private final ColumnIdent ident;
-        private Object value;
+        private final List<String> fullPath;
+        private Map<String, Object> docMap;
 
-        TranslogInput(ColumnIdent ident) {
-            this.ident = ident;
+        TranslogInput(List<String> fullPath) {
+            this.fullPath = fullPath;
         }
 
         @SuppressWarnings("unchecked")
-        public void prepareValue(Object value, DataType<?> dataType) {
-            this.value = dataType.id() != ObjectType.ID ? value
-                : Maps.getByPath((Map<String, Object>) value, ident.path());
+        public void setTranslogEntry(Map<String, Object> docMap) {
+            this.docMap = docMap;
         }
 
         @Override
         public Object value() {
-            return value;
+            return Maps.getByPath(docMap, fullPath);
         }
     }
 
@@ -138,15 +145,21 @@ public class TranslogIndexer {
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
                 indexer.valueIndexer.indexValue(castValue, docBuilder);
-                for (Indexer.IndexColumn indexColumn: indexColumns) {
-                    for (Input<?> input: indexColumn.inputs()) {
-                        TranslogInput translogInput = (TranslogInput) input;
-                        translogInput.prepareValue(castValue, indexer.dataType);
-                    }
-                }
-                addIndexColumns(indexColumns, docBuilder);
+            }
+            // Make sanitized value visible for the TranslogInputs.
+            // Fulltext fields must use sanitized values.
+            // NULL values are skipped in the addIndexColumns.
+            entry.setValue(castValue);
+        }
+
+        for (Indexer.IndexColumn indexColumn: indexColumns) {
+            for (Input<?> input: indexColumn.inputs()) {
+                TranslogInput translogInput = (TranslogInput) input;
+                translogInput.setTranslogEntry(docMap);
             }
         }
+        addIndexColumns(indexColumns, docBuilder);
+
         return docBuilder;
     }
 
