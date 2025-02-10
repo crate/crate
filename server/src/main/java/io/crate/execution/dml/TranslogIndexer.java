@@ -21,6 +21,9 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.dml.Indexer.addIndexColumns;
+import static io.crate.execution.dml.Indexer.buildIndexColumns;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -28,12 +31,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 
+import io.crate.common.collections.Maps;
+import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.RowGranularity;
@@ -50,10 +54,11 @@ public class TranslogIndexer {
     }
 
     private final Map<String, ColumnIndexer<?>> indexers = new HashMap<>();
-    private final Map<String, List<String>> tableIndexSources = new HashMap<>();
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version shardCreatedVersion;
+
+    private final List<Indexer.IndexColumn> indexColumns;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
@@ -73,13 +78,39 @@ public class TranslogIndexer {
                 sourceParser.register(DocReferences.toDocLookup(ref).column(), ref.valueType());
             }
         }
-        for (var ref : table.indexColumns()) {
-            for (var source : ref.columns()) {
-                tableIndexSources.computeIfAbsent(source.column().fqn(), _ -> new ArrayList<>()).add(ref.storageIdent());
+
+        this.indexColumns = buildIndexColumns(
+            table.indexColumns(),
+            table::getReference,
+            reference -> {
+                List<String> fullPath = new ArrayList<>(reference.column().path().size() + 1);
+                fullPath.add(reference.column().name());
+                fullPath.addAll(reference.column().path());
+                return new TranslogInput(fullPath);
             }
-        }
+        );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.shardCreatedVersion = shardCreatedVersion;
+    }
+
+
+    private static class TranslogInput implements Input<Object> {
+
+        private final List<String> fullPath;
+        private Map<String, Object> docMap;
+
+        TranslogInput(List<String> fullPath) {
+            this.fullPath = fullPath;
+        }
+
+        public void setTranslogEntry(Map<String, Object> docMap) {
+            this.docMap = docMap;
+        }
+
+        @Override
+        public Object value() {
+            return Maps.getByPath(docMap, fullPath);
+        }
     }
 
     /**
@@ -113,11 +144,21 @@ public class TranslogIndexer {
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
                 indexer.valueIndexer.indexValue(castValue, docBuilder);
-                if (tableIndexSources.containsKey(column)) {
-                    addIndexField(docBuilder, tableIndexSources.get(column), castValue);
-                }
+            }
+            // Make sanitized value visible for the TranslogInputs.
+            // Fulltext fields must use sanitized values.
+            // NULL values are skipped in the addIndexColumns.
+            entry.setValue(castValue);
+        }
+
+        for (Indexer.IndexColumn indexColumn: indexColumns) {
+            for (Input<?> input: indexColumn.inputs()) {
+                TranslogInput translogInput = (TranslogInput) input;
+                translogInput.setTranslogEntry(docMap);
             }
         }
+        addIndexColumns(indexColumns, docBuilder);
+
         return docBuilder;
     }
 
@@ -149,26 +190,6 @@ public class TranslogIndexer {
         // Mapping could have changed since the translog entry was written, so we need to sanitize any column
         // leniently (use NULL on sanitization errors) to avoid failing the index operation.
         return valueType.valueForInsert(valueType.sanitizeValueLenient(value));
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, List<String> targetFields, Object value) {
-        if (value == null) {
-            return;
-        }
-        if (value instanceof Iterable<?> it) {
-            for (Object val : it) {
-                if (val == null) {
-                    continue;
-                }
-                targetFields.forEach(field -> addIndexField(docBuilder, field, val));
-            }
-        } else {
-            targetFields.forEach(field -> addIndexField(docBuilder, field, value));
-        }
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, String field, Object value) {
-        docBuilder.addField(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
     }
 
 }
