@@ -30,8 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.InvalidArgumentException;
@@ -51,8 +49,8 @@ import io.crate.sql.tree.JoinType;
 
 public class EliminateCrossJoin implements Rule<JoinPlan> {
 
-    private static final Logger LOGGER = LogManager.getLogger(EliminateCrossJoin.class);
-    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class);
+    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class)
+        .with(j -> j.eliminateCrossJoinRuleIsApplied() == false);
 
     @Override
     public Pattern<JoinPlan> pattern() {
@@ -157,25 +155,27 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 }
             }
 
+            final JoinType joinType;
+            final Symbol joinCondition;
+
             if (criteria.isEmpty()) {
-                var errorMessage = new ArrayList<String>();
-                for (var plan : order) {
-                    for (var relationName : plan.relationNames()) {
-                        errorMessage.add(relationName.fqn());
-                    }
-                }
-                LOGGER.trace("JoinPlan cannot be built with the provided order {}", errorMessage);
-                return null;
+                joinType = JoinType.CROSS;
+                joinCondition = null;
+            } else {
+                joinType = JoinType.INNER;
+                joinCondition = AndOperator.join(criteria, null);
             }
 
             result = new JoinPlan(
                 result,
                 rightNode,
-                JoinType.INNER,
-                AndOperator.join(criteria, null),
+                joinType,
+                joinCondition,
                 false,
                 false,
                 false,
+                false,
+                true,
                 AbstractJoinPlan.LookUpJoin.NONE
             );
         }

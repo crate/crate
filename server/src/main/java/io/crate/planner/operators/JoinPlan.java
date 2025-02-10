@@ -46,6 +46,7 @@ public class JoinPlan extends AbstractJoinPlan {
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
     private final boolean lookUpJoinRuleApplied;
     private final boolean moveConstantJoinConditionRuleApplied;
+    private final boolean eliminateCrossJoinRuleIsApplied;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
@@ -55,7 +56,7 @@ public class JoinPlan extends AbstractJoinPlan {
                     boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                     boolean lookUpJoinRuleApplied,
                     LookUpJoin lookUpJoin) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, rewriteFilterOnOuterJoinToInnerJoinDone, lookUpJoinRuleApplied, false, lookUpJoin);
+        this(lhs, rhs, joinType, joinCondition, isFiltered, rewriteFilterOnOuterJoinToInnerJoinDone, lookUpJoinRuleApplied, false, false, lookUpJoin);
     }
 
     @VisibleForTesting
@@ -63,7 +64,7 @@ public class JoinPlan extends AbstractJoinPlan {
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false, false, false, LookUpJoin.NONE);
+        this(lhs, rhs, joinType, joinCondition, false, false, false, false, false, LookUpJoin.NONE);
     }
 
     public JoinPlan(LogicalPlan lhs,
@@ -74,12 +75,14 @@ public class JoinPlan extends AbstractJoinPlan {
                      boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                      boolean lookUpJoinRuleApplied,
                      boolean moveConstantJoinConditionRuleApplied,
+                     boolean eliminateCrossJoinRuleIsApplied,
                      LookUpJoin lookUpJoin) {
         super(lhs, rhs, joinCondition, joinType, lookUpJoin);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
         this.lookUpJoinRuleApplied = lookUpJoinRuleApplied;
         this.moveConstantJoinConditionRuleApplied = moveConstantJoinConditionRuleApplied;
+        this.eliminateCrossJoinRuleIsApplied = eliminateCrossJoinRuleIsApplied;
     }
 
     public boolean isLookUpJoinRuleApplied() {
@@ -98,6 +101,10 @@ public class JoinPlan extends AbstractJoinPlan {
         return moveConstantJoinConditionRuleApplied;
     }
 
+    public boolean eliminateCrossJoinRuleIsApplied() {
+        return eliminateCrossJoinRuleIsApplied;
+    }
+
     public JoinPlan withMoveConstantJoinConditionRuleApplied(boolean moveConstantJoinConditionRuleApplied) {
         return new JoinPlan(
             lhs,
@@ -108,6 +115,7 @@ public class JoinPlan extends AbstractJoinPlan {
             rewriteFilterOnOuterJoinToInnerJoinDone,
             lookUpJoinRuleApplied,
             moveConstantJoinConditionRuleApplied,
+            eliminateCrossJoinRuleIsApplied,
             lookupJoin
         );
     }
@@ -158,6 +166,7 @@ public class JoinPlan extends AbstractJoinPlan {
             rewriteFilterOnOuterJoinToInnerJoinDone,
             lookUpJoinRuleApplied,
             moveConstantJoinConditionRuleApplied,
+            eliminateCrossJoinRuleIsApplied,
             lookupJoin
         );
     }
@@ -188,6 +197,7 @@ public class JoinPlan extends AbstractJoinPlan {
             rewriteFilterOnOuterJoinToInnerJoinDone,
             lookUpJoinRuleApplied,
             moveConstantJoinConditionRuleApplied,
+            eliminateCrossJoinRuleIsApplied,
             lookupJoin
         );
     }
