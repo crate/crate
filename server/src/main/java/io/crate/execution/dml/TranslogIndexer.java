@@ -103,7 +103,6 @@ public class TranslogIndexer {
             this.fullPath = fullPath;
         }
 
-        @SuppressWarnings("unchecked")
         public void setTranslogEntry(Map<String, Object> docMap) {
             this.docMap = docMap;
         }
