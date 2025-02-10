@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.StoredField;
@@ -33,7 +32,6 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.SysColumns;
 
 public class GeoPointIndexer implements ValueIndexer<Point> {
 
@@ -51,14 +49,14 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new LatLonPoint(name, point.getLat(), point.getLon()));
         }
-        if (ref.hasDocValues()) {
-            docBuilder.addField(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
-        } else {
-            docBuilder.addField(new Field(
-                SysColumns.FieldNames.NAME,
-                name,
-                SysColumns.FieldNames.FIELD_TYPE));
-        }
+
+        var storageSupport = ref.valueType().storageSupport();
+        assert ref.hasDocValues() &&
+            storageSupport != null && storageSupport.supportsDocValuesOff() == false :
+            "Should only be used with enabled doc values";
+
+        docBuilder.addField(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
+
         if (docBuilder.maybeAddStoredField()) {
             docBuilder.addField(new StoredField(name, toByteArray(point)));
         }

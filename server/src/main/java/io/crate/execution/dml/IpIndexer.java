@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.net.InetAddress;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.util.BytesRef;
@@ -33,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.SysColumns;
 
 public class IpIndexer implements ValueIndexer<String> {
 
@@ -51,14 +49,12 @@ public class IpIndexer implements ValueIndexer<String> {
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new InetAddressPoint(name, address));
         }
-        if (ref.hasDocValues()) {
-            docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
-        } else {
-            docBuilder.addField(new Field(
-                SysColumns.FieldNames.NAME,
-                name,
-                SysColumns.FieldNames.FIELD_TYPE));
-        }
+        var storageSupport = ref.valueType().storageSupport();
+        assert ref.hasDocValues() &&
+            storageSupport != null && storageSupport.supportsDocValuesOff() == false :
+            "Should only be used with enabled doc values";
+
+        docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
         docBuilder.translogWriter().writeValue(value);
     }
 

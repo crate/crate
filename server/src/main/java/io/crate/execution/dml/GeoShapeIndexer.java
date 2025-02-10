@@ -90,6 +90,12 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     @Override
     public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
         indexableFieldsFactory.create(value, docBuilder::addField);
+
+        var storageSupport = ref.valueType().storageSupport();
+        assert ref.hasDocValues() == false &&
+            storageSupport != null && storageSupport.supportsDocValuesOff() == false :
+            "Should only be used with disabled doc values";
+
         docBuilder.addField(new Field(
             SysColumns.FieldNames.NAME,
             name,
