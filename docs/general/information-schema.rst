@@ -533,6 +533,7 @@ type, name and which table they are defined in.
     +--------------------+------------+------------------------+-------------+
     SELECT 4 rows in set (... sec)
 
+.. _information_schema_key_column_usage:
 
 ``key_column_usage``
 --------------------

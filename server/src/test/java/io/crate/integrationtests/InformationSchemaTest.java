@@ -1312,7 +1312,8 @@ public class InformationSchemaTest extends IntegTestCase {
     public void testSelectFromKeyColumnUsage() {
         execute("create table table1 (id1 integer)");
         execute("create table table2 (id2 integer primary key)");
-        execute("create table table3 (id3 integer, name string, other double, primary key (id3, name))");
+        execute("create table table3 (id3 integer, name string, other double, " +
+                "constraint pk_of_table3 primary key (id3, name))");
         ensureYellow();
 
         execute("select * from information_schema.key_column_usage order by table_name, ordinal_position asc");
@@ -1331,8 +1332,8 @@ public class InformationSchemaTest extends IntegTestCase {
         final String defaultSchema = sqlExecutor.getCurrentSchema();
         Object[][] expectedRows = new Object[][] {
             new Object[]{"id2", "crate", "table2_pk", defaultSchema, 1, "crate", "table2", defaultSchema},
-            new Object[]{"id3", "crate", "table3_pk", defaultSchema, 1, "crate", "table3", defaultSchema},
-            new Object[]{"name", "crate", "table3_pk", defaultSchema, 2, "crate", "table3", defaultSchema}
+            new Object[]{"id3", "crate", "pk_of_table3", defaultSchema, 1, "crate", "table3", defaultSchema},
+            new Object[]{"name", "crate", "pk_of_table3", defaultSchema, 2, "crate", "table3", defaultSchema}
         };
         assertThat(response.rows()).isEqualTo(expectedRows);
 

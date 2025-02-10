@@ -21,7 +21,6 @@
 
 package io.crate.metadata.information;
 
-import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 
@@ -42,12 +41,12 @@ public class InformationKeyColumnUsageTableInfo {
     public static SystemTable<InformationSchemaIterables.KeyColumnUsage> INSTANCE = SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder(IDENT)
         .add("constraint_catalog", STRING, k -> Constants.DB_NAME)
         .add("constraint_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
-        .add("constraint_name", STRING, k -> k.getTableName() + PK_SUFFIX)
+        .add("constraint_name", STRING, InformationSchemaIterables.KeyColumnUsage::pkName)
         .add("table_catalog", STRING, k -> Constants.DB_NAME)
         .add("table_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
         .add("table_name", STRING, InformationSchemaIterables.KeyColumnUsage::getTableName)
-        .add("column_name", STRING, InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent)
-        .add("ordinal_position", INTEGER, InformationSchemaIterables.KeyColumnUsage::getOrdinal)
+        .add("column_name", STRING, k -> k.pkColumnIdent().name())
+        .add("ordinal_position", INTEGER, InformationSchemaIterables.KeyColumnUsage::ordinal)
         .setPrimaryKeys(
             ColumnIdent.of("constraint_catalog"),
             ColumnIdent.of("constraint_schema"),
