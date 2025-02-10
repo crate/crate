@@ -83,3 +83,7 @@ Fixes
   :ref:`numeric <type-numeric>` values. Previously, the values where implicitly
   casted to ``STRING`` and the aggregations where using alphanumeric ordering,
   instead of numeric ordering.
+
+- Fixed an issue that led to ``ArithmeticException`` when using
+  :ref:`AVG <aggregation-avg>` with ``NUMERIC`` type and result was an infinite
+  fraction, like 1/3.
