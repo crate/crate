@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.assertj.core.api.Assertions;
@@ -90,6 +92,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 )
             ),
             Map.of(),
+            Set.of(),
             null,
             List.of(),
             List.of(),
@@ -154,6 +157,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             dummy,
             references,
             Map.of(),
+            Set.of(),
             null,
             List.of(),
             List.of(),
@@ -252,37 +256,35 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         ColumnIdent a = ColumnIdent.of("a", List.of());
         ColumnIdent b = ColumnIdent.of("b", List.of());
+        SimpleReference refa = new SimpleReference(
+            new ReferenceIdent(relationName, a),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            1,
+            false,
+            null
+        );
+        SimpleReference refb = new SimpleReference(
+            new ReferenceIdent(relationName, b),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            2,
+            2,
+            true,
+            null
+        );
         DocTableInfo info = new DocTableInfo(
                 relationName,
-                Map.of(
-                    a,
-                    new SimpleReference(
-                            new ReferenceIdent(relationName, a),
-                            RowGranularity.DOC,
-                            DataTypes.INTEGER,
-                            IndexType.PLAIN,
-                            true,
-                            false,
-                            1,
-                            1,
-                            false,
-                            null
-                    ),
-                    b,
-                    new SimpleReference(
-                            new ReferenceIdent(relationName, b),
-                            RowGranularity.DOC,
-                            DataTypes.INTEGER,
-                            IndexType.PLAIN,
-                            true,
-                            false,
-                            2,
-                            2,
-                            true,
-                            null
-                    )
-                ),
                 Map.of(),
+                Map.of(),
+                Set.of(refa, refb),
                 null,
                 List.of(),
                 List.of(),
