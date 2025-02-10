@@ -57,8 +57,6 @@ public final class GeneratedReference implements Reference {
                                String formattedGeneratedExpression,
                                Symbol generatedExpression) {
         assert generatedExpression != null : "GeneratedExpression is required";
-        assert generatedExpression.valueType().equals(ref.valueType())
-            : "The type of the generated expression must match the valueType of the `GeneratedReference`";
         this.ref = ref;
         this.generatedExpression = generatedExpression;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
