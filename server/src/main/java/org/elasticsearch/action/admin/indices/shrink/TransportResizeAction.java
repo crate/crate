@@ -27,12 +27,16 @@ import org.apache.lucene.index.IndexWriter;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -47,6 +51,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.action.FutureActionListener;
+import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
+import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.metadata.PartitionName;
 
@@ -54,17 +61,24 @@ import io.crate.metadata.PartitionName;
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
 public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
+
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
+    private final TransportSwapAndDropIndexNameAction swapAndDropIndexAction;
+    private final TransportDeleteIndexAction deleteIndexAction;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
                                  ClusterService clusterService,
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
+                                 TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
+                                 TransportDeleteIndexAction deleteIndexAction,
                                  Client client) {
         super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
+        this.swapAndDropIndexAction = swapAndDropIndexAction;
+        this.deleteIndexAction = deleteIndexAction;
         this.client = client;
     }
 
@@ -101,36 +115,41 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
             : new PartitionName(request.table(), request.partitionValues()).asIndexName();
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
-        final String targetIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
+        final String resizedIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
         client.admin().indices().stats(new IndicesStatsRequest()
             .clear()
             .indices(sourceIndex)
             .docs(true))
-            .whenComplete(ActionListener.delegateFailure(
-                listener,
-                (delegate, indicesStatsResponse) -> {
-                    CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(
-                        request,
-                        state,
-                        i -> {
-                            IndexShardStats shard = indicesStatsResponse.getIndex(sourceIndex).getIndexShards().get(i);
-                            return shard == null ? null : shard.getPrimary().getDocs();
-                        },
-                        sourceIndex,
-                        targetIndex
-                    );
-                    createIndexService.createIndex(
-                        updateRequest,
-                        delegate.map(
-                            response -> new ResizeResponse(
-                                response.isAcknowledged(),
-                                response.isShardsAcknowledged(),
-                                updateRequest.index()
-                            )
-                        )
-                    );
+            .thenCompose(statsResponse -> {
+                CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(
+                    request,
+                    state,
+                    i -> {
+                        IndexShardStats shard = statsResponse.getIndex(sourceIndex).getIndexShards().get(i);
+                        return shard == null ? null : shard.getPrimary().getDocs();
+                    },
+                    sourceIndex,
+                    resizedIndex
+                );
+                FutureActionListener<CreateIndexClusterStateUpdateResponse> result = new FutureActionListener<>();
+                createIndexService.createIndex(updateRequest, result);
+                return result.thenApply(resp ->
+                    new ResizeResponse(resp.isAcknowledged(), resp.isShardsAcknowledged(), updateRequest.index()));
+            })
+            .thenCompose(resizeResp -> {
+                if (resizeResp.isAcknowledged() && resizeResp.isShardsAcknowledged()) {
+                    SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndex, sourceIndex);
+                    return swapAndDropIndexAction.execute(req).thenApply(_ -> resizeResp);
+                } else {
+                    var deleteRequest = new DeleteIndexRequest(resizedIndex);
+                    deleteRequest.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
+                    return deleteIndexAction.execute(deleteRequest).handle((_, err) -> {
+                        throw new IllegalStateException(
+                            "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
+                    });
                 }
-            ));
+            })
+            .whenComplete(listener);
     }
 
     // static for unittesting this method
