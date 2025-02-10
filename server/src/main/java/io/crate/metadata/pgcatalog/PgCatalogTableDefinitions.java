@@ -84,10 +84,10 @@ public final class PgCatalogTableDefinitions {
                 false)),
             Map.entry(PgClassTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::pgClasses,
-                (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident.fqn())
+                (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn())
                             // we also need to check for views which have privileges set
-                            || roles.hasAnyPrivilege(user, Securable.VIEW, t.ident.fqn())
-                            || isPgCatalogOrInformationSchema(t.ident.schema()),
+                            || roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn())
+                            || isPgCatalogOrInformationSchema(t.ident().schema()),
                 pgCatalogSchemaInfo.pgClassTable().expressions()
             )),
             Map.entry(PgProcTable.IDENT, new StaticTableDefinition<>(

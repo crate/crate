@@ -41,6 +41,7 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
@@ -81,8 +82,6 @@ import io.crate.types.Regclass;
 import io.crate.types.Regproc;
 
 public class InformationSchemaIterables {
-
-    public static final String PK_SUFFIX = "_pk";
 
     private static final Set<String> IGNORED_SCHEMAS = Set.of(
         InformationSchemaInfo.NAME,
@@ -138,7 +137,7 @@ public class InformationSchemaIterables {
         Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
             .map(t -> new ConstraintInfo(
                 t,
-                t.pkConstraintName() == null ? t.ident().name() + PK_SUFFIX : t.pkConstraintName(),
+                t.pkConstraintNameOrDefault(),
                 ConstraintInfo.Type.PRIMARY_KEY))
             .iterator();
 
@@ -214,7 +213,7 @@ public class InformationSchemaIterables {
             info.ident().name(),
             toEntryType(info.relationType()),
             info.columns().size(),
-            info.primaryKey().size() > 0);
+            !info.primaryKey().isEmpty());
     }
 
     private PgClassTable.Entry primaryKeyToPgClassEntry(RelationInfo info) {
@@ -222,10 +221,10 @@ public class InformationSchemaIterables {
             Regclass.primaryOid(info),
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
-            info.ident().name() + "_pkey",
+            info.pkConstraintNameOrDefault(),
             PgClassTable.Entry.Type.INDEX,
             info.columns().size(),
-            info.primaryKey().size() > 0);
+            !info.primaryKey().isEmpty());
     }
 
     private static PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
@@ -338,7 +337,7 @@ public class InformationSchemaIterables {
                 PrimitiveIterator.OfInt ids = IntStream.range(1, pks.size() + 1).iterator();
                 RelationName ident = tableInfo.ident();
                 return pks.stream().map(
-                    pk -> new KeyColumnUsage(ident, pk, ids.next()));
+                    pk -> new KeyColumnUsage(ident, tableInfo.pkConstraintNameOrDefault(), pk, ids.next()));
             })::iterator;
     }
 
@@ -396,6 +395,7 @@ public class InformationSchemaIterables {
         }
 
         @Override
+        @NotNull
         public Iterator<ConstraintInfo> iterator() {
             return new NotNullConstraintIterator(info);
         }
@@ -433,14 +433,13 @@ public class InformationSchemaIterables {
             // Currently the longest not null constraint of information_schema
             // is 56 characters long, that's why default string length is set to
             // 60.
-            String constraintName = new StringBuilder(60)
-                .append(this.relationInfo.ident().schema())
-                .append("_")
-                .append(this.relationInfo.ident().name())
-                .append("_")
-                .append(this.notNullableColumns.next().column().name())
-                .append("_not_null")
-                .toString();
+            String constraintName =
+                this.relationInfo.ident().schema() +
+                "_" +
+                this.relationInfo.ident().name() +
+                "_" +
+                this.notNullableColumns.next().column().name() +
+                "_not_null";
 
             // Return nullable columns instead.
             return new ConstraintInfo(
@@ -460,6 +459,7 @@ public class InformationSchemaIterables {
         }
 
         @Override
+        @NotNull
         public Iterator<ColumnContext> iterator() {
             return new ColumnsIterator(relationInfo);
         }
@@ -492,28 +492,10 @@ public class InformationSchemaIterables {
         }
     }
 
-    public static class KeyColumnUsage {
-
-        private final RelationName relationName;
-        private final ColumnIdent pkColumnIdent;
-        private final int ordinal;
-
-        KeyColumnUsage(RelationName relationName, ColumnIdent pkColumnIdent, int ordinal) {
-            this.relationName = relationName;
-            this.pkColumnIdent = pkColumnIdent;
-            this.ordinal = ordinal;
-        }
+    public record KeyColumnUsage(RelationName relationName, String pkName, ColumnIdent pkColumnIdent, int ordinal) {
 
         public String getSchema() {
             return relationName.schema();
-        }
-
-        public String getPkColumnIdent() {
-            return pkColumnIdent.name();
-        }
-
-        public int getOrdinal() {
-            return ordinal;
         }
 
         public String getTableName() {

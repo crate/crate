@@ -37,6 +37,8 @@ import io.crate.sql.tree.CheckConstraint;
  */
 public interface RelationInfo extends Iterable<Reference> {
 
+    String PK_SUFFIX = "_pkey";
+
     enum RelationType {
         BASE_TABLE("BASE TABLE"),
         VIEW("VIEW"),
@@ -77,6 +79,19 @@ public interface RelationInfo extends Iterable<Reference> {
     @Nullable
     default String pkConstraintName() {
         return null;
+    }
+
+    @Nullable
+    default String pkConstraintNameOrDefault() {
+        String pkName = pkConstraintName();
+        if (pkName != null) {
+            return pkName;
+        }
+        if (primaryKey().isEmpty() || (primaryKey().size() == 1 && primaryKey().get(0).isSystemColumn())) {
+            return null;
+        } else {
+            return ident().name() + PK_SUFFIX;
+        }
     }
 
     List<ColumnIdent> primaryKey();
