@@ -421,14 +421,14 @@ public class DDLIntegrationTest extends IntegTestCase {
             "doc| t| CHECK| check_id_ge_zero",
             "doc| t| CHECK| check_qty_gt_zero",
             "doc| t| CHECK| doc_t_id_not_null",
-            "doc| t| PRIMARY KEY| t_pk"
+            "doc| t| PRIMARY KEY| t_pkey"
         );
         execute("alter table t drop constraint check_id_ge_zero");
         execute(selectCheckConstraintsStmt);
         assertThat(response).hasRows(
             "doc| t| CHECK| check_qty_gt_zero",
             "doc| t| CHECK| doc_t_id_not_null",
-            "doc| t| PRIMARY KEY| t_pk"
+            "doc| t| PRIMARY KEY| t_pkey"
         );
         execute("insert into t(id, qty) values(-42, 100)");
         Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(0, 0)"))
@@ -450,7 +450,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute(selectCheckConstraintsStmt);
         assertThat(response).hasRows(
             "doc| t| CHECK| doc_t_id_not_null",
-            "doc| t| PRIMARY KEY| t_pk"
+            "doc| t| PRIMARY KEY| t_pkey"
         );
 
         execute("insert into t(id) values(-1)");
@@ -496,7 +496,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             "where table_name = 't' and table_schema = 'doc' order by constraint_name");
         assertThat(response).hasRows(
             "doc_t_id_not_null",
-            "t_pk"
+            "t_pkey"
         );
 
         execute("alter table t add column name string primary key");
@@ -506,7 +506,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "doc_t_id_not_null",
             "doc_t_name_not_null",
-            "t_pk"
+            "t_pkey"
         );
     }
 

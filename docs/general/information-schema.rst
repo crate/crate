@@ -527,8 +527,8 @@ type, name and which table they are defined in.
     +--------------------+------------+------------------------+-------------+
     | table_schema       | table_name | constraint_name        | type        |
     +--------------------+------------+------------------------+-------------+
-    | information_schema | tables     | tables_pk              | PRIMARY KEY |
-    | doc                | quotes     | quotes_pk              | PRIMARY KEY |
+    | information_schema | tables     | tables_pkey            | PRIMARY KEY |
+    | doc                | quotes     | quotes_pkey            | PRIMARY KEY |
     | doc                | quotes     | doc_quotes_id_not_null | CHECK       |
     | doc                | tbl        | doc_tbl_col_not_null   | CHECK       |
     +--------------------+------------+------------------------+-------------+
@@ -555,8 +555,8 @@ tables:
     +-----------------+------------+-------------+------------------+
     | constraint_name | table_name | column_name | ordinal_position |
     +-----------------+------------+-------------+------------------+
-    | students_pk     | students   | id          |                1 |
-    | students_pk     | students   | department  |                2 |
+    | students_pkey   | students   | id          |                1 |
+    | students_pkey   | students   | department  |                2 |
     +-----------------+------------+-------------+------------------+
     SELECT 2 rows in set (... sec)
 
