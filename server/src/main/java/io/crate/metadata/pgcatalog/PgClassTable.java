@@ -82,7 +82,13 @@ public final class PgClassTable {
             .build();
     }
 
-    public static final class Entry {
+    public record Entry(Regclass oid,
+                        int schemaOid,
+                        RelationName ident,
+                        String name,
+                        Type type,
+                        int numberOfAttributes,
+                        boolean hasPrimaryKey) {
 
         public enum Type {
             VIEW("v"),
@@ -95,30 +101,6 @@ public final class PgClassTable {
             Type(String relKind) {
                 this.relKind = relKind;
             }
-        }
-
-        final Regclass oid;
-        final boolean hasPrimaryKey;
-        final int schemaOid;
-        final RelationName ident;
-        final Type type;
-        final int numberOfAttributes;
-        final String name;
-
-        public Entry(Regclass oid,
-                     int schemaOid,
-                     RelationName ident,
-                     String name,
-                     Type type,
-                     int numberOfAttributes,
-                     boolean hasPrimaryKey) {
-            this.oid = oid;
-            this.schemaOid = schemaOid;
-            this.hasPrimaryKey = hasPrimaryKey;
-            this.ident = ident;
-            this.type = type;
-            this.name = name;
-            this.numberOfAttributes = numberOfAttributes;
         }
     }
 }
