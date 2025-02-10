@@ -46,8 +46,12 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that led to occasional empty results on ``MATCH`` queries on
-  a ``FULLTEXT`` index of the object sub-column.
+- Fixed a recovery issue that led to records of a table with an ``OBJECT``
+  sub-column being part of a standalone ``FULLTEXT`` index to be never visible
+  for ``MATCH`` queries.
+  To mitigate the issue:
+  1. For non-composite indices: declare index next to a sub-column definition.
+  2. For composite indices: reindex the table.
 
 - Fixed an issue that would lead to errors when attempting to select a
   sub-column from a virtual table or view participating in a join, e.g.::
