@@ -24,16 +24,12 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
+import io.crate.planner.CorrelatedSubQueries;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -71,7 +67,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
             return null;
         }
         // Only push down filters which are not part of the correlated sub-queries
-        var correlatedSubQueries = extractCorrelatedSubQueries(inputQuery);
+        var correlatedSubQueries = CorrelatedSubQueries.of(inputQuery);
         if (correlatedSubQueries.remainder().isEmpty()) {
             return null;
         }
@@ -79,28 +75,5 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
         var newInputPlan = new Filter(inputPlan, AndOperator.join(correlatedSubQueries.remainder()));
         var newJoin = join.replaceSources(List.of(newInputPlan));
         return new Filter(newJoin, AndOperator.join(splitQuery.values()));
-    }
-
-    /**
-     * Splits the given Symbol tree into a list of correlated sub-queries and a list of remaining symbols.
-     */
-    public static CorrelatedSubQueries extractCorrelatedSubQueries(@Nullable Symbol from) {
-        if (from == null) {
-            return new CorrelatedSubQueries(List.of(), List.of());
-        }
-        var values = QuerySplitter.split(from).values();
-        var remainder = new ArrayList<Symbol>(values.size());
-        var correlatedSubQueries = new ArrayList<Symbol>(values.size());
-        for (var symbol : values) {
-            if (symbol.any(s -> s instanceof SelectSymbol x && x.isCorrelated())) {
-                correlatedSubQueries.add(symbol);
-            } else {
-                remainder.add(symbol);
-            }
-        }
-        return new CorrelatedSubQueries(correlatedSubQueries, remainder);
-    }
-
-    public record CorrelatedSubQueries(List<Symbol> correlatedSubQueries, List<Symbol> remainder) {
     }
 }
