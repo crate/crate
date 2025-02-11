@@ -112,9 +112,6 @@ public class TranslogIndexer {
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
                 indexer.valueIndexer.indexValue(castValue, docBuilder);
-//                if (tableIndexSources.containsKey(column)) {
-//                    addIndexField(docBuilder, tableIndexSources.get(column), castValue);
-//                }
             }
 
             // Make sanitized value visible for the index columns.
