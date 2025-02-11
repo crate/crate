@@ -25,9 +25,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -82,6 +85,12 @@ public final class EquiJoinDetector {
             }
             String functionName = function.name();
             switch (functionName) {
+                case AndOperator.NAME, ExplicitCastFunction.NAME, ImplicitCastFunction.NAME -> {
+                    for (Symbol arg : function.arguments()) {
+                        arg.accept(this, context);
+                    }
+                    return null;
+                }
                 case NotPredicate.NAME -> {
                     if (context.insideEqualOperand) {
                         // Not a top-level expression but inside EQ operator.
@@ -135,8 +144,12 @@ public final class EquiJoinDetector {
                     }
                 }
                 default -> {
-                    for (Symbol arg : function.arguments()) {
-                        arg.accept(this, context);
+                    if (context.insideEqualOperand) {
+                        for (Symbol arg : function.arguments()) {
+                            arg.accept(this, context);
+                        }
+                    } else {
+                        return null;
                     }
                 }
             }
