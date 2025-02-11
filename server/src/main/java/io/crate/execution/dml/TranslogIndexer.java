@@ -185,7 +185,7 @@ public class TranslogIndexer {
                 if (val == null) {
                     continue;
                 }
-                docBuilder.addField(new Field(targetField, value.toString(), FulltextIndexer.FIELD_TYPE));
+                docBuilder.addField(new Field(targetField, val.toString(), FulltextIndexer.FIELD_TYPE));
             }
         } else {
             docBuilder.addField(new Field(targetField, value.toString(), FulltextIndexer.FIELD_TYPE));
