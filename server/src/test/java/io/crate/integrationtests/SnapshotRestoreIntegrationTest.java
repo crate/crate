@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -808,6 +807,32 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "empty_parted1",
             "empty_parted2");
+    }
+
+    @Test
+    public void test_restore_table_does_not_restore_any_partitioned_table() {
+        execute("CREATE TABLE schema1.table1 (id int)");
+        execute("CREATE TABLE schema2.table2 (id int, p int) PARTITIONED BY (p)");
+        execute("CREATE TABLE schema3.table3 (id int, p int) PARTITIONED BY (p)");
+
+        execute("INSERT INTO schema3.table3 (id, p) VALUES (1, 1)");
+
+        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        execute(
+            "CREATE REPOSITORY repo1 TYPE \"fs\" with (location=?, compress=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        execute("CREATE SNAPSHOT repo1.snap1 ALL WITH (wait_for_completion=true)");
+        execute("DROP TABLE schema1.table1");
+        execute("DROP TABLE schema2.table2");
+        execute("DROP TABLE schema3.table3");
+
+        execute("RESTORE SNAPSHOT repo1.snap1 TABLE schema1.table1 WITH (wait_for_completion=true)");
+
+        execute("SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema not in ('sys', 'information_schema', 'pg_catalog') ORDER BY 1, 2");
+        assertThat(response).hasRows(
+            "schema1| table1"
+        );
     }
 
     @Test
