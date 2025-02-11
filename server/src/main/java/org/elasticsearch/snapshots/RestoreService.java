@@ -384,9 +384,10 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        if (request.includeIndices() && resolvedTemplates.isEmpty()) {
+        if (request.restoreAllTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
             resolvedTemplates.add(Metadata.ALL);
         }
+
     }
 
     public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
@@ -1447,6 +1448,10 @@ public class RestoreService implements ClusterStateApplier {
                 || !tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY))
                 || !schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY))
                 || !schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY));
+        }
+
+        public boolean restoreAllTables() {
+            return indices.length == 0 && templates.length == 0 && includeIndices && includeAliases;
         }
     }
 }
