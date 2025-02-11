@@ -132,15 +132,6 @@ public class TranslogIndexer {
                 );
             }
         }
-
-//        for (Indexer.IndexColumn indexColumn: indexColumns) {
-//            for (Input<?> input: indexColumn.inputs()) {
-//                IndexInput translogInput = (IndexInput) input;
-//                translogInput.setSource(docMap);
-//            }
-//        }
-//        addIndexColumns(indexColumns, docBuilder);
-
         return docBuilder;
     }
 
@@ -174,8 +165,6 @@ public class TranslogIndexer {
         return valueType.valueForInsert(valueType.sanitizeValueLenient(value));
     }
 
-//    c1 - ft1, ft2
-//    ft1 -> c1 or c1[i]
     private static void addIndexField(IndexDocumentBuilder docBuilder, String targetField, Object value) {
         if (value == null) {
             return;
