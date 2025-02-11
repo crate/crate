@@ -111,14 +111,14 @@ public class Indexer {
     private final List<CollectExpression<IndexItem, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
     private final List<TableConstraint> tableConstraints;
-    private final List<IndexColumn> indexColumns;
+    private final List<IndexColumn<Input<?>>> indexColumns;
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final Function<ColumnIdent, Reference> getRef;
     private final boolean writeOids;
     private final Version tableVersionCreated;
 
-    public record IndexColumn(Reference reference, List<Input<?>> inputs) {
+    public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
@@ -520,22 +520,22 @@ public class Indexer {
         this.tableVersionCreated = table.versionCreated();
     }
 
-    public static List<IndexColumn> buildIndexColumns(Collection<IndexReference> indexReferences,
-                                                      Function<ColumnIdent, Reference> getRef,
-                                                      Function<Reference, Input<?>> createInput) {
-        List<IndexColumn> indexColumns = new ArrayList<>(indexReferences.size());
+    public static <I> List<IndexColumn<I>> buildIndexColumns(Collection<IndexReference> indexReferences,
+                                                             Function<ColumnIdent, Reference> getRef,
+                                                             Function<Reference, ? extends I> createInput) {
+        List<IndexColumn<I>> indexColumns = new ArrayList<>(indexReferences.size());
         for (var ref : indexReferences) {
-            ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
+            ArrayList<I> indexInputs = new ArrayList<>(ref.columns().size());
 
             for (var sourceRef : ref.columns()) {
                 Reference reference = getRef.apply(sourceRef.column());
                 assert reference.equals(sourceRef) : "refs must match";
 
-                Input<?> input = createInput.apply(sourceRef);
+                I input = createInput.apply(sourceRef);
                 indexInputs.add(input);
             }
             if (ref.indexType() != IndexType.NONE) {
-                indexColumns.add(new IndexColumn(ref, indexInputs));
+                indexColumns.add(new IndexColumn<>(ref, indexInputs));
             }
         }
         return indexColumns;
@@ -788,8 +788,8 @@ public class Indexer {
     /**
      * Doesn't add fields for NULL values.
      */
-    public static void addIndexColumns(List<IndexColumn> indexColumns,
-                                       IndexDocumentBuilder docBuilder) {
+    private static void addIndexColumns(List<IndexColumn<Input<?>>> indexColumns,
+                                        IndexDocumentBuilder docBuilder) {
         for (var indexColumn : indexColumns) {
             String fqn = indexColumn.reference.storageIdent();
             for (var input : indexColumn.inputs) {

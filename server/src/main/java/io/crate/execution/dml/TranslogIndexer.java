@@ -21,7 +21,6 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.execution.dml.Indexer.addIndexColumns;
 import static io.crate.execution.dml.Indexer.buildIndexColumns;
 
 import java.io.IOException;
@@ -29,8 +28,8 @@ import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
+import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
@@ -38,7 +37,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
-import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
@@ -59,9 +57,8 @@ public class TranslogIndexer {
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version tableVersionCreated;
-    private Map<String, Object> sourceMap;
 
-    private final List<Indexer.IndexColumn> indexColumns;
+    private final List<Indexer.IndexColumn<IndexInput>> indexColumns;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
@@ -85,19 +82,23 @@ public class TranslogIndexer {
         this.indexColumns = buildIndexColumns(
             table.indexColumns(),
             table::getReference,
-            reference -> new IndexInput(reference.column(), () -> sourceMap)
+            reference -> new IndexInput(reference.column())
         );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         tableVersionCreated = table.versionCreated();
     }
 
 
-    private record IndexInput(ColumnIdent columnIdent,
-                              Supplier<Map<String, Object>> sourceSupplier) implements Input<Object> {
+    private static class IndexInput {
 
-        @Override
-        public Object value() {
-            return Maps.getByPath(sourceSupplier.get(), Lists.concat(columnIdent.name(), columnIdent.path()));
+        private final List<String> fullPath;
+
+        public IndexInput(ColumnIdent columnIdent) {
+            this.fullPath = Lists.concat(columnIdent.name(), columnIdent.path());
+        }
+
+        public Object value(Map<String, Object> sourceMap) {
+            return Maps.getByPath(sourceMap, fullPath);
         }
     }
 
@@ -109,7 +110,6 @@ public class TranslogIndexer {
      */
     public ParsedDocument index(String id, BytesReference source) {
         try {
-            sourceMap = sourceParser.parse(source, ignoreUnknownColumns == false);
             return populateLuceneFields(source).build(id);
         } catch (IOException | UncheckedIOException e) {
             throw new MapperParsingException("Error parsing translog source", e);
@@ -117,8 +117,9 @@ public class TranslogIndexer {
     }
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
+        Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
         IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(new NoOpTranslogWriter(source), _ -> null, Map.of(), tableVersionCreated);
-        for (var entry : sourceMap.entrySet()) {
+        for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);
             if (indexer == null) {
@@ -138,9 +139,36 @@ public class TranslogIndexer {
             entry.setValue(castValue);
         }
 
-        addIndexColumns(indexColumns, docBuilder);
+        addIndexColumns(indexColumns, docMap, docBuilder);
 
         return docBuilder;
+    }
+
+    private static void addIndexColumns(List<Indexer.IndexColumn<IndexInput>> indexColumns,
+                                        Map<String, Object> docMap,
+                                        IndexDocumentBuilder docBuilder) {
+        for (var indexColumn : indexColumns) {
+            String fqn = indexColumn.reference().storageIdent();
+            for (var input : indexColumn.inputs()) {
+                Object value = input.value(docMap);
+                if (value == null) {
+                    continue;
+                }
+                if (value instanceof Iterable<?> it) {
+                    for (Object val : it) {
+                        if (val == null) {
+                            continue;
+                        }
+                        Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
+                        docBuilder.addField(field);
+                    }
+                } else {
+                    Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
+                    docBuilder.addField(field);
+                }
+            }
+        }
+
     }
 
     private record NoOpTranslogWriter(BytesReference source) implements TranslogWriter {
@@ -185,8 +213,6 @@ public class TranslogIndexer {
             return source;
         }
     }
-
-    ;
 
     private static boolean isEmpty(Object value) {
         switch (value) {
