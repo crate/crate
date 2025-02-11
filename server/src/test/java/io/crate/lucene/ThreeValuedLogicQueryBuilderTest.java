@@ -141,4 +141,12 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convert("NOT (cast(obj as string))")).hasToString(
             "+(+*:* -cast(obj AS TEXT)) #(NOT cast(obj AS TEXT))");
     }
+
+    @Test
+    public void test_not_on_array_position() {
+        assertThat(convert("NOT (array_position(string_array, 'foo'))")).hasToString(
+            "+(+*:* -array_position(string_array, 'foo')) #(NOT array_position(string_array, 'foo'))");
+        assertThat(convert("NOT (array_position(string_array, 'foo', 10))")).hasToString(
+            "+(+*:* -array_position(string_array, 'foo', 10)) #(NOT array_position(string_array, 'foo', 10))");
+    }
 }
