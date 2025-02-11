@@ -98,3 +98,9 @@ Fixes
   :ref:`information_schema_key_column_usage` and ``pg_class`` tables,
   ``<table_name>_pk`` and ``<table_name>_pkey`` respectively, when a custom
   name is not explicitly provided during table creation.
+
+- Fixed an issue that would cause :ref:`array_position<scalar-array_position>`
+  to return wrong results when used on a column with NULL values in the
+  ``WHERE`` combined with a ``NOT`` predicate. e.g.::
+
+    SELECT * FROM tbl WHERE NOT array_position(string_array_col, 'foo');
