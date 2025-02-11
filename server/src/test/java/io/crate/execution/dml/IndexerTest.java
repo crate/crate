@@ -669,6 +669,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(fields[0].fieldType().tokenized()).isTrue();
         assertTranslogParses(doc, table);
+
+        doc = indexer.index(item(new Object[]{null}));
+        fields = doc.doc().getFields(ref.storageIdent());
+        assertThat(fields).hasSize(0);
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -971,11 +976,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         var refFt = table.indexColumn(ColumnIdent.of("ft"));
         var indexer = getIndexer(e, "tbl", "xs");
-        ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
+
+        ParsedDocument doc = indexer.index(item(Arrays.asList("foo", "bar", "baz", null)));
+        // NULL inside array is not indexed, hence doc has 3 fields but we have NULL it in the source.
         assertThat(doc.doc().getFields(refFt.storageIdent())).hasSize(3);
         assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
             """
-            {"xs": ["foo", "bar", "baz"]}
+            {"xs": ["foo", "bar", "baz", null]}
             """
         );
         assertTranslogParses(doc, table);
