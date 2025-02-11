@@ -32,7 +32,7 @@ public final class ResizeResponse extends ShardsAcknowledgedResponse {
 
     private final String index;
 
-    ResizeResponse(boolean acknowledged, boolean shardsAcknowledged, String index) {
+    public ResizeResponse(boolean acknowledged, boolean shardsAcknowledged, String index) {
         super(acknowledged, shardsAcknowledged);
         this.index = index;
     }

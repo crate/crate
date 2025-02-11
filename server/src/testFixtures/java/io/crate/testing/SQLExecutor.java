@@ -813,6 +813,11 @@ public class SQLExecutor {
         ).build();
 
         ClusterState state = ClusterState.builder(prevState)
+            .blocks(
+                ClusterBlocks.builder()
+                    .blocks(prevState.blocks())
+                    .updateBlocks(indexMetadata)
+            )
             .metadata(mdBuilder.put(indexMetadata, true))
             .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
             .build();

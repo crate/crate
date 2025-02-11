@@ -19,39 +19,24 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.IntFunction;
 
-import org.apache.lucene.index.IndexWriter;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.CreateIndexClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.DocsStats;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.FutureActionListener;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
@@ -120,22 +105,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
             .clear()
             .indices(sourceIndex)
             .docs(true))
-            .thenCompose(statsResponse -> {
-                CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(
-                    request,
-                    state,
-                    i -> {
-                        IndexShardStats shard = statsResponse.getIndex(sourceIndex).getIndexShards().get(i);
-                        return shard == null ? null : shard.getPrimary().getDocs();
-                    },
-                    sourceIndex,
-                    resizedIndex
-                );
-                FutureActionListener<CreateIndexClusterStateUpdateResponse> result = new FutureActionListener<>();
-                createIndexService.createIndex(updateRequest, result);
-                return result.thenApply(resp ->
-                    new ResizeResponse(resp.isAcknowledged(), resp.isShardsAcknowledged(), updateRequest.index()));
-            })
+            .thenCompose(statsResponse -> createIndexService.resizeIndex(request, statsResponse))
             .thenCompose(resizeResp -> {
                 if (resizeResp.isAcknowledged() && resizeResp.isShardsAcknowledged()) {
                     SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndex, sourceIndex);
@@ -150,62 +120,5 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                 }
             })
             .whenComplete(listener);
-    }
-
-    // static for unittesting this method
-    static CreateIndexClusterStateUpdateRequest prepareCreateIndexRequest(final ResizeRequest request,
-                                                                          final ClusterState state,
-                                                                          final IntFunction<DocsStats> perShardDocStats,
-                                                                          String sourceIndexName,
-                                                                          String targetIndexName) {
-        final IndexMetadata metadata = state.metadata().index(sourceIndexName);
-        if (metadata == null) {
-            throw new IndexNotFoundException(sourceIndexName);
-        }
-        int currentNumShards = metadata.getNumberOfShards();
-
-        final Settings targetSettings = Settings.builder()
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, request.newNumShards())
-            .build();
-        final int targetNumShards = request.newNumShards();
-        boolean shrink = currentNumShards > targetNumShards;
-        for (int i = 0; i < targetNumShards; i++) {
-            if (shrink) {
-                Set<ShardId> shardIds = IndexMetadata.selectShrinkShards(i, metadata, targetNumShards);
-                long count = 0;
-                for (ShardId id : shardIds) {
-                    DocsStats docsStats = perShardDocStats.apply(id.id());
-                    if (docsStats != null) {
-                        count += docsStats.getCount();
-                    }
-                    if (count > IndexWriter.MAX_DOCS) {
-                        throw new IllegalStateException("Can't merge index with more than [" + IndexWriter.MAX_DOCS
-                            + "] docs - too many documents in shards " + shardIds);
-                    }
-                }
-            } else {
-                Objects.requireNonNull(IndexMetadata.selectSplitShard(i, metadata, targetNumShards));
-                // we just execute this to ensure we get the right exceptions if the number of shards is wrong or less then etc.
-            }
-        }
-        Set<Alias> aliases;
-        String indexNameOrAlias = request.table().indexNameOrAlias();
-        if (sourceIndexName.equals(indexNameOrAlias)) {
-            aliases = Set.of();
-        } else {
-            aliases = Set.of(new Alias(indexNameOrAlias));
-        }
-        return new CreateIndexClusterStateUpdateRequest("resize_table", targetIndexName)
-                // mappings are updated on the node when creating in the shards, this prevents race-conditions since all mapping must be
-                // applied once we took the snapshot and if somebody messes things up and switches the index read/write and adds docs we
-                // miss the mappings for everything is corrupted and hard to debug
-                .settings(targetSettings)
-                .aliases(aliases)
-                .ackTimeout(request.ackTimeout())
-                .masterNodeTimeout(request.masterNodeTimeout())
-                .waitForActiveShards(ActiveShardCount.ONE)
-                .recoverFrom(metadata.getIndex())
-                .resizeType(shrink ? ResizeType.SHRINK : ResizeType.SPLIT)
-                .copySettings(true);
     }
 }
