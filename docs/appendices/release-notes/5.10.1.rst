@@ -144,3 +144,14 @@ Fixes
   by the :ref:`sql-restore-snapshot` statement when only a concrete table was
   specified as to be restored. Only the partitioned table definition was falsely
   restored, but not the the actual data.
+
+- Fixed a regression introduced with :ref:`version_5.10.0` that would lead to
+  wrong results for ``LEFT JOIN`` queries when the join condition has a
+  :ref:`CASE<scalar-case-when-then-end>` with an equality condition inside.
+  Previously, the optimizer would use :ref:`Hash Join<available-join-algo_hash>`
+  instead of :ref:`Nested Loop<available-join-algo_nl>` leading to wrong
+  results. e.g.::
+
+    SELECT * FROM tlb
+    LEFT JOIN (SELECT 2 AS col2 FROM tbl) AS tbl2
+      ON (CASE t0.c0 WHEN sub0.col2 THEN t0.c1 ELSE t0.c1 END)
