@@ -29,7 +29,6 @@ import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -59,7 +58,6 @@ public class TranslogIndexer {
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version shardCreatedVersion;
-    private Map<String, Object> sourceMap;
 
     private final List<Indexer.IndexColumn> indexColumns;
 
@@ -85,19 +83,28 @@ public class TranslogIndexer {
         this.indexColumns = buildIndexColumns(
             table.indexColumns(),
             table::getReference,
-            reference -> new IndexInput(reference.column(), () -> sourceMap)
+            reference -> new IndexInput(reference.column())
         );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.shardCreatedVersion = shardCreatedVersion;
     }
 
 
-    private record IndexInput(ColumnIdent columnIdent,
-                              Supplier<Map<String, Object>> sourceSupplier) implements Input<Object> {
+    private static class IndexInput implements Input<Object> {
+        private final List<String> fullPath;
+        private Map<String, Object> source;
+
+        IndexInput(ColumnIdent columnIdent) {
+            this.fullPath = Lists.concat(columnIdent.name(), columnIdent.path());
+        }
+
+        public void setSource(Map<String, Object> source) {
+            this.source = source;
+        }
 
         @Override
         public Object value() {
-            return Maps.getByPath(sourceSupplier.get(), Lists.concat(columnIdent.name(), columnIdent.path()));
+            return Maps.getByPath(source, fullPath);
         }
     }
 
@@ -109,7 +116,6 @@ public class TranslogIndexer {
      */
     public ParsedDocument index(String id, BytesReference source) {
         try {
-            sourceMap = sourceParser.parse(source, ignoreUnknownColumns == false);
             return populateLuceneFields(source).build(id);
         } catch (IOException | UncheckedIOException e) {
             throw new MapperParsingException("Error parsing translog source", e);
@@ -117,8 +123,9 @@ public class TranslogIndexer {
     }
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
+        Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
         IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), shardCreatedVersion);
-        for (var entry : sourceMap.entrySet()) {
+        for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);
             if (indexer == null) {
@@ -138,6 +145,12 @@ public class TranslogIndexer {
             entry.setValue(castValue);
         }
 
+        for (Indexer.IndexColumn indexColumn: indexColumns) {
+            for (Input<?> input: indexColumn.inputs()) {
+                IndexInput translogInput = (IndexInput) input;
+                translogInput.setSource(docMap);
+            }
+        }
         addIndexColumns(indexColumns, docBuilder);
 
         return docBuilder;
