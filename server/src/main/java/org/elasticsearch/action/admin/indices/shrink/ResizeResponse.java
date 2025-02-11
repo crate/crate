@@ -19,21 +19,43 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
+
+import org.elasticsearch.action.support.master.ShardsAcknowledgedResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 /**
  * A response for a resize index action, either shrink or split index.
  */
-public final class ResizeResponse extends CreateIndexResponse {
+public final class ResizeResponse extends ShardsAcknowledgedResponse {
+
+    private final String index;
 
     ResizeResponse(boolean acknowledged, boolean shardsAcknowledged, String index) {
-        super(acknowledged, shardsAcknowledged, index);
+        super(acknowledged, shardsAcknowledged);
+        this.index = index;
     }
 
     ResizeResponse(StreamInput in) throws IOException {
         super(in);
+        index = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(index);
+    }
+
+    @Override
+    public int hashCode() {
+        return index.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ResizeResponse other
+            && index.equals(other.index);
     }
 }

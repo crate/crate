@@ -25,15 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import io.crate.execution.ddl.tables.AlterTableClient;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class ResizeRequestTest {
@@ -49,50 +43,6 @@ public class ResizeRequestTest {
             try (var out = new BytesStreamOutput()) {
                 originalReq.writeTo(out);
                 try (var in = out.bytes().streamInput()) {
-                    var request = new ResizeRequest(in);
-                    assertThat(request.table()).isEqualTo(table);
-                    assertThat(request.partitionValues()).isEqualTo(originalReq.partitionValues());
-                    assertThat(request.newNumShards()).isEqualTo(originalReq.newNumShards());
-                }
-            }
-
-            RelationName tbl = originalReq.table();
-            List<String> values = originalReq.partitionValues();
-            String indexName = values.isEmpty()
-                ? tbl.indexNameOrAlias()
-                : new PartitionName(tbl, values).asIndexName();
-            try (var out = new BytesStreamOutput()) {
-                out.setVersion(Version.V_5_9_4);
-
-                Settings settings = Settings.builder()
-                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, originalReq.newNumShards())
-                    .build();
-                CreateIndexRequest indexRequest = new CreateIndexRequest(
-                    AlterTableClient.RESIZE_PREFIX + indexName,
-                    settings
-                );
-
-                // Can't use originalReq.writeTo() here because it cannot write the resizeType
-                // without knowing the current number of shards
-                // So this is re-implementing writeTo to test the reading
-                //
-                // triggering resize on a 5.10 is not supported, but triggering from 5.9 has to work
-                // because 5.9 doesn't contain logic to disallow it with 5.10 nodes
-
-                // this covers super.writeTo from
-                originalReq.getParentTask().writeTo(out);
-                out.writeTimeValue(originalReq.masterNodeTimeout());
-                out.writeTimeValue(originalReq.timeout());
-
-
-                indexRequest.writeTo(out);
-                out.writeString(indexName); // sourceIndex
-                out.writeEnum(ResizeType.SHRINK);
-                out.writeOptionalBoolean(true); // copySettings, was always true
-
-                try (var in = out.bytes().streamInput()) {
-                    in.setVersion(Version.V_5_9_4);
-
                     var request = new ResizeRequest(in);
                     assertThat(request.table()).isEqualTo(table);
                     assertThat(request.partitionValues()).isEqualTo(originalReq.partitionValues());

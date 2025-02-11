@@ -21,7 +21,6 @@ package org.elasticsearch.test.hamcrest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 public class ElasticsearchAssertions {
@@ -34,14 +33,5 @@ public class ElasticsearchAssertions {
 
     public static void assertAcked(AcknowledgedResponse response) {
         assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
-    }
-
-    /**
-     * Assert that an index creation was fully acknowledged, meaning that both the index creation cluster
-     * state update was successful and that the requisite number of shard copies were started before returning.
-     */
-    public static void assertAcked(CreateIndexResponse response) {
-        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
-        assertThat(response.isShardsAcknowledged()).as(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started").isTrue();
     }
 }

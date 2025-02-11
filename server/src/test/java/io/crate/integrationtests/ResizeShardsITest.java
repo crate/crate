@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -79,44 +80,6 @@ public class ResizeShardsITest extends IntegTestCase {
         assertThat(response).hasRows("1| true");
         execute("select id from quotes");
         assertThat(response).hasRowCount(2L);
-    }
-
-    @Test
-    public void testShrinkShardsEnsureLeftOverIndicesAreRemoved() throws Exception {
-        execute(
-            "create table quotes (" +
-            "   id integer," +
-            "   quote string," +
-            "   date timestamp with time zone" +
-            ") clustered into 3 shards with (number_of_replicas = 1)");
-
-        final String resizeIndex = ".resized." + getFqn("quotes");
-        createIndex(resizeIndex);
-
-        ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isTrue();
-
-        final String resizeNodeName = getADataNodeName(clusterService.state());
-
-        execute("alter table quotes set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
-            $(resizeNodeName, true));
-        assertBusy(() -> {
-            execute(
-                "select count(*) from sys.shards where " +
-                "table_name = 'quotes' " +
-                "and state = 'STARTED' " +
-                "and node['name'] = ?",
-                new Object[] { resizeNodeName }
-            );
-            assertThat(response).hasRows(new Object[] { 3L });
-        });
-
-        execute("alter table quotes set (number_of_shards=?)", $(1));
-
-        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(response).hasRows("1");
-
-        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isFalse();
     }
 
     @Test
