@@ -233,6 +233,7 @@ Example with ``within`` scalar function::
 Available join algorithms
 -------------------------
 
+.. _available-join-algo_nl:
 
 Nested loop join algorithm
 ..........................
@@ -245,6 +246,8 @@ table.
 
 This is the default algorithm used for all types of joins.
 
+
+.. _available-join-algo_hash:
 
 Block hash join algorithm
 .........................
