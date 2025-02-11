@@ -20,6 +20,7 @@
 package org.elasticsearch.action.support;
 
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -45,6 +46,12 @@ public class ActiveShardsObserver {
 
     public ActiveShardsObserver(final ClusterService clusterService) {
         this.clusterService = clusterService;
+    }
+
+    public CompletableFuture<Boolean> waitForActiveShards(String[] indexNames, ActiveShardCount shardCount, TimeValue timeout) {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        waitForActiveShards(indexNames, shardCount, timeout, result::complete, result::completeExceptionally);
+        return result;
     }
 
     /**
