@@ -109,3 +109,9 @@ Fixes
   ``WHERE`` combined with a ``NOT`` predicate. e.g.::
 
     SELECT * FROM tbl WHERE NOT array_position(string_array_col, 'foo');
+
+- Fixed a regression introduced with :ref:`version_5.6.0` that caused any
+  partitioned table contained inside the snapshot to be restored, if not exists,
+  by the :ref:`sql-restore-snapshot` statement when only a concrete table was
+  specified as to be restored. Only the partitioned table definition was falsely
+  restored, but not the the actual data.
