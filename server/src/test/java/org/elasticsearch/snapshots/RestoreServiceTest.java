@@ -67,7 +67,8 @@ public class RestoreServiceTest {
         );
 
         assertThat(resolvedIndices).containsAll(availableIndices);
-        assertThat(resolvedTemplates).containsExactly("_all");
+        // No partitioned table selected, templates must be empty
+        assertThat(resolvedTemplates).isEmpty();
     }
 
     @Test
