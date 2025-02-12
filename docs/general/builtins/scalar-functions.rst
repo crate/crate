@@ -3044,6 +3044,27 @@ return value is ``NULL``. Example:
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-array_overlap:
+
+``array_overlap(anyarray, anyarray)``
+-------------------------------------
+
+The ``array_overlap`` function returns ``true`` if the two arrays have at least
+one element in common, otherwise it returns ``false``.
+If one of the argument is ``NULL`` the result is ``NULL``.
+
+Returns: ``boolean``
+
+::
+
+    cr> select array_overlap([1, 2], [3, 2]) AS overlap;
+    +---------+
+    | overlap |
+    +---------+
+    | TRUE    |
+    +---------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-array_set:
 
 ``array_set(array, index, value)``

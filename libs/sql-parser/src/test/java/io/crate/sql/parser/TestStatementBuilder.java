@@ -1677,6 +1677,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    void test_array_overlap_operator() {
+        Expression expression = SqlParser.createExpression("[1] && [2]");
+        assertThat(expression).isExactlyInstanceOf(FunctionCall.class);
+        FunctionCall functionCall = (FunctionCall) expression;
+        assertThat(functionCall.getName().toString()).isEqualTo("array_overlap");
+        assertThat(functionCall.getArguments()).hasSize(2);
+    }
+
+    @Test
     public void testStringLiteral() {
         String[] testString = new String[]{
             "foo' or 1='1",
