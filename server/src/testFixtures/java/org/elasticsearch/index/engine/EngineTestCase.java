@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -335,6 +336,7 @@ public abstract class EngineTestCase extends ESTestCase {
         Field versionField = new NumericDocValuesField("_version", 0);
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(uidField);
+        document.add(new BinaryDocValuesField("_id", Uid.encodeId(id)));
         document.add(versionField);
         document.add(seqID.seqNo);
         document.add(seqID.seqNoDocValue);
@@ -359,6 +361,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 final Document doc = new Document();
                 Field uidField = new Field(SysColumns.Names.ID, Uid.encodeId(id), SysColumns.ID.FIELD_TYPE);
                 doc.add(uidField);
+                doc.add(new BinaryDocValuesField(SysColumns.Names.ID, Uid.encodeId(id)));
                 Field versionField = new NumericDocValuesField(SysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 SequenceIDFields seqID = SequenceIDFields.emptySeqID();

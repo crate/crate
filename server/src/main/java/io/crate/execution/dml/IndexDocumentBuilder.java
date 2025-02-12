@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -37,6 +38,7 @@ import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.data.Input;
+import io.crate.expression.reference.doc.lucene.IdCollectorExpression;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
@@ -190,6 +192,9 @@ public class IndexDocumentBuilder {
 
         BytesRef idBytes = Uid.encodeId(id);
         addField(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
+        if (tableVersionCreated.onOrAfter(IdCollectorExpression.STORED_AS_BINARY_VERSION)) {
+            addField(new BinaryDocValuesField(SysColumns.Names.ID, idBytes));
+        }
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         // Actual values are set via ParsedDocument.updateSeqID

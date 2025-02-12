@@ -3405,6 +3405,7 @@ public class IndexShardTests extends IndexShardTestCase {
         assertThat(deleteDoc.getFields().stream().map(IndexableField::name).toList())
             .containsExactlyInAnyOrder(
                 SysColumns.Names.ID,
+                SysColumns.Names.ID,
                 SysColumns.VERSION.name(),
                 SysColumns.Names.SEQ_NO,
                 SysColumns.Names.SEQ_NO,

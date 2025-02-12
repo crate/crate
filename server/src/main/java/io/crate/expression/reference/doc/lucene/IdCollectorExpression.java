@@ -24,35 +24,78 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
+import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.SysColumns;
 
-public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
+public abstract class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
-    private final IDVisitor visitor = new IDVisitor(SysColumns.ID.COLUMN.name());
-    private ReaderContext context;
-    private int docId;
+    public static final Version STORED_AS_BINARY_VERSION = Version.V_6_0_0;
+
+    public static IdCollectorExpression forVersion(Version version) {
+        if (version.before(STORED_AS_BINARY_VERSION)) {
+            return new StoredIdCollectorExpression();
+        } else {
+            return new BinaryIdCollectorExpression();
+        }
+    }
+
+    protected int docId;
 
     @Override
     public void setNextDocId(int docId) {
         this.docId = docId;
     }
 
-    @Override
-    public String value() {
-        try {
-            visitor.setCanStop(false);
-            context.visitDocument(docId, visitor);
-            return visitor.getId();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+    private static class StoredIdCollectorExpression extends IdCollectorExpression {
+
+        private final IDVisitor visitor = new IDVisitor(SysColumns.ID.COLUMN.name());
+        private ReaderContext context;
+
+        @Override
+        public String value() {
+            try {
+                visitor.setCanStop(false);
+                context.visitDocument(docId, visitor);
+                return visitor.getId();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        @Override
+        public void setNextReader(ReaderContext context) throws IOException {
+            this.context = context;
         }
     }
 
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        this.context = context;
+    private static class BinaryIdCollectorExpression extends IdCollectorExpression {
+
+        private BinaryDocValues values;
+
+        @Override
+        public String value() {
+            try {
+                if (this.values.advanceExact(this.docId)) {
+                    BytesRef bytes = this.values.binaryValue();
+                    return Uid.decodeId(bytes.bytes, bytes.offset, bytes.length);
+                } else {
+                    throw new IllegalStateException("No binary id for document " + this.docId);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        @Override
+        public void setNextReader(ReaderContext context) throws IOException {
+            this.values = DocValues.getBinary(context.reader(), SysColumns.Names.ID);
+        }
     }
 }

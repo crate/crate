@@ -47,6 +47,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -198,8 +199,6 @@ public final class ReservoirSampler {
                 }
 
                 String indexName = indexService.index().getName();
-                List<? extends LuceneCollectorExpression<?>> expressions
-                    = getCollectorExpressions(indexName, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
                     ShardRouting routingEntry = indexShard.routingEntry();
@@ -208,6 +207,8 @@ public final class ReservoirSampler {
                     }
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
+                        List<? extends LuceneCollectorExpression<?>> expressions
+                            = getCollectorExpressions(indexName, docTable, indexShard.getVersionCreated(), columns);
                         searchersToRelease.add(new ShardExpressions(indexShard, indexName, searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
@@ -249,11 +250,14 @@ public final class ReservoirSampler {
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
         String indexName,
         DocTableInfo docTable,
+        Version shardCreatedVersion,
         List<Reference> columns
     ) {
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             indexName,
             docTable.partitionedByColumns(),
+            docTable.primaryKey(),
+            shardCreatedVersion,
             docTable.isParentReferenceIgnored()
         );
 

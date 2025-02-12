@@ -221,6 +221,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
             List.of(),
+            List.of(),
+            Version.CURRENT,
             (_) -> false
         );
 
