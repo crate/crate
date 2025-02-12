@@ -47,6 +47,12 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_equality_condition_inside_cast() {
+        Symbol joinCondition = sqlExpressions.asSymbol("CAST(CAST(t1.a = t2.b AS STRING) AS BOOLEAN)");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
+    }
+
+    @Test
     public void testPossibleOnInnerContainingEqAndAnyCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
         assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
@@ -100,10 +106,26 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
     }
 
-    // tracks a bug : https://github.com/crate/crate/issues/15613
+    // tracks a bug: https://github.com/crate/crate/issues/15613
     @Test
     public void test_equality_expression_followed_by_case_expression() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t1.a AND CASE 1 WHEN t1.a THEN false ELSE t2.b in (t2.b) END");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/17380
+    @Test
+    public void test_case_expression_with_nested_equality() {
+        Symbol joinCondition = sqlExpressions.asSymbol("CASE WHEN t1.a = t2.b THEN t1.a ELSE t2.b END");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
+        joinCondition = sqlExpressions.asSymbol("CASE t1.a WHEN t2.b THEN t1.a ELSE t2.b END");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/17380
+    @Test
+    public void test_if_expression_with_nested_equality() {
+        Symbol joinCondition = sqlExpressions.asSymbol("if(t1.a = t2.b, 1, 2)");
         assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
     }
 

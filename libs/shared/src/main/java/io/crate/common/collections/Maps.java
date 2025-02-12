@@ -21,6 +21,7 @@
 
 package io.crate.common.collections;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -98,22 +99,44 @@ public final class Maps {
     }
 
     @Nullable
-    @SuppressWarnings("unchecked")
-    public static Object getByPath(Map<String, Object> value, List<String> path) {
+    public static Object getByPath(Map<?, ?> value, List<String> path) {
+        return getByPath(value, path, 0);
+    }
+
+    private static Object getByPath(Map<?, ?> value, List<String> path, int startIndex) {
         assert path instanceof RandomAccess : "Path must support random access for fast iteration";
-        Map<String, Object> map = value;
-        for (int i = 0; i < path.size(); i++) {
-            String key = path.get(i);
+        Map<?, ?> map = value;
+        for (int i = startIndex; i < path.size(); i++) {
+            Object key = path.get(i);
             Object val = map.get(key);
             if (i + 1 == path.size()) {
                 return val;
-            } else if (val instanceof Map<?, ?>) {
-                map = (Map<String, Object>) val;
+            } else if (val instanceof Map<?, ?> m) {
+                map = m;
+            } else if (val instanceof List<?> list) {
+                return getByPath(list, path, i);
             } else {
                 return null;
             }
         }
         return map;
+    }
+
+    private static Object getByPath(List<?> list, List<String> path, int startIndex) {
+        if (startIndex + 1 == path.size()) {
+            return list;
+        }
+        ArrayList<Object> newList = new ArrayList<>(list.size());
+        for (Object o : list) {
+            if (o instanceof Map<?,?> m) {
+                newList.add(getByPath(m, path, startIndex + 1));
+            } else if (o instanceof List<?> l) {
+                newList.add(getByPath(l, path, startIndex));
+            } else {
+                newList.add(o);
+            }
+        }
+        return newList;
     }
 
     @Nullable
