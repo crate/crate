@@ -33,11 +33,14 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
 
 /**
  * Request resize of a table or partition
+ * Uses double of the default master node timeout and ack timeout.
+ * default 30 seconds might be not enough and resizing operation fails.
  */
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
@@ -49,6 +52,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
         this.table = table;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -76,6 +81,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             }
             newNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexRequest.settings());
         }
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     @Override
