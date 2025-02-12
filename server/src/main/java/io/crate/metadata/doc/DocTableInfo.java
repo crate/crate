@@ -181,7 +181,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
-    private final Map<String, String> leafNamesByOid;
+    private final Map<String, Reference> leafByOid;
     private final RelationName ident;
     @Nullable
     private final String pkConstraintName;
@@ -247,10 +247,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .map(r -> (GeneratedReference) r)
             .toList();
         this.indexColumns = indexColumns;
-        leafNamesByOid = new HashMap<>();
+        leafByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
             .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
-            .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
+            .forEach(r -> leafByOid.put(Long.toString(r.oid()), r));
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
 
@@ -709,25 +709,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     /**
-     * Starting from 5.5 column OID-s are used as source keys.
-     * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
-     * <ul>
-     *  <li>OBJECT (IGNORED) sub-columns</li>
-     *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
-     * </ul>
+     * For tables >= 5.5 this returns a function that takes a oid and returns the corresponding column name or null if dropped.
+     * For tables < 5.5 this returns a identity function.
      */
     public UnaryOperator<String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
-                String name = leafNamesByOid.get(oidOrName);
-                if (name == null) {
+                Reference ref = leafByOid.get(oidOrName);
+                if (ref == null) {
                     if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
                         assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
                         return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
                     }
                     return oidOrName;
+                } else if (ref.isDropped()) {
+                    return null;
                 }
-                return name;
+                return ref.column().leafName();
             };
         } else {
             return UnaryOperator.identity();
