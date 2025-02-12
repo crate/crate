@@ -53,7 +53,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
      * Creates a new ColumnFieldVisitor for the given table
      */
     public ColumnFieldVisitor(DocTableInfo table, Version shardVersionCreated) {
-        this.storedSourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), true);
+        this.storedSourceParser = new SourceParser(table.lookupNameBySourceKey(), true);
         this.shardVersion = shardVersionCreated;
     }
 

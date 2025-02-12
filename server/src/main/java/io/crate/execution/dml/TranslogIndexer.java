@@ -57,7 +57,6 @@ public class TranslogIndexer {
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version shardCreatedVersion;
-    private Map<String, Object> sourceMap;
 
     private final List<Indexer.IndexColumn<IndexInput>> indexColumns;
 
@@ -66,7 +65,7 @@ public class TranslogIndexer {
      */
     @SuppressWarnings("unchecked")
     public TranslogIndexer(DocTableInfo table, Version shardCreatedVersion) {
-        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), false);
+        sourceParser = new SourceParser(table.lookupNameBySourceKey(), false);
         for (var ref : table.columns()) {
             var storageSupport = ref.valueType().storageSupport();
             if (storageSupport != null) {
