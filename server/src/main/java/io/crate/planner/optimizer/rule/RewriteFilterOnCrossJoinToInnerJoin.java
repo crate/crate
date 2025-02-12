@@ -91,7 +91,7 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
         sources.addAll(crossJoin.lhs().relationNames());
         sources.addAll(crossJoin.rhs().relationNames());
 
-        if (relationNamesInFilterQuery.containsAll(sources)) {
+        if (sources.containsAll(relationNamesInFilterQuery)) {
             return Filter.create(
                 new JoinPlan(
                     crossJoin.lhs(),
