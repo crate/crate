@@ -71,6 +71,8 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -2302,6 +2304,7 @@ public class InternalEngine extends Engine {
         iwc.setRAMBufferSizeMB(engineConfig.getIndexingBufferSize().getMbFrac());
         iwc.setCodec(engineConfig.getCodec());
         iwc.setUseCompoundFile(true); // always use compound on flush - reduces # of file-handles on refresh
+        iwc.setIndexSort(new Sort(new SortedSetSortField("1", false)));
         return iwc;
     }
 
