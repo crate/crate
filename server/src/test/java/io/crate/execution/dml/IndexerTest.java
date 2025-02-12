@@ -1488,6 +1488,28 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(storedField.binaryValue().utf8ToString()).isEqualTo("{\"1\":[{\"2\":[{\"3\":1}]}]}");
     }
 
+    @Test
+    public void test_object_with_null_subcolumn() throws Exception {
+        var tableName = "tbl";
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (i int, o object as (x int))");
+
+        Indexer indexer = getIndexer(e, tableName, "i", "o");
+
+        // Can't use Map.of with NULl values.
+        Map<String, Object> obj = new HashMap<>();
+        obj.put("x", null);
+        ParsedDocument doc = indexer.index(item(1, obj));
+        // Ensure source contains OID's instead of column names
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"1":1,"2":{}}
+            """
+        );
+
+        assertTranslogParses(doc, e.resolveTableInfo(tableName));
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }
