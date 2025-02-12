@@ -24,7 +24,11 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
+import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.SysColumns;
@@ -34,6 +38,7 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     private final IDVisitor visitor = new IDVisitor(SysColumns.ID.COLUMN.name());
     private ReaderContext context;
     private int docId;
+    private BinaryDocValues values;
 
     @Override
     public void setNextDocId(int docId) {
@@ -43,6 +48,10 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     @Override
     public String value() {
         try {
+            if (this.values.advanceExact(this.docId)) {
+                BytesRef bytes = this.values.binaryValue();
+                return Uid.decodeId(bytes.bytes, bytes.offset, bytes.length);
+            }
             visitor.setCanStop(false);
             context.visitDocument(docId, visitor);
             return visitor.getId();
@@ -54,5 +63,6 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         this.context = context;
+        this.values = DocValues.getBinary(context.reader(), "_id_binary");
     }
 }

@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -190,6 +191,7 @@ public class IndexDocumentBuilder {
 
         BytesRef idBytes = Uid.encodeId(id);
         addField(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
+        addField(new BinaryDocValuesField("_id_binary", idBytes));
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         // Actual values are set via ParsedDocument.updateSeqID
