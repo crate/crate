@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.ShardsAcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,32 +31,24 @@ import org.elasticsearch.common.io.stream.StreamOutput;
  */
 public final class ResizeResponse extends ShardsAcknowledgedResponse {
 
-    private final String index;
-
-    public ResizeResponse(boolean acknowledged, boolean shardsAcknowledged, String index) {
+    public ResizeResponse(boolean acknowledged, boolean shardsAcknowledged) {
         super(acknowledged, shardsAcknowledged);
-        this.index = index;
     }
 
     ResizeResponse(StreamInput in) throws IOException {
         super(in);
-        index = in.readString();
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            in.readString(); // index
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(index);
-    }
-
-    @Override
-    public int hashCode() {
-        return index.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof ResizeResponse other
-            && index.equals(other.index);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            // dummy index, the index of the resizeResponse wasn't used in 5.10
+            // mixed cluster with < 5.10 is not supported
+            out.writeString("");
+        }
     }
 }
