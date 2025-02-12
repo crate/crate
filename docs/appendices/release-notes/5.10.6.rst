@@ -48,6 +48,16 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could lead to ``null`` values getting returned on
+  subscript expressions on ``array(object)`` columns - for example when used as
+  expression inside a ``INDEX`` definition::
+
+      create table t (
+        obj object as (details array(object as (names text[]))),
+        index ft using fulltext (obj['details']['names'])
+      )
+
+
 - ``LIKE ANY`` now behaves the same as any other operators used with ``ANY`` and
   automatically levels the dimensions by wrapping the right side in an
   ``array_unnest`` as necessary - as documented.
