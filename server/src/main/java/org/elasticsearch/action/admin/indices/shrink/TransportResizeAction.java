@@ -48,6 +48,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.unit.TimeValue;
+
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
@@ -193,8 +195,8 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                 // mappings are updated on the node when creating in the shards, this prevents race-conditions since all mapping must be
                 // applied once we took the snapshot and if somebody messes things up and switches the index read/write and adds docs we
                 // miss the mappings for everything is corrupted and hard to debug
-                .ackTimeout(targetIndex.timeout())
-                .masterNodeTimeout(targetIndex.masterNodeTimeout())
+                .ackTimeout(TimeValue.timeValueSeconds(60))
+                .masterNodeTimeout(TimeValue.timeValueSeconds(60))
                 .settings(targetIndex.settings())
                 .aliases(targetIndex.aliases())
                 .waitForActiveShards(targetIndex.waitForActiveShards())

@@ -52,6 +52,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
+
 public class TransportResizeActionTest extends ESTestCase {
 
     private ClusterState createClusterState(String name, int numShards, int numReplicas, Settings settings) {
@@ -220,6 +222,8 @@ public class TransportResizeActionTest extends ESTestCase {
         assertThat(request.settings().get("index.number_of_shards")).isEqualTo("1");
         assertThat(request.cause()).isEqualTo("shrink_index");
         assertThat(request.waitForActiveShards()).isEqualTo(activeShardCount);
+        assertThat(request.ackTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
+        assertThat(request.masterNodeTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
     }
 
     private DiscoveryNode newNode(String nodeId) {
