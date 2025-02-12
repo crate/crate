@@ -106,6 +106,7 @@ public class LuceneQueryBuilder {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
+            table.primaryKey(),
             table.isParentReferenceIgnored()
         );
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.PARTITION, refResolver, null);
@@ -165,6 +166,7 @@ public class LuceneQueryBuilder {
                 new LuceneReferenceResolver(
                     indexName,
                     partitionColumns,
+                    table.primaryKey(),
                     table.isParentReferenceIgnored()
                 )
             );

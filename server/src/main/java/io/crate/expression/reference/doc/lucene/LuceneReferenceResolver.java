@@ -57,13 +57,16 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     private final List<Reference> partitionColumns;
     private final String indexName;
     private final Predicate<Reference> isParentRefIgnored;
+    private final Predicate<ColumnIdent> isSingletonPrimaryKey;
 
     public LuceneReferenceResolver(final String indexName,
                                    final List<Reference> partitionColumns,
+                                   final List<ColumnIdent> primaryKey,
                                    Predicate<Reference> isParentRefIgnored) {
         this.indexName = indexName;
         this.partitionColumns = partitionColumns;
         this.isParentRefIgnored = isParentRefIgnored;
+        this.isSingletonPrimaryKey = primaryKey.size() == 1 ? c -> primaryKey.getFirst().equals(c) : _ -> false;
     }
 
     public String getIndexName() {
@@ -73,6 +76,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     @Override
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         final ColumnIdent column = ref.column();
+        if (ref.valueType() instanceof StringType && isSingletonPrimaryKey.test(column)) {
+            return new IdCollectorExpression();
+        }
         switch (column.name()) {
             case SysColumns.Names.RAW:
                 if (column.isRoot()) {

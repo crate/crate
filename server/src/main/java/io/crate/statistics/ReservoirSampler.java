@@ -254,6 +254,7 @@ public final class ReservoirSampler {
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             indexName,
             docTable.partitionedByColumns(),
+            docTable.primaryKey(),
             docTable.isParentReferenceIgnored()
         );
 
