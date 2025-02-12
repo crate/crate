@@ -24,6 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.elasticsearch.Version;
+
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
@@ -57,13 +59,19 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     private final List<Reference> partitionColumns;
     private final String indexName;
     private final Predicate<Reference> isParentRefIgnored;
+    private final Predicate<ColumnIdent> isSingletonPrimaryKey;
+    private final Version shardVersion;
 
     public LuceneReferenceResolver(final String indexName,
                                    final List<Reference> partitionColumns,
+                                   final List<ColumnIdent> primaryKey,
+                                   Version shardVersion,
                                    Predicate<Reference> isParentRefIgnored) {
         this.indexName = indexName;
         this.partitionColumns = partitionColumns;
         this.isParentRefIgnored = isParentRefIgnored;
+        this.shardVersion = shardVersion;
+        this.isSingletonPrimaryKey = primaryKey.size() == 1 ? c -> primaryKey.getFirst().equals(c) : _ -> false;
     }
 
     public String getIndexName() {
@@ -73,6 +81,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     @Override
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         final ColumnIdent column = ref.column();
+        if (ref.valueType() instanceof StringType && isSingletonPrimaryKey.test(column)) {
+            return IdCollectorExpression.forVersion(shardVersion);
+        }
         switch (column.name()) {
             case SysColumns.Names.RAW:
                 if (column.isRoot()) {
@@ -82,7 +93,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
             case SysColumns.Names.UID:
             case SysColumns.Names.ID:
-                return new IdCollectorExpression();
+                return IdCollectorExpression.forVersion(shardVersion);
 
             case SysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();

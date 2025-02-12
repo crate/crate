@@ -275,7 +275,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();
-        var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of(), _ -> false);
+        var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of(), List.of(), Version.CURRENT, _ -> false);
 
         var it = DocValuesGroupByOptimizedIterator.tryOptimize(
             functions,

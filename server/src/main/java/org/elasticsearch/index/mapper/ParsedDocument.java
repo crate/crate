@@ -19,14 +19,17 @@
 
 package org.elasticsearch.index.mapper;
 
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 
+import io.crate.expression.reference.doc.lucene.IdCollectorExpression;
 import io.crate.metadata.doc.SysColumns;
 
 /**
@@ -34,11 +37,14 @@ import io.crate.metadata.doc.SysColumns;
  */
 public class ParsedDocument {
 
-    public static ParsedDocument createDeleteTombstoneDoc(String index, String id) throws MapperParsingException {
+    public static ParsedDocument createDeleteTombstoneDoc(Version shardVersion, String id) throws MapperParsingException {
         Document doc = new Document();
 
         BytesRef idBytes = Uid.encodeId(id);
         doc.add(new Field(SysColumns.Names.ID, idBytes, SysColumns.ID.FIELD_TYPE));
+        if (shardVersion.onOrAfter(IdCollectorExpression.STORED_AS_BINARY_VERSION)) {
+            doc.add(new BinaryDocValuesField(SysColumns.Names.ID, idBytes));
+        }
 
         NumericDocValuesField version = new NumericDocValuesField(SysColumns.VERSION.name(), -1L);
         doc.add(version);
@@ -56,7 +62,7 @@ public class ParsedDocument {
         ).toTombstone();
     }
 
-    public static ParsedDocument createNoopTombstoneDoc(String index, String reason) throws MapperParsingException {
+    public static ParsedDocument createNoopTombstoneDoc(String reason) throws MapperParsingException {
         Document doc = new Document();
 
         final String id = ""; // _id won't be used.

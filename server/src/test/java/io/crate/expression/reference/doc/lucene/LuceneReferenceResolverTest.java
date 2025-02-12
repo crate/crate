@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.cast.CastMode;
@@ -49,6 +50,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
         RELATION_NAME.indexNameOrAlias(),
         List.of(),
+        List.of(ColumnIdent.of("key")),
+        Version.CURRENT,
         (_) -> false
     );
 
@@ -77,6 +80,31 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         );
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryTerm))
             .isExactlyInstanceOf(PrimaryTermCollectorExpression.class);
+    }
+
+    @Test
+    public void testGetPrimaryKey() {
+        SimpleReference primaryKey = new SimpleReference(
+            new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
+        );
+        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryKey).getClass().toString())
+            .contains("BinaryIdCollectorExpression");
+    }
+
+    @Test
+    public void testGetPrimaryKeyIn5x() {
+        SimpleReference primaryKey = new SimpleReference(
+            new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
+        );
+        LuceneReferenceResolver resolver = new LuceneReferenceResolver(
+            RELATION_NAME.indexNameOrAlias(),
+            List.of(),
+            List.of(ColumnIdent.of("key")),
+            Version.V_5_10_0,
+            (_) -> false
+        );
+        assertThat(resolver.getImplementation(primaryKey).getClass().toString())
+            .contains("StoredIdCollectorExpression");
     }
 
     @Test
@@ -116,6 +144,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
             partitionName.asIndexName(),
             table.partitionedByColumns(),
+            table.primaryKey(),
+            Version.CURRENT,
             table.isParentReferenceIgnored()
         );
         Reference year = table.getReference(ColumnIdent.of("year"));

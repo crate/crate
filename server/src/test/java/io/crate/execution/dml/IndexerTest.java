@@ -167,7 +167,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer.updateTargets(actualTable::getReference);
         ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(9);
+            .hasSize(10);
 
         assertThat(newColumns)
             .hasSize(1);
@@ -212,7 +212,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer.updateTargets(actualTable::getReference);
         ParsedDocument parsedDoc = indexer.index(item);
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(10);
+            .hasSize(11);
 
         assertThat(newColumns)
             .satisfiesExactly(
@@ -243,7 +243,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.doc().getFields("o.y")).isEmpty();
         assertThat(doc.doc().getFields())
             .as("source, seqNo, id...")
-            .hasSize(8);
+            .hasSize(9);
 
         assertTranslogParses(doc, table);
     }
@@ -284,7 +284,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(13);
+            .hasSize(14);
 
         assertTranslogParses(parsedDoc, actualTable);
     }
@@ -311,7 +311,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .as("If explicit null value is provided, the default expression is not applied")
             .isEqualTo("{}");
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(7);
+            .hasSize(8);
 
         indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -327,7 +327,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"x\":10,\"y\":0}"
         );
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(9);
+            .hasSize(10);
     }
 
     @Test

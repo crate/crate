@@ -84,6 +84,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.filter.RegexFilter;
 import org.apache.lucene.codecs.lucene90.Lucene90StoredFieldsFormat;
+import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
@@ -4814,6 +4815,7 @@ public class InternalEngineTests extends EngineTestCase {
             final SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             final Document document = new Document();
             document.add(uidField);
+            document.add(new BinaryDocValuesField("_id", new BytesRef(id)));
             document.add(versionField);
             document.add(seqID.seqNo);
             document.add(seqID.seqNoDocValue);
