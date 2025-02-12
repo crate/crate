@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -166,5 +167,21 @@ public class FulltextIntegrationTest extends IntegTestCase {
             keywords| text_array
             """
         );
+    }
+
+    @Test
+    public void test_can_use_nested_string_array_in_fulltext_index() throws Exception {
+        execute(
+            """
+            create table t (
+                obj object as (details array(object as (names text[]))),
+                index ft using fulltext (obj['details']['names'])
+            )
+            """
+        );
+        execute("insert into t (obj) values ({details=[{names=['Arthur', 'Trillian']}]})");
+        execute("refresh table t");
+        execute("select * from t where match(ft, 'Arthur')");
+        assertThat(response).hasRowCount(1);
     }
 }
