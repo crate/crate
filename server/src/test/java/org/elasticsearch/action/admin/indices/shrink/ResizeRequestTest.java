@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.metadata.PartitionName;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
 public class ResizeRequestTest {
@@ -53,6 +54,8 @@ public class ResizeRequestTest {
                     assertThat(request.table()).isEqualTo(table);
                     assertThat(request.partitionValues()).isEqualTo(originalReq.partitionValues());
                     assertThat(request.newNumShards()).isEqualTo(originalReq.newNumShards());
+                    assertThat(request.masterNodeTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
+                    assertThat(request.ackTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
                 }
             }
 
