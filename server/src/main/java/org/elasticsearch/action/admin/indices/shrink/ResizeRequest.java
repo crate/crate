@@ -28,11 +28,14 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
 
 /**
  * Request resize of a table or partition
+ * Uses double of the default master node timeout and ack timeout.
+ * default 30 seconds might be not enough and resizing operation fails.
  */
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
@@ -44,6 +47,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
         this.table = table;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -60,6 +65,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             throw new UnsupportedOperationException(
                 "Cannot stream ResizeRequest in mixed 6.0.0/<5.10 clusters. All nodes need to be >= 5.10");
         }
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     @Override
