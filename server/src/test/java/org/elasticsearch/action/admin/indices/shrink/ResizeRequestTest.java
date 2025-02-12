@@ -28,6 +28,7 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
 public class ResizeRequestTest {
@@ -47,6 +48,8 @@ public class ResizeRequestTest {
                     assertThat(request.table()).isEqualTo(table);
                     assertThat(request.partitionValues()).isEqualTo(originalReq.partitionValues());
                     assertThat(request.newNumShards()).isEqualTo(originalReq.newNumShards());
+                    assertThat(request.masterNodeTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
+                    assertThat(request.ackTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
                 }
             }
         }
