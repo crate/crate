@@ -221,9 +221,9 @@ public class MetadataCreateIndexService {
                     indexNames,
                     ActiveShardCount.DEFAULT,
                     request.ackTimeout()
-                ).thenApply(shardsAcked -> new ResizeResponse(resp.isAcknowledged(), shardsAcked, request.table().indexNameOrAlias()));
+                ).thenApply(shardsAcked -> new ResizeResponse(resp.isAcknowledged(), shardsAcked));
             } else {
-                ResizeResponse resizeResponse = new ResizeResponse(false, false, request.table().indexNameOrAlias());
+                ResizeResponse resizeResponse = new ResizeResponse(false, false);
                 return CompletableFuture.completedFuture(resizeResponse);
             }
         });
