@@ -136,6 +136,7 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
                 joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                 joinPlan.isLookUpJoinRuleApplied(),
                 true,
+                joinPlan.eliminateCrossJoinRuleIsApplied(),
                 joinPlan.lookUpJoin()
             );
         } else {

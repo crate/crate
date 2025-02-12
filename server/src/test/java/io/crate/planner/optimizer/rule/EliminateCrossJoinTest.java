@@ -175,8 +175,14 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.a | [x] | true]"
         );
 
-        var invalidOrder = EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b));
-        assertThat(invalidOrder).isNull();
+        var orderWithCrossJoin = EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b));
+        assertThat(orderWithCrossJoin).hasOperators(
+            "Join[INNER | ((x = y) AND (y = z))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.b | [y] | true]"
+        );
     }
 
     @Test
@@ -210,16 +216,6 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  │  └ Collect[doc.c | [z] | true]\n" +
             "  │  └ Collect[doc.b | [y] | true]\n" +
             "  └ Collect[doc.d | [w] | true]"
-        );
-
-        assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(b, d, a, c))).isEqualTo(
-            "Join[INNER | (x = z)]\n" +
-            "  ├ Join[INNER | (x = y)]\n" +
-            "  │  ├ Join[INNER | (y = w)]\n" +
-            "  │  │  ├ Collect[doc.b | [y] | true]\n" +
-            "  │  │  └ Collect[doc.d | [w] | true]\n" +
-            "  │  └ Collect[doc.a | [x] | true]\n" +
-            "  └ Collect[doc.c | [z] | true]"
         );
     }
 
@@ -547,6 +543,43 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Join[INNER | (x = y)]",
             "    ├ Collect[doc.b | [y] | true]",
             "    └ Collect[doc.a | [x] | true]"
+        );
+    }
+
+
+    @Test
+    public void test_eliminate_cross_joins_with_remaining_cross_joins() throws Exception {
+        var join1 = new JoinPlan(a, b, JoinType.CROSS, null);
+        var join2 = new JoinPlan(join1, c, JoinType.CROSS, null);
+        var join3 = new JoinPlan(join2, d, JoinType.INNER, e.asSymbol("a.x = b.y AND c.z = d.w"));
+
+        assertThat(join3).hasOperators(
+            "Join[INNER | ((x = y) AND (z = w))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Join[CROSS]",
+            "  │  │  ├ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.d | [w] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join3, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            e.ruleContext());
+
+        assertThat(result).hasOperators(
+            "Join[INNER | (z = w)]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Join[INNER | (x = y)]",
+            "  │  │  ├ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.d | [w] | true]"
         );
     }
 }

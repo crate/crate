@@ -24,16 +24,13 @@ package io.crate.planner.optimizer.joinorder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
-import io.crate.common.collections.Sets;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -83,7 +80,7 @@ import io.crate.sql.tree.JoinType;
  * </pre>
  */
 public record JoinGraph(List<LogicalPlan> nodes,
-                        Map<LogicalPlan, Set<Edge>> edges,
+                        Map<LogicalPlan, List<Edge>> edges,
                         List<Symbol> filters,
                         boolean hasCrossJoin) {
 
@@ -95,7 +92,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
         }
 
         var newNodes = Lists.concat(this.nodes, other.nodes);
-        var newEdges = Maps.merge(this.edges, other.edges, Sets::union);
+        var newEdges = Maps.merge(this.edges, other.edges, Lists::concat);
         var newFilters = Lists.concat(this.filters, other.filters);
         var hasCrossJoin = this.hasCrossJoin || other.hasCrossJoin();
 
@@ -107,8 +104,8 @@ public record JoinGraph(List<LogicalPlan> nodes,
         );
     }
 
-    JoinGraph withEdges(Map<LogicalPlan, Set<Edge>> edges) {
-        var newEdges = Maps.merge(this.edges, edges, Sets::union);
+    JoinGraph withEdges(Map<LogicalPlan, List<Edge>> edges) {
+        var newEdges = Maps.merge(this.edges, edges, Lists::concat);
         return new JoinGraph(this.nodes, newEdges, this.filters, this.hasCrossJoin);
     }
 
@@ -128,10 +125,10 @@ public record JoinGraph(List<LogicalPlan> nodes,
         return nodes.size();
     }
 
-    public Set<Edge> edges(LogicalPlan node) {
+    public List<Edge> edges(LogicalPlan node) {
         var result = edges.get(node);
         if (result == null) {
-            return Set.of();
+            return List.of();
         }
         return result;
     }
@@ -204,7 +201,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
 
         private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {
 
-            private final Map<LogicalPlan, Set<Edge>> edges = new HashMap<>();
+            private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
             private final List<LogicalPlan> sources = new ArrayList<>();
 
             @Override
@@ -246,9 +243,9 @@ public record JoinGraph(List<LogicalPlan> nodes,
             private void addEdge(LogicalPlan from, Edge edge) {
                 var values = edges.get(from);
                 if (values == null) {
-                    values = Set.of(edge);
+                    values = List.of(edge);
                 } else {
-                    values = new LinkedHashSet<>(values);
+                    values = new ArrayList<>(values);
                     values.add(edge);
                 }
                 edges.put(from, values);
