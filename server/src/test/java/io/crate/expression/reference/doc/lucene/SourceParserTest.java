@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
@@ -50,7 +49,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         var column = ColumnIdent.of("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
@@ -64,7 +63,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_unnecessary_leafs_of_object_columns_are_not_collected() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         var x = ColumnIdent.of("_doc", List.of("obj", "x"));
         var z = ColumnIdent.of("_doc", List.of("obj", "z"));
         sourceParser.register(x, DataTypes.INTEGER);
@@ -81,7 +80,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_full_object_is_collected_if_full_object_requested() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         var obj = ColumnIdent.of("_doc", List.of("obj"));
         var x = ColumnIdent.of("_doc", List.of("obj", "x"));
         // the order in which the columns are registered must not matter
@@ -104,7 +103,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_numbers_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         sourceParser.register(ColumnIdent.of("_doc", List.of("i")), DataTypes.INTEGER);
         sourceParser.register(ColumnIdent.of("_doc", List.of("l")), DataTypes.LONG);
         sourceParser.register(ColumnIdent.of("_doc", List.of("f")), DataTypes.FLOAT);
@@ -130,7 +129,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         sourceParser.register(ColumnIdent.of("_doc", List.of("b")), DataTypes.BOOLEAN);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
@@ -142,7 +141,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_uses_inner_type_info_to_parse_objects() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         BitStringType bitStringType = new BitStringType(4);
         ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("bs", bitStringType)
@@ -165,7 +164,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_sibling_subcolumn_has_same_name() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         ObjectType innerObjectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -197,7 +196,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_null_object_next_not_sibling_column_has_same_name() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("target", DataTypes.FLOAT)
             .build();
@@ -223,7 +222,7 @@ public class SourceParserTest extends ESTestCase {
     // tracks a bug: https://github.com/crate/crate/issues/13504
     @Test
     public void test_nested_array_access() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         // ex:
         //   CREATE TABLE test (
         //   "a" array(object as (
@@ -263,7 +262,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_nested_array_of_geotype() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         ArrayType<?> type = new ArrayType<>(new ArrayType<>(GeoPointType.INSTANCE));
         sourceParser.register(ColumnIdent.of("_doc", List.of("a")), type);
         var result = sourceParser.parse(new BytesArray("""
@@ -278,7 +277,7 @@ public class SourceParserTest extends ESTestCase {
     // https://github.com/crate/crate/issues/13990
     @Test
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         var type = ObjectType.UNTYPED;
         sourceParser.register(ColumnIdent.of("_doc", List.of("x")), type);
         var result = sourceParser.parse(
@@ -297,7 +296,7 @@ public class SourceParserTest extends ESTestCase {
     // https://github.com/crate/crate/issues/14451
     @Test
     public void test_nested_arrays_from_ignored_objects() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
         sourceParser.register(ColumnIdent.of("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
         var result = sourceParser.parse(
             new BytesArray(
@@ -314,42 +313,33 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_dropped_leaf_sub_column() {
+        String deleted = "ob";
         SourceParser sourceParser = new SourceParser(
-            Set.of(
-                createReference(ColumnIdent.of("o", List.of("oo", "b")), DataTypes.INTEGER),
-                createReference(ColumnIdent.of("o", List.of("oo", "s")), DataTypes.INTEGER)
-            ),
-            UnaryOperator.identity(),
+            oidOrName -> {
+                return oidOrName.equals(deleted) ? null : oidOrName;
+            },
             true
         );
         var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
-            .setInnerType("a", DataTypes.INTEGER)
-            .setInnerType("b", DataTypes.INTEGER)
-            .setInnerType("s", DataTypes.INTEGER)
-            .setInnerType("t", DataTypes.INTEGER)
+            .setInnerType("oa", DataTypes.INTEGER)
+            .setInnerType("ob", DataTypes.INTEGER)
             .build();
         var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
             .setInnerType("b", DataTypes.INTEGER)
             .setInnerType("oo", ooType)
-            .setInnerType("s", DataTypes.INTEGER)
-            .setInnerType("t", DataTypes.INTEGER)
             .build();
 
         sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
-                {"o": {"a":1, "b":2, "oo":{"a": 11, "b":22, "c":33, "s":33, "t":44}, "s":3, "t":4}}
+                {"o": {"a":1, "b":2, "oo":{"oa": 11, "ob":22, "oc":33}}}
             """));
 
         assertThat(Maps.getByPath(result, "o.a")).isEqualTo(1);
         assertThat(Maps.getByPath(result, "o.b")).isEqualTo(2);
-        assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
-        assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
-        assertThat(Maps.getByPath(result, "o.oo.a")).isEqualTo(11);
-        assertThat(Maps.getByPath(result, "o.oo.b")).isNull();
-        assertThat(Maps.getByPath(result, "o.oo.s")).isNull();
-        assertThat(Maps.getByPath(result, "o.oo.t")).isEqualTo(44);
+        assertThat(Maps.getByPath(result, "o.oo.oa")).isEqualTo(11);
+        assertThat(Maps.getByPath(result, "o.oo.ob")).isNull();
     }
 
     @Test
@@ -364,9 +354,9 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("b", DataTypes.INTEGER)
             .build();
 
+        String deleted = "oo";
         SourceParser sourceParser = new SourceParser(
-            Set.of(createReference(ColumnIdent.of("o", List.of("oo")), ooType)),
-            UnaryOperator.identity(),
+            nameOrOid -> nameOrOid.equals(deleted) ? null : nameOrOid,
             true
         );
         // Register parent column in order to collect ony this one, ignoring any other column
@@ -384,9 +374,9 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_drop_sub_column_with_children_collect_all() {
+        String deleted = "oo";
         SourceParser sourceParser = new SourceParser(
-            Set.of(createReference(ColumnIdent.of("o", List.of("oo")), DataTypes.UNTYPED_OBJECT)),
-            UnaryOperator.identity(),
+            nameOrOid -> nameOrOid.equals(deleted) ? null : nameOrOid,
             true
         );
 
@@ -404,12 +394,9 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
+        Set<String> deleted = Set.of("ob", "ot");
         SourceParser sourceParser = new SourceParser(
-            Set.of(
-                createReference(ColumnIdent.of("o", List.of("oo", "b")), DataTypes.INTEGER),
-                createReference(ColumnIdent.of("o", List.of("oo", "t")), DataTypes.INTEGER)
-            ),
-            UnaryOperator.identity(),
+            nameOrOid -> deleted.contains(nameOrOid) ? null : nameOrOid,
             true
         );
         var ooType = ObjectType.of(ColumnPolicy.DYNAMIC)
@@ -420,10 +407,10 @@ public class SourceParserTest extends ESTestCase {
             .build();
         var oType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("a", DataTypes.INTEGER)
-            .setInnerType("b", DataTypes.INTEGER)
+            .setInnerType("ob", DataTypes.INTEGER)
             .setInnerType("oo", new ArrayType<>(ooType))
             .setInnerType("s", DataTypes.INTEGER)
-            .setInnerType("t", DataTypes.INTEGER)
+            .setInnerType("ot", DataTypes.INTEGER)
             .build();
 
         sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
@@ -436,10 +423,10 @@ public class SourceParserTest extends ESTestCase {
                 "oo": [
                   {
                     "a": 11,
-                    "b": 22,
+                    "ob": 22,
                     "c": 33,
                     "s": 33,
-                    "t": 44
+                    "ot": 44
                   }
                 ],
                 "s": 3,
@@ -471,9 +458,9 @@ public class SourceParserTest extends ESTestCase {
                 .setInnerType("b", DataTypes.INTEGER)
                 .build();
 
+        String deleted = "oo";
         SourceParser sourceParser = new SourceParser(
-            Set.of(createReference(ColumnIdent.of("o", List.of("oo")), ooType)),
-            UnaryOperator.identity(),
+            oidOrName -> oidOrName.equals(deleted) ? null : oidOrName,
             true
         );
 
@@ -492,7 +479,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     @SuppressWarnings("unchecked")
     public void test_parse_long_from_object_array() throws Exception {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), true);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
 
         var objType = ObjectType.of(ColumnPolicy.DYNAMIC)
             .setInnerType("x", DataTypes.LONG)
@@ -517,7 +504,7 @@ public class SourceParserTest extends ESTestCase {
 
     @Test
     public void test_parser_uses_null_values_instead_throwing_exceptions_on_value_parsing_errors() {
-        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity(), false);
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), false);
         var column = ColumnIdent.of("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
