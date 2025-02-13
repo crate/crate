@@ -90,15 +90,9 @@ public class InboundHandlerTests extends ESTestCase {
                 return localAddress;
             }
         };
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
-        TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {});
-        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
-        OutboundHandler outboundHandler = new OutboundHandler("node", version, new StatsTracker(), threadPool,
-            BigArrays.NON_RECYCLING_INSTANCE);
         requestHandlers = new Transport.RequestHandlers();
         responseHandlers = new Transport.ResponseHandlers();
-        handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive, requestHandlers,
-            responseHandlers);
+        handler = handlerForVersion(version);
     }
 
     @After
@@ -283,7 +277,9 @@ public class InboundHandlerTests extends ESTestCase {
     public void test_handshake_precedes_stream_version_for_compatibility() throws Exception {
         // This isn't compatible with the receivers version V_6_0_0, but the original version (V_5_10_1) precedes the
         // minimum compatible one.
+        Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_5_10_1;
+        InboundHandler handler = handlerForVersion(localVersion);
         int headerSize = TcpHeader.headerSize(remoteVersion);
 
         final long requestId = randomNonNegativeLong();
@@ -304,7 +300,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
-        int responseHeaderSize = TcpHeader.headerSize(Version.V_6_0_0.minimumCompatibilityVersion());
+        int responseHeaderSize = TcpHeader.headerSize(localVersion.minimumCompatibilityVersion());
         ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
@@ -312,7 +308,7 @@ public class InboundHandlerTests extends ESTestCase {
         InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
 
         TransportHandshaker.HandshakeResponse response = new TransportHandshaker.HandshakeResponse(responseMessage.openOrGetStreamInput());
-        assertThat(response.getResponseVersion()).isEqualTo(Version.V_6_0_0);
+        assertThat(response.getResponseVersion()).isEqualTo(localVersion);
     }
 
     /**
@@ -324,24 +320,17 @@ public class InboundHandlerTests extends ESTestCase {
      */
     @Test
     public void test_handshake_checks_minimum_compatible_version_if_normal_version_is_not_compatible() throws Exception {
-        Version localVersion = Version.V_5_10_1;
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
-        TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (n, c, r, v) -> {});
-        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
-        OutboundHandler outboundHandler = new OutboundHandler("node", localVersion, new StatsTracker(), threadPool,
-            BigArrays.NON_RECYCLING_INSTANCE);
-        InboundHandler handler = new InboundHandler(threadPool, outboundHandler, namedWriteableRegistry, handshaker, keepAlive, requestHandlers,
-            responseHandlers);
-
-
+        Version localVersion = Version.V_6_0_0;
+        Version remoteVersion = Version.V_5_10_1;
+        InboundHandler handler = handlerForVersion(remoteVersion);
         int headerSize = TcpHeader.headerSize(localVersion);
 
         final long requestId = randomNonNegativeLong();
         final Header requestHeader = new Header(between(0, 100), requestId,
-            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), Version.V_6_0_0.minimumCompatibilityVersion());
+            TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), localVersion.minimumCompatibilityVersion());
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new TransportHandshaker.HandshakeRequest(Version.V_6_0_0.minimumCompatibilityVersion()),
-            Version.V_6_0_0,
+            new TransportHandshaker.HandshakeRequest(localVersion.minimumCompatibilityVersion()),
+            localVersion,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
             true,
@@ -354,7 +343,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
-        int responseHeaderSize = TcpHeader.headerSize(localVersion);
+        int responseHeaderSize = TcpHeader.headerSize(remoteVersion);
         ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
@@ -363,12 +352,14 @@ public class InboundHandlerTests extends ESTestCase {
 
         TransportHandshaker.HandshakeResponse response = new TransportHandshaker.HandshakeResponse(responseMessage.openOrGetStreamInput());
 
-        assertThat(response.getResponseVersion()).isEqualTo(Version.V_5_10_1);
+        assertThat(response.getResponseVersion()).isEqualTo(remoteVersion);
     }
 
     @Test
     public void test_handshake_error_if_version_and_minimum_compatible_version_is_not_compatible() throws Exception {
+        Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_4_8_4;
+        InboundHandler handler = handlerForVersion(localVersion);
         int headerSize = TcpHeader.headerSize(remoteVersion);
 
         final long requestId = randomNonNegativeLong();
@@ -389,7 +380,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
         handler.inboundMessage(channel, requestMessage);
 
-        int responseHeaderSize = TcpHeader.headerSize(Version.V_6_0_0.minimumCompatibilityVersion());
+        int responseHeaderSize = TcpHeader.headerSize(localVersion.minimumCompatibilityVersion());
         ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
         BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(responseHeaderSize + 2, fullResponseBytes.length() - responseHeaderSize - 2);
@@ -460,5 +451,27 @@ public class InboundHandlerTests extends ESTestCase {
                 return streamInput;
             }
         };
+    }
+
+    private InboundHandler handlerForVersion(Version localVersion) {
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
+        TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (n, c, r, v) -> {});
+        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
+        OutboundHandler outboundHandler = new OutboundHandler(
+            "node",
+            localVersion,
+            new StatsTracker(),
+            threadPool,
+            BigArrays.NON_RECYCLING_INSTANCE
+        );
+        return new InboundHandler(
+            threadPool,
+            outboundHandler,
+            namedWriteableRegistry,
+            handshaker,
+            keepAlive,
+            requestHandlers,
+            responseHandlers
+        );
     }
 }
