@@ -140,6 +140,38 @@ public class InformationSchemaTableDefinitions {
                 )
             ),
             Map.entry(
+                InformationEnabledRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.enabledRoles(role, roles)),
+                    InformationEnabledRolesTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationApplicableRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
+                    InformationApplicableRolesTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationRoleTableGrantsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.roleTableGrants(role, roles)),
+                    InformationRoleTableGrantsTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                InformationAdministrableRoleAuthorizationsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.administrableRoleAuthorizations(role, roles)),
+                    InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
                 ForeignServerTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     informationSchemaIterables::servers,
