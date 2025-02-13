@@ -21,14 +21,17 @@
 
 package io.crate.expression.operator.any;
 
+import static org.apache.lucene.util.automaton.Operations.DEFAULT_DETERMINIZE_WORK_LIMIT;
+
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.AutomatonQuery;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.util.automaton.Operations;
+import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.query.RegexpFlag;
 
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;
@@ -50,10 +53,6 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
                        CaseSensitivity caseSensitivity) {
         super(signature, boundSignature);
         this.caseSensitivity = caseSensitivity;
-    }
-
-    private static String negateWildcard(String wildCard) {
-        return "~(" + wildCard + ')';
     }
 
     @Override
@@ -94,12 +93,11 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
         String pattern = (String) probe.value();
         String regexString = LikeOperators.patternToRegex(pattern, LikeOperators.DEFAULT_ESCAPE);
         regexString = regexString.substring(1, regexString.length() - 1);
-        String notLike = negateWildcard(regexString);
 
-        return new RegexpQuery(new Term(
-            candidates.storageIdent(),
-            notLike),
-            RegexpFlag.COMPLEMENT.value()
+        return new AutomatonQuery(
+            new Term(candidates.storageIdent(), regexString),
+            Operations.complement(
+                new RegExp(regexString).toAutomaton(), DEFAULT_DETERMINIZE_WORK_LIMIT)
         );
     }
 
