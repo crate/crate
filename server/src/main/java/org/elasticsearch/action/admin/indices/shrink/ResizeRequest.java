@@ -44,11 +44,12 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
     private final int newNumShards;
 
     public ResizeRequest(RelationName table, List<String> partitionValues, int newNumShards) {
+        super();
         this.table = table;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
-        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
-        this.timeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(this.timeout.seconds() * 2);
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(this.masterNodeTimeout.seconds() * 2);
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -65,8 +66,6 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             throw new UnsupportedOperationException(
                 "Cannot stream ResizeRequest in mixed 6.0.0/<5.10 clusters. All nodes need to be >= 5.10");
         }
-        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
-        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     @Override
