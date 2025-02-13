@@ -38,6 +38,7 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.index.BaseMergePolicyTestCase;
 import org.apache.lucene.tests.util.VerifyTestClassNamingConvention;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
@@ -49,6 +50,7 @@ import io.crate.testing.Asserts;
 public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
 
     @Test
+    @Ignore(value = "https://github.com/crate/crate/issues/17410")
     public void testDiagnostics() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
