@@ -323,13 +323,13 @@ public class InboundHandlerTests extends ESTestCase {
         Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_5_10_1;
         InboundHandler handler = handlerForVersion(remoteVersion);
-        int headerSize = TcpHeader.headerSize(localVersion);
 
+        int headerSize = TcpHeader.headerSize(localVersion.minimumCompatibilityVersion());
         final long requestId = randomNonNegativeLong();
         final Header requestHeader = new Header(between(0, 100), requestId,
             TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), localVersion.minimumCompatibilityVersion());
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new TransportHandshaker.HandshakeRequest(localVersion.minimumCompatibilityVersion()),
+            new TransportHandshaker.HandshakeRequest(localVersion),
             localVersion,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
