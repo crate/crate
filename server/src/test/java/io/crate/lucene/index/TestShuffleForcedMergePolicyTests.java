@@ -50,7 +50,7 @@ import io.crate.testing.Asserts;
 public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
 
     @Test
-    @Ignore(value="https://github.com/crate/crate/issues/17410")
+    @Ignore(value = "https://github.com/crate/crate/issues/17410")
     public void testDiagnostics() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
