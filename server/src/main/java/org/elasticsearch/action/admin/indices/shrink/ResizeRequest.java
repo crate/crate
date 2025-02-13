@@ -49,11 +49,12 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
     private final int newNumShards;
 
     public ResizeRequest(RelationName table, List<String> partitionValues, int newNumShards) {
+        super();
         this.table = table;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
-        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
-        this.timeout = TimeValue.timeValueSeconds(60);
+        this.timeout = TimeValue.timeValueSeconds(this.timeout.seconds() * 2);
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(this.masterNodeTimeout.seconds() * 2);
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -81,8 +82,6 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             }
             newNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexRequest.settings());
         }
-        this.masterNodeTimeout = TimeValue.timeValueSeconds(60);
-        this.timeout = TimeValue.timeValueSeconds(60);
     }
 
     @Override
