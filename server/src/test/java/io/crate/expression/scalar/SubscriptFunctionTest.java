@@ -120,4 +120,22 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void test_lookup_by_name_with_missing_key_returns_null_if_type_information_are_available() throws Exception {
         assertEvaluateNull("{}::object(strict) as (y int)['y']");
     }
+
+    @Test
+    public void test_lookup_by_name_depends_on_column_policy_and_error_on_unknown_object_key_settings() throws Exception {
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertThatThrownBy(() -> assertEvaluate("{}::object(dynamic)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertEvaluateNull("{}::object(ignored)['missing_key']");
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertEvaluateNull("{}::object(dynamic)['missing_key']");
+        assertEvaluateNull("{}::object(ignored)['missing_key']");
+    }
 }
