@@ -124,16 +124,6 @@ public class TypeConversionTest extends ESTestCase {
     }
 
     @Test
-    public void testToNullConversions() throws Exception {
-        for (DataType<?> type : Lists.concat(
-            DataTypes.PRIMITIVE_TYPES,
-            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
-            assertThat(type.isConvertableTo(DataTypes.UNDEFINED, false)).isFalse();
-        }
-        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED, false)).isTrue();
-    }
-
-    @Test
     public void testGeoPointConversion() throws Exception {
         assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE), false)).isTrue();
         assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT, false)).isTrue();

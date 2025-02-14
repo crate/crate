@@ -663,7 +663,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 if (generatedExpression != null) {
                     builder.generated = expressionAnalyzer.convert(generatedExpression, expressionContext);
                     EnsureNoMatchPredicate.ensureNoMatchPredicate(builder.generated, "Cannot use MATCH in CREATE TABLE statements");
-                    if (builder.type == DataTypes.UNDEFINED) {
+                    if (builder.type == DataTypes.UNDEFINED || builder.type.equals(ObjectType.UNTYPED)) {
                         builder.type = builder.generated.valueType();
                     } else {
                         builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
