@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.assertj.core.api.Assertions;
@@ -90,6 +92,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 )
             ),
             Map.of(),
+            Set.of(),
             null,
             List.of(),
             List.of(),
@@ -154,6 +157,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             dummy,
             references,
             Map.of(),
+            Set.of(),
             null,
             List.of(),
             List.of(),
@@ -247,59 +251,61 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
+    public void test_lookup_name_by_source_returns_null_for_deleted_columns() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         ColumnIdent a = ColumnIdent.of("a", List.of());
         ColumnIdent b = ColumnIdent.of("b", List.of());
+        SimpleReference refa = new SimpleReference(
+            new ReferenceIdent(relationName, a),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            1,
+            false,
+            null
+        );
+        SimpleReference refb = new SimpleReference(
+            new ReferenceIdent(relationName, b),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            2,
+            2,
+            true,
+            null
+        );
         DocTableInfo info = new DocTableInfo(
-                relationName,
-                Map.of(
-                    a,
-                    new SimpleReference(
-                            new ReferenceIdent(relationName, a),
-                            RowGranularity.DOC,
-                            DataTypes.INTEGER,
-                            IndexType.PLAIN,
-                            true,
-                            false,
-                            1,
-                            1,
-                            false,
-                            null
-                    ),
-                    b,
-                    new SimpleReference(
-                            new ReferenceIdent(relationName, b),
-                            RowGranularity.DOC,
-                            DataTypes.INTEGER,
-                            IndexType.PLAIN,
-                            true,
-                            false,
-                            2,
-                            2,
-                            true,
-                            null
-                    )
-                ),
-                Map.of(),
-                null,
-                List.of(),
-                List.of(),
-                null,
-                Settings.builder()
-                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
-                    .build(),
-                List.of(),
-                ColumnPolicy.DYNAMIC,
-                Version.CURRENT,
-                null,
-                false,
-                Operation.ALL,
-                0
+            relationName,
+            Map.of(a, refa, b, refb),
+            Map.of(),
+            Set.of(refb),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.CURRENT,
+            null,
+            false,
+            Operation.ALL,
+            0
         );
 
-        assertThat(info.lookupNameBySourceKey().apply("2")).isEqualTo("b");
+        assertThat(info.droppedColumns()).satisfiesExactly(
+            x -> assertThat(x).hasName("b")
+        );
+        assertThat(info.lookupNameBySourceKey().apply("2")).isNull();
+        assertThat(info.lookupNameBySourceKey().apply("1")).isEqualTo("a");
     }
 
     @Test

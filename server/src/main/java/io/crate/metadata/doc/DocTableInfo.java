@@ -181,7 +181,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
-    private final Map<String, String> leafNamesByOid;
+    private final Map<String, Reference> leafByOid;
     private final RelationName ident;
     @Nullable
     private final String pkConstraintName;
@@ -206,6 +206,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
+                        Set<Reference> droppedColumns,
                         @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
@@ -225,9 +226,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .map(Reference::column)
             .toList();
-        this.droppedColumns = references.values().stream()
-            .filter(Reference::isDropped)
-            .collect(Collectors.toSet());
+        this.droppedColumns = droppedColumns;
         this.references = references.entrySet().stream()
             .filter(entry -> !entry.getValue().isDropped())
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
@@ -247,10 +246,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .map(r -> (GeneratedReference) r)
             .toList();
         this.indexColumns = indexColumns;
-        leafNamesByOid = new HashMap<>();
+        leafByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
             .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
-            .forEach(r -> leafNamesByOid.put(Long.toString(r.oid()), r.column().leafName()));
+            .forEach(r -> leafByOid.put(Long.toString(r.oid()), r));
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
 
@@ -709,25 +708,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     /**
-     * Starting from 5.5 column OID-s are used as source keys.
-     * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
-     * <ul>
-     *  <li>OBJECT (IGNORED) sub-columns</li>
-     *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
-     * </ul>
+     * For tables >= 5.5 this returns a function that takes a oid and returns the corresponding column name or null if missing or dropped.
+     * For tables < 5.5 this returns a identity function.
      */
     public UnaryOperator<String> lookupNameBySourceKey() {
         if (versionCreated.onOrAfter(Version.V_5_5_0)) {
             return oidOrName -> {
-                String name = leafNamesByOid.get(oidOrName);
-                if (name == null) {
+                Reference ref = leafByOid.get(oidOrName);
+                if (ref == null) {
                     if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
                         assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
                         return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
                     }
                     return oidOrName;
+                } else if (ref.isDropped()) {
+                    return null;
                 }
-                return name;
+                return ref.column().leafName();
             };
         } else {
             return UnaryOperator.identity();
@@ -831,6 +828,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             references,
             indexColumns,
+            droppedColumns,
             pkConstraintName,
             primaryKeys,
             newConstraints,
@@ -848,13 +846,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
-        HashSet<Reference> toDrop = HashSet.newHashSet(columns.size());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
-        droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
+        Set<Reference> newDroppedColumns = new HashSet<>();
         for (var column : columns) {
             ColumnIdent columnIdent = column.ref().column();
             Reference reference = references.get(columnIdent);
-            if (toDrop.contains(reference)) {
+            if (newDroppedColumns.contains(reference)) {
                 continue;
             }
             if (reference == null || reference.isDropped()) {
@@ -868,23 +865,27 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 // fixing the inner types of the ancestors will be handled by the parent.
                 updateParentsInnerTypes(columnIdent, null, newReferences);
             }
-            toDrop.add(reference.withDropped(true));
-            newReferences.replace(columnIdent, reference.withDropped(true));
+            Reference droppedRef = reference.withDropped(true);
+            newDroppedColumns.add(droppedRef);
+            newReferences.replace(columnIdent, droppedRef);
             for (var ref : references.values()) {
                 if (ref.column().isChildOf(columnIdent)) {
-                    toDrop.add(ref);
+                    newDroppedColumns.add(ref.withDropped(true));
                     newReferences.remove(ref.column());
                 }
             }
         }
-        if (toDrop.isEmpty()) {
+        if (newDroppedColumns.isEmpty()) {
             return this;
         }
-        UnaryOperator<Symbol> updateRef = symbol -> RefReplacer.replaceRefs(symbol, ref -> newReferences.getOrDefault(ref.column(), ref));
+        UnaryOperator<Symbol> updateRef = symbol -> RefReplacer.replaceRefs(
+            symbol,
+            ref -> newReferences.getOrDefault(ref.column(), ref)
+        );
         ArrayList<CheckConstraint<Symbol>> newCheckConstraints = new ArrayList<>(checkConstraints.size());
         for (var constraint : checkConstraints) {
             boolean drop = false;
-            for (var ref : toDrop) {
+            for (var ref : newDroppedColumns) {
                 drop = constraint.expression().hasColumn(ref.column());
                 if (drop) {
                     break;
@@ -894,10 +895,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 newCheckConstraints.add(constraint.map(updateRef));
             }
         }
+        newDroppedColumns.addAll(droppedColumns);
         return new DocTableInfo(
             ident,
             newReferences,
             indexColumns,
+            newDroppedColumns,
             pkConstraintName,
             primaryKeys,
             newCheckConstraints,
@@ -1001,6 +1004,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             renamedReferences,
             renamedIndexColumns,
+            droppedColumns,
             pkConstraintName,
             renamedPrimaryKeys,
             renamedCheckConstraints,
@@ -1043,11 +1047,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             columnPolicy,
             clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));
-        for (String indexName : concreteIndices(metadata)) {
+        String[] concreteIndices = concreteIndices(metadata);
+        ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
+        for (String indexName : concreteIndices) {
             IndexMetadata indexMetadata = metadata.index(indexName);
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
+            indexUUIDs.add(indexMetadata.getIndexUUID());
 
             long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
             if (allColumns.size() > allowedTotalColumns) {
@@ -1079,6 +1086,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .version(version == null ? 1 : version + 1)
                 .build();
             metadataBuilder.put(template);
+        }
+        if (versionCreated.onOrAfter(Version.V_6_0_0)) {
+            metadataBuilder.addTable(
+                ident,
+                allColumns,
+                tableParameters,
+                clusteredBy,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraintMap,
+                primaryKeys,
+                partitionedBy,
+                closed ? State.CLOSE : State.OPEN,
+                indexUUIDs
+            );
         }
         return metadataBuilder;
     }
@@ -1157,7 +1179,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    Map<String, String> newCheckConstraints) {
         newColumns.forEach(ref -> ref.column().validForCreate());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
-        droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
         int maxPosition = maxPosition();
         AtomicInteger positions = new AtomicInteger(maxPosition);
         List<Reference> newColumnsWithParents = addMissingParents(newColumns);
@@ -1210,6 +1231,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             newReferences,
             indexColumns,
+            droppedColumns,
             pkConstraintName,
             newPrimaryKeys,
             newChecks,
