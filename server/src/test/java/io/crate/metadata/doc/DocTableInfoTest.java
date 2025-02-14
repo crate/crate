@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -247,7 +248,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
+    public void test_lookup_name_by_source_returns_null_for_deleted_columns() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         ColumnIdent a = ColumnIdent.of("a", List.of());
@@ -299,7 +300,11 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 0
         );
 
-        assertThat(info.lookupNameBySourceKey().apply("2")).isEqualTo("b");
+        assertThat(info.droppedColumns()).satisfiesExactly(
+            x -> assertThat(x).hasName("b")
+        );
+        assertThat(info.lookupNameBySourceKey().apply("2")).isNull();
+        assertThat(info.lookupNameBySourceKey().apply("1")).isEqualTo("a");
     }
 
     @Test
