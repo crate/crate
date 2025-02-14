@@ -170,7 +170,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
         builder.prettyPrint().lfAtEnd();
         builder.startObject();
         builder.field("ok", status == HttpResponseStatus.OK);
-        builder.field("status", HttpResponseStatus.OK.code());
+        builder.field("status", status.code());
         if (nodeName != null && !nodeName.isEmpty()) {
             builder.field("name", nodeName);
         }
