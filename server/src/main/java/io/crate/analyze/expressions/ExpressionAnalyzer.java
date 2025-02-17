@@ -703,11 +703,7 @@ public class ExpressionAnalyzer {
 
             Symbol ref;
             List<String> parts = subscriptContext.parts();
-            try {
-                ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
-            } catch (ColumnUnknownException e) {
-                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
-            }
+            ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
 
             // If there are any array subscripts, recursively wrap the resolved expression in an
             // array subscript function for each nested array dereference.
