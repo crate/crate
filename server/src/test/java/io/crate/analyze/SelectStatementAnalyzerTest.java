@@ -2997,4 +2997,34 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         executor.analyze("select _version from t1");
         assertWarnings("_version system column is deprecated, please use _seq_no and _primary_term instead.");
     }
+
+    /**
+     * https://github.com/crate/crate/issues/17381#issuecomment-2650040614
+     */
+    @Test
+    public void test_object_subscript_retrieval_from_join_relation_called_inside_queried_select_relation() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation querySelectRelation = executor.analyze(
+            """
+                WITH partitions AS (
+                    SELECT
+                        table_schema
+                    FROM
+                        "information_schema"."table_partitions" AS p
+                ),
+                partition_allocations AS (
+                    SELECT DISTINCT
+                        s.schema_name AS table_schema,
+                        n.attributes
+                    FROM sys.shards s
+                    JOIN sys.nodes n ON s.node['id'] = n.id
+                )
+                SELECT attributes['storage']
+                FROM partitions p
+                JOIN partition_allocations a ON a.table_schema = p.table_schema
+                    AND attributes['storage'] <> 'warm';
+                """);
+        assertThat(querySelectRelation.outputs()).hasSize(1);
+        assertThat(querySelectRelation.outputs().getFirst()).isScopedSymbol("attributes['storage']");
+    }
 }
