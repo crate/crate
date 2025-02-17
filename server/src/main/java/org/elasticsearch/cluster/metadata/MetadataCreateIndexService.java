@@ -206,7 +206,11 @@ public class MetadataCreateIndexService {
             request,
             indicesService,
             shardId -> {
-                DocsStats docs = indexShards.get(shardId.id()).getPrimary().getDocs();
+                IndexShardStats indexShardStats = indexShards.get(shardId.id());
+                if (indexShardStats == null) {
+                    return 0;
+                }
+                DocsStats docs = indexShardStats.getPrimary().getDocs();
                 return docs == null ? 0 : docs.getCount();
             },
             shardLimitValidator,
