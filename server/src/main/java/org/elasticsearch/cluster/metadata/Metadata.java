@@ -1273,6 +1273,27 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             return List.of();
         }
+        if (relation instanceof RelationMetadata.Table table) {
+            List<String> indexUUIDs = table.indexUUIDs();
+            ArrayList<T> result = new ArrayList<>(indexUUIDs.size());
+            for (String indexUUID : indexUUIDs) {
+                IndexMetadata imd = indexByUUID(indexUUID);
+                if (imd == null) {
+                    if (strict) {
+                        throw new RelationUnknown(relationName);
+                    }
+                    continue;
+                }
+                if (!partitionValues.isEmpty() && !partitionValues.equals(imd.partitionValues())) {
+                    continue;
+                }
+                T item = as.apply(imd);
+                if (item != null) {
+                    result.add(item);
+                }
+            }
+            return result;
+        }
         IndicesOptions indicesOptions = strict
             ? IndicesOptions.STRICT_EXPAND_OPEN
             : IndicesOptions.LENIENT_EXPAND_OPEN;
