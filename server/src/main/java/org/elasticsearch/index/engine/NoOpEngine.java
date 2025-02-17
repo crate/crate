@@ -52,7 +52,7 @@ public final class NoOpEngine extends ReadOnlyEngine {
     public NoOpEngine(EngineConfig config) {
         super(config, null, null, true, UnaryOperator.identity(), true);
         Directory directory = store.directory();
-        try (DirectoryReader reader = openDirectory(directory, config.getIndexSettings().isSoftDeleteEnabled())) {
+        try (DirectoryReader reader = openDirectory(directory)) {
             this.docsStats = docsStats(reader);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

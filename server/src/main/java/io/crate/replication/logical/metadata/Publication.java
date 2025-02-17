@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.index.IndexSettings;
 
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
@@ -115,7 +114,6 @@ public class Publication implements Writeable {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", tables=" + tables + "}";
     }
 
-
     public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state,
                                                                        Roles roles,
                                                                        Role publicationOwner,
@@ -125,16 +123,6 @@ public class Publication implements Writeable {
         Predicate<String> indexFilter = indexName -> {
             var indexMetadata = state.metadata().index(indexName);
             if (indexMetadata != null) {
-                boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(indexMetadata.getSettings());
-                if (softDeletes == false) {
-                    LOGGER.warn(
-                        "Table '{}' won't be replicated as the required table setting " +
-                            "'soft_deletes.enabled' is set to: {}",
-                        RelationName.fromIndexName(indexName),
-                        softDeletes
-                    );
-                    return false;
-                }
                 var routingTable = state.routingTable().index(indexName);
                 assert routingTable != null : "routingTable must not be null";
                 return routingTable.allPrimaryShardsActive();

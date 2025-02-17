@@ -171,7 +171,6 @@ public class RecoverySourceHandler {
                 IOUtils.closeWhileHandlingException(releaseResources, () -> future.completeExceptionally(e));
             };
 
-            final boolean softDeletesEnabled = shard.indexSettings().isSoftDeleteEnabled();
             final SetOnce<RetentionLease> retentionLeaseRef = new SetOnce<>();
 
             runUnderPrimaryPermit(() -> {
@@ -188,7 +187,7 @@ public class RecoverySourceHandler {
             }, shardId + " validating recovery target [" + request.targetAllocationId() + "] registered ",
                 shard, cancellableThreads, logger);
             final Engine.HistorySource historySource;
-            if (softDeletesEnabled && (shard.useRetentionLeasesInPeerRecovery() || retentionLeaseRef.get() != null)) {
+            if (shard.useRetentionLeasesInPeerRecovery() || retentionLeaseRef.get() != null) {
                 historySource = Engine.HistorySource.INDEX;
             } else {
                 historySource = Engine.HistorySource.TRANSLOG;
@@ -208,7 +207,7 @@ public class RecoverySourceHandler {
             // Also it's pretty cheap when soft deletes are enabled, and it'd be a disaster if we tried a sequence-number-based recovery
             // without having a complete history.
 
-            if (isSequenceNumberBasedRecovery && softDeletesEnabled && retentionLeaseRef.get() != null) {
+            if (isSequenceNumberBasedRecovery && retentionLeaseRef.get() != null) {
                 // all the history we need is retained by an existing retention lease, so we do not need a separate retention lock
                 retentionLock.close();
                 logger.trace("history is retained by {}", retentionLeaseRef.get());
@@ -251,9 +250,7 @@ public class RecoverySourceHandler {
                 // advances and not when creating a new safe commit. In any case this is a best-effort thing since future recoveries can
                 // always fall back to file-based ones, and only really presents a problem if this primary fails before things have settled
                 // down.
-                startingSeqNo = softDeletesEnabled
-                    ? Long.parseLong(safeCommitRef.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY)) + 1L
-                    : 0;
+                startingSeqNo = Long.parseLong(safeCommitRef.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY)) + 1L;
                 logger.trace("performing file-based recovery followed by history replay starting at [{}]", startingSeqNo);
 
                 try {
@@ -649,34 +646,19 @@ public class RecoverySourceHandler {
                 //
                 // (approximately) because we do not guarantee to be able to satisfy every lease on every peer.
                 logger.trace("cloning primary's retention lease");
-                try {
-                    final StepListener<ReplicationResponse> cloneRetentionLeaseStep = new StepListener<>();
-                    final RetentionLease clonedLease = shard.cloneLocalPeerRecoveryRetentionLease(
-                        request.targetNode().getId(),
-                        new ThreadedActionListener<>(
-                            logger,
-                            shard.getThreadPool(),
-                            ThreadPool.Names.GENERIC,
-                            cloneRetentionLeaseStep,
-                            false
-                        )
-                    );
-                    logger.trace("cloned primary's retention lease as [{}]", clonedLease);
-                    cloneRetentionLeaseStep.whenComplete(rr -> listener.onResponse(clonedLease), listener::onFailure);
-                } catch (RetentionLeaseNotFoundException e) {
-                    // it's possible that the primary has no retention lease yet if we are doing a rolling upgrade from a version before
-                    // 4.3, and in that case we just create a lease using the local checkpoint of the safe commit which we're using for
-                    // recovery as a conservative estimate for the global checkpoint.
-                    assert shard.indexSettings().getIndexVersionCreated().before(Version.V_4_3_0)
-                        || shard.indexSettings().isSoftDeleteEnabled() == false;
-                    final StepListener<ReplicationResponse> addRetentionLeaseStep = new StepListener<>();
-                    final long estimatedGlobalCheckpoint = startingSeqNo - 1;
-                    final RetentionLease newLease = shard.addPeerRecoveryRetentionLease(request.targetNode().getId(),
-                        estimatedGlobalCheckpoint, new ThreadedActionListener<>(logger, shard.getThreadPool(),
-                            ThreadPool.Names.GENERIC, addRetentionLeaseStep, false));
-                    addRetentionLeaseStep.whenComplete(rr -> listener.onResponse(newLease), listener::onFailure);
-                    logger.trace("created retention lease with estimated checkpoint of [{}]", estimatedGlobalCheckpoint);
-                }
+                final StepListener<ReplicationResponse> cloneRetentionLeaseStep = new StepListener<>();
+                final RetentionLease clonedLease = shard.cloneLocalPeerRecoveryRetentionLease(
+                    request.targetNode().getId(),
+                    new ThreadedActionListener<>(
+                        logger,
+                        shard.getThreadPool(),
+                        ThreadPool.Names.GENERIC,
+                        cloneRetentionLeaseStep,
+                        false
+                    )
+                );
+                logger.trace("cloned primary's retention lease as [{}]", clonedLease);
+                cloneRetentionLeaseStep.whenComplete(rr -> listener.onResponse(clonedLease), listener::onFailure);
             },
             shardId + " establishing retention lease for [" + request.targetAllocationId() + "]",
             shard,

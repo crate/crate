@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
@@ -83,7 +84,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.filter.RegexFilter;
-import org.apache.lucene.codecs.lucene90.Lucene90StoredFieldsFormat;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -269,187 +269,6 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     @Test
-    public void testSegmentsWithoutSoftDeletes() throws Exception {
-        Settings settings = Settings.builder()
-            .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false).build();
-        IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
-            IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
-        try (Store store = createStore();
-             InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
-            List<Segment> segments = engine.segments(false);
-            assertThat(segments.isEmpty()).isTrue();
-
-            // create two docs and refresh
-            ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), B_1);
-            Engine.Index first = indexForDoc(doc);
-            Engine.IndexResult firstResult = engine.index(first);
-            ParsedDocument doc2 = testParsedDocument("2", testDocumentWithTextField(), B_2);
-            Engine.Index second = indexForDoc(doc2);
-            Engine.IndexResult secondResult = engine.index(second);
-            assertThat(secondResult.getTranslogLocation()).isGreaterThan(firstResult.getTranslogLocation());
-            engine.refresh("test");
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(1);
-            assertThat(segments.get(0).isCommitted()).isFalse();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isTrue();
-            assertThat(segments.get(0).getAttributes()).containsKey(Lucene90StoredFieldsFormat.MODE_KEY);
-
-            engine.flush();
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(1);
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-            ParsedDocument doc3 = testParsedDocument("3", testDocumentWithTextField(), B_3);
-            engine.index(indexForDoc(doc3));
-            engine.refresh("test");
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(2);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-
-            assertThat(segments.get(1).isCommitted()).isFalse();
-            assertThat(segments.get(1).isSearch()).isTrue();
-            assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isTrue();
-
-
-            engine.delete(new Engine.Delete(
-                "1",
-                newUid(doc),
-                UNASSIGNED_SEQ_NO,
-                primaryTerm.get(),
-                Versions.MATCH_ANY,
-                VersionType.INTERNAL,
-                Engine.Operation.Origin.PRIMARY,
-                System.nanoTime(),
-                UNASSIGNED_SEQ_NO,
-                0
-            ));
-            engine.refresh("test");
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(2);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-            assertThat(segments.get(1).isCommitted()).isFalse();
-            assertThat(segments.get(1).isSearch()).isTrue();
-            assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isTrue();
-
-            engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
-                                     indexSettings.getSoftDeleteRetentionOperations());
-            ParsedDocument doc4 = testParsedDocument("4", testDocumentWithTextField(), B_3);
-            engine.index(indexForDoc(doc4));
-            engine.refresh("test");
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(3);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-            assertThat(segments.get(1).isCommitted()).isFalse();
-            assertThat(segments.get(1).isSearch()).isTrue();
-            assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isTrue();
-
-            assertThat(segments.get(2).isCommitted()).isFalse();
-            assertThat(segments.get(2).isSearch()).isTrue();
-            assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isTrue();
-
-            // internal refresh - lets make sure we see those segments in the stats
-            ParsedDocument doc5 = testParsedDocument("5", testDocumentWithTextField(), B_3);
-            engine.index(indexForDoc(doc5));
-            engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
-
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(4);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-            assertThat(segments.get(1).isCommitted()).isFalse();
-            assertThat(segments.get(1).isSearch()).isTrue();
-            assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isTrue();
-
-            assertThat(segments.get(2).isCommitted()).isFalse();
-            assertThat(segments.get(2).isSearch()).isTrue();
-            assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isTrue();
-
-            assertThat(segments.get(3).isCommitted()).isFalse();
-            assertThat(segments.get(3).isSearch()).isFalse();
-            assertThat(segments.get(3).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(3).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(3).isCompound()).isTrue();
-
-            // now refresh the external searcher and make sure it has the new segment
-            engine.refresh("test");
-            segments = engine.segments(false);
-            assertThat(segments).hasSize(4);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
-            assertThat(segments.get(0).isCommitted()).isTrue();
-            assertThat(segments.get(0).isSearch()).isTrue();
-            assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isTrue();
-
-            assertThat(segments.get(1).isCommitted()).isFalse();
-            assertThat(segments.get(1).isSearch()).isTrue();
-            assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isTrue();
-
-            assertThat(segments.get(2).isCommitted()).isFalse();
-            assertThat(segments.get(2).isSearch()).isTrue();
-            assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isTrue();
-
-            assertThat(segments.get(3).isCommitted()).isFalse();
-            assertThat(segments.get(3).isSearch()).isTrue();
-            assertThat(segments.get(3).getNumDocs()).isEqualTo(1);
-            assertThat(segments.get(3).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(3).isCompound()).isTrue();
-        }
-    }
-
-    @Test
     public void testVerboseSegments() throws Exception {
         try (Store store = createStore();
              Engine engine = createEngine(defaultSettings, store, createTempDir(), NoMergePolicy.INSTANCE)) {
@@ -532,8 +351,7 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testSegmentsWithSoftDeletes() throws Exception {
         Settings.Builder settings = Settings.builder()
-            .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true);
+            .put(defaultSettings.getSettings());
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
@@ -1461,7 +1279,6 @@ public class InternalEngineTests extends EngineTestCase {
     public void testUpdateWithFullyDeletedSegments() throws IOException {
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), Integer.MAX_VALUE);
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
@@ -1490,7 +1307,6 @@ public class InternalEngineTests extends EngineTestCase {
         final long retainedExtraOps = randomLongBetween(0, 10);
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), retainedExtraOps);
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
@@ -1569,7 +1385,6 @@ public class InternalEngineTests extends EngineTestCase {
         final long retainedExtraOps = randomLongBetween(0, 10);
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), retainedExtraOps);
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
@@ -2428,12 +2243,10 @@ public class InternalEngineTests extends EngineTestCase {
             gcpTracker.updateFromMaster(1L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
                 new IndexShardRoutingTable.Builder(shardId).addShard(primary).build());
             gcpTracker.activatePrimaryMode(primarySeqNo);
-            if (defaultSettings.isSoftDeleteEnabled()) {
-                final CountDownLatch countDownLatch = new CountDownLatch(1);
-                gcpTracker.addPeerRecoveryRetentionLease(initializingReplica.currentNodeId(),
-                    SequenceNumbers.NO_OPS_PERFORMED, ActionListener.wrap(countDownLatch::countDown));
-                countDownLatch.await(5, TimeUnit.SECONDS);
-            }
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+            gcpTracker.addPeerRecoveryRetentionLease(initializingReplica.currentNodeId(),
+                SequenceNumbers.NO_OPS_PERFORMED, ActionListener.wrap(countDownLatch::countDown));
+            countDownLatch.await(5, TimeUnit.SECONDS);
             gcpTracker.updateFromMaster(2L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
                 new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(initializingReplica).build());
             gcpTracker.initiateTracking(initializingReplica.allocationId().getId());
@@ -3708,10 +3521,8 @@ public class InternalEngineTests extends EngineTestCase {
             TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
-        if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
-            List<Translog.Operation> ops = readAllOperationsInLucene(engine);
-            assertThat(ops.stream().map(o -> o.seqNo()).toList()).contains(20L);
-        }
+        List<Translog.Operation> ops = readAllOperationsInLucene(engine);
+        assertThat(ops.stream().map(o -> o.seqNo()).toList()).contains(20L);
     }
 
     @Test
@@ -4086,8 +3897,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
         Randomness.shuffle(operations);
         Settings.Builder settings = Settings.builder()
-            .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true);
+            .put(defaultSettings.getSettings());
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
         Map<String, Engine.Operation> latestOps = new HashMap<>(); // id -> latest seq_no
@@ -4392,14 +4202,12 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(noOp.seqNo()).isEqualTo((long) (maxSeqNo + 2));
             assertThat(noOp.primaryTerm()).isEqualTo(primaryTerm.get());
             assertThat(noOp.reason()).isEqualTo(reason);
-            if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
-                List<Translog.Operation> operationsFromLucene = readAllOperationsInLucene(noOpEngine);
-                assertThat(operationsFromLucene).hasSize(maxSeqNo + 2 - localCheckpoint); // fills n gap and 2 manual noop.
-                for (int i = 0; i < operationsFromLucene.size(); i++) {
-                    assertThat(operationsFromLucene.get(i)).isEqualTo(new Translog.NoOp(localCheckpoint + 1 + i, primaryTerm.get(), "filling gaps"));
-                }
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(noOpEngine);
+            List<Translog.Operation> operationsFromLucene = readAllOperationsInLucene(noOpEngine);
+            assertThat(operationsFromLucene).hasSize(maxSeqNo + 2 - localCheckpoint); // fills n gap and 2 manual noop.
+            for (int i = 0; i < operationsFromLucene.size(); i++) {
+                assertThat(operationsFromLucene.get(i)).isEqualTo(new Translog.NoOp(localCheckpoint + 1 + i, primaryTerm.get(), "filling gaps"));
             }
+            assertConsistentHistoryBetweenTranslogAndLuceneIndex(noOpEngine);
         } finally {
             IOUtils.close(noOpEngine);
         }
@@ -4470,10 +4278,8 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.forceMerge(randomBoolean(), between(1, 10), randomBoolean(), UUIDs.randomBase64UUID());
             }
         }
-        if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
-            List<Translog.Operation> operations = readAllOperationsInLucene(engine);
-            assertThat(operations).hasSize(numOps);
-        }
+        List<Translog.Operation> operations = readAllOperationsInLucene(engine);
+        assertThat(operations).hasSize(numOps);
     }
 
     @Test
@@ -5436,7 +5242,6 @@ public class InternalEngineTests extends EngineTestCase {
             Lucene.SOFT_DELETES_FIELD, MatchAllDocsQuery::new, engine.config().getMergePolicy());
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), randomLongBetween(0, 10));
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
@@ -5474,7 +5279,6 @@ public class InternalEngineTests extends EngineTestCase {
         IOUtils.close(engine, store);
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), randomLongBetween(0, 10));
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
@@ -5601,8 +5405,8 @@ public class InternalEngineTests extends EngineTestCase {
         final long maxSeqNo = randomLongBetween(10, 50);
         final AtomicLong refreshCounter = new AtomicLong();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
-            IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(Settings.builder().
-                put(defaultSettings.getSettings()).put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)).build());
+            IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(Settings.builder()
+                .put(defaultSettings.getSettings())).build());
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(),
                                                          null,
@@ -5664,10 +5468,9 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build();
+            .build();
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
-        assertThat(indexSettings.isSoftDeleteEnabled()).isTrue();
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             engine.close();
@@ -5682,10 +5485,9 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build();
+            .build();
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
-        assertThat(indexSettings.isSoftDeleteEnabled()).isTrue();
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             engine.close();
@@ -5734,8 +5536,7 @@ public class InternalEngineTests extends EngineTestCase {
     public void testRebuildLocalCheckpointTrackerAndVersionMap() throws Exception {
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), 10000)
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true);
+            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), 10000);
         final IndexMetadata indexMetadata = IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetadata);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
@@ -5802,20 +5603,6 @@ public class InternalEngineTests extends EngineTestCase {
                 }
                 engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
                 assertThat(getDocIds(engine, true)).isEqualTo(docs);
-            }
-        }
-    }
-
-    @Test
-    public void testRequireSoftDeletesWhenAccessingChangesSnapshot() throws Exception {
-        try (Store store = createStore()) {
-            final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
-                IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(Settings.builder().
-                    put(defaultSettings.getSettings()).put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)).build());
-            try (InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), newMergePolicy(), null))) {
-                assertThatThrownBy(() -> engine.newChangesSnapshot("test", 0, randomNonNegativeLong(), randomBoolean()))
-                    .isExactlyInstanceOf(AssertionError.class)
-                    .hasMessageContaining("does not have soft-deletes enabled");
             }
         }
     }
@@ -5899,7 +5686,7 @@ public class InternalEngineTests extends EngineTestCase {
         IOUtils.close(engine, store);
         Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build();
+            .build();
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
         store = createStore(indexSettings, newDirectory());
@@ -6080,7 +5867,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         final Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build();
+            .build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
         try (Store store = createStore();
@@ -6105,26 +5892,20 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testDeleteFailureSoftDeletesEnabledDocAlreadyDeleted() throws IOException {
-        runTestDeleteFailure(true, InternalEngine::delete);
+        runTestDeleteFailure(InternalEngine::delete);
     }
 
     @Test
     public void testDeleteFailureSoftDeletesEnabled() throws IOException {
-        runTestDeleteFailure(true, (engine, op) -> {});
-    }
-
-    @Test
-    public void testDeleteFailureSoftDeletesDisabled() throws IOException {
-        runTestDeleteFailure(false, (engine, op) -> {});
+        runTestDeleteFailure((engine, op) -> {});
     }
 
     private void runTestDeleteFailure(
-        final boolean softDeletesEnabled,
         final CheckedBiConsumer<InternalEngine, Engine.Delete, IOException> consumer) throws IOException {
         engine.close();
         final Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), softDeletesEnabled).build();
+            .build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
         final AtomicReference<ThrowingIndexWriter> iw = new AtomicReference<>();
@@ -6389,7 +6170,6 @@ public class InternalEngineTests extends EngineTestCase {
     @Test
     public void testMaxDocsOnPrimary() throws Exception {
         engine.close();
-        final boolean softDeleteEnabled = engine.config().getIndexSettings().isSoftDeleteEnabled();
         int maxDocs = randomIntBetween(1, 100);
         setIndexWriterMaxDocs(maxDocs);
         try {
@@ -6398,7 +6178,7 @@ public class InternalEngineTests extends EngineTestCase {
             List<Engine.Operation> operations = new ArrayList<>(numDocs);
             for (int i = 0; i < numDocs; i++) {
                 final String id;
-                if (softDeleteEnabled == false || randomBoolean()) {
+                if (randomBoolean()) {
                     id = Integer.toString(randomInt(numDocs));
                     operations.add(indexForDoc(createParsedDoc(id)));
                 } else {
@@ -6430,8 +6210,6 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testMaxDocsOnReplica() throws Exception {
-        assumeTrue("Deletes do not add documents to Lucene with soft-deletes disabled",
-            engine.config().getIndexSettings().isSoftDeleteEnabled());
         engine.close();
         int maxDocs = randomIntBetween(1, 100);
         setIndexWriterMaxDocs(maxDocs);

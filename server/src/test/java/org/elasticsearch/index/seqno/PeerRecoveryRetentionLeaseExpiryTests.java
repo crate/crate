@@ -60,14 +60,11 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         if (randomBoolean()) {
             settings = Settings.builder()
-                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
                 .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(),
                     TimeValue.timeValueMillis(randomLongBetween(1, TimeValue.timeValueHours(12).millis())).getStringRep())
                 .build();
         } else {
-            settings = Settings.builder()
-                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-                .build();
+            settings = Settings.EMPTY;
         }
 
         safeCommitInfo = null; // must be set in each test

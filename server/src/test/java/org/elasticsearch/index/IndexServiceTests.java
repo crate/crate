@@ -402,9 +402,7 @@ public class IndexServiceTests extends IntegTestCase {
                 for (IndexShard indexShard : indexService) {
                     flushShard(indexShard, true);
                 }
-                if (indexService.getIndexSettings().isSoftDeleteEnabled()) {
-                    translogOps = 0;
-                }
+                translogOps = 0;
             }
         }
         assertThat(translog.totalOperations()).isEqualTo(translogOps);

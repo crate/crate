@@ -60,6 +60,10 @@ Breaking Changes
     If users have tables which were using the ``german`` stemmer without a character
     filter that already did this, they will need to re-index after upgrading.
 
+- Removed the deprecated ``soft_deletes.enabled`` setting for ``CREATE TABLE``.
+  The setting defaulted to ``true`` since 4.3.0, was deprecated in 4.5.0 and
+  soft deletes became mandatory in 5.0.0.
+
 Deprecations
 ============
 
