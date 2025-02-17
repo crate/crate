@@ -1186,7 +1186,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore(value = "We don't support dynamic creation of nested arrays due to translog restrictions")
     public void test_index_nested_array() throws Exception {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
@@ -1213,7 +1212,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source(doc, table)).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
         );
-        assertTranslogParses(doc, table);
+        // NB: We can't test translog assertions, as the test does not update DocTableInfo
+        // with the new dynamic reference.
     }
 
     @Test
