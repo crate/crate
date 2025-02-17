@@ -93,7 +93,7 @@ public class NodeSettingsTest extends ESTestCase {
         settings.put("legacy.table_function_column_naming", "true");
 
         Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, configPath, () -> "node-test");
-        node = new Node(environment, List.of(), true);
+        node = new Node(environment, List.of());
         node.start();
         sqlOperations = node.injector().getInstance(Sessions.class);
     }
