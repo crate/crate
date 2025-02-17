@@ -295,7 +295,7 @@ public class Node implements Closeable {
     private final NodeService nodeService;
 
     public Node(Environment environment) {
-        this(environment, Collections.emptyList(), true);
+        this(environment, Collections.emptyList());
     }
 
     /**
@@ -303,12 +303,8 @@ public class Node implements Closeable {
      *
      * @param environment                the environment for this node
      * @param classpathPlugins           the plugins to be loaded from the classpath
-     * @param forbidPrivateIndexSettings whether or not private index settings are forbidden when creating an index; this is used in the
-     *                                   test framework for tests that rely on being able to set private settings
      */
-    public Node(final Environment environment,
-                Collection<Class<? extends Plugin>> classpathPlugins,
-                boolean forbidPrivateIndexSettings) {
+    public Node(final Environment environment, Collection<Class<? extends Plugin>> classpathPlugins) {
         logger = LogManager.getLogger(Node.class);
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
         boolean success = false;
@@ -538,8 +534,7 @@ public class Node implements Closeable {
                 shardLimitValidator,
                 environment,
                 indexScopedSettings,
-                threadPool,
-                forbidPrivateIndexSettings
+                threadPool
             );
 
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()

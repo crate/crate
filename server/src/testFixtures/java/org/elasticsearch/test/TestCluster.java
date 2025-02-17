@@ -756,10 +756,9 @@ public final class TestCluster implements Closeable {
         assert reuseExisting || nodeAndClient == null : "node name [" + name + "] already exists but not allowed to use it";
 
         MockNode node = new MockNode(
-                settings,
-                plugins,
-                nodeConfigurationSource.nodeConfigPath(nodeId),
-                forbidPrivateIndexSettings);
+            settings,
+            plugins,
+            nodeConfigurationSource.nodeConfigPath(nodeId));
         node.injector().getInstance(TransportService.class).addLifecycleListener(new LifecycleListener() {
             @Override
             public void afterStart() {

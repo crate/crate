@@ -116,7 +116,6 @@ public class MetadataCreateIndexService {
     private final Environment env;
     private final IndexScopedSettings indexScopedSettings;
     private final ActiveShardsObserver activeShardsObserver;
-    private final boolean forbidPrivateIndexSettings;
     private final ShardLimitValidator shardLimitValidator;
 
     public MetadataCreateIndexService(NodeContext nodeContext,
@@ -127,8 +126,7 @@ public class MetadataCreateIndexService {
                                       ShardLimitValidator shardLimitValidator,
                                       Environment env,
                                       IndexScopedSettings indexScopedSettings,
-                                      ThreadPool threadPool,
-                                      boolean forbidPrivateIndexSettings) {
+                                      ThreadPool threadPool) {
         this.nodeContext = nodeContext;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
@@ -136,7 +134,6 @@ public class MetadataCreateIndexService {
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
-        this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;
     }
 
@@ -594,7 +591,7 @@ public class MetadataCreateIndexService {
         String indexName = tableName.indexNameOrAlias();
 
         validateIndexName(indexName, currentState);
-        validateIndexSettings(indexName, request.settings(), forbidPrivateIndexSettings);
+        validateIndexSettings(indexName, request.settings(), true);
         shardLimitValidator.validateShardLimit(settings, currentState);
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());

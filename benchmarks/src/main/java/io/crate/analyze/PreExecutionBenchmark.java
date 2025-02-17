@@ -42,16 +42,16 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
-import io.crate.session.BaseResultReceiver;
-import io.crate.session.Cursors;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Cursors;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 
@@ -72,11 +72,7 @@ public class PreExecutionBenchmark {
             .put("path.home", tempDir.toAbsolutePath().toString())
             .build();
         Environment environment = new Environment(settings, tempDir);
-        node = new Node(
-            environment,
-            List.of(),
-            true
-        );
+        node = new Node(environment, List.of());
         node.start();
         Injector injector = node.injector();
         sqlOperations = injector.getInstance(Sessions.class);
