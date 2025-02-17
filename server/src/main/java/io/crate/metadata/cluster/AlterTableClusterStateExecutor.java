@@ -46,11 +46,13 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
@@ -95,17 +97,47 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             .put(request.settings());
         settingsBuilder.remove(TableParameters.COLUMN_POLICY.getKey());
         Settings settings = settingsBuilder.build();
+
+        Metadata metadata = currentState.metadata();
+        RelationMetadata relation = metadata.getRelation(request.tableIdent());
+        if (request.partitionValues().isEmpty() && relation instanceof RelationMetadata.Table table) {
+            Metadata.Builder newMetadata = Metadata.builder(metadata);
+            Builder newSettings = Settings.builder()
+                .put(table.settings())
+                .put(settings);
+            for (String setting : settings.keySet()) {
+                if (!settings.hasValue(setting)) {
+                    newSettings.remove(setting);
+                }
+            }
+            newMetadata.setTable(
+                table.name(),
+                table.columns(),
+                newSettings.build(),
+                table.routingColumn(),
+                columnPolicy == null ? table.columnPolicy() : columnPolicy,
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                table.indexUUIDs());
+            currentState = ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .build();
+        } else if (!request.partitionValues().isEmpty()) {
+            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
+                if (tableOnlySetting.exists(settings)) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "\"%s\" cannot be changed on partition level",
+                        tableOnlySetting.getKey()
+                    ));
+                }
+            }
+        }
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
-                for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
-                    if (tableOnlySetting.exists(settings)) {
-                        throw new IllegalArgumentException(String.format(
-                            Locale.ENGLISH,
-                            "\"%s\" cannot be changed on partition level",
-                            tableOnlySetting.getKey()
-                        ));
-                    }
-                }
                 String indexName = new PartitionName(request.tableIdent(), request.partitionValues()).asIndexName();
                 Index[] concreteIndices = resolveIndices(currentState, indexName);
                 currentState = updateSettings(currentState, settings, concreteIndices);

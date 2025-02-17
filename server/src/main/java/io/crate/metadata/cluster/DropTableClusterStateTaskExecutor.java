@@ -60,19 +60,16 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             false,
             IndexMetadata::getIndex
         );
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+        Metadata.Builder newMetadata = Metadata.builder(currentMetadata)
+            .dropRelation(relationName)
+            .removeTemplate(templateName);
+
         currentState = ClusterState.builder(currentState)
-            .metadata(Metadata.builder(currentMetadata).dropRelation(relationName))
+            .metadata(newMetadata)
             .build();
 
         currentState = deleteIndexService.deleteIndices(currentState, indices);
-        Metadata metadata = currentState.metadata();
-
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        if (metadata.templates().containsKey(templateName)) {
-            currentState = ClusterState.builder(currentState)
-                .metadata(Metadata.builder(metadata).removeTemplate(templateName))
-                .build();
-        }
 
         // call possible modifiers
         currentState = ddlClusterStateService.onDropTable(currentState, request.tableIdent());

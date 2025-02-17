@@ -32,12 +32,15 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
@@ -90,6 +93,8 @@ public class SwapRelationsOperation {
                 updatedState.newIndices.remove(indexName);
             }
 
+            updatedMetadata.dropRelation(dropRelation);
+
             // In case former "target" was partitioned therefore,
             // we have to drop a partitioned (currently "source") table
             String templateName = PartitionName.templateName(dropRelation.schema(), dropRelation.name());
@@ -125,6 +130,49 @@ public class SwapRelationsOperation {
         Metadata.Builder updatedMetadata = Metadata.builder(state.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(state.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(state.blocks());
+
+        for (RelationNameSwap nameSwap : swapRelationsRequest.swapActions()) {
+            RelationName source = nameSwap.source();
+            RelationName target = nameSwap.target();
+
+            RelationMetadata.Table sourceRelation = metadata.getRelation(source);
+            RelationMetadata.Table targetRelation = metadata.getRelation(target);
+            updatedMetadata
+                .dropRelation(source)
+                .dropRelation(target)
+                .setTable(
+                    target,
+                    Lists.map(
+                        sourceRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                    ),
+                    sourceRelation.settings(),
+                    sourceRelation.routingColumn(),
+                    sourceRelation.columnPolicy(),
+                    sourceRelation.pkConstraintName(),
+                    sourceRelation.checkConstraints(),
+                    sourceRelation.primaryKeys(),
+                    sourceRelation.partitionedBy(),
+                    sourceRelation.state(),
+                    sourceRelation.indexUUIDs()
+                )
+                .setTable(
+                    source,
+                    Lists.map(
+                        targetRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(source, ref.column()))
+                    ),
+                    targetRelation.settings(),
+                    targetRelation.routingColumn(),
+                    targetRelation.columnPolicy(),
+                    targetRelation.pkConstraintName(),
+                    targetRelation.checkConstraints(),
+                    targetRelation.primaryKeys(),
+                    targetRelation.partitionedBy(),
+                    targetRelation.state(),
+                    targetRelation.indexUUIDs()
+                );
+        }
 
         // Remove all involved indices first so that rename operations are independent of each other
         for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
