@@ -93,7 +93,11 @@ public class JoinRelation implements AnalyzedRelation {
     public Symbol getField(ColumnIdent column,
                            Operation operation,
                            boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
-        throw new UnsupportedOperationException("Joins do not support this operation");
+        Symbol result = left.getField(column, operation, errorOnUnknownObjectKey);
+        if (result == null) {
+            result = right.getField(column, operation, errorOnUnknownObjectKey);
+        }
+        return result;
     }
 
     @Override
