@@ -27,14 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.test.MockLogAppender;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -70,45 +65,6 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     public void removeLogger() {
         Loggers.removeAppender(LogManager.getLogger(Publication.class), appender);
         appender.stop();
-    }
-
-    @Test
-    public void test_resolve_relation_names_for_all_tables_ignores_table_with_soft_delete_disabled() throws Exception {
-        var user = userOf("dummy");
-        var roles = new Roles() {
-            @Override
-            public Collection<Role> roles() {
-                return List.of(user);
-            }
-
-            @Override
-            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
-                return true; // This test case doesn't check privileges.
-            }
-        };
-
-        // Soft-deletes are mandatory from 5.0, so let's use 4.8 to create a table with soft-deletes disabled
-        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
-                                                  Metadata.EMPTY_METADATA,
-                                                  Version.V_4_8_0);
-        SQLExecutor.of(clusterService)
-            .addTable("CREATE TABLE doc.t1 (id int)")
-            .addTable("CREATE TABLE doc.t2 (id int) with (\"soft_deletes.enabled\" = false)")
-            .startShards("doc.t1", "doc.t2");
-        var publication = new Publication("some_user", true, List.of());
-
-        var expectedLogMessage = "Table 'doc.t2' won't be replicated as the required table setting " +
-                                 "'soft_deletes.enabled' is set to: false";
-        appender.addExpectation(new MockLogAppender.SeenEventExpectation(
-            expectedLogMessage,
-            LogManager.getLogger(Publication.class).getName(),
-            Level.WARN,
-            expectedLogMessage
-        ));
-
-        Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), roles, user, user, "dummy");
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
-        appender.assertAllExpectationsMatched();
     }
 
     @Test

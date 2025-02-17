@@ -20,7 +20,6 @@
 package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -315,24 +314,6 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         } finally {
             closeShards(indexShard);
         }
-    }
-
-    @Test
-    public void testRetentionLeasesActionsFailWithSoftDeletesDisabled() throws Exception {
-        IndexShard shard = newStartedShard(true, Settings.builder().put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false).build());
-        assertThatThrownBy(() -> shard.addRetentionLease(randomAlphaOfLength(10),
-            randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test", ActionListener.wrap(() -> {}))
-        ).isExactlyInstanceOf(AssertionError.class)
-            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
-        assertThatThrownBy(() -> shard.renewRetentionLease(
-            randomAlphaOfLength(10), randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE), "test")
-        ).isExactlyInstanceOf(AssertionError.class)
-            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
-        assertThatThrownBy(() -> shard.removeRetentionLease(randomAlphaOfLength(10), ActionListener.wrap(() -> {})))
-            .isExactlyInstanceOf(AssertionError.class)
-            .hasMessage("retention leases requires soft deletes but [index] does not have soft deletes enabled");
-        shard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
-        closeShards(shard);
     }
 
     private void assertRetentionLeases(

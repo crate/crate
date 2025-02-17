@@ -80,7 +80,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
-            "with (number_of_replicas = ?, \"soft_deletes.enabled\" = true)",
+            "with (number_of_replicas = ?)",
             new Object[] { numberOfReplicas }
         );
         ensureGreen("tbl");
@@ -194,7 +194,6 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = ?, " +
-            "   \"soft_deletes.enabled\" = true, " +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
                 numberOfReplicas,
@@ -332,7 +331,6 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = 0, " +
-            "   \"soft_deletes.enabled\" = true, " +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
                 TimeValue.timeValueHours(24).getStringRep()
@@ -466,7 +464,6 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = 0, " +
-            "   \"soft_deletes.enabled\" = true, " +
             "   \"soft_deletes.retention_lease.sync_interval\" = '1s' " +
             ")"
         );
@@ -582,7 +579,6 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = ?, " +
-            "   \"soft_deletes.enabled\" = true," +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
                 numDataNodes == 1 ? 0 : numDataNodes - 1,

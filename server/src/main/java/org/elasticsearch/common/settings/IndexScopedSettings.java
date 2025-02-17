@@ -92,7 +92,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD,
         ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
         IndexSettings.INDEX_GC_DELETES_SETTING,
-        IndexSettings.INDEX_SOFT_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,
         UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,

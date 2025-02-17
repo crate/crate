@@ -161,10 +161,7 @@ public class ReadOnlyEngine extends Engine {
 
     protected final ElasticsearchDirectoryReader wrapReader(DirectoryReader reader,
                                                             UnaryOperator<DirectoryReader> readerWrapperFunction) throws IOException {
-        if (engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
-            reader = new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD);
-        }
-        reader = readerWrapperFunction.apply(reader);
+        reader = readerWrapperFunction.apply(new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD));
         return ElasticsearchDirectoryReader.wrap(reader, engineConfig.getShardId());
     }
 
@@ -282,9 +279,6 @@ public class ReadOnlyEngine extends Engine {
     @Override
     public Translog.Snapshot newChangesSnapshot(String source, long fromSeqNo, long toSeqNo,
                                                 boolean requiredFullRange) throws IOException {
-        if (engineConfig.getIndexSettings().isSoftDeleteEnabled() == false) {
-            throw new IllegalStateException("accessing changes snapshot requires soft-deletes enabled");
-        }
         return newEmptySnapshot();
     }
 

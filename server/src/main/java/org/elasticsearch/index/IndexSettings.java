@@ -242,7 +242,6 @@ public final class IndexSettings {
     private final MergePolicyConfig mergePolicyConfig;
     private final IndexScopedSettings scopedSettings;
     private long gcDeletesInMillis = DEFAULT_GC_DELETES.millis();
-    private final boolean softDeleteEnabled;
     private volatile long softDeleteRetentionOperations;
 
     private volatile long retentionLeaseMillis;
@@ -305,7 +304,6 @@ public final class IndexSettings {
         flushAfterMergeThresholdSize = scopedSettings.get(INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING);
         mergeSchedulerConfig = new MergeSchedulerConfig(this);
         gcDeletesInMillis = scopedSettings.get(INDEX_GC_DELETES_SETTING).millis();
-        softDeleteEnabled = scopedSettings.get(INDEX_SOFT_DELETES_SETTING);
         softDeleteRetentionOperations = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING);
         retentionLeaseMillis = scopedSettings.get(INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING).millis();
         maxNgramDiff = scopedSettings.get(MAX_NGRAM_DIFF_SETTING);
@@ -673,13 +671,6 @@ public final class IndexSettings {
      */
     public TimeValue getSearchIdleAfter() {
         return searchIdleAfter;
-    }
-
-    /**
-     * Returns <code>true</code> if soft-delete is enabled.
-     */
-    public boolean isSoftDeleteEnabled() {
-        return softDeleteEnabled;
     }
 
     private void setSoftDeleteRetentionOperations(long ops) {

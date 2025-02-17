@@ -1164,7 +1164,7 @@ public abstract class EngineTestCase extends ESTestCase {
      * Asserts the provided engine has a consistent document history between translog and Lucene index.
      */
     public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine) throws IOException {
-        if (engine.config().getIndexSettings().isSoftDeleteEnabled() == false || (engine instanceof InternalEngine) == false) {
+        if ((engine instanceof InternalEngine) == false) {
             return;
         }
         final long maxSeqNo = ((InternalEngine) engine).getLocalCheckpointTracker().getMaxSeqNo();
@@ -1238,7 +1238,7 @@ public abstract class EngineTestCase extends ESTestCase {
     public static void assertAtMostOneLuceneDocumentPerSequenceNumber(IndexSettings indexSettings,
                                                                       DirectoryReader reader) throws IOException {
         Set<Long> seqNos = new HashSet<>();
-        final DirectoryReader wrappedReader = indexSettings.isSoftDeleteEnabled() ? Lucene.wrapAllDocsLive(reader) : reader;
+        final DirectoryReader wrappedReader = Lucene.wrapAllDocsLive(reader);
         for (LeafReaderContext leaf : wrappedReader.leaves()) {
             NumericDocValues primaryTermDocValues = leaf.reader().getNumericDocValues(SysColumns.Names.PRIMARY_TERM);
             NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(SysColumns.Names.SEQ_NO);

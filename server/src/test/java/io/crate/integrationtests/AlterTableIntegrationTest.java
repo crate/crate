@@ -52,7 +52,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
                 "create table test(i int) partitioned by (i) WITH(\"soft_deletes.enabled\" = false) "))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
+            .hasMessageContaining("Invalid property \"soft_deletes.enabled\" passed to [ALTER | CREATE] TABLE statement");
     }
 
     @Test
