@@ -1797,4 +1797,14 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(query);
         assertThat(response.rows()).isEmpty();
     }
+
+    @UseRandomizedOptimizerRules(0)
+    public void test_aggs() throws Exception {
+        execute("CREATE  TABLE t1(value integer)");
+        execute("insert into t1 values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+        execute("refresh table t1");
+        execute("select sum(value) from t1");
+        assertThat(response).hasRows("55");
+    }
+
 }

@@ -35,7 +35,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
@@ -251,18 +250,14 @@ public final class DocValuesAggregates {
             for (int i = 0; i < aggregators.size(); i++) {
                 aggregators.get(i).loadDocValues(leaf);
             }
-            DocIdSetIterator docs = scorer.iterator();
-            Bits liveDocs = leaf.reader().getLiveDocs();
-            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                if (liveDocs != null && !liveDocs.get(doc)) {
-                    continue;
-                }
+            int docId = 0;
+            while (docId < DocIdSetIterator.NO_MORE_DOCS) {
                 Throwable killCause = killed.get();
                 if (killCause != null) {
                     Exceptions.rethrowUnchecked(killCause);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(ramAccounting, doc, cells[i]);
+                    docId = aggregators.get(i).advance(ramAccounting, docId, cells[i]);
                 }
             }
         }

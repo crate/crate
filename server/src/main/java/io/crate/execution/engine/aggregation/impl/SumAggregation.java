@@ -28,6 +28,7 @@ import java.util.function.BinaryOperator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -275,6 +276,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.setValue(Math.addExact(state.value(), values.nextValue()));
             }
+        }
+
+        @Override
+        public int advance(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+            int id = values.advance(doc);
+            if (id != DocIdSetIterator.NO_MORE_DOCS) {
+                state.setValue(Math.addExact(state.value(), values.nextValue()));
+            }
+            return values.nextDoc();
         }
 
         @Override

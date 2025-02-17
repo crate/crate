@@ -38,6 +38,10 @@ public interface DocValueAggregator<T> {
 
     public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
 
+    public default int advance(RamAccounting ramAccounting, int doc, T state) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported");
+    }
+
     // Aggregations are executed on shard level,
     // that means there is always a final reduce step necessary
     // → never return final value, but always partial result
