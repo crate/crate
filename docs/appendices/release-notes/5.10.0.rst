@@ -1,11 +1,17 @@
 .. _version_5.10.0:
 
-==============
-Version 5.10.0
-==============
+========================
+Version 5.10.0 (testing)
+=========================
 
 
 Released on 2025-01-21.
+
+    5.10.0 was a testing release not promoted to stable due to `Known
+    issues`_.
+    The first stable version for the 5.10 line is :ref:`version_5.10.1`. Please
+    upgrade to 5.10.1 directly.
+
 
 .. NOTE::
 
@@ -20,14 +26,14 @@ Released on 2025-01-21.
 
 .. WARNING::
 
-    Tables that were created before CrateDB 4.x will not function with 5.x
+    Tables and paritions that were created before CrateDB 4.x will not function with 5.x
     and must be recreated before moving to 5.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
-    `inserting the data into a new table`_.
+    `inserting the data into a new table or partition`_.
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _inserting the data into a new table or partition: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
 
@@ -166,3 +172,9 @@ Client interfaces
 - Added an ::ref:`error <http-bulk-errors>` payload to failed bulk responses
   issued over the :ref`interface-http` containing details of the error that
   caused the bulk operation to fail.
+
+Known issues
+============
+
+- Partition is lost when attempting to ALTER TABLE with number_of_shards
+  greater routing.allocation.total_shards_per_node #17278
