@@ -831,7 +831,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
             assert checkpoints.get(aId) != null : "aId [" + aId + "] is pending in sync but isn't tracked";
         }
 
-        if (primaryMode && indexSettings.isSoftDeleteEnabled() && hasAllPeerRecoveryRetentionLeases) {
+        if (primaryMode && hasAllPeerRecoveryRetentionLeases) {
             // all tracked shard copies have a corresponding peer-recovery retention lease
             for (final ShardRouting shardRouting : routingTable.assignedShards()) {
                 if (checkpoints.get(shardRouting.allocationId().getId()).tracked) {
@@ -916,8 +916,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         this.routingTable = null;
         this.replicationGroup = null;
         this.hasAllPeerRecoveryRetentionLeases = indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_5_0)
-            || (indexSettings.isSoftDeleteEnabled() &&
-               (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_4_0) ||
+            || ((indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_4_0) ||
                (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_3_0) &&
                 indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN)));
 

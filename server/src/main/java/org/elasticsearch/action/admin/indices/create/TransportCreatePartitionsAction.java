@@ -23,7 +23,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 import static org.elasticsearch.gateway.GatewayMetaState.applyPluginUpgraders;
 
 import java.io.IOException;
@@ -375,8 +374,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
         Version minVersion = currentState.nodes().getSmallestNonClientNodeVersion();
         indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), minVersion);
-
-        validateSoftDeletesSetting(indexSettingsBuilder.build());
 
         if (indexSettingsBuilder.get(IndexMetadata.SETTING_CREATION_DATE) == null) {
             indexSettingsBuilder.put(IndexMetadata.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());

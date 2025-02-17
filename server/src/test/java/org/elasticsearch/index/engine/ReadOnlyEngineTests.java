@@ -339,7 +339,6 @@ public class ReadOnlyEngineTests extends EngineTestCase {
         try (Store store = createStore()) {
             final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
             EngineConfig config = config(defaultSettings, store, createTempDir(), newMergePolicy(), null, null, globalCheckpoint::get);
-            final boolean softDeletesEnabled = config.getIndexSettings().isSoftDeleteEnabled();
             final int numDocs = frequently() ? scaledRandomIntBetween(10, 200) : 0;
             int uncommittedDocs = 0;
 
@@ -357,7 +356,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                     }
                 }
 
-                assertThat(engine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? uncommittedDocs : numDocs);
+                assertThat(engine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(uncommittedDocs);
                 assertThat(engine.getTranslogStats().getUncommittedOperations()).isEqualTo(uncommittedDocs);
                 assertThat(engine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
                 assertThat(engine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);
@@ -366,7 +365,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             }
 
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
-                assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? 0 : numDocs);
+                assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(0);
                 assertThat(readOnlyEngine.getTranslogStats().getUncommittedOperations()).isEqualTo(0);
                 assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
                 assertThat(readOnlyEngine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);

@@ -75,7 +75,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.shard.DocsStats;
@@ -549,16 +548,6 @@ public class MetadataCreateIndexService {
                 " must have all shards allocated on the same node to shrink index");
         }
         return nodesToAllocateOn;
-    }
-
-    public static void validateSoftDeletesSetting(Settings settings) {
-        if (IndexSettings.INDEX_SOFT_DELETES_SETTING.get(settings) == false
-            && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_5_0_0)) {
-            throw new IllegalArgumentException(
-                "Creating tables with soft-deletes disabled is no longer supported. "
-                + "Please do not specify a value for setting [soft_deletes.enabled]."
-            );
-        }
     }
 
     /**

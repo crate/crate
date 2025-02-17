@@ -332,8 +332,9 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
 
     private boolean hasUncommittedOperations() throws IOException {
         long localCheckpointOfCommit = Long.parseLong(indexShard.commitStats().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
-        return indexShard.estimateNumberOfHistoryOperations("peer-recovery",
-            indexShard.indexSettings().isSoftDeleteEnabled() ? Engine.HistorySource.INDEX : Engine.HistorySource.TRANSLOG,
+        return indexShard.estimateNumberOfHistoryOperations(
+            "peer-recovery",
+            Engine.HistorySource.INDEX,
             localCheckpointOfCommit + 1) > 0;
     }
 

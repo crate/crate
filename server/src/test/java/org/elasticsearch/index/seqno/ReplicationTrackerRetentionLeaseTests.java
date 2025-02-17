@@ -64,10 +64,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final ReplicationTracker replicationTracker = new ReplicationTracker(
             new ShardId("test", "_na", 0),
             allocationId.getId(),
-            IndexSettingsModule.newIndexSettings("test", Settings.builder()
-                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-                .build()
-            ),
+            IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
             value -> {},
@@ -351,12 +348,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final ReplicationTracker replicationTracker = new ReplicationTracker(
                 new ShardId("test", "_na", 0),
                 allocationId.getId(),
-                IndexSettingsModule.newIndexSettings(
-                    "test",
-                    Settings.builder()
-                        .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-                        .build()
-                ),
+                IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 randomNonNegativeLong(),
                 UNASSIGNED_SEQ_NO,
                 value -> {},
@@ -412,7 +404,6 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final long retentionLeaseMillis = randomLongBetween(1, TimeValue.timeValueHours(12).millis());
         final Settings settings = Settings
             .builder()
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(
                 IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(),
                 TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())

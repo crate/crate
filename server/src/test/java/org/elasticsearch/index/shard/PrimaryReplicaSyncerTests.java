@@ -121,11 +121,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         if (syncNeeded && globalCheckPoint < numDocs - 1) {
             assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
             assertThat(resyncTask.getResyncedOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
-            if (shard.indexSettings.isSoftDeleteEnabled()) {
-                assertThat(resyncTask.getTotalOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
-            } else {
-                assertThat(resyncTask.getTotalOperations()).isEqualTo(numDocs);
-            }
+            assertThat(resyncTask.getTotalOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
          } else {
              assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
              assertThat(resyncTask.getResyncedOperations()).isEqualTo(0);
@@ -215,8 +211,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             operations.add(new Translog.Index(
                 Integer.toString(i), randomBoolean() ? SequenceNumbers.UNASSIGNED_SEQ_NO : i, primaryTerm, new byte[]{1}));
         }
-        Engine.HistorySource source =
-            shard.indexSettings.isSoftDeleteEnabled() ? Engine.HistorySource.INDEX : Engine.HistorySource.TRANSLOG;
+        Engine.HistorySource source = Engine.HistorySource.INDEX;
         doReturn(TestTranslog.newSnapshotFromOperations(operations)).when(shard).getHistoryOperations(anyString(), eq(source), anyLong());
         List<Translog.Operation> sentOperations = new ArrayList<>();
         PrimaryReplicaSyncer.SyncAction syncAction = (request, allocationId, primaryTerm, listener) -> {

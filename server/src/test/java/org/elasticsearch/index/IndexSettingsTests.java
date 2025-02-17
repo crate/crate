@@ -23,6 +23,7 @@ package org.elasticsearch.index;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -39,7 +40,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
@@ -566,54 +566,6 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(settings.get("archived.index.unknown")).isEqualTo("foo");
         assertThat(settings.get("index.version.created")).isEqualTo(Integer.toString(Version.CURRENT.internalId));
         assertThat(settings.get("index.refresh_interval")).isEqualTo("2s");
-    }
-
-    @Test
-    public void testUpdateSoftDeletesFails() {
-        IndexScopedSettings settings = new IndexScopedSettings(Settings.EMPTY,
-                                                               IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
-        assertThatThrownBy(() -> settings.updateSettings(
-            Settings.builder().put("index.soft_deletes.enabled", randomBoolean()).build(),
-            Settings.builder(),
-            Settings.builder(),
-            "index")
-        ).isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("final index setting [index.soft_deletes.enabled], not updateable");
-    }
-
-    @Test
-    public void testUpdateTranslogRetentionSettingsWithSoftDeletesDisabled() {
-        Settings.Builder settings = Settings.builder()
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), false)
-            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
-
-        TimeValue ageSetting = TimeValue.timeValueHours(12);
-        if (randomBoolean()) {
-            ageSetting = randomBoolean() ? TimeValue.MINUS_ONE : TimeValue.timeValueSeconds(randomIntBetween(0, 60));
-            settings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey(), ageSetting);
-        }
-        ByteSizeValue sizeSetting = new ByteSizeValue(512, ByteSizeUnit.MB);
-        if (randomBoolean()) {
-            sizeSetting = randomBoolean() ? new ByteSizeValue(-1) : new ByteSizeValue(randomIntBetween(0, 1024));
-            settings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey(), sizeSetting);
-        }
-        IndexMetadata metaData = newIndexMeta("index", settings.build());
-        IndexSettings indexSettings = new IndexSettings(metaData, Settings.EMPTY);
-        assertThat(indexSettings.getTranslogRetentionAge()).isEqualTo(ageSetting);
-        assertThat(indexSettings.getTranslogRetentionSize()).isEqualTo(sizeSetting);
-
-        Settings.Builder newSettings = Settings.builder().put(settings.build());
-        if (randomBoolean()) {
-            ageSetting = randomBoolean() ? TimeValue.MINUS_ONE : TimeValue.timeValueSeconds(randomIntBetween(0, 60));
-            newSettings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey(), ageSetting);
-        }
-        if (randomBoolean()) {
-            sizeSetting = randomBoolean() ? new ByteSizeValue(-1) : new ByteSizeValue(randomIntBetween(0, 1024));
-            newSettings.put(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey(), sizeSetting);
-        }
-        indexSettings.updateIndexMetadata(newIndexMeta("index", newSettings.build()));
-        assertThat(indexSettings.getTranslogRetentionAge()).isEqualTo(ageSetting);
-        assertThat(indexSettings.getTranslogRetentionSize()).isEqualTo(sizeSetting);
     }
 
     @Test

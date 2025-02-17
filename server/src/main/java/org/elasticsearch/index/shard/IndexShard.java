@@ -537,7 +537,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             indexEventListener.shardRoutingChanged(this, currentRouting, newRouting);
         }
 
-        if (indexSettings.isSoftDeleteEnabled() && useRetentionLeasesInPeerRecovery == false && state() == IndexShardState.STARTED) {
+        if (useRetentionLeasesInPeerRecovery == false && state() == IndexShardState.STARTED) {
             final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
             final Set<ShardRouting> shardRoutings = new HashSet<>(routingTable.getShards());
             shardRoutings.addAll(routingTable.assignedShards()); // include relocation targets
@@ -1842,7 +1842,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private void applyEngineSettings() {
         Engine engineOrNull = getEngineOrNull();
         if (engineOrNull != null) {
-            final boolean disableTranslogRetention = indexSettings.isSoftDeleteEnabled() && useRetentionLeasesInPeerRecovery;
+            final boolean disableTranslogRetention = useRetentionLeasesInPeerRecovery;
             engineOrNull.onSettingsChanged(
                 disableTranslogRetention ? TimeValue.MINUS_ONE : indexSettings.getTranslogRetentionAge(),
                 disableTranslogRetention ? new ByteSizeValue(-1) : indexSettings.getTranslogRetentionSize(),
@@ -2032,14 +2032,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.globalCheckpointListeners.add(waitingForGlobalCheckpoint, listener, timeout);
     }
 
-    private void ensureSoftDeletesEnabled(String feature) {
-        if (indexSettings.isSoftDeleteEnabled() == false) {
-            String message = feature + " requires soft deletes but " + indexSettings.getIndex() + " does not have soft deletes enabled";
-            assert false : message;
-            throw new IllegalStateException(message);
-        }
-    }
-
     /**
      * Get all non-expired retention leases tracked on this shard.
      *
@@ -2086,7 +2078,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         Objects.requireNonNull(listener);
         assert assertPrimaryMode();
         verifyNotClosed();
-        ensureSoftDeletesEnabled("retention leases");
         try (Closeable ignore = acquireHistoryRetentionLock(Engine.HistorySource.INDEX)) {
             final long actualRetainingSequenceNumber =
                 retainingSequenceNumber == RETAIN_ALL ? getMinRetainedSeqNo() : retainingSequenceNumber;
@@ -2108,7 +2099,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public RetentionLease renewRetentionLease(final String id, final long retainingSequenceNumber, final String source) {
         assert assertPrimaryMode();
         verifyNotClosed();
-        ensureSoftDeletesEnabled("retention leases");
         try (Closeable ignore = acquireHistoryRetentionLock(Engine.HistorySource.INDEX)) {
             final long actualRetainingSequenceNumber =
                     retainingSequenceNumber == RETAIN_ALL ? getMinRetainedSeqNo() : retainingSequenceNumber;
@@ -2128,7 +2118,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         Objects.requireNonNull(listener);
         assert assertPrimaryMode();
         verifyNotClosed();
-        ensureSoftDeletesEnabled("retention leases");
         replicationTracker.removeRetentionLease(id, listener);
     }
 
@@ -2508,8 +2497,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public RetentionLease addPeerRecoveryRetentionLease(String nodeId, long globalCheckpoint,
                                                         ActionListener<ReplicationResponse> listener) {
         assert assertPrimaryMode();
-        // only needed for BWC reasons involving rolling upgrades from versions that do not support PRRLs:
-        assert indexSettings.getIndexVersionCreated().before(Version.V_4_3_0) || indexSettings.isSoftDeleteEnabled() == false;
         return replicationTracker.addPeerRecoveryRetentionLease(nodeId, globalCheckpoint, listener);
     }
 
