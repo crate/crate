@@ -203,7 +203,7 @@ public class BootstrapProxy {
 
         IfConfig.logIfNecessary();
 
-        node = new Node(environment, DEFAULT_PLUGINS, true) {
+        node = new Node(environment, DEFAULT_PLUGINS) {
 
             @Override
             protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
