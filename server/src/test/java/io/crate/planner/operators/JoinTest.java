@@ -895,7 +895,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_multiple_nested_join_raises_error() throws Exception {
+    public void test_multiple_nested_join_succeed() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
@@ -917,9 +917,19 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
               ) temp2 on a.x = temp2.x;
             """;
 
-        assertThatThrownBy(() -> executor.analyze(stmt))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessageContaining("Joins do not support this operation");
+        LogicalPlan logicalPlan = executor.logicalPlan(stmt);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[y, z]",
+            "  └ HashJoin[INNER | (x = x)]",
+            "    ├ Collect[doc.a | [x] | true]",
+            "    └ Rename[y, z, x] AS temp2",
+            "      └ HashJoin[INNER | (y = x)]",
+            "        ├ Collect[doc.b | [y] | true]",
+            "        └ Rename[z, x] AS temp1",
+            "          └ HashJoin[INNER | (z = x)]",
+            "            ├ Collect[doc.c | [z] | true]",
+            "            └ Collect[doc.a | [x] | true]"
+        );
     }
 
     @Test
