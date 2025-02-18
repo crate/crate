@@ -332,6 +332,7 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_primary_key_comparison_is_not_detected_inside_cast_function() throws Exception {
+        //cast
         Symbol query = query("cast(x as bigint) = 0");
         List<List<Symbol>> matches = analyzeExactX(query);
         assertThat(matches).isNull();
@@ -485,6 +486,23 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         List<List<Symbol>> analyzeExact = analyzeExact(query, List.of(ColumnIdent.of("x")));
         assertThat(analyzeExact).isNull();
     }
+
+    @Test
+    public void test_standalone_boolean_column_transformed_to_eq_true_expression() {
+        List<List<Symbol>> matches = analyzeExact(query("b or b = false"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true)),
+            s -> assertThat(s).satisfiesExactly(isLiteral(false))
+        );
+
+        // No duplicate comparisons, true appears only once
+        matches = analyzeExact(query("b or b or b = false"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true)),
+            s -> assertThat(s).satisfiesExactly(isLiteral(false))
+        );
+    }
+
 
     public static class TestToken extends Session.TimeoutToken {
 

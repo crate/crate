@@ -424,13 +424,24 @@ public class EqualityExtractor {
 
         @Override
         public Symbol visitReference(Reference ref, Context ctx) {
-            if (ctx.comparisons.containsKey(ref.column())) {
+            var comparison = ctx.comparisons.get(ref.column());
+            if (comparison != null) {
+                // A boolean PK column must be treated as col = true and add another one comparison.
+                // Otherwise, we might not create a DocKey with value TRUE if it's not added in other parts of the expression.
+                if (ref.valueType().equals(DataTypes.BOOLEAN)) {
+                    // Duplicate entries are eliminated in comparison.add() method.
+                    ctx.proxyBelow = true;
+                    return comparison.add(
+                        new Function(EqOperator.SIGNATURE, List.of(ref, Literal.BOOLEAN_TRUE), EqOperator.RETURN_TYPE)
+                    );
+                }
                 if (ctx.isUnderOrOperator) {
                     ctx.foundPKColumnUnderOr = true;
                 }
                 if (ctx.isUnderNotPredicate) {
                     ctx.foundPKColumnUnderNot = true;
                 }
+
             } else {
                 if (ctx.isUnderOrOperator) {
                     ctx.foundNonPKColumnUnderOr = true;

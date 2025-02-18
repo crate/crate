@@ -334,5 +334,15 @@ public class WherePKIntegrationTest extends IntegTestCase {
         execute("select id from t1 where id = 1 and x = 1");
         assertThat(response).hasRowCount(1L);
     }
+
+    @Test
+    @UseRandomizedOptimizerRules(0)
+    public void debug_test_to_be_removed() {
+        execute("CREATE  TABLE t0(c0 BOOLEAN, PRIMARY KEY(c0))");
+        execute("INSERT INTO t0(c0) VALUES (true), (false)");
+        execute("REFRESH TABLE t0;");
+        execute("SELECT t0.c0 FROM t0 WHERE t0.c0 OR t0.c0 IN (false) order by t0.c0");
+        assertThat(response).hasRows("false", "true");
+    }
 }
 

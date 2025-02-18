@@ -38,7 +38,8 @@ public class T3 {
         "create table doc.t1 (" +
         "  a text," +
         "  x int," +
-        "  i int" +
+        "  i int," +
+        "  b boolean" +
         ")";
 
     public static final String T2_DEFINITION =
