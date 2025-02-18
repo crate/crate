@@ -51,3 +51,11 @@ Fixes
 - Fixed an issue where a filter was not pushed down to the source when the
   filtered column was aliased as part of a view. This could lead to an
   unnecessary full table scan.
+
+- Fixed a regression introduced in ``5.6.5`` that caused empty partitions to be
+  left behind when ``DELETE`` condition contained a non-deterministic function
+  such as ``NOW()``, e.g.::
+
+    DELETE FROM t WHERE day < now() - INTERVAL '3 days';
+
+  where 'day' is ``TIMESTAMP`` type that is also the ``PARTITIONED BY`` column.
