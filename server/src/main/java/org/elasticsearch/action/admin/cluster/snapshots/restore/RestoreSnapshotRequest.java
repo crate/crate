@@ -34,12 +34,9 @@ import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.SnapshotSettings;
-import io.crate.metadata.RelationName;
 
 /**
  * Restore snapshot request
@@ -61,19 +58,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     private final List<TableOrPartition> tablesToRestore;
 
-
-    public record TableOrPartition(RelationName table, @Nullable String partitionIdent) implements Writeable {
-
-        public TableOrPartition(StreamInput in) throws IOException {
-            this(new RelationName(in), in.readOptionalString());
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            table.writeTo(out);
-            out.writeOptionalString(partitionIdent);
-        }
-    }
 
     /**
      * Constructs a new put repository request with the provided repository and snapshot names.
