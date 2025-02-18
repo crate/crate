@@ -43,6 +43,3 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 
 Fixes
 =====
-
-- The root endpoint ``(/)`` JSON response now reflects the actual HTTP status
-  code instead of always defaulting to 200 OK.
