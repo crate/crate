@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.util.Strings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -29,6 +30,7 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.RestoreService.RestoreCompletionResponse;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -77,18 +79,29 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
     protected void masterOperation(final RestoreSnapshotRequest request,
                                    final ClusterState state,
                                    final ActionListener<RestoreSnapshotResponse> listener) {
-        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(request.repository(), request.snapshot(),
-                request.indices(), request.templates(), request.indicesOptions(),
-                request.tableRenamePattern(), request.tableRenameReplacement(),
-                request.schemaRenamePattern(), request.schemaRenameReplacement(),
-                request.settings(), request.masterNodeTimeout(), request.partial(), request.includeAliases(),
-                request.indexSettings(), request.ignoreIndexSettings(), "restore_snapshot[" + request.snapshot() + "]",
-                request.includeIndices(),
-                request.includeCustomMetadata(),
-                request.customMetadataTypes(),
-                request.includeGlobalSettings(),
-                request.globalSettings());
-
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
+            request.repository(),
+            request.snapshot(),
+            Strings.EMPTY_ARRAY,
+            Strings.EMPTY_ARRAY,
+            request.indicesOptions(),
+            request.tableRenamePattern(),
+            request.tableRenameReplacement(),
+            request.schemaRenamePattern(),
+            request.schemaRenameReplacement(),
+            request.settings(),
+            request.masterNodeTimeout(),
+            false,
+            request.includeAliases(),
+            Settings.EMPTY,
+            Strings.EMPTY_ARRAY,
+            "restore_snapshot[" + request.snapshot() + "]",
+            request.includeIndices(),
+            request.includeCustomMetadata(),
+            request.customMetadataTypes(),
+            request.includeGlobalSettings(),
+            request.globalSettings()
+        );
         restoreService.restoreSnapshot(restoreRequest, request.tablesToRestore(), new ActionListener<>() {
             @Override
             public void onResponse(RestoreCompletionResponse restoreCompletionResponse) {

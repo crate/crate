@@ -22,11 +22,6 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
-import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 import java.util.HashSet;
 import java.util.List;
@@ -116,28 +111,18 @@ public class RestoreSnapshotPlan implements Plan {
             })
             .toList();
 
-        String tableRenamePattern = TABLE_RENAME_PATTERN.get(settings);
-        String tableRenameReplacement = TABLE_RENAME_REPLACEMENT.get(settings);
-        String schemaRenamePattern = SCHEMA_RENAME_PATTERN.get(settings);
-        String schemaRenameReplacement = SCHEMA_RENAME_REPLACEMENT.get(settings);
-
         RestoreSnapshotRequest request = new RestoreSnapshotRequest(
             restoreSnapshot.repository(),
-            restoreSnapshot.snapshot())
-            .tablesToRestore(tablesToRestore)
-            .tableRenamePattern(tableRenamePattern)
-            .tableRenameReplacement(tableRenameReplacement)
-            .schemaRenamePattern(schemaRenamePattern)
-            .schemaRenameReplacement(schemaRenameReplacement)
-            .indicesOptions(indicesOptions)
-            .settings(settings)
-            .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-            .includeIndices(includeTables)
-            .includeAliases(includeTables)
-            .includeCustomMetadata(stmt.includeCustomMetadata())
-            .customMetadataTypes(stmt.customMetadataTypes())
-            .includeGlobalSettings(stmt.includeGlobalSettings())
-            .globalSettings(stmt.globalSettings());
+            restoreSnapshot.snapshot(),
+            tablesToRestore,
+            indicesOptions,
+            settings,
+            includeTables,
+            stmt.includeCustomMetadata(),
+            stmt.customMetadataTypes(),
+            stmt.includeGlobalSettings(),
+            stmt.globalSettings()
+        );
         dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
             .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
     }

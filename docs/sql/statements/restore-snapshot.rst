@@ -32,8 +32,6 @@ where ``data_section``::
 
    {  TABLES |
       VIEWS |
-      USERS |      -- Deprecated, use USERMANAGEMENT instead
-      PRIVILEGES | -- Deprecated, use USERMANAGEMENT instead
       USERMANAGEMENT |
       ANALYZERS |
       UDFS }
