@@ -947,7 +947,7 @@ public class RestoreService implements ClusterStateApplier {
          */
         private Updates changes(RecoverySource recoverySource) {
             assert recoverySource.getType() == RecoverySource.Type.SNAPSHOT;
-            return shardChanges.computeIfAbsent(((SnapshotRecoverySource) recoverySource).restoreUUID(), k -> new Updates());
+            return shardChanges.computeIfAbsent(((SnapshotRecoverySource) recoverySource).restoreUUID(), _ -> new Updates());
         }
 
         private static class Updates {
@@ -1251,12 +1251,22 @@ public class RestoreService implements ClusterStateApplier {
          * @param includeGlobalSettings include any cluster settings on restore
          * @param globalSettings     global settings to restore
          */
-        public RestoreRequest(String repositoryName, String snapshotName, String[] indices, String[] templates, IndicesOptions indicesOptions,
-                              String tableRenamePattern, String tableRenameReplacement,
-                              String schemaRenamePattern, String schemaRenameReplacement,
+        public RestoreRequest(String repositoryName,
+                              String snapshotName,
+                              String[] indices,
+                              String[] templates,
+                              IndicesOptions indicesOptions,
+                              String tableRenamePattern,
+                              String tableRenameReplacement,
+                              String schemaRenamePattern,
+                              String schemaRenameReplacement,
                               Settings settings,
-                              TimeValue masterNodeTimeout, boolean partial, boolean includeAliases,
-                              Settings indexSettings, String[] ignoreIndexSettings, String cause,
+                              TimeValue masterNodeTimeout,
+                              boolean partial,
+                              boolean includeAliases,
+                              Settings indexSettings,
+                              String[] ignoreIndexSettings,
+                              String cause,
                               boolean includeIndices,
                               boolean includeCustomMetadata,
                               String[] customMetadataTypes,

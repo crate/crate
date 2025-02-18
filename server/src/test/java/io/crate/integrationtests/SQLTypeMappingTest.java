@@ -501,6 +501,15 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into t (a, x) values (1, [])");
         execute("insert into t (a, x) values (2, [{y=1},{y=2}])");
         execute("refresh table t");
+
+        // Ensure correct type is stored into the table's metadata
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 't' ORDER BY ordinal_position");
+        assertThat(response).hasRows(
+            "a| integer",
+            "x| object_array",
+            "x['y']| bigint"
+        );
+
         assertBusy(() -> {
             execute("select * from t order by a");
             assertThat(response).hasRows("1| []", "2| [{y=1}, {y=2}]");

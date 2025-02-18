@@ -290,4 +290,17 @@ public class ViewsITest extends IntegTestCase {
                 "Cannot rename view %s.v1 to %s.tbl_parted, table %s.tbl_parted already exists",
                 schema, schema, schema));
     }
+
+    @Test
+    public void test_object_column_of_view_contain_inner_types() throws Exception {
+        execute("CREATE TABLE data (value_1 BOOLEAN, value_2 INTEGER)");
+        execute("CREATE VIEW data_view AS " +
+            "SELECT { value_1 = value_1, value_2 = value_2 } AS o FROM data");
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'data_view' ORDER BY ordinal_position");
+        assertThat(response).hasRows(
+            "o| object",
+            "o['value_1']| boolean",
+            "o['value_2']| integer"
+        );
+    }
 }

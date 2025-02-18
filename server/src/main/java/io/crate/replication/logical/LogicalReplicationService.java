@@ -296,8 +296,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             new RestoreService.RestoreRequest(
                 publisherClusterRepoName,
                 LogicalReplicationRepository.LATEST,
-                indicesToRestore.toArray(new String[0]),
-                templatesToRestore.toArray(new String[0]),
+                indicesToRestore.toArray(String[]::new),
+                templatesToRestore.toArray(String[]::new),
                 IndicesOptions.LENIENT_EXPAND_OPEN,
                 TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY),
                 TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY),
