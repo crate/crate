@@ -115,8 +115,7 @@ public class WhereClauseAnalyzer {
             nodeCtx,
             RowGranularity.PARTITION,
             partitionReferenceResolver,
-            null,
-            f -> f.signature().isDeterministic());
+            null);
 
         Symbol normalized;
         Map<Symbol, List<Literal<?>>> queryPartitionMap = new HashMap<>();
