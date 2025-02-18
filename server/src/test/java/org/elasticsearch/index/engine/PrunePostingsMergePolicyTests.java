@@ -46,8 +46,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.lucene.index.ShuffleForcedMergePolicy;
-
 public class PrunePostingsMergePolicyTests extends ESTestCase {
 
     @Test
@@ -57,7 +55,7 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
             iwc.setSoftDeletesField("_soft_deletes");
             MergePolicy mp = new SoftDeletesRetentionMergePolicy("_soft_deletes", MatchAllDocsQuery::new,
                 new PrunePostingsMergePolicy(newLogMergePolicy(), "id"));
-            iwc.setMergePolicy(new ShuffleForcedMergePolicy(mp));
+            iwc.setMergePolicy(mp);
             boolean sorted = randomBoolean();
             if (sorted) {
                 iwc.setIndexSort(new Sort(new SortField("sort", SortField.Type.INT)));
