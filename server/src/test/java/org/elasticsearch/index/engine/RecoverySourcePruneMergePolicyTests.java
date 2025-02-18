@@ -52,8 +52,6 @@ import org.apache.lucene.tests.util.NullInfoStream;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.test.ESTestCase;
 
-import io.crate.lucene.index.ShuffleForcedMergePolicy;
-
 public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
 
     public void testPruneAll() throws IOException {
@@ -64,7 +62,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 MatchNoDocsQuery::new,
                 newLogMergePolicy()
             );
-            iwc.setMergePolicy(new ShuffleForcedMergePolicy(mp));
+            iwc.setMergePolicy(mp);
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
                 for (int i = 0; i < 20; i++) {
                     if (i > 0 && randomBoolean()) {
