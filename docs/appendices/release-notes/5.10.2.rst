@@ -44,5 +44,6 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- The root endpoint ``(/)`` JSON response now reflects the actual HTTP status
-  code instead of always defaulting to 200 OK.
+- The ``status`` field within the JSON payload returned from the HTTP root
+  endpoint ``(/)`` now shows 503 instead of 200 if the cluster state is
+  considered unavailable to match how the ``ok`` field behaves.
