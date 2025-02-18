@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -101,13 +102,13 @@ public class RestoreSnapshotPlan implements Plan {
 
         boolean includeTables = stmt.includeTables();
 
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
+        List<TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
             .map(restoreTableInfo -> {
                 String partitionIdent = null;
                 if (restoreTableInfo.partitionName() != null) {
                     partitionIdent = restoreTableInfo.partitionName().ident();
                 }
-                return new RestoreSnapshotRequest.TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
+                return new TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
             })
             .toList();
 

@@ -21,7 +21,7 @@
 
 package org.elasticsearch.snapshots;
 import static io.crate.metadata.PartitionName.templateName;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.snapshots.RestoreService.resolveIndices;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.junit.Test;
 
@@ -48,11 +48,11 @@ public class RestoreServiceTest {
         when(restoreRequest.includeIndices()).thenReturn(true);
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(
                 new RelationName("my_schema", "table1"), null
             ),
-            new RestoreSnapshotRequest.TableOrPartition(
+            new TableOrPartition(
                 new RelationName("my_schema", "table2"), null
             )
         );
@@ -82,8 +82,8 @@ public class RestoreServiceTest {
 
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
         );
         // ignoreUnavailable code path doesn't filter anything and doesn't use available indices
         List<String> availableIndices = null;
@@ -112,8 +112,8 @@ public class RestoreServiceTest {
 
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
             restoreRequest,
@@ -138,8 +138,8 @@ public class RestoreServiceTest {
 
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
             restoreRequest,
@@ -167,9 +167,9 @@ public class RestoreServiceTest {
 
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
         );
         resolveIndices(
             restoreRequest,

@@ -42,7 +42,7 @@ public class RestoreSnapshotRequestTest {
             "repoName",
             "snapshotName",
             List.of(
-                new RestoreSnapshotRequest.TableOrPartition(new RelationName("s", "t1"), null)
+                new TableOrPartition(new RelationName("s", "t1"), null)
             ),
             IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
             Settings.EMPTY,

@@ -42,7 +42,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +54,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest.TableOrPartition;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -103,7 +102,6 @@ import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntHashSet;
@@ -111,6 +109,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.analyze.SnapshotSettings;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
@@ -214,7 +213,7 @@ public class RestoreService implements ClusterStateApplier {
      * @param listener restore listener
      */
     public void restoreSnapshot(final RestoreRequest request,
-                                @Nullable final List<TableOrPartition> tablesToRestore,
+                                final List<TableOrPartition> tablesToRestore,
                                 final ActionListener<RestoreCompletionResponse> listener) {
         final String repositoryName = request.repositoryName;
         Repository repository;
@@ -328,59 +327,49 @@ public class RestoreService implements ClusterStateApplier {
     */
     @VisibleForTesting
     static void resolveIndices(RestoreRequest request,
-                               @Nullable List<TableOrPartition> tablesToRestore,
+                               List<TableOrPartition> tablesToRestore,
                                List<String> availableIndices,
                                List<String> resolvedIndices,
                                List<String> resolvedTemplates) {
-        if (tablesToRestore != null) {
-            for (TableOrPartition tableOrPartition : tablesToRestore) {
-                String partitionTemplate = PartitionName.templateName(
-                    tableOrPartition.table().schema(),
-                    tableOrPartition.table().name()
-                );
+        for (TableOrPartition tableOrPartition : tablesToRestore) {
+            String partitionTemplate = PartitionName.templateName(
+                tableOrPartition.table().schema(),
+                tableOrPartition.table().name()
+            );
 
-                if (tableOrPartition.partitionIdent() != null) {
-                    resolvedIndices.add(
-                        IndexName.encode(tableOrPartition.table().schema(), tableOrPartition.table().name(), tableOrPartition.partitionIdent())
-                    );
-                    resolvedTemplates.add(partitionTemplate);
-                } else if (request.indicesOptions().ignoreUnavailable()) {
-                    // If ignoreUnavailable is true, it's cheaper to simply
-                    // return indexName and the partitioned wildcard instead
-                    // checking if it's a partitioned table or not
-                    resolvedIndices.add(tableOrPartition.table().indexNameOrAlias());
-                    // For the case its a partitioned table we restore all partitions and the templates
-                    resolvedIndices.add(partitionTemplate + "*");
-                    resolvedTemplates.add(partitionTemplate);
-                } else {
-                    String name = tableOrPartition.table().indexNameOrAlias();
-                    boolean found = false;
-                    for (String index : availableIndices) {
-                        if (name.equals(index)) {
-                            resolvedIndices.add(index);
-                            found = true;
-                            break;
-                        } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
-                            // add a partitions wildcard
-                            // to match all partitions if a partitioned table was meant
-                            resolvedIndices.add(partitionTemplate + "*");
-                            resolvedTemplates.add(partitionTemplate);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found == false) {
+            if (tableOrPartition.partitionIdent() != null) {
+                resolvedIndices.add(
+                    IndexName.encode(tableOrPartition.table().schema(), tableOrPartition.table().name(), tableOrPartition.partitionIdent())
+                );
+                resolvedTemplates.add(partitionTemplate);
+            } else if (request.indicesOptions().ignoreUnavailable()) {
+                // If ignoreUnavailable is true, it's cheaper to simply
+                // return indexName and the partitioned wildcard instead
+                // checking if it's a partitioned table or not
+                resolvedIndices.add(tableOrPartition.table().indexNameOrAlias());
+                // For the case its a partitioned table we restore all partitions and the templates
+                resolvedIndices.add(partitionTemplate + "*");
+                resolvedTemplates.add(partitionTemplate);
+            } else {
+                String name = tableOrPartition.table().indexNameOrAlias();
+                boolean found = false;
+                for (String index : availableIndices) {
+                    if (name.equals(index)) {
+                        resolvedIndices.add(index);
+                        found = true;
+                        break;
+                    } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
+                        // add a partitions wildcard
+                        // to match all partitions if a partitioned table was meant
+                        resolvedIndices.add(partitionTemplate + "*");
                         resolvedTemplates.add(partitionTemplate);
+                        found = true;
+                        break;
                     }
                 }
-            }
-        } else {
-            // Use request values, for BWC and for restore from logical replication.
-            for (String index: request.indices()) {
-                resolvedIndices.add(index);
-            }
-            for (String template: request.templates()) {
-                resolvedTemplates.add(template);
+                if (found == false) {
+                    resolvedTemplates.add(partitionTemplate);
+                }
             }
         }
 
@@ -1185,283 +1174,52 @@ public class RestoreService implements ClusterStateApplier {
     /**
      * Restore snapshot request
      */
-    public static class RestoreRequest {
-
-        private final String cause;
-
-        private final String repositoryName;
-
-        private final String snapshotName;
-
-        private final String[] indices;
-
-        private final String[] templates;
-
-        private final String tableRenamePattern;
-
-        private final String tableRenameReplacement;
-
-        private final String schemaRenamePattern;
-
-        private final String schemaRenameReplacement;
-
-        private final IndicesOptions indicesOptions;
-
-        private final Settings settings;
-
-        private final TimeValue masterNodeTimeout;
-
-        private final boolean partial;
-
-        private final boolean includeAliases;
-
-        private final Settings indexSettings;
-
-        private final String[] ignoreIndexSettings;
-
-        private final boolean includeIndices;
-
-        private final boolean includeCustomMetadata;
-
-        private final String[] customMetadataTypes;
-
-        private final boolean includeGlobalSettings;
-
-        private final String[] globalSettings;
+    public static record RestoreRequest(String repositoryName,
+                                        String snapshotName,
+                                        IndicesOptions indicesOptions,
+                                        Settings settings,
+                                        TimeValue masterNodeTimeout,
+                                        boolean partial,
+                                        boolean includeAliases,
+                                        Settings indexSettings,
+                                        String[] ignoreIndexSettings,
+                                        boolean includeIndices,
+                                        boolean includeCustomMetadata,
+                                        String[] customMetadataTypes,
+                                        boolean includeGlobalSettings,
+                                        String[] globalSettings) {
 
         /**
-         * Constructs new restore request
-         *
-         * @param repositoryName     repositoryName
-         * @param snapshotName       snapshotName
-         * @param indices            list of indices to restore
-         * @param templates          list of indices to templates
-         * @param indicesOptions     indices options
-         * @param tableRenamePattern      pattern to rename indices
-         * @param tableRenameReplacement  replacement for renamed indices
-         * @param settings           repository specific restore settings
-         * @param masterNodeTimeout  master node timeout
-         * @param partial            allow partial restore
-         * @param indexSettings      index settings that should be changed on restore
-         * @param ignoreIndexSettings index settings that shouldn't be restored
-         * @param cause              cause for restoring the snapshot
-         * @param includeIndices     include any index on restore
-         * @param includeCustomMetadata include custom metadata types
-         * @param customMetadataTypes custom metadata types to restore
-         * @param includeGlobalSettings include any cluster settings on restore
-         * @param globalSettings     global settings to restore
+         * @return rename pattern
          */
-        public RestoreRequest(String repositoryName,
-                              String snapshotName,
-                              String[] indices,
-                              String[] templates,
-                              IndicesOptions indicesOptions,
-                              String tableRenamePattern,
-                              String tableRenameReplacement,
-                              String schemaRenamePattern,
-                              String schemaRenameReplacement,
-                              Settings settings,
-                              TimeValue masterNodeTimeout,
-                              boolean partial,
-                              boolean includeAliases,
-                              Settings indexSettings,
-                              String[] ignoreIndexSettings,
-                              String cause,
-                              boolean includeIndices,
-                              boolean includeCustomMetadata,
-                              String[] customMetadataTypes,
-                              boolean includeGlobalSettings,
-                              String[] globalSettings) {
-            this.repositoryName = Objects.requireNonNull(repositoryName);
-            this.snapshotName = Objects.requireNonNull(snapshotName);
-            this.indices = indices;
-            this.templates = templates;
-            this.tableRenamePattern = tableRenamePattern;
-            this.tableRenameReplacement = tableRenameReplacement;
-            this.schemaRenamePattern = schemaRenamePattern;
-            this.schemaRenameReplacement = schemaRenameReplacement;
-            this.indicesOptions = indicesOptions;
-            this.settings = settings;
-            this.masterNodeTimeout = masterNodeTimeout;
-            this.partial = partial;
-            this.includeAliases = includeAliases;
-            this.indexSettings = indexSettings;
-            this.ignoreIndexSettings = ignoreIndexSettings;
-            this.cause = cause;
-            this.includeIndices = includeIndices;
-            this.includeCustomMetadata = includeCustomMetadata;
-            this.customMetadataTypes = customMetadataTypes;
-            this.includeGlobalSettings = includeGlobalSettings;
-            this.globalSettings = globalSettings;
-        }
-
-        /**
-         * Returns restore operation cause
-         *
-         * @return restore operation cause
-         */
-        public String cause() {
-            return cause;
-        }
-
-        /**
-         * Returns repository name
-         *
-         * @return repository name
-         */
-        public String repositoryName() {
-            return repositoryName;
-        }
-
-        /**
-         * Returns snapshot name
-         *
-         * @return snapshot name
-         */
-        public String snapshotName() {
-            return snapshotName;
-        }
-
-        /**
-         * Return the list of indices to be restored
-         *
-         * @return the list of indices
-         */
-        public String[] indices() {
-            return indices;
-        }
-
-        public String[] templates() {
-            return templates;
-        }
-
-        /**
-         * Returns indices option flags
-         *
-         * @return indices options flags
-         */
-        public IndicesOptions indicesOptions() {
-            return indicesOptions;
-        }
-
         public String tableRenamePattern() {
-            return tableRenamePattern;
+            return SnapshotSettings.TABLE_RENAME_PATTERN.get(settings);
         }
 
+        /**
+         * @return table rename replacement
+         */
         public String tableRenameReplacement() {
-            return tableRenameReplacement;
+            return SnapshotSettings.TABLE_RENAME_REPLACEMENT.get(settings);
         }
 
         public String schemaRenamePattern() {
-            return schemaRenamePattern;
+            return SnapshotSettings.SCHEMA_RENAME_PATTERN.get(settings);
         }
 
         public String schemaRenameReplacement() {
-            return schemaRenameReplacement;
-        }
-
-        /**
-         * Returns repository-specific restore settings
-         *
-         * @return restore settings
-         */
-        public Settings settings() {
-            return settings;
-        }
-
-        /**
-         * Returns true if incomplete indices will be restored
-         *
-         * @return partial indices restore flag
-         */
-        public boolean partial() {
-            return partial;
-        }
-
-        /**
-         * Returns true if aliases should be restore during this restore operation
-         *
-         * @return restore aliases state flag
-         */
-        public boolean includeAliases() {
-            return includeAliases;
-        }
-
-        /**
-         * Returns index settings that should be changed on restore
-         *
-         * @return restore aliases state flag
-         */
-        public Settings indexSettings() {
-            return indexSettings;
-        }
-
-        /**
-         * Returns index settings that that shouldn't be restored
-         *
-         * @return restore aliases state flag
-         */
-        public String[] ignoreIndexSettings() {
-            return ignoreIndexSettings;
-        }
-
-        /**
-         * Returns true if any index should be restored
-         */
-        public boolean includeIndices() {
-            return includeIndices;
-        }
-
-        /**
-         * Returns true if custom metadata should be restored
-         */
-        public boolean includeCustomMetadata() {
-            return includeCustomMetadata;
-        }
-
-        /**
-         * Returns custom metadata types that should be restored
-         *
-         * @return  List of custom metadata types
-         */
-        public String[] customMetadataTypes() {
-            return customMetadataTypes;
-        }
-
-        /**
-         * Returns true if global cluster settings should be restored
-         */
-        public boolean includeGlobalSettings() {
-            return includeGlobalSettings;
-        }
-
-        /**
-         * Returns global state setting prefixes to include during the restore operation
-
-         * @return  List of setting prefix to include
-         */
-        public String[] globalSettings() {
-            return globalSettings;
-        }
-
-        /**
-         * Return master node timeout
-         *
-         * @return master node timeout
-         */
-        public TimeValue masterNodeTimeout() {
-            return masterNodeTimeout;
+            return SnapshotSettings.SCHEMA_RENAME_REPLACEMENT.get(settings);
         }
 
         public boolean hasNonDefaultRenamePatterns() {
-            return !tableRenamePattern().equals(TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY))
-                || !tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY))
-                || !schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY))
-                || !schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY));
+            return TABLE_RENAME_PATTERN.exists(settings)
+                || TABLE_RENAME_REPLACEMENT.exists(settings)
+                || SCHEMA_RENAME_PATTERN.exists(settings)
+                || SCHEMA_RENAME_REPLACEMENT.exists(settings);
         }
 
         public boolean restoreAllTables() {
-            return indices.length == 0 && templates.length == 0 && includeIndices && includeAliases;
+            return includeIndices && includeAliases;
         }
     }
 }
