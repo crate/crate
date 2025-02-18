@@ -31,6 +31,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -40,6 +41,7 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.types.DataTypes;
 import io.crate.udc.ping.PingTask;
 
+@Singleton
 public class UDCService extends AbstractLifecycleComponent {
 
     private static final Logger LOGGER = LogManager.getLogger(UDCService.class);
@@ -63,11 +65,11 @@ public class UDCService extends AbstractLifecycleComponent {
         Property.Exposed
     );
 
-    private final Timer timer;
 
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final Settings settings;
+    private Timer timer;
 
     @Inject
     public UDCService(Settings settings,
@@ -76,7 +78,6 @@ public class UDCService extends AbstractLifecycleComponent {
         this.settings = settings;
         this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
-        this.timer = new Timer("crate-udc");
     }
 
     @Override
@@ -89,6 +90,9 @@ public class UDCService extends AbstractLifecycleComponent {
             LOGGER.debug("Starting with delay {} and period {}.", initialDelay.seconds(), interval.seconds());
         }
         PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url);
+        if (timer == null) {
+            timer = new Timer("crate-udc");
+        }
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 
