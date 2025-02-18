@@ -54,7 +54,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                                 TypeSignature.parse("T"))
                         .returnType(DataTypes.INTEGER.getTypeSignature())
                         .typeVariableConstraints(typeVariable("T"))
-                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 ArrayPositionFunction::new);
 
@@ -65,15 +65,15 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.INTEGER.getTypeSignature())
                         .typeVariableConstraints(typeVariable("T"))
-                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 ArrayPositionFunction::new);
     }
 
     @Override
-    public Integer evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input[] args) {
+    public Integer evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<List<Object>>[] args) {
 
-        List<Object> elements = (List<Object>) args[0].value();
+        List<Object> elements = args[0].value();
         if (elements == null || elements.isEmpty()) {
             return null;
         }
@@ -90,7 +90,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
             return null;
         }
 
-        Object element = null;
+        Object element;
         for (int i = beginIndex; i < elements.size(); i++) {
             element = elements.get(i);
             if (Objects.equals(targetValue, element)) {
@@ -107,7 +107,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
             return 0;
         }
 
-        Integer beginPosition = (Integer) position;
+        int beginPosition = (Integer) position;
         if (beginPosition < 1 || beginPosition > elementsSize) {
             return null;
         }

@@ -29,6 +29,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -132,7 +133,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     static Map<String, Object> sourceMap(ParsedDocument parsedDocument, DocTableInfo tableInfo) throws Exception {
-        var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey(), true);
+        var sourceParser = new SourceParser(tableInfo.lookupNameBySourceKey(), true);
         return sourceParser.parse(parsedDocument.source());
     }
 
@@ -669,6 +670,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(fields[0].fieldType().tokenized()).isTrue();
         assertTranslogParses(doc, table);
+
+        doc = indexer.index(item(new Object[]{null}));
+        fields = doc.doc().getFields(ref.storageIdent());
+        assertThat(fields).hasSize(0);
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_can_add_dedicated_fulltext_to_sub_column() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    id int,
+                    author object as (
+                        name string
+                    ),
+                    index nested_ft using fulltext(author['name'])
+                )
+            """);
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        var ref = table.indexColumn(ColumnIdent.of("nested_ft"));
+
+        var indexer = getIndexer(e, "tbl", "id", "author");
+        ParsedDocument doc = indexer.index(item(1, Map.of("name", "sub_col_name")));
+        IndexableField[] fields = doc.doc().getFields(ref.storageIdent());
+        assertThat(fields).hasSize(1);
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -949,11 +977,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         var refFt = table.indexColumn(ColumnIdent.of("ft"));
         var indexer = getIndexer(e, "tbl", "xs");
-        ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
+
+        ParsedDocument doc = indexer.index(item(Arrays.asList("foo", "bar", "baz", null)));
+        // NULL inside array is not indexed, hence doc has 3 fields but we have NULL it in the source.
         assertThat(doc.doc().getFields(refFt.storageIdent())).hasSize(3);
         assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
             """
-            {"xs": ["foo", "bar", "baz"]}
+            {"xs": ["foo", "bar", "baz", null]}
             """
         );
         assertTranslogParses(doc, table);
@@ -1156,7 +1186,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore(value = "We don't support dynamic creation of nested arrays due to translog restrictions")
     public void test_index_nested_array() throws Exception {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
@@ -1183,7 +1212,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source(doc, table)).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
         );
-        assertTranslogParses(doc, table);
+        // NB: We can't test translog assertions, as the test does not update DocTableInfo
+        // with the new dynamic reference.
     }
 
     @Test

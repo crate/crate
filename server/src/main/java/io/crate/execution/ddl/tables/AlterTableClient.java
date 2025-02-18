@@ -53,8 +53,6 @@ import io.crate.action.FutureActionListener;
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
-import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
-import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -82,7 +80,6 @@ public class AlterTableClient {
     private final TransportOpenTableAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final TransportCloseTable transportCloseTable;
     private final Sessions sessions;
     private final IndexScopedSettings indexScopedSettings;
@@ -95,7 +92,6 @@ public class AlterTableClient {
                             TransportCloseTable transportCloseTable,
                             TransportResizeAction transportResizeAction,
                             TransportDeleteIndexAction transportDeleteIndexAction,
-                            TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                             TransportAlterTableAction transportAlterTableAction,
                             TransportDropConstraintAction transportDropConstraintAction,
                             TransportAddColumnAction transportAddColumnAction,
@@ -108,7 +104,6 @@ public class AlterTableClient {
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportResizeAction = transportResizeAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportSwapAndDropIndexNameAction = transportSwapAndDropIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
@@ -249,16 +244,9 @@ public class AlterTableClient {
             partitionName == null ? List.of() : partitionName.values(),
             targetNumberOfShards
         );
-        return future.thenCompose(_ -> transportResizeAction.execute(request).thenCompose(response -> {
-            if (response.isAcknowledged() && response.isShardsAcknowledged()) {
-                return swapAndDropIndex(resizedIndex, sourceIndexName);
-            } else {
-                return deleteIndex(resizedIndex).handle((_, err) -> {
-                    throw new IllegalStateException(
-                        "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
-                });
-            }
-        }));
+        return future
+            .thenCompose(_ -> transportResizeAction.execute(request))
+            .thenApply(_ -> 0L);
     }
 
     @VisibleForTesting
@@ -332,17 +320,6 @@ public class AlterTableClient {
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
         request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
         return transportDeleteIndexAction.execute(request, _ -> 0L);
-    }
-
-    private CompletableFuture<Long> swapAndDropIndex(String source, String target) {
-        SwapAndDropIndexRequest request = new SwapAndDropIndexRequest(source, target);
-        return transportSwapAndDropIndexNameAction.execute(request, response -> {
-            if (!response.isAcknowledged()) {
-                throw new RuntimeException("Publishing new cluster state during Shrink operation (rename phase) " +
-                                           "has timed out");
-            }
-            return 0L;
-        });
     }
 
     public CompletableFuture<Long> rename(AnalyzedAlterTableRenameTable renameTable) {

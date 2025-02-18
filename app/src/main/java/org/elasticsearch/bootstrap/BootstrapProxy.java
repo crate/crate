@@ -63,7 +63,6 @@ import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import io.crate.bootstrap.BootstrapException;
 import io.crate.common.SuppressForbidden;
 import io.crate.plugin.SrvPlugin;
-import io.crate.udc.plugin.UDCPlugin;
 
 /**
  * <p>
@@ -80,7 +79,6 @@ public class BootstrapProxy {
 
     private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
         SrvPlugin.class,
-        UDCPlugin.class,
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class
@@ -203,7 +201,7 @@ public class BootstrapProxy {
 
         IfConfig.logIfNecessary();
 
-        node = new Node(environment, DEFAULT_PLUGINS, true) {
+        node = new Node(environment, DEFAULT_PLUGINS) {
 
             @Override
             protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,

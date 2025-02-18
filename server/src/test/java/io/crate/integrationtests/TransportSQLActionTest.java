@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -1293,15 +1294,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRowCount(1L);
         execute("select * from t where within(p, ?)", $(Map.of(
             "type", "Polygon",
-            "coordinates", new double[][][]{
-                {
-                    {5.0, 5.0},
-                    {30.0, 5.0},
-                    {30.0, 30.0},
-                    {5.0, 30.0},
-                    {5.0, 5.0}
-                }
-            }
+            "coordinates", List.of(List.of(
+                    List.of(5.0, 5.0),
+                    List.of(30.0, 5.0),
+                    List.of(30.0, 30.0),
+                    List.of(5.0, 30.0),
+                    List.of(5.0, 5.0)
+                ))
         )));
         assertThat(response).hasRowCount(1L);
 

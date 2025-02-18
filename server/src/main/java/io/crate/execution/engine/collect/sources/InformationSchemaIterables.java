@@ -41,7 +41,10 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.jetbrains.annotations.NotNull;
 
+import io.crate.Constants;
+import io.crate.common.collections.Iterators;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
@@ -76,13 +79,15 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Permission;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
 
 public class InformationSchemaIterables {
-
-    public static final String PK_SUFFIX = "_pk";
 
     private static final Set<String> IGNORED_SCHEMAS = Set.of(
         InformationSchemaInfo.NAME,
@@ -106,6 +111,8 @@ public class InformationSchemaIterables {
     private final NodeContext nodeCtx;
     private final ClusterService clusterService;
     private final RoutineInfos routineInfos;
+    private final Schemas schemas;
+
 
     @Inject
     public InformationSchemaIterables(NodeContext nodeCtx,
@@ -113,7 +120,7 @@ public class InformationSchemaIterables {
                                       ClusterService clusterService) {
         this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
-        Schemas schemas = nodeCtx.schemas();
+        this.schemas = nodeCtx.schemas();
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
         relations = () -> {
@@ -138,7 +145,7 @@ public class InformationSchemaIterables {
         Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
             .map(t -> new ConstraintInfo(
                 t,
-                t.pkConstraintName() == null ? t.ident().name() + PK_SUFFIX : t.pkConstraintName(),
+                t.pkConstraintNameOrDefault(),
                 ConstraintInfo.Type.PRIMARY_KEY))
             .iterator();
 
@@ -214,7 +221,7 @@ public class InformationSchemaIterables {
             info.ident().name(),
             toEntryType(info.relationType()),
             info.columns().size(),
-            info.primaryKey().size() > 0);
+            !info.primaryKey().isEmpty());
     }
 
     private PgClassTable.Entry primaryKeyToPgClassEntry(RelationInfo info) {
@@ -222,10 +229,10 @@ public class InformationSchemaIterables {
             Regclass.primaryOid(info),
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
-            info.ident().name() + "_pkey",
+            info.pkConstraintNameOrDefault(),
             PgClassTable.Entry.Type.INDEX,
             info.columns().size(),
-            info.primaryKey().size() > 0);
+            !info.primaryKey().isEmpty());
     }
 
     private static PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
@@ -338,7 +345,7 @@ public class InformationSchemaIterables {
                 PrimitiveIterator.OfInt ids = IntStream.range(1, pks.size() + 1).iterator();
                 RelationName ident = tableInfo.ident();
                 return pks.stream().map(
-                    pk -> new KeyColumnUsage(ident, pk, ids.next()));
+                    pk -> new KeyColumnUsage(ident, tableInfo.pkConstraintNameOrDefault(), pk, ids.next()));
             })::iterator;
     }
 
@@ -384,6 +391,102 @@ public class InformationSchemaIterables {
         return foreignTables.tableOptions();
     }
 
+
+    public Iterable<String> enabledRoles(Role role, Roles roles) {
+        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        return () -> Iterators.concat(
+            List.of(role.name()).iterator(),
+            applicableRoles(role, roles, isAdmin)
+                .map(ApplicableRole::roleName)
+                .distinct()
+                .iterator()
+        );
+    }
+
+    public Iterable<ApplicableRole> administrableRoleAuthorizations(Role role, Roles roles) {
+        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        return () -> applicableRoles(role, roles, isAdmin).filter(ApplicableRole::isGrantable).iterator();
+    }
+
+    public Iterable<ApplicableRole> applicableRoles(Role role, Roles roles) {
+        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        return () -> applicableRoles(role, roles, isAdmin).iterator();
+    }
+
+    private Stream<ApplicableRole> applicableRoles(Role role, Roles roles, boolean isAdmin) {
+        return role.grantedRoles().stream()
+            .mapMulti((grantedRole, c) -> {
+                c.accept(new ApplicableRole(role.name(), grantedRole.roleName(), false));
+                c.accept(new ApplicableRole(grantedRole.grantor(), grantedRole.roleName(), isAdmin));
+                Role retrievedRole = roles.findRole(grantedRole.roleName());
+                if (retrievedRole != null) {
+                    applicableRoles(retrievedRole, roles, isAdmin)
+                        .forEach(c);
+                }
+            });
+    }
+
+    public Iterable<RoleTableGrant> roleTableGrants(Role role, Roles roles) {
+        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        return () -> roleTableGrants(role, role, roles, isAdmin).distinct().iterator();
+    }
+
+    private Stream<RoleTableGrant> roleTableGrants(Role user, Role role, Roles roles, boolean isAdmin) {
+        Stream<RoleTableGrant> roleStream = StreamSupport.stream(role.privileges().spliterator(), false)
+            .mapMulti((p, c) -> {
+                Securable securableType = p.subject().securable();
+                // Verify the privilege is valid by any role in the hierarchy
+                // (there could a DENY permission making this privilege invalid)
+                if (roles.hasPrivilege(user, p.subject().permission(), securableType, p.subject().ident()) == false) {
+                    return;
+                }
+                switch (securableType) {
+                    case Securable.TABLE,
+                         Securable.VIEW -> {
+                        var fqn = p.subject().ident();
+                        assert fqn != null : "fqn must not be null for securable type TABLE";
+                        RelationName ident = RelationName.fromIndexName(fqn);
+                        c.accept(new RoleTableGrant(
+                            p.grantor(),
+                            role.name(),
+                            Constants.DB_NAME,
+                            ident.schema(),
+                            ident.name(),
+                            p.subject().permission().name(),
+                            isAdmin,
+                            false
+                        ));
+                    }
+                    case SCHEMA -> {
+                        SchemaInfo schemaInfo = schemas.getSchemaInfo(p.subject().ident());
+                        if (schemaInfo != null) {
+                            schemaInfo.getTables().forEach(tableInfo -> c.accept(new RoleTableGrant(
+                                p.grantor(),
+                                role.name(),
+                                Constants.DB_NAME,
+                                schemaInfo.name(),
+                                tableInfo.ident().name(),
+                                p.subject().permission().name(),
+                                isAdmin,
+                                false
+                            )));
+                        }
+                    }
+                    default -> {
+                    }
+                }
+            });
+        Stream<RoleTableGrant> parentsStream = role.grantedRoles().stream()
+            .mapMulti((grantedRole, c) -> {
+                Role retrievedRole = roles.findRole(grantedRole.roleName());
+                if (retrievedRole != null) {
+                    roleTableGrants(user, retrievedRole, roles, isAdmin)
+                        .forEach(c);
+                }
+            });
+        return Stream.concat(roleStream, parentsStream);
+    }
+
     /**
      * Iterable for extracting not null constraints from table info.
      */
@@ -396,6 +499,7 @@ public class InformationSchemaIterables {
         }
 
         @Override
+        @NotNull
         public Iterator<ConstraintInfo> iterator() {
             return new NotNullConstraintIterator(info);
         }
@@ -433,14 +537,13 @@ public class InformationSchemaIterables {
             // Currently the longest not null constraint of information_schema
             // is 56 characters long, that's why default string length is set to
             // 60.
-            String constraintName = new StringBuilder(60)
-                .append(this.relationInfo.ident().schema())
-                .append("_")
-                .append(this.relationInfo.ident().name())
-                .append("_")
-                .append(this.notNullableColumns.next().column().name())
-                .append("_not_null")
-                .toString();
+            String constraintName =
+                this.relationInfo.ident().schema() +
+                "_" +
+                this.relationInfo.ident().name() +
+                "_" +
+                this.notNullableColumns.next().column().name() +
+                "_not_null";
 
             // Return nullable columns instead.
             return new ConstraintInfo(
@@ -460,6 +563,7 @@ public class InformationSchemaIterables {
         }
 
         @Override
+        @NotNull
         public Iterator<ColumnContext> iterator() {
             return new ColumnsIterator(relationInfo);
         }
@@ -492,28 +596,10 @@ public class InformationSchemaIterables {
         }
     }
 
-    public static class KeyColumnUsage {
-
-        private final RelationName relationName;
-        private final ColumnIdent pkColumnIdent;
-        private final int ordinal;
-
-        KeyColumnUsage(RelationName relationName, ColumnIdent pkColumnIdent, int ordinal) {
-            this.relationName = relationName;
-            this.pkColumnIdent = pkColumnIdent;
-            this.ordinal = ordinal;
-        }
+    public record KeyColumnUsage(RelationName relationName, String pkName, ColumnIdent pkColumnIdent, int ordinal) {
 
         public String getSchema() {
             return relationName.schema();
-        }
-
-        public String getPkColumnIdent() {
-            return pkColumnIdent.name();
-        }
-
-        public int getOrdinal() {
-            return ordinal;
         }
 
         public String getTableName() {
@@ -524,4 +610,10 @@ public class InformationSchemaIterables {
             return relationName.fqn();
         }
     }
+
+    public record ApplicableRole(String grantee, String roleName, boolean isGrantable) {}
+
+    public record RoleTableGrant(String grantor, String grantee, String tableCatalog,
+                                 String tableSchema, String tableName, String privilegeType,
+                                 boolean isGrantable, boolean withHierarchy) {}
 }

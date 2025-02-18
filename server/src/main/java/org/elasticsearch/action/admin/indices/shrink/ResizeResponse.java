@@ -19,21 +19,36 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.support.master.ShardsAcknowledgedResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 /**
  * A response for a resize index action, either shrink or split index.
  */
-public final class ResizeResponse extends CreateIndexResponse {
+public final class ResizeResponse extends ShardsAcknowledgedResponse {
 
-    ResizeResponse(boolean acknowledged, boolean shardsAcknowledged, String index) {
-        super(acknowledged, shardsAcknowledged, index);
+    public ResizeResponse(boolean acknowledged, boolean shardsAcknowledged) {
+        super(acknowledged, shardsAcknowledged);
     }
 
     ResizeResponse(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            in.readString(); // index
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            // dummy index, the index of the resizeResponse wasn't used in 5.10
+            // mixed cluster with < 5.10 is not supported
+            out.writeString("");
+        }
     }
 }

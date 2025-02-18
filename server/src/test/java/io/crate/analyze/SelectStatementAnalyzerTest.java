@@ -85,7 +85,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.PartitionName;
@@ -792,7 +791,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation mss = executor.analyze(
             "select * from users inner join users_multi_pk on users.id = users_multi_pk.id");
         assertThat(mss.where()).isLiteral(true);
-        assertThat(mss.joinPairs().getFirst().condition()).isSQL("(doc.users.id = doc.users_multi_pk.id)");
+        JoinRelation joinRelation = (JoinRelation) mss.from().getFirst();
+        assertThat(joinRelation.joinCondition()).isSQL("(doc.users.id = doc.users_multi_pk.id)");
     }
 
     @Test
@@ -807,8 +807,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                                                  "join users_clustered_by_only u3 on u2.id = u3.id ");
         assertThat(relation.where()).isLiteral(true);
 
-        assertThat(relation.joinPairs().getFirst().condition()).isSQL("(u1.id = u2.id)");
-        assertThat(relation.joinPairs().get(1).condition()).isSQL("(u2.id = u3.id)");
+        JoinRelation joinRelation = (JoinRelation) relation.from().getFirst();
+        assertThat(joinRelation.joinCondition()).isSQL("(u2.id = u3.id)");
+        JoinRelation nested = (JoinRelation) joinRelation.left();
+        assertThat(nested.joinCondition()).isSQL("(u1.id = u2.id)");
     }
 
     @Test
@@ -831,8 +833,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         QueriedSelectRelation relation = executor.analyze("select * from users join users_multi_pk using (id, name)");
         assertThat(relation.where()).isLiteral(true);
-        assertThat(relation.joinPairs()).hasSize(1);
-        assertThat(relation.joinPairs().getFirst().condition())
+        JoinRelation joinRelation = (JoinRelation) relation.from().getFirst();
+        assertThat(joinRelation.joinCondition())
             .isSQL("((doc.users.id = doc.users_multi_pk.id) AND (doc.users.name = doc.users_multi_pk.name))");
     }
 
@@ -856,12 +858,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "select * from users join users_multi_pk on users.id = users_multi_pk.id " +
             "where users.name = 'Arthur'");
 
-        assertThat(relation.joinPairs().getFirst().condition())
-            .isSQL("(doc.users.id = doc.users_multi_pk.id)");
+        JoinRelation joinRelation = (JoinRelation) relation.from().getFirst();
+        assertThat(joinRelation.joinCondition()).isSQL("(doc.users.id = doc.users_multi_pk.id)");
 
         assertThat(relation.where()).isSQL("(doc.users.name = 'Arthur')");
-        AnalyzedRelation users = relation.from().getFirst();
-        assertThat(users.relationName().fqn()).isEqualTo("doc.users");
+        JoinRelation join = (JoinRelation) relation.from().getFirst();
+        assertThat(join.left().relationName().fqn()).isEqualTo("doc.users");
     }
 
     public void testSelfJoinSyntaxWithWhereClause() throws Exception {
@@ -2730,8 +2732,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasName("obj_dy['missing_key']");
+            .isField("obj_dy['missing_key']");
 
         assertThatThrownBy(() -> executor.analyze("select obj_st['missing_key'] from (select obj_st from e1) alias"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -2816,9 +2817,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var analyzed = executor.analyze("select alias.o['unknown_key'] from (select * from t) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
-            .isVoidReference()
-            .hasColumnIdent(ColumnIdent.of("o", "unknown_key"))
-            .hasTableIdent(new RelationName(null, "alias"));
+            .isField("o['unknown_key']", new RelationName(null, "alias"));
     }
 
     @Test
@@ -2975,5 +2974,57 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs()).satisfiesExactly(
             output -> assertThat(output.valueType()).isEqualTo(makeArray(DataTypes.INTEGER, 2))
         );
+    }
+
+    @Test
+    public void test_subscript_expressions_over_object_types_returned_from_functions_are_resolved_to_subscript_functions() {
+        var executor = SQLExecutor.of(clusterService);
+        var analyzed = executor.analyze("select o['a'] from (select {a=1} as o) tbl"); // `o` is an object literal returned from MapFunction
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+
+        analyzed = executor.analyze("select o3['a'] from (select ({a=1} || {b=1}) as o3) t2"); // `o3` is an object literal returned from ConcatFunction
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+    }
+
+    @Test
+    public void test_deprecation_logging_for__version_col() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (id int)");
+
+        DocTableRelation.DEPRECATION_LOGGER.resetLRU();
+        executor.analyze("select _version from t1");
+        assertWarnings("_version system column is deprecated, please use _seq_no and _primary_term instead.");
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/17381#issuecomment-2650040614
+     */
+    @Test
+    public void test_object_subscript_retrieval_from_join_relation_called_inside_queried_select_relation() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation querySelectRelation = executor.analyze(
+            """
+                WITH partitions AS (
+                    SELECT
+                        table_schema
+                    FROM
+                        "information_schema"."table_partitions" AS p
+                ),
+                partition_allocations AS (
+                    SELECT DISTINCT
+                        s.schema_name AS table_schema,
+                        n.attributes
+                    FROM sys.shards s
+                    JOIN sys.nodes n ON s.node['id'] = n.id
+                )
+                SELECT attributes['storage']
+                FROM partitions p
+                JOIN partition_allocations a ON a.table_schema = p.table_schema
+                    AND attributes['storage'] <> 'warm';
+                """);
+        assertThat(querySelectRelation.outputs()).hasSize(1);
+        assertThat(querySelectRelation.outputs().getFirst()).isScopedSymbol("attributes['storage']");
     }
 }

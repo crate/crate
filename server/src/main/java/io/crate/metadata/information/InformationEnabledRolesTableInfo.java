@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,28 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.integrationtests;
+package io.crate.metadata.information;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.types.DataTypes;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.IntegTestCase;
-import org.junit.Test;
+public class InformationEnabledRolesTableInfo {
+    public static final String NAME = "enabled_roles";
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-public class GCDanglingArtifactsITest extends IntegTestCase {
-
-
-    @Test
-    public void testAlterClusterGCDanglingIndicesRemovesDanglingIndices() {
-        execute("create table doc.t1 (x int)");
-        createIndex(".resized.foobar");
-
-        ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar")).isTrue();
-
-        execute("alter cluster gc dangling artifacts");
-
-        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar")).isFalse();
-        assertThat(clusterService.state().metadata().hasIndex("t1")).isTrue();
-    }
+    public static SystemTable<String> INSTANCE = SystemTable.<String>builder(IDENT)
+        .add("role_name", DataTypes.STRING, r -> r)
+        .build();
 }

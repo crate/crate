@@ -84,7 +84,7 @@ public class OptimizeQueryForSearchAfterTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery().getClass().getName()).endsWith("IntPoint$1")); // the query class is anonymous
+                x -> assertThat(x.query().getClass().getName()).endsWith("IntPoint$1")); // the query class is anonymous
 
         orderBy = new OrderBy(List.of(
                 new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
@@ -98,7 +98,7 @@ public class OptimizeQueryForSearchAfterTest {
                 .isExactlyInstanceOf(BooleanQuery.class);
         booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
-                x -> assertThat(x.getQuery()).isNotInstanceOf(IndexOrDocValuesQuery.class));
+                x -> assertThat(x.query()).isNotInstanceOf(IndexOrDocValuesQuery.class));
     }
 
     @Test

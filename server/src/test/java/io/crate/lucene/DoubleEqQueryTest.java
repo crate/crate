@@ -95,14 +95,14 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
         Query query = convert("arr1 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("DoublePoint$3"); // the query class is anonymous
         assertThat(query).hasToString("arr1:{1.1}");
 
         query = convert("arr2 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         // SortedNumericDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         long l = NumericUtils.doubleToSortableLong(1.1);
@@ -111,7 +111,7 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
         query = convert("arr3 = [1.1]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
-        query = clause.getQuery();
+        query = clause.query();
         assertThat(query.getClass().getName()).endsWith("DoublePoint$3"); // the query class is anonymous
         assertThat(query).hasToString("arr3:{1.1}");
 

@@ -41,6 +41,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.IOSupplier;
 import org.apache.lucene.util.InPlaceMergeSorter;
 
 /**
@@ -205,11 +206,11 @@ public abstract class BlendedTermQuery extends Query {
         long ttf = sumTTF;
         if (leaves != null) {
             for (int i = 0; i < len; i++) {
-                TermState termState = termContext.get(leaves.get(i));
+                IOSupplier<TermState> termState = termContext.get(leaves.get(i));
                 if (termState == null) {
                     continue;
                 }
-                newTermContext.register(termState, i, df, ttf);
+                newTermContext.register(termState.get(), i, df, ttf);
                 df = 0;
                 ttf = 0;
             }
@@ -238,11 +239,11 @@ public abstract class BlendedTermQuery extends Query {
         TermStates newCtx = new TermStates(readerContext);
         if (leaves != null) {
             for (int i = 0; i < len; ++i) {
-                TermState termState = ctx.get(leaves.get(i));
+                var termState = ctx.get(leaves.get(i));
                 if (termState == null) {
                     continue;
                 }
-                newCtx.register(termState, i, newDocFreq, newTTF);
+                newCtx.register(termState.get(), i, newDocFreq, newTTF);
                 newDocFreq = 0;
                 newTTF = 0;
             }
@@ -340,7 +341,7 @@ public abstract class BlendedTermQuery extends Query {
                 if (low.clauses().isEmpty()) {
                     BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
                     for (BooleanClause booleanClause : high) {
-                        queryBuilder.add(booleanClause.getQuery(), Occur.MUST);
+                        queryBuilder.add(booleanClause.query(), Occur.MUST);
                     }
                     return queryBuilder.build();
                 } else if (high.clauses().isEmpty()) {

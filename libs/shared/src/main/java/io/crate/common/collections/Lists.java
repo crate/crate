@@ -74,6 +74,13 @@ public final class Lists {
         return xs;
     }
 
+    public static <T> List<T> concat(T item, Collection<? extends T> list1) {
+        ArrayList<T> xs = new ArrayList<>(list1.size() + 1);
+        xs.add(item);
+        xs.addAll(list1);
+        return xs;
+    }
+
     @SafeVarargs
     public static final <T> List<T> concat(T first, T ... tail) {
         ArrayList<T> result = new ArrayList<>(1 + tail.length);

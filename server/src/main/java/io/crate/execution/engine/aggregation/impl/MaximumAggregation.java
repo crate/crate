@@ -63,6 +63,11 @@ import io.crate.types.TimestampType;
 public abstract class MaximumAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "max";
+    public static final Signature NUMERIC_SIG = Signature.builder(NAME, FunctionType.AGGREGATE)
+        .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+        .returnType(DataTypes.NUMERIC.getTypeSignature())
+        .features(Scalar.Feature.DETERMINISTIC)
+        .build();
 
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
@@ -79,6 +84,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                                     : new VariableMaximumAggregation(signature, boundSignature)
             );
         }
+        builder.add(NUMERIC_SIG, VariableMaximumAggregation::new);
     }
 
 

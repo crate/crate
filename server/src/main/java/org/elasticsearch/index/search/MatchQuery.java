@@ -361,10 +361,11 @@ public class MatchQuery {
                                                      float maxTermFrequency) {
             ExtendedCommonTermsQuery query = new ExtendedCommonTermsQuery(highFreqOccur, lowFreqOccur, maxTermFrequency);
             for (BooleanClause clause : bq.clauses()) {
-                if ((clause.getQuery() instanceof TermQuery) == false) {
+                if (clause.query() instanceof TermQuery tq) {
+                    query.add(tq.getTerm());
+                } else {
                     return bq;
                 }
-                query.add(((TermQuery) clause.getQuery()).getTerm());
             }
             return query;
         }

@@ -24,20 +24,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
 
 /**
  * Request resize of a table or partition
+ * Uses double of the default master node timeout and ack timeout.
+ * default 30 seconds might be not enough and resizing operation fails.
  */
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
@@ -46,9 +44,12 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
     private final int newNumShards;
 
     public ResizeRequest(RelationName table, List<String> partitionValues, int newNumShards) {
+        super();
         this.table = table;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
+        this.timeout = TimeValue.timeValueSeconds(this.timeout.seconds() * 2);
+        this.masterNodeTimeout = TimeValue.timeValueSeconds(this.masterNodeTimeout.seconds() * 2);
     }
 
     public ResizeRequest(StreamInput in) throws IOException {
@@ -62,19 +63,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             }
             newNumShards = in.readVInt();
         } else {
-            CreateIndexRequest targetIndexRequest = new CreateIndexRequest(in);
-            String sourceIndex = in.readString();
-            in.readEnum(ResizeType.class);
-            in.readOptionalBoolean();
-
-            IndexParts indexParts = IndexName.decode(sourceIndex);
-            table = indexParts.toRelationName();
-            if (indexParts.isPartitioned()) {
-                partitionValues = PartitionName.decodeIdent(indexParts.partitionIdent());
-            } else {
-                partitionValues = List.of();
-            }
-            newNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexRequest.settings());
+            throw new UnsupportedOperationException(
+                "Cannot stream ResizeRequest in mixed 6.0.0/<5.10 clusters. All nodes need to be >= 5.10");
         }
     }
 
@@ -89,10 +79,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
             }
             out.writeVInt(newNumShards);
         } else {
-            // Without knowing the current number of shards it's not possible to infer if
-            // the request should use SPLIT or SHRINK
-            // 5.10 nodes can handle resize sent from older nodes but not the other way around
-            throw new UnsupportedOperationException("Cannot resize tables if older nodes are in the cluster");
+            throw new UnsupportedOperationException(
+                "Cannot stream ResizeRequest in mixed 6.0.0/<5.10 clusters. All nodes need to be >= 5.10");
         }
     }
 

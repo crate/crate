@@ -24,10 +24,11 @@ package io.crate.execution.ddl.tables;
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -36,6 +37,8 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -48,9 +51,15 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.Templates;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -80,10 +89,12 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private final MetadataCreateIndexService createIndexService;
     private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
+    private final DocTableInfoFactory docTableInfoFactory;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
+                                      NodeContext nodeContext,
                                       ThreadPool threadPool,
                                       IndicesService indicesService,
                                       IndexScopedSettings indexScopedSettings,
@@ -97,6 +108,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         this.createIndexService = createIndexService;
         this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
+        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     @Override
@@ -169,16 +181,52 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
+                ClusterState newState;
                 if (isPartitioned) {
-                    return Templates.add(
+                    newState = Templates.add(
                         indicesService,
                         createIndexService,
                         currentState,
                         request,
                         normalizedSettings
                     );
+                } else {
+                    newState = createIndexService.add(currentState, request, normalizedSettings);
                 }
-                return createIndexService.add(currentState, request, normalizedSettings);
+
+                if (currentState.nodes().getSmallestNonClientNodeVersion().onOrAfter(Version.V_6_0_0)) {
+                    List<String> indexUUIDs = newState.metadata().getIndices(
+                        relationName,
+                        List.of(),
+                        false,
+                        imd -> imd.getIndexUUID()
+                    );
+
+                    // To avoid assigning new oids this needs to use references from the already updated metadata
+                    DocTableInfo docTable = docTableInfoFactory.create(relationName, newState.metadata());
+                    List<Reference> columns = Lists.map(request.references(), ref -> {
+                        ColumnIdent column = ref.column();
+                        Reference reference = docTable.getReference(column);
+                        return reference != null ? reference : docTable.indexColumn(column);
+                    });
+                    Metadata.Builder newMetadata = Metadata.builder(newState.metadata())
+                        .setTable(
+                            relationName,
+                            columns,
+                            normalizedSettings,
+                            request.routingColumn(),
+                            request.tableColumnPolicy(),
+                            request.pkConstraintName(),
+                            request.checkConstraints(),
+                            request.primaryKeys(),
+                            request.partitionedBy(),
+                            State.OPEN,
+                            indexUUIDs
+                        );
+                    return ClusterState.builder(newState).metadata(newMetadata).build();
+                }
+
+                return newState;
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

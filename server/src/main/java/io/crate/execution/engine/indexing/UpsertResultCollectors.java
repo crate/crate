@@ -59,8 +59,6 @@ final class UpsertResultCollectors {
 
     private static class ResultRowCollector implements UpsertResultCollector {
 
-        private final Object lock = new Object();
-
         @Override
         public Supplier<UpsertResults> supplier() {
             return UpsertResults::new;
@@ -74,7 +72,7 @@ final class UpsertResultCollectors {
         @Override
         public BinaryOperator<UpsertResults> combiner() {
             return (i, o) -> {
-                synchronized (lock) {
+                synchronized (i) {
                     i.addResultRows(o.getResultRowsForNoUri());
                 }
                 return i;
@@ -86,13 +84,12 @@ final class UpsertResultCollectors {
             return r -> new CollectionBucket(r.getResultRowsForNoUri());
         }
 
-        @SuppressWarnings("unused")
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfosIgnored) {
             List<Object[]> resultRows = shardResponse.getResultRows();
             if (resultRows != null) {
-                synchronized (lock) {
+                synchronized (upsertResults) {
                     upsertResults.addResultRows(resultRows);
                 }
             }
@@ -100,8 +97,6 @@ final class UpsertResultCollectors {
     }
 
     private static class RowCountCollector implements UpsertResultCollector {
-
-        private final Object lock = new Object();
 
         @Override
         public Supplier<UpsertResults> supplier() {
@@ -116,7 +111,7 @@ final class UpsertResultCollectors {
         @Override
         public BinaryOperator<UpsertResults> combiner() {
             return (i, o) -> {
-                synchronized (lock) {
+                synchronized (i) {
                     i.merge(o);
                 }
                 return i;
@@ -135,7 +130,7 @@ final class UpsertResultCollectors {
                 .filter(x -> x != null && x.error() != null)
                 .findAny()
                 .orElse(null);
-            synchronized (lock) {
+            synchronized (upsertResults) {
                 upsertResults.addResult(shardResponse.successRowCount(), failure);
             }
         }
@@ -145,8 +140,6 @@ final class UpsertResultCollectors {
 
         private final Map<String, String> nodeInfo;
         private final AccessControl accessControl;
-
-        private final Object lock = new Object();
 
         SummaryCollector(Map<String, String> nodeInfo, AccessControl accessControl) {
             this.nodeInfo = nodeInfo;
@@ -166,7 +159,7 @@ final class UpsertResultCollectors {
         @Override
         public BinaryOperator<UpsertResults> combiner() {
             return (i, o) -> {
-                synchronized (lock) {
+                synchronized (i) {
                     i.merge(o);
                 }
                 return i;
@@ -181,17 +174,25 @@ final class UpsertResultCollectors {
         void processShardResponse(UpsertResults upsertResults,
                                   ShardResponse shardResponse,
                                   List<RowSourceInfo> rowSourceInfos) {
-            synchronized (lock) {
-                List<ShardResponse.Failure> failures = shardResponse.failures();
-                IntArrayList locations = shardResponse.itemIndices();
+            List<ShardResponse.Failure> failures = shardResponse.failures();
+            IntArrayList locations = shardResponse.itemIndices();
+            synchronized (upsertResults) {
                 for (int i = 0; i < failures.size(); i++) {
                     ShardResponse.Failure failure = failures.get(i);
                     int location = locations.get(i);
                     RowSourceInfo rowSourceInfo = rowSourceInfos.get(location);
                     String msg = null;
                     if (failure != null) {
-                        var throwable = SQLExceptions.prepareForClientTransmission(accessControl, failure.error());
-                        msg = throwable.getMessage();
+                        Throwable error = failure.error();
+                        if (error == null) {
+                            msg = "unknown failure";
+                        } else {
+                            var throwable = SQLExceptions.prepareForClientTransmission(
+                                accessControl,
+                                failure.error()
+                            );
+                            msg = throwable.getMessage();
+                        }
                     }
                     upsertResults.addResult(rowSourceInfo.sourceUri, msg, rowSourceInfo.lineNumber);
                 }

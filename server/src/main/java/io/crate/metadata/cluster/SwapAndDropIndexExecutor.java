@@ -21,15 +21,20 @@
 
 package io.crate.metadata.cluster;
 
+import java.util.List;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
+import io.crate.metadata.RelationName;
 
 public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAndDropIndexRequest> {
 
@@ -42,35 +47,62 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
     @Override
     public ClusterState execute(ClusterState currentState, SwapAndDropIndexRequest request) throws Exception {
         final Metadata metadata = currentState.metadata();
+        String resizedIndexName = request.source();
+        String originalIndexName = request.target();
+
         final ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
         final Metadata.Builder mdBuilder = Metadata.builder(metadata);
         final RoutingTable.Builder routingBuilder = RoutingTable.builder(currentState.routingTable());
 
-        String sourceIndexName = request.source();
-        String targetIndexName = request.target();
-
-        mdBuilder.remove(sourceIndexName);
-        mdBuilder.remove(targetIndexName);
-        routingBuilder.remove(sourceIndexName);
-        routingBuilder.remove(targetIndexName);
-        blocksBuilder.removeIndexBlocks(sourceIndexName);
-        blocksBuilder.removeIndexBlocks(targetIndexName);
-
-        IndexMetadata sourceIndex = metadata.index(sourceIndexName);
-        if (sourceIndex == null) {
-            throw new IllegalArgumentException("Source index must exist: " + sourceIndexName);
+        IndexMetadata resizedIndex = metadata.index(resizedIndexName);
+        if (resizedIndex == null) {
+            throw new IllegalArgumentException("Source index must exist: " + resizedIndexName);
         }
-
-        IndexRoutingTable index = currentState.routingTable().index(sourceIndex.getIndex());
+        IndexMetadata originalIndex = metadata.index(originalIndexName);
+        if (originalIndex == null) {
+            throw new IllegalArgumentException("Target index must exist: " + originalIndexName);
+        }
+        IndexRoutingTable index = currentState.routingTable().index(resizedIndex.getIndex());
         if (!index.allPrimaryShardsActive()) {
             throw new UnsupportedOperationException(
-                "Cannot swap and drop index if source '" + sourceIndexName + "' has unallocated primaries");
+                "Cannot swap and drop index if source '" + resizedIndexName + "' has unallocated primaries");
         }
 
-        IndexMetadata newIndexMetadata = IndexMetadata.builder(sourceIndex).index(targetIndexName).build();
+        mdBuilder.remove(resizedIndexName);
+        mdBuilder.remove(originalIndexName);
+        routingBuilder.remove(resizedIndexName);
+        routingBuilder.remove(originalIndexName);
+        blocksBuilder.removeIndexBlocks(resizedIndexName);
+        blocksBuilder.removeIndexBlocks(originalIndexName);
+        IndexMetadata newIndexMetadata = IndexMetadata
+            .builder(resizedIndex)
+            .index(originalIndexName)
+            .build();
         mdBuilder.put(newIndexMetadata, true);
         routingBuilder.addAsFromCloseToOpen(newIndexMetadata);
         blocksBuilder.addBlocks(newIndexMetadata);
+
+        RelationName relationName = RelationName.fromIndexName(originalIndexName);
+        RelationMetadata relation = metadata.getRelation(relationName);
+        if (relation instanceof RelationMetadata.Table table) {
+            String originalUUID = originalIndex.getIndexUUID();
+            List<String> newUUIDs = Lists.map(table.indexUUIDs(), uuid -> {
+                return uuid.equals(originalUUID) ? newIndexMetadata.getIndexUUID() : uuid;
+            });
+            mdBuilder.setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newUUIDs
+            );
+        }
 
         return allocationService.reroute(
             ClusterState.builder(currentState)

@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.operators.JoinPlanBuilder.extractCorrelatedSubQueries;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
@@ -30,6 +29,7 @@ import java.util.List;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
+import io.crate.planner.CorrelatedSubQueries;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -67,7 +67,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
             return null;
         }
         // Only push down filters which are not part of the correlated sub-queries
-        var correlatedSubQueries = extractCorrelatedSubQueries(inputQuery);
+        var correlatedSubQueries = CorrelatedSubQueries.of(inputQuery);
         if (correlatedSubQueries.remainder().isEmpty()) {
             return null;
         }

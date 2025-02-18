@@ -21,11 +21,11 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.RandomAccess;
 
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 
 public interface StoredRow {
@@ -36,50 +36,10 @@ public interface StoredRow {
     String asRaw();
 
     default Object get(List<String> path) {
-        return extractValue(asMap(), path, 0);
+        return Maps.getByPath(asMap(), path);
     }
 
     static Object extractValue(final Map<?, ?> map, ColumnIdent columnIdent) {
-        List<String> fullPath = new ArrayList<>();
-        fullPath.add(columnIdent.name());
-        fullPath.addAll(columnIdent.path());
-        return extractValue(map, fullPath, 0);
-    }
-
-    static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
-        assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
-        Map<?, ?> m = map;
-        Object tmp = null;
-        for (int i = pathStartIndex; i < path.size(); i++) {
-            tmp = m.get(path.get(i));
-            if (tmp instanceof Map) {
-                m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List<?> list) {
-                return extractValueHelper(list, path, i);
-            } else {
-                if (i + 1 != path.size()) {
-                    return null;
-                }
-                break;
-            }
-        }
-        return tmp;
-    }
-
-    private static Object extractValueHelper(final List<?> list, List<String> path, int pathStartIndex) {
-        if (pathStartIndex + 1 == path.size()) {
-            return list;
-        }
-        ArrayList<Object> newList = new ArrayList<>(list.size());
-        for (Object o : list) {
-            if (o instanceof Map<?,?> m) {
-                newList.add(extractValue(m, path, pathStartIndex + 1));
-            } else if (o instanceof List<?> l) {
-                newList.add(extractValueHelper(l, path, pathStartIndex));
-            } else {
-                newList.add(o);
-            }
-        }
-        return newList;
+        return Maps.getByPath(map, Lists.concat(columnIdent.name(), columnIdent.path()));
     }
 }

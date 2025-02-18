@@ -51,7 +51,7 @@ public final class GeoSettingsApplier {
 
     private static void applyDistanceErrorPct(Map<String, Object> mapping, Settings geoSettings) {
         try {
-            Float errorPct = geoSettings.getAsFloat("distance_error_pct", null);
+            Double errorPct = geoSettings.getAsDouble("distance_error_pct", null);
             if (errorPct != null) {
                 mapping.put("distance_error_pct", errorPct);
             }

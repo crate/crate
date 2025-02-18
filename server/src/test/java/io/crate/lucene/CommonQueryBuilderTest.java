@@ -152,8 +152,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("y_array = [10, 20, 30]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery()).isInstanceOf(PointInSetQuery.class);
-        assertThat(booleanQuery.clauses().get(1).getQuery()).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(booleanQuery.clauses().get(0).query()).isInstanceOf(PointInSetQuery.class);
+        assertThat(booleanQuery.clauses().get(1).query()).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
@@ -169,8 +169,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("y_array = ?", new Object[] { values });
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery()).isInstanceOf(PointInSetQuery.class);
-        assertThat(booleanQuery.clauses().get(1).getQuery()).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(booleanQuery.clauses().get(0).query()).isInstanceOf(PointInSetQuery.class);
+        assertThat(booleanQuery.clauses().get(1).query()).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
@@ -338,8 +338,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         BooleanClause existsClause = ((BooleanQuery) booleanQuery).clauses().get(0);
         BooleanClause intersectsClause = ((BooleanQuery) booleanQuery).clauses().get(1);
 
-        assertThat(existsClause.getQuery()).isExactlyInstanceOf(TermRangeQuery.class);
-        assertThat(intersectsClause.getQuery()).isExactlyInstanceOf(IntersectsPrefixTreeQuery.class);
+        assertThat(existsClause.query()).isExactlyInstanceOf(TermRangeQuery.class);
+        assertThat(intersectsClause.query()).isExactlyInstanceOf(IntersectsPrefixTreeQuery.class);
     }
 
     @Test
@@ -627,8 +627,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
             // the query class is anonymous
-            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1"),
-            x -> assertThat(x.getQuery().getClass().getName()).endsWith("LongPoint$1")
+            x -> assertThat(x.query().getClass().getName()).endsWith("LongPoint$1"),
+            x -> assertThat(x.query().getClass().getName()).endsWith("LongPoint$1")
         );
 
         query = convert("10 != ANY(x_array_no_docvalues)");
@@ -638,8 +638,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses()).satisfiesExactly(
             // the query class is anonymous
-            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1"),
-            x -> assertThat(x.getQuery().getClass().getName()).doesNotEndWith("LongPoint$1")
+            x -> assertThat(x.query().getClass().getName()).doesNotEndWith("LongPoint$1"),
+            x -> assertThat(x.query().getClass().getName()).doesNotEndWith("LongPoint$1")
         );
     }
 

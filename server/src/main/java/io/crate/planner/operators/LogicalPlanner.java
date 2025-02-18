@@ -23,9 +23,11 @@ package io.crate.planner.operators;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -39,8 +41,10 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
@@ -61,6 +65,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -79,6 +84,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.CorrelatedSubQueries;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -97,6 +103,7 @@ import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilterAndForeignCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathJoin;
+import io.crate.planner.optimizer.rule.MoveEquiJoinFilterIntoInnerJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
@@ -126,6 +133,7 @@ import io.crate.planner.optimizer.rule.RewriteRightOuterJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.role.Role;
+import io.crate.sql.tree.JoinType;
 import io.crate.types.DataTypes;
 
 /**
@@ -133,9 +141,9 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
     private final IterativeOptimizer optimizer;
-    // Join ordering optimization rules have their own optimizer, because these rules have
+    // Join implementations optimization rules have their own optimizer, because these rules have
     // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
-    private final IterativeOptimizer joinOrderOptimizer;
+    private final IterativeOptimizer joinImplementationOptimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
@@ -147,6 +155,7 @@ public class LogicalPlanner {
         new MergeAggregateAndCollectToCount(),
         new MergeAggregateRenameAndCollectToCount(),
         new MergeFilters(),
+        new RewriteFilterOnCrossJoinToInnerJoin(),
         new MoveFilterBeneathRename(),
         new MoveFilterBeneathEval(),
         new MoveFilterBeneathOrder(),
@@ -158,12 +167,11 @@ public class LogicalPlanner {
         new MoveFilterBeneathWindowAgg(),
         new MoveLimitBeneathRename(),
         new MoveLimitBeneathEval(),
+        new MoveEquiJoinFilterIntoInnerJoin(),
         new MergeFilterAndCollect(),
         new MergeFilterAndForeignCollect(),
         new RewriteFilterOnOuterJoinToInnerJoin(),
-        new RewriteFilterOnCrossJoinToInnerJoin(),
         new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathEval(),
         new MoveOrderBeneathRename(),
         new DeduplicateOrder(),
@@ -177,7 +185,8 @@ public class LogicalPlanner {
         new RewriteJoinPlan()
     );
 
-    public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
+    public static final List<Rule<?>> JOIN_IMPLEMENTATION_OPTIMIZER_RULES = List.of(
+        new MoveOrderBeneathNestedLoop(),
         new ReorderHashJoin(),
         new ReorderNestedLoopJoin()
     );
@@ -202,10 +211,10 @@ public class LogicalPlanner {
             minNodeVersionInCluster,
             ITERATIVE_OPTIMIZER_RULES
         );
-        this.joinOrderOptimizer = new IterativeOptimizer(
+        this.joinImplementationOptimizer = new IterativeOptimizer(
             nodeCtx,
             minNodeVersionInCluster,
-            JOIN_ORDER_OPTIMIZER_RULES
+            JOIN_IMPLEMENTATION_OPTIMIZER_RULES
         );
         this.fetchOptimizer = new Optimizer(
             nodeCtx,
@@ -269,7 +278,7 @@ public class LogicalPlanner {
         OptimizerTracer tracer = plannerContext.optimizerTracer();
         var timeoutToken = plannerContext.timeoutToken();
         LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
+        optimizedPlan = joinImplementationOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs())
             : "Pruned plan must have the same outputs as original plan";
@@ -301,7 +310,7 @@ public class LogicalPlanner {
             plannerContext.optimizerTracer(),
             timeoutToken
         );
-        optimizedPlan = joinOrderOptimizer.optimize(
+        optimizedPlan = joinImplementationOptimizer.optimize(
             optimizedPlan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
@@ -365,6 +374,35 @@ public class LogicalPlanner {
             this.foreignDataWrappers = foreignDataWrappers;
             this.clusterState = clusterState;
             this.coordinatorTxnCtx = coordinatorTxnCtx;
+        }
+
+        @Override
+        public LogicalPlan visitJoinRelation(JoinRelation joinRelation, List<Symbol> outputs) {
+            Symbol joinCondition = joinRelation.joinCondition();
+            List<Symbol> allOutputs = joinCondition == null ? outputs : Lists.concat(outputs, joinCondition);
+            List<Symbol> lhsOutputs = getOutputsForRelation(joinRelation.left(), allOutputs);
+            List<Symbol> rhsOutputs = getOutputsForRelation(joinRelation.right(), allOutputs);
+
+            var correlatedSubQueries = CorrelatedSubQueries.of(joinCondition);
+            if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
+                return new JoinPlan(
+                    joinRelation.left().accept(this, lhsOutputs),
+                    joinRelation.right().accept(this, rhsOutputs),
+                    joinRelation.joinType(),
+                    joinCondition
+                );
+            } else {
+                LogicalPlan source = new JoinPlan(
+                    joinRelation.left().accept(this, lhsOutputs),
+                    joinRelation.right().accept(this, rhsOutputs),
+                    joinRelation.joinType(),
+                    AndOperator.join(correlatedSubQueries.remainder())
+                );
+                for (Symbol symbol : correlatedSubQueries.correlatedSubQueries()) {
+                    source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
+                }
+                return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
+            }
         }
 
         @Override
@@ -450,44 +488,47 @@ public class LogicalPlanner {
             );
         }
 
+        private static List<Symbol> getOutputsForRelation(AnalyzedRelation relation, List<Symbol> outputs) {
+            LinkedHashSet<Symbol> result = new LinkedHashSet<>();
+            SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getShallow(relation);
+            Predicate<Symbol> collectFiltered = node -> {
+                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
+                for (RelationName relationName : relationNamesFromSymbol) {
+                    if (relationNamesFromRelation.contains(relationName)) {
+                        if (node instanceof ScopedSymbol || node instanceof Reference) {
+                            result.add(node);
+                            break;
+                        }
+                    }
+                }
+                return false;
+            };
+            for (Symbol output : outputs) {
+                output.any(collectFiltered);
+            }
+            return List.copyOf(result);
+        }
+
+
+
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
-            LogicalPlan source = JoinPlanBuilder.buildJoinTree(
+            LogicalPlan source = buildImplicitJoins(
                 relation.from(),
                 relation.where(),
-                relation.joinPairs(),
                 subQueries,
                 rel -> {
+                    // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
+                    // We could get rid of `SplitPoints` and the logic here if we
+                    // a) introduce a column pruning
+                    // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
+                    List<Symbol> toCollect = splitPoints.toCollect();
                     if (relation.from().size() == 1) {
-                        return rel.accept(this, splitPoints.toCollect());
+                        return rel.accept(this, toCollect);
                     } else {
-                        // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
-                        // We could get rid of `SplitPoints` and the logic here if we
-                        // a) introduce a column pruning
-                        // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
-
-                        Set<Symbol> toCollect = LinkedHashSet.newLinkedHashSet(splitPoints.toCollect().size());
-                        RelationName relationName = rel.relationName();
-                        Predicate<Symbol> addFiltered = node -> {
-                            if ((node instanceof Reference ref && ref.ident().tableIdent().equals(relationName)) ||
-                                (node instanceof ScopedSymbol scopedSymbol && scopedSymbol.relation().equals(relationName))) {
-                                toCollect.add(node);
-                            }
-                            return false;
-                        };
-                        for (Symbol symbol : splitPoints.toCollect()) {
-                            symbol.any(addFiltered);
-                        }
-                        relation.where().any(addFiltered);
-                        for (var joinPair : relation.joinPairs()) {
-                            var condition = joinPair.condition();
-                            if (condition != null) {
-                                condition.any(addFiltered);
-                            }
-                        }
-                        return rel.accept(this, List.copyOf(toCollect));
+                        return rel.accept(this, getOutputsForRelation(rel, toCollect));
                     }
                 }
             );
@@ -530,6 +571,34 @@ public class LogicalPlanner {
                 )
             );
         }
+    }
+
+    static LogicalPlan buildImplicitJoins(List<AnalyzedRelation> from,
+                                          Symbol whereClause,
+                                          SubQueries subQueries,
+                                          java.util.function.Function<AnalyzedRelation, LogicalPlan> toLogicalPlan) {
+        final LogicalPlan logicalPlan;
+        if (from.size() == 1) {
+            // We have only one relation, this means we have no implicit joins
+            logicalPlan = toLogicalPlan.apply(from.getFirst());
+        } else {
+            // We have more than one relation, this means we have implicit joins in the query
+            // Therefore, convert all relations from the from-clause to logical plans and join them
+            Iterator<AnalyzedRelation> relations = from.iterator();
+
+            LogicalPlan joinPlan = new JoinPlan(
+                toLogicalPlan.apply(relations.next()),
+                toLogicalPlan.apply(relations.next()),
+                JoinType.CROSS,
+                null);
+
+            while (relations.hasNext()) {
+                joinPlan = new JoinPlan(joinPlan, toLogicalPlan.apply(relations.next()), JoinType.CROSS, null);
+            }
+            logicalPlan = joinPlan;
+        }
+        LogicalPlan correlatedJoin = subQueries.applyCorrelatedJoin(logicalPlan);
+        return Filter.create(correlatedJoin, whereClause);
     }
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,

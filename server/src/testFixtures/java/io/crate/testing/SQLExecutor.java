@@ -813,6 +813,11 @@ public class SQLExecutor {
         ).build();
 
         ClusterState state = ClusterState.builder(prevState)
+            .blocks(
+                ClusterBlocks.builder()
+                    .blocks(prevState.blocks())
+                    .updateBlocks(indexMetadata)
+            )
             .metadata(mdBuilder.put(indexMetadata, true))
             .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
             .build();
@@ -932,15 +937,19 @@ public class SQLExecutor {
             new NumberOfShards(clusterService));
 
         ClusterState prevState = clusterService.state();
+        RelationName relationName = analyzedStmt.relationName();
         IndexMetadata indexMetadata = getIndexMetadata(
-            fullIndexName(analyzedStmt.relationName().name()),
+            fullIndexName(relationName.name()),
             settings,
             Collections.emptyMap(),
             prevState.nodes().getSmallestNonClientNodeVersion()
         ).build();
 
+        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
+            .setBlobTable(relationName, indexMetadata.getIndexUUID())
+            .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
-            .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+            .metadata(mdBuilder)
             .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
             .build();
 

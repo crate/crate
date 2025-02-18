@@ -26,20 +26,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
@@ -79,14 +80,20 @@ public class SwapRelationsOperation {
         RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
 
         for (RelationName dropRelation : dropRelations) {
-            for (Index index : IndexNameExpressionResolver.concreteIndices(
-                    stateAfterRename.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
-
+            List<Index> indices = stateAfterRename.metadata().getIndices(
+                dropRelation,
+                List.of(),
+                false,
+                IndexMetadata::getIndex
+            );
+            for (Index index : indices) {
                 String indexName = index.getName();
                 updatedMetadata.remove(indexName);
                 routingBuilder.remove(indexName);
                 updatedState.newIndices.remove(indexName);
             }
+
+            updatedMetadata.dropRelation(dropRelation);
 
             // In case former "target" was partitioned therefore,
             // we have to drop a partitioned (currently "source") table
@@ -123,6 +130,49 @@ public class SwapRelationsOperation {
         Metadata.Builder updatedMetadata = Metadata.builder(state.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(state.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(state.blocks());
+
+        for (RelationNameSwap nameSwap : swapRelationsRequest.swapActions()) {
+            RelationName source = nameSwap.source();
+            RelationName target = nameSwap.target();
+
+            RelationMetadata.Table sourceRelation = metadata.getRelation(source);
+            RelationMetadata.Table targetRelation = metadata.getRelation(target);
+            updatedMetadata
+                .dropRelation(source)
+                .dropRelation(target)
+                .setTable(
+                    target,
+                    Lists.map(
+                        sourceRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                    ),
+                    sourceRelation.settings(),
+                    sourceRelation.routingColumn(),
+                    sourceRelation.columnPolicy(),
+                    sourceRelation.pkConstraintName(),
+                    sourceRelation.checkConstraints(),
+                    sourceRelation.primaryKeys(),
+                    sourceRelation.partitionedBy(),
+                    sourceRelation.state(),
+                    sourceRelation.indexUUIDs()
+                )
+                .setTable(
+                    source,
+                    Lists.map(
+                        targetRelation.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(source, ref.column()))
+                    ),
+                    targetRelation.settings(),
+                    targetRelation.routingColumn(),
+                    targetRelation.columnPolicy(),
+                    targetRelation.pkConstraintName(),
+                    targetRelation.checkConstraints(),
+                    targetRelation.primaryKeys(),
+                    targetRelation.partitionedBy(),
+                    targetRelation.state(),
+                    targetRelation.indexUUIDs()
+                );
+        }
 
         // Remove all involved indices first so that rename operations are independent of each other
         for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
@@ -162,12 +212,10 @@ public class SwapRelationsOperation {
                                    RoutingTable.Builder routingBuilder,
                                    Metadata.Builder updatedMetadata,
                                    RelationName name) {
-        String aliasOrIndexName = name.indexNameOrAlias();
         String templateName = PartitionName.templateName(name.schema(), name.name());
         Metadata metadata = state.metadata();
-        for (Index index : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, aliasOrIndexName)) {
-
+        List<Index> indices = metadata.getIndices(name, List.of(), false, IndexMetadata::getIndex);
+        for (Index index : indices) {
             String indexName = index.getName();
             routingBuilder.remove(indexName);
             updatedMetadata.remove(indexName);
@@ -185,10 +233,8 @@ public class SwapRelationsOperation {
                                                      Consumer<String> onProcessedIndex) {
         String sourceTemplateName = PartitionName.templateName(source.schema(), source.name());
         IndexTemplateMetadata sourceTemplate = metadata.templates().get(sourceTemplateName);
-
-        for (Index sourceIndex : IndexNameExpressionResolver.concreteIndices(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, source.indexNameOrAlias())) {
-
+        List<Index> sourceIndices = metadata.getIndices(source, List.of(), false, IndexMetadata::getIndex);
+        for (Index sourceIndex : sourceIndices) {
             String sourceIndexName = sourceIndex.getName();
             IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
             IndexMetadata targetMd;

@@ -384,9 +384,10 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        if (request.includeIndices() && resolvedTemplates.isEmpty()) {
+        if (request.restoreAllTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
             resolvedTemplates.add(Metadata.ALL);
         }
+
     }
 
     public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
@@ -1155,7 +1156,7 @@ public class RestoreService implements ClusterStateApplier {
     /**
      * Returns the indices that are currently being restored and that are contained in the indices-to-check set.
      */
-    public static Set<Index> restoringIndices(final ClusterState currentState, final Set<Index> indicesToCheck) {
+    public static Set<Index> restoringIndices(final ClusterState currentState, final Collection<Index> indicesToCheck) {
         final Set<Index> indices = new HashSet<>();
         for (RestoreInProgress.Entry entry : currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY)) {
             for (ObjectObjectCursor<ShardId, RestoreInProgress.ShardRestoreStatus> shard : entry.shards()) {
@@ -1447,6 +1448,10 @@ public class RestoreService implements ClusterStateApplier {
                 || !tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY))
                 || !schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY))
                 || !schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY));
+        }
+
+        public boolean restoreAllTables() {
+            return indices.length == 0 && templates.length == 0 && includeIndices && includeAliases;
         }
     }
 }

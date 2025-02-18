@@ -85,7 +85,6 @@ import org.elasticsearch.index.shard.PrimaryReplicaSyncer.ResyncTask;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.flush.SyncedFlushService;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryFailedException;
@@ -134,7 +133,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                       PeerRecoveryTargetService recoveryTargetService,
                                       ShardStateAction shardStateAction,
                                       RepositoriesService repositoriesService,
-                                      SyncedFlushService syncedFlushService,
                                       PeerRecoverySourceService peerRecoverySourceService,
                                       SnapshotShardsService snapshotShardsService,
                                       PrimaryReplicaSyncer primaryReplicaSyncer,
@@ -150,7 +148,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             recoveryTargetService,
             shardStateAction,
             repositoriesService,
-            syncedFlushService,
             peerRecoverySourceService,
             snapshotShardsService,
             primaryReplicaSyncer,
@@ -170,7 +167,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                PeerRecoveryTargetService recoveryTargetService,
                                ShardStateAction shardStateAction,
                                RepositoriesService repositoriesService,
-                               SyncedFlushService syncedFlushService,
                                PeerRecoverySourceService peerRecoverySourceService,
                                SnapshotShardsService snapshotShardsService,
                                PrimaryReplicaSyncer primaryReplicaSyncer,
@@ -182,7 +178,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         this.buildInIndexListener = List.of(
             peerRecoverySourceService,
             recoveryTargetService,
-            syncedFlushService,
             snapshotShardsService,
             blobIndicesService,
             shardCollectSource,

@@ -40,6 +40,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -57,7 +58,6 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -799,45 +799,38 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
 
-        assertThat(relation.joinPairs()).hasSize(2);
-        assertThat(relation.joinPairs().get(0)).hasPair(T3.T2, T3.T3);
-        assertThat(relation.joinPairs().get(1)).hasPair(T3.T1, T3.T2);
+        JoinRelation joinRelation = (JoinRelation) relation.from().getFirst();
+        assertThat(joinRelation.left().relationName().name()).isEqualTo("t1");
+        JoinRelation nested = (JoinRelation) joinRelation.right();
+        assertThat(nested.left().relationName().name()).isEqualTo("t2");
+        assertThat(nested.right().relationName().name()).isEqualTo("t3");
+
     }
-
-    @Test
-    public void test_nested_join_pair_ordering_with_three_relations_in_join_condition() throws Exception {
-        QueriedSelectRelation relation = e.analyze(
-            """
-             SELECT * from t1
-             join t2 ON t1.i = t2.i
-             join t3 on array_length(array_unique(ARRAY[t1.i, t2.i, t3.z]), 1) > 2"""
-        );
-
-        assertThat(relation.joinPairs()).hasSize(2);
-        assertThat(relation.joinPairs().get(0)).hasPair(T3.T1, T3.T2);
-        assertThat(relation.joinPairs().get(1)).hasPair(T3.T2, T3.T3);
-    }
-
-
 
     @Test
     public void test_nested_joins_with_sub_query_join_pair_ordering() throws Exception {
-        QueriedSelectRelation relation = e.analyze(
-            """
-                SELECT *
-                    FROM t1
-                    JOIN t2 on (t1.i = t2.i)
-                    JOIN (select 1 as foo) temp ON (temp.foo = t1.i AND t2.i = temp.foo)
-                """);
 
-        assertThat(relation.joinPairs()).hasSize(2);
-        assertThat(relation.joinPairs().get(0)).hasPair(T3.T1, T3.T2);
-        assertThat(relation.joinPairs().get(1)).hasPair(T3.T2, relation("temp"));
+        LogicalPlan logicalPlan = e.logicalPlan(
+                """
+                  SELECT *
+                      FROM t1
+                      JOIN t2 on (t1.i = t2.i)
+                      JOIN (select 1 as foo) temp ON (temp.foo = t1.i AND t2.i = temp.foo)
+                  """);
+
+        assertThat(logicalPlan).hasOperators(
+            "HashJoin[INNER | ((foo = i) AND (i = foo))]",
+            "  ├ HashJoin[INNER | (i = i)]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Rename[foo] AS temp",
+            "    └ TableFunction[empty_row | [1 AS foo] | true]"
+        );
     }
 
     @Test
     public void test_nested_join_pg_query_join_pair_ordering() {
-        QueriedSelectRelation relation = e.analyze(
+        LogicalPlan logicalPlan = e.logicalPlan(
             """
                 SELECT
                   c.oid,
@@ -876,20 +869,33 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                 """
         );
 
-        assertThat(relation.joinPairs()).hasSize(5);
-        assertThat(relation.joinPairs().get(0)).hasPair(relation("c"), relation("n"));
-        assertThat(relation.joinPairs().get(1)).hasPair(relation("c"), relation("a"));
-        assertThat(relation.joinPairs().get(2)).hasPair(relation("a"), relation("t"));
-        assertThat(relation.joinPairs().get(3)).hasPair(relation("a"), relation("d"));
-        assertThat(relation.joinPairs().get(4)).hasPair(relation("a"), relation("vals"));
-    }
+        assertThat(logicalPlan).hasOperators(
+            "Eval[oid, attnum, attname, relname, nspname, (attnotnull OR ((typtype = 'd') AND typnotnull)), ((NOT (attidentity = '')) OR (pg_catalog.pg_get_expr(adbin, adrelid) LIKE '%nextval(%'))]",
+            "  └ HashJoin[INNER | ((oid = oid) AND (attnum = attnum))]",
+            "    ├ HashJoin[LEFT | ((adrelid = attrelid) AND (adnum = attnum))]",
+            "    │  ├ HashJoin[INNER | (atttypid = oid)]",
+            "    │  │  ├ HashJoin[INNER | (oid = attrelid)]",
+            "    │  │  │  ├ HashJoin[INNER | (relnamespace = oid)]",
+            "    │  │  │  │  ├ Rename[oid, relname, relnamespace] AS c",
+            "    │  │  │  │  │  └ Collect[pg_catalog.pg_class | [oid, relname, relnamespace] | true]",
+            "    │  │  │  │  └ Rename[nspname, oid] AS n",
+            "    │  │  │  │    └ Collect[pg_catalog.pg_namespace | [nspname, oid] | true]",
+            "    │  │  │  └ Rename[attnum, attname, attnotnull, attidentity, attrelid, atttypid] AS a",
+            "    │  │  │    └ Collect[pg_catalog.pg_attribute | [attnum, attname, attnotnull, attidentity, attrelid, atttypid] | true]",
+            "    │  │  └ Rename[typtype, typnotnull, oid] AS t",
+            "    │  │    └ Collect[pg_catalog.pg_type | [typtype, typnotnull, oid] | true]",
+            "    │  └ Rename[adbin, adrelid, adnum] AS d",
+            "    │    └ Collect[pg_catalog.pg_attrdef | [adbin, adrelid, adnum] | true]",
+            "    └ Rename[oid, attnum] AS vals",
+            "      └ Union[oid, attnum]",
+            "        ├ TableFunction[empty_row | [-2002935028 AS oid, 1 AS attnum] | true]",
+            "        └ TableFunction[empty_row | [-2002935028, 2] | true]"
+        );
 
-    private static RelationName relation(String name) {
-        return RelationName.of(new QualifiedName(name), null);
     }
 
     @Test
-    public void test_multiple_nested_join_raises_error() throws Exception {
+    public void test_multiple_nested_join_succeed() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
@@ -911,9 +917,19 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
               ) temp2 on a.x = temp2.x;
             """;
 
-        assertThatThrownBy(() -> executor.analyze(stmt))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessageContaining("Joins do not support this operation");
+        LogicalPlan logicalPlan = executor.logicalPlan(stmt);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[y, z]",
+            "  └ HashJoin[INNER | (x = x)]",
+            "    ├ Collect[doc.a | [x] | true]",
+            "    └ Rename[y, z, x] AS temp2",
+            "      └ HashJoin[INNER | (y = x)]",
+            "        ├ Collect[doc.b | [y] | true]",
+            "        └ Rename[z, x] AS temp1",
+            "          └ HashJoin[INNER | (z = x)]",
+            "            ├ Collect[doc.c | [z] | true]",
+            "            └ Collect[doc.a | [x] | true]"
+        );
     }
 
     @Test
@@ -1055,7 +1071,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(logicalPlan).isEqualTo(
                 """
-              HashJoin[INNER | ((x = z) AND (y = z))]
+              HashJoin[INNER | ((y = z) AND (x = z))]
                 ├ HashJoin[INNER | (x = y)]
                 │  ├ Collect[doc.j1 | [x] | true]
                 │  └ Collect[doc.j2 | [y] | true]
@@ -1176,52 +1192,49 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(
-            "Eval[a, b, c, d, e, f]",
-            "  └ NestedLoopJoin[CROSS]",
-            "    ├ NestedLoopJoin[CROSS]",
-            "    │  ├ NestedLoopJoin[CROSS]",
-            "    │  │  ├ NestedLoopJoin[CROSS]",
-            "    │  │  │  ├ NestedLoopJoin[RIGHT | true]",
-            "    │  │  │  │  ├ Collect[doc.t3 | [c] | true]",
-            "    │  │  │  │  └ Collect[doc.t4 | [d] | true]",
-            "    │  │  │  └ Collect[doc.t1 | [a] | true]",
-            "    │  │  └ Collect[doc.t2 | [b] | true]",
-            "    │  └ Collect[doc.t5 | [e] | true]",
-            "    └ Collect[doc.t6 | [f] | true]"
+            "NestedLoopJoin[CROSS]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ NestedLoopJoin[CROSS]",
+            "  │  │  ├ NestedLoopJoin[CROSS]",
+            "  │  │  │  ├ Collect[doc.t1 | [a] | true]",
+            "  │  │  │  └ Collect[doc.t2 | [b] | true]",
+            "  │  │  └ NestedLoopJoin[RIGHT | true]",
+            "  │  │    ├ Collect[doc.t3 | [c] | true]",
+            "  │  │    └ Collect[doc.t4 | [d] | true]",
+            "  │  └ Collect[doc.t5 | [e] | true]",
+            "  └ Collect[doc.t6 | [f] | true]"
         );
 
         mss = e.analyze("SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true, doc.t4 left join doc.t5 on true, doc.t6");
         result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(
-            "Eval[a, b, c, d, e, f]",
-            "  └ NestedLoopJoin[CROSS]",
-            "    ├ NestedLoopJoin[LEFT | true]",
-            "    │  ├ NestedLoopJoin[CROSS]",
-            "    │  │  ├ NestedLoopJoin[CROSS]",
-            "    │  │  │  ├ NestedLoopJoin[RIGHT | true]",
-            "    │  │  │  │  ├ Collect[doc.t2 | [b] | true]",
-            "    │  │  │  │  └ Collect[doc.t3 | [c] | true]",
-            "    │  │  │  └ Collect[doc.t1 | [a] | true]",
-            "    │  │  └ Collect[doc.t4 | [d] | true]",
-            "    │  └ Collect[doc.t5 | [e] | true]",
-            "    └ Collect[doc.t6 | [f] | true]"
+            "NestedLoopJoin[CROSS]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ NestedLoopJoin[CROSS]",
+            "  │  │  ├ Collect[doc.t1 | [a] | true]",
+            "  │  │  └ NestedLoopJoin[RIGHT | true]",
+            "  │  │    ├ Collect[doc.t2 | [b] | true]",
+            "  │  │    └ Collect[doc.t3 | [c] | true]",
+            "  │  └ NestedLoopJoin[LEFT | true]",
+            "  │    ├ Collect[doc.t4 | [d] | true]",
+            "  │    └ Collect[doc.t5 | [e] | true]",
+            "  └ Collect[doc.t6 | [f] | true]"
         );
 
         mss = e.analyze("SELECT * FROM doc.t1, doc.t2 right join doc.t3 on true left join doc.t5 on true, doc.t6");
         result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(
-            "Eval[a, b, c, e, f]",
-            "  └ NestedLoopJoin[CROSS]",
-            "    ├ NestedLoopJoin[LEFT | true]",
-            "    │  ├ NestedLoopJoin[CROSS]",
-            "    │  │  ├ NestedLoopJoin[RIGHT | true]",
-            "    │  │  │  ├ Collect[doc.t2 | [b] | true]",
-            "    │  │  │  └ Collect[doc.t3 | [c] | true]",
-            "    │  │  └ Collect[doc.t1 | [a] | true]",
-            "    │  └ Collect[doc.t5 | [e] | true]",
-            "    └ Collect[doc.t6 | [f] | true]"
+            "NestedLoopJoin[CROSS]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ Collect[doc.t1 | [a] | true]",
+            "  │  └ NestedLoopJoin[LEFT | true]",
+            "  │    ├ NestedLoopJoin[RIGHT | true]",
+            "  │    │  ├ Collect[doc.t2 | [b] | true]",
+            "  │    │  └ Collect[doc.t3 | [c] | true]",
+            "  │    └ Collect[doc.t5 | [e] | true]",
+            "  └ Collect[doc.t6 | [f] | true]"
         );
     }
 }

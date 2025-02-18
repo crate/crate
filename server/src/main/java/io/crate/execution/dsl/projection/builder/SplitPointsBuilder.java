@@ -26,9 +26,13 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
@@ -115,15 +119,14 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         if (having != null) {
             having.accept(INSTANCE, context);
         }
-        for (var joinPair : relation.joinPairs()) {
-            Symbol condition = joinPair.condition();
-            if (condition != null) {
-                INSTANCE.process(condition, context);
-            }
-        }
         Symbol where = relation.where();
         where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
+
+        for (var joinCondition : getJoinConditions(relation)) {
+            INSTANCE.process(joinCondition, context);
+        }
+
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
         }
@@ -257,5 +260,29 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             context.standalone.add(symbol);
         }
         return super.visitReference(symbol, context);
+    }
+
+    static List<Symbol> getJoinConditions(QueriedSelectRelation queriedSelectRelation) {
+        LinkedHashSet<Symbol> joinConditions = new LinkedHashSet<>();
+        JoinConditionVisitor joinConditionVisitor = new JoinConditionVisitor();
+        queriedSelectRelation.accept(joinConditionVisitor, joinConditions);
+        return List.copyOf(joinConditions);
+    }
+
+    static class JoinConditionVisitor extends AnalyzedRelationVisitor<LinkedHashSet<Symbol>, Void> {
+
+        @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, LinkedHashSet<Symbol> context) {
+            return null;
+        }
+
+        @Override
+        public Void visitJoinRelation(JoinRelation joinRelation, LinkedHashSet<Symbol> context) {
+            Symbol joinCondition = joinRelation.joinCondition();
+            if (joinCondition != null) {
+                context.add(joinCondition);
+            }
+            return super.visitJoinRelation(joinRelation, context);
+        }
     }
 }

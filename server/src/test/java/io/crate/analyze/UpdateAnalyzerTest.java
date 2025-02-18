@@ -65,6 +65,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -548,8 +549,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             toCondition(isFunction("array_cat")));
         assertThat(stmt.assignmentByTargetCol().values()).satisfiesExactly(
             isFunction("array_cat",
-                isFunction("_array", singletonList(DataTypes.UNTYPED_OBJECT)),
-                       exactlyInstanceOf(Literal.class)));
+                isFunction("_array", List.of(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("obb", DataTypes.INTEGER).build())),
+                exactlyInstanceOf(Literal.class)));
     }
 
     @Test
@@ -693,9 +694,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("a", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("array_set",
-                                   isReference("a"),
-                                   isFunction("_array", isLiteral(1)),
-                                   isFunction("_array", isLiteral(Map.of("c", 1))))));
+                isFunction("_cast", isReference("a"), isLiteral("array(object(text,\"c\" integer))")),
+                isFunction("_array", isLiteral(1)),
+                isFunction("_array", isLiteral(Map.of("c", 1))))));
 
         assertThatThrownBy(() -> e.analyze("update t set a[1]['val1']['val2'] = true"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

@@ -291,7 +291,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             } else if (ArrayType.unnest(type).id() == GeoShapeType.ID) {
                 Map<String, Object> geoMap = new HashMap<>();
                 GeoSettingsApplier.applySettings(geoMap, indexProperties.map(toValue), indexMethod);
-                Float distError = (Float) geoMap.get("distance_error_pct");
+                Double distError = (Double) geoMap.get("distance_error_pct");
                 ref = new GeoReference(
                     refIdent,
                     type,
@@ -485,6 +485,28 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         });
     }
 
+    private void addColumn(ColumnIdent columnName, DataType<?> dataType) {
+        RefBuilder builder = new RefBuilder(columnName, dataType);
+        RefBuilder exists = columns.put(columnName, builder);
+        if (exists != null) {
+            throw new IllegalArgumentException("column \"" + columnName.sqlFqn() + "\" specified more than once");
+        }
+        if (table != null) {
+            builder.builtReference = table.getReference(columnName);
+        }
+        while (dataType instanceof ArrayType<?> arrayType) {
+            dataType = arrayType.innerType();
+        }
+        if (dataType instanceof ObjectType objectType) {
+            for (var entry : objectType.innerTypes().entrySet()) {
+                String childName = entry.getKey();
+                ColumnIdent childColumn = ColumnIdent.getChildSafe(columnName, childName);
+                DataType<?> childType = entry.getValue();
+                addColumn(childColumn, childType);
+            }
+        }
+    }
+
     class PeekColumns extends DefaultTraversalVisitor<Void, Void> {
 
         @Override
@@ -539,27 +561,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             return null;
         }
 
-        private void addColumn(ColumnIdent columnName, DataType<?> dataType) {
-            RefBuilder builder = new RefBuilder(columnName, dataType);
-            RefBuilder exists = columns.put(columnName, builder);
-            if (exists != null) {
-                throw new IllegalArgumentException("column \"" + columnName.sqlFqn() + "\" specified more than once");
-            }
-            if (table != null) {
-                builder.builtReference = table.getReference(columnName);
-            }
-            while (dataType instanceof ArrayType<?> arrayType) {
-                dataType = arrayType.innerType();
-            }
-            if (dataType instanceof ObjectType objectType) {
-                for (var entry : objectType.innerTypes().entrySet()) {
-                    String childName = entry.getKey();
-                    ColumnIdent childColumn = ColumnIdent.getChildSafe(columnName, childName);
-                    DataType<?> childType = entry.getValue();
-                    addColumn(childColumn, childType);
-                }
-            }
-        }
     }
 
     class ColumnAnalyzer extends DefaultTraversalVisitor<Void, ColumnIdent> {
@@ -663,8 +664,15 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 if (generatedExpression != null) {
                     builder.generated = expressionAnalyzer.convert(generatedExpression, expressionContext);
                     EnsureNoMatchPredicate.ensureNoMatchPredicate(builder.generated, "Cannot use MATCH in CREATE TABLE statements");
-                    if (builder.type == DataTypes.UNDEFINED) {
+                    if (builder.type == DataTypes.UNDEFINED || builder.type.equals(ObjectType.UNTYPED)) {
                         builder.type = builder.generated.valueType();
+                        // Add concrete sub-columns defined by the generated expression
+                        if (builder.type instanceof ObjectType objectType) {
+                            for (Map.Entry<String, DataType<?>> entry : objectType.innerTypes().entrySet()) {
+                                ColumnIdent childColumn = ColumnIdent.getChildSafe(columnName, entry.getKey());
+                                addColumn(childColumn, entry.getValue());
+                            }
+                        }
                     } else {
                         builder.generated = builder.generated.cast(builder.type, CastMode.IMPLICIT);
                     }

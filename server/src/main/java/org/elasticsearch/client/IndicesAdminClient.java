@@ -21,8 +21,6 @@ package org.elasticsearch.client;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
@@ -50,21 +48,12 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     CompletableFuture<RecoveryResponse> recoveries(RecoveryRequest request);
 
     /**
-     * Creates an index using an explicit request allowing to specify the settings of the index.
-     *
-     * @param request The create index request
-     * @return The result future
-     */
-    CompletableFuture<CreateIndexResponse> create(CreateIndexRequest request);
-
-    /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).
      *
      * @param request The refresh request
      * @return The result future
      */
     CompletableFuture<RefreshResponse> refresh(RefreshRequest request);
-
 
     /**
      * Update indices settings.

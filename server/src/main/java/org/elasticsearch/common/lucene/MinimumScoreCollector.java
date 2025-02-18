@@ -27,15 +27,12 @@ import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreCachingWrappingScorer;
 import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.Weight;
 
-public class MinimumScoreCollector<T extends Collector> extends SimpleCollector {
+public class MinimumScoreCollector<T extends Collector> implements Collector {
 
     private final T collector;
     private final float minimumScore;
-
-    private Scorable scorer;
-    private LeafCollector leafCollector;
 
     public MinimumScoreCollector(T collector, float minimumScore) {
         this.collector = collector;
@@ -47,24 +44,30 @@ public class MinimumScoreCollector<T extends Collector> extends SimpleCollector 
     }
 
     @Override
-    public void setScorer(Scorable scorer) throws IOException {
-        if (!(scorer instanceof ScoreCachingWrappingScorer)) {
-            scorer = ScoreCachingWrappingScorer.wrap(scorer);
-        }
-        this.scorer = scorer;
-        leafCollector.setScorer(scorer);
+    public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
+        LeafCollector delegateLeafCollector = collector.getLeafCollector(context);
+        return ScoreCachingWrappingScorer.wrap(new LeafCollector() {
+
+            Scorable scorer;
+
+            @Override
+            public void setScorer(Scorable scorer) throws IOException {
+                this.scorer = scorer;
+                delegateLeafCollector.setScorer(scorer);
+            }
+
+            @Override
+            public void collect(int doc) throws IOException {
+                if (this.scorer.score() >= minimumScore) {
+                    delegateLeafCollector.collect(doc);
+                }
+            }
+        });
     }
 
     @Override
-    public void collect(int doc) throws IOException {
-        if (scorer.score() >= minimumScore) {
-            leafCollector.collect(doc);
-        }
-    }
-
-    @Override
-    public void doSetNextReader(LeafReaderContext context) throws IOException {
-        leafCollector = collector.getLeafCollector(context);
+    public void setWeight(Weight weight) {
+        collector.setWeight(weight);
     }
 
     @Override

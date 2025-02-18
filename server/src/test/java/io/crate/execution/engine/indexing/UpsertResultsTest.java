@@ -23,11 +23,17 @@ package io.crate.execution.engine.indexing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Map;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.auth.AccessControl;
 import io.crate.data.Row;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.indexing.UpsertResults.Result;
 import io.crate.testing.TestingHelpers;
 
@@ -104,5 +110,27 @@ public class UpsertResultsTest {
         }
         Result result = upsertResults.getResultSafe("dummyUri");
         assertThat(result.errors).hasSize(25);
+    }
+
+    @Test
+    public void test_summary_collector_can_handle_null_failures() throws Exception {
+        DiscoveryNode node1 = new DiscoveryNode("n1", ESTestCase.buildNewFakeTransportAddress(), Version.CURRENT);
+        UpsertResultCollector summaryCollector = UpsertResultCollectors.newSummaryCollector(
+            node1,
+            AccessControl.DISABLED
+        );
+        UpsertResults upsertResults = new UpsertResults();
+        ArrayList<RowSourceInfo> sourceInfos = new ArrayList<>();
+        ShardResponse shardResponse = new ShardResponse();
+        IllegalStateException dummyError = new IllegalStateException("dummy");
+        // Errors are ignored and null value is used once the failure count is > BULK_RESPONSE_MAX_ERRORS_PER_SHARD
+        for (int i = 0; i < ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD + 1; i++) {
+            shardResponse.add(i, Integer.toString(i), dummyError, false);
+            sourceInfos.add(RowSourceInfo.emptyMarkerOrNewInstance(null, 1L));
+        }
+        summaryCollector.accumulator().accept(upsertResults, shardResponse, sourceInfos);
+        assertThat(upsertResults.getSuccessRowCountForAllUris()).isEqualTo(0);
+        assertThat(upsertResults.containsErrors()).isTrue();
+        assertThat(upsertResults.getResultSafe(null).errors).containsKeys("dummy", "unknown failure");
     }
 }

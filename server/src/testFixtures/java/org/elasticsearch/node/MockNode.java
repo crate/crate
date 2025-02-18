@@ -38,7 +38,6 @@ import org.elasticsearch.common.util.MockBigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
@@ -50,7 +49,6 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
-import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.blob.BlobService;
 import io.crate.netty.NettyBootstrap;
@@ -58,6 +56,7 @@ import io.crate.protocols.postgres.MockPgClientFactory;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.role.Roles;
+import io.crate.session.Sessions;
 
 /**
  * A node for testing which allows:
@@ -71,32 +70,17 @@ public class MockNode extends Node {
     private final Collection<Class<? extends Plugin>> classpathPlugins;
 
     public MockNode(final Settings settings, final Collection<Class<? extends Plugin>> classpathPlugins) {
-        this(settings, classpathPlugins, true);
+        this(settings, classpathPlugins, null);
     }
 
     public MockNode(
             final Settings settings,
             final Collection<Class<? extends Plugin>> classpathPlugins,
-            final boolean forbidPrivateIndexSettings) {
-        this(settings, classpathPlugins, null, forbidPrivateIndexSettings);
-    }
-
-    public MockNode(
-            final Settings settings,
-            final Collection<Class<? extends Plugin>> classpathPlugins,
-            final Path configPath,
-            final boolean forbidPrivateIndexSettings) {
-        this(
-                InternalSettingsPreparer.prepareEnvironment(settings, Collections.emptyMap(), configPath, () -> "mock_ node"),
-                classpathPlugins,
-                forbidPrivateIndexSettings);
-    }
-
-    private MockNode(
-            final Environment environment,
-            final Collection<Class<? extends Plugin>> classpathPlugins,
-            final boolean forbidPrivateIndexSettings) {
-        super(environment, classpathPlugins, forbidPrivateIndexSettings);
+            final Path configPath) {
+        super(
+            InternalSettingsPreparer.prepareEnvironment(settings, Collections.emptyMap(), configPath, () -> "mock_ node"),
+            classpathPlugins
+        );
         this.classpathPlugins = classpathPlugins;
     }
 

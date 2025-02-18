@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +33,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -42,7 +42,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Roles;
-import io.crate.testing.TestingHelpers;
+import io.crate.session.Sessions;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
@@ -178,8 +178,8 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgConstraintTable() {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(response).hasRows(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| 0| NULL| " +
-            "NULL| 728874843| p| 0| true| -874078436");
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pkey| -2048275947| true| 0| NULL| " +
+            "NULL| 728874843| p| 0| true| -1310475467");
     }
 
     @Test
@@ -240,6 +240,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_merge_filter_and_foreign_collect| true| Indicates if the optimizer rule MergeFilterAndForeignCollect is activated.| NULL| NULL",
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.| NULL| NULL",
             "optimizer_move_constant_join_conditions_beneath_join| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathJoin is activated.| NULL| NULL",
+            "optimizer_move_equi_join_filter_into_inner_join| true| Indicates if the optimizer rule MoveEquiJoinFilterIntoInnerJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_correlated_join| true| Indicates if the optimizer rule MoveFilterBeneathCorrelatedJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.| NULL| NULL",
@@ -286,6 +287,19 @@ public class PgCatalogITest extends IntegTestCase {
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
         assertThat(response).hasRows("-649073482| i| t1_pkey| -2048275947| 4| p| p| 0.0");
+    }
+
+    @Test
+    public void test_primary_key__with_custom_name_in_pg_class() {
+        execute("""
+            create table doc.t_with_custom_pk_name (
+                id int,
+                constraint custom_pk_name primary key(id)
+            )""");
+        execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
+                " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't_with_custom_pk_name' and c.oid = i.indrelid) i" +
+                " where ct.oid = i.indexrelid;");
+        assertThat(response).hasRows("128167471| i| custom_pk_name| -2048275947| 1| p| p| 0.0");
     }
 
     @Test
@@ -394,7 +408,7 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @Test
-    public void test_pg_constrains_conkey_array_populated() throws Exception {
+    public void test_pg_constraints_conkey_array_populated() throws Exception {
         execute("CREATE TABLE doc.tbl (" +
             "not_null int not null," +
             "int_col int," +
@@ -408,7 +422,7 @@ public class PgCatalogITest extends IntegTestCase {
         assertThat(response).hasRows(
             "[2, 1, 3]| many_cols_and_functions| c",
             "[4]| positive| c",
-            "[2, 3]| tbl_pk| p"
+            "[2, 3]| tbl_pkey| p"
         );
     }
 
@@ -434,46 +448,41 @@ public class PgCatalogITest extends IntegTestCase {
         // Verify that dropping top-level column is reflected in pg_attribute
         // and re-added column with the same name appears as a new entry.
         execute("""
-            select attname, attnum, attisdropped
+            select attnum, attisdropped, attname
             from pg_attribute
             where attrelid = 't'::regclass
             order by attnum"""
         );
 
         // Column 'a' has OID 6 because first 5 are taken by the table, created in createRelations().
-        String pgAttributeRows = """
-            _dropped_6| 1| true
-            o| 2| false
-            o['oo']| 3| false
-            o['oo']['a']| 4| false
-            a| 5| false
-            """;
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
+        assertThat(response).hasRows(
+            "1| true| _dropped_6",
+            "2| false| o",
+            "3| false| o['oo']",
+            "4| false| o['oo']['a']",
+            "5| false| a"
+        );
 
         // Drop sub-column which in turn, has children column.
         // Re-add columns with the same names but leaf having different type.
         execute("alter table t drop column o['oo']");
         execute("alter table t add column o['oo'] object AS(a text)");
 
-
-        // Only top-level columns are shown, children are completely gone.
-        // For example, there is no entry with ordinal 4 ==> no entry for dropped column o['oo']['a']|
         execute("""
-            select attname, attnum, attisdropped
+            select attnum, attisdropped, attname
             from pg_attribute
             where attrelid = 't'::regclass
             order by attnum"""
         );
-
-        pgAttributeRows = """
-            _dropped_6| 1| true
-            o| 2| false
-            _dropped_8| 3| true
-            a| 5| false
-            o['oo']| 6| false
-            o['oo']['a']| 7| false
-            """;
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
+        assertThat(response).hasRows(
+            "1| true| _dropped_6",
+            "2| false| o",
+            "3| true| _dropped_8",
+            "4| true| _dropped_9",
+            "5| false| a",
+            "6| false| o['oo']",
+            "7| false| o['oo']['a']"
+        );
     }
 
     @Test

@@ -2085,7 +2085,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     /**
      * Returns the indices that are currently being snapshotted (with partial == false) and that are contained in the indices-to-check set.
      */
-    public static Set<Index> snapshottingIndices(final ClusterState currentState, final Set<Index> indicesToCheck) {
+    public static Set<Index> snapshottingIndices(final ClusterState currentState, final Collection<Index> indicesToCheck) {
         final SnapshotsInProgress snapshots = currentState.custom(SnapshotsInProgress.TYPE);
         if (snapshots == null) {
             return Set.of();

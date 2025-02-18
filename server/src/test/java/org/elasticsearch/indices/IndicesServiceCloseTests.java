@@ -46,13 +46,13 @@ import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
-import io.crate.session.CollectingResultReceiver;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.auth.Protocol;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.session.CollectingResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 
 public class IndicesServiceCloseTests extends ESTestCase {
 
@@ -77,7 +77,7 @@ public class IndicesServiceCloseTests extends ESTestCase {
             .build();
 
         Collection<Class<? extends Plugin>> plugins = Arrays.asList(MockHttpTransport.TestPlugin.class);
-        Node node = new MockNode(settings, plugins, true);
+        Node node = new MockNode(settings, plugins);
         node.start();
         return node;
     }

@@ -95,7 +95,6 @@ import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ClusterScopeException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.CrateException;
@@ -191,18 +190,6 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", relation));
-        }
-
-        @Override
-        public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
-            unionSelect.left().accept(this, context);
-            unionSelect.right().accept(this, context);
-            return null;
-        }
-
-        @Override
         public Void visitTableRelation(TableRelation tableRelation, RelationContext context) {
             Privileges.ensureUserHasPrivilege(
                 roles,
@@ -254,12 +241,9 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
-            for (var source : relation.from()) {
-                source.accept(this, context);
-            }
             relation.visitSymbols(tree ->
                 tree.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context)));
-            return null;
+            return super.visitQueriedSelectRelation(relation, context);
         }
 
         @Override

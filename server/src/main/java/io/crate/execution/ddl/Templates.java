@@ -128,7 +128,7 @@ public final class Templates {
                     MappingUtil.AllocPosition.forNewTable(),
                     request.pkConstraintName(),
                     references,
-                    request.pKeyIndices(),
+                    request.primaryKeys(),
                     request.checkConstraints(),
                     request.partitionedBy(),
                     request.tableColumnPolicy(),

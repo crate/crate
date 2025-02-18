@@ -79,7 +79,7 @@ public class FsDirectoryFactoryTests extends ESTestCase {
                     assertThat(directory instanceof MMapDirectory).as(type + " " + directory.toString()).isTrue();
                     break;
                 case FS:
-                    if (Constants.JRE_IS_64BIT && MMapDirectory.UNMAP_SUPPORTED) {
+                    if (Constants.JRE_IS_64BIT) {
                         assertThat(FsDirectoryFactory.isHybridFs(directory)).isTrue();
                     } else {
                         assertThat(directory instanceof NIOFSDirectory).as(directory.toString()).isTrue();

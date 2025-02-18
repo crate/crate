@@ -230,6 +230,7 @@ import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
+import io.crate.udc.service.UDCService;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -295,7 +296,7 @@ public class Node implements Closeable {
     private final NodeService nodeService;
 
     public Node(Environment environment) {
-        this(environment, Collections.emptyList(), true);
+        this(environment, Collections.emptyList());
     }
 
     /**
@@ -303,12 +304,8 @@ public class Node implements Closeable {
      *
      * @param environment                the environment for this node
      * @param classpathPlugins           the plugins to be loaded from the classpath
-     * @param forbidPrivateIndexSettings whether or not private index settings are forbidden when creating an index; this is used in the
-     *                                   test framework for tests that rely on being able to set private settings
      */
-    public Node(final Environment environment,
-                Collection<Class<? extends Plugin>> classpathPlugins,
-                boolean forbidPrivateIndexSettings) {
+    public Node(final Environment environment, Collection<Class<? extends Plugin>> classpathPlugins) {
         logger = LogManager.getLogger(Node.class);
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
         boolean success = false;
@@ -538,8 +535,7 @@ public class Node implements Closeable {
                 shardLimitValidator,
                 environment,
                 indexScopedSettings,
-                threadPool,
-                forbidPrivateIndexSettings
+                threadPool
             );
 
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
@@ -1003,6 +999,9 @@ public class Node implements Closeable {
 
         logger.info("starting ...");
         pluginLifecycleComponents.forEach(LifecycleComponent::start);
+        if (UDCService.UDC_ENABLED_SETTING.get(settings)) {
+            injector.getInstance(UDCService.class).start();
+        }
 
         injector.getInstance(BlobService.class).start();
 
@@ -1157,7 +1156,7 @@ public class Node implements Closeable {
 
         injector.getInstance(HttpServerTransport.class).stop();
 
-        injector.getInstance(UserDefinedFunctionService.class).start();
+        injector.getInstance(UserDefinedFunctionService.class).stop();
         injector.getInstance(SnapshotsService.class).stop();
         injector.getInstance(SnapshotShardsService.class).stop();
         injector.getInstance(RepositoriesService.class).stop();
@@ -1183,6 +1182,9 @@ public class Node implements Closeable {
         injector.getInstance(SslContextProviderService.class).stop();
         injector.getInstance(BlobService.class).stop();
 
+        if (UDCService.UDC_ENABLED_SETTING.get(settings)) {
+            injector.getInstance(UDCService.class).stop();
+        }
         pluginLifecycleComponents.forEach(LifecycleComponent::stop);
         // we should stop this last since it waits for resources to get released
         // if we had scroll searchers etc or recovery going on we wait for to finish.

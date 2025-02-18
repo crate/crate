@@ -19,26 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.testing;
+package io.crate.expression.scalar;
 
+import static io.crate.testing.Asserts.isLiteral;
 
-import static io.crate.testing.Asserts.assertThat;
+import org.junit.Test;
 
-import org.assertj.core.api.AbstractAssert;
+public class ArrayOverlapFunctionTest extends ScalarTestCase {
 
-import io.crate.analyze.relations.JoinPair;
-import io.crate.metadata.RelationName;
-
-public class JoinPairAssert extends AbstractAssert<JoinPairAssert, JoinPair> {
-
-    protected JoinPairAssert(JoinPair actual) {
-        super(actual, JoinPairAssert.class);
+    @Test
+    public void test_nulls() {
+        assertNormalize("array_overlap([1, 2], null)", isLiteral(null));
+        assertNormalize("array_overlap(null, [1, 2])", isLiteral(null));
     }
 
-    public JoinPairAssert hasPair(RelationName left, RelationName right) {
-        isNotNull();
-        assertThat(actual.left()).isEqualTo(left);
-        assertThat(actual.right()).isEqualTo(right);
-        return this;
+    @Test
+    public void test_overlap() {
+        assertNormalize("array_overlap([1, 2], [2, 3])", isLiteral(true));
+        assertNormalize("array_overlap([1, 2], [3, 4])", isLiteral(false));
+    }
+
+    @Test
+    public void test_overlap_nested_arrays() {
+        assertNormalize("array_overlap([[1, 2], [2, 3]], [[2, 3], [4, 5]])", isLiteral(true));
+        assertNormalize("array_overlap([[1, 2], [2, 3]], [[2, 4], [4, 5]])", isLiteral(false));
+    }
+
+    @Test
+    public void test_overlap_operator() {
+        assertNormalize("[1, 2] && [2, 3]", isLiteral(true));
     }
 }

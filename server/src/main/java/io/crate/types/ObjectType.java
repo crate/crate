@@ -274,22 +274,19 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return true;
         }
 
-        if (o.id() != id() || o.id() == UNDEFINED.id()) {
-            return false;
-        }
-        ObjectType that = (ObjectType) o;
-        if (innerTypes.isEmpty() || that.innerTypes().isEmpty()) {
+        if (ArrayType.unnest(o) == UNDEFINED) {
+            // We allow to override an empty array type (inner type is undefined) with an object type.
+            // See {@link SqlMappingTest#test_dynamic_null_array_get_by_pk}
             return true;
-        } else {
-            for (var thisInnerField : this.innerTypes.entrySet()) {
-                var thisInnerType = thisInnerField.getValue();
-                var thatInnerType = that.innerTypes().get(thisInnerField.getKey());
-                if (thatInnerType != null && !thisInnerType.isConvertableTo(thatInnerType, explicitCast)) {
-                    return false;
-                }
-            }
         }
-        return true;
+
+        // Do not check the inner types here as this will result in a generic object type cast error if inner types
+        // aren't convertible.
+        // Let's fall through, so the {@link #cast(Object, boolean)} method will be called. It checks the inner types
+        // and provide a more specific error message including the original value (which isn't available here).
+        // See {@link SqlMappingTest#testInsertObjectIntoString}
+
+        return o.id() == id();
     }
 
     @Override

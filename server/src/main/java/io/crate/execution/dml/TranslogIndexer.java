@@ -21,9 +21,10 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.dml.Indexer.buildIndexColumns;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,10 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.Maps;
 import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -50,17 +54,18 @@ public class TranslogIndexer {
     }
 
     private final Map<String, ColumnIndexer<?>> indexers = new HashMap<>();
-    private final Map<String, List<String>> tableIndexSources = new HashMap<>();
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
     private final Version shardCreatedVersion;
+
+    private final List<Indexer.IndexColumn<IndexInput>> indexColumns;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
      */
     @SuppressWarnings("unchecked")
     public TranslogIndexer(DocTableInfo table, Version shardCreatedVersion) {
-        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey(), false);
+        sourceParser = new SourceParser(table.lookupNameBySourceKey(), false);
         for (var ref : table.columns()) {
             var storageSupport = ref.valueType().storageSupport();
             if (storageSupport != null) {
@@ -73,13 +78,28 @@ public class TranslogIndexer {
                 sourceParser.register(DocReferences.toDocLookup(ref).column(), ref.valueType());
             }
         }
-        for (var ref : table.indexColumns()) {
-            for (var source : ref.columns()) {
-                tableIndexSources.computeIfAbsent(source.column().fqn(), _ -> new ArrayList<>()).add(ref.storageIdent());
-            }
-        }
+
+        this.indexColumns = buildIndexColumns(
+            table.indexColumns(),
+            table::getReference,
+            reference -> new IndexInput(reference.column())
+        );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.shardCreatedVersion = shardCreatedVersion;
+    }
+
+
+    private static class IndexInput {
+
+        private final List<String> fullPath;
+
+        public IndexInput(ColumnIdent columnIdent) {
+            this.fullPath = Lists.concat(columnIdent.name(), columnIdent.path());
+        }
+
+        public Object value(Map<String, Object> sourceMap) {
+            return Maps.getByPath(sourceMap, fullPath);
+        }
     }
 
     /**
@@ -94,7 +114,6 @@ public class TranslogIndexer {
         } catch (IOException | UncheckedIOException e) {
             throw new MapperParsingException("Error parsing translog source", e);
         }
-
     }
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
@@ -113,12 +132,42 @@ public class TranslogIndexer {
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
                 indexer.valueIndexer.indexValue(castValue, docBuilder);
-                if (tableIndexSources.containsKey(column)) {
-                    addIndexField(docBuilder, tableIndexSources.get(column), castValue);
+            }
+            // Make sanitized value visible for the index columns.
+            // Fulltext fields must use sanitized values.
+            // NULL values are skipped in the addIndexColumns.
+            entry.setValue(castValue);
+        }
+
+        addIndexColumns(indexColumns, docMap, docBuilder);
+        return docBuilder;
+    }
+
+    private static void addIndexColumns(List<Indexer.IndexColumn<IndexInput>> indexColumns,
+                                        Map<String, Object> docMap,
+                                        IndexDocumentBuilder docBuilder) {
+        for (var indexColumn : indexColumns) {
+            String fqn = indexColumn.reference().storageIdent();
+            for (var input : indexColumn.inputs()) {
+                Object value = input.value(docMap);
+                if (value == null) {
+                    continue;
+                }
+                if (value instanceof Iterable<?> it) {
+                    for (Object val : it) {
+                        if (val == null) {
+                            continue;
+                        }
+                        Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
+                        docBuilder.addField(field);
+                    }
+                } else {
+                    Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
+                    docBuilder.addField(field);
                 }
             }
         }
-        return docBuilder;
+
     }
 
     private static boolean isEmpty(Object value) {
@@ -149,26 +198,6 @@ public class TranslogIndexer {
         // Mapping could have changed since the translog entry was written, so we need to sanitize any column
         // leniently (use NULL on sanitization errors) to avoid failing the index operation.
         return valueType.valueForInsert(valueType.sanitizeValueLenient(value));
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, List<String> targetFields, Object value) {
-        if (value == null) {
-            return;
-        }
-        if (value instanceof Iterable<?> it) {
-            for (Object val : it) {
-                if (val == null) {
-                    continue;
-                }
-                targetFields.forEach(field -> addIndexField(docBuilder, field, val));
-            }
-        } else {
-            targetFields.forEach(field -> addIndexField(docBuilder, field, value));
-        }
-    }
-
-    private static void addIndexField(IndexDocumentBuilder docBuilder, String field, Object value) {
-        docBuilder.addField(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
     }
 
 }

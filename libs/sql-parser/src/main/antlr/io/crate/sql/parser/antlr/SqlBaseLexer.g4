@@ -377,6 +377,7 @@ DOLLAR: '$';
 BITWISE_AND: '&';
 BITWISE_OR: '|';
 BITWISE_XOR: '#';
+OVERLAP: '&&';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

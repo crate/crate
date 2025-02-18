@@ -20,13 +20,45 @@
 package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.EmptyClusterInfoService;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.ShardLimitValidator;
+import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.VersionUtils;
+import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
+import org.mockito.Mockito;
 
-public class MetadataCreateIndexServiceTest extends ESTestCase {
+import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+
+public class MetadataCreateIndexServiceTest extends CrateDummyClusterServiceUnitTest {
+
+
+    public AllocationService createAllocationService() throws Exception {
+        return new AllocationService(
+            new AllocationDeciders(Collections.singleton(new MaxRetryAllocationDecider())),
+            new TestGatewayAllocator(),
+            new BalancedShardsAllocator(Settings.EMPTY),
+            EmptyClusterInfoService.INSTANCE,
+            EmptySnapshotsInfoService.INSTANCE);
+    }
 
     @Test
     public void testCalculateNumRoutingShards() {
@@ -62,5 +94,33 @@ public class MetadataCreateIndexServiceTest extends ESTestCase {
             assertThat(intRatio % 2).isZero();
             assertThat(intRatio).as("ratio is not a power of two").isEqualTo(Integer.highestOneBit(intRatio));
         }
+    }
+
+    @Test
+    public void test_resize_with_too_many_docs_fails() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        e.addTable("create table doc.srctbl (x int) clustered into 2 shards with (\"blocks.write\" = true)");
+        var state = clusterService.state();
+        var allocationService = createAllocationService();
+        var routingTable = allocationService.reroute(state, "reroute").routingTable();
+        ClusterState startedShardsState = allocationService.applyStartedShards(
+            state,
+            routingTable.index("srctbl").shardsWithState(ShardRoutingState.INITIALIZING)
+        );
+
+        RelationName tbl = new RelationName("doc", "srctbl");
+        int newNumShards = 1;
+        var resizeIndexTask = new MetadataCreateIndexService.ResizeIndexTask(
+            Mockito.mock(AllocationService.class),
+            new ResizeRequest(tbl, List.of(), newNumShards),
+            Mockito.mock(IndicesService.class),
+            _ -> Integer.MAX_VALUE,
+            new ShardLimitValidator(Settings.EMPTY, clusterService),
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
+        );
+
+        assertThatThrownBy(() -> resizeIndexTask.execute(startedShardsState))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Can't merge index with more than [2147483519] docs");
     }
 }

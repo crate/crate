@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -304,7 +303,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                 testUserSession);
             assertThat(response).hasRows(
                 "t2| my_schema_t2_x_not_null",
-                "t2| t2_pk");
+                "t2| t2_pkey");
             execute("select routine_schema from information_schema.routines order by routine_schema",
                     null,
                     testUserSession);
@@ -513,9 +512,12 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
         }
         assertThat(response).hasRows(
+            "administrable_role_authorizations",
+            "applicable_roles",
             "character_sets",
             "columns",
             "columns_pkey",
+            "enabled_roles",
             "foreign_server_options",
             "foreign_servers",
             "foreign_table_options",
@@ -554,6 +556,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             "pg_views",
             "referential_constraints",
             "referential_constraints_pkey",
+            "role_table_grants",
             "routines",
             "schemata",
             "schemata_pkey",
@@ -664,7 +667,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
             execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession);
-            assertThat(response).hasRowCount(568L);
+            assertThat(response).hasRowCount(583L);
 
             //create a table with an attribute that a new user is not privileged to access
             executeAsSuperuser("create table test_schema.my_table (my_col int)");
@@ -698,15 +701,15 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         try (Session testUserSession = testUserSession()) {
             execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession);
             assertThat(response).hasRows(
-                    "columns_pk",
-                    "key_column_usage_pk",
-                    "referential_constraints_pk",
-                    "schemata_pk",
-                    "sql_features_pk",
-                    "table_constraints_pk",
-                    "table_partitions_pk",
-                    "tables_pk",
-                    "views_pk");
+                    "columns_pkey",
+                    "key_column_usage_pkey",
+                    "referential_constraints_pkey",
+                    "schemata_pkey",
+                    "sql_features_pkey",
+                    "table_constraints_pkey",
+                    "table_partitions_pkey",
+                    "tables_pkey",
+                    "views_pkey");
 
             //create a table with constraints that a new user is not privileged to access
             executeAsSuperuser("""
@@ -727,7 +730,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             assertThat(response)
                 .as("user sees constraints after having granted privileges")
                 .hasRows(
-                    "my_table_pk",
+                    "my_table_pkey",
                     "positive_num"
                 );
         }
@@ -736,7 +739,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         assertThat(response)
             .as("super user sees same constraints")
             .hasRows(
-                "my_table_pk",
+                "my_table_pkey",
                 "positive_num"
             );
     }

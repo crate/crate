@@ -21,15 +21,16 @@
 
 package io.crate.metadata.cluster;
 
-import java.util.Set;
+import java.util.Collection;
+import java.util.List;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.index.Index;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -48,20 +49,27 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         RelationName relationName = request.tableIdent();
-        Set<Index> concreteIndices = Set.of(IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            relationName.indexNameOrAlias()));
+        Metadata currentMetadata = currentState.metadata();
 
-        currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
-        Metadata metadata = currentState.metadata();
-
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        if (metadata.templates().containsKey(templateName)) {
-            currentState = ClusterState.builder(currentState)
-                .metadata(Metadata.builder(metadata).removeTemplate(templateName))
-                .build();
+        if (!currentMetadata.contains(relationName)) {
+            throw new RelationUnknown(relationName);
         }
+        Collection<Index> indices = currentMetadata.getIndices(
+            relationName,
+            List.of(),
+            false,
+            IndexMetadata::getIndex
+        );
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+        Metadata.Builder newMetadata = Metadata.builder(currentMetadata)
+            .dropRelation(relationName)
+            .removeTemplate(templateName);
+
+        currentState = ClusterState.builder(currentState)
+            .metadata(newMetadata)
+            .build();
+
+        currentState = deleteIndexService.deleteIndices(currentState, indices);
 
         // call possible modifiers
         currentState = ddlClusterStateService.onDropTable(currentState, request.tableIdent());

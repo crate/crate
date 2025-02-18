@@ -126,7 +126,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testSendRequest() throws IOException {
-        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         boolean isHandshake = randomBoolean();
@@ -182,7 +182,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testSendResponse() throws IOException {
-        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         boolean isHandshake = randomBoolean();
@@ -236,7 +236,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testErrorResponse() throws IOException {
-        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         ElasticsearchException error = new ElasticsearchException("boom");

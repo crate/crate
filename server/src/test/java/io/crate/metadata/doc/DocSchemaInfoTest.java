@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -179,6 +180,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
             Map.of(),
             Map.of(),
+            Set.of(),
             null,
             List.of(),
             List.of(),

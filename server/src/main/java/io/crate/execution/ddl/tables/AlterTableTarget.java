@@ -23,9 +23,8 @@ package io.crate.execution.ddl.tables;
 
 import java.util.List;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
@@ -42,20 +41,18 @@ import io.crate.metadata.RelationName;
  *  - ALTER TABLE tbl PARTITION (pcol = ?)
  */
 public final record AlterTableTarget(RelationName table,
-                                     Index[] indices,
+                                     List<Index> indices,
                                      List<String> partitionValues,
                                      @Nullable IndexTemplateMetadata templateMetadata) {
 
     public static AlterTableTarget of(ClusterState state, RelationName table, List<String> partitionValues) {
         Metadata metadata = state.metadata();
+        List<Index> indices = metadata.getIndices(table, partitionValues, false, IndexMetadata::getIndex);
         if (partitionValues.isEmpty()) {
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
             IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
             return new AlterTableTarget(table, indices, partitionValues, indexTemplateMetadata);
         } else {
-            String indexName = new PartitionName(table, partitionValues).asIndexName();
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
             return new AlterTableTarget(table, indices, partitionValues, null);
         }
     }
@@ -65,6 +62,6 @@ public final record AlterTableTarget(RelationName table,
     }
 
     public boolean isEmpty() {
-        return indices.length == 0 && templateMetadata == null;
+        return indices.isEmpty() && templateMetadata == null;
     }
 }

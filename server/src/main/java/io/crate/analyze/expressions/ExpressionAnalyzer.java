@@ -744,17 +744,9 @@ public class ExpressionAnalyzer {
                 //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
                 //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
                 // Another example is selecting sub-column of an object that is union-ed.
-                if (DataTypes.hasPath(baseType, parts)) {
-                    return allocateFunction(
-                        SubscriptFunction.NAME,
-                        List.of(
-                            node.base().accept(this, context),
-                            node.index().accept(this, context)
-                        ),
-                        context
-                    );
-                }
-                if ((baseType == UndefinedType.INSTANCE) == false) {
+                if (baseType != UndefinedType.INSTANCE
+                    && baseType != ObjectType.UNTYPED
+                    && !DataTypes.hasPath(baseType, parts)) {
                     DataType<?> currentType = baseType;
                     ColumnPolicy parentPolicy = baseType.columnPolicy();
                     for (String p : parts) {
@@ -1053,14 +1045,21 @@ public class ExpressionAnalyzer {
                 return Literal.EMPTY_OBJECT;
             }
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
+            var returnTypeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             for (Map.Entry<String, Expression> entry : values.entrySet()) {
+                var val = entry.getValue().accept(this, context);
                 arguments.add(Literal.of(entry.getKey()));
-                arguments.add(entry.getValue().accept(this, context));
+                arguments.add(val);
+                returnTypeBuilder.setInnerType(entry.getKey(), val.valueType());
             }
-            return allocateFunction(
-                MapFunction.NAME,
+
+            // Create the function directly to propagate the complete object return type information including
+            // inner types. Inner column names would be gone otherwise as the function resolving works on types only.
+            return new Function(
+                MapFunction.SIGNATURE,
                 arguments,
-                context);
+                returnTypeBuilder.build()
+            );
         }
 
         private static final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =

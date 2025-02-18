@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.symbol.rule;
 
 import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.types.DataTypes.isSafeConversion;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -62,9 +61,6 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
             DataType<?> refInnerType = ArrayType.unnest(ref.valueType());
             DataType<?> literalInnerType = ArrayType.unnest(literal.valueType());
             if (!DataTypes.isNumeric(literalInnerType) || !DataTypes.isNumeric(refInnerType)) {
-                return true;
-            }
-            if (isSafeConversion(literalInnerType, refInnerType)) {
                 return true;
             }
             return isNarrowingConversionPossible(literal.value(), ref.valueType());

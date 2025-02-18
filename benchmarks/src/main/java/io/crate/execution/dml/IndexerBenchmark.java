@@ -45,9 +45,6 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.session.BaseResultReceiver;
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.data.Row;
 import io.crate.execution.dml.IndexItem.StaticItem;
 import io.crate.metadata.ColumnIdent;
@@ -55,6 +52,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.session.BaseResultReceiver;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -75,11 +75,7 @@ public class IndexerBenchmark {
             .put("path.home", tempDir.toAbsolutePath().toString())
             .build();
         Environment environment = new Environment(settings, tempDir);
-        node = new Node(
-            environment,
-            List.of(),
-            true
-        );
+        node = new Node(environment, List.of());
         node.start();
         Injector injector = node.injector();
 

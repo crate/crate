@@ -19,7 +19,7 @@ Version 6.0.0 - Unreleased
     We recommend that you upgrade to the latest 5.10 release before moving to
     6.0.0.
 
-    A rolling upgrade from 5.10.x to 6.0.0 is supported.
+    A rolling upgrade from >= 5.10.1 to 6.0.0 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -43,12 +43,29 @@ Version 6.0.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Updated Lucene from 9.12 to 10.0 which brings the following user facing changes:
+
+  - Tables created in 4.x can't be read anymore. If you're running CrateDB 5.x
+    and have any tables created in 4.x they need to be reindexed before moving
+    to CrateDB 6.0. Make sure there are no warnings in the admin console and see
+    :ref:`table_version_compatibility` for more information.
+
+  - The ``dutch_kp`` and ``lovins`` token filters are no longer available. If
+    users have tables which use these token filters for analysis, they will need
+    to re-index with either plain ``dutch`` or ``english`` stemmers before
+    upgrading.
+
+  - The ``german2`` and ``german`` token filters now use the same underlying stemmer,
+    which always expands ``ä``, ``ö`` and ``ü`` to ``ae``, ``oe`` and ``ue`` respectively.
+    If users have tables which were using the ``german`` stemmer without a character
+    filter that already did this, they will need to re-index after upgrading.
 
 Deprecations
 ============
 
-None
+ - Usage of :ref:`_version<sql_administration_system_column_version>` has been
+   deprecated completely. Please note that its usage for :ref:`sql_occ` has
+   already been deprecated since :ref:`version_4.0.0`.
 
 
 Changes
@@ -63,6 +80,11 @@ SQL Standard and PostgreSQL Compatibility
 - Added support for lower case format patterns to the
   :ref:`to_char <scalar-to_char>` scalar function.
 
+- Added the :ref:`information_schema.applicable_roles <applicable_roles>`,
+  :ref:`information_schema.enabled_roles <enabled_roles>`,
+  :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
+  and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
+
 Data Types
 ----------
 
@@ -71,10 +93,20 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for the :ref:`array_overlap<scalar-array_overlap>` scalar
+  function and the associated :ref:`&&<array_overlap_operator>` operator.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved execution for queries with mixed implicit and explicit joins.
+  Joins are now always executed in the original order of the query.
+
 - Improved the performance of the queries involving ``= ALL`` array operator.
+
+- Improved the performance of :ref:`shard recovery<gloss-shard-recovery>` in
+  certain cases, where a shard has become idle after 5 minutes of no write
+  activity.
 
 Administration and Operations
 -----------------------------

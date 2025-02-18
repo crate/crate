@@ -40,16 +40,19 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
 
     private LogicalPlan t1;
     private LogicalPlan t2;
+    private LogicalPlan t3;
     private SQLExecutor e;
 
     @Before
     public void prepare() throws Exception {
         e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int)")
-            .addTable("create table t2 (b int)");
+            .addTable("create table t2 (b int)")
+            .addTable("create table t3 (c int)");
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");
+        t3 = e.logicalPlan("SELECT c FROM t3");
     }
 
     @Test
@@ -104,9 +107,79 @@ public class RewriteFilterOnCrossJoinToInnerJoinTest extends CrateDummyClusterSe
             e.ruleContext());
 
         assertThat(result).hasOperators(
-            "Join[INNER | ((a = b) AND (a = 10))]",
-            "  ├ Collect[doc.t1 | [a] | true]",
-            "  └ Collect[doc.t2 | [b] | true]"
+            "Filter[(a = 10)]",
+            "  └ Join[INNER | (a = b)]",
+            "    ├ Collect[doc.t1 | [a] | true]",
+            "    └ Collect[doc.t2 | [b] | true]"
+        );
+    }
+
+    @Test
+    public void test_rewrite_equ_join_filter_on_top_of_nested_cross_join_to_inner_join() {
+        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+        var join2 = new JoinPlan(t3, join1, JoinType.CROSS, null);
+        var filter = new Filter(join2, e.asSymbol("doc.t1.a = doc.t2.b and doc.t1.a = doc.t3.c"));
+
+        assertThat(filter).hasOperators(
+            "Filter[((a = b) AND (a = c))]",
+            "  └ Join[CROSS]",
+            "    ├ Collect[doc.t3 | [c] | true]",
+            "    └ Join[CROSS]",
+            "      ├ Collect[doc.t1 | [a] | true]",
+            "      └ Collect[doc.t2 | [b] | true]"
+        );
+
+        var rule = new RewriteFilterOnCrossJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        Assertions.assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(filter);
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            e.ruleContext());
+
+        assertThat(result).hasOperators(
+            "Join[INNER | ((a = b) AND (a = c))]",
+            "  ├ Collect[doc.t3 | [c] | true]",
+            "  └ Join[CROSS]",
+            "    ├ Collect[doc.t1 | [a] | true]",
+            "    └ Collect[doc.t2 | [b] | true]"
+        );
+    }
+
+    @Test
+    public void test_rewrite_equ_join_filter_on_top_of_nested__cross_join_to_inner_join_on_split_query() {
+        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+        var join2 = new JoinPlan(t3, join1, JoinType.CROSS, null);
+        var filter = new Filter(join2, e.asSymbol("doc.t1.a = doc.t2.b and doc.t1.a = doc.t3.c and doc.t1.a > 1"));
+
+        assertThat(filter).hasOperators(
+            "Filter[(((a = b) AND (a = c)) AND (a > 1))]",
+            "  └ Join[CROSS]",
+            "    ├ Collect[doc.t3 | [c] | true]",
+            "    └ Join[CROSS]",
+            "      ├ Collect[doc.t1 | [a] | true]",
+            "      └ Collect[doc.t2 | [b] | true]"
+        );
+
+        var rule = new RewriteFilterOnCrossJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        Assertions.assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(filter);
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            e.ruleContext());
+
+        assertThat(result).hasOperators(
+            "Filter[(a > 1)]",
+            "  └ Join[INNER | ((a = b) AND (a = c))]",
+            "    ├ Collect[doc.t3 | [c] | true]",
+            "    └ Join[CROSS]",
+            "      ├ Collect[doc.t1 | [a] | true]",
+            "      └ Collect[doc.t2 | [b] | true]"
         );
     }
 
