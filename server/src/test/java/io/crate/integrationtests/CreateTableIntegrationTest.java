@@ -168,16 +168,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
             () -> execute("create table test(t timestamp) with (\"soft_deletes.enabled\" = false)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
-
-    }
-
-    public void test_enforce_soft_deletes_on_partitioned_tables() {
-        Asserts.assertSQLError(
-            () -> execute("create table test(t timestamp) partitioned by (t) with (\"soft_deletes.enabled\" = false)"))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
+            .hasMessageContaining("Invalid property \"soft_deletes.enabled\" passed to [ALTER | CREATE] TABLE statement");
 
     }
 

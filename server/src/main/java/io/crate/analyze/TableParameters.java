@@ -121,7 +121,6 @@ public class TableParameters {
             EngineConfig.INDEX_CODEC_SETTING,
             IndexModule.INDEX_STORE_TYPE_SETTING,
             MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-            IndexSettings.INDEX_SOFT_DELETES_SETTING,
             IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,
 
             // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.

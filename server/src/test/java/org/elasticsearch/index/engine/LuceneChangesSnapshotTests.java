@@ -20,6 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -31,8 +32,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.IndexSettingsModule;
@@ -41,13 +40,6 @@ import org.junit.Test;
 import io.crate.common.io.IOUtils;
 
 public class LuceneChangesSnapshotTests extends EngineTestCase {
-
-    @Override
-    protected Settings indexSettings() {
-        return Settings.builder().put(super.indexSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true) // always enable soft-deletes
-            .build();
-    }
 
     public void testBasics() throws Exception {
         long fromSeqNo = randomNonNegativeLong();

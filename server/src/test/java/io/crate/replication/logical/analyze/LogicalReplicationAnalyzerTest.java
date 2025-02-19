@@ -25,9 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.assertj.core.api.Assertions;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Setting;
 import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
@@ -84,22 +81,6 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1");
         assertThat(stmt.tables()).isEmpty();
         assertThat(stmt.isForAllTables()).isFalse();
-    }
-
-    @Test
-    public void test_create_publication_with_table_having_soft_deletes_disabled() throws Exception {
-        // Soft-deletes are mandatory from 5.0, so let's use 4.8 to create a table with soft-deletes disabled
-        clusterService = createClusterService(additionalClusterSettings().stream().filter(Setting::hasNodeScope).toList(),
-                                                  Metadata.EMPTY_METADATA,
-                                                  Version.V_4_8_0);
-
-        var e = SQLExecutor.of(clusterService).addTable(
-                "create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)");
-        Assertions.assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessageContaining(
-                    "Tables included in a publication must have the table setting 'soft_deletes.enabled' " +
-                    "set to `true`, current setting for table 'doc.t1': false");
     }
 
     @Test

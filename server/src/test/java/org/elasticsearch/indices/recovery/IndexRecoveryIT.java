@@ -24,6 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -1399,8 +1400,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
                 "  number_of_replicas = 1," +
-                "  \"unassigned.node_left.delayed_timeout\"='12h'," +
-                "  \"soft_deletes.enabled\"=true" +
+                "  \"unassigned.node_left.delayed_timeout\"='12h'" +
                 " )");
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];
@@ -1454,8 +1454,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
                 "  number_of_replicas = 1," +
-                "  \"unassigned.node_left.delayed_timeout\"='12h'," +
-                "  \"soft_deletes.enabled\"=true" +
+                "  \"unassigned.node_left.delayed_timeout\"='12h'" +
                 " )");
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];
@@ -1519,7 +1518,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         var settings = new ArrayList<String>();
         settings.add("number_of_replicas = 1");
         settings.add("\"unassigned.node_left.delayed_timeout\"='12h'");
-        settings.add("\"soft_deletes.enabled\"=true");
         settings.add("\"soft_deletes.retention_lease.sync_interval\"='100ms'");
 
         final double reasonableOperationsBasedRecoveryProportion;
@@ -1636,8 +1634,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
-                "  number_of_replicas = 0," +
-                "  \"soft_deletes.enabled\"=true" +
+                "  number_of_replicas = 0" +
                 " )");
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];

@@ -45,7 +45,6 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   \"soft_deletes.retention_lease.sync_interval\" = '1s', " +
-            "   \"soft_deletes.enabled\" = true, " +
             "   number_of_replicas = ?)",
             new Object[] { numberOfReplicas }
         );
