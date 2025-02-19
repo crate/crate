@@ -34,6 +34,9 @@ import io.crate.lucene.FunctionToQuery;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.UndefinedType;
 
 /**
  * Base class for Scalar functions in crate.
@@ -145,7 +148,9 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             inputs[idx] = (Input<?>) arg;
             idx++;
         }
-        return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, nodeCtx, inputs));
+        Object value = scalar.evaluate(txnCtx, nodeCtx, inputs);
+        DataType<?> type = function.valueType();
+        return Literal.ofUnchecked(type == UndefinedType.INSTANCE ? DataTypes.guessType(value) : type, value);
     }
 
     public enum Feature {

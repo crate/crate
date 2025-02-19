@@ -34,6 +34,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.types.DataTypes;
 
 
 public class SubscriptFunctionTest extends ScalarTestCase {
@@ -119,5 +120,10 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     @Test
     public void test_lookup_by_name_with_missing_key_returns_null_if_type_information_are_available() throws Exception {
         assertEvaluateNull("{}::object(strict) as (y int)['y']");
+    }
+
+    @Test
+    public void test_returned_literal_from_subscript_function_on_object_literal_is_not_undefined_type() {
+        assertNormalize("{a=10}['a']", isLiteral(10, DataTypes.INTEGER));
     }
 }
