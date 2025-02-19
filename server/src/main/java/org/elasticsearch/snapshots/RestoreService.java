@@ -221,7 +221,7 @@ public class RestoreService implements ClusterStateApplier {
                     resolvedTemplates
                 );
 
-                boolean includeIndices = request.includeIndices();
+                boolean includeIndices = request.includeTables();
                 if (includeIndices) {
                     // Empty list is resolved to "all indices" and we don't want break this behavior since RestoreService is used
                     // in other components (index recovery, logical replication).
@@ -341,7 +341,7 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        if (request.restoreAllTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
+        if (request.includeTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
             resolvedTemplates.add(Metadata.ALL);
         }
 
@@ -496,7 +496,7 @@ public class RestoreService implements ClusterStateApplier {
                         indexMdBuilder.settings(indexSettingsBuilder);
 
                         shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
-                        if (!request.includeAliases() && !snapshotIndexMetadata.getAliases().isEmpty()) {
+                        if (!request.includeTables() && !snapshotIndexMetadata.getAliases().isEmpty()) {
                             // Remove all aliases - they shouldn't be restored
                             indexMdBuilder.removeAllAliases();
                         } else {
@@ -524,7 +524,7 @@ public class RestoreService implements ClusterStateApplier {
                             indexMdBuilder.primaryTerm(shard, Math.max(snapshotIndexMetadata.primaryTerm(shard), currentIndexMetadata.primaryTerm(shard)));
                         }
 
-                        if (!request.includeAliases()) {
+                        if (!request.includeTables()) {
                             // Remove all snapshot aliases
                             if (!snapshotIndexMetadata.getAliases().isEmpty()) {
                                 indexMdBuilder.removeAllAliases();
@@ -642,11 +642,7 @@ public class RestoreService implements ClusterStateApplier {
         private boolean checkPartial(String index) {
             // Make sure that index was fully snapshotted
             if (failed(snapshotInfo, index)) {
-                if (request.partial()) {
-                    return true;
-                } else {
-                    throw new SnapshotRestoreException(snapshot, "index [" + index + "] wasn't fully snapshotted - cannot " + "restore");
-                }
+                throw new SnapshotRestoreException(snapshot, "index [" + index + "] wasn't fully snapshotted - cannot " + "restore");
             } else {
                 return false;
             }
@@ -1089,9 +1085,7 @@ public class RestoreService implements ClusterStateApplier {
                                         IndicesOptions indicesOptions,
                                         Settings settings,
                                         TimeValue masterNodeTimeout,
-                                        boolean partial,
-                                        boolean includeAliases,
-                                        boolean includeIndices,
+                                        boolean includeTables,
                                         boolean includeCustomMetadata,
                                         String[] customMetadataTypes,
                                         boolean includeGlobalSettings,
@@ -1124,10 +1118,6 @@ public class RestoreService implements ClusterStateApplier {
                 || TABLE_RENAME_REPLACEMENT.exists(settings)
                 || SCHEMA_RENAME_PATTERN.exists(settings)
                 || SCHEMA_RENAME_REPLACEMENT.exists(settings);
-        }
-
-        public boolean restoreAllTables() {
-            return includeIndices && includeAliases;
         }
     }
 }

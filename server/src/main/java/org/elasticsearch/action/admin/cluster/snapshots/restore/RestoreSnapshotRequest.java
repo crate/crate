@@ -47,10 +47,9 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private final String repository;
 
     private final IndicesOptions indicesOptions;
-    private final boolean includeAliases;
     private final Settings settings;
 
-    private final boolean includeIndices;
+    private final boolean includeTables;
     private final boolean includeCustomMetadata;
     private final String[] customMetadataTypes;
     private final boolean includeGlobalSettings;
@@ -80,8 +79,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         this.tablesToRestore = tablesToRestore;
         this.indicesOptions = indicesOptions;
         this.settings = settings;
-        this.includeIndices = includeTables;
-        this.includeAliases = includeTables;
+        this.includeTables = includeTables;
         this.includeCustomMetadata = includeCustomMetadata;
         this.customMetadataTypes = metadataTypes.toArray(String[]::new);
         this.includeGlobalSettings = includeGlobalSettings;
@@ -164,17 +162,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         return this.settings;
     }
 
-    /**
-     * Returns true if aliases should be restored from this snapshot
-     *
-     * @return true if aliases should be restored
-     */
-    public boolean includeAliases() {
-        return includeAliases;
-    }
-
-    public boolean includeIndices() {
-        return includeIndices;
+    public boolean includeTables() {
+        return includeTables;
     }
 
     public boolean includeCustomMetadata() {
@@ -214,15 +203,16 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             in.readBoolean();
             // partial
             in.readBoolean();
+            // includeAliases
+            in.readBoolean();
         }
-        includeAliases = in.readBoolean();
         settings = readSettingsFromStream(in);
         if (version.before(Version.V_6_0_0)) {
             readSettingsFromStream(in); // indexSettings
             in.readStringArray(); // ignoreIndexSettings
             in.readStringArray(); // templates
         }
-        includeIndices = in.readBoolean();
+        includeTables = in.readBoolean();
         includeCustomMetadata = in.readBoolean();
         customMetadataTypes = in.readStringArray();
         includeGlobalSettings = in.readBoolean();
@@ -254,15 +244,15 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             out.writeString(tableRenameReplacement());
             out.writeBoolean(waitForCompletion());
             out.writeBoolean(false); // partial; was never set to true
+            out.writeBoolean(includeTables); // includeAliases; always matched includeTables
         }
-        out.writeBoolean(includeAliases);
         writeSettingsToStream(out, settings);
         if (version.before(Version.V_6_0_0)) {
             writeSettingsToStream(out, Settings.EMPTY); // indexSettings
             out.writeStringArray(Strings.EMPTY_ARRAY); // ignoreIndexSettings
             out.writeStringArray(Strings.EMPTY_ARRAY); // templates
         }
-        out.writeBoolean(includeIndices);
+        out.writeBoolean(includeTables);
         out.writeBoolean(includeCustomMetadata);
         out.writeStringArray(customMetadataTypes);
         out.writeBoolean(includeGlobalSettings);
@@ -284,12 +274,11 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RestoreSnapshotRequest that = (RestoreSnapshotRequest) o;
-        return includeAliases == that.includeAliases &&
-            Objects.equals(snapshot, that.snapshot) &&
+        return Objects.equals(snapshot, that.snapshot) &&
             Objects.equals(repository, that.repository) &&
             Objects.equals(indicesOptions, that.indicesOptions) &&
             Objects.equals(settings, that.settings) &&
-            includeIndices == that.includeIndices &&
+            includeTables == that.includeTables &&
             includeCustomMetadata == that.includeCustomMetadata &&
             Arrays.equals(customMetadataTypes, that.customMetadataTypes) &&
             includeGlobalSettings == that.includeGlobalSettings &&
@@ -302,9 +291,8 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             snapshot,
             repository,
             indicesOptions,
-            includeAliases,
             settings,
-            includeIndices,
+            includeTables,
             includeCustomMetadata,
             includeGlobalSettings
         );
