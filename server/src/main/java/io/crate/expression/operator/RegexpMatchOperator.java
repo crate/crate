@@ -81,7 +81,8 @@ public class RegexpMatchOperator extends Operator<String> {
         if (isPcrePattern(pattern)) {
             return source.matches(pattern);
         } else {
-            RegExp regexp = new RegExp(pattern);
+            // In Lucene 10, COMPLEMENT FLAG is deprecated and not included in ALL
+            RegExp regexp = new RegExp(pattern, RegExp.ALL | RegExp.DEPRECATED_COMPLEMENT);
             var auto = Operations.determinize(regexp.toAutomaton(), Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
             ByteRunAutomaton regexpRunAutomaton = new ByteRunAutomaton(auto);
             byte[] bytes = source.getBytes(StandardCharsets.UTF_8);
@@ -96,7 +97,8 @@ public class RegexpMatchOperator extends Operator<String> {
         if (RegexpFlags.isPcrePattern(pattern)) {
             return new CrateRegexQuery(term);
         } else {
-            return new ConstantScoreQuery(new RegexpQuery(term, RegExp.ALL));
+            // In Lucene 10, COMPLEMENT FLAG is deprecated and not included in ALL
+            return new ConstantScoreQuery(new RegexpQuery(term, RegExp.ALL | RegExp.DEPRECATED_COMPLEMENT));
         }
     }
 }
