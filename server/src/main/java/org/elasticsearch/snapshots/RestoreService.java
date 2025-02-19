@@ -92,8 +92,6 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -440,7 +438,7 @@ public class RestoreService implements ClusterStateApplier {
                     .minimumIndexCompatibilityVersion();
                 for (Map.Entry<String, String> indexEntry : indices.entrySet()) {
                     String index = indexEntry.getValue();
-                    boolean partial = checkPartial(index);
+                    ensureNotPartial(index);
                     SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(restoreUUID, snapshot,
                         snapshotInfo.version(), repositoryData.resolveIndexId(index));
                     IndexMetadata snapshotIndexMetadata = metadata.index(index);
@@ -465,7 +463,6 @@ public class RestoreService implements ClusterStateApplier {
                     // Check that the index is closed or doesn't exist
                     String renamedIndexName = indexEntry.getKey();
                     IndexMetadata currentIndexMetadata = currentState.metadata().index(renamedIndexName);
-                    IntSet ignoreShards = new IntHashSet();
                     final Index renamedIndex;
                     if (currentIndexMetadata == null) {
                         // Index doesn't exist - create it and start recovery
@@ -505,15 +502,12 @@ public class RestoreService implements ClusterStateApplier {
                             }
                         }
                         IndexMetadata updatedIndexMetadata = indexMdBuilder.build();
-                        if (partial) {
-                            populateIgnoredShards(index, ignoreShards);
-                        }
-                        rtBuilder.addAsNewRestore(updatedIndexMetadata, recoverySource, ignoreShards);
+                        rtBuilder.addAsNewRestore(updatedIndexMetadata, recoverySource);
                         blocks.addBlocks(updatedIndexMetadata);
                         mdBuilder.put(updatedIndexMetadata, true);
                         renamedIndex = updatedIndexMetadata.getIndex();
                     } else {
-                        validateExistingIndex(currentIndexMetadata, snapshotIndexMetadata, renamedIndexName, partial);
+                        validateExistingIndex(currentIndexMetadata, snapshotIndexMetadata, renamedIndexName);
                         // Index exists and it's closed - open it in metadata and start recovery
                         IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata).state(IndexMetadata.State.OPEN);
                         indexMdBuilder.version(Math.max(snapshotIndexMetadata.getVersion(), 1 + currentIndexMetadata.getVersion()));
@@ -548,13 +542,9 @@ public class RestoreService implements ClusterStateApplier {
                         renamedIndex = updatedIndexMetadata.getIndex();
                     }
                     for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
-                        if (!ignoreShards.contains(shard)) {
-                            shardsBuilder.put(new ShardId(renamedIndex, shard),
-                                                new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId()));
-                        } else {
-                            shardsBuilder.put(new ShardId(renamedIndex, shard),
-                                                new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId(), RestoreInProgress.State.FAILURE));
-                        }
+                        shardsBuilder.put(
+                            new ShardId(renamedIndex, shard),
+                            new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId()));
                     }
                 }
 
@@ -631,28 +621,14 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        private void populateIgnoredShards(String index, IntSet ignoreShards) {
-            for (SnapshotShardFailure failure : snapshotInfo.shardFailures()) {
-                if (index.equals(failure.index())) {
-                    ignoreShards.add(failure.shardId());
-                }
-            }
-        }
-
-        private boolean checkPartial(String index) {
+        private void ensureNotPartial(String index) {
             // Make sure that index was fully snapshotted
             if (failed(snapshotInfo, index)) {
                 throw new SnapshotRestoreException(snapshot, "index [" + index + "] wasn't fully snapshotted - cannot " + "restore");
-            } else {
-                return false;
             }
         }
 
-        private void validateExistingIndex(
-            IndexMetadata currentIndexMetadata,
-            IndexMetadata snapshotIndexMetadata,
-            String renamedIndex,
-            boolean partial) {
+        private void validateExistingIndex(IndexMetadata currentIndexMetadata, IndexMetadata snapshotIndexMetadata, String renamedIndex) {
             // Index exist - checking that it's closed
             if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 // TODO: Enable restore for open indices
@@ -663,10 +639,6 @@ public class RestoreService implements ClusterStateApplier {
                 } else {
                     throw new RelationAlreadyExists(relationName);
                 }
-            }
-            // Index exist - checking if it's partial restore
-            if (partial) {
-                throw new SnapshotRestoreException(snapshot, "cannot restore partial index [" + renamedIndex + "] because such index already exists");
             }
             // Make sure that the number of shards is the same. That's the only thing that we cannot change
             if (currentIndexMetadata.getNumberOfShards() != snapshotIndexMetadata.getNumberOfShards()) {
