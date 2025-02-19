@@ -298,8 +298,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                 DEFAULT_MASTER_NODE_TIMEOUT,
                 false,
                 true,
-                Settings.EMPTY,
-                Strings.EMPTY_ARRAY,
                 true,
                 false,
                 Strings.EMPTY_ARRAY,

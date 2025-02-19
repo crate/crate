@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import java.io.IOException;
 
-import org.apache.logging.log4j.util.Strings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -30,7 +29,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.RestoreService.RestoreCompletionResponse;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -87,8 +85,6 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
             request.masterNodeTimeout(),
             false,
             request.includeAliases(),
-            Settings.EMPTY,
-            Strings.EMPTY_ARRAY,
             request.includeIndices(),
             request.includeCustomMetadata(),
             request.customMetadataTypes(),
