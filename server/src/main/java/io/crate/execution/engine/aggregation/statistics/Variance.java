@@ -72,6 +72,10 @@ public class Variance implements Writeable, Comparable<Variance> {
         return (sumOfSqrs - ((sum * sum) / count)) / count;
     }
 
+    protected long count() {
+        return count;
+    }
+    
     public void merge(Variance other) {
         sumOfSqrs += other.sumOfSqrs;
         sum += other.sum;

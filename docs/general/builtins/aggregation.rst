@@ -595,7 +595,7 @@ An Example::
 ``stddev(column)``
 ------------------
 
-The ``stddev`` aggregate function computes the `Standard Deviation`_ of the
+The ``stddev`` aggregate function computes the sample `Standard Deviation`_ of the
 set of non-null values in a column. It is a measure of the variation of data
 values. A low standard deviation indicates that the values tend to be near the
 mean.

@@ -78,19 +78,19 @@ public class StdDevAggregationTest extends AggregationTestCase {
     @Test
     public void withSomeNullArgs() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
-            .isEqualTo(18.13455878212156);
+            .isEqualTo(22.210207863352682);
     }
 
     @Test
     public void testDouble() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
-            .isEqualTo(18.13455878212156);
+            .isEqualTo(22.210207863352682);
     }
 
     @Test
     public void testFloat() throws Exception {
         assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
-            .isEqualTo(0.2041241452319315);
+            .isEqualTo(0.25);
     }
 
     @Test
@@ -102,19 +102,24 @@ public class StdDevAggregationTest extends AggregationTestCase {
     @Test
     public void testLong() throws Exception {
         assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903);
     }
 
     @Test
     public void testShort() throws Exception {
         assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903d);
     }
 
     @Test
     public void testByte() throws Exception {
         assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
             .isEqualTo(0d);
+    }
+
+    @Test
+    public void testTooFewNumbers() throws Exception {
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}})).isNull();
     }
 
     @Test
