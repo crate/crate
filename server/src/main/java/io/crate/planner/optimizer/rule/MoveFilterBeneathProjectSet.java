@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import io.crate.expression.operator.AndOperator;
@@ -62,12 +63,17 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              Rule.Context ruleContext) {
         var projectSet = captures.get(projectSetCapture);
 
+        HashSet<Symbol> outputs = new HashSet<>();
+        for (Symbol output : projectSet.standaloneOutputs()) {
+            outputs.addAll(extractColumns(output));
+        }
+
         var queryParts = AndOperator.split(filter.query());
         ArrayList<Symbol> toPushDown = new ArrayList<>();
         ArrayList<Symbol> toKeep = new ArrayList<>();
         for (var part : queryParts) {
-            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction)
-                && projectSet.standaloneOutputs().containsAll(extractColumns(part))) {
+            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction) &&
+                outputs.containsAll(extractColumns(part))) {
                 toPushDown.add(part);
             } else {
                 toKeep.add(part);
