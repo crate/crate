@@ -151,7 +151,6 @@ public abstract class EngineTestCase extends ESTestCase {
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD.getKey(),
                 between(10, 10 * IndexSettings.MAX_REFRESH_LISTENERS_PER_SHARD.get(Settings.EMPTY)))
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), randomBoolean())
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(),
                 randomBoolean() ? IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.get(Settings.EMPTY) : between(0, 1000))
             .build();
@@ -713,10 +712,7 @@ public abstract class EngineTestCase extends ESTestCase {
                                   EngineConfig.TombstoneDocSupplier tombstoneDocSupplier) {
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             "test",
-            Settings.builder()
-                .put(config.getIndexSettings().getSettings())
-                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
-                .build()
+            config.getIndexSettings().getSettings()
         );
         TranslogConfig translogConfig = new TranslogConfig(
             shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);

@@ -21,10 +21,6 @@
 
 package io.crate.replication.logical.analyze;
 
-import java.util.Locale;
-
-import org.elasticsearch.index.IndexSettings;
-
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -83,17 +79,6 @@ public class LogicalReplicationAnalyzer {
                     sessionSettings.sessionUser(),
                     sessionSettings.searchPath()
                 );
-                boolean softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters());
-                if (softDeletes == false) {
-                    throw new UnsupportedOperationException(
-                        String.format(
-                            Locale.ENGLISH,
-                            "Tables included in a publication must have the table setting " +
-                            "'soft_deletes.enabled' set to `true`, current setting for table '%s': %b",
-                            tableInfo.ident(),
-                            softDeletes)
-                    );
-                }
                 return tableInfo.ident();
             }
         );

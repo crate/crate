@@ -139,18 +139,6 @@ public final class IndexSettings {
             Property.IndexScope);
 
     /**
-     * Specifies if the index should use soft-delete instead of hard-delete for update/delete operations.
-     * Soft-deletes are enabled by default for 4.3+ indices and mandatory for 5.0+ indices.
-     */
-    public static final Setting<Boolean> INDEX_SOFT_DELETES_SETTING = Setting.boolSetting(
-        "index.soft_deletes.enabled",
-        true,
-        Property.IndexScope,
-        Property.Final,
-        Property.Deprecated
-    );
-
-    /**
      * Controls how many soft-deleted documents will be kept around before being merged away. Keeping more deleted
      * documents increases the chance of operation-based recoveries and allows querying a longer history of documents.
      * If soft-deletes is enabled, an engine by default will retain all operations up to the global checkpoint.
@@ -166,7 +154,7 @@ public final class IndexSettings {
      **/
     public static final Setting<TimeValue> INDEX_TRANSLOG_RETENTION_AGE_SETTING =
         Setting.timeSetting("index.translog.retention.age",
-            settings -> shouldDisableTranslogRetention(settings) ? TimeValue.MINUS_ONE : TimeValue.timeValueHours(12),
+            settings -> true ? TimeValue.MINUS_ONE : TimeValue.timeValueHours(12),
             TimeValue.MINUS_ONE, Property.Dynamic, Property.IndexScope, Property.Deprecated);
 
     /**
@@ -177,7 +165,7 @@ public final class IndexSettings {
      **/
     public static final Setting<ByteSizeValue> INDEX_TRANSLOG_RETENTION_SIZE_SETTING =
         Setting.byteSizeSetting("index.translog.retention.size",
-            settings -> shouldDisableTranslogRetention(settings) ? "-1" : "512MB",
+            settings -> true ? "-1" : "512MB",
             Property.Dynamic, Property.IndexScope, Property.Deprecated);
 
     /**
@@ -359,7 +347,7 @@ public final class IndexSettings {
     }
 
     private void setTranslogRetentionSize(ByteSizeValue byteSizeValue) {
-        if (shouldDisableTranslogRetention(settings) && byteSizeValue.getBytes() >= 0) {
+        if (byteSizeValue.getBytes() >= 0) {
             // ignore the translog retention settings if soft-deletes enabled
             this.translogRetentionSize = new ByteSizeValue(-1);
         } else {
@@ -368,7 +356,7 @@ public final class IndexSettings {
     }
 
     private void setTranslogRetentionAge(TimeValue age) {
-        if (shouldDisableTranslogRetention(settings) && age.millis() >= 0) {
+        if (age.millis() >= 0) {
             // ignore the translog retention settings if soft-deletes enabled
             this.translogRetentionAge = TimeValue.MINUS_ONE;
         } else {
@@ -559,7 +547,7 @@ public final class IndexSettings {
      * Returns the transaction log retention size which controls how much of the translog is kept around to allow for ops based recoveries
      */
     public ByteSizeValue getTranslogRetentionSize() {
-        assert shouldDisableTranslogRetention(settings) == false || translogRetentionSize.getBytes() == -1L : translogRetentionSize;
+        assert translogRetentionSize.getBytes() == -1L : translogRetentionSize;
         return translogRetentionSize;
     }
 
@@ -567,7 +555,7 @@ public final class IndexSettings {
      * Returns the transaction log retention age which controls the maximum age (time from creation) that translog files will be kept around
      */
     public TimeValue getTranslogRetentionAge() {
-        assert shouldDisableTranslogRetention(settings) == false || translogRetentionAge.millis() == -1L : translogRetentionSize;
+        assert translogRetentionAge.millis() == -1L : translogRetentionSize;
         return translogRetentionAge;
     }
 
@@ -577,11 +565,6 @@ public final class IndexSettings {
      */
     public int getTranslogRetentionTotalFiles() {
         return INDEX_TRANSLOG_RETENTION_TOTAL_FILES_SETTING.get(getSettings());
-    }
-
-    private static boolean shouldDisableTranslogRetention(Settings settings) {
-        return INDEX_SOFT_DELETES_SETTING.get(settings)
-            && IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings).onOrAfter(Version.V_4_3_0);
     }
 
     /**

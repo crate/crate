@@ -62,10 +62,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
     @Test
     public void testAddOrRenewRetentionLease() throws IOException {
-        final IndexShard indexShard = newStartedShard(
-            true,
-            Settings.builder().put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build()
-        );
+        final IndexShard indexShard = newStartedShard(true, Settings.EMPTY);
         final long primaryTerm = indexShard.getOperationPrimaryTerm();
         try {
             final int length = randomIntBetween(0, 8);
@@ -96,8 +93,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
     }
 
     public void testRemoveRetentionLease() throws IOException {
-        final IndexShard indexShard = newStartedShard(true,
-            Settings.builder().put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build());
+        final IndexShard indexShard = newStartedShard(true, Settings.EMPTY);
         final long primaryTerm = indexShard.getOperationPrimaryTerm();
         try {
             final int length = randomIntBetween(0, 8);
@@ -146,7 +142,6 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         final long retentionLeaseMillis = randomLongBetween(1, TimeValue.timeValueHours(12).millis());
         final Settings settings = Settings
             .builder()
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), TimeValue.timeValueMillis(retentionLeaseMillis).getStringRep())
             .build();
         // current time is mocked through the thread pool
@@ -223,7 +218,6 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
     public void testPersistence() throws IOException {
         final Settings settings = Settings.builder()
-                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
                 .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), Long.MAX_VALUE, TimeUnit.NANOSECONDS)
                 .build();
         final IndexShard indexShard = newStartedShard(
@@ -287,10 +281,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
     @Test
     public void testRetentionLeaseStats() throws IOException {
-        final IndexShard indexShard = newStartedShard(
-            true,
-            Settings.builder().put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true).build()
-        );
+        final IndexShard indexShard = newStartedShard(true, Settings.EMPTY);
         try {
             final int length = randomIntBetween(0, 8);
             final long[] minimumRetainingSequenceNumbers = new long[length];

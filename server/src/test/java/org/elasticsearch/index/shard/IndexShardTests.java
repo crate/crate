@@ -3012,8 +3012,7 @@ public class IndexShardTests extends IndexShardTestCase {
      to max seen seqID on primary recovery */
     @Test
     public void testRecoverFromStoreWithNoOps() throws IOException {
-        Settings settings = Settings.builder()
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), randomBoolean()).build();
+        Settings settings = Settings.EMPTY;
         IndexShard shard = newStartedShard(true, settings);
         indexDoc(shard, "0");
         indexDoc(shard, "1");

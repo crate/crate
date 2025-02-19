@@ -161,7 +161,8 @@ public class ReadOnlyEngine extends Engine {
 
     protected final ElasticsearchDirectoryReader wrapReader(DirectoryReader reader,
                                                             UnaryOperator<DirectoryReader> readerWrapperFunction) throws IOException {
-        reader = readerWrapperFunction.apply(new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD));
+        reader = new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD);
+        reader = readerWrapperFunction.apply(reader);
         return ElasticsearchDirectoryReader.wrap(reader, engineConfig.getShardId());
     }
 
@@ -490,13 +491,9 @@ public class ReadOnlyEngine extends Engine {
         };
     }
 
-    protected static DirectoryReader openDirectory(Directory directory, boolean wrapSoftDeletes) throws IOException {
+    protected static DirectoryReader openDirectory(Directory directory) throws IOException {
         assert Transports.assertNotTransportThread("opening directory reader of a read-only engine");
         final DirectoryReader reader = DirectoryReader.open(directory);
-        if (wrapSoftDeletes) {
-            return new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD);
-        } else {
-            return reader;
-        }
+        return new SoftDeletesDirectoryReaderWrapper(reader, Lucene.SOFT_DELETES_FIELD);
     }
 }

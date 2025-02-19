@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
 import java.util.List;
@@ -156,7 +155,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
 
         Settings normalizedSettings = settingsBuilder.build();
 
-        validateSoftDeletesSetting(normalizedSettings);
         indexScopedSettings.validate(normalizedSettings, true);
 
         boolean isPartitioned = !request.partitionedBy().isEmpty();

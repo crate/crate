@@ -84,7 +84,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.filter.RegexFilter;
-import org.apache.lucene.codecs.lucene90.Lucene90StoredFieldsFormat;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -5893,21 +5892,20 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testDeleteFailureSoftDeletesEnabledDocAlreadyDeleted() throws IOException {
-        runTestDeleteFailure(true, InternalEngine::delete);
+        runTestDeleteFailure(InternalEngine::delete);
     }
 
     @Test
     public void testDeleteFailureSoftDeletesEnabled() throws IOException {
-        runTestDeleteFailure(true, (engine, op) -> {});
+        runTestDeleteFailure((engine, op) -> {});
     }
 
     private void runTestDeleteFailure(
-        final boolean softDeletesEnabled,
         final CheckedBiConsumer<InternalEngine, Engine.Delete, IOException> consumer) throws IOException {
         engine.close();
         final Settings settings = Settings.builder()
             .put(defaultSettings.getSettings())
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), softDeletesEnabled).build();
+            .build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             IndexMetadata.builder(defaultSettings.getIndexMetadata()).settings(settings).build());
         final AtomicReference<ThrowingIndexWriter> iw = new AtomicReference<>();
