@@ -23,14 +23,6 @@ import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
-import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_HISTORY_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
 import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
 
 import java.util.ArrayList;
@@ -45,7 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -68,7 +59,6 @@ import org.elasticsearch.cluster.RestoreInProgress.ShardRestoreStatus;
 import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -88,13 +78,11 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.ShardLimitValidator;
@@ -143,26 +131,6 @@ import io.crate.metadata.RelationName;
 public class RestoreService implements ClusterStateApplier {
 
     private static final Logger LOGGER = LogManager.getLogger(RestoreService.class);
-
-    private static final Set<String> UNMODIFIABLE_SETTINGS = Set.of(
-            SETTING_NUMBER_OF_SHARDS,
-            SETTING_VERSION_CREATED,
-            SETTING_INDEX_UUID,
-            SETTING_CREATION_DATE,
-            IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(),
-            SETTING_HISTORY_UUID);
-
-    // It's OK to change some settings, but we shouldn't allow simply removing them
-    private static final Set<String> UNREMOVABLE_SETTINGS;
-
-    static {
-        Set<String> unremovable = new HashSet<>(UNMODIFIABLE_SETTINGS.size() + 4);
-        unremovable.addAll(UNMODIFIABLE_SETTINGS);
-        unremovable.add(SETTING_NUMBER_OF_REPLICAS);
-        unremovable.add(AutoExpandReplicas.SETTING_KEY);
-        unremovable.add(SETTING_VERSION_UPGRADED);
-        UNREMOVABLE_SETTINGS = unmodifiableSet(unremovable);
-    }
 
     private final ClusterService clusterService;
 
@@ -482,8 +450,6 @@ public class RestoreService implements ClusterStateApplier {
                             index
                         );
                     }
-                    snapshotIndexMetadata = updateIndexSettings(snapshotIndexMetadata,
-                                                                request.indexSettings(), request.ignoreIndexSettings());
                     try {
                         String indexName = snapshotIndexMetadata.getIndex().getName();
                         snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
@@ -712,62 +678,6 @@ public class RestoreService implements ClusterStateApplier {
                                                                 "] shards from a snapshot of index [" + snapshotIndexMetadata.getIndex().getName() + "] with [" +
                                                                 snapshotIndexMetadata.getNumberOfShards() + "] shards");
             }
-        }
-
-        /**
-            * Optionally updates index settings in indexMetadata by removing settings listed in ignoreSettings and
-            * merging them with settings in changeSettings.
-            */
-        private IndexMetadata updateIndexSettings(IndexMetadata indexMetadata,
-                                                    Settings changeSettings,
-                                                    String[] ignoreSettings) {
-            if (changeSettings.names().isEmpty() && ignoreSettings.length == 0) {
-                return indexMetadata;
-            }
-            Settings normalizedChangeSettings = Settings.builder().put(changeSettings).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
-            IndexMetadata.Builder builder = IndexMetadata.builder(indexMetadata);
-            Settings settings = indexMetadata.getSettings();
-            Set<String> keyFilters = new HashSet<>();
-            List<String> simpleMatchPatterns = new ArrayList<>();
-            for (String ignoredSetting : ignoreSettings) {
-                if (!Regex.isSimpleMatchPattern(ignoredSetting)) {
-                    if (UNREMOVABLE_SETTINGS.contains(ignoredSetting)) {
-                        throw new SnapshotRestoreException(snapshot, "cannot remove setting [" + ignoredSetting + "] on restore");
-                    } else {
-                        keyFilters.add(ignoredSetting);
-                    }
-                } else {
-                    simpleMatchPatterns.add(ignoredSetting);
-                }
-            }
-
-            Predicate<String> settingsFilter = k -> {
-                if (UNREMOVABLE_SETTINGS.contains(k) == false) {
-                    for (String filterKey : keyFilters) {
-                        if (k.equals(filterKey)) {
-                            return false;
-                        }
-                    }
-                    for (String pattern : simpleMatchPatterns) {
-                        if (Regex.simpleMatch(pattern, k)) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            };
-
-            Settings.Builder settingsBuilder = Settings.builder()
-                .put(settings.filter(settingsFilter))
-                .put(normalizedChangeSettings.filter(k -> {
-                    if (UNMODIFIABLE_SETTINGS.contains(k)) {
-                        throw new SnapshotRestoreException(snapshot, "cannot modify setting [" + k + "] on restore");
-                    } else {
-                        return true;
-                    }
-                }));
-            settingsBuilder.remove(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey());
-            return builder.settings(settingsBuilder).build();
         }
 
         private void restoreTemplates(List<String> templates,
@@ -1181,8 +1091,6 @@ public class RestoreService implements ClusterStateApplier {
                                         TimeValue masterNodeTimeout,
                                         boolean partial,
                                         boolean includeAliases,
-                                        Settings indexSettings,
-                                        String[] ignoreIndexSettings,
                                         boolean includeIndices,
                                         boolean includeCustomMetadata,
                                         String[] customMetadataTypes,
