@@ -602,6 +602,8 @@ public class PostgresWireProtocol {
     private void handleBindMessage(ByteBuf buffer, Channel channel) {
         String portalName = readCString(buffer);
         String statementName = readCString(buffer);
+        assert portalName != null : "portalName cannot be null";
+        assert statementName != null : "statementName cannot be null";
 
         FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
 
