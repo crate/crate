@@ -37,8 +37,8 @@ public class LogicalBinaryExpression extends Expression {
 
     public LogicalBinaryExpression(Type type, Expression left, Expression right) {
         this.type = type;
-        this.left = requireNonNull(left, "left is null");
-        this.right = requireNonNull(right, "right is null");
+        this.left = maybeAddEqTrue(requireNonNull(left, "left is null"));
+        this.right = maybeAddEqTrue(requireNonNull(right, "right is null"));
     }
 
     public Type getType() {
@@ -51,6 +51,17 @@ public class LogicalBinaryExpression extends Expression {
 
     public Expression getRight() {
         return right;
+    }
+
+    /**
+     * Turns a standalone QualifiedNameReference into comparison QualifiedNameReference = true.
+     * This turns statements like 'boolean_column OR expression' into 'boolean_column = true OR expression'.
+     */
+    private static Expression maybeAddEqTrue(Expression expression) {
+        if (expression instanceof QualifiedNameReference ref) {
+            return new ComparisonExpression(ComparisonExpression.Type.EQUAL, ref, BooleanLiteral.TRUE_LITERAL);
+        }
+        return expression;
     }
 
     @Override

@@ -486,6 +486,29 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analyzeExact).isNull();
     }
 
+    @Test
+    public void test_standalone_boolean_column_transformed_to_eq_true_expression() {
+        List<List<Symbol>> matches = analyzeExact(query("b or b = false"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true)),
+            s -> assertThat(s).satisfiesExactly(isLiteral(false))
+        );
+
+        // No duplicate comparisons, true appears only once
+        matches = analyzeExact(query("b or b or b = false"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true)),
+            s -> assertThat(s).satisfiesExactly(isLiteral(false))
+        );
+
+        matches = analyzeExact(query("b or (b in (NULL))"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true)),
+            s -> assertThat(s).satisfiesExactly(isLiteral(null))
+        );
+    }
+
+
     public static class TestToken extends Session.TimeoutToken {
 
         private final int maxChecks;
