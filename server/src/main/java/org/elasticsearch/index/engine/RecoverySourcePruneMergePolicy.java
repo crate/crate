@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.BinaryDocValues;
@@ -50,6 +52,9 @@ import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BitSetIterator;
 
 final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
+
+    private static final Logger logger = LogManager.getLogger("source-pruning");
+
     RecoverySourcePruneMergePolicy(String recoverySourceField, Supplier<Query> retainSourceQuerySupplier, MergePolicy in) {
         super(in, toWrap -> new OneMerge(toWrap.segments) {
             @Override
@@ -75,10 +80,13 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
             // calculating the cardinality is significantly cheaper than skipping all bulk-merging we might do
             // if retentions are high we keep most of it
             if (recoverySourceToKeep.cardinality() == reader.maxDoc()) {
+                logger.debug("Keeping all recovery source for segment {}", reader);
                 return reader; // keep all source
             }
+            logger.debug("Partially removing recovery source for segment {}", reader);
             return new SourcePruningFilterCodecReader(recoverySourceField, reader, recoverySourceToKeep);
         } else {
+            logger.debug("Removing all recovery source for segment {}", reader);
             return new SourcePruningFilterCodecReader(recoverySourceField, reader, null);
         }
     }
