@@ -45,7 +45,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
-import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -539,9 +538,9 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             return this;
         }
 
-        public Builder addAsNewRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource, IntSet ignoreShards) {
+        public Builder addAsNewRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource) {
             IndexRoutingTable.Builder indexRoutingBuilder = new IndexRoutingTable.Builder(indexMetadata.getIndex())
-                    .initializeAsNewRestore(indexMetadata, recoverySource, ignoreShards);
+                    .initializeAsNewRestore(indexMetadata, recoverySource);
             add(indexRoutingBuilder);
             return this;
         }

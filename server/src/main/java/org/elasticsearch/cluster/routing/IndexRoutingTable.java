@@ -19,9 +19,14 @@
 
 package org.elasticsearch.cluster.routing;
 
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
@@ -38,14 +43,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.snapshots.Snapshot;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 /**
  * The {@link IndexRoutingTable} represents routing information for a single
@@ -368,27 +369,30 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
         /**
          * Initializes a new empty index, to be restored from a snapshot
          */
-        public Builder initializeAsNewRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource, IntSet ignoreShards) {
-            final UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.NEW_INDEX_RESTORED,
-                                                                     "restore_source[" + recoverySource.snapshot().getRepository() + "/" +
-                                                                         recoverySource.snapshot().getSnapshotId().getName() + "]");
-            return initializeAsRestore(indexMetadata, recoverySource, ignoreShards, true, unassignedInfo);
+        public Builder initializeAsNewRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource) {
+            Snapshot snapshot = recoverySource.snapshot();
+            final UnassignedInfo unassignedInfo = new UnassignedInfo(
+                UnassignedInfo.Reason.NEW_INDEX_RESTORED,
+                "restore_source[" + snapshot.getRepository() + "/" + snapshot.getSnapshotId().getName() + "]"
+            );
+            return initializeAsRestore(indexMetadata, recoverySource, unassignedInfo);
         }
 
         /**
          * Initializes an existing index, to be restored from a snapshot
          */
         public Builder initializeAsRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource) {
-            final UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.EXISTING_INDEX_RESTORED,
-                                                                     "restore_source[" + recoverySource.snapshot().getRepository() + "/" +
-                                                                         recoverySource.snapshot().getSnapshotId().getName() + "]");
-            return initializeAsRestore(indexMetadata, recoverySource, null, false, unassignedInfo);
+            Snapshot snapshot = recoverySource.snapshot();
+            final UnassignedInfo unassignedInfo = new UnassignedInfo(
+                UnassignedInfo.Reason.EXISTING_INDEX_RESTORED,
+                "restore_source[" + snapshot.getRepository() + "/" + snapshot.getSnapshotId().getName() + "]");
+            return initializeAsRestore(indexMetadata, recoverySource, unassignedInfo);
         }
 
         /**
          * Initializes an index, to be restored from snapshot
          */
-        private Builder initializeAsRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource, IntSet ignoreShards, boolean asNew, UnassignedInfo unassignedInfo) {
+        private Builder initializeAsRestore(IndexMetadata indexMetadata, SnapshotRecoverySource recoverySource, UnassignedInfo unassignedInfo) {
             assert indexMetadata.getIndex().equals(index);
             if (!shards.isEmpty()) {
                 throw new IllegalStateException("trying to initialize an index with fresh shards, but already has shards created");
@@ -398,14 +402,11 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
                 IndexShardRoutingTable.Builder indexShardRoutingBuilder = new IndexShardRoutingTable.Builder(shardId);
                 for (int i = 0; i <= indexMetadata.getNumberOfReplicas(); i++) {
                     boolean primary = i == 0;
-                    if (asNew && ignoreShards.contains(shardNumber)) {
-                        // This shards wasn't completely snapshotted - restore it as new shard
-                        indexShardRoutingBuilder.addShard(ShardRouting.newUnassigned(shardId, primary,
-                            primary ? EmptyStoreRecoverySource.INSTANCE : PeerRecoverySource.INSTANCE, unassignedInfo));
-                    } else {
-                        indexShardRoutingBuilder.addShard(ShardRouting.newUnassigned(shardId, primary,
-                            primary ? recoverySource : PeerRecoverySource.INSTANCE, unassignedInfo));
-                    }
+                    indexShardRoutingBuilder.addShard(ShardRouting.newUnassigned(
+                        shardId,
+                        primary,
+                        primary ? recoverySource : PeerRecoverySource.INSTANCE,
+                        unassignedInfo));
                 }
                 shards.put(shardNumber, indexShardRoutingBuilder.build());
             }

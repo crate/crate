@@ -81,8 +81,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.carrotsearch.hppc.IntHashSet;
-
 public class InternalSnapshotsInfoServiceTests extends ESTestCase {
 
     private TestThreadPool threadPool;
@@ -433,7 +431,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         final Index index = indexMetadata.getIndex();
 
         final RoutingTable.Builder routingTable = RoutingTable.builder(currentState.routingTable());
-        routingTable.add(IndexRoutingTable.builder(index).initializeAsNewRestore(indexMetadata, recoverySource, new IntHashSet()).build());
+        routingTable.add(IndexRoutingTable.builder(index).initializeAsNewRestore(indexMetadata, recoverySource).build());
 
         final RestoreInProgress.Builder restores =
             new RestoreInProgress.Builder(currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY));
