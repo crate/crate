@@ -62,3 +62,8 @@ Fixes
 
 - Fixed an issue that caused a ``NullPointerException`` when binding to a
   non-existing prepared statement via PostgreSQL wire protocol.
+
+- Fixed an issue that caused a ``SELECT`` query to fail if a ``WHERE`` clause
+  had a comparison of a non-boolean column with a boolean literal, e.g.::
+
+    SELECT int_col FROM t where int_col = true;
