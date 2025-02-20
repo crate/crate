@@ -106,6 +106,21 @@ public class RegexpIntegrationTest extends IntegTestCase {
             "Galactic Sector QQ7 Active J Gamma",
             "North West Ripple",
             "Outer Eastern Rim");
+
+        execute("select name from locations where name ~ '~(Galactic Sector QQ7 Active J Gamma)' order by name");
+        assertThat(response).hasRows(
+            "",
+            "Aldebaran",
+            "Algol",
+            "Allosimanius Syneca",
+            "Alpha Centauri",
+            "Altair",
+            "Argabuthon",
+            "Arkintoofle Minor",
+            "Bartledan",
+            "End of the Galaxy",
+            "North West Ripple",
+            "Outer Eastern Rim");
     }
 
     /**
