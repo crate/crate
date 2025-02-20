@@ -35,8 +35,10 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FilterCodecReader;
 import org.apache.lucene.index.FilterNumericDocValues;
 import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.OneMergeWrappingMergePolicy;
+import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -65,10 +67,18 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
         });
     }
 
+    @Override
+    public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos segmentInfos, MergeContext mergeContext) throws IOException {
+        var in = super.findMerges(mergeTrigger, segmentInfos, mergeContext);
+        logger.debug("findMerges: {}", in);
+        return in;
+    }
+
     private static CodecReader wrapReader(String recoverySourceField, CodecReader reader, Supplier<Query> retainSourceQuerySupplier)
         throws IOException {
         NumericDocValues recoverySource = reader.getNumericDocValues(recoverySourceField);
         if (recoverySource == null || recoverySource.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
+            logger.debug("No recovery source to remove for segment {}", reader);
             return reader; // early terminate - nothing to do here since non of the docs has a recovery source anymore.
         }
         IndexSearcher s = new IndexSearcher(reader);
