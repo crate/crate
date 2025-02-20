@@ -870,7 +870,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(logicalPlan).hasOperators(
-            "Eval[oid, attnum, attname, relname, nspname, (attnotnull OR ((typtype = 'd') AND typnotnull)), ((NOT (attidentity = '')) OR (pg_catalog.pg_get_expr(adbin, adrelid) LIKE '%nextval(%'))]",
+            "Eval[oid, attnum, attname, relname, nspname, ((attnotnull = true) OR ((typtype = 'd') AND (typnotnull = true))), ((NOT (attidentity = '')) OR (pg_catalog.pg_get_expr(adbin, adrelid) LIKE '%nextval(%'))]",
             "  └ HashJoin[INNER | ((oid = oid) AND (attnum = attnum))]",
             "    ├ HashJoin[LEFT | ((adrelid = attrelid) AND (adnum = attnum))]",
             "    │  ├ HashJoin[INNER | (atttypid = oid)]",
