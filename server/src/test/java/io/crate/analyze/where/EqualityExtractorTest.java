@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -41,9 +42,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.session.Session;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
@@ -71,12 +75,20 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
     }
 
+    private List<List<Symbol>> analyzeExact(EqualityExtractor ee, Symbol query, List<ColumnIdent> primaryKeys) {
+        return ee.extractMatches(primaryKeys, query, coordinatorTxnCtx, Session.TimeoutToken.noopToken()).matches();
+    }
+
     /**
      * Convert a query expression as text into a normalized query {@link Symbol}.
      * @param expression The query expression as text
      * @return the query expression as Symbol
      */
     private Symbol query(String expression) {
+        return expressions.normalize(expressions.asSymbol(expression));
+    }
+
+    private Symbol query(SqlExpressions expressions, String expression) {
         return expressions.normalize(expressions.asSymbol(expression));
     }
 
@@ -487,21 +499,35 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_standalone_boolean_column_transformed_to_eq_true_expression() {
-        List<List<Symbol>> matches = analyzeExact(query("b or b = false"), List.of(ColumnIdent.of("b")));
+    public void test_standalone_boolean_column_transformed_to_eq_true_expression() throws Exception {
+        // Not using an existing table definition because adding a boolean column affects other unrelated tests.
+        var relationName = new RelationName(DocSchemaInfo.NAME, "test");
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            relationName,
+            "create table test(b boolean, primary key(b))",
+            clusterService
+        );
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
+        SqlExpressions expressions = new SqlExpressions(tableSources, tableRelation);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
+        EqualityExtractor ee = new EqualityExtractor(normalizer);
+
+
+        List<List<Symbol>> matches = analyzeExact(ee, query(expressions, "b or b = false"), List.of(ColumnIdent.of("b")));
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(true)),
             s -> assertThat(s).satisfiesExactly(isLiteral(false))
         );
 
         // No duplicate comparisons, true appears only once
-        matches = analyzeExact(query("b or b or b = false"), List.of(ColumnIdent.of("b")));
+        matches = analyzeExact(ee, query(expressions, "b or b or b = false"), List.of(ColumnIdent.of("b")));
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(true)),
             s -> assertThat(s).satisfiesExactly(isLiteral(false))
         );
 
-        matches = analyzeExact(query("b or (b in (NULL))"), List.of(ColumnIdent.of("b")));
+        matches = analyzeExact(ee, query(expressions, "b or (b in (NULL))"), List.of(ColumnIdent.of("b")));
         assertThat(matches).satisfiesExactlyInAnyOrder(
             s -> assertThat(s).satisfiesExactly(isLiteral(true)),
             s -> assertThat(s).satisfiesExactly(isLiteral(null))
