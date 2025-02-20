@@ -59,3 +59,6 @@ Fixes
     DELETE FROM t WHERE day < now() - INTERVAL '3 days';
 
   where 'day' is ``TIMESTAMP`` type that is also the ``PARTITIONED BY`` column.
+
+- Fixed an issue that caused a ``NullPointerException`` when binding to a
+  non-existing prepared statement via PostgreSQL wire protocol.
