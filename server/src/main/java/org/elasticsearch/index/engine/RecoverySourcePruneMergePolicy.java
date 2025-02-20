@@ -22,6 +22,7 @@ package org.elasticsearch.index.engine;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +39,7 @@ import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.OneMergeWrappingMergePolicy;
+import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -52,6 +54,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BitSetIterator;
+import org.apache.lucene.util.InfoStream;
 
 final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
 
@@ -69,9 +72,53 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
 
     @Override
     public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos segmentInfos, MergeContext mergeContext) throws IOException {
-        var in = super.findMerges(mergeTrigger, segmentInfos, mergeContext);
+        var in = super.findMerges(mergeTrigger, segmentInfos, wrapContext(mergeContext));
         logger.debug("findMerges: {}", in);
         return in;
+    }
+
+    private static final InfoStream INFO_STREAM = new InfoStream() {
+        @Override
+        public void message(String component, String message) {
+            logger.debug(message);
+        }
+
+        @Override
+        public boolean isEnabled(String component) {
+            return switch (component) {
+                case "MP" -> true;
+                default -> false;
+            };
+        }
+
+        @Override
+        public void close() throws IOException {
+
+        }
+    };
+
+    private static MergeContext wrapContext(MergeContext in) {
+        return new MergeContext() {
+            @Override
+            public int numDeletesToMerge(SegmentCommitInfo info) throws IOException {
+                return in.numDeletesToMerge(info);
+            }
+
+            @Override
+            public int numDeletedDocs(SegmentCommitInfo info) {
+                return in.numDeletedDocs(info);
+            }
+
+            @Override
+            public InfoStream getInfoStream() {
+                return INFO_STREAM;
+            }
+
+            @Override
+            public Set<SegmentCommitInfo> getMergingSegments() {
+                return in.getMergingSegments();
+            }
+        };
     }
 
     private static CodecReader wrapReader(String recoverySourceField, CodecReader reader, Supplier<Query> retainSourceQuerySupplier)
