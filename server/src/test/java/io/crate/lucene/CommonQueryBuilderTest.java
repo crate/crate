@@ -831,4 +831,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(f = 0.99999999)");
     }
+
+    @Test
+    public void test_can_compare_any_type_with_boolean() {
+        Query query = convert("x = true");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(x = true)");
+    }
 }
