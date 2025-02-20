@@ -62,7 +62,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
             DataType<?> refInnerType = ArrayType.unnest(ref.valueType());
             DataType<?> literalInnerType = ArrayType.unnest(literal.valueType());
             if (!DataTypes.isNumeric(literalInnerType) || !DataTypes.isNumeric(refInnerType)) {
-                return true;
+                return literalInnerType.isConvertableTo(refInnerType, false);
             }
             if (isSafeConversion(literalInnerType, refInnerType)) {
                 return true;
