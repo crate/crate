@@ -21,10 +21,6 @@
 
 package io.crate.replication.logical;
 
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
 import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
@@ -36,17 +32,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
@@ -288,29 +287,16 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
      */
     public CompletableFuture<Boolean> restore(String subscriptionName,
                                               Settings restoreSettings,
-                                              Collection<RelationName> relationNames,
-                                              List<String> indicesToRestore,
-                                              List<String> templatesToRestore) {
+                                              List<TableOrPartition> tablesToRestore) {
         var publisherClusterRepoName = LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX + subscriptionName;
         final RestoreService.RestoreRequest restoreRequest =
             new RestoreService.RestoreRequest(
                 publisherClusterRepoName,
                 LogicalReplicationRepository.LATEST,
-                indicesToRestore.toArray(String[]::new),
-                templatesToRestore.toArray(String[]::new),
                 IndicesOptions.LENIENT_EXPAND_OPEN,
-                TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY),
-                TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY),
-                SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY),
-                SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY),
                 restoreSettings,
                 DEFAULT_MASTER_NODE_TIMEOUT,
-                false,
                 true,
-                Settings.EMPTY,
-                Strings.EMPTY_ARRAY,
-                "restore_logical_replication_snapshot[" + subscriptionName + "]",
-                indicesToRestore.isEmpty() == false,
                 false,
                 Strings.EMPTY_ARRAY,
                 false,
@@ -319,6 +305,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse> restoreListener = new FutureActionListener<>();
         activeOperations.incrementAndGet();
+        Set<RelationName> relationNames = tablesToRestore.stream()
+            .map(TableOrPartition::table)
+            .collect(Collectors.toUnmodifiableSet());
         var restoreFuture = restoreListener
             .whenComplete((_, _) -> {
                 activeOperations.decrementAndGet();
@@ -336,7 +325,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
                 () -> {
                     try {
-                        restoreService.restoreSnapshot(restoreRequest, null, restoreListener);
+                        restoreService.restoreSnapshot(restoreRequest, tablesToRestore, restoreListener);
                     } catch (Exception e) {
                         restoreListener.onFailure(e);
                     }

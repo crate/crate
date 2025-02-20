@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -65,6 +66,7 @@ import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.DropSubscriptionAction;
@@ -265,12 +267,10 @@ public final class MetadataTracker implements Closeable {
                     null
                 );
 
-            return updateState.thenCompose(ignored -> replicationService.restore(
+            return updateState.thenCompose(_ -> replicationService.restore(
                 subscriptionName,
                 subscription.settings(),
-                restoreDiff.relationsForStateUpdate,
-                restoreDiff.indexNamesToRestore,
-                restoreDiff.templatesToRestore
+                restoreDiff.toRestore
             ));
         }).exceptionallyCompose(err -> {
             var e = SQLExceptions.unwrap(err);
@@ -416,12 +416,11 @@ public final class MetadataTracker implements Closeable {
         return existingRelations;
     }
 
-    record RestoreDiff(List<String> indexNamesToRestore,
-                       List<String> templatesToRestore,
+    record RestoreDiff(List<TableOrPartition> toRestore,
                        Set<RelationName> relationsForStateUpdate) {
 
         public boolean isEmpty() {
-            return indexNamesToRestore.isEmpty() && templatesToRestore.isEmpty();
+            return toRestore.isEmpty();
         }
     }
 
@@ -429,16 +428,16 @@ public final class MetadataTracker implements Closeable {
     static RestoreDiff getRestoreDiff(Subscription subscription,
                                       ClusterState subscriberState,
                                       PublicationsStateAction.Response stateResponse) {
-
-        var subscribedRelations = subscription.relations();
-        var relationNamesForStateUpdate = new HashSet<RelationName>();
-        var toRestoreIndices = new ArrayList<String>();
-        var toRestoreTemplates = new ArrayList<String>();
-
+        Map<RelationName, RelationState> subscribedRelations = subscription.relations();
+        HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
+        ArrayList<TableOrPartition> toRestore = new ArrayList<>();
+        Metadata subscriberMetadata = subscriberState.metadata();
         for (var indexName : stateResponse.concreteIndices()) {
-            var relationName = RelationName.fromIndexName(indexName);
-            if (subscriberState.metadata().hasIndex(indexName) == false) {
-                toRestoreIndices.add(indexName);
+            IndexParts indexParts = IndexName.decode(indexName);
+            RelationName relationName = indexParts.toRelationName();
+            if (!subscriberMetadata.hasIndex(indexName)) {
+                String partitionIdent = indexParts.isPartitioned() ? indexParts.partitionIdent() : null;
+                toRestore.add(new TableOrPartition(relationName, partitionIdent));
                 relationNamesForStateUpdate.add(relationName);
             } else if (subscribedRelations.get(relationName) == null) {
                 relationNamesForStateUpdate.add(relationName);
@@ -448,18 +447,19 @@ public final class MetadataTracker implements Closeable {
             var indexParts = IndexName.decode(templateName);
             if (indexParts.isPartitioned()) {
                 var relationName = indexParts.toRelationName();
-                if (subscriberState.metadata().templates().get(templateName) == null) {
-                    toRestoreTemplates.add(templateName);
+                if (!subscriberState.metadata().templates().containsKey(templateName)
+                        && !toRestore.stream().anyMatch(x -> x.table().equals(relationName))) {
+                    toRestore.add(new TableOrPartition(relationName, null));
                 }
                 if (subscribedRelations.get(relationName) == null) {
                     relationNamesForStateUpdate.add(relationName);
                 }
             }
         }
-        if (toRestoreIndices.isEmpty() && toRestoreTemplates.isEmpty()) {
+        if (toRestore.isEmpty()) {
             relationNamesForStateUpdate.clear();
         }
-        return new RestoreDiff(toRestoreIndices, toRestoreTemplates, relationNamesForStateUpdate);
+        return new RestoreDiff(toRestore, relationNamesForStateUpdate);
     }
 
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
@@ -55,7 +56,6 @@ import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.replication.logical.MetadataTracker.RestoreDiff;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -198,9 +198,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 publications,
                 Settings.EMPTY,
                 replicatingRelations.stream().map(RelationName::fromIndexName)
-                    .collect(Collectors.toMap(rn -> rn,
-                                              rn -> new Subscription.RelationState(Subscription.State.MONITORING,
-                                                                                   null)))
+                    .collect(Collectors.toMap(rn -> rn, _ -> new Subscription.RelationState(Subscription.State.MONITORING, null)))
             );
             var subscriptionsMetadata = SubscriptionsMetadata.newInstance(
                 clusterState.metadata().custom(SubscriptionsMetadata.TYPE));
@@ -251,7 +249,7 @@ public class MetadataTrackerTest extends ESTestCase {
         testTable = new RelationName("doc", "test");
         publicationsStateResponse = new Response(Map.of(
             testTable,
-            RelationMetadata.fromMetadata(testTable, PUBLISHER_CLUSTER_STATE.metadata(), ignored -> true)), List.of());
+            RelationMetadata.fromMetadata(testTable, PUBLISHER_CLUSTER_STATE.metadata(), _ -> true)), List.of());
 
         SUBSCRIBER_CLUSTER_STATE = new Builder("subscriber")
             .addReplicatingTable("sub1", "test", Map.of("1", "one"), Settings.EMPTY)
@@ -279,7 +277,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var updatedResponse = new Response(
             Map.of(
                 testTable,
-                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), ignored -> true)
+                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), _ -> true)
             ),
             List.of()
         );
@@ -308,7 +306,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var updatedResponse = new Response(
             Map.of(
                 testTable,
-                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), ignored -> true)
+                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), _ -> true)
             ),
             List.of()
         );
@@ -334,7 +332,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var updatedResponse = new Response(
             Map.of(
                 testTable,
-                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), ignored -> true)
+                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), _ -> true)
             ),
             List.of()
         );
@@ -359,7 +357,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var updatedResponse = new Response(
             Map.of(
                 testTable,
-                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), ignored -> true)
+                RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata(), _ -> true)
             ),
             List.of()
         );
@@ -382,7 +380,7 @@ public class MetadataTrackerTest extends ESTestCase {
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
+        assertThat(restoreDiff.toRestore()).isEmpty();
     }
 
     @Test
@@ -400,25 +398,22 @@ public class MetadataTrackerTest extends ESTestCase {
         var updatedResponse = new Response(
             Map.of(
                 table,
-                RelationMetadata.fromMetadata(table, publisherState.metadata(), ignored -> true)
+                RelationMetadata.fromMetadata(table, publisherState.metadata(), _ -> true)
             ),
             List.of()
         );
 
-        RestoreDiff restoreDiff = MetadataTracker.getRestoreDiff(
+        var restoreDiff = MetadataTracker.getRestoreDiff(
             SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             updatedResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("t2"));
-        assertThat(restoreDiff.indexNamesToRestore()).containsExactly("t2");
-        assertThat(restoreDiff.templatesToRestore()).isEmpty();
+        assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(RelationName.fromIndexName("t2"), null));
     }
 
     @Test
     public void test_new_empty_partitioned_table_of_publication_for_all_tables_will_be_restored() throws Exception {
         var newRelation = RelationName.fromIndexName("p1");
-        var templateName = PartitionName.templateName(newRelation.schema(), newRelation.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
@@ -430,7 +425,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of(p1.indexNameOrAlias()))
             .build();
         var publisherStateResponse = new Response(
-            Map.of(p1, RelationMetadata.fromMetadata(p1, publisherState.metadata(), ignored -> true)),
+            Map.of(p1, RelationMetadata.fromMetadata(p1, publisherState.metadata(), _ -> true)),
             List.of()
         );
 
@@ -439,16 +434,14 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("p1"));
-        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
-        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
+        assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(RelationName.fromIndexName("p1"), null));
     }
 
     @Test
     public void test_new_partitioned_table_with_partition_of_publication_for_all_tables_will_be_restored() throws Exception {
         var newRelation = RelationName.fromIndexName("p1");
         var newPartitionName = new PartitionName(newRelation, "dummy");
-        var templateName = PartitionName.templateName(newRelation.schema(), newRelation.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of())
@@ -458,7 +451,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of(newRelation.indexNameOrAlias()))
             .addPartitionedTable(newRelation, List.of(newPartitionName))
             .build();
-        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(newRelation, publisherState.metadata(), ignored -> true);
+        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(newRelation, publisherState.metadata(), _ -> true);
         var publisherStateResponse = new Response(Map.of(newRelation, relationMetadata), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
@@ -468,8 +461,7 @@ public class MetadataTrackerTest extends ESTestCase {
         );
 
         assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
-        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
-        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
+        assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(newRelation, "dummy"));
     }
 
     @Test
@@ -486,7 +478,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of(relationName.indexNameOrAlias()))
             .addPartitionedTable(relationName, List.of(newPartitionName))
             .build();
-        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(relationName, publisherState.metadata(), ignored -> true);
+        RelationMetadata relationMetadata = RelationMetadata.fromMetadata(relationName, publisherState.metadata(), _ -> true);
         var publisherStateResponse = new Response(Map.of(relationName, relationMetadata), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
@@ -496,15 +488,13 @@ public class MetadataTrackerTest extends ESTestCase {
         );
 
         assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(relationName);
-        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
-        assertThat(restoreDiff.templatesToRestore()).isEmpty();
+        assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(relationName, "dummy"));
     }
 
     @Test
     public void test_new_partitioned_table_of_publication_with_concrete_tables_will_be_restored() throws Exception {
         var newRelationName = RelationName.fromIndexName("p1");
         var newPartitionName = new PartitionName(newRelationName, "dummy");
-        var newTemplateName = PartitionName.templateName(newRelationName.schema(), newRelationName.name());
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of("t1"))
@@ -528,10 +518,7 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelationName);
-        assertThat(restoreDiff.indexNamesToRestore()).isEqualTo(List.of(newPartitionName.asIndexName()));
-        assertThat(restoreDiff.templatesToRestore()).containsExactly(newTemplateName);
+        assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(newRelationName, "dummy"));
     }
 
     @Test
@@ -559,9 +546,7 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-
         assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
-        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
-        assertThat(restoreDiff.templatesToRestore()).isEmpty();
+        assertThat(restoreDiff.toRestore()).isEmpty();
     }
 }

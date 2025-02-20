@@ -21,18 +21,19 @@
 
 package org.elasticsearch.snapshots;
 import static io.crate.metadata.PartitionName.templateName;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.snapshots.RestoreService.resolveIndices;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
+import org.apache.logging.log4j.util.Strings;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
@@ -40,19 +41,25 @@ public class RestoreServiceTest {
 
     @Test
     public void resolve_indices_multiple_tables_specified() {
-        RestoreService.RestoreRequest restoreRequest = mock(RestoreService.RestoreRequest.class);
-        boolean ignoreUnavailable = false;
-        when(restoreRequest.indicesOptions()).thenReturn(
-            IndicesOptions.fromOptions(ignoreUnavailable, true, true, true)
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            "snapshot1",
+            IndicesOptions.fromOptions(false, true, true, true),
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
-        when(restoreRequest.includeIndices()).thenReturn(true);
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(
                 new RelationName("my_schema", "table1"), null
             ),
-            new RestoreSnapshotRequest.TableOrPartition(
+            new TableOrPartition(
                 new RelationName("my_schema", "table2"), null
             )
         );
@@ -73,17 +80,22 @@ public class RestoreServiceTest {
 
     @Test
     public void test_resolve_index_with_ignore_unavailable() throws Exception {
-        RestoreService.RestoreRequest restoreRequest = mock(RestoreService.RestoreRequest.class);
-        boolean ignoreUnavailable = true;
-        when(restoreRequest.indicesOptions()).thenReturn(
-            IndicesOptions.fromOptions(ignoreUnavailable, true, true, true)
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            "snapshot1",
+            IndicesOptions.fromOptions(true, true, true, true),
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
-        when(restoreRequest.includeIndices()).thenReturn(true);
-
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
         );
         // ignoreUnavailable code path doesn't filter anything and doesn't use available indices
         List<String> availableIndices = null;
@@ -104,16 +116,22 @@ public class RestoreServiceTest {
 
     @Test
     public void test_resolve_partitioned_table_index_from_snapshot() {
-        RestoreService.RestoreRequest restoreRequest = mock(RestoreService.RestoreRequest.class);
-        when(restoreRequest.indicesOptions()).thenReturn(
-            IndicesOptions.fromOptions(false, true, true, true)
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            "snapshot1",
+            IndicesOptions.fromOptions(false, true, true, true),
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
-        when(restoreRequest.includeIndices()).thenReturn(true);
-
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
             restoreRequest,
@@ -130,16 +148,22 @@ public class RestoreServiceTest {
 
     @Test
     public void test_resolve_empty_partitioned_template() {
-        RestoreService.RestoreRequest restoreRequest = mock(RestoreService.RestoreRequest.class);
-        when(restoreRequest.indicesOptions()).thenReturn(
-            IndicesOptions.fromOptions(false, true, true, true)
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            "snapshot1",
+            IndicesOptions.fromOptions(false, true, true, true),
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
-        when(restoreRequest.includeIndices()).thenReturn(true);
-
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
             restoreRequest,
@@ -159,17 +183,23 @@ public class RestoreServiceTest {
 
     @Test
     public void test_resolve_multi_tables_index_names_from_snapshot() {
-        RestoreService.RestoreRequest restoreRequest = mock(RestoreService.RestoreRequest.class);
-        when(restoreRequest.indicesOptions()).thenReturn(
-            IndicesOptions.fromOptions(false, true, true, true)
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            "snapshot1",
+            IndicesOptions.fromOptions(false, true, true, true),
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
-        when(restoreRequest.includeIndices()).thenReturn(true);
-
         List<String> resolvedIndices = new ArrayList<>();
         List<String> resolvedTemplates = new ArrayList<>();
-        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = List.of(
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
-            new RestoreSnapshotRequest.TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
+        List<TableOrPartition> tablesToRestore = List.of(
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
         );
         resolveIndices(
             restoreRequest,

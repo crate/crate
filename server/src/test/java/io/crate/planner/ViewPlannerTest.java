@@ -73,4 +73,23 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"doc.v1\" doesn't support or allow REFRESH operations");
     }
+
+    /**
+     * https://github.com/crate/crate/issues/17427
+     */
+    public void test_push_filter_beyond_view_with_aliased_column() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (field1 INT, arr ARRAY(OBJECT))")
+            .addView(new RelationName("doc", "v"),
+                "SELECT field1 as tableid, unnest(arr) FROM doc.t1");
+
+        var logicalPlan = e.logicalPlan(" SELECT * FROM doc.v WHERE tableid=1;");
+
+        assertThat(logicalPlan).hasOperators(
+            "Rename[tableid, \"unnest(arr)\"] AS doc.v",
+            "  └ Eval[field1 AS tableid, unnest(arr)]",
+            "    └ ProjectSet[unnest(arr), arr, field1 AS tableid]",
+            "      └ Collect[doc.t1 | [arr, field1 AS tableid] | (field1 AS tableid = 1)]"
+        );
+    }
 }
