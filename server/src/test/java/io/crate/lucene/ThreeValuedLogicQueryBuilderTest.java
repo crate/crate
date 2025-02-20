@@ -64,7 +64,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_negated_and_three_value_query() {
         // make sure there is no field-exists-query for the references
         assertThat(convert("NOT (x AND f)")).hasToString(
-            "+(+*:* -(+x +f)) #(NOT (x AND f))");
+            "+(+*:* -(+(x = true) +(f = true))) #(NOT ((x = true) AND (f = true)))");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_negated_or() {
         assertThat(convert("NOT (x OR y) > true")).hasToString(
-            "+(+*:* -((x OR y) > true)) #(NOT ((x OR y) > true))");
+            "+(+*:* -(((x = true) OR (y = true)) > true)) #(NOT (((x = true) OR (y = true)) > true))");
     }
 
     @Test
