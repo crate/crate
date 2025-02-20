@@ -434,4 +434,16 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    @Test
+    public void test_binding_with_removed_prepared_statement_throws() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.parse("", "SELECT 1", Collections.emptyList());
+            session.close((byte) 'S', "");
+            assertThatThrownBy(() -> session.bind("", "", List.of(), null))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("No statement found with name: ");
+        }
+    }
+
 }
