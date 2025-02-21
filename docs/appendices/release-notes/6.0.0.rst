@@ -85,6 +85,9 @@ SQL Standard and PostgreSQL Compatibility
   :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
   and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
 
+- Fixed the behavior of :ref:`stddev` to use the sample standard deviation
+  instead of the population standard deviation.
+
 Data Types
 ----------
 

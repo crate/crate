@@ -979,7 +979,7 @@ Limitations
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
 .. _HyperLogLog++: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile
-.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Frequency Sketch: https://datasketches.apache.org/docs/Frequency/FrequencySketches.html

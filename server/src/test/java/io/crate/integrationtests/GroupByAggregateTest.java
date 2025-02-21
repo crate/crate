@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
@@ -1081,8 +1082,8 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select stddev(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
-        assertThat(response.rows()[0][0]).isEqualTo(5.5d);
-        assertThat(response.rows()[1][0]).isEqualTo(39.0d);
+        assertThat(response.rows()[0][0]).isEqualTo(7.7781745930520225d);
+        assertThat(response.rows()[1][0]).isEqualTo(55.154328932550705d);
     }
 
     @Test
@@ -1101,8 +1102,8 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select stddev(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
-        assertThat(response.rows()[0][0]).isEqualTo(5.5d);
-        assertThat(response.rows()[1][0]).isEqualTo(39.0d);
+        assertThat(response.rows()[0][0]).isEqualTo(7.7781745930520225d);
+        assertThat(response.rows()[1][0]).isEqualTo(55.154328932550705d);
     }
 
     @Test
@@ -1116,7 +1117,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertThat((double) row[2]).isCloseTo(47.84415001097868d, Percentage.withPercentage(0.01));
         assertThat(row[3]).isEqualTo((short) 112);
         assertThat(row[4]).isEqualTo(1090.6875d);
-        assertThat(row[5]).isEqualTo(33.025558284456d);
+        assertThat(row[5]).isEqualTo(38.13462993133669d);
     }
 
     @Test

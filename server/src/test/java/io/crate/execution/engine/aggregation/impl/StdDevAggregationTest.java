@@ -96,7 +96,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
     @Test
     public void testInteger() throws Exception {
         assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903);
     }
 
     @Test
