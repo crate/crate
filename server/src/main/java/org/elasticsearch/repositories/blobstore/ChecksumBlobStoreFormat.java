@@ -39,6 +39,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
@@ -128,7 +129,8 @@ public final class ChecksumBlobStoreFormat<T extends Writeable> {
                 }
             } else {
                 StreamInput streamInput = CompressorFactory.COMPRESSOR.isCompressed(slice)
-                    ? CompressorFactory.COMPRESSOR.uncompress(slice).streamInput()
+                    // Ensure that 5.10+ uses threadLocalInputStream, similar to 5.9
+                    ? new InputStreamStreamInput(CompressorFactory.COMPRESSOR.threadLocalInputStream(slice.streamInput()))
                     : slice.streamInput();
                 try (StreamInput in = new NamedWriteableAwareStreamInput(streamInput, namedWritableRegistry)) {
                     Version version = Version.readVersion(in);
