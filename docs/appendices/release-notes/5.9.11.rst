@@ -46,3 +46,7 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 
 Fixes
 =====
+
+- Fixed an issue that prevented nodes from starting when upgrading to >= 5.8
+  with tables containing a :ref:`generated column <ddl-generated-columns>`
+  using a :ref:`user defined function <user-defined-functions>`.
