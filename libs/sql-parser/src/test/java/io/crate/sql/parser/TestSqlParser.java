@@ -600,6 +600,19 @@ public class TestSqlParser {
         assertThat(createFunction).hasToString(expected.toString());
     }
 
+    @Test
+    public void test_standalone_boolean_columns_in_logical_expressions_expanded_into_equality_with_true() {
+        // Expression in SELECT list
+        var statement = SqlParser.createStatement("SELECT x OR x = false FROM t");
+        var expected = SqlParser.createStatement("SELECT x = true OR x = false FROM t");
+        assertThat(statement).hasToString(expected.toString());
+
+        // Expression in WHERE
+        statement = SqlParser.createStatement("SELECT * FROM t WHERE x OR x = false");
+        expected = SqlParser.createStatement("SELECT * FROM t WHERE x = true OR x = false");
+        assertThat(statement).hasToString(expected.toString());
+    }
+
     private static void assertStatement(String query, Statement expected) {
         assertParsed(query, expected, SqlParser.createStatement(query));
     }

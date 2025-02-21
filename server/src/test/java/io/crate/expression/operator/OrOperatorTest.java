@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 
@@ -37,7 +38,9 @@ public class OrOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_normalize_boolean_false_or_reference() throws Exception {
-        assertNormalize("is_awesome or false", isReference("is_awesome"));
+        assertNormalize("is_awesome or false",
+            isFunction("op_=", isReference("is_awesome"), isLiteral(true))
+        );
     }
 
     @Test

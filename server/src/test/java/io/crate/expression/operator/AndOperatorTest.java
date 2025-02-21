@@ -22,6 +22,7 @@
 package io.crate.expression.operator;
 
 import static io.crate.testing.Asserts.assertList;
+import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 
@@ -36,7 +37,10 @@ public class AndOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_normalize_boolean_true_and_reference() throws Exception {
-        assertNormalize("is_awesome and true", isReference("is_awesome"));
+        assertNormalize(
+            "is_awesome and true",
+            isFunction("op_=", isReference("is_awesome"), isLiteral(true))
+        );
     }
 
     @Test
