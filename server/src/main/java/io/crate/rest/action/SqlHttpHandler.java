@@ -29,12 +29,17 @@ import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,6 +78,7 @@ import io.crate.session.Sessions;
 import io.crate.session.parser.SQLRequestParseContext;
 import io.crate.session.parser.SQLRequestParser;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -164,8 +170,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                               XContentBuilder result,
                               @Nullable Throwable t) {
         final HttpVersion httpVersion = request.protocolVersion();
-        final DefaultFullHttpResponse resp;
-        final ByteBuf content;
+        DefaultFullHttpResponse resp;
+        ByteBuf content;
         if (t == null) {
             content = Netty4Utils.toByteBuf(BytesReference.bytes(result));
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
@@ -190,6 +196,30 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
+
+        String acceptEncoding = request.headers().get(HttpHeaderNames.ACCEPT_ENCODING);
+        if (acceptEncoding != null) {
+            acceptEncoding = acceptEncoding.toLowerCase(Locale.ROOT);
+            try {
+                String compressionType = null;
+                if (acceptEncoding.contains("gzip")) {
+                    compressionType = "gzip";
+                } else if (acceptEncoding.contains("deflate")) {
+                    compressionType = "deflate";
+                }
+                
+                if (compressionType != null) {
+                    ByteBuf compressed = compressResponse(content, compressionType);
+                    content.release();
+                    content = compressed;
+                    resp = new DefaultFullHttpResponse(httpVersion, resp.status(), content);
+                    resp.headers().set(HttpHeaderNames.CONTENT_ENCODING, compressionType);
+                }
+            } catch (IOException e) {
+                LOGGER.error("Compression failed, sending uncompressed response", e);
+            }
+        }
+
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
         resp.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(content.readableBytes()));
         boolean closeConnection = isCloseConnection(request);
@@ -200,6 +230,40 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             Headers.setKeepAlive(httpVersion, resp);
         }
         ctx.writeAndFlush(resp, promise);
+    }
+
+    @VisibleForTesting
+    ByteBuf compressResponse(ByteBuf content, String encoding) throws IOException {
+        CircuitBreaker breaker = circuitBreakerProvider.apply(HierarchyCircuitBreakerService.QUERY);
+        long originalSize = content.readableBytes();
+        long estimatedMaxSize = originalSize + (originalSize / 10);
+        
+        breaker.addEstimateBytesAndMaybeBreak(estimatedMaxSize, "http-compression");
+        try {
+            ByteArrayOutputStream compressedStream = new ByteArrayOutputStream();
+            try (OutputStream compressionStream = "gzip".equals(encoding) 
+                    ? new GZIPOutputStream(compressedStream) 
+                    : new DeflaterOutputStream(compressedStream)) {
+                
+                if (content.hasArray()) {
+                    compressionStream.write(content.array(), 
+                                         content.arrayOffset() + content.readerIndex(), 
+                                         content.readableBytes());
+                } else {
+                    byte[] input = new byte[content.readableBytes()];
+                    content.getBytes(content.readerIndex(), input);
+                    compressionStream.write(input);
+                }
+            }
+            
+            byte[] compressedData = compressedStream.toByteArray();
+            breaker.addWithoutBreaking(-(estimatedMaxSize - compressedData.length));
+            
+            return Unpooled.wrappedBuffer(compressedData);
+        } catch (Exception e) {
+            breaker.addWithoutBreaking(-estimatedMaxSize);
+            throw e;
+        }
     }
 
     private CompletableFuture<XContentBuilder> handleSQLRequest(Session session, ByteBuf content, boolean includeTypes) {

@@ -52,9 +52,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
+
+import java.io.ByteArrayInputStream;
+import java.util.zip.GZIPInputStream;
+import java.nio.charset.StandardCharsets;
 
 public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
@@ -189,5 +194,23 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     protected String blobDigest(String content) {
         return Hex.encodeHexString(Blobs.digest(content));
+    }
+
+    @Test
+    public void test_http_compression() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .header("Accept-Encoding", "gzip")
+            .header("Content-Type", "application/json")
+            .POST(BodyPublishers.ofString("{\"stmt\": \"select 1\"}"))
+            .build();
+
+        HttpResponse<byte[]> response = httpClient.send(request, BodyHandlers.ofByteArray());
+        assertThat(response.headers().firstValue("Content-Encoding")).isPresent().hasValue("gzip");
+
+        // Verify we can decompress and read the response
+        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(response.body()))) {
+            String decompressedBody = new String(gzipInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(decompressedBody).contains("\"1\"");
+        }
     }
 }

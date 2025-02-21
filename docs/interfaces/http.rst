@@ -9,6 +9,17 @@ HTTP endpoint
 CrateDB provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
 
+The endpoint supports response compression (gzip, deflate) when the ``Accept-Encoding``
+header is included in the request::
+
+    sh$ curl -sS -H 'Content-Type: application/json' \
+    ... -H 'Accept-Encoding: gzip' \
+    ... -X POST '127.0.0.1:4200/_sql' \
+    ... -d '{"stmt":"select 1"}'
+
+When compression is requested, the response will include a ``Content-Encoding`` header
+indicating the compression method used.
+
 SQL statements are sent to the ``_sql`` endpoint in ``json`` format, whereby
 the statement is sent as value associated to the key ``stmt``.
 

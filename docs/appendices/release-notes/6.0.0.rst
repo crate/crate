@@ -113,3 +113,6 @@ Administration and Operations
 
 Client interfaces
 -----------------
+
+- Added support for HTTP response compression (gzip, deflate) when the
+  ``Accept-Encoding`` header is present in the request.
