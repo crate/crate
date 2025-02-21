@@ -43,6 +43,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import io.crate.execution.ddl.tables.OpenTableRequest;
 import io.crate.execution.ddl.tables.TransportCloseTable;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
@@ -113,7 +114,7 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
             // The index might be closed because we couldn't import it due to old incompatible version
             // We need to check that this index can be upgraded to the current version
-            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, templateMetadata, minIndexCompatibilityVersion);
+            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(updatedIndexMetadata, templateMetadata, minIndexCompatibilityVersion, currentState.metadata().custom(UserDefinedFunctionsMetadata.TYPE));
             try {
                 indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {

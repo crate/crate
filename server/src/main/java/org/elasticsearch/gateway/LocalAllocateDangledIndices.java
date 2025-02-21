@@ -54,6 +54,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
@@ -152,7 +153,8 @@ public class LocalAllocateDangledIndices {
                                 IndexName.isPartitioned(indexName) ?
                                     currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                     null,
-                                minIndexCompatibilityVersion);
+                                minIndexCompatibilityVersion,
+                                currentState.metadata().custom(UserDefinedFunctionsMetadata.TYPE));
                             upgradedIndexMetadata = IndexMetadata.builder(upgradedIndexMetadata).settings(
                                 Settings.builder().put(upgradedIndexMetadata.getSettings()).put(
                                     IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID())).build();

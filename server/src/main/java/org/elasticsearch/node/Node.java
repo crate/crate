@@ -587,7 +587,8 @@ public class Node implements Closeable {
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 nodeContext,
                 indexScopedSettings,
-                indexMetadataUpgraders);
+                indexMetadataUpgraders,
+                udfService);
             final Netty4Transport transport = new Netty4Transport(
                 settings,
                 Version.CURRENT,
