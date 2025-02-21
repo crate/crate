@@ -78,3 +78,7 @@ Fixes
 - Fixed a performance regression introduced in :ref:`version_5.10.0` that
   caused ``CREATE SNAPSHOT`` to use more memory. That could cause the
   statement to fail with ``OutOfMemoryError`` under memory pressure.
+
+- Fixed an issue that prevented nodes from starting when upgrading to >= 5.8
+  with tables containing a :ref:`generated column <ddl-generated-columns>`
+  using a :ref:`user defined function <user-defined-functions>`.
