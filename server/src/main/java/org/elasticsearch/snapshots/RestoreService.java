@@ -504,7 +504,8 @@ public class RestoreService implements ClusterStateApplier {
                             IndexParts.isPartitioned(indexName) ?
                                 currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                 null,
-                            minIndexCompatibilityVersion);
+                            minIndexCompatibilityVersion,
+                            null);
                     } catch (Exception ex) {
                         throw new SnapshotRestoreException(snapshot, "cannot restore index [" + index +
                                                                         "] because it cannot be upgraded", ex);
