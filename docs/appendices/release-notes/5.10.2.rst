@@ -71,6 +71,6 @@ Fixes
 - Fixed an issue that caused a ``SELECT`` query with a ``WHERE`` clause to
   return incorrect result if a table had a ``PRIMARY KEY`` a Boolean column and
   the column was referenced as a standalone operand in a logical expression.
-  Example::
+  e.g.::
 
     SELECT * FROM tbl WHERE boolean_pk_col OR boolean_pk_col = false
