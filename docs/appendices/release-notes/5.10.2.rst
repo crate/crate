@@ -74,3 +74,7 @@ Fixes
   E.g.::
 
     SELECT * FROM tbl WHERE boolean_pk_col OR boolean_pk_col = false
+
+- Fixed a performance regression introduced in :ref:`version_5.10.0` that
+  caused ``CREATE SNAPSHOT`` to use more memory. That could cause the
+  statement to fail with ``OutOfMemoryError`` under memory pressure.
