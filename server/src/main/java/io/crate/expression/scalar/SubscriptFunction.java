@@ -55,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
@@ -218,11 +219,14 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 return result;
             }
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
-        } else if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+        } else if (!map.containsKey(name)) {
             DataType<?> objectArgType = argTypes.get(0);
             // Type could also be "undefined"
             if (objectArgType instanceof ObjectType objType) {
-                if (objType.innerTypes().containsKey(name)) {
+                ColumnPolicy columnPolicy = objType.columnPolicy();
+                if (columnPolicy == ColumnPolicy.IGNORED ||
+                    (columnPolicy == ColumnPolicy.DYNAMIC && !errorOnUnknownObjectKey) ||
+                    objType.innerTypes().containsKey(name)) {
                     return null;
                 }
             }
