@@ -28,7 +28,11 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
@@ -47,10 +51,12 @@ public class MetadataIndexUpgradeService {
     private final IndexScopedSettings indexScopedSettings;
     private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
     private final DocTableInfoFactory tableFactory;
+    private final UserDefinedFunctionService userDefinedFunctionService;
 
     public MetadataIndexUpgradeService(NodeContext nodeContext,
                                        IndexScopedSettings indexScopedSettings,
-                                       Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders) {
+                                       Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders,
+                                       UserDefinedFunctionService userDefinedFunctionService) {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
         this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
@@ -60,6 +66,7 @@ public class MetadataIndexUpgradeService {
             }
             return newIndexMetadata;
         };
+        this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
     /**
@@ -69,10 +76,16 @@ public class MetadataIndexUpgradeService {
      * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
      * cannot be updated the method throws an exception.
      */
-    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata, Version minimumIndexCompatibilityVersion) {
+    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
+                                              IndexTemplateMetadata indexTemplateMetadata,
+                                              Version minimumIndexCompatibilityVersion,
+                                              @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
         // Throws an exception if there are too-old segments:
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
+        }
+        if (userDefinedFunctionsMetadata != null) {
+            userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
         }
         checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
         IndexMetadata newMetadata = indexMetadata;
@@ -117,7 +130,8 @@ public class MetadataIndexUpgradeService {
     /**
      * Checks the mappings for compatibility with the current version
      */
-    private void checkMappingsCompatibility(IndexMetadata indexMetadata) {
+    @VisibleForTesting
+    void checkMappingsCompatibility(IndexMetadata indexMetadata) {
         try {
             tableFactory.validateSchema(indexMetadata);
 
