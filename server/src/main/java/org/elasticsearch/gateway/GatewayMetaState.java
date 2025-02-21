@@ -70,6 +70,7 @@ import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.metadata.IndexParts;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.PartitionName;
 
 /**
@@ -236,7 +237,8 @@ public class GatewayMetaState implements Closeable {
                 IndexParts.isPartitioned(indexName) ?
                     upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
                     null,
-                Version.CURRENT.minimumIndexCompatibilityVersion());
+                Version.CURRENT.minimumIndexCompatibilityVersion(),
+                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
             changed |= indexMetadata != newMetadata;
             upgradedMetadata.put(newMetadata, false);
         }

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -45,8 +46,9 @@ import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
 
 public class GatewayMetaStateTests extends ESTestCase {
@@ -208,12 +210,12 @@ public class GatewayMetaStateTests extends ESTestCase {
         private final boolean upgrade;
 
         public MockMetadataIndexUpgradeService(boolean upgrade) {
-            super(Mockito.mock(NodeContext.class), null, null);
+            super(mock(NodeContext.class), null, null, mock(UserDefinedFunctionService.class));
             this.upgrade = upgrade;
         }
 
         @Override
-        public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata, Version minimumIndexCompatibilityVersion) {
+        public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata, Version minimumIndexCompatibilityVersion, UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
             return upgrade ? IndexMetadata.builder(indexMetadata).build() : indexMetadata;
         }
     }
