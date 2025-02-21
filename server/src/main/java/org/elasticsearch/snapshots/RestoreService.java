@@ -103,6 +103,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.Templates;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -457,7 +458,8 @@ public class RestoreService implements ClusterStateApplier {
                             IndexName.isPartitioned(indexName) ?
                                 currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                 null,
-                            minIndexCompatibilityVersion);
+                            minIndexCompatibilityVersion,
+                            currentState.metadata().custom(UserDefinedFunctionsMetadata.TYPE));
                     } catch (Exception ex) {
                         throw new SnapshotRestoreException(snapshot, "cannot restore index [" + index +
                                                                         "] because it cannot be upgraded", ex);
