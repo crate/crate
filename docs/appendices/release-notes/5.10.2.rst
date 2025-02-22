@@ -67,3 +67,10 @@ Fixes
   had a comparison of a non-boolean column with a boolean literal, e.g.::
 
     SELECT int_col FROM t where int_col = true;
+
+- Fixed an issue that caused a ``SELECT`` query with a ``WHERE`` clause to
+  return incorrect result if a table had a ``PRIMARY KEY`` on a boolean column
+  and the column was referenced as a standalone operand in a logical expression.
+  E.g.::
+
+    SELECT * FROM tbl WHERE boolean_pk_col OR boolean_pk_col = false
