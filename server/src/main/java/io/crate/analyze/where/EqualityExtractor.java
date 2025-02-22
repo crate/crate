@@ -394,6 +394,7 @@ public class EqualityExtractor {
             private boolean isUnderOrOperator = false;
             private boolean foundNonPKColumnUnderOr = false;
             private boolean foundPKColumnUnderOr = false;
+            private boolean isUnderLogicalOperator = false;
 
             private Context(Collection<ColumnIdent> references) {
                 comparisons = LinkedHashMap.newLinkedHashMap(references.size());
@@ -424,13 +425,27 @@ public class EqualityExtractor {
 
         @Override
         public Symbol visitReference(Reference ref, Context ctx) {
-            if (ctx.comparisons.containsKey(ref.column())) {
+            var comparison = ctx.comparisons.get(ref.column());
+            if (comparison != null) {
                 if (ctx.isUnderOrOperator) {
                     ctx.foundPKColumnUnderOr = true;
                 }
                 if (ctx.isUnderNotPredicate) {
                     ctx.foundPKColumnUnderNot = true;
                 }
+
+                // A boolean PK column must be treated as col = true and add another one comparison.
+                // Otherwise, we might not create a DocKey with value TRUE if it's not added in other parts of the expression.
+                // This should be done only for columns under logical operator,
+                // to avoid transforming 'x = literal' to 'EqProxy(x = true) = literal'
+                if (ref.valueType().equals(DataTypes.BOOLEAN) && ctx.isUnderLogicalOperator) {
+                    // Duplicate entries are eliminated in comparison.add() method.
+                    ctx.proxyBelow = true;
+                    return comparison.add(
+                        new Function(EqOperator.SIGNATURE, List.of(ref, Literal.BOOLEAN_TRUE), EqOperator.RETURN_TYPE)
+                    );
+                }
+
             } else {
                 if (ctx.isUnderOrOperator) {
                     ctx.foundNonPKColumnUnderOr = true;
@@ -446,6 +461,7 @@ public class EqualityExtractor {
             List<Symbol> arguments = function.arguments();
             boolean prevIsUnderNotPredicate = ctx.isUnderNotPredicate;
 
+            ctx.isUnderLogicalOperator = false;
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
                 if (firstArg instanceof Reference ref && arguments.get(1).any(Symbol.IS_COLUMN) == false) {
@@ -466,6 +482,7 @@ public class EqualityExtractor {
                     }
                 }
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
+                ctx.isUnderLogicalOperator = true;
                 switch (functionName) {
                     case OrOperator.NAME -> ctx.isUnderOrOperator = true;
                     case NotPredicate.NAME -> ctx.isUnderNotPredicate = true;
