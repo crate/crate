@@ -24,6 +24,7 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -52,11 +53,13 @@ import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.where.EqualityExtractorTest;
+import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.BulkResponse;
+import io.crate.execution.engine.collect.stats.QueueSink;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.planner.DependencyCarrier;
@@ -435,14 +438,26 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_binding_with_removed_prepared_statement_throws() {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+    public void test_binding_with_removed_prepared_statement_throws_sstatement_not_found_and_logs_error() {
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
+        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.updateJobsLog(new QueueSink<>(new BlockingEvictingQueue<>(1), () -> {}));
+
         try (Session session = sqlExecutor.createSession()) {
-            session.parse("", "SELECT 1", Collections.emptyList());
-            session.close((byte) 'S', "");
-            assertThatThrownBy(() -> session.bind("", "", List.of(), null))
+            session.parse("S1", "SELECT 1", Collections.emptyList());
+            assertThat(sqlExecutor.jobsLogs.activeJobs()).isEmpty();
+            session.close((byte) 'S', "S1");
+            assertThatThrownBy(() -> session.bind("", "S1", List.of(), null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("No statement found with name: ");
+                .hasMessage("No statement found with name: S1");
+
+            assertThat(sqlExecutor.jobsLogs.activeJobs()).isEmpty();
+            assertThat(sqlExecutor.jobsLogs.jobsLog()).satisfiesExactly(
+                x -> {
+                    assertThat(x.statement()).isEqualTo("");
+                    assertThat(x.errorMessage()).isEqualTo("No statement found with name: S1");
+                }
+            );
         }
     }
 
