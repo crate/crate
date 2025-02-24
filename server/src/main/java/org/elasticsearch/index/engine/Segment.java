@@ -28,8 +28,8 @@ import java.util.Objects;
 
 public class Segment {
 
-    private String name;
-    private long generation;
+    private final String name;
+    private final long generation;
     public boolean committed;
     public boolean search;
     public long sizeInBytes = -1;
@@ -38,6 +38,7 @@ public class Segment {
     public org.apache.lucene.util.Version version = null;
     public Boolean compound = null;
     public String mergeId;
+    public int docsWithSource;
     public Sort segmentSort;
     public Map<String, String> attributes;
 

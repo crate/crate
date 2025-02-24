@@ -62,6 +62,8 @@ public class SysSegmentsTableInfo {
             .add("search", BOOLEAN, r -> r.getSegment().search)
             .add("version", STRING, r -> r.getSegment().getVersion().toString())
             .add("compound", BOOLEAN, r -> r.getSegment().compound)
+            .add("merge_id", STRING, r -> r.getSegment().getMergeId())
+            .add("fully_merged_docs", INTEGER, r -> r.getSegment().docsWithSource)
             .addDynamicObject("attributes", STRING, r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
             .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .build();
