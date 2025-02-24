@@ -34,7 +34,6 @@ import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -153,22 +152,6 @@ public abstract class Plugin implements Closeable {
      */
     public List<SettingUpgrader<?>> getSettingUpgraders() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Provides a function to modify global custom meta data on startup.
-     * <p>
-     * Plugins should return the input custom map via {@link UnaryOperator#identity()} if no upgrade is required.
-     * <p>
-     * The order of custom meta data upgraders calls is undefined and can change between runs so, it is expected that
-     * plugins will modify only data owned by them to avoid conflicts.
-     * <p>
-     * @return Never {@code null}. The same or upgraded {@code Metadata.Custom} map.
-     * @throws IllegalStateException if the node should not start because at least one {@code Metadata.Custom}
-     *                               is unsupported
-     */
-    public UnaryOperator<Map<String, Metadata.Custom>> getCustomMetadataUpgrader() {
-        return UnaryOperator.identity();
     }
 
     /**
