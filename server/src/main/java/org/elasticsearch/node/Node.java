@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -72,7 +71,6 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.coordination.Coordinator;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
@@ -207,7 +205,6 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
@@ -563,22 +560,11 @@ public class Node implements Closeable {
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
             nettyBootstrap.start();
 
-            List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getIndexTemplateMetadataUpgrader)
-                    .collect(Collectors.toList());
-            indexTemplateMetadataUpgraders.add(new IndexTemplateUpgrader());
-
-            List<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
-            indexMetadataUpgraders.add(new MetadataIndexUpgrader());
-
+            List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders = List.of(new IndexTemplateUpgrader());
             final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 nodeContext,
                 indexScopedSettings,
-                indexMetadataUpgraders,
                 udfService);
             final Netty4Transport transport = new Netty4Transport(
                 settings,

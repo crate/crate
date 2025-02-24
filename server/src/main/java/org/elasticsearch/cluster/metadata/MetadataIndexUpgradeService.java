@@ -19,9 +19,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import java.util.Collection;
-import java.util.function.BiFunction;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -35,6 +32,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -49,23 +47,16 @@ public class MetadataIndexUpgradeService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataIndexUpgradeService.class);
 
     private final IndexScopedSettings indexScopedSettings;
-    private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
+    private final MetadataIndexUpgrader upgrader;
     private final DocTableInfoFactory tableFactory;
     private final UserDefinedFunctionService userDefinedFunctionService;
 
     public MetadataIndexUpgradeService(NodeContext nodeContext,
                                        IndexScopedSettings indexScopedSettings,
-                                       Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders,
                                        UserDefinedFunctionService userDefinedFunctionService) {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
-        this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
-            IndexMetadata newIndexMetadata = indexMetadata;
-            for (BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgrader : indexMetadataUpgraders) {
-                newIndexMetadata = upgrader.apply(newIndexMetadata, indexTemplateMetadata);
-            }
-            return newIndexMetadata;
-        };
+        this.upgrader = new MetadataIndexUpgrader();
         this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
@@ -92,7 +83,7 @@ public class MetadataIndexUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = upgraders.apply(newMetadata, indexTemplateMetadata);
+        newMetadata = upgrader.apply(newMetadata, indexTemplateMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
     }

@@ -48,7 +48,6 @@ public class MetadataIndexUpgradeServiceTest extends CrateDummyClusterServiceUni
         var metadataIndexUpgradeService = new MetadataIndexUpgradeService(
             e.nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            List.of(),
             e.udfService()
         );
         metadataIndexUpgradeService.upgradeIndexMetadata(

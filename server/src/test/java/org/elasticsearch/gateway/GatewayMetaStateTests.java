@@ -162,7 +162,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         private final boolean upgrade;
 
         public MockMetadataIndexUpgradeService(boolean upgrade) {
-            super(mock(NodeContext.class), null, null, mock(UserDefinedFunctionService.class));
+            super(mock(NodeContext.class), null, mock(UserDefinedFunctionService.class));
             this.upgrade = upgrade;
         }
 
