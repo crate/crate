@@ -120,5 +120,9 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added ``merge_id`` and ``fully_merged_docs`` columns to the sys.segments table
+  to give more information on ongoing merges and whether the recovery source is
+  still present in merged segments.
+
 Client interfaces
 -----------------
