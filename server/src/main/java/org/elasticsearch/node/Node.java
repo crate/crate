@@ -193,7 +193,6 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
@@ -568,7 +567,6 @@ public class Node implements Closeable {
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getCustomMetadataUpgrader)
                     .collect(Collectors.toList());
-            customMetadataUpgraders.add(new CustomMetadataUpgraderLoader(settings));
 
             List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
