@@ -960,32 +960,30 @@ public class IndexShardTests extends IndexShardTestCase {
             }
             // Need to update and sync the global checkpoint and the retention
             // leases for the soft-deletes retention MergePolicy.
-            if (indexShard.indexSettings.isSoftDeleteEnabled()) {
-                final long newGlobalCheckpoint = indexShard.getLocalCheckpoint();
-                if (indexShard.routingEntry().primary()) {
-                    indexShard.updateLocalCheckpointForShard(
-                        indexShard.routingEntry().allocationId().getId(),
-                        indexShard.getLocalCheckpoint());
-                    indexShard.updateGlobalCheckpointForShard(
-                        indexShard.routingEntry().allocationId().getId(),
-                        indexShard.getLocalCheckpoint());
-                    indexShard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
-                } else {
-                    indexShard.updateGlobalCheckpointOnReplica(newGlobalCheckpoint, "test");
+            final long newGlobalCheckpoint = indexShard.getLocalCheckpoint();
+            if (indexShard.routingEntry().primary()) {
+                indexShard.updateLocalCheckpointForShard(
+                    indexShard.routingEntry().allocationId().getId(),
+                    indexShard.getLocalCheckpoint());
+                indexShard.updateGlobalCheckpointForShard(
+                    indexShard.routingEntry().allocationId().getId(),
+                    indexShard.getLocalCheckpoint());
+                indexShard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
+            } else {
+                indexShard.updateGlobalCheckpointOnReplica(newGlobalCheckpoint, "test");
 
-                    RetentionLeases retentionLeases = indexShard.getRetentionLeases();
-                    indexShard.updateRetentionLeasesOnReplica(new RetentionLeases(
-                        retentionLeases.primaryTerm(), retentionLeases.version() + 1,
-                        retentionLeases.leases().stream()
-                            .map(lease -> new RetentionLease(
-                                lease.id(),
-                                newGlobalCheckpoint + 1,
-                                lease.timestamp(),
-                                ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE)
-                            ).collect(Collectors.toList())));
-                }
-                indexShard.sync();
+                RetentionLeases retentionLeases = indexShard.getRetentionLeases();
+                indexShard.updateRetentionLeasesOnReplica(new RetentionLeases(
+                    retentionLeases.primaryTerm(), retentionLeases.version() + 1,
+                    retentionLeases.leases().stream()
+                        .map(lease -> new RetentionLease(
+                            lease.id(),
+                            newGlobalCheckpoint + 1,
+                            lease.timestamp(),
+                            ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE)
+                        ).collect(Collectors.toList())));
             }
+            indexShard.sync();
             // flush the buffered deletes
             FlushRequest flushRequest = new FlushRequest();
             flushRequest.force(false);
@@ -3014,8 +3012,7 @@ public class IndexShardTests extends IndexShardTestCase {
      to max seen seqID on primary recovery */
     @Test
     public void testRecoverFromStoreWithNoOps() throws IOException {
-        Settings settings = Settings.builder()
-            .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), randomBoolean()).build();
+        Settings settings = Settings.EMPTY;
         IndexShard shard = newStartedShard(true, settings);
         indexDoc(shard, "0");
         indexDoc(shard, "1");
@@ -3065,7 +3062,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 new RecoveryState(newShard.routingEntry(), localNode, null));
             assertThat(recoverFromStore(newShard)).isTrue();
             try (Translog.Snapshot snapshot = getTranslog(newShard).newSnapshot()) {
-                assertThat(snapshot.totalOperations()).isEqualTo(newShard.indexSettings.isSoftDeleteEnabled() ? 0 : 2);
+                assertThat(snapshot.totalOperations()).isEqualTo(0);
             }
         }
         closeShards(newShard, shard);
@@ -3228,13 +3225,7 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testRestoreShard() throws Exception {
         IndexShard source = newStartedShard(true);
-        IndexShard target = newStartedShard(
-            true,
-            Settings.builder()
-                .put(
-                    IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(),
-                    source.indexSettings().isSoftDeleteEnabled())
-                .build());
+        IndexShard target = newStartedShard(true, Settings.EMPTY);
 
         indexDoc(source, "0");
         EngineTestCase.generateNewSeqNo(source.getEngine()); // create a gap in the history
@@ -3479,13 +3470,9 @@ public class IndexShardTests extends IndexShardTestCase {
         engineResetLatch.await();
         assertThat(getShardDocUIDs(shard)).isEqualTo(docBelowGlobalCheckpoint);
         assertThat(shard.seqNoStats().getMaxSeqNo()).isEqualTo(globalCheckpoint);
-        if (shard.indexSettings.isSoftDeleteEnabled()) {
-            // we might have trimmed some operations if the translog retention policy is ignored (when soft-deletes enabled).
-            assertThat(shard.translogStats().estimatedNumberOfOperations())
-                .isLessThanOrEqualTo(translogStats.estimatedNumberOfOperations());
-        } else {
-            assertThat(shard.translogStats().estimatedNumberOfOperations()).isEqualTo(translogStats.estimatedNumberOfOperations());
-        }
+        // we might have trimmed some operations if the translog retention policy is ignored (when soft-deletes enabled).
+        assertThat(shard.translogStats().estimatedNumberOfOperations())
+            .isLessThanOrEqualTo(translogStats.estimatedNumberOfOperations());
         assertThat(shard.getMaxSeqNoOfUpdatesOrDeletes()).isEqualTo(maxSeqNoBeforeRollback);
         done.set(true);
         thread.join();
