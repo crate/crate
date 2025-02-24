@@ -393,7 +393,7 @@ public class Session implements AutoCloseable {
         try {
             preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), statementName, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), "", SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
