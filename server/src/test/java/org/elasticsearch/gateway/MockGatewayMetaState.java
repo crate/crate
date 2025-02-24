@@ -27,7 +27,7 @@ import java.io.IOException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -36,7 +36,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -58,8 +57,7 @@ public class MockGatewayMetaState extends GatewayMetaState {
     }
 
     @Override
-    Metadata upgradeMetadataForNode(Metadata metadata, MetadataIndexUpgradeService metadataIndexUpgradeService,
-                                    MetadataUpgrader metadataUpgrader) {
+    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataIndexUpgradeService) {
         // Metadata upgrade is tested in GatewayMetaStateTests, we override this method to NOP to make mocking easier
         return metadata;
     }
@@ -95,7 +93,6 @@ public class MockGatewayMetaState extends GatewayMetaState {
             transportService,
             clusterService,
             metaStateService,
-            null,
             null,
             persistedClusterStateService
         );

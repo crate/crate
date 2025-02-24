@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,7 +50,7 @@ import io.crate.common.collections.Maps;
 import io.crate.metadata.IndexName;
 import io.crate.server.xcontent.XContentHelper;
 
-public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
+public class IndexTemplateUpgrader {
 
     private final Logger logger;
     public static final String TEMPLATE_NAME = "crate_defaults";
@@ -60,8 +59,7 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
         this.logger = LogManager.getLogger(IndexTemplateUpgrader.class);
     }
 
-    @Override
-    public Map<String, IndexTemplateMetadata> apply(Map<String, IndexTemplateMetadata> templates) {
+    public Map<String, IndexTemplateMetadata> upgrade(Map<String, IndexTemplateMetadata> templates) {
         HashMap<String, IndexTemplateMetadata> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
         upgradedTemplates.remove(TEMPLATE_NAME);
         return upgradedTemplates;

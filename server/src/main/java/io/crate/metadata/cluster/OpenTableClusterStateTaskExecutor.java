@@ -33,7 +33,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -54,12 +54,12 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
-    private final MetadataIndexUpgradeService metadataIndexUpgradeService;
+    private final MetadataUpgradeService metadataIndexUpgradeService;
     private final IndicesService indicesService;
 
     public OpenTableClusterStateTaskExecutor(AllocationService allocationService,
                                              DDLClusterStateService ddlClusterStateService,
-                                             MetadataIndexUpgradeService metadataIndexUpgradeService,
+                                             MetadataUpgradeService metadataIndexUpgradeService,
                                              IndicesService indexServices) {
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
