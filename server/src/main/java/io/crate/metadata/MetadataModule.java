@@ -37,7 +37,6 @@ import org.elasticsearch.common.xcontent.ParseField;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
-import io.crate.license.License;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -144,8 +143,6 @@ public class MetadataModule extends AbstractModule {
         ));
 
 
-        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
-        entries.addAll(License.getNamedWriteables());
         return entries;
     }
 
@@ -198,9 +195,6 @@ public class MetadataModule extends AbstractModule {
             parser -> ForeignTablesMetadata.fromXContent(nodeCtx, parser)
         ));
 
-
-        //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
-        entries.addAll(License.getNamedXContent());
         return entries;
     }
 
