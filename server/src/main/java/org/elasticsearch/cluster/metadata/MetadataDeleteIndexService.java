@@ -21,7 +21,11 @@ package org.elasticsearch.cluster.metadata;
 
 import static java.util.stream.Collectors.toSet;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +42,10 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
+
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.RelationName;
 
 /**
  * Deletes indices.
@@ -86,13 +94,54 @@ public class MetadataDeleteIndexService {
 
         final IndexGraveyard.Builder graveyardBuilder = IndexGraveyard.builder(metadataBuilder.indexGraveyard());
         final int previousGraveyardSize = graveyardBuilder.tombstones().size();
+        Map<RelationName, List<String>> relationIndexUUIDs = new HashMap<>();
         for (final Index index : indicesToDelete) {
             String indexName = index.getName();
             LOGGER.info("{} deleting index", index);
             routingTableBuilder.remove(indexName);
             clusterBlocksBuilder.removeIndexBlocks(indexName);
             metadataBuilder.remove(indexName);
+
+            IndexParts indexParts;
+            try {
+                indexParts = IndexName.decode(indexName);
+            } catch (IllegalArgumentException ex) {
+                // temporary resize index
+                continue;
+            }
+            RelationName relationName = indexParts.toRelationName();
+            List<String> indexUUIDs = relationIndexUUIDs.get(relationName);
+            if (indexUUIDs == null) {
+                indexUUIDs = new ArrayList<>();
+                relationIndexUUIDs.put(relationName, indexUUIDs);
+            }
+            indexUUIDs.add(index.getUUID());
         }
+        for (var entry : relationIndexUUIDs.entrySet()) {
+            RelationName relationName = entry.getKey();
+            List<String> indexUUIDs = entry.getValue();
+
+            RelationMetadata relation = meta.getRelation(relationName);
+            if (relation instanceof RelationMetadata.Table table) {
+                List<String> newIndexUUIDs = table.indexUUIDs().stream()
+                    .filter(x -> !indexUUIDs.contains(x))
+                    .toList();
+                metadataBuilder.setTable(
+                    table.name(),
+                    table.columns(),
+                    table.settings(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    newIndexUUIDs
+                );
+            }
+        }
+
         // add tombstones to the cluster state for each deleted index
         final IndexGraveyard currentGraveyard = graveyardBuilder.addTombstones(indicesToDelete).build(settings);
         metadataBuilder.indexGraveyard(currentGraveyard); // the new graveyard set on the metadata

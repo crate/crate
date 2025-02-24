@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -74,6 +75,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -179,15 +181,15 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         String removalReason = null;
         Index testIndex = null;
         try {
-            List<String> indicesToCreate = getValidatedIndicesToCreate(currentState, request);
-            if (indicesToCreate.isEmpty()) {
+            List<PartitionName> partitions = getPartitionsToCreate(currentState, request);
+            if (partitions.isEmpty()) {
                 return currentState;
             }
 
             // We always have only 1 matching template per pattern/table.
             // All indices in the request are related to a concrete partitioned table and
             // they all match the same template. Thus, we can use any of them to find matching template.
-            String firstIndex = indicesToCreate.get(0);
+            String firstIndex = partitions.get(0).asIndexName();
             String templateName = PartitionName.templateName(firstIndex);
 
 
@@ -227,7 +229,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
             final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(commonIndexSettings);
             // Shard limit check has to take to account all new partitions.
-            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * indicesToCreate.size();
+            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * partitions.size();
             shardLimitValidator.checkShardLimit(numShardsToCreate, currentState)
                 .ifPresent(err -> {
                     final ValidationException e = new ValidationException();
@@ -266,9 +268,12 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
 
             MappingMetadata mappingMetadata = new MappingMetadata(template.mapping());
-            for (String index : indicesToCreate) {
-                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
+            ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
+            for (PartitionName partition : partitions) {
+                String indexName = partition.asIndexName();
+                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
                     .setRoutingNumShards(routingNumShards)
+                    .partitionValues(partition.values())
                     .settings(Settings.builder()
                         .put(commonIndexSettings)
                         .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
@@ -288,20 +293,38 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     throw e;
                 }
 
-                logger.info("[{}] creating index, cause [bulk], template {}, shards [{}]/[{}]",
-                    index, templateName, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
+                logger.info("[{}] creating partition, cause [bulk], template {}, shards [{}]/[{}]",
+                    partition, templateName, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
                 newMetadataBuilder.put(indexMetadata, false);
+                indexUUIDs.add(indexMetadata.getIndexUUID());
+            }
+
+            RelationMetadata relation = metadata.getRelation(request.relationName());
+            if (relation instanceof RelationMetadata.Table table) {
+                newMetadataBuilder.setTable(
+                    table.name(),
+                    table.columns(),
+                    table.settings(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs)
+                );
             }
 
             Metadata newMetadata = newMetadataBuilder.build();
 
             ClusterState updatedState = ClusterState.builder(currentState).metadata(newMetadata).build();
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
-            for (String index : indicesToCreate) {
-                routingTableBuilder.addAsNew(updatedState.metadata().index(index));
+            for (PartitionName partition : partitions) {
+                routingTableBuilder.addAsNew(updatedState.metadata().index(partition.asIndexName()));
             }
             return allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
@@ -348,20 +371,21 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         );
     }
 
-    private List<String> getValidatedIndicesToCreate(ClusterState state, CreatePartitionsRequest request) {
-        ArrayList<String> indicesToCreate = new ArrayList<>(request.partitionValuesList().size());
+    private static List<PartitionName> getPartitionsToCreate(ClusterState state, CreatePartitionsRequest request) {
+        ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
         for (List<String> partitionValues : request.partitionValuesList()) {
-            String index = new PartitionName(request.relationName(), partitionValues).asIndexName();
-            if (state.metadata().hasIndex(index)) {
+            PartitionName partition = new PartitionName(request.relationName(), partitionValues);
+            String indexName = partition.asIndexName();
+            if (state.metadata().hasIndex(indexName)) {
                 continue;
             }
-            if (state.routingTable().hasIndex(index)) {
+            if (state.routingTable().hasIndex(indexName)) {
                 continue;
             }
-            IndexName.validate(index);
-            indicesToCreate.add(index);
+            IndexName.validate(indexName);
+            partitions.add(partition);
         }
-        return indicesToCreate;
+        return partitions;
     }
 
     private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {
