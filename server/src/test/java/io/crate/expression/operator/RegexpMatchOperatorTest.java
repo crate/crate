@@ -28,7 +28,7 @@ import org.junit.Test;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.types.DataTypes;
 
-public class RegexpMatchOperatortest extends ScalarTestCase {
+public class RegexpMatchOperatorTest extends ScalarTestCase {
 
     @Test
     public void testNormalize() throws Exception {
@@ -55,5 +55,9 @@ public class RegexpMatchOperatortest extends ScalarTestCase {
         assertEvaluate("'1000 $' ~ '(<1-9999>) $|€'", true);
         assertEvaluate("'10000 $' ~ '(<1-9999>) $|€'", false);
         assertEvaluate("'' ~ ''", true);
+
+        // complement operator
+        assertEvaluate("'This is foo bar' ~ '~(This is foo bar)'", false);
+        assertEvaluate("'This is not foo bar' ~ '~(This is foo bar)'", true);
     }
 }

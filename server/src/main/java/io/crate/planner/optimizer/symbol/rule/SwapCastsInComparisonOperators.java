@@ -60,10 +60,11 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
             Reference ref = (Reference) cast.arguments().getFirst();
             DataType<?> refInnerType = ArrayType.unnest(ref.valueType());
             DataType<?> literalInnerType = ArrayType.unnest(literal.valueType());
+            var value = literal.value();
             if (!DataTypes.isNumeric(literalInnerType) || !DataTypes.isNumeric(refInnerType)) {
-                return true;
+                return literalInnerType.isConvertableTo(refInnerType, false);
             }
-            return isNarrowingConversionPossible(literal.value(), ref.valueType());
+            return isNarrowingConversionPossible(value, ref.valueType());
         }
         return true;
     }
