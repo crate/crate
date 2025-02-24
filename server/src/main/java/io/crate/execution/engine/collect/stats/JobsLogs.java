@@ -32,6 +32,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.expression.reference.sys.job.JobContext;
@@ -227,7 +228,8 @@ public class JobsLogs {
         }
     }
 
-    void updateJobsLog(LogSink<JobContextLog> sink) {
+    @VisibleForTesting
+    public void updateJobsLog(LogSink<JobContextLog> sink) {
         long stamp = jobsLogLock.writeLock();
         try {
             sink.addAll(jobsLog);
