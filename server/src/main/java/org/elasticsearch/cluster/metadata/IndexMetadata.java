@@ -26,6 +26,7 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -69,6 +70,9 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
 
@@ -272,10 +276,23 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     private final State state;
 
+    /**
+     * @deprecated indices and table association is created via {@link
+     *             RelationMetadata.Table#indexUUIDs()} or {@link
+     *             RelationMetadata.BlobTable#indexUUID()}
+     **/
+    @Deprecated
     private final ImmutableOpenMap<String, AliasMetadata> aliases;
+
+
+    private final List<String> partitionValues;
 
     private final Settings settings;
 
+    /**
+     * @deprecated mapping is stored on table level via {@link RelationMetadata.Table}
+     **/
+    @Deprecated
     private final MappingMetadata mapping;
 
     private final ImmutableOpenIntMap<Set<String>> inSyncAllocationIds;
@@ -303,6 +320,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                           Settings settings,
                           MappingMetadata mapping,
                           ImmutableOpenMap<String, AliasMetadata> aliases,
+                          List<String> partitionValues,
                           ImmutableOpenIntMap<Set<String>> inSyncAllocationIds,
                           DiscoveryNodeFilters requireFilters,
                           DiscoveryNodeFilters initialRecoveryFilters,
@@ -329,6 +347,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         this.settings = settings;
         this.mapping = mapping;
         this.aliases = aliases;
+        this.partitionValues = partitionValues;
         this.inSyncAllocationIds = inSyncAllocationIds;
         this.requireFilters = requireFilters;
         this.includeFilters = includeFilters;
@@ -446,6 +465,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return this.aliases;
     }
 
+    public List<String> partitionValues() {
+        return partitionValues;
+    }
+
     /**
      * Return the concrete mapping for this index or {@code null} if this index has no mappings at all.
      */
@@ -495,47 +518,18 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        IndexMetadata that = (IndexMetadata) o;
-
-        if (version != that.version) {
-            return false;
-        }
-
-        if (!aliases.equals(that.aliases)) {
-            return false;
-        }
-        if (!index.equals(that.index)) {
-            return false;
-        }
-        if (!Objects.equals(mapping, that.mapping)) {
-            return false;
-        }
-        if (!settings.equals(that.settings)) {
-            return false;
-        }
-        if (state != that.state) {
-            return false;
-        }
-        if (routingNumShards != that.routingNumShards) {
-            return false;
-        }
-        if (routingFactor != that.routingFactor) {
-            return false;
-        }
-        if (Arrays.equals(primaryTerms, that.primaryTerms) == false) {
-            return false;
-        }
-        if (!inSyncAllocationIds.equals(that.inSyncAllocationIds)) {
-            return false;
-        }
-        return true;
+        return o instanceof IndexMetadata other
+            && version == other.version
+            && aliases.equals(other.aliases)
+            && index.equals(other.index)
+            && Objects.equals(mapping, other.mapping)
+            && settings.equals(other.settings)
+            && state == other.state
+            && routingNumShards == other.routingNumShards
+            && routingFactor == other.routingFactor
+            && Arrays.equals(primaryTerms, other.primaryTerms)
+            && inSyncAllocationIds.equals(other.inSyncAllocationIds)
+            && partitionValues.equals(other.partitionValues);
     }
 
     @Override
@@ -550,6 +544,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         result = 31 * result + Long.hashCode(routingNumShards);
         result = 31 * result + Arrays.hashCode(primaryTerms);
         result = 31 * result + inSyncAllocationIds.hashCode();
+        result = 31 * result + partitionValues.hashCode();
         return result;
     }
 
@@ -577,6 +572,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final long[] primaryTerms;
         private final State state;
         private final Settings settings;
+        private final List<String> partitionValues;
         private final Diff<ImmutableOpenMap<String, MappingMetadata>> mappings;
         private final Diff<ImmutableOpenMap<String, AliasMetadata>> aliases;
         private final Diff<ImmutableOpenIntMap<Set<String>>> inSyncAllocationIds;
@@ -590,6 +586,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             state = after.state;
             settings = after.settings;
             primaryTerms = after.primaryTerms;
+            partitionValues = after.partitionValues;
             ImmutableOpenMap.Builder<String, MappingMetadata> beforeMappings = ImmutableOpenMap.builder();
             if (before.mapping != null) {
                 beforeMappings.put(Constants.DEFAULT_MAPPING_TYPE, before.mapping);
@@ -627,6 +624,18 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             }
             inSyncAllocationIds = Diffs.readIntMapDiff(in, Diffs.intKeySerializer(),
                 Diffs.StringSetValueSerializer.getInstance());
+            if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+                int numValues = in.readVInt();
+                this.partitionValues = new ArrayList<>(numValues);
+                for (int i = 0; i < numValues; i++) {
+                    partitionValues.add(in.readOptionalString());
+                }
+            } else {
+                IndexParts indexParts = IndexName.decode(index);
+                this.partitionValues = indexParts.isPartitioned()
+                    ? PartitionName.decodeIdent(indexParts.partitionIdent())
+                    : List.of();
+            }
         }
 
         @Override
@@ -650,6 +659,12 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 customData.writeTo(out);
             }
             inSyncAllocationIds.writeTo(out);
+            if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+                out.writeVInt(partitionValues.size());
+                for (String value : partitionValues) {
+                    out.writeOptionalString(value);
+                }
+            }
         }
 
         @Override
@@ -662,6 +677,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             builder.state(state);
             builder.settings(settings);
             builder.primaryTerms(primaryTerms);
+            builder.partitionValues(partitionValues);
             ImmutableOpenMap.Builder<String, MappingMetadata> mappingBuilder = ImmutableOpenMap.<String, MappingMetadata>builder();
             if (part.mapping != null) {
                 mappingBuilder.put(Constants.DEFAULT_MAPPING_TYPE, part.mapping);
@@ -710,6 +726,14 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             Set<String> allocationIds = Diffs.StringSetValueSerializer.getInstance().read(in, key);
             builder.putInSyncAllocationIds(key, allocationIds);
         }
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            int numValues = in.readVInt();
+            ArrayList<String> partitionValues = new ArrayList<>(numValues);
+            for (int i = 0; i < numValues; i++) {
+                partitionValues.add(in.readOptionalString());
+            }
+            builder.partitionValues(partitionValues);
+        }
         return builder.build();
     }
 
@@ -742,6 +766,12 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             out.writeVInt(cursor.key);
             Diffs.StringSetValueSerializer.getInstance().write(cursor.value, out);
         }
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeVInt(partitionValues.size());
+            for (String value : partitionValues) {
+                out.writeOptionalString(value);
+            }
+        }
     }
 
     public static Builder builder(String index) {
@@ -762,6 +792,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private long[] primaryTerms = null;
         private Settings settings = Settings.EMPTY;
         private MappingMetadata mapping;
+        private List<String> partitionValues;
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
@@ -770,6 +801,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.indexName = indexName;
             this.aliases = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
+            this.partitionValues = List.of();
         }
 
         public Builder(IndexMetadata indexMetadata) {
@@ -782,6 +814,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.primaryTerms = indexMetadata.primaryTerms.clone();
             this.mapping = indexMetadata.mapping;
             this.aliases = ImmutableOpenMap.builder(indexMetadata.aliases);
+            this.partitionValues = indexMetadata.partitionValues;
             this.routingNumShards = indexMetadata.routingNumShards;
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder(indexMetadata.inSyncAllocationIds);
         }
@@ -875,11 +908,24 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             return mapping;
         }
 
+        public Builder partitionValues(List<String> partitionValues) {
+            this.partitionValues = partitionValues;
+            return this;
+        }
+
+        /**
+         * @deprecated mapping is on table level {@link RelationMetadata.Table}
+         **/
+        @Deprecated
         public Builder putMapping(String source) throws IOException {
             putMapping(new MappingMetadata(XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, source, true)));
             return this;
         }
 
+        /**
+         * @deprecated mapping is on table level {@link RelationMetadata.Table}
+         **/
+        @Deprecated
         public Builder putMapping(MappingMetadata mappingMd) {
             if (mappingMd != null) {
                 mapping = mappingMd;
@@ -1079,6 +1125,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 tmpSettings,
                 mapping,
                 tmpAliases.build(),
+                partitionValues,
                 filledInSyncAllocationIds.build(),
                 requireFilters,
                 initialRecoveryFilters,
