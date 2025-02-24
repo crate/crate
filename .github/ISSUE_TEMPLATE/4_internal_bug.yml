@@ -1,0 +1,62 @@
+name: Internal Bug Report
+description: Crate internal bug report for customer related bugs
+labels: [triage, support]
+projects: 59
+body:
+  - type: input
+    id: cratedb_version
+    attributes:
+      label: CrateDB version
+      placeholder: 4.6.1
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: CrateDB setup information
+      description: Number of nodes, HEAP setting, and tell us if you're using special master/data/client node configuration
+      placeholder: |-
+
+        Number of nodes: 1
+        CRATE_HEAP_SIZE: 4g
+        CRATE_JAVA_OPTS: empty
+
+        crate.yml contents:
+
+  - type: textarea
+    id: problem_description
+    attributes:
+      label: Problem description
+      description: Concise description of the problem
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: How can we see what you're seeing? Please be specific
+      placeholder: |-
+        1. Create a table with the schema:
+        2. Insert records:
+        3. Run the query:
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+      description: Output? Logs? Enable `Show error trace` in the Admin Console or run ``crash --verbose` to get stack traces for the errors.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
