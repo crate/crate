@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -67,7 +68,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
@@ -99,7 +99,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     private final AllocationService allocationService;
     private final ActiveShardsObserver activeShardsObserver;
     private final ShardLimitValidator shardLimitValidator;
-    private final MetadataUpgrader metadataUpgrader;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
         ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
         for (CreatePartitionsRequest request : tasks) {
@@ -114,6 +113,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     };
 
     private final AtomicBoolean upgraded;
+    private final MetadataUpgradeService metadataUpgradeService;
 
     @Inject
     public TransportCreatePartitionsAction(TransportService transportService,
@@ -121,14 +121,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                            ThreadPool threadPool,
                                            IndicesService indicesService,
                                            AllocationService allocationService,
-                                           ShardLimitValidator shardLimitValidator,
-                                           MetadataUpgrader metadataUpgrader) {
+                                           MetadataUpgradeService metadataUpgradeService,
+                                           ShardLimitValidator shardLimitValidator) {
         super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
+        this.metadataUpgradeService = metadataUpgradeService;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.shardLimitValidator = shardLimitValidator;
-        this.metadataUpgrader = metadataUpgrader;
         this.upgraded = new AtomicBoolean(false);
     }
 
@@ -343,7 +343,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     public void upgradeTemplates(Metadata metadata, Metadata.Builder newMetadataBuilder) {
         applyUpgrader(
             metadata.templates(),
-            metadataUpgrader.indexTemplateMetadataUpgraders,
+            metadataUpgradeService::upgradeTemplates,
             newMetadataBuilder::removeTemplate,
             (_, indexTemplateMetadata) -> newMetadataBuilder.put(indexTemplateMetadata)
         );

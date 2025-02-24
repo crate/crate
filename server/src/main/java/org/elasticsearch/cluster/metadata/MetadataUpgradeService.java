@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -32,6 +34,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 
 /**
@@ -42,21 +45,23 @@ import io.crate.metadata.upgrade.MetadataIndexUpgrader;
  * occurs during cluster upgrade, when dangling indices are imported into the cluster or indices
  * are restored from a repository.
  */
-public class MetadataIndexUpgradeService {
+public class MetadataUpgradeService {
 
-    private static final Logger LOGGER = LogManager.getLogger(MetadataIndexUpgradeService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetadataUpgradeService.class);
 
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataIndexUpgrader upgrader;
+    private final MetadataIndexUpgrader indexUpgrader;
     private final DocTableInfoFactory tableFactory;
     private final UserDefinedFunctionService userDefinedFunctionService;
+    private final IndexTemplateUpgrader templateUpgrader;
 
-    public MetadataIndexUpgradeService(NodeContext nodeContext,
-                                       IndexScopedSettings indexScopedSettings,
-                                       UserDefinedFunctionService userDefinedFunctionService) {
+    public MetadataUpgradeService(NodeContext nodeContext,
+                                  IndexScopedSettings indexScopedSettings,
+                                  UserDefinedFunctionService userDefinedFunctionService) {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
-        this.upgrader = new MetadataIndexUpgrader();
+        this.indexUpgrader = new MetadataIndexUpgrader();
+        this.templateUpgrader = new IndexTemplateUpgrader();
         this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
@@ -83,9 +88,13 @@ public class MetadataIndexUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = upgrader.apply(newMetadata, indexTemplateMetadata);
+        newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
+    }
+
+    public Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
+        return templateUpgrader.upgrade(templates);
     }
 
 

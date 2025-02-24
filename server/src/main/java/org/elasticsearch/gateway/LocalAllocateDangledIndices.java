@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -70,11 +70,11 @@ public class LocalAllocateDangledIndices {
 
     private final AllocationService allocationService;
 
-    private final MetadataIndexUpgradeService metadataIndexUpgradeService;
+    private final MetadataUpgradeService metadataIndexUpgradeService;
 
     @Inject
     public LocalAllocateDangledIndices(TransportService transportService, ClusterService clusterService,
-                                       AllocationService allocationService, MetadataIndexUpgradeService metadataIndexUpgradeService) {
+                                       AllocationService allocationService, MetadataUpgradeService metadataIndexUpgradeService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.allocationService = allocationService;

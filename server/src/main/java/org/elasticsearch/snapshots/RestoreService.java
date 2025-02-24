@@ -62,8 +62,8 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -86,7 +86,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.ShardLimitValidator;
-import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -139,7 +138,7 @@ public class RestoreService implements ClusterStateApplier {
 
     private final MetadataCreateIndexService createIndexService;
 
-    private final MetadataIndexUpgradeService metadataIndexUpgradeService;
+    private final MetadataUpgradeService metadataIndexUpgradeService;
 
     private final ClusterSettings clusterSettings;
 
@@ -147,14 +146,11 @@ public class RestoreService implements ClusterStateApplier {
 
     private final ShardLimitValidator shardLimitValidator;
 
-    private final MetadataUpgrader metadataUpgrader;
-
     public RestoreService(ClusterService clusterService,
                           RepositoriesService repositoriesService,
                           AllocationService allocationService,
                           MetadataCreateIndexService createIndexService,
-                          MetadataIndexUpgradeService metadataIndexUpgradeService,
-                          MetadataUpgrader metadataUpgrader,
+                          MetadataUpgradeService metadataIndexUpgradeService,
                           ClusterSettings clusterSettings,
                           ShardLimitValidator shardLimitValidator) {
         this.clusterService = clusterService;
@@ -162,7 +158,6 @@ public class RestoreService implements ClusterStateApplier {
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
         this.metadataIndexUpgradeService = metadataIndexUpgradeService;
-        this.metadataUpgrader = metadataUpgrader;
         if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
             clusterService.addStateApplier(this);
         }
@@ -749,7 +744,7 @@ public class RestoreService implements ClusterStateApplier {
                     }
                 }
             }
-            includedTemplates = metadataUpgrader.indexTemplateMetadataUpgraders.apply(includedTemplates);
+            includedTemplates = metadataIndexUpgradeService.upgradeTemplates(includedTemplates);
             for (var indexTemplateMetadata : includedTemplates.values()) {
                 mdBuilder.put(indexTemplateMetadata);
             }
