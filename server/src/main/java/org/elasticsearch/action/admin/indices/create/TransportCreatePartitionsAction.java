@@ -23,7 +23,7 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.gateway.GatewayMetaState.applyPluginUpgraders;
+import static org.elasticsearch.gateway.GatewayMetaState.applyUpgrader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -341,7 +341,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     public void upgradeTemplates(Metadata metadata, Metadata.Builder newMetadataBuilder) {
-        applyPluginUpgraders(
+        applyUpgrader(
             metadata.templates(),
             metadataUpgrader.indexTemplateMetadataUpgraders,
             newMetadataBuilder::removeTemplate,

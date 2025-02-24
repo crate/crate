@@ -228,7 +228,7 @@ public class GatewayMetaState implements Closeable {
         final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
 
         // upgrade current templates
-        if (applyPluginUpgraders(
+        if (applyUpgrader(
             metadata.templates(),
             metadataUpgrader.indexTemplateMetadataUpgraders,
             upgradedMetadata::removeTemplate,
@@ -256,10 +256,10 @@ public class GatewayMetaState implements Closeable {
         return changed ? upgradedMetadata.build() : metadata;
     }
 
-    public static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
-                                                       UnaryOperator<Map<String, Data>> upgrader,
-                                                       Consumer<String> removeData,
-                                                       BiConsumer<String, Data> putData) {
+    public static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
+                                               UnaryOperator<Map<String, Data>> upgrader,
+                                               Consumer<String> removeData,
+                                               BiConsumer<String, Data> putData) {
         // collect current data
         Map<String, Data> existingMap = new HashMap<>();
         for (ObjectObjectCursor<String, Data> customCursor : existingData) {
