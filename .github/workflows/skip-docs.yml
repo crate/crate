@@ -1,0 +1,20 @@
+---
+# This is a dummy job to unblock mergify on PRs that have no code-changes
+name: CrateDB Docs
+on:
+  pull_request:
+    paths-ignore:
+      - '**.rst'
+
+jobs:
+  linkcheck:
+    name: Sphinx linkcheck
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '
+
+  vale:
+    name: Vale
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '

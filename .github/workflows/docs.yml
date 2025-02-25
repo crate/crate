@@ -1,7 +1,9 @@
 ---
 name: CrateDB Docs
 on:
-  pull_request: ~
+  pull_request:
+    paths:
+      - '**.rst'
   push:
     branches:
       - master
