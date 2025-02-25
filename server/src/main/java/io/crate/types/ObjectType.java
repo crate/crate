@@ -147,11 +147,21 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
         DataType<?> innerType = DataTypes.UNDEFINED;
         ObjectType currentObject = this;
+        int arrayNesting = 0;
         for (int i = 0; i < path.size(); i++) {
             innerType = currentObject.innerType(path.get(i));
-            if (innerType.id() == ID) {
-                currentObject = (ObjectType) innerType;
+            while (innerType instanceof ArrayType<?> arrayType) {
+                arrayNesting++;
+                innerType = arrayType.innerType();
             }
+            if (innerType instanceof ObjectType objectType) {
+                currentObject = objectType;
+            } else if (i < path.size() - 1) {
+                return DataTypes.UNDEFINED;
+            }
+        }
+        for (int i = 0; i < arrayNesting; i++) {
+            innerType = new ArrayType<>(innerType);
         }
         return innerType;
     }

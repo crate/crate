@@ -21,11 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -34,6 +36,8 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataTypes;
 
 
 public class SubscriptFunctionTest extends ScalarTestCase {
@@ -61,8 +65,8 @@ public class SubscriptFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_valid_min_and_max_array_index_access() {
-        assertNormalize("subscript([1,2,3], 2147483647)", isLiteral(null));
-        assertNormalize("subscript([1,2,3], -2147483648)", isLiteral(null));
+        assertNormalize("subscript([1,2,3], 2147483647)", isLiteral(null, DataTypes.INTEGER));
+        assertNormalize("subscript([1,2,3], -2147483648)", isLiteral(null, DataTypes.INTEGER));
     }
 
     @Test
@@ -72,7 +76,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_subscript_can_access_item_from_array_based_on_object() {
-        assertEvaluate("[{x=10}, {x=2}]['x'][1]", 10);
+        assertNormalize("[{x=10}, {x=2}]['x'][1]", isLiteral(10, DataTypes.INTEGER));
     }
 
     @Test
@@ -85,17 +89,17 @@ public class SubscriptFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertNormalize("subscript(['Youri', 'Ruben'], cast(1 as integer))", isLiteral("Youri"));
+        assertNormalize("subscript(['Youri', 'Ruben'], cast(1 as integer))", isLiteral("Youri", DataTypes.STRING));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        assertNormalize("subscript(tags, cast(1 as integer))", isFunction("subscript"));
+        assertNormalize("subscript(tags, cast(1 as integer))", isFunction("subscript", DataTypes.STRING));
     }
 
     @Test
     public void testIndexOutOfRange() throws Exception {
-        assertNormalize("subscript(['Youri', 'Ruben'], cast(3 as integer))", isLiteral(null));
+        assertNormalize("subscript(['Youri', 'Ruben'], cast(3 as integer))", isLiteral(null, DataTypes.STRING));
     }
 
     @Test
@@ -117,7 +121,53 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_unknown_element_of_object_array() {
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        assertThatThrownBy(() -> assertEvaluate("[{}]['y']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `y`");
+
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertNormalize("[{}]['y']", isLiteral(Arrays.stream(new Object[1]).toList()));
+    }
+
+    @Test
     public void test_lookup_by_name_with_missing_key_returns_null_if_type_information_are_available() throws Exception {
         assertEvaluateNull("{}::object(strict) as (y int)['y']");
+    }
+
+    @Test
+    public void test_lookup_by_name_depends_on_column_policy_and_error_on_unknown_object_key_settings() throws Exception {
+        sqlExpressions.setErrorOnUnknownObjectKey(true);
+        assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertThatThrownBy(() -> assertEvaluate("{}::object(dynamic)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertEvaluateNull("{}::object(ignored)['missing_key']");
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+        assertEvaluateNull("{}::object(dynamic)['missing_key']");
+        assertEvaluateNull("{}::object(ignored)['missing_key']");
+    }
+
+    @Test
+    public void test_nested_subscript_on_ignored_column_returns_null() {
+        assertNormalize("{}::OBJECT(IGNORED)['a']['b']", isLiteral(null, DataTypes.UNDEFINED));
+    }
+
+    @Test
+    public void test_return_type_of_subscript_on_literals() {
+        assertNormalize("{a = {b = 1}}['a']['b']", isLiteral(1, DataTypes.INTEGER));
+        assertNormalize("subscript({a = {b = 1}}['a'], 'b')", isLiteral(1, DataTypes.INTEGER));
+    }
+
+    @Test
+    public void test_return_type_of_subscript_on_expressions() {
+        Symbol symbol = sqlExpressions.asSymbol("(obj_typed || {c=1})['a']['b']");
+        assertThat(symbol).isFunction("subscript", DataTypes.INTEGER);
     }
 }

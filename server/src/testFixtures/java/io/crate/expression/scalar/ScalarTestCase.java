@@ -107,6 +107,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  float_val real," +
             "  short_val smallint," +
             "  obj object," +
+            "  obj_typed object as (a object as (b int))," +
             "  obj_ignored object(ignored)" +
             ")";
 

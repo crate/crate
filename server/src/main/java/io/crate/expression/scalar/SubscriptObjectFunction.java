@@ -38,9 +38,11 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 /**
  * Scalar function to resolve elements inside a map.
@@ -120,16 +122,31 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
     public final Object evaluate(TransactionContext txnCtx, NodeContext ndeCtx, Input<Map<String, Object>>... args) {
         assert args.length >= 2 : NAME + " takes 2 or more arguments, got " + args.length;
         Object mapValue = args[0].value();
+        ObjectType objectType = (ObjectType) boundSignature.argTypes().getFirst();
         for (var i = 1; i < args.length; i++) {
             if (mapValue == null) {
                 return null;
             }
+            String innerValue = DataTypes.STRING.sanitizeValue(args[i].value());
             mapValue = SubscriptFunction.lookupByName(
-                boundSignature.argTypes(),
+                List.of(objectType, DataTypes.STRING),
                 mapValue,
-                args[i].value(),
+                innerValue,
                 txnCtx.sessionSettings().errorOnUnknownObjectKey()
             );
+            if (mapValue == null) {
+                return null;
+            }
+            DataType<?> innerType = ArrayType.unnest(objectType.innerType(innerValue));
+            if (innerType instanceof ObjectType objectType1) {
+                objectType = objectType1;
+            } else if (i < args.length - 1) {
+                assert innerType instanceof UndefinedType;
+                // Returned innerType is already undefined, but we have more arguments
+                // Create an empty object based on the parent policy to continue the lookup as we need to call
+                // SubscriptFunction.lookupByName to honor the error handling.
+                objectType = ObjectType.of(objectType.columnPolicy()).build();
+            }
         }
         return mapValue;
     }

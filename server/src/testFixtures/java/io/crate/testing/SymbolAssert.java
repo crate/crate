@@ -168,6 +168,19 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         return isFunction(expectedName, (List<DataType<?>>) null);
     }
 
+    public SymbolAssert isFunction(final String expectedName, DataType<?> expectedReturnType) {
+        isNotNull();
+        isInstanceOf(Function.class);
+        Function f = ((Function) actual);
+        assertThat(f.name())
+            .as("Function name")
+            .isEqualTo(expectedName);
+        assertThat(f.valueType())
+            .as("Return type")
+            .isEqualTo(expectedReturnType);
+        return this;
+    }
+
     public SymbolAssert isFunction(final String expectedName, @Nullable final List<DataType<?>> expectedArgumentTypes) {
         isNotNull();
         isInstanceOf(Function.class);
