@@ -21,7 +21,6 @@ package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.shuffle;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
@@ -272,14 +271,14 @@ public class InternalEngineTests extends EngineTestCase {
     public void testVerboseSegments() throws Exception {
         try (Store store = createStore();
              Engine engine = createEngine(defaultSettings, store, createTempDir(), NoMergePolicy.INSTANCE)) {
-            List<Segment> segments = engine.segments(true);
+            List<Segment> segments = engine.segments();
             assertThat(segments.isEmpty()).isTrue();
 
             ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), B_1);
             engine.index(indexForDoc(doc));
             engine.refresh("test");
 
-            segments = engine.segments(true);
+            segments = engine.segments();
             assertThat(segments).hasSize(1);
 
             ParsedDocument doc2 = testParsedDocument("2", testDocumentWithTextField(), B_2);
@@ -289,7 +288,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.index(indexForDoc(doc3));
             engine.refresh("test");
 
-            segments = engine.segments(true);
+            segments = engine.segments();
             assertThat(segments).hasSize(3);
         }
     }
@@ -302,11 +301,11 @@ public class InternalEngineTests extends EngineTestCase {
             Engine.Index index = indexForDoc(doc);
             engine.index(index);
             engine.flush();
-            assertThat(engine.segments(false).size()).isEqualTo(1);
+            assertThat(engine.segments().size()).isEqualTo(1);
             index = indexForDoc(testParsedDocument("2", testDocument(), B_1));
             engine.index(index);
             engine.flush();
-            List<Segment> segments = engine.segments(false);
+            List<Segment> segments = engine.segments();
             assertThat(segments).hasSize(2);
             for (Segment segment : segments) {
                 assertThat(segment.getMergeId()).isNull();
@@ -314,7 +313,7 @@ public class InternalEngineTests extends EngineTestCase {
             index = indexForDoc(testParsedDocument("3", testDocument(), B_1));
             engine.index(index);
             engine.flush();
-            segments = engine.segments(false);
+            segments = engine.segments();
             assertThat(segments).hasSize(3);
             for (Segment segment : segments) {
                 assertThat(segment.getMergeId()).isNull();
@@ -327,7 +326,7 @@ public class InternalEngineTests extends EngineTestCase {
             // now, optimize and wait for merges, see that we have no merge flag
             engine.forceMerge(true, 1, false, UUIDs.randomBase64UUID());
 
-            for (Segment segment : engine.segments(false)) {
+            for (Segment segment : engine.segments()) {
                 assertThat(segment.getMergeId()).isNull();
             }
             // we could have multiple underlying merges, so the generation may increase more than once
@@ -337,7 +336,7 @@ public class InternalEngineTests extends EngineTestCase {
             final long gen2 = store.readLastCommittedSegmentsInfo().getGeneration();
             engine.forceMerge(flush, 1, false, UUIDs.randomBase64UUID());
 
-            for (Segment segment : engine.segments(false)) {
+            for (Segment segment : engine.segments()) {
                 assertThat(segment.getMergeId()).isNull();
             }
 
@@ -358,7 +357,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null,
                                                          null, globalCheckpoint::get))) {
-            assertThat(engine.segments(false)).isEmpty();
+            assertThat(engine.segments()).isEmpty();
             int numDocsFirstSegment = randomIntBetween(5, 50);
             Set<String> liveDocsFirstSegment = new HashSet<>();
             for (int i = 0; i < numDocsFirstSegment; i++) {
@@ -368,7 +367,7 @@ public class InternalEngineTests extends EngineTestCase {
                 liveDocsFirstSegment.add(id);
             }
             engine.refresh("test");
-            List<Segment> segments = engine.segments(randomBoolean());
+            List<Segment> segments = engine.segments();
             assertThat(segments).hasSize(1);
             assertThat(segments.get(0).getNumDocs()).isEqualTo(liveDocsFirstSegment.size());
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
@@ -398,7 +397,7 @@ public class InternalEngineTests extends EngineTestCase {
                 engine.flush();
             }
             engine.refresh("test");
-            segments = engine.segments(randomBoolean());
+            segments = engine.segments();
             assertThat(segments).hasSize(2);
             assertThat(segments.get(0).getNumDocs()).isEqualTo(liveDocsFirstSegment.size());
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(updates + deletes);
@@ -1025,19 +1024,19 @@ public class InternalEngineTests extends EngineTestCase {
                 }
                 Engine.CommitId commitID = engine.flush();
                 assertThat(Engine.SyncedFlushResult.SUCCESS).as("should succeed to flush commit with right id and no pending doc").isEqualTo(engine.syncFlush(syncId, commitID));
-                assertThat(engine.segments(false).size()).isEqualTo(3);
+                assertThat(engine.segments().size()).isEqualTo(3);
 
                 engine.forceMerge(forceMergeFlushes, 1, false, UUIDs.randomBase64UUID());
                 if (forceMergeFlushes == false) {
                     engine.refresh("make all segments visible");
-                    assertThat(engine.segments(false).size()).isEqualTo(4);
+                    assertThat(engine.segments().size()).isEqualTo(4);
                     assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
                     assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
                     assertThat(engine.tryRenewSyncCommit()).isTrue();
-                    assertThat(engine.segments(false).size()).isEqualTo(1);
+                    assertThat(engine.segments().size()).isEqualTo(1);
                 } else {
                     engine.refresh("test");
-                    assertBusy(() -> assertThat(engine.segments(false)).hasSize(1));
+                    assertBusy(() -> assertThat(engine.segments()).hasSize(1));
                 }
                 assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
                 assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
