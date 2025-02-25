@@ -47,7 +47,10 @@ public class IndexNameExpressionResolver {
     /**
      * Same as {@link #concreteIndexNames(ClusterState, IndicesOptions, String...)}, but the index expressions and options
      * are encapsulated in the specified request.
+     *
+     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
      */
+    @Deprecated
     public static String[] concreteIndexNames(ClusterState state, IndicesRequest request) {
         return concreteIndexNames(state.metadata(), request.indicesOptions(), request.indices());
     }
@@ -55,7 +58,10 @@ public class IndexNameExpressionResolver {
     /**
      * Same as {@link #concreteIndices(ClusterState, IndicesOptions, String...)}, but the index expressions and options
      * are encapsulated in the specified request.
+     *
+     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
      */
+    @Deprecated
     public static Index[] concreteIndices(ClusterState state, IndicesRequest request) {
         return concreteIndices(state.metadata(), request.indicesOptions(), request.indices());
     }
@@ -72,7 +78,10 @@ public class IndexNameExpressionResolver {
      * contains no indices and the indices options in the context don't allow such a case.
      * @throws IllegalArgumentException if one of the aliases resolve to multiple indices and the provided
      * indices options in the context don't allow such a case.
+     *
+     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
      */
+    @Deprecated
     public static String[] concreteIndexNames(Metadata metadata, IndicesOptions options, String... indexExpressions) {
         Index[] indexes = concreteIndices(metadata, options, indexExpressions);
         String[] names = new String[indexes.length];
@@ -94,7 +103,10 @@ public class IndexNameExpressionResolver {
      * contains no indices and the indices options in the context don't allow such a case.
      * @throws IllegalArgumentException if one of the aliases resolve to multiple indices and the provided
      * indices options in the context don't allow such a case.
+     *
+     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
      */
+    @Deprecated
     public static Index[] concreteIndices(Metadata metadata, IndicesOptions options, String... indexExpressions) {
         if (indexExpressions == null || indexExpressions.length == 0) {
             indexExpressions = new String[]{Metadata.ALL};
@@ -152,27 +164,6 @@ public class IndexNameExpressionResolver {
         return concreteIndices.toArray(new Index[concreteIndices.size()]);
     }
 
-    /**
-     * Utility method that allows to resolve an index expression to its corresponding single concrete index.
-     * Callers should make sure they provide proper {@link org.elasticsearch.action.support.IndicesOptions}
-     * that require a single index as a result. The indices resolution must in fact return a single index when
-     * using this method, an {@link IllegalArgumentException} gets thrown otherwise.
-     *
-     * @param state             the cluster state containing all the data to resolve to expression to a concrete index
-     * @param request           The request that defines how the an alias or an index need to be resolved to a concrete index
-     *                          and the expression that can be resolved to an alias or an index name.
-     * @throws IllegalArgumentException if the index resolution lead to more than one index
-     * @return the concrete index obtained as a result of the index resolution
-     */
-    public static Index concreteSingleIndex(ClusterState state, IndicesRequest request) {
-        String indexExpression = request.indices().length == 0 ? null : request.indices()[0];
-        String[] indexExpressions = { indexExpression };
-        Index[] indices = concreteIndices(state.metadata(), request.indicesOptions(), indexExpressions);
-        if (indices.length != 1) {
-            throw new IllegalArgumentException("unable to return a single index as the index and options provided got resolved to multiple indices");
-        }
-        return indices[0];
-    }
 
     /**
      * Identifies whether the array containing index names given as argument refers to all indices
@@ -182,20 +173,8 @@ public class IndexNameExpressionResolver {
      * @return true if the provided array maps to all indices, false otherwise
      */
     public static boolean isAllIndices(List<String> aliasesOrIndices) {
-        return aliasesOrIndices == null || aliasesOrIndices.isEmpty() || isExplicitAllPattern(aliasesOrIndices);
+        return aliasesOrIndices == null || aliasesOrIndices.isEmpty() || Metadata.ALL.equals(aliasesOrIndices.get(0));
     }
-
-    /**
-     * Identifies whether the array containing index names given as argument explicitly refers to all indices
-     * The empty or null array doesn't explicitly map to all indices
-     *
-     * @param aliasesOrIndices the array containing index names
-     * @return true if the provided array explicitly maps to all indices, false otherwise
-     */
-    static boolean isExplicitAllPattern(List<String> aliasesOrIndices) {
-        return aliasesOrIndices != null && aliasesOrIndices.size() == 1 && Metadata.ALL.equals(aliasesOrIndices.get(0));
-    }
-
 
     /**
      * Resolves the list of expressions into other expressions if possible (possible concrete indices and aliases, but
