@@ -22,7 +22,6 @@ package org.elasticsearch.index.codec;
 import java.io.IOException;
 
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.KnnVectorsReader;
 import org.apache.lucene.codecs.KnnVectorsWriter;
@@ -31,7 +30,6 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.elasticsearch.common.lucene.Lucene;
 
-import io.crate.lucene.codec.CustomLucene90DocValuesFormat;
 import io.crate.types.FloatVectorType;
 
 
@@ -49,11 +47,6 @@ public class CrateCodec extends Lucene101Codec {
 
     public CrateCodec(Mode compressionMode) {
         super(compressionMode);
-    }
-
-    @Override
-    public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new CustomLucene90DocValuesFormat(CustomLucene90DocValuesFormat.Mode.BEST_SPEED);
     }
 
     @Override
