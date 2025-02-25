@@ -253,11 +253,6 @@ public class GatewayMetaState implements Closeable {
             upgradedMetadata.put(newMetadata, false);
         }
 
-        // upgrade global custom meta data
-        if (applyPluginUpgraders(metadata.customs(), metadataUpgrader.customMetadataUpgraders,
-                upgradedMetadata::removeCustom, upgradedMetadata::putCustom)) {
-            changed = true;
-        }
         return changed ? upgradedMetadata.build() : metadata;
     }
 

@@ -193,7 +193,6 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
@@ -564,12 +563,6 @@ public class Node implements Closeable {
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
             nettyBootstrap.start();
 
-            List<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getCustomMetadataUpgrader)
-                    .collect(Collectors.toList());
-            customMetadataUpgraders.add(new CustomMetadataUpgraderLoader(settings));
-
             List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getIndexTemplateMetadataUpgrader)
@@ -581,9 +574,7 @@ public class Node implements Closeable {
                     .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
             indexMetadataUpgraders.add(new MetadataIndexUpgrader());
 
-            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(
-                customMetadataUpgraders,
-                indexTemplateMetadataUpgraders);
+            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 nodeContext,
                 indexScopedSettings,
