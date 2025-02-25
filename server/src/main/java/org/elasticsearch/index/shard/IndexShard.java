@@ -1096,7 +1096,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public org.apache.lucene.util.Version minimumCompatibleVersion() {
         org.apache.lucene.util.Version luceneVersion = null;
-        for (Segment segment : getEngine().segments(false)) {
+        for (Segment segment : getEngine().segments()) {
             if (luceneVersion == null || luceneVersion.onOrAfter(segment.getVersion())) {
                 luceneVersion = segment.getVersion();
             }
@@ -1925,8 +1925,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return getEngine().newChangesSnapshot(source, fromSeqNo, toSeqNo, requiredFullRange);
     }
 
-    public List<Segment> segments(boolean verbose) {
-        return getEngine().segments(verbose);
+    public List<Segment> segments() {
+        return getEngine().segments();
     }
 
     @Nullable
