@@ -259,6 +259,10 @@ public class Asserts extends Assertions {
         return s -> assertThat(s).isFunction(expectedName);
     }
 
+    public static Consumer<Symbol> isFunction(String expectedName, DataType<?> expectedReturnType) {
+        return s -> assertThat(s).isFunction(expectedName, expectedReturnType);
+    }
+
     public static Consumer<Symbol> isFunction(String expectedName, List<DataType<?>> expectedArgTypes) {
         return s -> assertThat(s).isFunction(expectedName, expectedArgTypes);
     }
