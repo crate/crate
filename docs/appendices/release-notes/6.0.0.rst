@@ -115,5 +115,9 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- merge_id and fully_merged_docs columns in sys.segments table give more
+  information on ongoing merges and how many documents have had their
+  temporary recovery data cleared.
+
 Client interfaces
 -----------------
