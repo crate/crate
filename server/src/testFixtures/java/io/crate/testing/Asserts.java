@@ -26,6 +26,7 @@ import static org.elasticsearch.test.ESTestCase.assertBusy;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -214,6 +215,14 @@ public class Asserts extends Assertions {
             assertThat(s).hasDataType(DataTypes.NUMERIC);
             BigDecimal value = (BigDecimal) ((Input<?>) s).value();
             assertThat(value).isCloseTo(expectedValue, Offset.offset(precisionError));
+        };
+    }
+
+    public static Consumer<Symbol> isObjectLiteral(Map<String, Object> expectedValue) {
+        return s -> {
+            assertThat(s).isNotNull();
+            assertThat(s).isLiteral(expectedValue);
+            assertThat(s).hasDataType(DataTypes.guessType(expectedValue));
         };
     }
 
