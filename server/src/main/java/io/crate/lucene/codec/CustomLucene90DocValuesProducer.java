@@ -30,6 +30,7 @@ import org.apache.lucene.index.BaseTermsEnum;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipIndexType;
 import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
@@ -43,6 +44,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.DataInput;
@@ -63,6 +65,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     private final Map<String, SortedEntry> sorted;
     private final Map<String, SortedSetEntry> sortedSets;
     private final Map<String, SortedNumericEntry> sortedNumerics;
+    private final Map<String, DocValuesSkipperEntry> skippers;
     private final IndexInput data;
     private final int maxDoc;
     private int version = -1;
@@ -83,6 +86,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         sorted = new HashMap<>();
         sortedSets = new HashMap<>();
         sortedNumerics = new HashMap<>();
+        skippers = new HashMap<>();
         merging = false;
 
         // read in the entries from the metadata file.
@@ -150,6 +154,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             Map<String, SortedEntry> sorted,
             Map<String, SortedSetEntry> sortedSets,
             Map<String, SortedNumericEntry> sortedNumerics,
+            Map<String, DocValuesSkipperEntry> skippers,
             IndexInput data,
             int maxDoc,
             int version,
@@ -159,6 +164,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         this.sorted = sorted;
         this.sortedSets = sortedSets;
         this.sortedNumerics = sortedNumerics;
+        this.skippers = skippers;
         this.data = data.clone();
         this.maxDoc = maxDoc;
         this.version = version;
@@ -168,7 +174,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     @Override
     public DocValuesProducer getMergeInstance() {
         return new CustomLucene90DocValuesProducer(
-                numerics, binaries, sorted, sortedSets, sortedNumerics, data, maxDoc, version, true);
+                numerics, binaries, sorted, sortedSets, sortedNumerics, skippers, data, maxDoc, version, true);
     }
 
     private void readFields(IndexInput meta, FieldInfos infos) throws IOException {
@@ -178,6 +184,9 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 throw new CorruptIndexException("Invalid field number: " + fieldNumber, meta);
             }
             byte type = meta.readByte();
+            if (info.docValuesSkipIndexType() == DocValuesSkipIndexType.RANGE) {
+                skippers.put(info.name, readDocValueSkipperMeta(meta));
+            }
             if (type == CustomLucene90DocValuesFormat.NUMERIC) {
                 numerics.put(info.name, readNumeric(meta));
             } else if (type == CustomLucene90DocValuesFormat.BINARY) {
@@ -192,6 +201,21 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 throw new CorruptIndexException("invalid type: " + type, meta);
             }
         }
+    }
+
+    private record DocValuesSkipperEntry(
+        long offset, long length, long minValue, long maxValue, int docCount, int maxDocId) {
+    }
+
+    private DocValuesSkipperEntry readDocValueSkipperMeta(IndexInput meta) throws IOException {
+        long offset = meta.readLong();
+        long length = meta.readLong();
+        long maxValue = meta.readLong();
+        long minValue = meta.readLong();
+        int docCount = meta.readInt();
+        int maxDocID = meta.readInt();
+
+        return new DocValuesSkipperEntry(offset, length, minValue, maxValue, docCount, maxDocID);
     }
 
     private NumericEntry readNumeric(IndexInput meta) throws IOException {
@@ -1673,7 +1697,87 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     @Override
     public DocValuesSkipper getSkipper(FieldInfo field) throws IOException {
-        throw new UnsupportedOperationException("CrateDB does not implement DocValuesSkippers");
+        final DocValuesSkipperEntry entry = skippers.get(field.name);
+
+        final IndexInput input = data.slice("doc value skipper", entry.offset, entry.length);
+        // Prefetch the first page of data. Following pages are expected to get prefetched through
+        // read-ahead.
+        if (input.length() > 0) {
+            input.prefetch(0, 1);
+        }
+
+        return new DocValuesSkipper() {
+            int minDocID = -1;
+            int maxDocID = -1;
+            long minValue, maxValue;
+            int docCount;
+
+            @Override
+            public void advance(int target) throws IOException {
+                if (target > entry.maxDocId) {
+                    minDocID = DocIdSetIterator.NO_MORE_DOCS;
+                    maxDocID = DocIdSetIterator.NO_MORE_DOCS;
+                } else {
+                    while (true) {
+                        maxDocID = input.readInt();
+                        if (maxDocID >= target) {
+                            minDocID = input.readInt();
+                            maxValue = input.readLong();
+                            minValue = input.readLong();
+                            docCount = input.readInt();
+                            break;
+                        } else {
+                            input.skipBytes(24);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public int numLevels() {
+                return 1;
+            }
+
+            @Override
+            public int minDocID(int level) {
+                return minDocID;
+            }
+
+            @Override
+            public int maxDocID(int level) {
+                return maxDocID;
+            }
+
+            @Override
+            public long minValue(int level) {
+                return minValue;
+            }
+
+            @Override
+            public long maxValue(int level) {
+                return maxValue;
+            }
+
+            @Override
+            public int docCount(int level) {
+                return docCount;
+            }
+
+            @Override
+            public long minValue() {
+                return entry.minValue;
+            }
+
+            @Override
+            public long maxValue() {
+                return entry.maxValue;
+            }
+
+            @Override
+            public int docCount() {
+                return entry.docCount;
+            }
+        };
     }
 
     @Override

@@ -31,6 +31,7 @@ import org.apache.lucene.codecs.lucene90.IndexedDISI;
 import org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipIndexType;
 import org.apache.lucene.index.EmptyDocValuesProducer;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
@@ -70,11 +71,13 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
     final int maxDoc;
     private byte[] termsDictBuffer;
     private final Mode mode;
+    private final int skipIndexIntervalSize;
 
     /** expert: Creates a new writer
      * @param mode*/
     public CustomLucene90DocValuesConsumer(
             SegmentWriteState state,
+            int skipIndexIntervalSize,
             String dataCodec,
             String dataExtension,
             String metaCodec,
@@ -85,6 +88,7 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         if (CustomLucene90DocValuesFormat.Mode.BEST_COMPRESSION == this.mode) {
             this.termsDictBuffer = new byte[1 << 14];
         }
+        this.skipIndexIntervalSize = skipIndexIntervalSize;
         boolean success = false;
         try {
             String dataName = IndexFileNames.segmentFileName(
@@ -142,15 +146,17 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         meta.writeInt(field.number);
         meta.writeByte(CustomLucene90DocValuesFormat.NUMERIC);
 
-        writeValues(
-                field,
+        DocValuesProducer producer =
                 new EmptyDocValuesProducer() {
                     @Override
                     public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
                         return DocValues.singleton(valuesProducer.getNumeric(field));
                     }
-                },
-                false);
+                };
+        if (field.docValuesSkipIndexType() == DocValuesSkipIndexType.RANGE) {
+            writeSkipIndex(field, producer);
+        }
+        writeValues(field, producer, false);
     }
 
     private static class MinMaxTracker {
@@ -195,6 +201,84 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
             finish();
             reset();
         }
+    }
+
+    private static class SkipAccumulator {
+        int minDocID;
+        int maxDocID;
+        int docCount;
+        long minValue;
+        long maxValue;
+
+        SkipAccumulator(int docID) {
+            minDocID = docID;
+            minValue = Long.MAX_VALUE;
+            maxValue = Long.MIN_VALUE;
+            docCount = 0;
+        }
+
+        void accumulate(long value) {
+            minValue = Math.min(minValue, value);
+            maxValue = Math.max(maxValue, value);
+        }
+
+        void nextDoc(int docID) {
+            maxDocID = docID;
+            ++docCount;
+        }
+
+        void writeTo(DataOutput output) throws IOException {
+            output.writeInt(maxDocID);
+            output.writeInt(minDocID);
+            output.writeLong(maxValue);
+            output.writeLong(minValue);
+            output.writeInt(docCount);
+        }
+    }
+
+    private void writeSkipIndex(FieldInfo field, DocValuesProducer valuesProducer)
+        throws IOException {
+        assert field.docValuesSkipIndexType() == DocValuesSkipIndexType.RANGE;
+        // TODO: This disk compression once we introduce levels
+        long start = data.getFilePointer();
+        SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
+        long globalMaxValue = Long.MIN_VALUE;
+        long globalMinValue = Long.MAX_VALUE;
+        int globalDocCount = 0;
+        int maxDocId = -1;
+        SkipAccumulator accumulator = null;
+        int counter = 0;
+        for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
+            if (counter == 0) {
+                accumulator = new SkipAccumulator(doc);
+            }
+            accumulator.nextDoc(doc);
+            for (int i = 0, end = values.docValueCount(); i < end; ++i) {
+                accumulator.accumulate(values.nextValue());
+            }
+            if (++counter == skipIndexIntervalSize) {
+                globalMaxValue = Math.max(globalMaxValue, accumulator.maxValue);
+                globalMinValue = Math.min(globalMinValue, accumulator.minValue);
+                globalDocCount += accumulator.docCount;
+                maxDocId = accumulator.maxDocID;
+                accumulator.writeTo(data);
+                counter = 0;
+            }
+        }
+
+        if (counter > 0) {
+            globalMaxValue = Math.max(globalMaxValue, accumulator.maxValue);
+            globalMinValue = Math.min(globalMinValue, accumulator.minValue);
+            globalDocCount += accumulator.docCount;
+            maxDocId = accumulator.maxDocID;
+            accumulator.writeTo(data);
+        }
+        meta.writeLong(start); // record the start in meta
+        meta.writeLong(data.getFilePointer() - start); // record the length
+        meta.writeLong(globalMaxValue);
+        meta.writeLong(globalMinValue);
+        meta.writeInt(globalDocCount);
+        meta.writeInt(maxDocId);
     }
 
     private long[] writeValues(FieldInfo field, DocValuesProducer valuesProducer, boolean ords)
@@ -499,13 +583,12 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
     public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
         meta.writeInt(field.number);
         meta.writeByte(CustomLucene90DocValuesFormat.SORTED);
-        doAddSortedField(field, valuesProducer);
+        doAddSortedField(field, valuesProducer, false);
     }
 
-    private void doAddSortedField(FieldInfo field, DocValuesProducer valuesProducer)
+    private void doAddSortedField(FieldInfo field, DocValuesProducer valuesProducer, boolean addTypeByte)
             throws IOException {
-        writeValues(
-                field,
+        DocValuesProducer producer =
                 new EmptyDocValuesProducer() {
                     @Override
                     public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
@@ -543,8 +626,14 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                         };
                         return DocValues.singleton(sortedOrds);
                     }
-                },
-                true);
+                };
+        if (field.docValuesSkipIndexType() == DocValuesSkipIndexType.RANGE) {
+            writeSkipIndex(field, producer);
+        }
+        if (addTypeByte) {
+            meta.writeByte((byte) 0); // multivalued (0 = singlevalued)
+        }
+        writeValues(field, producer, true);
         addTermsDict(DocValues.singleton(valuesProducer.getSorted(field)));
     }
 
@@ -729,6 +818,12 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
 
     private void doAddSortedNumericField(
             FieldInfo field, DocValuesProducer valuesProducer, boolean ords) throws IOException {
+        if (field.docValuesSkipIndexType() == DocValuesSkipIndexType.RANGE) {
+            writeSkipIndex(field, valuesProducer);
+        }
+        if (ords) {
+            meta.writeByte((byte) 1); // multiValued (1 = multiValued)
+        }
         long[] stats = writeValues(field, valuesProducer, ords);
         int numDocsWithField = Math.toIntExact(stats[0]);
         long numValues = stats[1];
@@ -777,19 +872,18 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         meta.writeByte(CustomLucene90DocValuesFormat.SORTED_SET);
 
         if (isSingleValued(valuesProducer.getSortedSet(field))) {
-            meta.writeByte((byte) 0); // multiValued (0 = singleValued)
             doAddSortedField(
-                    field,
-                    new EmptyDocValuesProducer() {
-                        @Override
-                        public SortedDocValues getSorted(FieldInfo field) throws IOException {
-                            return SortedSetSelector.wrap(
-                                    valuesProducer.getSortedSet(field), SortedSetSelector.Type.MIN);
-                        }
-                    });
+                field,
+                new EmptyDocValuesProducer() {
+                    @Override
+                    public SortedDocValues getSorted(FieldInfo field) throws IOException {
+                        return SortedSetSelector.wrap(
+                            valuesProducer.getSortedSet(field), SortedSetSelector.Type.MIN);
+                    }
+                },
+                true);
             return;
         }
-        meta.writeByte((byte) 1); // multiValued (1 = multiValued)
 
         doAddSortedNumericField(
                 field,
