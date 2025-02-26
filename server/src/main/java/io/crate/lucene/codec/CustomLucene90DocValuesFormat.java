@@ -37,21 +37,27 @@ public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
     }
 
     private final Mode mode;
+    private final int skipIndexIntervalSize;
 
     /** Default constructor. */
     public CustomLucene90DocValuesFormat() {
-        this(Mode.BEST_SPEED);
+        this(Mode.BEST_SPEED, DEFAULT_SKIP_INDEX_INTERVAL_SIZE);
     }
 
     public CustomLucene90DocValuesFormat(Mode mode) {
+        this(mode, DEFAULT_SKIP_INDEX_INTERVAL_SIZE);
+    }
+
+    public CustomLucene90DocValuesFormat(Mode mode, int skipIndexIntervalSize) {
         super("CrateDBLucene90");
         this.mode = mode;
+        this.skipIndexIntervalSize = skipIndexIntervalSize;
     }
 
     @Override
     public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
         return new CustomLucene90DocValuesConsumer(
-                state, DEFAULT_SKIP_INDEX_INTERVAL_SIZE, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION, mode);
+                state, skipIndexIntervalSize, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION, mode);
     }
 
     @Override
