@@ -45,10 +45,9 @@ public class MetadataIndexUpgradeServiceTest extends CrateDummyClusterServiceUni
     public void test_upgradeIndexMetadata_ensure_UDFs_are_loaded_before_checkMappingsCompatibility_is_called() throws IOException {
         SQLExecutor e = SQLExecutor.of(clusterService);
         e.udfService().registerLanguage(UdfUnitTest.DUMMY_LANG);
-        var metadataIndexUpgradeService = new MetadataIndexUpgradeService(
+        var metadataIndexUpgradeService = new MetadataUpgradeService(
             e.nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            List.of(),
             e.udfService()
         );
         metadataIndexUpgradeService.upgradeIndexMetadata(

@@ -24,16 +24,11 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -152,37 +147,6 @@ public abstract class Plugin implements Closeable {
      */
     public List<SettingUpgrader<?>> getSettingUpgraders() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Provides a function to modify index template meta data on startup.
-     * <p>
-     * Plugins should return the input template map via {@link UnaryOperator#identity()} if no upgrade is required.
-     * <p>
-     * The order of the template upgrader calls is undefined and can change between runs so, it is expected that
-     * plugins will modify only templates owned by them to avoid conflicts.
-     * <p>
-     * @return Never {@code null}. The same or upgraded {@code IndexTemplateMetadata} map.
-     * @throws IllegalStateException if the node should not start because at least one {@code IndexTemplateMetadata}
-     *                               cannot be upgraded
-     */
-    public UnaryOperator<Map<String, IndexTemplateMetadata>> getIndexTemplateMetadataUpgrader() {
-        return UnaryOperator.identity();
-    }
-
-    /**
-     * Provides a function to modify index meta data when an index is introduced into the cluster state for the first time.
-     * <p>
-     * Plugins should return the input index metadata if no upgrade is required.
-     * <p>
-     * The order of the index upgrader calls for the same index is undefined and can change between runs so, it is expected that
-     * plugins will modify only indices owned by them to avoid conflicts.
-     * <p>
-     * @return Never {@code null}. The same or upgraded {@code IndexMetadata}.
-     * @throws IllegalStateException if the node should not start because the index is unsupported
-     */
-    public BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> getIndexMetadataUpgrader() {
-        return (indexMetadata, indexTemplateMetadata) -> indexMetadata;
     }
 
     /**

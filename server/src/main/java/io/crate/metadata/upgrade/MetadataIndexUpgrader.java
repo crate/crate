@@ -29,28 +29,25 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.collections.Maps;
-import io.crate.server.xcontent.XContentHelper;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-
-import io.crate.Constants;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.Constants;
+import io.crate.common.collections.Maps;
+import io.crate.server.xcontent.XContentHelper;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
-public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {
+public class MetadataIndexUpgrader {
 
     private final Logger logger;
 
@@ -58,9 +55,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
         this.logger = LogManager.getLogger(MetadataIndexUpgrader.class);
     }
 
-    @Override
-    public IndexMetadata apply(IndexMetadata indexMetadata,
-                               IndexTemplateMetadata indexTemplateMetadata) {
+    public IndexMetadata upgrade(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata) {
         return createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
     }
 

@@ -437,17 +437,6 @@ public final class RepositoryData {
     }
 
     /**
-     * Resolve the given index names to index ids.
-     */
-    public List<IndexId> resolveIndices(final List<String> indices) {
-        List<IndexId> resolvedIndices = new ArrayList<>(indices.size());
-        for (final String indexName : indices) {
-            resolvedIndices.add(resolveIndexId(indexName));
-        }
-        return resolvedIndices;
-    }
-
-    /**
      * Resolve the given index names to index ids, creating new index ids for
      * new indices in the repository.
      *

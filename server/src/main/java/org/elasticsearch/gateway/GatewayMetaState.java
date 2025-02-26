@@ -50,7 +50,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -60,7 +60,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -107,8 +106,7 @@ public class GatewayMetaState implements Closeable {
                       TransportService transportService,
                       ClusterService clusterService,
                       MetaStateService metaStateService,
-                      MetadataIndexUpgradeService metadataIndexUpgradeService,
-                      MetadataUpgrader metadataUpgrader,
+                      MetadataUpgradeService metadataUpgradeService,
                       PersistedClusterStateService persistedClusterStateService) {
         assert persistedState.get() == null : "should only start once, but already have " + persistedState.get();
 
@@ -136,7 +134,7 @@ public class GatewayMetaState implements Closeable {
                         transportService, clusterService,
                         ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.get(settings))
                             .version(lastAcceptedVersion)
-                            .metadata(upgradeMetadataForNode(metadata, metadataIndexUpgradeService, metadataUpgrader))
+                            .metadata(upgradeMetadataForNode(metadata, metadataUpgradeService))
                             .build());
                     if (DiscoveryNode.isMasterEligibleNode(settings)) {
                         persistedState = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
@@ -205,22 +203,18 @@ public class GatewayMetaState implements Closeable {
     }
 
     // exposed so it can be overridden by tests
-    Metadata upgradeMetadataForNode(Metadata metadata,
-                                    MetadataIndexUpgradeService metadataIndexUpgradeService,
-                                    MetadataUpgrader metadataUpgrader) {
-        return upgradeMetadata(metadata, metadataIndexUpgradeService, metadataUpgrader);
+    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
+        return upgradeMetadata(metadata, metadataUpgradeService);
     }
 
     /**
      * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
-     * {@link MetadataIndexUpgradeService} to makes sure that indices are compatible with the current version. The
+     * {@link MetadataUpgradeService} to makes sure that indices are compatible with the current version. The
      * MetadataIndexUpgradeService might also update obsolete settings if needed.
      *
      * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
      */
-    public static Metadata upgradeMetadata(Metadata metadata,
-                                    MetadataIndexUpgradeService metadataIndexUpgradeService,
-                                    MetadataUpgrader metadataUpgrader) {
+    public static Metadata upgradeMetadata(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
         boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
 
@@ -228,9 +222,9 @@ public class GatewayMetaState implements Closeable {
         final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
 
         // upgrade current templates
-        if (applyPluginUpgraders(
+        if (applyUpgrader(
             metadata.templates(),
-            metadataUpgrader.indexTemplateMetadataUpgraders,
+            metadataUpgradeService::upgradeTemplates,
             upgradedMetadata::removeTemplate,
             (s, indexTemplateMetadata) -> {
                 upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
@@ -242,7 +236,7 @@ public class GatewayMetaState implements Closeable {
         // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
             String indexName = indexMetadata.getIndex().getName();
-            IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
+            IndexMetadata newMetadata = metadataUpgradeService.upgradeIndexMetadata(
                 indexMetadata,
                 IndexName.isPartitioned(indexName) ?
                     upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
@@ -256,10 +250,10 @@ public class GatewayMetaState implements Closeable {
         return changed ? upgradedMetadata.build() : metadata;
     }
 
-    public static <Data> boolean applyPluginUpgraders(ImmutableOpenMap<String, Data> existingData,
-                                                       UnaryOperator<Map<String, Data>> upgrader,
-                                                       Consumer<String> removeData,
-                                                       BiConsumer<String, Data> putData) {
+    public static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
+                                               UnaryOperator<Map<String, Data>> upgrader,
+                                               Consumer<String> removeData,
+                                               BiConsumer<String, Data> putData) {
         // collect current data
         Map<String, Data> existingMap = new HashMap<>();
         for (ObjectObjectCursor<String, Data> customCursor : existingData) {

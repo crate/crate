@@ -40,9 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,11 +70,9 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.coordination.Coordinator;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.BatchedRerouteService;
@@ -145,7 +141,6 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
@@ -206,8 +201,6 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.upgrade.IndexTemplateUpgrader;
-import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
@@ -563,22 +556,9 @@ public class Node implements Closeable {
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
             nettyBootstrap.start();
 
-            List<UnaryOperator<Map<String, IndexTemplateMetadata>>> indexTemplateMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getIndexTemplateMetadataUpgrader)
-                    .collect(Collectors.toList());
-            indexTemplateMetadataUpgraders.add(new IndexTemplateUpgrader());
-
-            List<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders =
-                pluginsService.filterPlugins(Plugin.class).stream()
-                    .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
-            indexMetadataUpgraders.add(new MetadataIndexUpgrader());
-
-            final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(indexTemplateMetadataUpgraders);
-            final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
+            final MetadataUpgradeService metadataIndexUpgradeService = new MetadataUpgradeService(
                 nodeContext,
                 indexScopedSettings,
-                indexMetadataUpgraders,
                 udfService);
             final Netty4Transport transport = new Netty4Transport(
                 settings,
@@ -693,7 +673,6 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService(),
                 metadataCreateIndexService,
                 metadataIndexUpgradeService,
-                metadataUpgrader,
                 clusterService.getClusterSettings(),
                 shardLimitValidator
             );
@@ -806,7 +785,6 @@ public class Node implements Closeable {
                     b.bind(PageCacheRecycler.class).toInstance(pageCacheRecycler);
                     b.bind(AnalysisRegistry.class).toInstance(analysisRegistry);
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
-                    b.bind(MetadataUpgrader.class).toInstance(metadataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
                     b.bind(PersistedClusterStateService.class).toInstance(persistedClusterStateService);
                     b.bind(IndicesService.class).toInstance(indicesService);
@@ -815,7 +793,7 @@ public class Node implements Closeable {
                     b.bind(Netty4Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);
                     b.bind(NetworkService.class).toInstance(networkService);
-                    b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
+                    b.bind(MetadataUpgradeService.class).toInstance(metadataIndexUpgradeService);
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(SnapshotsInfoService.class).toInstance(snapshotsInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
@@ -1044,8 +1022,7 @@ public class Node implements Closeable {
             transportService,
             clusterService,
             injector.getInstance(MetaStateService.class),
-            injector.getInstance(MetadataIndexUpgradeService.class),
-            injector.getInstance(MetadataUpgrader.class),
+            injector.getInstance(MetadataUpgradeService.class),
             injector.getInstance(PersistedClusterStateService.class)
         );
         if (Assertions.ENABLED) {
