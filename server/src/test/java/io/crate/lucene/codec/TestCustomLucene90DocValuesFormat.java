@@ -72,7 +72,7 @@ import org.apache.lucene.store.ByteBuffersDataOutput;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.codecs.asserting.AssertingCodec;
-import org.apache.lucene.tests.index.LegacyBaseDocValuesFormatTestCase;
+import org.apache.lucene.tests.index.BaseDocValuesFormatTestCase;
 import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.BytesRef;
@@ -80,7 +80,7 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.index.codec.CrateCodec;
 
-public class TestCustomLucene90DocValuesFormat extends LegacyBaseDocValuesFormatTestCase {
+public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCase {
 
     private final Codec codec = new CrateCodec(Lucene101Codec.Mode.BEST_SPEED);
 
