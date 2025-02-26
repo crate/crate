@@ -508,7 +508,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 RelationName.fromIndexName(indexShard.shardId().getIndexName()),
                 newColumns,
                 Map.of(),
-                new IntArrayList(0)
+                new IntArrayList(0),
+                Settings.EMPTY
             );
             addColumnAction.execute(addColumnRequest).get();
             DocTableInfo actualTable = schemas.getTableInfo(relationName);

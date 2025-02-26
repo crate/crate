@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -398,7 +397,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
-            Map.of());
+            Map.of(),
+            Settings.EMPTY);
         assertThat(table2.columns()).satisfiesExactly(
             x -> assertThat(x)
                 .hasName("x")
@@ -429,7 +429,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
-            Map.of());
+            Map.of(),
+            Settings.EMPTY);
         Reference newPointRef = table3.getReference(ColumnIdent.of("point"));
         assertThat(newPointRef.valueType()).isExactlyInstanceOf(ObjectType.class);
         DataType<?> yInnerType = ((ObjectType) newPointRef.valueType()).innerType("y");
@@ -454,7 +455,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 () -> 2,
                 List.of(ox),
                 new IntArrayList(),
-                Map.of())
+                Map.of(),
+                Settings.EMPTY)
         ).isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot create parents of new column implicitly. `o` is undefined");
     }
@@ -490,7 +492,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             () -> 10, // any oid
             List.of(newReference1, newReference2, newReference3),
             new IntArrayList(),
-            Map.of()
+            Map.of(),
+            Settings.EMPTY
         );
 
         var oooType = ObjectType.of(ColumnPolicy.DYNAMIC)

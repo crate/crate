@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,6 +52,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         PlannerContext plannerContext = e.getPlannerContext();
         AnalyzedAlterTableAddColumn analyze = e.analyze(stmt);
         return analyze.bind(
+            e.fulltextAnalyzerResolver(),
             plannerContext.nodeContext(),
             plannerContext.transactionContext(),
             Row.EMPTY,

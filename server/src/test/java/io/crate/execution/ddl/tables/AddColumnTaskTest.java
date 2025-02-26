@@ -76,7 +76,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
@@ -142,7 +143,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
@@ -180,7 +182,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         ClusterState newState = addColumnTask.execute(state, request);
         assertThat(newState).isSameAs(state);
@@ -215,7 +218,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         assertThatThrownBy(() -> addColumnTask.execute(state, request))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -242,7 +246,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         ClusterState newState = addColumnTask.execute(state, request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
@@ -275,7 +280,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
@@ -304,7 +310,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl.ident(),
             columns,
             Map.of(),
-            new IntArrayList()
+            new IntArrayList(),
+            Settings.EMPTY
         );
         assertThatThrownBy(() -> addColumnTask.execute(clusterService.state(), request))
             .isExactlyInstanceOf(UnsupportedOperationException.class)

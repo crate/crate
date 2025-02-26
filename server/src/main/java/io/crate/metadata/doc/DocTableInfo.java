@@ -1069,6 +1069,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
+                    .settings(tableParameters)
                     .putMapping(new MappingMetadata(mapping))
                     .numberOfShards(indexNumberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
@@ -1176,7 +1177,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    LongSupplier acquireOid,
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
-                                   Map<String, String> newCheckConstraints) {
+                                   Map<String, String> newCheckConstraints,
+                                   Settings settings) {
         newColumns.forEach(ref -> ref.column().validForCreate());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         int maxPosition = maxPosition();
@@ -1236,7 +1238,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             newPrimaryKeys,
             newChecks,
             clusteredBy,
-            tableParameters,
+            Settings.builder().put(tableParameters).put(settings).build(),
             partitionedBy,
             columnPolicy,
             versionCreated,

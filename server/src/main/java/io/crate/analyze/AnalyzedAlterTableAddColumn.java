@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.elasticsearch.common.settings.Settings;
+
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
@@ -37,6 +39,8 @@ import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -63,7 +67,8 @@ public record AnalyzedAlterTableAddColumn(
     public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 
-    public AddColumnRequest bind(NodeContext nodeCtx,
+    public AddColumnRequest bind(FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                 NodeContext nodeCtx,
                                  CoordinatorTxnCtx txnCtx,
                                  Row params,
                                  SubQueryResults subQueryResults) {
@@ -71,6 +76,7 @@ public record AnalyzedAlterTableAddColumn(
         Function<Symbol, Object> toValue = new SymbolEvaluator(txnCtx, nodeCtx, subQueryResults).bind(params);
         List<Reference> newColumns = new ArrayList<>(columns.size());
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        Settings.Builder builder = Settings.builder();
         for (var refBuilder : columns.values()) {
             Reference reference = refBuilder.build(columns, table.ident(), bindParameter, toValue);
             if (refBuilder.isPrimaryKey()) {
@@ -80,6 +86,13 @@ public record AnalyzedAlterTableAddColumn(
                 }
             }
             newColumns.add(reference);
+            if (reference instanceof IndexReference indexRef) {
+                String analyzer = indexRef.analyzer();
+                if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
+                    Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
+                    builder.put(settings);
+                }
+            }
         }
         Map<String, String> checkConstraints = new LinkedHashMap<>();
         for (var entry : checks.entrySet()) {
@@ -96,7 +109,8 @@ public record AnalyzedAlterTableAddColumn(
             table.ident(),
             newColumns,
             checkConstraints,
-            pkIndices
+            pkIndices,
+            builder.build()
         );
     }
 }

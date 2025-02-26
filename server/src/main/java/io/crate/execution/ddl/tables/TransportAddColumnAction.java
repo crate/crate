@@ -50,7 +50,8 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 () -> Metadata.COLUMN_OID_UNASSIGNED,
             req.references(),
             req.pKeyIndices(),
-            req.checkConstraints());
+            req.checkConstraints(),
+            req.settings());
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
 

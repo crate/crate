@@ -52,6 +52,7 @@ public class AlterTableAddColumnPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
         AddColumnRequest request = alterTable.bind(
+            dependencies.fulltextAnalyzerResolver(),
             plannerContext.nodeContext(),
             plannerContext.transactionContext(),
             params,

@@ -29,6 +29,7 @@ import java.util.Map;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -42,6 +43,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     private final List<Reference> colsToAdd;
     private final IntArrayList pKeyIndices;
     private final Map<String, String> checkConstraints;
+    private final Settings settings;
 
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
@@ -49,12 +51,15 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public AddColumnRequest(@NotNull RelationName relationName,
                             @NotNull List<Reference> colsToAdd,
                             @NotNull Map<String, String> checkConstraints,
-                            @NotNull IntArrayList pKeyIndices) {
+                            @NotNull IntArrayList pKeyIndices,
+                            Settings settings) {
+        assert colsToAdd.isEmpty() == false : "Columns to add must not be empty";
+
         this.relationName = relationName;
         this.colsToAdd = colsToAdd;
         this.checkConstraints = checkConstraints;
         this.pKeyIndices = pKeyIndices;
-        assert colsToAdd.isEmpty() == false : "Columns to add must not be empty";
+        this.settings = settings;
     }
 
     public AddColumnRequest(StreamInput in) throws IOException {
@@ -68,6 +73,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         for (int i = 0; i < numPKIndices; i++) {
             pKeyIndices.add(in.readVInt());
         }
+        this.settings = Settings.EMPTY;
     }
 
     @Override
@@ -100,5 +106,9 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
+    }
+
+    public Settings settings() {
+        return settings;
     }
 }
