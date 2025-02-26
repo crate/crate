@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -367,15 +368,24 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
         cluster().fullRestart();
 
-        execute("SELECT * FROM q1_old order by a");
-        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+        assertBusy(() -> {
+            execute("SELECT * FROM q1_old order by a");
+            assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+        }, 20, TimeUnit.SECONDS);
 
-        execute("SELECT * FROM q1 order by a");
-        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
 
-        assertSQLError(() -> execute("SELECT * FROM q2"))
+        assertBusy(() -> {
+            execute("SELECT * FROM q1 order by a");
+            assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+        }, 20, TimeUnit.SECONDS);
+
+        assertBusy(
+            () -> assertSQLError(() -> execute("SELECT * FROM q2"))
             .hasPGError(UNDEFINED_TABLE)
             .hasHTTPError(NOT_FOUND, 4041)
-            .hasMessageContaining("Relation 'q2' unknown");
+            .hasMessageContaining("Relation 'q2' unknown"),
+            20,
+            TimeUnit.SECONDS
+        );
     }
 }
