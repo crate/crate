@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -33,10 +34,13 @@ import java.util.Locale;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
 
+@IntegTestCase.ClusterScope(minNumDataNodes = 3)
 public class AlterTableIntegrationTest extends IntegTestCase {
 
     @Test
@@ -339,5 +343,39 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
         execute("select column_name from information_schema.columns where table_name = 't'");
         assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
+    }
+
+    @Test
+    @Repeat(iterations = 100)
+    public void debug() throws Exception {
+        execute("CREATE TABLE q1 (a INTEGER, b INTEGER)");
+        execute("CREATE TABLE q2 (a INTEGER, b INTEGER)");
+
+        execute("INSERT INTO q1 VALUES (1, 2), (2, 3), (3, 4)");
+        execute("INSERT INTO q2 VALUES (1, 2), (2, 3), (3, 4)");
+        execute("REFRESH TABLE q1, q2");
+
+        execute("ALTER TABLE q1 RENAME TO q1_old");
+
+        execute("ALTER TABLE q2 RENAME TO q1");
+
+        execute("SELECT * FROM q1 order by a");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        execute("SELECT * FROM q1_old order by a");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        cluster().fullRestart();
+
+        execute("SELECT * FROM q1_old order by a");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        execute("SELECT * FROM q1 order by a");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        assertSQLError(() -> execute("SELECT * FROM q2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'q2' unknown");
     }
 }
