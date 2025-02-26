@@ -299,12 +299,18 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     private static ObjectType merge(ObjectType left, ObjectType right) {
+        return merge(left, right, DataTypes::merge);
+    }
+
+    public static ObjectType merge(ObjectType left,
+                                   ObjectType right,
+                                   BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
         ObjectType.Builder mergedObjectBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
         for (var e : left.innerTypes().entrySet()) {
             mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());
         }
         for (var e : right.innerTypes().entrySet()) {
-            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), DataTypes::merge);
+            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), remappingFunction);
         }
         return mergedObjectBuilder.build();
     }
