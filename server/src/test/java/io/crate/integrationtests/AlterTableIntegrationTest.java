@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -37,6 +36,8 @@ import org.apache.logging.log4j.Level;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableOperation;
@@ -413,5 +414,32 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("alter table tbl set (\"routing.allocation.total_shards_per_node\" = 200)");
         execute("alter table tbl partition (p = 1) set (number_of_shards = ?)", new Object[] { numShards }, TimeValue.timeValueSeconds(30));
         assertBusy(() -> assertThat(execute("select * from tbl")).hasRowCount(4));
+    }
+
+    @Test
+    @Repeat(iterations = 100)
+    public void debug() throws Exception {
+        execute("CREATE TABLE q1 (a INTEGER, b INTEGER);");
+        execute("CREATE TABLE q2 (a INTEGER, b INTEGER);");
+
+        execute("INSERT INTO q1 VALUES (1, 2), (2, 3), (3, 4);");
+        execute("INSERT INTO q2 VALUES (1, 2), (2, 3), (3, 4);");
+        execute("REFRESH TABLE q1, q2;");
+
+        execute("ALTER TABLE q1 RENAME TO q1_old;");
+
+        execute("ALTER TABLE q2 RENAME TO q1;");
+
+        execute("SELECT * FROM q1 order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        execute("SELECT * FROM q1_old order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        cluster().fullRestart();
+
+        execute("SELECT * FROM q1 order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
     }
 }
