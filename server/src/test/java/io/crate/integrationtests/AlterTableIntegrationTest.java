@@ -34,6 +34,8 @@ import java.util.Locale;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
@@ -306,6 +308,33 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "c| 2"
         );
+    }
+
+    @Test
+    @Repeat(iterations = 100)
+    public void debug() throws Exception {
+        execute("CREATE TABLE q1 (a INTEGER, b INTEGER);");
+        execute("CREATE TABLE q2 (a INTEGER, b INTEGER);");
+
+        execute("INSERT INTO q1 VALUES (1, 2), (2, 3), (3, 4);");
+        execute("INSERT INTO q2 VALUES (1, 2), (2, 3), (3, 4);");
+        execute("REFRESH TABLE q1, q2;");
+
+        execute("ALTER TABLE q1 RENAME TO q1_old;");
+
+        execute("ALTER TABLE q2 RENAME TO q1;");
+
+        execute("SELECT * FROM q1 order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        execute("SELECT * FROM q1_old order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
+        cluster().fullRestart();
+
+        execute("SELECT * FROM q1 order by a;");
+        assertThat(response).hasRows("1| 2", "2| 3", "3| 4");
+
     }
 
 
