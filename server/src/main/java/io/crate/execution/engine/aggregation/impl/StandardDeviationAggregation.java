@@ -62,7 +62,7 @@ import io.crate.types.TimestampType;
 
 public class StandardDeviationAggregation extends AggregationFunction<StandardDeviation, Double> {
 
-    public static final String NAME = "stddev";
+    public static final List<String> NAMES = List.of("stddev", "stddev_pop");
 
     static {
         DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
@@ -72,15 +72,17 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(Functions.Builder builder) {
-        for (var supportedType : SUPPORTED_TYPES) {
-            builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
+        for (var name: NAMES) {
+            for (var supportedType : SUPPORTED_TYPES) {
+                builder.add(
+                        Signature.builder(name, FunctionType.AGGREGATE)
                             .argumentTypes(supportedType.getTypeSignature())
                             .returnType(DataTypes.DOUBLE.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                    StandardDeviationAggregation::new
-            );
+                        StandardDeviationAggregation::new
+                );
+            }
         }
     }
 
