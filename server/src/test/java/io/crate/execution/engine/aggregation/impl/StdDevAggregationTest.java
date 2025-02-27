@@ -43,9 +43,9 @@ import io.crate.types.DataTypes;
 
 public class StdDevAggregationTest extends AggregationTestCase {
 
-    private Object executeAggregation(String name, DataType<?> argumentType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-                Signature.builder(name, FunctionType.AGGREGATE)
+                Signature.builder("stddev_pop", FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
@@ -75,56 +75,56 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void withNullArg() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{null}, {null}})).isNull();
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}})).isNull();
     }
 
     @Test
     public void withSomeNullArgs() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
             .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testDouble() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
             .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testFloat() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
+        assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
             .isEqualTo(0.2041241452319315);
     }
 
     @Test
     public void testInteger() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.INTEGER, new Object[][]{{7}, {3}}))
+        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}))
             .isEqualTo(2d);
     }
 
     @Test
     public void testLong() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.LONG, new Object[][]{{7L}, {3L}}))
+        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}))
             .isEqualTo(2d);
     }
 
     @Test
     public void testShort() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
             .isEqualTo(2d);
     }
 
     @Test
     public void testByte() throws Exception {
-        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
             .isEqualTo(0d);
     }
 
     @Test
     public void testUnsupportedType() {
-        assertThatThrownBy(() -> executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.GEO_POINT, new Object[][]{}))
+        assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: " + StandardDeviationAggregation.NAMES[0] + "(INPUT(0))," +
+            .hasMessageStartingWith("Unknown function: stddev_pop(INPUT(0))," +
                                     " no overload found for matching argument types: (geo_point).");
     }
 }
