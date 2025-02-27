@@ -595,34 +595,41 @@ An Example::
 ``stddev(column)``
 ------------------
 
-The ``stddev`` aggregate function computes the `Standard Deviation`_ of the
-set of non-null values in a column. It is a measure of the variation of data
-values. A low standard deviation indicates that the values tend to be near the
-mean.
+``stddev`` is an alias for :ref:`aggregation-stddev-pop`.
 
-``stddev`` is defined on all numeric types and on timestamp. It always returns
+
+.. _aggregation-stddev-pop:
+
+``stddev_pop(column)``
+----------------------
+
+The ``stddev_pop`` aggregate function computes the population  `Standard Deviation`_
+of the set of non-null values in a column. It is a measure of the variation
+of data values. A low standard deviation indicates that the values tend to be
+near the mean.
+
+``stddev_pop`` is defined on all numeric types and on timestamp. It always returns
 ``double precision`` values. If all values were null or we got no value at all
 ``NULL`` is returned.
 
 Example::
 
-    cr> select stddev(position), kind from locations
+    cr> select stddev_pop(position), kind from locations
     ... group by kind order by kind;
-    +--------------------+-------------+
-    |   stddev(position) | kind        |
-    +--------------------+-------------+
-    | 1.920286436967152  | Galaxy      |
-    | 1.4142135623730951 | Planet      |
-    | 1.118033988749895  | Star System |
-    +--------------------+-------------+
+    +----------------------+-------------+
+    | stddev_pop(position) | kind        |
+    +----------------------+-------------+
+    |   1.920286436967152  | Galaxy      |
+    |   1.4142135623730951 | Planet      |
+    |   1.118033988749895  | Star System |
+    +----------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. CAUTION::
 
-    Due to java double precision arithmetic it is possible that any two
+    Due to Java double precision arithmetic it is possible that any two
     executions of the aggregate function on the same data produce slightly
     differing results.
-
 
 .. _aggregation-string-agg:
 
