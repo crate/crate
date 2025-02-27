@@ -31,6 +31,8 @@ public class StandardDeviation extends Variance {
     public StandardDeviation() {
     }
 
+    public static String NAME = "stddev";
+
     public StandardDeviation(StreamInput in) throws IOException {
         super(in);
     }
