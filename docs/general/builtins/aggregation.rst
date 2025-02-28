@@ -595,10 +595,10 @@ An Example::
 ``stddev(column)``
 ------------------
 
-The ``stddev`` aggregate function computes the `Standard Deviation`_ of the
-set of non-null values in a column. It is a measure of the variation of data
-values. A low standard deviation indicates that the values tend to be near the
-mean.
+The ``stddev`` aggregate function computes the population  `Standard Deviation`_
+of the set of non-null values in a column. It is a measure of the variation
+of data values. A low standard deviation indicates that the values tend to be
+near the mean.
 
 ``stddev`` is defined on all numeric types and on timestamp. It always returns
 ``double precision`` values. If all values were null or we got no value at all
@@ -619,9 +619,21 @@ Example::
 
 .. CAUTION::
 
-    Due to java double precision arithmetic it is possible that any two
+    Due to Java double precision arithmetic it is possible that any two
     executions of the aggregate function on the same data produce slightly
     differing results.
+
+.. _aggregation-stddev-pop:
+
+``stddev_pop(column)``
+-------------------------
+
+The ``stddev_pop` aggregation function is equivalent to the ``stddev``
+aggregation function.
+
+.. SEEALSO::
+
+    :ref:`aggregation-stddev`
 
 
 .. _aggregation-string-agg:

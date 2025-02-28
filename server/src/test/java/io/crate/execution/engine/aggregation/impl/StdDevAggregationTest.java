@@ -142,7 +142,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
         for (var name: NAMES) {
             assertThatThrownBy(() -> executeAggregation(name, DataTypes.GEO_POINT, new Object[][]{}))
                 .isExactlyInstanceOf(UnsupportedFunctionException.class)
-                .hasMessageStartingWith("Unknown function: stddev(INPUT(0))," +
+                .hasMessageStartingWith("Unknown function: " + name + "(INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point).");
         }
     }
