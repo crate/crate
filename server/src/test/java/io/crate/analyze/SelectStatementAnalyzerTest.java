@@ -3052,4 +3052,41 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         executor.analyze("SELECT o['x'] FROM (SELECT {a = {b = {c = 1}}}['a'] AS o) tbl");
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
     }
+
+    @Test
+    public void test_accessing_sub_column_of_aliased_unknown_sub_column() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (obj_dynamic OBJECT AS (a OBJECT, d OBJECT AS (e OBJECT(STRICT) AS (f INT))))");
+
+        // Field exists
+        var analyzed = executor.analyze("select obj_dynamic['d']['e']['f'] from (select obj_dynamic['d'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+
+        // Field does not exist
+        // DYNAMIC
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['a']['b'] from (select obj_dynamic['a'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['a']['b'] unknown");
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['a']['b']['c'] from (select obj_dynamic['a'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['a']['b']['c'] unknown");
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        // STRICT (always throws errors)
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['d']['e']['b'] from (select obj_dynamic['d'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['d']['e']['b'] unknown");
+
+        // DYNAMIC (errors disabled)
+        analyzed = executor.analyze("select obj_dynamic['a']['b'] from (select obj_dynamic['a'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+        analyzed = executor.analyze("select obj_dynamic['a']['b']['c'] from (select obj_dynamic['a'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+    }
 }

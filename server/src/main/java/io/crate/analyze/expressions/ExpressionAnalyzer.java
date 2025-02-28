@@ -736,23 +736,36 @@ public class ExpressionAnalyzer {
             QualifiedName qualifiedName,
             List<String> parts,
             ColumnUnknownException e) {
-            if (operation != Operation.READ) {
+            if (operation != Operation.READ || parts.isEmpty()) {
                 throw e;
             }
+
+            Symbol parent = null;
+            List<String> childParts = parts;
+            for (int i = parts.size() - 1; i >= 0; i--) {
+                List<String> parentParts = parts.subList(0, i);
+                try {
+                    parent = fieldProvider.resolveField(qualifiedName, parentParts, operation, context.errorOnUnknownObjectKey());
+                    childParts = parts.subList(i, parts.size());
+                    break;
+                } catch (ColumnUnknownException e2) {
+                    if (i == 0) {
+                        throw e;
+                    }
+                }
+            }
+            assert parent != null : "Parent symbol must not be null without throwing an exception";
+
             try {
-                Symbol base = fieldProvider.resolveField(qualifiedName,
-                    List.of(),
-                    operation,
-                    context.errorOnUnknownObjectKey());
                 Symbol index = node.index().accept(this, context);
-                Function optimizedSubscript = optimizedSubscriptFunction(base, index, parts, context, e);
+                Function optimizedSubscript = optimizedSubscriptFunction(parent, index, childParts, context, e);
                 if (optimizedSubscript != null) {
                     return optimizedSubscript;
                 }
 
                 return allocateFunction(
                     SubscriptFunction.NAME,
-                    List.of(base, index),
+                    List.of(parent, index),
                     context
                 );
             } catch (ColumnUnknownException e2) {
@@ -779,11 +792,7 @@ public class ExpressionAnalyzer {
             }
             DataType<?> baseType = base.valueType();
             DataType<?> innerType = DataTypes.innerType(baseType, path);
-            if (innerType == null) {
-                // Not an object or array of objects
-                return null;
-            }
-            if (innerType != UndefinedType.INSTANCE && !DataTypes.isArrayOfNulls(innerType)) {
+            if (innerType != null && innerType != UndefinedType.INSTANCE && !DataTypes.isArrayOfNulls(innerType)) {
                 Signature signature = SubscriptFunction.SIGNATURE_OBJECT;
                 if (baseType instanceof ArrayType<?>) {
                     signature = SubscriptFunction.SIGNATURE_ARRAY_OF_OBJECTS;
