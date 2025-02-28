@@ -36,6 +36,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class UndefinedType extends DataType<Object> implements Streamer<Object> {
 
@@ -54,6 +55,11 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     @Override
     public Precedence precedence() {
         return Precedence.UNDEFINED;
+    }
+
+    @Override
+    public ColumnPolicy columnPolicy() {
+        return ColumnPolicy.IGNORED;
     }
 
     @Override
