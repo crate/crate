@@ -103,12 +103,12 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
+            null,
             2L,
             1L,
             5L,
             List.of(),
-            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            0
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -157,12 +157,12 @@ public class ShardUpsertRequestTest extends ESTestCase {
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
+            null,
             2L,
             1L,
             5L,
             List.of(),
-            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-            0
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();

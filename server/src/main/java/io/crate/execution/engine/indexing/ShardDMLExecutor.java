@@ -121,6 +121,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
         synchronized (ramAccounting) {
+            // update request has null columns and values and we account it here too early without values.
+            // a new assertion "... UPDATE must have columns assigned at this point " is not hit.
             ramAccounting.addBytes(item.ramBytesUsed());
         }
         req.add(numItems, item);
