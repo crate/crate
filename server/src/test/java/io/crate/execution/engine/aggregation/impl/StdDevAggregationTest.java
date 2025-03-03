@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.junit.Test;
 
+import io.crate.execution.engine.aggregation.impl.StandardDeviationAggregation;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -41,8 +42,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class StdDevAggregationTest extends AggregationTestCase {
-
-    final String[] NAMES = { "stddev", "stddev_pop" };
 
     private Object executeAggregation(String name, DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
@@ -58,7 +57,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (var name: NAMES) {
+        for (var name: StandardDeviationAggregation.NAMES) {
             for (DataType<?> type : Stream.concat(
                 DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
                 Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
@@ -76,74 +75,56 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void withNullArg() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.DOUBLE, new Object[][]{{null}, {null}})).isNull();
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{null}, {null}})).isNull();
     }
 
     @Test
     public void withSomeNullArgs() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
-                .isEqualTo(18.13455878212156);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
+            .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testDouble() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
-                .isEqualTo(18.13455878212156);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
+            .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testFloat() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
-                .isEqualTo(0.2041241452319315);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
+            .isEqualTo(0.2041241452319315);
     }
 
     @Test
     public void testInteger() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.INTEGER, new Object[][]{{7}, {3}}))
-                .isEqualTo(2d);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.INTEGER, new Object[][]{{7}, {3}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testLong() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.LONG, new Object[][]{{7L}, {3L}}))
-                .isEqualTo(2d);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.LONG, new Object[][]{{7L}, {3L}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testShort() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
-                .isEqualTo(2d);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testByte() throws Exception {
-        for (var name: NAMES) {
-            assertThat(executeAggregation(name, DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
-                .isEqualTo(0d);
-        }
+        assertThat(executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
+            .isEqualTo(0d);
     }
 
     @Test
     public void testUnsupportedType() {
-        for (var name: NAMES) {
-            assertThatThrownBy(() -> executeAggregation(name, DataTypes.GEO_POINT, new Object[][]{}))
-                .isExactlyInstanceOf(UnsupportedFunctionException.class)
-                .hasMessageStartingWith("Unknown function: " + name + "(INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point).");
-        }
+        assertThatThrownBy(() -> executeAggregation(StandardDeviationAggregation.NAMES[0], DataTypes.GEO_POINT, new Object[][]{}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: " + StandardDeviationAggregation.NAMES[0] + "(INPUT(0))," +
+                                    " no overload found for matching argument types: (geo_point).");
     }
 }
