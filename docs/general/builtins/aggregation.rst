@@ -606,7 +606,7 @@ aggregation function.
 .. _aggregation-stddev-pop:
 
 ``stddev_pop(column)``
--------------------------
+----------------------
 
 The ``stddev_pop`` aggregate function computes the population  `Standard Deviation`_
 of the set of non-null values in a column. It is a measure of the variation
