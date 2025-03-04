@@ -595,7 +595,7 @@ An Example::
 ``stddev(column)``
 ------------------
 
-The ``stddev` aggregation function is equivalent to the ``stddev_pop``
+The ``stddev`` aggregation function is equivalent to the ``stddev_pop``
 aggregation function.
 
 .. SEEALSO::
@@ -606,7 +606,7 @@ aggregation function.
 .. _aggregation-stddev-pop:
 
 ``stddev_pop(column)``
--------------------------
+----------------------
 
 The ``stddev_pop`` aggregate function computes the population  `Standard Deviation`_
 of the set of non-null values in a column. It is a measure of the variation
@@ -621,13 +621,13 @@ Example::
 
     cr> select stddev_pop(position), kind from locations
     ... group by kind order by kind;
-    +--------------------+-------------+
-    |   stddev(position) | kind        |
-    +--------------------+-------------+
-    | 1.920286436967152  | Galaxy      |
-    | 1.4142135623730951 | Planet      |
-    | 1.118033988749895  | Star System |
-    +--------------------+-------------+
+    +------------------------+-------------+
+    |   stddev_pop(position) | kind        |
+    +------------------------+-------------+
+    | 1.920286436967152      | Galaxy      |
+    | 1.4142135623730951     | Planet      |
+    | 1.118033988749895      | Star System |
+    +------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. CAUTION::
