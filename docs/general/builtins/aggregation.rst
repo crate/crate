@@ -636,6 +636,7 @@ Example::
     executions of the aggregate function on the same data produce slightly
     differing results.
 
+
 .. _aggregation-string-agg:
 
 ``string_agg(column, delimiter)``
