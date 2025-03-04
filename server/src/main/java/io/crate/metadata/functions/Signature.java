@@ -74,6 +74,7 @@ public final class Signature implements Writeable, Accountable {
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
         private boolean allowCoercion = true;
+        private boolean bindActualTypes = false;
 
         public Builder() {
         }
@@ -160,6 +161,11 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
+        public Builder bindActualTypes() {
+            bindActualTypes = true;
+            return this;
+        }
+
         public Signature build() {
             assert name != null : "Signature requires the 'name' to be set";
             assert type != null : "Signature requires the 'type' to be set";
@@ -173,7 +179,8 @@ public final class Signature implements Writeable, Accountable {
                 features,
                 variableArityGroup,
                 variableArity,
-                allowCoercion);
+                allowCoercion,
+                bindActualTypes);
         }
     }
 
@@ -222,7 +229,8 @@ public final class Signature implements Writeable, Accountable {
                       Set<Scalar.Feature> features,
                       List<TypeSignature> variableArityGroup,
                       boolean variableArity,
-                      boolean allowCoercion) {
+                      boolean allowCoercion,
+                      boolean bindActualTypes) {
         this.name = name;
         this.type = type;
         this.argumentTypes = argumentTypes;
@@ -232,7 +240,8 @@ public final class Signature implements Writeable, Accountable {
             typeVariableConstraints,
             variableArityGroup,
             variableArity,
-            allowCoercion
+            allowCoercion,
+            bindActualTypes
         );
     }
 

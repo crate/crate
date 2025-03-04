@@ -78,7 +78,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
         assertThat(mapping.source().string()).isEqualTo(
@@ -105,7 +105,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
         assertThat(mapping.source().string()).isEqualTo(
@@ -122,7 +122,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
 
         assertThat(updatedMetadata.mapping()).isNull();
     }
@@ -161,7 +161,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
         assertThat(mapping.source().string())

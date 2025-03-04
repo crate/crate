@@ -57,7 +57,7 @@ public class IndexTemplateUpgraderTest {
             .build();
         templates.put(TEMPLATE_NAME, oldTemplate);
 
-        Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
+        Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.upgrade(templates);
         assertThat(upgradedTemplates.get(TEMPLATE_NAME)).isNull();
     }
 
@@ -87,7 +87,7 @@ public class IndexTemplateUpgraderTest {
             .build();
         templates.put(nonPartitionTemplateName, oldNonPartitionTemplate);
 
-        Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
+        Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.upgrade(templates);
         IndexTemplateMetadata upgradedTemplate = upgradedTemplates.get(partitionTemplateName);
         assertThat(upgradedTemplate.settings().keySet()).containsExactly(SETTING_NUMBER_OF_SHARDS);
 
@@ -111,7 +111,7 @@ public class IndexTemplateUpgraderTest {
             .build();
 
         IndexTemplateUpgrader indexTemplateUpgrader = new IndexTemplateUpgrader();
-        Map<String, IndexTemplateMetadata> result = indexTemplateUpgrader.apply(Collections.singletonMap(templateName, template));
+        Map<String, IndexTemplateMetadata> result = indexTemplateUpgrader.upgrade(Collections.singletonMap(templateName, template));
 
         assertThat(result.get(templateName).settings().hasValue("index.recovery.initial_shards"))
             .as("Outdated setting `index.recovery.initial_shards` must be removed")
@@ -137,7 +137,7 @@ public class IndexTemplateUpgraderTest {
             .build();
 
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
-        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        Map<String, IndexTemplateMetadata> result = upgrader.upgrade(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         CompressedXContent compressedXContent = updatedTemplate.mapping();
@@ -164,7 +164,7 @@ public class IndexTemplateUpgraderTest {
             .build();
 
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
-        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        Map<String, IndexTemplateMetadata> result = upgrader.upgrade(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         CompressedXContent compressedXContent = updatedTemplate.mapping();
@@ -409,7 +409,7 @@ public class IndexTemplateUpgraderTest {
 
 
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
-        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        Map<String, IndexTemplateMetadata> result = upgrader.upgrade(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
@@ -428,7 +428,7 @@ public class IndexTemplateUpgraderTest {
 
 
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
-        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        Map<String, IndexTemplateMetadata> result = upgrader.upgrade(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);

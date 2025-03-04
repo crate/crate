@@ -26,6 +26,7 @@ import static org.elasticsearch.test.ESTestCase.assertBusy;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -217,6 +218,14 @@ public class Asserts extends Assertions {
         };
     }
 
+    public static Consumer<Symbol> isObjectLiteral(Map<String, Object> expectedValue) {
+        return s -> {
+            assertThat(s).isNotNull();
+            assertThat(s).isLiteral(expectedValue);
+            assertThat(s).hasDataType(DataTypes.guessType(expectedValue));
+        };
+    }
+
     public static Consumer<Symbol> isReference(String expectedName) {
         return s -> assertThat(s)
             .isReference()
@@ -248,6 +257,10 @@ public class Asserts extends Assertions {
 
     public static Consumer<Symbol> isFunction(String expectedName) {
         return s -> assertThat(s).isFunction(expectedName);
+    }
+
+    public static Consumer<Symbol> isFunction(String expectedName, DataType<?> expectedReturnType) {
+        return s -> assertThat(s).isFunction(expectedName, expectedReturnType);
     }
 
     public static Consumer<Symbol> isFunction(String expectedName, List<DataType<?>> expectedArgTypes) {

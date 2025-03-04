@@ -94,6 +94,11 @@ Data Types
 
 - Added support for dynamic mapping of nested arrays.
 
+- Improved error handling of missing keys when accessing elements of (nested)
+  :ref:`object type<type-object>` expressions to be consistent according to the
+  defined :ref:`type-object-column-policy` and the related
+  :ref:`conf-session-error_on_unknown_object_key` session setting.
+
 Scalar and Aggregation Functions
 --------------------------------
 

@@ -94,12 +94,14 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimeTZ;
 
@@ -2525,16 +2527,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isLiteral(null);
 
-        /*
-         * This is documenting a bug. If this fails, it is a breaking change.
-         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works --> bug?
-         * set errorOnUnknownObjectKey = false;
-         * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works
-         */
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
-        analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
-        assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).hasToString("[1, NULL]");
+        assertThatThrownBy(() -> executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
         assertThat(analyzed.outputs()).hasSize(1);
@@ -2881,38 +2877,41 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         // dynamic
         assertThatThrownBy(() -> executor.analyze(
-            "select alias['u'] from (select obj_dynamic['u'] as alias from t) tbl"))
+            "select alias['b'] from (select obj_dynamic['a'] as alias from t) tbl"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessage("Column obj_dynamic['u'] unknown");
+            .hasMessage("Column obj_dynamic['a'] unknown");
 
         // ignored
-        var analyzed = executor.analyze("select alias['u'] from (select obj_ignored['u'] as alias from t) tbl");
+        var analyzed = executor.analyze("select alias['b'] from (select obj_ignored['a'] as alias from t) tbl");
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("b"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
 
         // strict
         assertThatThrownBy(() -> executor.analyze(
-            "select alias['u'] from (select obj_strict['u'] as alias from t) tbl"))
+            "select alias['b'] from (select obj_strict['a'] as alias from t) tbl"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessage("Column obj_strict['u'] unknown");
+            .hasMessage("Column obj_strict['a'] unknown");
 
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
 
         // dynamic
-        analyzed = executor.analyze("select alias['u'] from (select obj_dynamic['u'] as alias from t) tbl");
+        analyzed = executor.analyze("select alias['b'] from (select obj_dynamic['a'] as alias from t) tbl");
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("b"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
 
         // ignored
-        executor.analyze("select alias['u'] from (select obj_ignored['u'] as alias from t) tbl");
+        executor.analyze("select alias['b'] from (select obj_ignored['a'] as alias from t) tbl");
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("u"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("alias"), isLiteral("b"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
 
         // strict
         assertThatThrownBy(() -> executor.analyze(
-            "select alias['u'] from (select obj_strict['u'] as alias from t) tbl"))
+            "select alias['b'] from (select obj_strict['a'] as alias from t) tbl"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessage("Column obj_strict['u'] unknown");
+            .hasMessage("Column obj_strict['a'] unknown");
     }
 
     @Test
@@ -2981,11 +2980,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService);
         var analyzed = executor.analyze("select o['a'] from (select {a=1} as o) tbl"); // `o` is an object literal returned from MapFunction
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
 
         analyzed = executor.analyze("select o3['a'] from (select ({a=1} || {b=1}) as o3) t2"); // `o3` is an object literal returned from ConcatFunction
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
     }
 
     @Test
@@ -3026,5 +3025,68 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 """);
         assertThat(querySelectRelation.outputs()).hasSize(1);
         assertThat(querySelectRelation.outputs().getFirst()).isScopedSymbol("attributes['storage']");
+    }
+
+    @Test
+    public void test_error_on_missing_key_of_subscript_on_aliased_object_literals() {
+        SQLExecutor executor = SQLExecutor.of(clusterService);
+
+        // Field exists
+        // DYNAMIC
+        var analyzed = executor.analyze("SELECT o['b'] FROM (SELECT {a = {b = {c = 1}}}['a'] AS o) tbl");
+        var expectedDataType = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("c", DataTypes.INTEGER).build();
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", expectedDataType);
+
+        // Field does not exist
+        // DYNAMIC
+        assertThatThrownBy(() -> executor.analyze("SELECT o['x'] FROM (SELECT {a = {b = {c = 1}}}['a'] AS o) tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o['x'] unknown");
+        // INGORED
+        analyzed = executor.analyze("SELECT o['x'] FROM (SELECT {a = {b = {c = 1}}}['a']::object(ignored) AS o) tbl");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        // DYNAMIC (errors disabled)
+        executor.analyze("SELECT o['x'] FROM (SELECT {a = {b = {c = 1}}}['a'] AS o) tbl");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+    }
+
+    @Test
+    public void test_accessing_sub_column_of_aliased_unknown_sub_column() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t (obj_dynamic OBJECT AS (a OBJECT, d OBJECT AS (e OBJECT(STRICT) AS (f INT))))");
+
+        // Field exists
+        var analyzed = executor.analyze("select obj_dynamic['d']['e']['f'] from (select obj_dynamic['d'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+
+        // Field does not exist
+        // DYNAMIC
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['a']['b'] from (select obj_dynamic['a'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['a']['b'] unknown");
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['a']['b']['c'] from (select obj_dynamic['a'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['a']['b']['c'] unknown");
+
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        // STRICT (always throws errors)
+        assertThatThrownBy(() -> executor.analyze("select obj_dynamic['d']['e']['b'] from (select obj_dynamic['d'] from t) t2"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column obj_dynamic['d']['e']['b'] unknown");
+
+        // DYNAMIC (errors disabled)
+        analyzed = executor.analyze("select obj_dynamic['a']['b'] from (select obj_dynamic['a'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+        analyzed = executor.analyze("select obj_dynamic['a']['b']['c'] from (select obj_dynamic['a'] from t) t2");
+        Assertions.assertThat(analyzed.outputs()).hasSize(1);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
     }
 }
