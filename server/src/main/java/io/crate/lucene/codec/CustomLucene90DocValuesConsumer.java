@@ -221,6 +221,20 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
             docCount = 0;
         }
 
+        boolean isDone(int skipIndexIntervalSize, int valueCount, long nextValue, int nextDoc) {
+            if (docCount < skipIndexIntervalSize) {
+                return false;
+            }
+            // Once we reach the interval size, we will keep accepting documents if
+            // - next doc value is not a multi-value
+            // - current accumulator only contains a single value and next value is the same value
+            // - the accumulator is dense and the next doc keeps the density (no gaps)
+            return valueCount > 1
+                || minValue != maxValue
+                || minValue != nextValue
+                || docCount != nextDoc - minDocID;
+        }
+
         void accumulate(long value) {
             minValue = Math.min(minValue, value);
             maxValue = Math.max(maxValue, value);
@@ -262,15 +276,9 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         SkipAccumulator accumulator = null;
         final int maxAccumulators = 1 << (SKIP_INDEX_LEVEL_SHIFT * (SKIP_INDEX_MAX_LEVEL - 1));
         for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
-            if (accumulator == null) {
-                accumulator = new SkipAccumulator(doc);
-                accumulators.add(accumulator);
-            }
-            accumulator.nextDoc(doc);
-            for (int i = 0, end = values.docValueCount(); i < end; ++i) {
-                accumulator.accumulate(values.nextValue());
-            }
-            if (accumulator.docCount == skipIndexIntervalSize) {
+            final long firstValue = values.nextValue();
+            if (accumulator != null
+                && accumulator.isDone(skipIndexIntervalSize, values.docValueCount(), firstValue, doc)) {
                 globalMaxValue = Math.max(globalMaxValue, accumulator.maxValue);
                 globalMinValue = Math.min(globalMinValue, accumulator.minValue);
                 globalDocCount += accumulator.docCount;
@@ -281,15 +289,22 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                     accumulators.clear();
                 }
             }
+            if (accumulator == null) {
+                accumulator = new SkipAccumulator(doc);
+                accumulators.add(accumulator);
+            }
+            accumulator.nextDoc(doc);
+            accumulator.accumulate(firstValue);
+            for (int i = 1, end = values.docValueCount(); i < end; ++i) {
+                accumulator.accumulate(values.nextValue());
+            }
         }
 
         if (accumulators.isEmpty() == false) {
-            if (accumulator != null) {
-                globalMaxValue = Math.max(globalMaxValue, accumulator.maxValue);
-                globalMinValue = Math.min(globalMinValue, accumulator.minValue);
-                globalDocCount += accumulator.docCount;
-                maxDocId = accumulator.maxDocID;
-            }
+            globalMaxValue = Math.max(globalMaxValue, accumulator.maxValue);
+            globalMinValue = Math.min(globalMinValue, accumulator.minValue);
+            globalDocCount += accumulator.docCount;
+            maxDocId = accumulator.maxDocID;
             writeLevels(accumulators);
         }
         meta.writeLong(start); // record the start in meta
