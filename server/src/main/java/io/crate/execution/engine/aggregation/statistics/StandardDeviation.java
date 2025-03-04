@@ -37,6 +37,10 @@ public class StandardDeviation extends Variance {
 
     @Override
     public double result() {
-        return FastMath.sqrt(super.result());
+        long count = super.count();
+        if (count <= 1) {
+            return Double.NaN;
+        }
+        return FastMath.sqrt(super.result() * count / (count - 1));
     }
 }
