@@ -1212,6 +1212,16 @@ of shards.
       - If ``true``, Lucene merges all files from the segment into a single
         file to save file descriptors.
       - ``BOOLEAN``
+    * - ``merge_id``
+      - The id of an ongoing merge that this segment is included in, or ``NULL``
+        if the segment is not being merged.
+      - ``TEXT``
+    * - ``fully_merged_docs``
+      - The number of Lucene documents in this segment that have cleared their temporary
+        recovery data. This data is removed during merges for all documents that can
+        safely be replicated from previously committed segments.  If the segment is no
+        longer open for searching, this value will be ``-1``.
+      - ``INTEGER``
     * - ``attributes``
       - Contains information about whether high compression was enabled.
       - ``OBJECT``

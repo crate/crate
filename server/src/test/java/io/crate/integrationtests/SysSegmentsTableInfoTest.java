@@ -48,7 +48,8 @@ public class SysSegmentsTableInfoTest extends IntegTestCase {
         execute(
             """
                 SELECT table_name, shard_id, segment_name, generation, num_docs, deleted_docs, size, memory, committed,
-                       search, compound, version, node, node['id'], node['name'], attributes, primary, partition_ident
+                       search, compound, version, node, node['id'], node['name'], attributes, primary, partition_ident,
+                       merge_id, fully_merged_docs
                 FROM sys.segments ORDER BY primary DESC
             """);
         assertThat(response.rowCount()).isEqualTo(2);
@@ -81,5 +82,7 @@ public class SysSegmentsTableInfoTest extends IntegTestCase {
         assertThat(attributes).hasSize(1);
         assertThat(result[16]).isEqualTo(primary);
         assertThat(result[17]).isEqualTo("04132");
+        assertThat(result[18]).isNull();
+        assertThat(result[19]).isEqualTo(0);
     }
 }
