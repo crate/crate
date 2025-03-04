@@ -36,11 +36,9 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -68,9 +66,6 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
-
-    private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
-        true, true, true, true);
 
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataCreateIndexService metadataCreateIndexService;
@@ -136,10 +131,14 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 }
             }
         }
+        List<Index> concreteIndices = metadata.getIndices(
+            request.tableIdent(),
+            request.partitionValues(),
+            false,
+            IndexMetadata::getIndex
+        );
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
-                String indexName = new PartitionName(request.tableIdent(), request.partitionValues()).asIndexName();
-                Index[] concreteIndices = resolveIndices(currentState, indexName);
                 currentState = updateSettings(currentState, settings, concreteIndices);
             } else {
                 // using settings from request with column policy still present
@@ -156,8 +155,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 );
 
                 if (!request.excludePartitions()) {
-                    Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
-
                     // These settings only apply for already existing partitions
                     List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
                         .supportedSettings()
@@ -173,7 +170,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 }
             }
         } else {
-            Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
             currentState = updateMapping(currentState, concreteIndices, columnPolicy);
             currentState = updateSettings(currentState, settings, concreteIndices);
         }
@@ -188,7 +184,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
      * @param mappingDelta is dynamic policy setting which for now is the only mapping change allowed by ALTER TABLE SET
      */
     private ClusterState updateMapping(ClusterState currentState,
-                                       Index[] concreteIndices,
+                                       List<Index> concreteIndices,
                                        @Nullable ColumnPolicy columnPolicy) throws IOException {
         if (columnPolicy == null) {
             return currentState;
@@ -216,7 +212,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     /**
      * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}
      */
-    private ClusterState updateSettings(final ClusterState currentState, final Settings settings, Index[] concreteIndices) {
+    private ClusterState updateSettings(final ClusterState currentState, final Settings settings, List<Index> concreteIndices) {
         final Settings normalizedSettings = Settings.builder()
             .put(markArchivedSettings(settings))
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
@@ -244,7 +240,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         final Settings openSettings = settingsForOpenIndices.build();
         return updateSettingsService.updateState(
             currentState,
-            concreteIndices,
+            concreteIndices.toArray(Index[]::new),
             skippedSettings,
             closedSettings,
             openSettings
@@ -320,14 +316,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             }
         }
         return settingsBuilder.build();
-    }
-
-    public static Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
-        return IndexNameExpressionResolver.concreteIndices(
-            currentState.metadata(),
-            FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING,
-            indexExpressions
-        );
     }
 
     /**
