@@ -626,9 +626,9 @@ Example::
 .. _aggregation-stddev-pop:
 
 ``stddev_pop(column)``
--------------------------
+----------------------
 
-The ``stddev_pop` aggregation function is equivalent to the ``stddev``
+The ``stddev_pop`` aggregation function is equivalent to the ``stddev``
 aggregation function.
 
 .. SEEALSO::
