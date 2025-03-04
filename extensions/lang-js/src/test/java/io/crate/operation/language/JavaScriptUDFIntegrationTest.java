@@ -22,6 +22,7 @@
 package io.crate.operation.language;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +34,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.module.JavaScriptLanguageModule;
+import io.crate.session.Session;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -150,6 +152,65 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
             assertThat(response).hasRows("1");
         } finally {
             execute("drop function shapeudf()");
+        }
+    }
+
+    @Test
+    public void test_subscript_on_udf_returns_correct_type_or_error() {
+        execute("CREATE FUNCTION my_func_dynamic()" +
+            "    RETURNS OBJECT(DYNAMIC) AS (x LONG)" +
+            "    LANGUAGE JAVASCRIPT" +
+            "    AS $$" +
+            "    function my_func_dynamic(){" +
+            "      return {x:1};" +
+            "    };$$");
+        execute("CREATE FUNCTION my_func_dynamic_untyped()" +
+            "    RETURNS OBJECT(DYNAMIC)" +
+            "    LANGUAGE JAVASCRIPT" +
+            "    AS $$" +
+            "    function my_func_dynamic_untyped(){" +
+            "      return {x:1};" +
+            "    };$$");
+        execute("CREATE FUNCTION my_func_ignored()" +
+            "    RETURNS OBJECT(IGNORED) AS (x LONG)" +
+            "    LANGUAGE JAVASCRIPT" +
+            "    AS $$" +
+            "    function my_func_ignored(){" +
+            "      return {x:1};" +
+            "    };$$");
+        execute("CREATE FUNCTION my_func_ignored_untyped()" +
+            "    RETURNS OBJECT(IGNORED)" +
+            "    LANGUAGE JAVASCRIPT" +
+            "    AS $$" +
+            "    function my_func_ignored_untyped(){" +
+            "      return {x:1};" +
+            "    };$$");
+
+        // Field exists
+        // DYNAMIC with defined type
+        execute("SELECT pg_typeof(my_func_dynamic()['x'])");
+        assertThat(response).hasRows("bigint");
+        // DYNAMIC empty type definition, type determined dynamically
+        execute("SELECT pg_typeof(my_func_dynamic_untyped()['x'])");
+        assertThat(response).hasRows("integer");
+        // IGNORED with empty type definition, type determined dynamically
+        execute("SELECT pg_typeof(my_func_ignored_untyped()['x'])");
+        assertThat(response).hasRows("integer");
+
+        // Field does not exist
+        // DYNAMIC
+        assertThatThrownBy(() -> execute("SELECT my_func_dynamic()['y']"))
+            .hasMessageContaining("The object `{x=1}` does not contain the key `y`");
+        // IGNORED
+        execute("SELECT my_func_ignored()['y']");
+        assertThat(response).hasRows("NULL");
+
+        try (Session session = sqlExecutor.newSession()) {
+            execute("SET SESSION error_on_unknown_object_key=false", session);
+
+            // DYNAMIC
+            execute("SELECT my_func_dynamic()['y']", session);
+            assertThat(response).hasRows("NULL");
         }
     }
 }

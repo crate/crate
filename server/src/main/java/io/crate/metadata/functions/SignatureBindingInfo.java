@@ -21,9 +21,9 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.types.TypeSignature;
-
 import java.util.List;
+
+import io.crate.types.TypeSignature;
 
 /**
  * Containing {@link Signature} properties which are only required for signature binding/matching.
@@ -35,15 +35,18 @@ public class SignatureBindingInfo {
     private final List<TypeSignature> variableArityGroup;
     private final boolean variableArity;
     private final boolean allowCoercion;
+    private final boolean bindActualTypes;
 
     public SignatureBindingInfo(List<TypeVariableConstraint> typeVariableConstraints,
                                 List<TypeSignature> variableArityGroup,
                                 boolean variableArity,
-                                boolean allowCoercion) {
+                                boolean allowCoercion,
+                                boolean bindActualTypes) {
         this.typeVariableConstraints = typeVariableConstraints;
         this.variableArityGroup = variableArityGroup;
         this.variableArity = variableArity;
         this.allowCoercion = allowCoercion;
+        this.bindActualTypes = bindActualTypes;
     }
 
     public List<TypeVariableConstraint> getTypeVariableConstraints() {
@@ -60,5 +63,9 @@ public class SignatureBindingInfo {
 
     public boolean isCoercionAllowed() {
         return allowCoercion;
+    }
+
+    public boolean bindActualTypes() {
+        return bindActualTypes;
     }
 }

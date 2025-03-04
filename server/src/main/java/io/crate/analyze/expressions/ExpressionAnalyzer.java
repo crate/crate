@@ -680,9 +680,17 @@ public class ExpressionAnalyzer {
 
             if (subscriptContext.hasExpression()) {
                 // The left hand side of the expression isn't a column, it's something like a
-                // static array or a cast, so we recurse into it.
+                // static array, function or a cast, so we recurse into it.
                 Symbol base = node.base().accept(this, context);
                 Symbol index = node.index().accept(this, context);
+                if (index.valueType() == DataTypes.STRING) {
+                    // If the index is a string, we can try to optimize the subscript function
+                    // to avoid the function call and directly access the object key.
+                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, subscriptContext.parts(), context, null);
+                    if (optimizedSubscript != null) {
+                        return optimizedSubscript;
+                    }
+                }
                 return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
             }
 
@@ -699,6 +707,8 @@ public class ExpressionAnalyzer {
             // - We want to avoid subscript functions if possible (we've nested object values in a column store)
             // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
             // - In DML statements we can have assignments: obj['x'] = 30
+            // - We want a good error message if the subscript is invalid including the column name and relation. This
+            //   is not possible with the subscript function as it misses all these information.
             // We should come up with a design that addresses those and remove the duct-tape logic below.
 
             Symbol ref;
@@ -726,51 +736,88 @@ public class ExpressionAnalyzer {
             QualifiedName qualifiedName,
             List<String> parts,
             ColumnUnknownException e) {
-            if (operation != Operation.READ) {
+            if (operation != Operation.READ || parts.isEmpty()) {
                 throw e;
             }
-            try {
-                Symbol base = fieldProvider.resolveField(qualifiedName,
-                    List.of(),
-                    operation,
-                    context.errorOnUnknownObjectKey());
-                DataType<?> baseType = base.valueType();
-                // Need to double-check that the base type does not hold the inner type before throwing. For instance,
-                //     create table t (o array(object as (a int)));
-                //     select col['a'] from (select unnest(o) as col from t) t_alias;
-                // `col['a']` cannot be resolved(due to unnest), although we know o['a'] exists. Here `col`(the base)
-                // is resolved to a ScopedSymbol which holds `a` as the inner type.
-                // There are test cases that fail without checking inner types:
-                //     SysSnapshotsTest.test_sys_snapshots_returns_table_partition_information
-                //     AlterTableIntegrationTest.test_alter_table_drop_leaf_subcolumn_with_parent_object_array
-                // Another example is selecting sub-column of an object that is union-ed.
-                if (baseType != UndefinedType.INSTANCE
-                    && baseType != ObjectType.UNTYPED
-                    && !DataTypes.hasPath(baseType, parts)) {
-                    DataType<?> currentType = baseType;
-                    ColumnPolicy parentPolicy = baseType.columnPolicy();
-                    for (String p : parts) {
-                        if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
-                            parentPolicy = objectType.columnPolicy();
-                            currentType = objectType.innerType(p);
-                        }
-                    }
-                    if (parentPolicy == ColumnPolicy.STRICT ||
-                        (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
+
+            Symbol parent = null;
+            List<String> childParts = parts;
+            for (int i = parts.size() - 1; i >= 0; i--) {
+                List<String> parentParts = parts.subList(0, i);
+                try {
+                    parent = fieldProvider.resolveField(qualifiedName, parentParts, operation, context.errorOnUnknownObjectKey());
+                    childParts = parts.subList(i, parts.size());
+                    break;
+                } catch (ColumnUnknownException e2) {
+                    if (i == 0) {
                         throw e;
                     }
                 }
+            }
+            assert parent != null : "Parent symbol must not be null without throwing an exception";
+
+            try {
+                Symbol index = node.index().accept(this, context);
+                Function optimizedSubscript = optimizedSubscriptFunction(parent, index, childParts, context, e);
+                if (optimizedSubscript != null) {
+                    return optimizedSubscript;
+                }
+
                 return allocateFunction(
                     SubscriptFunction.NAME,
-                    List.of(
-                        node.base().accept(this, context),
-                        node.index().accept(this, context)
-                    ),
+                    List.of(parent, index),
                     context
                 );
             } catch (ColumnUnknownException e2) {
                 throw e;
             }
+        }
+
+        /**
+         * Tries to detect the subscript return type based on the given (typed) base type (object or arrayOfObjects).
+         *
+         * @return Subscript function with concrete return type or NULL if it cannot be detected.
+         * @throws ColumnUnknownException if the wanted column cannot be found and the parent policy condition requires
+         *         an error to be thrown. Only thrown if the exception is passed in as an argument. Otherwise, it falls
+         *         through and relies on the SubscriptFunction to throw the error.
+         */
+        @Nullable
+        private Function optimizedSubscriptFunction(Symbol base,
+                                                    Symbol index,
+                                                    List<String> path,
+                                                    ExpressionAnalysisContext context,
+                                                    @Nullable ColumnUnknownException e) {
+            if (path.isEmpty()) {
+                return null;
+            }
+            DataType<?> baseType = base.valueType();
+            DataType<?> innerType = DataTypes.innerType(baseType, path);
+            if (innerType != null && innerType != UndefinedType.INSTANCE && !DataTypes.isArrayOfNulls(innerType)) {
+                Signature signature = SubscriptFunction.SIGNATURE_OBJECT;
+                if (baseType instanceof ArrayType<?>) {
+                    signature = SubscriptFunction.SIGNATURE_ARRAY_OF_OBJECTS;
+                }
+                return new Function(
+                    signature,
+                    List.of(base, index),
+                    innerType
+                );
+            }
+            DataType<?> currentType = baseType;
+            ColumnPolicy parentPolicy = baseType.columnPolicy();
+            for (String p : path) {
+                if (ArrayType.unnest(currentType) instanceof ObjectType objectType) {
+                    parentPolicy = objectType.columnPolicy();
+                    currentType = objectType.innerType(p);
+                }
+            }
+            if (parentPolicy == ColumnPolicy.STRICT ||
+                (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
+                if (e != null) {
+                    throw e;
+                }
+            }
+            return null;
         }
 
         @Override

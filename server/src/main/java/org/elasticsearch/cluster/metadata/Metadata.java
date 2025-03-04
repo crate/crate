@@ -1292,6 +1292,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     result.add(item);
                 }
             }
+            return result;
         }
         IndicesOptions indicesOptions = strict
             ? IndicesOptions.STRICT_EXPAND_OPEN

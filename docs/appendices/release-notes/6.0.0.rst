@@ -94,6 +94,11 @@ Data Types
 
 - Added support for dynamic mapping of nested arrays.
 
+- Improved error handling of missing keys when accessing elements of (nested)
+  :ref:`object type<type-object>` expressions to be consistent according to the
+  defined :ref:`type-object-column-policy` and the related
+  :ref:`conf-session-error_on_unknown_object_key` session setting.
+
 Scalar and Aggregation Functions
 --------------------------------
 
@@ -114,6 +119,10 @@ Performance and Resilience Improvements
 
 Administration and Operations
 -----------------------------
+
+- Added ``merge_id`` and ``fully_merged_docs`` columns to the sys.segments table
+  to give more information on ongoing merges and whether the recovery source is
+  still present in merged segments.
 
 Client interfaces
 -----------------

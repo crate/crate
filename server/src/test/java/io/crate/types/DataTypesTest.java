@@ -351,4 +351,27 @@ public class DataTypesTest extends ESTestCase {
                 ).build()
         );
     }
+
+    @Test
+    public void test_inner_type_resolving() {
+        ObjectType objType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("a", DataTypes.STRING)
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("i", DataTypes.INTEGER)
+                .build()))
+            .setInnerType("obj", ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("b", DataTypes.LONG)
+                .build())
+            .build();
+
+        assertThat(DataTypes.innerType(objType, List.of("a"))).isEqualTo(DataTypes.STRING);
+        assertThat(DataTypes.innerType(objType, List.of("obj_array", "i"))).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
+        assertThat(DataTypes.innerType(objType, List.of("obj", "b"))).isEqualTo(DataTypes.LONG);
+
+        var arrayType = new ArrayType<>(objType);
+
+        assertThat(DataTypes.innerType(arrayType, List.of("a"))).isEqualTo(new ArrayType<>(DataTypes.STRING));
+        assertThat(DataTypes.innerType(arrayType, List.of("obj_array", "i"))).isEqualTo(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(DataTypes.innerType(arrayType, List.of("obj", "b"))).isEqualTo(new ArrayType<>(DataTypes.LONG));
+    }
 }

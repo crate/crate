@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.List;
 import java.util.Map;
 
@@ -148,6 +151,29 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
         assertEvaluate("pg_typeof(double_array)",
                        DataTypes.DOUBLE_ARRAY.getName(),
                        Literal.of(List.of(1.0, 2.0), DataTypes.DOUBLE_ARRAY));
+    }
+
+    @Test
+    public void test_subscript_expression_types_and_errors() {
+        // Field exists
+        assertNormalize("pg_typeof({x=1}['x'])", isLiteral(DataTypes.INTEGER.getName()));
+
+        // Fields does not exist
+        // STRICT
+        assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(STRICT)['y'])", isLiteral("")))
+            .hasMessage("The object `{x=1}` does not contain the key `y`");
+
+        // DYNAMIC
+        assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(DYNAMIC)['y'])", isLiteral("")))
+            .hasMessage("The object `{x=1}` does not contain the key `y`");
+
+        // IGNORED
+        assertNormalize("pg_typeof({x=1}::object(IGNORED)['y'])", isLiteral(DataTypes.UNDEFINED.getName()));
+
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+
+        // DYNAMIC
+        assertNormalize("pg_typeof({x=1}::object(DYNAMIC)['y'])", isLiteral(DataTypes.UNDEFINED.getName()));
     }
 }
 

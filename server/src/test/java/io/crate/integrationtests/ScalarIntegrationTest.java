@@ -53,10 +53,11 @@ public class ScalarIntegrationTest extends IntegTestCase {
                         session))
                 .isExactlyInstanceOf(ColumnUnknownException.class)
                 .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
-            // This is documenting a bug. If this fails, it is a breaking change.
-            var response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
-                            session);
-            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[NULL]\n");
+            Assertions.assertThatThrownBy(() -> sqlExecutor.exec(
+                    "SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                    session))
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
         }
 
         try (var session2 = sqlExecutor.newSession()) {

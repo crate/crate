@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import static io.crate.metadata.table.TableInfo.IS_OBJECT_ARRAY;
 import static java.util.Map.entry;
 import static java.util.stream.Collectors.toSet;
 
@@ -633,22 +632,18 @@ public final class DataTypes {
         return ArrayType.unnest(type) == UndefinedType.INSTANCE;
     }
 
-    public static boolean hasPath(DataType<?> dataType, List<String> path) {
-        assert path.isEmpty() == false : "DataTypes.hasPath expects path to be not empty";
-        if (!IS_OBJECT_ARRAY.test(dataType) && !(dataType instanceof ObjectType)) {
-            return false;
+    @Nullable
+    public static DataType<?> innerType(DataType<?> dataType, List<String> path) {
+        boolean isArray = false;
+        if (dataType instanceof ArrayType<?> arrayType) {
+            dataType = arrayType.innerType();
+            isArray = true;
         }
-        for (int i = 0; i < path.size(); i++) {
-            dataType = ArrayType.unnest(dataType);
-            if (dataType instanceof ObjectType objectType) {
-                dataType = objectType.innerType(path.get(i));
-                if (dataType instanceof UndefinedType) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
+
+        if (dataType instanceof ObjectType objectType) {
+            DataType<?> innerType = objectType.innerType(path);
+            return isArray ? new ArrayType<>(innerType) : innerType;
         }
-        return true;
+        return null;
     }
 }

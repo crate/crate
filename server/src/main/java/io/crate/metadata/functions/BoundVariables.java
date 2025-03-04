@@ -21,19 +21,30 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.types.DataType;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.types.DataType;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
+
 public class BoundVariables {
 
     private final Map<String, DataType<?>> typeVariables;
+    private final IntObjectMap<DataType<?>> boundTypes;
 
     public BoundVariables(Map<String, DataType<?>> typeVariables) {
+        this(typeVariables, new IntObjectHashMap<>(0));
+    }
+
+    public BoundVariables(Map<String, DataType<?>> typeVariables,
+                          IntObjectMap<DataType<?>> boundTypes) {
         this.typeVariables = Map.copyOf(typeVariables);
+        this.boundTypes = boundTypes;
     }
 
     public DataType<?> getTypeVariable(String variableName) {
@@ -46,6 +57,11 @@ public class BoundVariables {
 
     public Set<String> getTypeVariableNames() {
         return typeVariables.keySet();
+    }
+
+    @Nullable
+    public DataType<?> getBoundType(int idx) {
+        return boundTypes.get(idx);
     }
 
     @Override
@@ -76,6 +92,7 @@ public class BoundVariables {
 
     public static class Builder {
         private final Map<String, DataType<?>> typeVariables = new HashMap<>();
+        private final IntObjectMap<DataType<?>> boundTypes = new IntObjectHashMap<>();
 
         public DataType<?> getTypeVariable(String variableName) {
             return typeVariables.get(variableName);
@@ -89,8 +106,13 @@ public class BoundVariables {
             return typeVariables.containsKey(variableName);
         }
 
+        public boolean setBoundType(int idx, DataType<?> boundType) {
+            DataType<?> existingType = boundTypes.put(idx, boundType);
+            return !boundType.equals(existingType);
+        }
+
         public BoundVariables build() {
-            return new BoundVariables(typeVariables);
+            return new BoundVariables(typeVariables, boundTypes);
         }
     }
 }

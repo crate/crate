@@ -30,8 +30,19 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 public class ObjectMergeFunction extends Scalar<Map<String, Object>, Map<String, Object>> {
+
+    public static DataType<?> merge(DataType<?> left, DataType<?> right) {
+        if (left instanceof ObjectType == false) {
+            return right;
+        } else if (right instanceof ObjectType == false) {
+            return left;
+        }
+        return ObjectType.merge((ObjectType) left, (ObjectType) right, (l, r) -> r);
+    }
 
     public ObjectMergeFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);

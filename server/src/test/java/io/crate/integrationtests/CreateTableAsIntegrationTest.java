@@ -32,6 +32,7 @@ import org.junit.Test;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLParseException;
+import io.crate.session.Session;
 import io.crate.testing.UseJdbc;
 
 public class CreateTableAsIntegrationTest extends IntegTestCase {
@@ -136,5 +137,38 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(10);
         execute("create table if not exists cpy as select * from tbl");
         assertThat(response).hasRowCount(0);
+    }
+
+    @Test
+    public void test_subscript_on_expression_used_for_table_definition() {
+        // Field exists
+        execute("CREATE TABLE test_success AS \n" +
+            "SELECT '{\"field1\":123}'::OBJECT (STRICT) AS (field1 BIGINT) ['field1']");
+        assertThat(response).hasRowCount(1);
+
+        // Fields does not exist
+        // STRICT
+        assertThatThrownBy(() -> execute("CREATE TABLE test_strict AS \n" +
+            "SELECT '{\"field1\":123}'::OBJECT (STRICT) AS (field1 BIGINT) ['field2']"))
+            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+
+        // DYNAMIC
+        assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
+            "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']"))
+            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+
+        // IGNORED
+        assertThatThrownBy(() -> execute("CREATE TABLE test_ignored AS \n" +
+            "SELECT '{\"field1\":123}'::OBJECT (IGNORED) AS (field1 BIGINT) ['field2']"))
+            .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
+
+        try (Session session = sqlExecutor.newSession()) {
+            execute("SET SESSION error_on_unknown_object_key=false", session);
+
+            // DYNAMIC
+            assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
+                "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']", session))
+                .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
+        }
     }
 }

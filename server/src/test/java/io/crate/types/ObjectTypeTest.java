@@ -188,7 +188,23 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
                 .build())
             .build();
 
-        assertThat(type.innerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.INTEGER);
+        assertThat(type.innerType(List.of("s", "inner", "i"))).isEqualTo(DataTypes.UNDEFINED);
+        assertThat(type.innerType(List.of("inner", "i"))).isEqualTo(DataTypes.INTEGER);
+    }
+
+    @Test
+    public void test_inner_type_with_nested_array() {
+        ObjectType type = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("nested_array", new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("i", DataTypes.INTEGER)
+                .build()))
+            .setInnerType("nested_nested_array", new ArrayType<>(new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("i", DataTypes.INTEGER)
+                .build())))
+            .build();
+
+        assertThat(type.innerType(List.of("nested_array", "i"))).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
+        assertThat(type.innerType(List.of("nested_nested_array", "i"))).isEqualTo(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 
     @Test

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.object;
 
+import static io.crate.testing.Asserts.isObjectLiteral;
+
 import java.util.Map;
 
 import org.junit.Test;
@@ -33,24 +35,30 @@ public class ObjectMergeFunctionTest extends ScalarTestCase {
     @Test
     public void test_null_input() {
         assertEvaluateNull("concat(obj, obj)", Literal.NULL, Literal.NULL);
-        assertEvaluate("concat(null, {\"a\"=1})", Map.of("a",1));
-        assertEvaluate("concat({\"a\"=1}, null)", Map.of("a",1));
+        assertNormalize("concat(null, {\"a\"=1})", isObjectLiteral(Map.of("a",1)));
+        assertNormalize("concat({\"a\"=1}, null)", isObjectLiteral(Map.of("a",1)));
     }
 
     @Test
     public void test_empty_object() {
-        assertEvaluate("concat({}, {\"a\"=1})", Map.of("a",1));
-        assertEvaluate("concat({\"a\"=1}, {})", Map.of("a",1));
+        assertNormalize("concat({}, {\"a\"=1})", isObjectLiteral(Map.of("a",1)));
+        assertNormalize("concat({\"a\"=1}, {})", isObjectLiteral(Map.of("a",1)));
     }
 
     @Test
     public void test_seconds_overwrites_first_object() {
-        assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
+        assertNormalize("concat({a=1},{a=2,b=2})", isObjectLiteral(Map.of("a",2,"b",2)));
     }
 
     @Test
     public void test_nested_object() {
-        assertEvaluate("concat({b=1},{a=1, b={c=2}})", Map.of("a",1,"b",Map.of("c",2)));
+        assertNormalize("concat({b={}}, {a=1, b={c=2}})", isObjectLiteral(Map.of("a",1,"b",Map.of("c",2))));
     }
 
+    @Test
+    public void test_right_argument_takes_precedence_on_conflict() {
+        assertNormalize("concat({b=1}, {a=1, b={c=2}})", isObjectLiteral(Map.of("a",1,"b",Map.of("c",2))));
+        // Only first level properties are merged as documented. Otherwise, right argument would take precedence.
+        assertNormalize("concat({b={c={d=1}}}, {a=1, b={c=2}})", isObjectLiteral(Map.of("a",1,"b",Map.of("c",2))));
+    }
 }

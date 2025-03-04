@@ -124,8 +124,8 @@ public class SignatureBinder {
             }
             argumentSignatures = declaredSignature.getArgumentTypes();
         }
-        List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables, true);
-        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables, false);
+        List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables, bindingInfo.bindActualTypes());
+        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables, -1,false);
 
         return new BoundSignature(
             Lists.map(boundArgumentSignatures, TypeSignature::createType),
@@ -145,22 +145,32 @@ public class SignatureBinder {
 
     private static List<TypeSignature> applyBoundVariables(List<TypeSignature> typeSignatures,
                                                            BoundVariables boundVariables,
-                                                           boolean onlyBindGenericTypes) {
+                                                           boolean bindActualTypes) {
         ArrayList<TypeSignature> builder = new ArrayList<>();
-        for (TypeSignature typeSignature : typeSignatures) {
-            builder.add(applyBoundVariables(typeSignature, boundVariables, onlyBindGenericTypes));
+        for (int i = 0; i < typeSignatures.size(); i++) {
+            TypeSignature typeSignature = typeSignatures.get(i);
+            builder.add(applyBoundVariables(typeSignature, boundVariables, bindActualTypes ? i : -1, true));
         }
         return Collections.unmodifiableList(builder);
     }
 
-    private static TypeSignature applyBoundVariables(TypeSignature typeSignature, BoundVariables boundVariables, boolean onlyBindGenericTypes) {
+    private static TypeSignature applyBoundVariables(TypeSignature typeSignature,
+                                                     BoundVariables boundVariables,
+                                                     int argumentIndex,
+                                                     boolean onlyBindBaseTypes) {
+        if (argumentIndex >= 0) {
+            DataType<?> dataType = boundVariables.getBoundType(argumentIndex);
+            if (dataType != null) {
+                return dataType.getTypeSignature();
+            }
+        }
         String baseType = typeSignature.getBaseTypeName();
         if (boundVariables.containsTypeVariable(baseType)) {
             if (typeSignature.getParameters().isEmpty() == false) {
                 throw new IllegalStateException("Type parameters cannot have parameters");
             }
             var boundTS = boundVariables.getTypeVariable(baseType).getTypeSignature();
-            if (onlyBindGenericTypes && Objects.equals(boundTS.getBaseTypeName(), baseType)) {
+            if (onlyBindBaseTypes && Objects.equals(boundTS.getBaseTypeName(), baseType)) {
                 return typeSignature;
             }
             if (typeSignature instanceof ParameterTypeSignature p) {
@@ -171,7 +181,7 @@ public class SignatureBinder {
 
         List<TypeSignature> parameters = Lists.map(
             typeSignature.getParameters(),
-            typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables, onlyBindGenericTypes));
+            typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables, -1, onlyBindBaseTypes));
 
         if (typeSignature instanceof ParameterTypeSignature p) {
             return new ParameterTypeSignature(
@@ -223,6 +233,7 @@ public class SignatureBinder {
             appendTypeRelationshipConstraintSolver(resultBuilder,
                                                    formalTypeSignatures.get(i),
                                                    argumentTypes.get(i),
+                                                   declaredBindingInfo.bindActualTypes() ? i : -1,
                                                    coercionType);
         }
 
@@ -286,12 +297,14 @@ public class SignatureBinder {
     private void appendTypeRelationshipConstraintSolver(List<TypeConstraintSolver> resultBuilder,
                                                         TypeSignature formalTypeSignature,
                                                         DataType<?> actualType,
+                                                        int argumentIndex,
                                                         CoercionType coercionType) {
         Set<String> typeVariables = typeVariablesOf(formalTypeSignature);
         resultBuilder.add(new TypeRelationshipConstraintSolver(
             formalTypeSignature,
             typeVariables,
             actualType,
+            argumentIndex,
             coercionType));
     }
 
@@ -559,15 +572,18 @@ public class SignatureBinder {
         private final TypeSignature superTypeSignature;
         private final Set<String> typeVariables;
         private final DataType<?> actualType;
+        private final int argumentIndex;
         private final CoercionType coercionType;
 
         public TypeRelationshipConstraintSolver(TypeSignature superTypeSignature,
                                                 Set<String> typeVariables,
                                                 DataType<?> actualType,
+                                                int argumentIndex,
                                                 CoercionType coercionType) {
             this.superTypeSignature = superTypeSignature;
             this.typeVariables = typeVariables;
             this.actualType = actualType;
+            this.argumentIndex = argumentIndex;
             this.coercionType = coercionType;
         }
 
@@ -578,8 +594,17 @@ public class SignatureBinder {
                     return SolverReturnStatus.UNCHANGED_NOT_SATISFIED;
                 }
             }
+            if (argumentIndex >= 0 && typeVariables.isEmpty()) {
+                // Not a type variable, but a concrete type, apply it if it satisfies the coercion
+                DataType<?> originalType = superTypeSignature.createType();
+                DataType<?> commonType = getCommonType(originalType, actualType);
+                if (commonType == null) {
+                    return SolverReturnStatus.UNSOLVABLE;
+                }
+                bindings.setBoundType(argumentIndex, commonType);
+            }
 
-            TypeSignature boundSignature = applyBoundVariables(superTypeSignature, bindings.build(), false);
+            TypeSignature boundSignature = applyBoundVariables(superTypeSignature, bindings.build(), argumentIndex, false);
             if (satisfiesCoercion(coercionType, actualType, boundSignature)) {
                 return SolverReturnStatus.UNCHANGED_SATISFIED;
             }

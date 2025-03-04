@@ -36,6 +36,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -82,8 +83,15 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
+                .bindActualTypes()
                 .build(),
-            ObjectMergeFunction::new
+            (signature, boundSignature) -> {
+                DataType<?> returnType = ObjectMergeFunction.merge(
+                    boundSignature.argTypes().get(0),
+                    boundSignature.argTypes().get(1)
+                );
+                return new ObjectMergeFunction(signature, boundSignature.withReturnType(returnType));
+            }
         );
 
 
@@ -138,8 +146,15 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
+                .bindActualTypes()
                 .build(),
-            ObjectMergeFunction::new
+            (signature, boundSignature) -> {
+                DataType<?> returnType = ObjectMergeFunction.merge(
+                    boundSignature.argTypes().get(0),
+                    boundSignature.argTypes().get(1)
+                );
+                return new ObjectMergeFunction(signature, boundSignature.withReturnType(returnType));
+            }
         );
     }
 

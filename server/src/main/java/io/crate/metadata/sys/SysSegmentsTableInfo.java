@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.index.engine.Segment;
 
 import io.crate.expression.reference.sys.shard.ShardSegment;
 import io.crate.metadata.RelationName;
@@ -62,8 +63,14 @@ public class SysSegmentsTableInfo {
             .add("search", BOOLEAN, r -> r.getSegment().search)
             .add("version", STRING, r -> r.getSegment().getVersion().toString())
             .add("compound", BOOLEAN, r -> r.getSegment().compound)
+            .add("merge_id", STRING, r -> r.getSegment().getMergeId())
+            .add("fully_merged_docs", INTEGER, r -> fullyMergedDocs(r.getSegment()))
             .addDynamicObject("attributes", STRING, r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
             .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .build();
+    }
+
+    private static int fullyMergedDocs(Segment segment) {
+        return segment.docsWithSource == -1 ? -1 : segment.getNumDocs() - segment.docsWithSource;
     }
 }

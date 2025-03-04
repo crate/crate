@@ -55,6 +55,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
@@ -75,24 +77,40 @@ public class SubscriptFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "subscript";
 
+    public static final Signature SIGNATURE_ARRAY_OF_OBJECTS =
+        Signature.builder(NAME, FunctionType.SCALAR)
+            .argumentTypes(
+                TypeSignature.parse("array(object)"),
+                DataTypes.STRING.getTypeSignature())
+            .returnType(TypeSignature.parse("array(undefined)"))
+            .features(Feature.DETERMINISTIC)
+            .forbidCoercion()
+            .build();
+
+    public static final Signature SIGNATURE_OBJECT =
+        Signature.builder(NAME, FunctionType.SCALAR)
+            .argumentTypes(
+                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature())
+            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .features(Feature.DETERMINISTIC)
+            .forbidCoercion()
+            .build();
+
+
+
     public static void register(Functions.Builder module) {
         // All signatures but `array[int]` must forbid coercion.
-        // Otherwise they would also match for non-int numeric indices like e.g. `array[long]`
+        // Otherwise, they would also match for non-int numeric indices like e.g. `array[long]`
 
         // subscript(array(object)), text) -> array(undefined)
         module.add(
-            Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(object)"),
-                    DataTypes.STRING.getTypeSignature())
-                .returnType(TypeSignature.parse("array(undefined)"))
-                .features(Feature.DETERMINISTIC)
-                .forbidCoercion()
-                .build(),
+            SIGNATURE_ARRAY_OF_OBJECTS,
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
                     boundSignature,
-                    SubscriptFunction::lookupIntoListObjectsByName
+                    SubscriptFunction::lookupByName
                 )
         );
         // subscript(array(any)), integer) -> any
@@ -113,13 +131,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         );
         // subscript(object(text, element), text) -> undefined
         module.add(
-            Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature())
-                .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
-                .forbidCoercion()
-                .build(),
+            SIGNATURE_OBJECT,
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -188,16 +200,6 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         return lookup.apply(boundSignature.argTypes(), element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
     }
 
-    static Object lookupIntoListObjectsByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
-        List<?> values = (List<?>) base;
-        List<Object> result = new ArrayList<>(values.size());
-        for (int i = 0; i < values.size(); i++) {
-            Map<?, ?> map = (Map<?, ?>) values.get(i);
-            result.add(map.get(name));
-        }
-        return result;
-    }
-
     static Object lookupByNumericIndex(List<DataType<?>> argTypes, Object base, Object index, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         int idx = ((Number) index).intValue();
@@ -209,26 +211,32 @@ public class SubscriptFunction extends Scalar<Object, Object> {
     }
 
     static Object lookupByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
-        if (!(base instanceof Map<?, ?> map)) {
-            if (base instanceof List<?> list) {
-                List<Object> result = new ArrayList<>(list.size());
-                for (Object item : list) {
-                    result.add(lookupByName(argTypes, item, name, errorOnUnknownObjectKey));
-                }
-                return result;
+        DataType<?> baseType = argTypes.getFirst();
+        if (base instanceof List<?> list) {
+            List<Object> result = new ArrayList<>(list.size());
+            for (Object item : list) {
+                ArrayList<DataType<?>> unnestedArgTypes = new ArrayList<>();
+                unnestedArgTypes.add(ArrayType.unnest(baseType));
+                unnestedArgTypes.add(argTypes.get(1));
+                result.add(lookupByName(unnestedArgTypes, item, name, errorOnUnknownObjectKey));
             }
-            throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
-        } else if (errorOnUnknownObjectKey && !map.containsKey(name)) {
-            DataType<?> objectArgType = argTypes.get(0);
-            // Type could also be "undefined"
-            if (objectArgType instanceof ObjectType objType) {
-                if (objType.innerTypes().containsKey(name)) {
+            return result;
+        } else if (base instanceof Map<?, ?> map) {
+            if (!map.containsKey(name)) {
+                ColumnPolicy columnPolicy = baseType.columnPolicy();
+                assert baseType instanceof ObjectType;
+                ObjectType objType = (ObjectType) baseType;
+                if (columnPolicy == ColumnPolicy.IGNORED
+                    || (columnPolicy == ColumnPolicy.DYNAMIC && !errorOnUnknownObjectKey)
+                    || objType.innerTypes().containsKey(name)) {
                     return null;
                 }
+                throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
+            } else {
+                return map.get(name);
             }
-            throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         } else {
-            return map.get(name);
+            throw new IllegalArgumentException("Base argument to subscript must be an object or array-of-objects, not " + base);
         }
     }
 

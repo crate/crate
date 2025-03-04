@@ -49,6 +49,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentReader;
@@ -88,6 +89,8 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
+import io.crate.metadata.doc.SysColumns;
 
 public abstract class Engine implements Closeable {
 
@@ -731,6 +734,7 @@ public abstract class Engine implements Closeable {
                     }
                     segment.segmentSort = info.info.getIndexSort();
                     segment.attributes = info.info.getAttributes();
+                    segment.docsWithSource = -1;
                     segments.put(info.info.name, segment);
                 } else {
                     segment.committed = true;
@@ -759,8 +763,25 @@ public abstract class Engine implements Closeable {
         }
         segment.segmentSort = info.info.getIndexSort();
         segment.attributes = info.info.getAttributes();
+        segment.docsWithSource = docsWithSource(segmentReader, info);
         // TODO: add more fine grained mem stats values to per segment info here
         segments.put(info.info.name, segment);
+    }
+
+    private int docsWithSource(SegmentReader reader, SegmentCommitInfo info) {
+        if (this.store.indexSettings().getIndexVersionCreated().before(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION)) {
+            return reader.maxDoc();
+        }
+        try {
+            NumericDocValues dv = reader.getNumericDocValues(SysColumns.Source.RECOVERY_NAME);
+            if (dv == null) {
+                return 0;
+            }
+            return (int) dv.cost();
+        } catch (IOException e) {
+            logger.trace(() -> new ParameterizedMessage("failed to get source information for [{}]", info.info.name), e);
+            return -1;
+        }
     }
 
     /**

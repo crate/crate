@@ -237,31 +237,26 @@ public class SignatureBinderTest extends ESTestCase {
     }
 
     @Test
-    public void testMap() {
-        Signature getValueFunction = functionSignature()
-            .returnType(TypeSignature.parse("V"))
-            .argumentTypes(TypeSignature.parse("object(K,V)"), TypeSignature.parse("K"))
-            .typeVariableConstraints(List.of(typeVariable("K"), typeVariable("V")))
+    public void test_actual_type_is_bound() {
+        Signature signature = functionSignature()
+            .argumentTypes(TypeSignature.parse("object"))
+            .returnType(TypeSignature.parse("object"))
+            .bindActualTypes()
             .build();
 
-        assertThatSignature(getValueFunction)
-            .boundTo(
-                ObjectType.of(ColumnPolicy.DYNAMIC)
-                    .setInnerType("V", DataTypes.LONG).build(),
-                DataTypes.STRING)
-            .produces(new BoundVariables(
-                Map.of(
-                    "K", type("text"),
-                    "V", type("bigint"))
-            ));
+        ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("x", DataTypes.LONG)
+            .setInnerType("y", DataTypes.STRING)
+            .build();
 
-        assertThatSignature(getValueFunction)
-            .boundTo(
-                ObjectType.of(ColumnPolicy.DYNAMIC)
-                    .setInnerType("V", DataTypes.LONG).build(),
-                DataTypes.LONG)
-            .withoutCoercion()
-            .fails();
+        BoundSignature expected = new BoundSignature(
+            List.of(objectType),
+            ObjectType.UNTYPED
+        );
+
+        assertThatSignature(signature)
+            .boundTo(objectType)
+            .hasBoundSignature(expected);
     }
 
     @Test

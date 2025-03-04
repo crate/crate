@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
@@ -44,14 +45,14 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithMultipleSubscriptParts() throws Exception {
-        assertNormalize("{\"x\" = 'test'}['x']", isLiteral("test"));
-        assertNormalize("{\"x\" = { \"y\" = 'test'}}['x']['y']", isLiteral("test"));
-        assertNormalize("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['y']['z']", isLiteral("test"));
+        assertNormalize("{\"x\" = 'test'}['x']", isLiteral("test", DataTypes.STRING));
+        assertNormalize("{\"x\" = { \"y\" = 'test'}}['x']['y']", isLiteral("test", DataTypes.STRING));
+        assertNormalize("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['y']['z']", isLiteral("test", DataTypes.STRING));
     }
 
     @Test
     public void testSubscriptOnCastToObjectLiteral() throws Exception {
-        assertNormalize("subscript_obj('{\"x\": 1.0}'::object, 'x')", isLiteral(1.0));
+        assertNormalize("subscript_obj('{\"x\": 1.0}'::object, 'x')", isLiteral(1.0, DataTypes.DOUBLE));
     }
 
     @Test
@@ -67,12 +68,12 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testFunctionCanBeUsedAsIndexInSubscript() {
-        assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10));
+        assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10, DataTypes.INTEGER));
     }
 
     @Test
     public void testSubscriptOnObjectWithPath() {
-        assertEvaluate("subscript_obj({x={y=10}}, 'x', 'y')", 10);
+        assertNormalize("subscript_obj({x={y=10}}, 'x', 'y')", isLiteral(10, DataTypes.INTEGER));
     }
 
     @Test
@@ -104,18 +105,24 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
         assertEvaluateNull("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')");
         // missing key in the middle
         sqlExpressions.setErrorOnUnknownObjectKey(true);
-        Assertions.assertThatThrownBy(() -> assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null))
+        Assertions.assertThatThrownBy(() -> assertEvaluate("subscript_obj({\"x\" = {\"y\" = {\"z\" = 'test'}}}, 'x', 'x', 'z')", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("The object `{y={z=test}}` does not contain the key `x`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
-        assertEvaluateNull("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']");
+        assertEvaluateNull("subscript_obj({\"x\" = {\"y\" = {\"z\" = 'test'}}}, 'x', 'x', 'z')");
+
         // object array, where one item (object) contains key and the other doesn't
+        // The given object type is of type dynamic and contains the key in its type definition -> no error regardless of the session setting
         sqlExpressions.setErrorOnUnknownObjectKey(true);
-        Assertions.assertThatThrownBy(() -> assertEvaluate("{\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}['o']['oo']['x']", null))
-            .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{y=20}` does not contain the key `x`");
-        sqlExpressions.setErrorOnUnknownObjectKey(false);
-        assertEvaluate("{\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}['o']['oo']['x']",
+        assertEvaluate("subscript_obj({\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}, 'o', 'oo', 'x')",
             o -> assertThat((List<Integer>) o).containsExactly(10, null));
+        sqlExpressions.setErrorOnUnknownObjectKey(false);
+        assertEvaluate("subscript_obj({\"o\"= [{\"oo\"= {\"x\"= 10}}, {\"oo\"= {\"y\"= 20}}]}, 'o', 'oo', 'x')",
+            o -> assertThat((List<Integer>) o).containsExactly(10, null));
+    }
+
+    @Test
+    public void test_nested_object_with_ignored_policy() {
+        assertNormalize("subscript_obj({a={}}::OBJECT(IGNORED), 'a', 'b')", isLiteral(null, DataTypes.UNDEFINED));
     }
 }
