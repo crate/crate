@@ -51,6 +51,10 @@ public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
     public CustomLucene90DocValuesFormat(Mode mode, int skipIndexIntervalSize) {
         super("CrateDBLucene90");
         this.mode = mode;
+        if (skipIndexIntervalSize < 2) {
+            throw new IllegalArgumentException(
+                "skipIndexIntervalSize must be > 1, got [" + skipIndexIntervalSize + "]");
+        }
         this.skipIndexIntervalSize = skipIndexIntervalSize;
     }
 
