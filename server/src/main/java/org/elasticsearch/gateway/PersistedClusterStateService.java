@@ -19,6 +19,7 @@
 
 package org.elasticsearch.gateway;
 
+
 import java.io.Closeable;
 import java.io.IOError;
 import java.io.IOException;
@@ -73,6 +74,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.RecyclingBytesStreamOutput;
+import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -87,6 +89,9 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
@@ -517,6 +522,15 @@ public class PersistedClusterStateService {
         }
     }
 
+    private static final ToXContent.Params FORMAT_PARAMS;
+
+    static {
+        Map<String, String> params = new HashMap<>(2);
+        params.put("binary", "true");
+        params.put(Metadata.CONTEXT_MODE_PARAM, Metadata.CONTEXT_MODE_GATEWAY);
+        FORMAT_PARAMS = new ToXContent.MapParams(params);
+    }
+
     /**
      * Encapsulates a single {@link IndexWriter} with its {@link Directory} for ease of closing, and a {@link Logger}. There is one of these
      * for each data path.
@@ -864,7 +878,7 @@ public class PersistedClusterStateService {
         }
 
         private Document makeIndexMetadataDocument(IndexMetadata indexMetadata, DocumentBuffer documentBuffer) throws IOException {
-            final Document indexMetadataDocument = makeDocument(INDEX_TYPE_NAME, indexMetadata::writeTo, documentBuffer);
+            final Document indexMetadataDocument = makeDocument(INDEX_TYPE_NAME, indexMetadata, indexMetadata::writeTo, documentBuffer);
             final String indexUUID = indexMetadata.getIndexUUID();
             assert indexUUID.equals(IndexMetadata.INDEX_UUID_NA_VALUE) == false;
             indexMetadataDocument.add(new StringField(INDEX_UUID_FIELD_NAME, indexUUID, Field.Store.NO));
@@ -874,6 +888,7 @@ public class PersistedClusterStateService {
         private Document makeGlobalMetadataDocument(Metadata metadata, DocumentBuffer documentBuffer) throws IOException {
             return makeDocument(
                 GLOBAL_TYPE_NAME,
+                metadata,
                 out -> {
                     Version.writeVersion(Version.CURRENT, out);
                     metadata.writeTo(out);
@@ -882,14 +897,23 @@ public class PersistedClusterStateService {
             );
         }
 
-        private Document makeDocument(String typeName, CheckedConsumer<StreamOutput, IOException> writeTo, DocumentBuffer documentBuffer) throws IOException {
+        private Document makeDocument(String typeName, ToXContent toXContent, CheckedConsumer<StreamOutput, IOException> writeTo, DocumentBuffer documentBuffer) throws IOException {
             final Document document = new Document();
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
-            try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
-                writeTo.accept(out);
-                document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
+            try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
+                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
+                    Streams.flushOnCloseStream(streamOutput))) {
+                    xContentBuilder.startObject();
+                    toXContent.toXContent(xContentBuilder, FORMAT_PARAMS);
+                    xContentBuilder.endObject();
+                }
+                document.add(new StoredField(DATA_FIELD_NAME, streamOutput.toBytesRef()));
             }
+//            try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
+//                writeTo.accept(out);
+//                document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
+//            }
 
             return document;
         }
