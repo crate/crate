@@ -262,7 +262,7 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_PartitionName_from_assignment_with_partitioned_table() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.users (x int, p1 int) partitioned by (p1)",
                 ".partitioned.users.041j2c0"
             );

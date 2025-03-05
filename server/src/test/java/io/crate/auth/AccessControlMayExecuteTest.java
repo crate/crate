@@ -135,7 +135,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)

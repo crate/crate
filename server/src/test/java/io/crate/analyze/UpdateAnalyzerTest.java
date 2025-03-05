@@ -29,6 +29,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -83,7 +84,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addTable(
@@ -103,13 +104,13 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 ")"
             )
             .addTable("create table bag (id short primary key, ob array(object))")
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.parted_generated_column (" +
                 "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) "
             )
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.nested_parted_generated_column (" +
                 "   \"user\" object as (" +
                 "       name string" +

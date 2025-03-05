@@ -27,6 +27,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
             );

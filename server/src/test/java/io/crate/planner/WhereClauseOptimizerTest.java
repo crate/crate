@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -53,13 +54,13 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table bystring (name string primary key, score double) " +
                       "clustered by (name) ")
             .addTable("create table clustered_by_only (x int) clustered by (x)")
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   date timestamp with time zone" +
                 ") partitioned by (date)"
             )
-            .addPartitionedTable(
+            .addTable(
                 "create table parted_pk (" +
                 "   id int primary key, " +
                 "   date timestamp with time zone primary key" +
@@ -68,7 +69,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
             )
-            .addPartitionedTable("""
+            .addTable("""
                 create table partdatebin (
                     id int,
                     ts timestamp,
@@ -79,7 +80,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "partdatebin"), List.of("1687767893000")).asIndexName()
             )
             // Important, ts_month has a type different from date_trunc return type to provoke implicit cast addition
-            .addPartitionedTable("""
+            .addTable("""
                 create table partdatetrunc (
                     ts TIMESTAMP WITHOUT TIME ZONE,
                     ts_month TIMESTAMP as date_trunc('month', ts)
@@ -89,7 +90,7 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "partdatetrunc"), List.of("1687767893000")).asIndexName()
             )
             // Important, ts_month doesn't have type declared and expression is just a CAST.
-            .addPartitionedTable("""
+            .addTable("""
                 create table partcast (
                     ts TIMESTAMP WITHOUT TIME ZONE,
                     ts_month as cast(ts as TIMESTAMP WITH TIME ZONE)

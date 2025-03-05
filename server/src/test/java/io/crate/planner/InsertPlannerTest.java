@@ -74,7 +74,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table parted_pks (" +
                 "   id int," +
                 "   name string," +
@@ -93,7 +93,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone" +
                 ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
-            .addPartitionedTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)");
+            .addTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)");
     }
 
     @Test

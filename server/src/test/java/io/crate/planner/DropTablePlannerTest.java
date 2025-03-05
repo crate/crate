@@ -42,7 +42,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table screenshots");
