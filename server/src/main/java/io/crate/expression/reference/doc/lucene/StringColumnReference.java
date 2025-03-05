@@ -31,6 +31,6 @@ public class StringColumnReference extends BinaryColumnReference<BytesRef> {
 
     @Override
     protected BytesRef convert(BytesRef input) {
-        return input;
+        return BytesRef.deepCopyOf(input);
     }
 }
