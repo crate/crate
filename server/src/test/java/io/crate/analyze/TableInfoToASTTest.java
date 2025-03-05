@@ -270,9 +270,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                "col_d" OBJECT(DYNAMIC) AS (
                   "a" TEXT
                ),
-               INDEX "col_a_col_b_plain" USING FULLTEXT ("col_a", "col_b") WITH (
-                  analyzer = 'keyword'
-               ),
+               INDEX "col_a_col_b_plain" USING PLAIN ("col_a", "col_b"),
                INDEX "col_d_a_ft" USING FULLTEXT ("col_d"['a']) WITH (
                   analyzer = 'custom_analyzer'
                ),
