@@ -60,3 +60,7 @@ Fixes
   columns which were already added to tables after their creation before
   :ref:`version_5.10.3`. Those columns need to be dropped and recreated.
 
+- Fixed a regression introduced in :ref:`version_5.10.0` that
+  caused tables become unavailable after ``ALTER TABLE RENAME`` statements
+  followed by a cluster restart.
+
