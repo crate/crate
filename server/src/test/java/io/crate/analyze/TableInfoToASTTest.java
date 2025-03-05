@@ -207,7 +207,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testBuildCreateTableClusteredByPartitionedBy() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("""
+            .addTable("""
                 create table myschema.test (id long, partition_column string, cluster_column string)
                 partitioned by (partition_column)
                 clustered by (cluster_column) into 5 shards

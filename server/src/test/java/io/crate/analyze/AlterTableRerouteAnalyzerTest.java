@@ -56,7 +56,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         e = SQLExecutor.of(clusterService)
             .addBlobTable("create blob table blobs;")
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
             );

@@ -131,7 +131,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     public void test_can_lookup_generated_partition_column_if_casted() throws Exception {
         // See https://github.com/crate/crate/issues/14307
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("""
+            .addTable("""
                 create table tbl (
                     ts timestamp,
                     year as date_trunc('year', ts)

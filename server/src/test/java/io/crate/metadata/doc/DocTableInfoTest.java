@@ -235,7 +235,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_0_0)
             .build();
         var e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings);
+            .addTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings);
 
         DocTableInfo tableInfo = e.resolveTableInfo("p1");
         assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.V_5_0_0);
@@ -244,7 +244,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_version_created_is_set_to_current_version_if_unavailable_at_partitioned_template() throws Exception {
         var e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", Settings.EMPTY);
+            .addTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", Settings.EMPTY);
 
         DocTableInfo tableInfo = e.resolveTableInfo("p1");
         assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.CURRENT);
@@ -585,7 +585,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_write_to_preserves_number_of_shards_of_partitions() throws Exception {
         var partitionIndexName = new PartitionName(new RelationName("doc", "tbl"), singletonList("1")).asIndexName();
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 """
                     create table tbl (
                         id int,

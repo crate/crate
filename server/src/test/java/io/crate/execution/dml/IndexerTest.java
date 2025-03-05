@@ -355,7 +355,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_generated_partitioned_column_is_not_indexed_or_included_in_source() throws Exception {
         String partition = new PartitionName(new RelationName("doc", "tbl"), List.of("3")).asIndexName();
         SQLExecutor executor = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.tbl (x int, p int as x + 2) partitioned by (p)",
                 partition
             );
@@ -1220,7 +1220,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_generated_column_can_refer_to_a_non_string_partitioned_by_column() throws Exception {
         String partition = new PartitionName(new RelationName("doc", "t"), List.of("2")).asIndexName();
         SQLExecutor executor = SQLExecutor.of(clusterService)
-            .addPartitionedTable("""
+            .addTable("""
              CREATE TABLE t (
                  a INT,
                  parted INT CHECK (parted > 1),

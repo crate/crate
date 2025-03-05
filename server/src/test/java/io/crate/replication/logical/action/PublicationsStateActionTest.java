@@ -263,7 +263,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         };
 
         SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
                 new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
             );
@@ -296,7 +296,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         };
 
         SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
                 new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
             );
