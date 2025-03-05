@@ -409,6 +409,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 .map(IndexParts::schema)
                 .forEach(schemas::add);
         }
+        for (var cursor : metadata.schemas().keys()) {
+            schemas.add(cursor.value);
+        }
         return schemas;
     }
 

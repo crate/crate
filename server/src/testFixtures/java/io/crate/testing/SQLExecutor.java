@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +65,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -728,38 +730,68 @@ public class SQLExecutor {
         }
         ClusterState prevState = clusterService.state();
         var combinedSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(boundCreateTable.settings())
             .put(customSettings)
             .build();
 
         // addPartitionedTable can be called multiple times, create supplier based on existing state.
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+        RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
         LongSupplier columnOidSupplier =
                 this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-        Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
 
+        Version smallestVersion = prevState.nodes().getSmallestNonClientNodeVersion();
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(combinedSettings);
+
+        // skip mapping generation if using RelationMetadata
+        // This is a bit different than production code but is done to avoids issues with duplicate oid generation
+        // (which would happen once here, and once again further done via mdBuilder.setTable)
+        Map<String, Object> mapping = versionCreated.before(Version.V_6_0_0)
+            ? mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable)
+            : Map.of();
+        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
         XContentBuilder mappingBuilder =
             JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
-        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
         IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
             .patterns(singletonList(boundCreateTable.templatePrefix()))
+            .settings(buildSettings(false, combinedSettings, smallestVersion))
             .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
-            .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
             .putAlias(alias);
-
         mdBuilder.put(template);
 
-        RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
+        List<String> indexUUIDs = new ArrayList<>();
         for (String partition : partitions) {
             IndexMetadata indexMetadata = getIndexMetadata(
                 partition,
                 combinedSettings,
                 mapping, // Each partition has the same mapping.
-                prevState.nodes().getSmallestNonClientNodeVersion())
+                smallestVersion)
                 .putAlias(alias)
                 .build();
             mdBuilder.put(indexMetadata, true);
             routingBuilder.addAsNew(indexMetadata);
+            indexUUIDs.add(indexMetadata.getIndexUUID());
+        }
+        if (versionCreated.onOrAfter(Version.V_6_0_0)) {
+            RelationMetadata relation = prevState.metadata().getRelation(boundCreateTable.tableName());
+            if (relation instanceof RelationMetadata.Table table) {
+                indexUUIDs = Lists.concatUnique(table.indexUUIDs(), indexUUIDs);
+            }
+            mdBuilder.setTable(
+                columnOidSupplier,
+                boundCreateTable.tableName(),
+                List.copyOf(boundCreateTable.columns().values()),
+                combinedSettings,
+                boundCreateTable.routingColumn(),
+                TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+                boundCreateTable.pkConstraintName(),
+                boundCreateTable.getCheckConstraints(),
+                Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+                Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+                State.OPEN,
+                indexUUIDs
+            );
         }
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
