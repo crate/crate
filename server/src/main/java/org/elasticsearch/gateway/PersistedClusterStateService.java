@@ -74,7 +74,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.RecyclingBytesStreamOutput;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -449,7 +448,7 @@ public class PersistedClusterStateService {
             // Reflect the previous implementation when XContent didn't persist indices.
             // Now we persist the whole state but not reading parts that are not supposed to be used.
             // We load correct IndexMetatada from dedicated field below.
-            builderReference.set(Metadata.builder(metadata).indices(ImmutableOpenMap.of()));
+            builderReference.set(Metadata.builder(metadata).removeAllIndices());
         });
 
         final Metadata.Builder builder = builderReference.get();
