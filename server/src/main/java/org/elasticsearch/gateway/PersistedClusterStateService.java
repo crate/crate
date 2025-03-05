@@ -74,7 +74,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.RecyclingBytesStreamOutput;
-import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -90,8 +90,6 @@ import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
@@ -448,7 +446,10 @@ public class PersistedClusterStateService {
             if (builderReference.get() != null) {
                 throw new IllegalStateException("duplicate global metadata found in [" + dataPath + "]");
             }
-            builderReference.set(Metadata.builder(metadata));
+            // Reflect the previous implementation when XContent didn't persist indices.
+            // Now we persist the whole state but not reading parts that are not supposed to be used.
+            // We load correct IndexMetatada from dedicated field below.
+            builderReference.set(Metadata.builder(metadata).indices(ImmutableOpenMap.of()));
         });
 
         final Metadata.Builder builder = builderReference.get();
@@ -713,12 +714,12 @@ public class PersistedClusterStateService {
             try (DocumentBuffer documentBuffer = allocateBuffer()) {
 
                 final boolean updateGlobalMeta = Metadata.isGlobalStateEquals(previouslyWrittenMetadata, metadata) == false;
-               // if (updateGlobalMeta) {
+                if (updateGlobalMeta) {
                     final Document globalMetadataDocument = makeGlobalMetadataDocument(metadata, documentBuffer);
                     for (MetadataIndexWriter metadataIndexWriter : metadataIndexWriters) {
                         metadataIndexWriter.updateGlobalMetadata(globalMetadataDocument);
                     }
-             //   }
+                }
 
                 final Map<String, Long> indexMetadataVersionByUUID = new HashMap<>(previouslyWrittenMetadata.indices().size());
                 for (ObjectCursor<IndexMetadata> cursor : previouslyWrittenMetadata.indices().values()) {
@@ -901,15 +902,6 @@ public class PersistedClusterStateService {
             final Document document = new Document();
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
-//            try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
-//                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
-//                    Streams.flushOnCloseStream(streamOutput))) {
-//                    xContentBuilder.startObject();
-//                    toXContent.toXContent(xContentBuilder, FORMAT_PARAMS);
-//                    xContentBuilder.endObject();
-//                }
-//                document.add(new StoredField(DATA_FIELD_NAME, streamOutput.toBytesRef()));
-//            }
             try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
                 writeTo.accept(out);
                 document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
