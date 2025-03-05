@@ -443,7 +443,22 @@ public class PersistedClusterStateService {
             if (builderReference.get() != null) {
                 throw new IllegalStateException("duplicate global metadata found in [" + dataPath + "]");
             }
-            builderReference.set(Metadata.builder(metadata));
+
+            // Since https://github.com/crate/crate/commit/4a82981501619780ce1156aa5015a627de5ff1e1
+            // we persist the whole state of Metadata and don't skip indices.
+            // We remove all indices when we read persisted state because IndexMetadata is persisted and loaded separately.
+
+            // Ideally we shouldn't persist Metadata indices but to do that
+            // we would have to introduce custom serialization instead of using Writable as is.
+
+            // Since 6.0, we are using RelationMetadata and floating away
+            // from the idea of persisting and loading Metadata and indices separately.
+            // This fix (removeAllIndices) is not needed anymore after
+            // https://github.com/crate/crate/commit/a6d58586a2db9f15a6dd96c84a0afdd849c37796,
+            // but we have it on 6.0 for BWC reasons as we can read 5.10 state during upgrade.
+
+            // Eventually, we will be able to remove IndexMetadata and its separate persist/load logic in CrateDB 7.0.
+            builderReference.set(Metadata.builder(metadata).removeAllIndices());
         });
 
         final Metadata.Builder builder = builderReference.get();

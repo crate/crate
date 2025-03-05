@@ -688,6 +688,57 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    public void test_persisted_state_has_only_renamed_index_metadata_after_rename() throws IOException {
+        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
+            final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
+
+            final String uuid = UUIDs.randomBase64UUID(random());
+            String index = "test";
+            String renamedIndex = "renamed_test";
+            long indexVersion = 1;
+
+
+            try (Writer writer = persistedClusterStateService.createWriter()) {
+                ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
+                // Need to write full state first before doing incremental writes.
+                // Imitate CREATE TABLE
+                writer.writeFullStateAndCommit(0, ClusterState.builder(clusterState)
+                    .metadata(Metadata.builder(clusterState.metadata())
+                        .version(clusterState.metadata().version() + 1)
+                        .coordinationMetadata(CoordinationMetadata.builder(clusterState.coordinationMetadata()).term(1).build())
+                        .put(IndexMetadata.builder(index)
+                            .version(indexVersion)
+                            .settings(Settings.builder()
+                                .put(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 1)
+                                .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
+                                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT)
+                                .put(IndexMetadata.SETTING_INDEX_UUID, uuid)))).incrementVersion().build()
+                );
+
+
+                // Imitate ALTER TABLE RENAME: it creates a new IndexMetadata with the same params but different name and version.
+                clusterState = loadPersistedClusterState(persistedClusterStateService);
+                writer.writeIncrementalStateAndCommit(0, clusterState, ClusterState.builder(clusterState)
+                    .metadata(Metadata.builder(clusterState.metadata())
+                        .version(clusterState.metadata().version() + 1)
+                        .remove(index)
+                        .put(IndexMetadata.builder(renamedIndex)
+                            .version(indexVersion + 1)
+                            .settings(Settings.builder()
+                                .put(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 1)
+                                .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
+                                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT)
+                                .put(IndexMetadata.SETTING_INDEX_UUID, uuid)))) // Renamed table gets same UUID
+                    .incrementVersion().build()
+                );
+
+                clusterState = loadPersistedClusterState(persistedClusterStateService);
+                assertThat(clusterState.metadata().indices()).hasSize(1); // Used to be 2
+                assertThat(clusterState.metadata().index(renamedIndex).getIndexUUID()).isEqualTo(uuid);
+            }
+        }
+    }
+
     public void testPersistsAndReloadsIndexMetadataForMultipleIndices() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
