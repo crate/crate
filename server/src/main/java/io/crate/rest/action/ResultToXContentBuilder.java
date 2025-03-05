@@ -26,6 +26,7 @@ import static io.crate.common.exceptions.Exceptions.userFriendlyMessage;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.auth.AccessControl;
@@ -120,7 +121,13 @@ class ResultToXContentBuilder {
     ResultToXContentBuilder addRow(Row row, int numCols) throws IOException {
         builder.startArray();
         for (int j = 0; j < numCols; j++) {
-            builder.value(row.get(j));
+            Object value = row.get(j);
+            if (value instanceof BytesRef b) {
+                String value1 = b.utf8ToString();
+                builder.value(value1);
+            } else {
+                builder.value(value);
+            }
         }
         builder.endArray();
         return this;
