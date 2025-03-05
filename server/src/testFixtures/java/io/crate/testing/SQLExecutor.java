@@ -52,7 +52,6 @@ import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -61,7 +60,6 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -830,13 +828,13 @@ public class SQLExecutor {
 
     public SQLExecutor closeTable(String tableName) throws IOException {
         RelationName relationName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME);
-        String indexName = relationName.indexNameOrAlias();
         ClusterState prevState = clusterService.state();
         var metadata = prevState.metadata();
-
-        String[] concreteIndices = IndexNameExpressionResolver
-            .concreteIndexNames(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
-
+        List<IndexMetadata> indices = metadata.getIndices(
+            relationName,
+            List.of(),
+            false,
+            imd -> imd.getState() == State.OPEN ? imd : null);
         Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
         RelationMetadata relation = metadata.getRelation(relationName);
         if (relation instanceof RelationMetadata.Table table) {
@@ -857,9 +855,9 @@ public class SQLExecutor {
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(clusterService.state().blocks());
 
-        for (String index: concreteIndices) {
-            mdBuilder.put(IndexMetadata.builder(metadata.index(index)).state(IndexMetadata.State.CLOSE));
-            blocksBuilder.addIndexBlock(index, INDEX_CLOSED_BLOCK);
+        for (IndexMetadata imd: indices) {
+            mdBuilder.put(IndexMetadata.builder(imd).state(IndexMetadata.State.CLOSE));
+            blocksBuilder.addIndexBlock(imd.getIndex().getName(), INDEX_CLOSED_BLOCK);
         }
 
         ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();

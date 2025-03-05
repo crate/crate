@@ -1308,6 +1308,16 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    /**
+     * <p>
+     * Resolve the indices for a relation and return their data either as
+     * {@link IndexMetadata} or derived from it using the {@code as} parameter.
+     * </p>
+     * <p>
+     * {@code null} values returned from {@code as} are excluded from the result.
+     * This can be used to filter based on state or similar.
+     * </p>
+     **/
     public <T> List<T> getIndices(RelationName relationName,
                                   List<String> partitionValues,
                                   boolean strict,
