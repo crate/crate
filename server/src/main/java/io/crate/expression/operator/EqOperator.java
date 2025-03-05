@@ -26,7 +26,6 @@ import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +107,7 @@ public final class EqOperator extends Operator<Object> {
         if (right == null) {
             return null;
         }
-        return left.bytesEquals(right);
+        return left.compareTo(right) == 0;
     }
 
     @Override

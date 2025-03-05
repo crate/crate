@@ -29,7 +29,6 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
-import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.SysColumns;
@@ -60,7 +59,7 @@ public abstract class IdCollectorExpression extends LuceneCollectorExpression<By
 
         @Override
         public BytesRef value() {
-           throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -77,7 +76,7 @@ public abstract class IdCollectorExpression extends LuceneCollectorExpression<By
         public BytesRef value() {
             try {
                 if (this.values.advanceExact(this.docId)) {
-                    return  this.values.binaryValue();
+                    return BytesRef.deepCopyOf(this.values.binaryValue());
 
                 } else {
                     throw new IllegalStateException("No binary id for document " + this.docId);

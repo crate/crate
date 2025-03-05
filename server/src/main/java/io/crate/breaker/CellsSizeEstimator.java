@@ -50,7 +50,6 @@ public abstract class CellsSizeEstimator {
                 long size = 0;
                 for (int i = 0; i < valueCount; i++) {
                     DataType dataType = columnTypes.get(i);
-//                    size += dataType.valueBytes(values.apply(i));
                 }
                 return size;
             }
