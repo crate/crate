@@ -34,7 +34,7 @@ import org.elasticsearch.index.mapper.Uid;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.doc.SysColumns;
 
-public abstract class IdCollectorExpression extends LuceneCollectorExpression<String> {
+public abstract class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     public static final Version STORED_AS_BINARY_VERSION = Version.V_6_0_0;
 
@@ -59,14 +59,8 @@ public abstract class IdCollectorExpression extends LuceneCollectorExpression<St
         private ReaderContext context;
 
         @Override
-        public String value() {
-            try {
-                visitor.setCanStop(false);
-                context.visitDocument(docId, visitor);
-                return visitor.getId();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+        public BytesRef value() {
+           throw new UnsupportedOperationException();
         }
 
         @Override
@@ -80,11 +74,11 @@ public abstract class IdCollectorExpression extends LuceneCollectorExpression<St
         private BinaryDocValues values;
 
         @Override
-        public String value() {
+        public BytesRef value() {
             try {
                 if (this.values.advanceExact(this.docId)) {
-                    BytesRef bytes = this.values.binaryValue();
-                    return Uid.decodeId(bytes.bytes, bytes.offset, bytes.length);
+                    return  this.values.binaryValue();
+
                 } else {
                     throw new IllegalStateException("No binary id for document " + this.docId);
                 }
