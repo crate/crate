@@ -23,14 +23,14 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.util.BytesRef;
 
-public class StringColumnReference extends BinaryColumnReference<String> {
+public class StringColumnReference extends BinaryColumnReference<BytesRef> {
 
     public StringColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    protected String convert(BytesRef input) {
-        return input.utf8ToString();
+    protected BytesRef convert(BytesRef input) {
+        return input;
     }
 }
