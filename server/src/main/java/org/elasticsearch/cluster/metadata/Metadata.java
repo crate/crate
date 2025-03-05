@@ -364,6 +364,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return this.templates;
     }
 
+    public ImmutableOpenMap<String, SchemaMetadata> schemas() {
+        return this.schemas;
+    }
+
     public ImmutableOpenMap<String, Custom> customs() {
         return this.customs;
     }
@@ -791,7 +795,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schemaMetadata.relations())
                 .fRemove(relationName.name())
                 .build();
-            schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+            if (newRelations.isEmpty()) {
+                schemas.remove(relationName.schema());
+            } else {
+                schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+            }
             return this;
         }
 

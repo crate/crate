@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -368,17 +369,19 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect).hasSize(2);
         assertThat(toCollect.get(0)).isReference().hasName("_doc['id']");
-        assertThat(toCollect.get(1)).isEqualTo(new SimpleReference(
+        SimpleReference expected = new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,
-            IndexType.PLAIN,
+            IndexType.NONE,
             false,
             true,
             3,
             3,
             false,
-            null));
+            null
+        );
+        assertThat(toCollect.get(1)).isEqualTo(expected);
     }
 
     @Test

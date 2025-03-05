@@ -220,7 +220,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         assertThat(SqlFormatter.formatSql(node)).isEqualTo("""
             CREATE TABLE IF NOT EXISTS "myschema"."test" (
                "id" BIGINT,
-               "partition_column" TEXT,
+               "partition_column" TEXT INDEX OFF,
                "cluster_column" TEXT
             )
             CLUSTERED BY ("cluster_column") INTO 5 SHARDS
