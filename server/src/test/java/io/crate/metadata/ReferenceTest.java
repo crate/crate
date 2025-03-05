@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -44,6 +45,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -152,8 +154,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(indexMetadata.mapping()).isNull();;
+        assertThat(reference.valueType()).isEqualTo(StringType.of(40));
     }
 
     @Test
@@ -171,8 +173,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("doc_values", "false")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(indexMetadata.mapping()).isNull();
+        assertThat(reference.hasDocValues()).isFalse();
     }
 
     @Test
@@ -190,8 +192,9 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("doc_values", "false")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(indexMetadata.mapping()).isNull();
+        assertThat(reference.hasDocValues()).isFalse();
+        assertThat(reference.valueType()).isEqualTo(DataTypes.FLOAT);
     }
 
     @Test
@@ -245,8 +248,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("default_expr", "'foo'")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+        assertThat(indexMetadata.mapping()).isNull();
+        assertThat(reference.defaultExpression()).isLiteral("foo");
     }
 
     /**

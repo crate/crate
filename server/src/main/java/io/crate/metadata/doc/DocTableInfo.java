@@ -969,7 +969,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         };
 
         UnaryOperator<IndexReference> renameIndexRefs = idxRef -> {
-            var updatedRef = idxRef.updateColumns(
+            var updatedRef = idxRef.withColumns(
                 Lists.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
             if (toBeRenamed.test(idxRef.column())) {
                 return (IndexReference) updatedRef.withReferenceIdent(

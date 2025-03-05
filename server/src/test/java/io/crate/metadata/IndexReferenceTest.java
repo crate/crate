@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static io.crate.metadata.ReferenceTest.columnMapping;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,8 +81,11 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("oid", 3L)
             .containsEntry("analyzer", "stop");
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
-        assertThat(columnMapping(sourceAsMap, "properties.title_desc_fulltext")).isEqualTo(mapping);
+        assertThat(indexMetadata.mapping()).isNull();
+        assertThat(reference.columns()).satisfiesExactly(
+            x -> assertThat(x).isEqualTo(titleRef),
+            x -> assertThat(x).isEqualTo(descRef)
+        );
     }
 
 

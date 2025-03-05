@@ -59,6 +59,7 @@ import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -105,6 +106,7 @@ import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.TableParameters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -142,6 +144,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -793,6 +796,8 @@ public class SQLExecutor {
         }
 
         var combinedSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+            .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
             .put(boundCreateTable.settings())
             .put(settings)
             .build();
@@ -805,12 +810,35 @@ public class SQLExecutor {
                 this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
 
         RelationName relationName = boundCreateTable.tableName();
-        IndexMetadata indexMetadata = getIndexMetadata(
-            relationName.indexNameOrAlias(),
-            combinedSettings,
-            TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
-            prevState.nodes().getSmallestNonClientNodeVersion()
-        ).build();
+        IndexMetadata indexMetadata;
+
+        // Some tests pass along an older version for BWC testing
+        if (IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(combinedSettings).onOrAfter(Version.V_6_0_0)) {
+            indexMetadata = IndexMetadata.builder(relationName.indexNameOrAlias())
+                .settings(combinedSettings)
+                .build();
+            mdBuilder.setTable(
+                columnOidSupplier,
+                relationName,
+                List.copyOf(boundCreateTable.columns().values()),
+                combinedSettings,
+                boundCreateTable.routingColumn(),
+                TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+                boundCreateTable.pkConstraintName(),
+                boundCreateTable.getCheckConstraints(),
+                Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+                Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+                State.OPEN,
+                List.of(indexMetadata.getIndexUUID())
+            );
+        } else {
+           indexMetadata = getIndexMetadata(
+                relationName.indexNameOrAlias(),
+                combinedSettings,
+                TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
+                prevState.nodes().getSmallestNonClientNodeVersion()
+            ).build();
+        }
 
         ClusterState state = ClusterState.builder(prevState)
             .blocks(
