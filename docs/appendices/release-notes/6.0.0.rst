@@ -106,7 +106,7 @@ Scalar and Aggregation Functions
   function and the associated :ref:`&&<array_overlap_operator>` operator.
 
 - Added support for the :ref:`aggregation-stddev-pop` function to compute
-  the popolation standard deviation.
+  the population standard deviation.
 
 
 Performance and Resilience Improvements
