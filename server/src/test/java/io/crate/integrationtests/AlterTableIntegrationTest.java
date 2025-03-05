@@ -32,6 +32,10 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -350,9 +354,10 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
         execute("INSERT INTO q1 VALUES (1, 2), (2, 3), (3, 4)");
         execute("INSERT INTO q2 VALUES (5, 6), (6, 7), (7, 8)");
-        execute("REFRESH TABLE q1, q2");
+        execute("REFRESH TABLE q1");
 
         execute("ALTER TABLE q1 RENAME TO q1_old");
+
         execute("ALTER TABLE q2 RENAME TO q1");
 
         execute("SELECT * FROM q1 order by a");
@@ -367,6 +372,9 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasMessageContaining("Relation 'q2' unknown");
 
         var metadata = cluster().clusterService().state().metadata();
+        NodeEnvironment nodeEnvironment = cluster().getMasterNodeInstance(NodeEnvironment.class);
+        var pesistedMetadata = ElasticsearchNodeCommand.createPersistedClusterStateService(Settings.EMPTY, nodeEnvironment.nodeDataPaths())
+            .loadBestOnDiskState().metadata;
 
         cluster().fullRestart();
 
@@ -388,7 +396,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
                 // Ignore
             }
         }, 20, TimeUnit.SECONDS);
-
 
         assertSQLError(() -> execute("SELECT * FROM q2"))
             .hasPGError(UNDEFINED_TABLE)

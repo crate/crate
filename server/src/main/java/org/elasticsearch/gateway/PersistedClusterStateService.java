@@ -713,12 +713,12 @@ public class PersistedClusterStateService {
             try (DocumentBuffer documentBuffer = allocateBuffer()) {
 
                 final boolean updateGlobalMeta = Metadata.isGlobalStateEquals(previouslyWrittenMetadata, metadata) == false;
-                if (updateGlobalMeta) {
+               // if (updateGlobalMeta) {
                     final Document globalMetadataDocument = makeGlobalMetadataDocument(metadata, documentBuffer);
                     for (MetadataIndexWriter metadataIndexWriter : metadataIndexWriters) {
                         metadataIndexWriter.updateGlobalMetadata(globalMetadataDocument);
                     }
-                }
+             //   }
 
                 final Map<String, Long> indexMetadataVersionByUUID = new HashMap<>(previouslyWrittenMetadata.indices().size());
                 for (ObjectCursor<IndexMetadata> cursor : previouslyWrittenMetadata.indices().values()) {
@@ -901,19 +901,19 @@ public class PersistedClusterStateService {
             final Document document = new Document();
             document.add(new StringField(TYPE_FIELD_NAME, typeName, Field.Store.NO));
 
-            try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
-                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
-                    Streams.flushOnCloseStream(streamOutput))) {
-                    xContentBuilder.startObject();
-                    toXContent.toXContent(xContentBuilder, FORMAT_PARAMS);
-                    xContentBuilder.endObject();
-                }
-                document.add(new StoredField(DATA_FIELD_NAME, streamOutput.toBytesRef()));
-            }
-//            try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
-//                writeTo.accept(out);
-//                document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
+//            try (RecyclingBytesStreamOutput streamOutput = documentBuffer.streamOutput()) {
+//                try (XContentBuilder xContentBuilder = XContentFactory.builder(XContentType.SMILE,
+//                    Streams.flushOnCloseStream(streamOutput))) {
+//                    xContentBuilder.startObject();
+//                    toXContent.toXContent(xContentBuilder, FORMAT_PARAMS);
+//                    xContentBuilder.endObject();
+//                }
+//                document.add(new StoredField(DATA_FIELD_NAME, streamOutput.toBytesRef()));
 //            }
+            try (RecyclingBytesStreamOutput out = documentBuffer.streamOutput()) {
+                writeTo.accept(out);
+                document.add(new StoredField(DATA_FIELD_NAME, out.toBytesRef()));
+            }
 
             return document;
         }
