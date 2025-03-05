@@ -26,6 +26,7 @@ import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -99,15 +100,15 @@ public final class EqOperator extends Operator<Object> {
     @SafeVarargs
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "number of args must be 2";
-        Object left = args[0].value();
+        BytesRef left = (BytesRef) args[0].value();
         if (left == null) {
             return null;
         }
-        Object right = args[1].value();
+        BytesRef right = (BytesRef) args[1].value();
         if (right == null) {
             return null;
         }
-        return argType.compare(left, right) == 0;
+        return left.bytesEquals(right);
     }
 
     @Override
