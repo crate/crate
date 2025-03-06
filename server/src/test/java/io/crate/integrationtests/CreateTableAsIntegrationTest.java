@@ -147,17 +147,17 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
 
         // Fields does not exist
-        // STRICT
+        // STRICT (error based on type definition)
         assertThatThrownBy(() -> execute("CREATE TABLE test_strict AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (STRICT) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+            .hasMessageContaining("Column object['field2'] unknown");
 
-        // DYNAMIC
+        // DYNAMIC (error while evaluating the expression)
         assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']"))
             .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
 
-        // IGNORED
+        // IGNORED (error while using an undefined column as it cannot be stored)
         assertThatThrownBy(() -> execute("CREATE TABLE test_ignored AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (IGNORED) AS (field1 BIGINT) ['field2']"))
             .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
@@ -165,7 +165,7 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         try (Session session = sqlExecutor.newSession()) {
             execute("SET SESSION error_on_unknown_object_key=false", session);
 
-            // DYNAMIC
+            // DYNAMIC (same as IGNORED, error while using an undefined column as it cannot be stored)
             assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
                 "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']", session))
                 .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");

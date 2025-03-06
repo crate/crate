@@ -159,11 +159,11 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
         assertNormalize("pg_typeof({x=1}['x'])", isLiteral(DataTypes.INTEGER.getName()));
 
         // Fields does not exist
-        // STRICT
+        // STRICT (error based on type definition)
         assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(STRICT)['y'])", isLiteral("")))
-            .hasMessage("The object `{x=1}` does not contain the key `y`");
+            .hasMessage("Column object['y'] unknown");
 
-        // DYNAMIC
+        // DYNAMIC (error while evaluating the expression)
         assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(DYNAMIC)['y'])", isLiteral("")))
             .hasMessage("The object `{x=1}` does not contain the key `y`");
 

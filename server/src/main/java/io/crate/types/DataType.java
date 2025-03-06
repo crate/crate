@@ -346,4 +346,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public ColumnPolicy columnPolicy() {
         return ColumnPolicy.STRICT;
     }
+
+    public DataType<T> withColumnPolicy(ColumnPolicy columnPolicy) {
+        return this;
+    }
 }

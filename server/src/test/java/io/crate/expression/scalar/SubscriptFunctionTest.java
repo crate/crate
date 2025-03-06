@@ -106,8 +106,8 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void testIndexExpressionIsNotInteger() throws Exception {
         assertThatThrownBy(
             () -> assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben")))
-            .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column text_array['foo'] unknown");
     }
 
     @Test
@@ -141,7 +141,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+            .hasMessageContaining("Column object['missing_key'] unknown");
         assertThatThrownBy(() -> assertEvaluate("{}::object(dynamic)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
@@ -149,7 +149,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+            .hasMessageContaining("Column object['missing_key'] unknown");
         assertEvaluateNull("{}::object(dynamic)['missing_key']");
         assertEvaluateNull("{}::object(ignored)['missing_key']");
     }
