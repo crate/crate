@@ -35,6 +35,7 @@ import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.planner.DependencyCarrier;
@@ -72,6 +73,10 @@ public class DropAnalyzerPlan implements Plan {
     @VisibleForTesting
     public static ClusterUpdateSettingsRequest createRequest(String analyzerName,
                                                              FulltextAnalyzerResolver ftResolver) {
+        if (ftResolver.hasCustomAnalyzer(analyzerName) == false) {
+            throw new AnalyzerUnknownException(analyzerName);
+        }
+
         Settings.Builder builder = Settings.builder();
         builder.putNull(ANALYZER.buildSettingName(analyzerName));
 

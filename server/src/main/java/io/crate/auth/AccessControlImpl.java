@@ -55,6 +55,7 @@ import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
+import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
@@ -501,6 +502,18 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        protected Void visitDropAnalyzerStatement(AnalyzedDropAnalyzer analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 relationVisitor.roles,
                 user,
