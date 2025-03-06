@@ -609,6 +609,10 @@ public final class DataTypes {
     }
 
     public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType) {
+        return merge(leftType, rightType, ColumnPolicy.DYNAMIC);
+    }
+
+    public static DataType<?> merge(DataType<?> leftType, DataType<?> rightType, ColumnPolicy columnPolicy) {
         final DataType<?> higher;
         final DataType<?> lower;
         if (leftType.precedes(rightType)) {
@@ -618,7 +622,7 @@ public final class DataTypes {
             higher = rightType;
             lower = leftType;
         }
-        return higher.merge(lower);
+        return higher.merge(lower, columnPolicy);
     }
 
     public static DataType<?> fromId(Integer id) {

@@ -2787,8 +2787,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
-        assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("unknown"));
+
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c2 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj") ,isLiteral("unknown"));
@@ -3089,5 +3089,52 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
 
+    }
+
+    @Test
+    public void test_subscript_on_aliased_json_string_cast_to_object() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t1 (js TEXT)");
+
+        // DYNAMIC object cast
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
+        // If not wrapped into a sub-select, the JSON string expression gets normalized and results in a typed object literal
+        var analyzed = executor.analyze("SELECT '{\"a\":1}'::OBJECT['a']");
+        assertThat(analyzed.outputs().getFirst()).isLiteral(1, DataTypes.INTEGER);
+        // Normalization is not possible on references, such the return type is unknown
+        analyzed = executor.analyze("SELECT js::OBJECT['a'] FROM t1");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+        // Once wrapped, the subscript function gets resolved before any normalization, resulting in an exception
+        assertThatThrownBy(() -> executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT as myobj) t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column myobj['a'] unknown");
+        // Same for references, but no normalization is possible anyway
+        assertThatThrownBy(() -> executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT as myobj FROM t1) t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column myobj['a'] unknown");
+
+        // Disabling error on unknown object key allows to use subscript without any error even that it is untyped
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT as myobj) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+        // Same for references
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT as myobj FROM t1) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+
+        // DYNAMIC object cast with inner types always work
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT AS (a int) as myobj) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        // Same for references
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT AS (a int) as myobj FROM t1) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+
+        // IGNORE object cast always results in an untyped object, but works with subscript
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT(IGNORED) as myobj) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+        // Same for references
+        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT(IGNORED) as myobj FROM t1) t");
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
     }
 }

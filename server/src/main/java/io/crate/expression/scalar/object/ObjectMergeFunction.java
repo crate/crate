@@ -41,7 +41,7 @@ public class ObjectMergeFunction extends Scalar<Map<String, Object>, Map<String,
         } else if (right instanceof ObjectType == false) {
             return left;
         }
-        return ObjectType.merge((ObjectType) left, (ObjectType) right, (l, r) -> r);
+        return ObjectType.merge((ObjectType) left, (ObjectType) right, (l, r) -> r, right.columnPolicy());
     }
 
     public ObjectMergeFunction(Signature signature, BoundSignature boundSignature) {

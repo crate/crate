@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
@@ -176,11 +177,11 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
-    DataType<?> merge(DataType<?> other) {
+    DataType<?> merge(DataType<?> other, ColumnPolicy columnPolicy) {
         if (DataTypes.isNumeric(other)) { // if 'other' is a number type
             return NumericType.INSTANCE;
         } else {
-            return super.merge(other);
+            return super.merge(other, columnPolicy);
         }
     }
 

@@ -64,6 +64,15 @@ Breaking Changes
   The setting defaulted to ``true`` since 4.3.0, was deprecated in 4.5.0 and
   soft deletes became mandatory in 5.0.0.
 
+- When casting an expression of type :ref:`OBJECT <type-object>` to an
+  :ref:`OBJECT <type-object>`, the inner types are merged instead of being
+  replaced by the target type and the target
+  :ref:`column policy <type-object-column-policy>` is used. The only exception
+  is when the target column policy is set to
+  :ref:`STRICT <type-object-columns-strict>`. In this case, only the target
+  inner type definition is used. See also the related
+  :ref:`documentation <cast_to_object>`
+
 Deprecations
 ============
 

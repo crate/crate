@@ -23,6 +23,7 @@ package io.crate.expression.scalar.cast;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
@@ -40,6 +41,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
@@ -343,4 +345,40 @@ public class CastFunctionTest extends ScalarTestCase {
             Literal.of(List.of("{\"x\":\"foo\",\"y\":2}", "{\"y\":2,\"z\":\"bar\"}"), new ArrayType<>(DataTypes.STRING)));
     }
 
+    @Test
+    public void test_cast_object_to_object_merges_inner_types() {
+        var expectedType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType("b", DataTypes.STRING)
+            .build();
+        assertNormalize("{a=1}::OBJECT AS (b TEXT)", isLiteral(Map.of("a", 1), expectedType));
+        assertNormalize("({a=1}::OBJECT AS (b TEXT))['b']", isLiteral(null, DataTypes.STRING));
+    }
+
+    @Test
+    public void test_cast_object_to_object_uses_target_column_policy() {
+        assertThatThrownBy(() -> assertNormalize("({a=1}::OBJECT(STRICT) AS (b TEXT))['a']", isLiteral(1, DataTypes.INTEGER)))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("Column object['a'] unknown");
+
+        // Nested objects will also receive the target column policy
+        var expectedType = ObjectType.of(ColumnPolicy.IGNORED)
+            .setInnerType("a", ObjectType.of(ColumnPolicy.IGNORED).build())
+            .build();
+        assertNormalize("{a={}}::OBJECT(IGNORED)", isLiteral(Map.of("a", Map.of()), expectedType));
+    }
+
+    @Test
+    public void test_cast_json_string_to_untyped_object_results_in_untyped_object() {
+        assertNormalize("'{\"a\":1}'::OBJECT", isLiteral(Map.of("a", 1), ObjectType.UNTYPED));
+        assertNormalize("'{\"a\":1}'::JSON::OBJECT", isLiteral(Map.of("a", 1), ObjectType.UNTYPED));
+        assertNormalize("name::OBJECT", isFunction("cast", ObjectType.UNTYPED));
+        assertNormalize("name::JSON::OBJECT", isFunction("cast", ObjectType.UNTYPED));
+    }
+
+    @Test
+    public void test_cast_null_values_result_in_target_type() {
+        assertNormalize("null::OBJECT AS (b TEXT)", isLiteral(null, ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("b", DataTypes.STRING).build()));
+        assertNormalize("null::TEXT", isLiteral(null, DataTypes.STRING));
+    }
 }
