@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 
 public class DropAnalyzerStatementAnalyzer {
@@ -35,9 +34,6 @@ public class DropAnalyzerStatementAnalyzer {
     public AnalyzedDropAnalyzer analyze(String analyzerName) {
         if (ftResolver.hasBuiltInAnalyzer(analyzerName)) {
             throw new IllegalArgumentException("Cannot drop a built-in analyzer");
-        }
-        if (ftResolver.hasCustomAnalyzer(analyzerName) == false) {
-            throw new AnalyzerUnknownException(analyzerName);
         }
         return new AnalyzedDropAnalyzer(analyzerName);
     }

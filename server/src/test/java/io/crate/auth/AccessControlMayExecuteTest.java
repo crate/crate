@@ -422,6 +422,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testDropAnalyzer() {
+        analyze("drop analyzer a1");
+        assertAskedForCluster(Permission.DDL);
+    }
+
+    @Test
     public void testRefresh() throws Exception {
         analyze("refresh table users, parted partition (date = 1395874800000)");
         assertAskedForTable(Permission.DQL, "doc.users");
