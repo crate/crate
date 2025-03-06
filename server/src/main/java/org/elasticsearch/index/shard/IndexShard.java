@@ -3115,6 +3115,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return lastSearcherAccess.get();
     }
 
+    public Long getLastWriteNanos() {
+        Engine engine = getEngineOrNull();
+        return engine == null ? null : engine.getLastWriteNanos();
+    }
+
     /**
      * Returns true if this shard has some scheduled refresh that is pending because of search-idle.
      */
