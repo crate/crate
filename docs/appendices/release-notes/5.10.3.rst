@@ -50,3 +50,6 @@ Fixes
 
 - Fixed an issue that caused a :ref:`float vector <type-float_vector>` column
   to be created with length exceeding the maximum.
+
+- Fixed an issue that prevented the use of custom analyzers with
+  :ref:`shingle token filters<shingle-tokenfilter>`.
