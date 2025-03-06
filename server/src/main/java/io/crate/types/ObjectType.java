@@ -300,24 +300,21 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    DataType<?> merge(DataType<?> other) {
+    DataType<?> merge(DataType<?> other, ColumnPolicy columnPolicy) {
         if (other instanceof ObjectType o) {
-            return merge(this, o);
+            return merge(this, o, DataTypes::merge, columnPolicy);
         } else {
-            return super.merge(other);
+            return super.merge(other, columnPolicy);
         }
-    }
-
-    private static ObjectType merge(ObjectType left, ObjectType right) {
-        return merge(left, right, DataTypes::merge);
     }
 
     public static ObjectType merge(ObjectType left,
                                    ObjectType right,
-                                   BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
-        ObjectType.Builder mergedObjectBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
+                                   BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction,
+                                   ColumnPolicy columnPolicy) {
+        ObjectType.Builder mergedObjectBuilder = ObjectType.of(columnPolicy);
         for (var e : left.innerTypes().entrySet()) {
-            mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());
+            mergedObjectBuilder.setInnerType(e.getKey(), e.getValue().withColumnPolicy(columnPolicy));
         }
         for (var e : right.innerTypes().entrySet()) {
             mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), remappingFunction);
@@ -559,5 +556,17 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @Override
     public ColumnPolicy columnPolicy() {
         return columnPolicy;
+    }
+
+    @Override
+    public DataType<Map<String, Object>> withColumnPolicy(ColumnPolicy columnPolicy) {
+        if (this.columnPolicy == columnPolicy) {
+            return this;
+        }
+        var objType = ObjectType.of(columnPolicy);
+        for (var entry : innerTypes.entrySet()) {
+            objType.setInnerType(entry.getKey(), entry.getValue().withColumnPolicy(columnPolicy));
+        }
+        return objType.build();
     }
 }

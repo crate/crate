@@ -3583,9 +3583,11 @@ Returns: ``array(text)``
 
 The ``concat(object, object)`` function combines two objects into a new object
 containing the union of their first level properties, taking the second
-object's values for duplicate properties.  If one of the objects is ``NULL``,
-the function returns the non-``NULL`` object. If both objects are ``NULL``,
-the function returns ``NULL``.
+object's values for duplicate properties. Additionally, the
+:ref:`column policy <type-object-column-policy>` of the second object is used
+for the return type. If one of the objects is ``NULL``, the function returns
+the non-``NULL`` object. If both objects are ``NULL``,the function returns
+``NULL``.
 
 Returns: ``object``
 

@@ -391,11 +391,11 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    DataType<?> merge(DataType<?> other) {
+    DataType<?> merge(DataType<?> other, ColumnPolicy columnPolicy) {
         if (other instanceof ArrayType<?> o) {
             return new ArrayType<>(DataTypes.merge(this.innerType, o.innerType));
         } else {
-            return super.merge(other);
+            return super.merge(other, columnPolicy);
         }
     }
 
@@ -528,5 +528,13 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public ColumnPolicy columnPolicy() {
         return innerType.columnPolicy();
+    }
+
+    @Override
+    public DataType<List<T>> withColumnPolicy(ColumnPolicy columnPolicy) {
+        if (innerType.columnPolicy() == columnPolicy) {
+            return this;
+        }
+        return new ArrayType<>(innerType.withColumnPolicy(columnPolicy));
     }
 }
