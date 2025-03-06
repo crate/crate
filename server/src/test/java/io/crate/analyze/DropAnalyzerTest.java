@@ -26,6 +26,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,6 +36,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -132,5 +134,12 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         ClusterUpdateSettingsRequest request = analyze("DROP ANALYZER a4");
         assertIsMarkedToBeRemove(request.persistentSettings(), ANALYZER.buildSettingName("a4"));
         assertIsMarkedToBeRemove(request.persistentSettings(), CHAR_FILTER.buildSettingName("a4_mymapping"));
+    }
+
+    @Test
+    public void test_non_existing_custom_analyzer() {
+        assertThatThrownBy(() -> analyze("DROP ANALYZER invalid"))
+            .isExactlyInstanceOf(AnalyzerUnknownException.class)
+            .hasMessage("Analyzer 'invalid' unknown");
     }
 }
