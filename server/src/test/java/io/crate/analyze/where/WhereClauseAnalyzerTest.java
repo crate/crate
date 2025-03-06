@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -72,7 +73,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         registerTables(e);
 
         RelationName docGeneratedCol = new RelationName("doc", "generated_col");
-        e.addPartitionedTable(
+        e.addTable(
             "create table doc.generated_col (" +
             "   ts timestamp with time zone ," +
             "   x integer," +
@@ -85,7 +86,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new PartitionName(docGeneratedCol, List.of("1420156800000", "-2")).asIndexName()
         );
         RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
-        e.addPartitionedTable(
+        e.addTable(
             "create table doc.double_gen_parted (" +
             "   x integer," +
             "   x1 as x + 1," +
@@ -104,7 +105,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
              "  tags array(string)" +
              ") clustered by (id)");
         RelationName docParted = new RelationName("doc", "parted");
-        builder.addPartitionedTable(
+        builder.addTable(
             "create table doc.parted (" +
             "   id integer," +
             "   name string," +

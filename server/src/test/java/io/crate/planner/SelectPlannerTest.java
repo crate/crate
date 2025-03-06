@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -168,7 +169,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
@@ -322,7 +323,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
@@ -441,7 +442,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
@@ -466,7 +467,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
@@ -524,7 +525,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
@@ -1048,7 +1049,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
@@ -1413,7 +1414,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.parted_by_generated (" +
                 "   ts timestamp without time zone, " +
                 "   p as date_trunc('month', ts) " +

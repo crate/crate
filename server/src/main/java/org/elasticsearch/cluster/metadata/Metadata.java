@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -71,6 +72,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.AlterTableClient;
@@ -78,6 +80,7 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -359,6 +362,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public ImmutableOpenMap<String, IndexTemplateMetadata> templates() {
         return this.templates;
+    }
+
+    public ImmutableOpenMap<String, SchemaMetadata> schemas() {
+        return this.schemas;
     }
 
     public ImmutableOpenMap<String, Custom> customs() {
@@ -788,7 +795,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schemaMetadata.relations())
                 .fRemove(relationName.name())
                 .build();
-            schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+            if (newRelations.isEmpty()) {
+                schemas.remove(relationName.schema());
+            } else {
+                schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+            }
             return this;
         }
 
@@ -929,7 +940,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public ColumnOidSupplier columnOidSupplier() {
+        public LongSupplier columnOidSupplier() {
             return columnOidSupplier;
         }
 
@@ -1103,28 +1114,35 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         /**
+         * <p>
          * Adds the table, overriding it if a table with the same schema and name exists.
+         * </p>
+         *
+         * oidSupplier is only parameterized for testing.
+         * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List)
          **/
-        public Builder setTable(RelationName relationName,
+        @VisibleForTesting
+        public Builder setTable(LongSupplier oidSupplier,
+                                RelationName relationName,
                                 List<Reference> columns,
                                 Settings settings,
                                 @Nullable ColumnIdent routingColumn,
                                 ColumnPolicy columnPolicy,
                                 @Nullable String pkConstraintName,
-                                Map<String,
-                                String> checkConstraints,
+                                Map<String, String> checkConstraints,
                                 List<ColumnIdent> primaryKeys,
                                 List<ColumnIdent> partitionedBy,
                                 State state,
                                 List<String> indexUUIDs) {
             AtomicInteger positions = new AtomicInteger(0);
-            LongSupplier oidSupplier = columnOidSupplier;
             Map<ColumnIdent, Reference> columnMap = columns.stream()
                 .filter(ref -> !ref.isDropped())
                 .map(ref -> ref.withOidAndPosition(oidSupplier, positions::incrementAndGet))
                 .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
 
             ArrayList<Reference> finalColumns = new ArrayList<>(columns.size());
+            // Need to update linked columns for generated and index refs to ensure these have oid+position
+            // Otherwise .contains/.equals on those refs is broken.
             for (var column : columnMap.values()) {
                 Reference newRef;
                 if (column instanceof GeneratedReference genRef) {
@@ -1132,6 +1150,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                         genRef.reference(),
                         RefReplacer.replaceRefs(genRef.generatedExpression(), ref -> columnMap.get(ref.column()))
                     );
+                } else if (column instanceof IndexReference indexRef) {
+                    List<Reference> newColumns = Lists.map(indexRef.columns(), x -> Objects.requireNonNull(columnMap.get(x.column())));
+                    newRef = indexRef.withColumns(newColumns);
                 } else {
                     newRef = column;
                 }
@@ -1155,6 +1176,36 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
             setRelation(table);
             return this;
+        }
+
+        /**
+         * Adds the table, overriding it if a table with the same schema and name exists.
+         **/
+        public Builder setTable(RelationName relationName,
+                                List<Reference> columns,
+                                Settings settings,
+                                @Nullable ColumnIdent routingColumn,
+                                ColumnPolicy columnPolicy,
+                                @Nullable String pkConstraintName,
+                                Map<String, String> checkConstraints,
+                                List<ColumnIdent> primaryKeys,
+                                List<ColumnIdent> partitionedBy,
+                                State state,
+                                List<String> indexUUIDs) {
+            return setTable(
+                columnOidSupplier,
+                relationName,
+                columns,
+                settings,
+                routingColumn,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraints,
+                primaryKeys,
+                partitionedBy,
+                state,
+                indexUUIDs
+            );
         }
     }
 
@@ -1257,6 +1308,16 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    /**
+     * <p>
+     * Resolve the indices for a relation and return their data either as
+     * {@link IndexMetadata} or derived from it using the {@code as} parameter.
+     * </p>
+     * <p>
+     * {@code null} values returned from {@code as} are excluded from the result.
+     * This can be used to filter based on state or similar.
+     * </p>
+     **/
     public <T> List<T> getIndices(RelationName relationName,
                                   List<String> partitionValues,
                                   boolean strict,

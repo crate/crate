@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
@@ -167,11 +168,16 @@ public class DocSchemaInfo implements SchemaInfo {
         }
     }
 
-    private static long getTableVersion(Metadata metadata, RelationName relation) {
-        String templateName = PartitionName.templateName(relation.schema(), relation.name());
+    private static long getTableVersion(Metadata metadata, RelationName name) {
+        RelationMetadata relation = metadata.getRelation(name);
+        if (relation instanceof RelationMetadata.Table) {
+            // TODO: add versioning to table (tracked in https://github.com/crate/crate/issues/17518)
+            return 0;
+        }
+        String templateName = PartitionName.templateName(name.schema(), name.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
+            IndexMetadata index = metadata.index(name.indexNameOrAlias());
             return index == null ? 0 : index.getVersion();
         } else {
             return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();

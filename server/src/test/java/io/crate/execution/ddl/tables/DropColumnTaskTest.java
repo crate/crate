@@ -279,7 +279,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_drop_column_with_check_constraint_from_partitioned_table() throws Exception {
         var e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("create table doc.parted(x int check (x > 0), y int check (y > 0)) " +
+            .addTable("create table doc.parted(x int check (x > 0), y int check (y > 0)) " +
                                  "partitioned by (x)" ,
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("2")).asIndexName(),

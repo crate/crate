@@ -313,7 +313,7 @@ public class IndexReference extends SimpleReference {
         return mapping;
     }
 
-    public IndexReference updateColumns(List<Reference> newColumns) {
+    public IndexReference withColumns(List<Reference> newColumns) {
         return new IndexReference(
                 ident,
                 granularity,

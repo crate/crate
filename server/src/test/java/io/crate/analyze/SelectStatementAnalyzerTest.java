@@ -33,6 +33,7 @@ import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -766,7 +767,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testNotTimestamp() throws Exception {
         var executor = SQLExecutor.of(clusterService)
-            .addPartitionedTable(TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION);
+            .addTable(TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION);
 
         assertThatThrownBy(() -> executor.analyze("select id, name from parted where not date"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
@@ -1805,7 +1806,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectPartitionedTableOrderBy() throws Exception {
         RelationName multiPartName = new RelationName("doc", "multi_parted");
         var executor = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.multi_parted (" +
                 "   id int," +
                 "   date timestamp with time zone," +

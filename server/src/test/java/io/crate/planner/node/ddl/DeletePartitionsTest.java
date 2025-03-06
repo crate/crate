@@ -43,7 +43,7 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIndexNameGeneration() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName());
