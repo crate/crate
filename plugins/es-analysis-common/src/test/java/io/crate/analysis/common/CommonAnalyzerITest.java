@@ -30,6 +30,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 public class CommonAnalyzerITest extends IntegTestCase {
 
@@ -105,5 +106,25 @@ public class CommonAnalyzerITest extends IntegTestCase {
 
         execute("drop analyzer myanalyzer");
         execute("drop analyzer myotheranalyzer");
+    }
+
+    @Test
+    public void test_add_column_with_custom_analyzer() {
+        execute("""
+            CREATE ANALYZER comma_separation_analyzer EXTENDS "standard" with (
+                TOKENIZER mypattern WITH (
+                   type = 'pattern',
+                   pattern = ',\\\\s*'
+                )
+                , TOKEN_FILTERS (lowercase)
+            )
+            """);
+        execute("CREATE TABLE t1 (keywords TEXT)");
+        execute("""
+            ALTER TABLE t1 ADD COLUMN keywords_analyzed TEXT INDEX USING FULLTEXT WITH (analyzer = 'comma_separation_analyzer');
+            """);
+        execute("SELECT keywords_analyzed FROM t1 WHERE MATCH(keywords_analyzed, 'Computational Biology')");
+
+        execute("drop analyzer comma_separation_analyzer");
     }
 }

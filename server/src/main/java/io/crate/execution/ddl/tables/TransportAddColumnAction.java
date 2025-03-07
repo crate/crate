@@ -35,6 +35,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -53,12 +54,14 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             req.checkConstraints());
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     @Inject
     public TransportAddColumnAction(TransportService transportService,
                                     ClusterService clusterService,
                                     ThreadPool threadPool,
-                                    NodeContext nodeContext) {
+                                    NodeContext nodeContext,
+                                    FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         super(ACTION_NAME,
             transportService,
             clusterService,
@@ -68,11 +71,25 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             AcknowledgedResponse::new,
             "add-column");
         this.nodeContext = nodeContext;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), ADD_COLUMN_OPERATOR);
+        return new AlterTableTask<>(
+            nodeContext,
+            request.relationName(),
+            (req, doctableInfo, metadataBuilder, nodeCtx) -> {
+                return doctableInfo.addColumns(
+                    nodeCtx,
+                    fulltextAnalyzerResolver,
+                    doctableInfo.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
+                        metadataBuilder.columnOidSupplier() :
+                        () -> Metadata.COLUMN_OID_UNASSIGNED,
+                    req.references(),
+                    req.pKeyIndices(),
+                    req.checkConstraints());
+            });
     }
 
 

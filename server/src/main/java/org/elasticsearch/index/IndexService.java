@@ -124,10 +124,11 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
-    private final IndexAnalyzers indexAnalyzers;
+    private IndexAnalyzers indexAnalyzers;
     private final Analyzer indexAnalyzer;
     private final NodeContext nodeContext;
     private final DocTableInfoFactory tableFactory;
+    private final AnalysisRegistry analysisRegistry;
 
     public IndexService(
             NodeContext nodeContext,
@@ -188,6 +189,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.trimTranslogTask = new AsyncTrimTranslogTask(this);
         this.globalCheckpointTask = new AsyncGlobalCheckpointTask(this);
         this.retentionLeaseSyncTask = new AsyncRetentionLeaseSyncTask(this);
+        this.analysisRegistry = registry;
         updateFsyncTaskIfNecessary();
     }
 
@@ -562,6 +564,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
 
         if (updateIndexSettings) {
+            IndexAnalyzers newAnalyzers;
+            try {
+                newAnalyzers = analysisRegistry.build(indexSettings);
+                this.indexAnalyzers = newAnalyzers;
+            } catch (IOException e) {
+                logger.warn("Could not re-build analyzers", e);
+            }
+
             for (final IndexShard shard : this.shards.values()) {
                 try {
                     shard.onSettingsChanged(currentIndexMetadata.getSettings());
