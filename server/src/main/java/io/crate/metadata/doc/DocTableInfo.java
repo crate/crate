@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.INDEX_ANALYSIS_PREFIX;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ import io.crate.expression.symbol.VoidReference;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
@@ -1067,11 +1069,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 indexNumberOfShards = indexMetadata.getNumberOfShards();
             }
 
+            Settings settings = Settings.builder()
+                .put(indexMetadata.getSettings())
+                // Override only the settings that might have changed because of
+                // an added column with full text index and a custom analyzer.
+                .put(tableParameters.filter(s -> s.startsWith(INDEX_ANALYSIS_PREFIX)))
+                .build();
+            long newSettingsVersion = indexMetadata.getSettingsVersion();
+            if (settings.equals(indexMetadata.getSettings()) == false) {
+                newSettingsVersion++;
+            }
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
                     .putMapping(new MappingMetadata(mapping))
+                    .settings(settings)
                     .numberOfShards(indexNumberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
+                    .settingsVersion(newSettingsVersion)
             );
         }
         if (isPartitioned) {
@@ -1081,8 +1095,15 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
             }
             Integer version = indexTemplateMetadata.version();
+            Settings settings = Settings.builder()
+                .put(indexTemplateMetadata.settings())
+                // Override only the settings that might have changed because of
+                // an added column with full text index and a custom analyzer.
+                .put(tableParameters.filter(s -> s.startsWith(INDEX_ANALYSIS_PREFIX)))
+                .build();
             var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
+                .settings(settings)
                 .version(version == null ? 1 : version + 1)
                 .build();
             metadataBuilder.put(template);
@@ -1173,6 +1194,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     public DocTableInfo addColumns(NodeContext nodeCtx,
+                                   FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                    LongSupplier acquireOid,
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
@@ -1187,11 +1209,19 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!addedColumn) {
             return this;
         }
+        Settings.Builder newSettingsBuilder = Settings.builder().put(tableParameters);
         for (Reference newRef : newColumns) {
             if (newColumns.stream().noneMatch(r -> r.column().isChildOf(newRef.column()))) {
                 // if a child and its parent is added together,
                 // fixing the inner types of the ancestors will be handled by the child
                 updateParentsInnerTypes(newRef.column(), newRef.valueType(), newReferences);
+            }
+            if (newRef instanceof IndexReference indexRef) {
+                String analyzer = indexRef.analyzer();
+                if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
+                    Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
+                    newSettingsBuilder.put(settings);
+                }
             }
         }
         List<ColumnIdent> newPrimaryKeys;
@@ -1236,7 +1266,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             newPrimaryKeys,
             newChecks,
             clusteredBy,
-            tableParameters,
+            newSettingsBuilder.build(),
             partitionedBy,
             columnPolicy,
             versionCreated,

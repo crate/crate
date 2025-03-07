@@ -19,7 +19,8 @@
 
 package io.crate.analysis.common;
 
-import static org.assertj.core.api.Assertions.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,5 +106,75 @@ public class CommonAnalyzerITest extends IntegTestCase {
 
         execute("drop analyzer myanalyzer");
         execute("drop analyzer myotheranalyzer");
+    }
+
+    @Test
+    public void test_add_column_with_custom_analyzer() {
+        execute("""
+            CREATE ANALYZER comma_separation_analyzer EXTENDS "standard" with (
+                TOKENIZER mypattern WITH (
+                   type = 'pattern',
+                   pattern = ',\\\\s'
+                )
+                , TOKEN_FILTERS (lowercase)
+            )
+            """);
+        execute("CREATE TABLE tbl (keywords TEXT)");
+
+        execute("""
+            ALTER TABLE tbl
+            ADD COLUMN keywords_analyzed TEXT INDEX USING FULLTEXT WITH (analyzer = 'comma_separation_analyzer')
+            """);
+        execute("""
+            INSERT INTO tbl (keywords, keywords_analyzed) VALUES(
+            'some articles',
+            'Humans, Computational Biology, Reactive Oxygen Species, Superoxide Dismutase, Rare Diseases, Gene Ontology, Oxidative Stress')
+            """);
+        execute("REFRESH TABLE tbl");
+        execute("""
+            SELECT keywords FROM tbl
+            WHERE MATCH(keywords_analyzed, 'biology')
+            """);
+        assertThat(response).hasRows("some articles");
+        execute("DROP ANALYZER comma_separation_analyzer");
+    }
+
+    @Test
+    public void test_add_column_with_custom_analyzer_to_partitioned_table() {
+        execute("""
+            CREATE ANALYZER comma_separation_analyzer EXTENDS "standard" with (
+                TOKENIZER mypattern WITH (
+                   type = 'pattern',
+                   pattern = ',\\\\s'
+                )
+                , TOKEN_FILTERS (lowercase)
+            )
+            """);
+        execute("""
+            CREATE TABLE tbl_parted (id int primary key, ts timestamp primary key, keywords TEXT)
+            PARTITIONED BY (ts)
+            CLUSTERED INTO 1 SHARDS
+            """);
+        // Create 2 partitions
+        execute("INSERT INTO tbl_parted (id, ts) VALUES(1, now())");
+        execute("INSERT INTO tbl_parted (id, ts) VALUES(2, now() + INTERVAL '10 day')");
+        execute("REFRESH TABLE tbl_parted");
+        execute("""
+            ALTER TABLE tbl_parted
+            ADD COLUMN keywords_analyzed TEXT INDEX USING FULLTEXT WITH (analyzer = 'comma_separation_analyzer')
+            """);
+        execute("""
+            INSERT INTO tbl_parted (id, ts, keywords_analyzed) VALUES(
+            3,
+            now(),
+            'Humans, Computational Biology, Reactive Oxygen Species, Superoxide Dismutase, Rare Diseases, Gene Ontology, Oxidative Stress')
+            """);
+        execute("REFRESH TABLE tbl_parted");
+        execute("""
+            SELECT id FROM tbl_parted
+            WHERE MATCH(keywords_analyzed, 'biology')
+            """);
+        assertThat(response).hasRows("3");
+        execute("DROP ANALYZER comma_separation_analyzer");
     }
 }

@@ -21,9 +21,12 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.io.IOException;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
@@ -35,13 +38,22 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
     private final NodeContext nodeContext;
     private final RelationName relationName;
     private final AlterTableOperator<T> alterTableOperator;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     public AlterTableTask(NodeContext nodeContext,
                           RelationName relationName,
                           AlterTableOperator<T> alterTableOperator) {
+        this(nodeContext, relationName, alterTableOperator, null);
+    }
+
+    public AlterTableTask(NodeContext nodeContext,
+                          RelationName relationName,
+                          AlterTableOperator<T> alterTableOperator,
+                          FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.nodeContext = nodeContext;
         this.relationName = relationName;
         this.alterTableOperator = alterTableOperator;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     @Override
@@ -50,7 +62,8 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
         Metadata metadata = currentState.metadata();
         DocTableInfo currentTable = docTableInfoFactory.create(relationName, metadata);
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);
-        DocTableInfo newTable = alterTableOperator.apply(t, currentTable, metadataBuilder, nodeContext);
+        DocTableInfo newTable = alterTableOperator.apply(
+            t, currentTable, metadataBuilder, nodeContext, fulltextAnalyzerResolver);
         if (newTable == currentTable) {
             return currentState;
         }
@@ -64,6 +77,11 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
     }
 
     public interface AlterTableOperator<T> {
-        DocTableInfo apply(T request, DocTableInfo docTableInfo, Metadata.Builder metadataBuilder, NodeContext nodeContext);
+        DocTableInfo apply(
+            T request,
+            DocTableInfo docTableInfo,
+            Metadata.Builder metadataBuilder,
+            NodeContext nodeContext,
+            FulltextAnalyzerResolver fulltextAnalyzerResolver) throws IOException;
     }
 }

@@ -40,7 +40,7 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
 
     private static final String ACTION_NAME = "internal:crate:sql/table/drop_constraint";
     private static final AlterTableTask.AlterTableOperator<DropConstraintRequest> DROP_CONSTRAINT_OPERATOR =
-        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropConstraint(req.constraintName());
+        (req, docTableInfo, _, _, _) -> docTableInfo.dropConstraint(req.constraintName());
 
     private final NodeContext nodeContext;
 

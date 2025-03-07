@@ -78,7 +78,7 @@ public class FulltextAnalyzerResolver {
         TOKEN_FILTER("filter"),
         CHAR_FILTER("char_filter");
 
-        private static final String INDEX_ANALYSIS_PREFIX = "index.analysis.";
+        public static final String INDEX_ANALYSIS_PREFIX = "index.analysis.";
 
         private final String name;
         private final String settingNamePrefix;
