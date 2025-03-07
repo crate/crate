@@ -311,15 +311,15 @@
     <skipRunTests>false</skipRunTests>
 
     <versions.jdk>23.0.2</versions.jdk>
-    <versions.annotations>26.0.1</versions.annotations>
-    <versions.log4j>2.24.1</versions.log4j>
-    <versions.assertj>3.26.3</versions.assertj>
-    <versions.junit5>5.11.3</versions.junit5>
-    <versions.junit-platform-commons>1.11.3</versions.junit-platform-commons>
+    <versions.annotations>26.0.2</versions.annotations>
+    <versions.log4j>2.24.3</versions.log4j>
+    <versions.assertj>3.27.3</versions.assertj>
+    <versions.junit5>5.12.0</versions.junit5>
+    <versions.junit-platform-commons>1.12.0</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
-    <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
-    <versions.jackson>2.18.1</versions.jackson>
-    <versions.fastdoubleparser>2.0.0</versions.fastdoubleparser>
+    <versions.randomizedrunner>2.8.2</versions.randomizedrunner>
+    <versions.jackson>2.18.3</versions.jackson>
+    <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
@@ -328,7 +328,7 @@
     <versions.lucene>10.1.0</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.20.0</versions.jts>
-    <versions.jna>5.15.0</versions.jna>
+    <versions.jna>5.16.0</versions.jna>
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
@@ -337,11 +337,11 @@
     <versions.aws>1.12.638</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
-    <versions.commonscodec>1.17.1</versions.commonscodec>
+    <versions.commonscodec>1.18.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.1.1</versions.graalvm>
-    <versions.jwt>4.4.0</versions.jwt>
+    <versions.graalvm>24.1.2</versions.graalvm>
+    <versions.jwt>4.5.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
     <versions.google.gax>2.43.0</versions.google.gax>
@@ -355,11 +355,11 @@
     <versions.google.gson>1.43.1</versions.google.gson>
     <versions.google.errorprone>2.19.1</versions.google.errorprone>
     <versions.google.j2objc>2.8</versions.google.j2objc>
-    <versions.checkerframework>3.48.2</versions.checkerframework>
-    <versions.grpc>1.68.1</versions.grpc>
+    <versions.checkerframework>3.49.1</versions.checkerframework>
+    <versions.grpc>1.71.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.14.2</versions.mockito>
+    <versions.mockito>5.16.0</versions.mockito>
     <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
@@ -379,7 +379,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.2</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.20.0</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>10.21.4</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.8</versions.plugin.forbiddenapis>
