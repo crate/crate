@@ -94,6 +94,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.interval.IntervalParser;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
@@ -565,12 +566,21 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
+            Symbol expression = node.getExpression().accept(this, context);
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
+            DataType<?> valueType = expression.valueType();
+            DataType<?> unnestedReturnType = ArrayType.unnest(returnType);
+            DataType<?> unnestedValueType = ArrayType.unnest(valueType);
+
+            if (unnestedReturnType.id() == ObjectType.ID
+                && unnestedValueType.id() == ObjectType.ID
+                && unnestedReturnType.columnPolicy() != ColumnPolicy.STRICT) {
+                returnType = DataTypes.merge(valueType, returnType);
+            }
             if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
                 throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
             }
-            return node.getExpression()
-                .accept(this, context)
+            return expression
                 .cast(
                     returnType,
                     CastMode.EXPLICIT
@@ -815,6 +825,15 @@ public class ExpressionAnalyzer {
                 (parentPolicy == ColumnPolicy.DYNAMIC && context.errorOnUnknownObjectKey())) {
                 if (e != null) {
                     throw e;
+                }
+                // If the exception argument is NULL, we must operate on expressions that are not columns.
+                // In this case, we fall through and let the SubscriptFunction throw the error, but NOT when the
+                // parent policy is STRICT. In this case, we must throw the error even if the map would contain the
+                // key, because the parent policy is strict.
+                if (parentPolicy == ColumnPolicy.STRICT) {
+                    throw ColumnUnknownException.ofUnknownRelation(
+                        String.format(Locale.ENGLISH, "Column %s unknown",
+                            ColumnIdent.fromNameSafe(baseType.toString(), path)));
                 }
             }
             return null;
