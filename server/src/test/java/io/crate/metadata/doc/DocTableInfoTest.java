@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -395,6 +394,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         AtomicLong oidSupplier = new AtomicLong(2);
         DocTableInfo table2 = table1.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
@@ -426,6 +426,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo table3 = table2.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
@@ -451,6 +452,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() ->
             table.addColumns(
                 e.nodeCtx,
+                e.fulltextAnalyzerResolver(),
                 () -> 2,
                 List.of(ox),
                 new IntArrayList(),
@@ -487,6 +489,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo newTable = table.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             () -> 10, // any oid
             List.of(newReference1, newReference2, newReference3),
             new IntArrayList(),

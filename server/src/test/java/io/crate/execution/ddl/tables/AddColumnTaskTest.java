@@ -310,4 +310,32 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Index column `i` already exists");
     }
+
+    @Test
+    public void test_add_column_with_custom_analyzer() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x text, index i using fulltext (x))")
+
+
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        SimpleReference colToAdd = new SimpleReference(
+            new ReferenceIdent(tbl.ident(), "i"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            2,
+            null
+        );
+        List<Reference> columns = List.of(colToAdd);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        assertThatThrownBy(() -> addColumnTask.execute(clusterService.state(), request))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Index column `i` already exists");
+    }
 }
