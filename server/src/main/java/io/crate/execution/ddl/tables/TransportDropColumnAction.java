@@ -41,7 +41,7 @@ public class TransportDropColumnAction extends AbstractDDLTransportAction<DropCo
 
     @VisibleForTesting
     public static final AlterTableTask.AlterTableOperator<DropColumnRequest> DROP_COLUMN_OPERATOR =
-        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropColumns(req.colsToDrop());
+        (req, docTableInfo, _, _, _) -> docTableInfo.dropColumns(req.colsToDrop());
     private static final String ACTION_NAME = "internal:crate:sql/table/drop_column";
     private final NodeContext nodeContext;
 
@@ -63,7 +63,7 @@ public class TransportDropColumnAction extends AbstractDDLTransportAction<DropCo
 
     @Override
     public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), DROP_COLUMN_OPERATOR);
+        return new AlterTableTask<>(nodeContext, request.relationName(), null, DROP_COLUMN_OPERATOR);
     }
 
 

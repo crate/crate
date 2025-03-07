@@ -40,6 +40,7 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -51,13 +52,17 @@ import io.crate.types.DataTypes;
 
 public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
+    private static AlterTableTask<AddColumnRequest> buildAddColumnTask(SQLExecutor e, RelationName tblName) {
+        return new AlterTableTask<>(
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+    }
+
     @Test
     public void test_can_add_child_column() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
         SimpleReference newColumn = new SimpleReference(
             refIdent,
@@ -98,13 +103,14 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(addedColumn).isEqualTo(newColumnWithOid);
     }
 
+
+
     @Test
     public void test_can_add_geo_shape_array_column() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
 
         Reference geoShapeArrayRef = new GeoReference(
@@ -165,8 +171,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
         SimpleReference newColumn = new SimpleReference(
             refIdent,
@@ -192,8 +197,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
         ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
         SimpleReference newColumn1 = new SimpleReference(
@@ -228,8 +232,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         SimpleReference newColumn1 = new SimpleReference(
             new ReferenceIdent(tbl.ident(), "y"),
             RowGranularity.DOC,
@@ -259,8 +262,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
 
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
 
         SimpleReference colToAdd = new SimpleReference(
             new ReferenceIdent(tbl.ident(), "y"),
@@ -290,8 +292,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x text, index i using fulltext (x))");
 
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var addColumnTask = buildAddColumnTask(e, tbl.ident());
         SimpleReference colToAdd = new SimpleReference(
             new ReferenceIdent(tbl.ident(), "i"),
             RowGranularity.DOC,
