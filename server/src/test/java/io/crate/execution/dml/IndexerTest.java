@@ -120,7 +120,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo addColumns(SQLExecutor e, DocTableInfo table, List<Reference> newColumns) throws Exception {
         var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
                 table.ident(),
                 newColumns,

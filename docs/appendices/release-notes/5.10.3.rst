@@ -54,3 +54,9 @@ Fixes
 - Fixed an issue that prevented the use of custom analyzers with
   :ref:`shingle token filters<shingle-tokenfilter>`.
 
+- Fixed an issue that would prevent usage of a column with a custom
+  :ref:`ANALYZER <ref-create-analyzer>` which has been added to a table with
+  :ref:`ADD COLUMN <sql-alter-table-add-column>`. The fix doesn't apply for
+  columns which were already added to tables after their creation before
+  :ref:`version_5.10.3`. Those columns need to be dropped and recreated.
+

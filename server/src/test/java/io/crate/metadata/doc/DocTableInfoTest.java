@@ -389,6 +389,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         AtomicLong oidSupplier = new AtomicLong(2);
         DocTableInfo table2 = table1.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
@@ -420,6 +421,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo table3 = table2.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
@@ -445,6 +447,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() ->
             table.addColumns(
                 e.nodeCtx,
+                e.fulltextAnalyzerResolver(),
                 () -> 2,
                 List.of(ox),
                 new IntArrayList(),
@@ -481,6 +484,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo newTable = table.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             () -> 10, // any oid
             List.of(newReference1, newReference2, newReference3),
             new IntArrayList(),
