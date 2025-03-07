@@ -29,7 +29,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -121,7 +120,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo addColumns(SQLExecutor e, DocTableInfo table, List<Reference> newColumns) throws Exception {
         var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
                 table.ident(),
                 newColumns,
