@@ -47,3 +47,6 @@ Fixes
 - Fixed an issue that would prevent users with ``DDL`` privilege on ``CLUSTER``
   level, to execute :ref:`DROP ANALYZER<drop-analyzer>`, thus before the fix,
   only allowing the ``crate`` superuser to execute ``DROP ANALYZER`` statements.
+
+- Fixed an issue that caused a :ref:`float vector <type-float_vector>` column
+  to be created with length exceeding the maximum.
