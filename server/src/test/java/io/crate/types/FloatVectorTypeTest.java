@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import org.junit.Test;
 
 public class FloatVectorTypeTest extends DataTypeTestCase<float[]> {
-    
+
     @Override
     protected DataDef<float[]> getDataDef() {
         return DataDef.fromType(new FloatVectorType(4));
@@ -49,5 +49,12 @@ public class FloatVectorTypeTest extends DataTypeTestCase<float[]> {
         assertThatThrownBy(() -> floatVectorType.sanitizeValue(insertValues))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("null values are not allowed for float_vector");
+    }
+
+    @Test
+    public void test_cannot_create_float_vector_type_exceeding_max_length() {
+        assertThatThrownBy(() -> new FloatVectorType(2049))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Float vector type's length cannot exceed 2048");
     }
 }

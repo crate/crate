@@ -103,6 +103,9 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     private final int dimensions;
 
     public FloatVectorType(int dimensions) {
+        if (dimensions > MAX_DIMENSIONS) {
+            throw new IllegalArgumentException("Float vector type's length cannot exceed " + MAX_DIMENSIONS);
+        }
         this.dimensions = dimensions;
     }
 
