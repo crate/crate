@@ -124,5 +124,8 @@ Administration and Operations
   to give more information on ongoing merges and whether the recovery source is
   still present in merged segments.
 
+- Added ``last_write_before`` column to the sys.shards table, reporting a timestamp
+  before which the last write to the shard has happened.
+
 Client interfaces
 -----------------
