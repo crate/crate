@@ -30,9 +30,9 @@ import java.util.Objects;
 
 public class Variance implements Writeable, Comparable<Variance> {
 
-    protected double sumOfSqrs;
-    protected double sum;
-    protected long count;
+    private double sumOfSqrs;
+    private double sum;
+    private long count;
 
     public Variance() {
         sumOfSqrs = 0.0;
