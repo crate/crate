@@ -59,3 +59,9 @@ Fixes
   :ref:`ADD COLUMN <sql-alter-table-add-column>`. The fix doesn't apply for
   columns which were already added to tables after their creation before
   :ref:`version_5.10.3`. Those columns need to be dropped and recreated.
+
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to falsely return `NULL` values.
+
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
