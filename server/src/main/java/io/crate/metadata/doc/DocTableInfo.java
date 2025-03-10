@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -249,7 +250,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.indexColumns = indexColumns;
         leafByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.references.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
-            .filter(r -> r.oid() != Metadata.COLUMN_OID_UNASSIGNED)
+            .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
             .forEach(r -> leafByOid.put(Long.toString(r.oid()), r));
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
@@ -708,28 +709,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return notNullColumns;
     }
 
-    /**
-     * For tables >= 5.5 this returns a function that takes a oid and returns the corresponding column name or null if dropped.
-     * For tables < 5.5 this returns a identity function.
-     */
     public UnaryOperator<String> lookupNameBySourceKey() {
-        if (versionCreated.onOrAfter(Version.V_5_5_0)) {
-            return oidOrName -> {
-                Reference ref = leafByOid.get(oidOrName);
-                if (ref == null) {
-                    if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
-                        assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
-                        return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
-                    }
-                    return oidOrName;
-                } else if (ref.isDropped()) {
-                    return null;
+        return oidOrName -> {
+            Reference ref = leafByOid.get(oidOrName);
+            if (ref == null) {
+                if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
+                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                    return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
                 }
-                return ref.column().leafName();
-            };
-        } else {
-            return UnaryOperator.identity();
-        }
+                return oidOrName;
+            } else if (ref.isDropped()) {
+                return null;
+            }
+            return ref.column().leafName();
+        };
     }
 
 
