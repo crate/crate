@@ -64,3 +64,6 @@ Fixes
   caused tables become unavailable after ``ALTER TABLE RENAME`` statements
   followed by a cluster restart.
 
+- Fixed a regression introduced in :ref:`version_5.10.0` that
+  caused settings set by the ``SET GLOBAL TRANSIENT`` statement be persisted
+  and survive cluster restart.
