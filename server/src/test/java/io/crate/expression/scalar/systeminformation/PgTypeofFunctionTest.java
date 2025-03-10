@@ -161,11 +161,11 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
         // Fields does not exist
         // STRICT (error based on type definition)
         assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(STRICT)['y'])", isLiteral("")))
-            .hasMessage("Column object['y'] unknown");
+            .hasMessageContaining("The cast of `_map('x', 1)` to return type `OBJECT(STRICT)` does not contain the key `y`");
 
-        // DYNAMIC (error while evaluating the expression)
+        // DYNAMIC (different error as the `::OBJECT(DYNAMIC)` cast gets normalized away due to object cast merges)
         assertThatThrownBy(() -> assertNormalize("pg_typeof({x=1}::object(DYNAMIC)['y'])", isLiteral("")))
-            .hasMessage("The object `{x=1}` does not contain the key `y`");
+            .hasMessageContaining("The return type `OBJECT(DYNAMIC) AS (\"x\" INTEGER)` of the expression `_map('x', 1)` does not contain the key `y`");
 
         // IGNORED
         assertNormalize("pg_typeof({x=1}::object(IGNORED)['y'])", isLiteral(DataTypes.UNDEFINED.getName()));

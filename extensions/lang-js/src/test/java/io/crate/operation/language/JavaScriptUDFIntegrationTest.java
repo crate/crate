@@ -157,28 +157,28 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_subscript_on_udf_returns_correct_type_or_error() {
-        execute("CREATE FUNCTION my_func_dynamic()" +
+        execute("CREATE FUNCTION my_schema.my_func_dynamic()" +
             "    RETURNS OBJECT(DYNAMIC) AS (x LONG)" +
             "    LANGUAGE JAVASCRIPT" +
             "    AS $$" +
             "    function my_func_dynamic(){" +
             "      return {x:1};" +
             "    };$$");
-        execute("CREATE FUNCTION my_func_dynamic_untyped()" +
+        execute("CREATE FUNCTION my_schema.my_func_dynamic_untyped()" +
             "    RETURNS OBJECT(DYNAMIC)" +
             "    LANGUAGE JAVASCRIPT" +
             "    AS $$" +
             "    function my_func_dynamic_untyped(){" +
             "      return {x:1};" +
             "    };$$");
-        execute("CREATE FUNCTION my_func_ignored()" +
+        execute("CREATE FUNCTION my_schema.my_func_ignored()" +
             "    RETURNS OBJECT(IGNORED) AS (x LONG)" +
             "    LANGUAGE JAVASCRIPT" +
             "    AS $$" +
             "    function my_func_ignored(){" +
             "      return {x:1};" +
             "    };$$");
-        execute("CREATE FUNCTION my_func_ignored_untyped()" +
+        execute("CREATE FUNCTION my_schema.my_func_ignored_untyped()" +
             "    RETURNS OBJECT(IGNORED)" +
             "    LANGUAGE JAVASCRIPT" +
             "    AS $$" +
@@ -188,28 +188,28 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
 
         // Field exists
         // DYNAMIC with defined type
-        execute("SELECT pg_typeof(my_func_dynamic()['x'])");
+        execute("SELECT pg_typeof(my_schema.my_func_dynamic()['x'])");
         assertThat(response).hasRows("bigint");
-        // DYNAMIC empty type definition, type determined dynamically
-        execute("SELECT pg_typeof(my_func_dynamic_untyped()['x'])");
-        assertThat(response).hasRows("integer");
+        // DYNAMIC empty type definition, error is thrown on the subscript
+        assertThatThrownBy(() -> execute("SELECT pg_typeof(my_schema.my_func_dynamic_untyped()['x'])"))
+            .hasMessageContaining("The return type `OBJECT(DYNAMIC)` of the expression `my_schema.my_func_dynamic_untyped()` does not contain the key `x`");
         // IGNORED with empty type definition, type determined dynamically
-        execute("SELECT pg_typeof(my_func_ignored_untyped()['x'])");
+        execute("SELECT pg_typeof(my_schema.my_func_ignored_untyped()['x'])");
         assertThat(response).hasRows("integer");
 
         // Field does not exist
         // DYNAMIC
-        assertThatThrownBy(() -> execute("SELECT my_func_dynamic()['y']"))
-            .hasMessageContaining("The object `{x=1}` does not contain the key `y`");
+        assertThatThrownBy(() -> execute("SELECT my_schema.my_func_dynamic()['y']"))
+            .hasMessageContaining("The return type `OBJECT(DYNAMIC) AS (\"x\" BIGINT)` of the expression `my_schema.my_func_dynamic()` does not contain the key `y`");
         // IGNORED
-        execute("SELECT my_func_ignored()['y']");
+        execute("SELECT my_schema.my_func_ignored()['y']");
         assertThat(response).hasRows("NULL");
 
         try (Session session = sqlExecutor.newSession()) {
             execute("SET SESSION error_on_unknown_object_key=false", session);
 
             // DYNAMIC
-            execute("SELECT my_func_dynamic()['y']", session);
+            execute("SELECT my_schema.my_func_dynamic()['y']", session);
             assertThat(response).hasRows("NULL");
         }
     }
