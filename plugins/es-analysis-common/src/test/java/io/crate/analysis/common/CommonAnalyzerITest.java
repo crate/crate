@@ -29,6 +29,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.lucene.DisableGraphAttribute;
+import io.crate.lucene.DisableGraphAttributeImpl;
 import io.crate.testing.TestingHelpers;
 
 public class CommonAnalyzerITest extends IntegTestCase {
@@ -105,5 +107,26 @@ public class CommonAnalyzerITest extends IntegTestCase {
 
         execute("drop analyzer myanalyzer");
         execute("drop analyzer myotheranalyzer");
+    }
+
+    @Test
+    public void testShingleFilterWithGraphOutput() {
+        execute("""
+            CREATE ANALYZER shingle_default (
+                TOKENIZER "standard",
+                TOKEN_FILTERS (
+                    "lowercase",
+                    "stop",
+                    "shingle"
+                )
+            );
+            """);
+        execute("create table t2  (c1 TEXT INDEX USING fulltext WITH (analyzer='shingle_default'));");
+        ensureGreen();
+        execute("insert into t2 (c1) values ('This sentence only has Humans in the text.');");
+        execute("drop analyzer shingle_default");
+
+        var impl = new DisableGraphAttributeImpl();
+        assertThat(impl).isInstanceOf(DisableGraphAttribute.class);
     }
 }
