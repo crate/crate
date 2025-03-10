@@ -67,3 +67,9 @@ Fixes
 - Fixed a regression introduced in :ref:`version_5.10.0` that
   caused settings set by the ``SET GLOBAL TRANSIENT`` statement be persisted
   and survive cluster restart.
+
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to falsely return `NULL` values.
+
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
