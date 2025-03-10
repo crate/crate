@@ -36,7 +36,6 @@ import org.elasticsearch.index.seqno.RetentionLeaseSyncAction;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.indices.flush.SyncedFlushService;
 import org.elasticsearch.indices.store.IndicesStore;
 
 import io.crate.replication.logical.LogicalReplicationSettings;
@@ -62,7 +61,6 @@ public class IndicesModule extends AbstractModule {
     protected void configure() {
         bind(IndicesStore.class).asEagerSingleton();
         bind(IndicesClusterStateService.class).asEagerSingleton();
-        bind(SyncedFlushService.class).asEagerSingleton();
         bind(TransportResyncReplicationAction.class).asEagerSingleton();
         bind(PrimaryReplicaSyncer.class).asEagerSingleton();
         bind(RetentionLeaseSyncAction.class).asEagerSingleton();
