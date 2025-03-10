@@ -1317,6 +1317,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * {@code null} values returned from {@code as} are excluded from the result.
      * This can be used to filter based on state or similar.
      * </p>
+     * @param partitionValues filter by a single partition. Use `List.of()` to include all partitions.
      **/
     public <T> List<T> getIndices(RelationName relationName,
                                   List<String> partitionValues,

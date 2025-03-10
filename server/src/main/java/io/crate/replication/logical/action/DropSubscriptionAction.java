@@ -24,16 +24,16 @@ package io.crate.replication.logical.action;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -74,14 +74,13 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                                                   Metadata.Builder mdBuilder) {
         Metadata metadata = currentState.metadata();
         for (var relationName : relations) {
-            var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.LENIENT_EXPAND_OPEN,
-                relationName.indexNameOrAlias()
+            var concreteIndices = metadata.getIndices(
+                relationName,
+                List.of(),
+                false,
+                imd -> imd.getState() == State.OPEN ? imd : null
             );
-            for (var indexName : concreteIndices) {
-                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
-                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
+            for (var indexMetadata : concreteIndices) {
                 var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
                 settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
                 mdBuilder.put(
