@@ -1209,11 +1209,17 @@ public class IndexRecoveryIT extends IntegTestCase {
             cluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-            assertThat(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut()).isFalse();
+
+            assertBusy(() -> {
+                execute("select count(*) from sys.allocations where table_name = 'test' and current_state = 'STARTED'");
+                assertThat(response).hasRows("2");
+            });
         } finally {
             allowToCompletePhase1Latch.countDown();
         }
         ensureGreen();
+        execute("select count(*) from sys.allocations where table_name = 'test' and current_state = 'STARTED'");
+        assertThat(response).hasRows("3");
     }
 
     @Test
