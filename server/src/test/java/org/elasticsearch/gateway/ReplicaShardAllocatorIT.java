@@ -32,9 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -161,12 +158,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         execute("insert into doc.test (x) values (?)", new Object[][] {
             new Object[] { randomIntBetween(10, 100) },
             new Object[] { randomIntBetween(10, 100) },
-        });
-        assertBusy(() -> {
-            SyncedFlushResponse syncedFlushResponse = client()
-                .execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
-                .get(5, TimeUnit.SECONDS);
-            assertThat(syncedFlushResponse.successfulShards()).isEqualTo(2);
         });
         cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {

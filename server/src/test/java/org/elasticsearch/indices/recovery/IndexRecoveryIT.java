@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +51,6 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -92,7 +89,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.AnalysisModule;
-import org.elasticsearch.indices.flush.SyncedFlushUtil;
 import org.elasticsearch.node.RecoverySettingsChunkSizePlugin;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -1218,88 +1214,6 @@ public class IndexRecoveryIT extends IntegTestCase {
             allowToCompletePhase1Latch.countDown();
         }
         ensureGreen();
-    }
-
-    @Test
-    public void testRecoveryFlushReplica() throws Exception {
-        cluster().ensureAtLeastNumDataNodes(3);
-        String indexName = "test";
-        execute("CREATE TABLE doc.test (num INT)" +
-                " CLUSTERED INTO 1 SHARDS" +
-                " WITH (number_of_replicas = 0)");
-        int numDocs = randomIntBetween(1, 10);
-        var args = new Object[numDocs][];
-        for (int i = 0; i < numDocs; i++) {
-            args[i] = new Object[]{i};
-        }
-        execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        execute("ALTER TABLE doc.test SET (number_of_replicas = 1)");
-        ensureGreen();
-
-        ShardId shardId = null;
-        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        for (ShardStats shardStats : indicesStats.getIndex(indexName).getShards()) {
-            shardId = shardStats.getShardRouting().shardId();
-            if (shardStats.getShardRouting().primary() == false) {
-                assertThat(shardStats.getCommitStats().getNumDocs()).isEqualTo(numDocs);
-                SequenceNumbers.CommitInfo commitInfo = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(
-                    shardStats.getCommitStats().getUserData().entrySet());
-                assertThat(commitInfo.localCheckpoint).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
-                assertThat(commitInfo.maxSeqNo).isEqualTo(shardStats.getSeqNoStats().getMaxSeqNo());
-            }
-        }
-        SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId);
-        assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards()).isEqualTo(0));
-        execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-        ensureGreen(indexName);
-        // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
-        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        Set<String> syncIds = indicesStats.getIndex(indexName).getShards().stream()
-            .map(shardStats -> shardStats.getCommitStats().syncId())
-            .collect(Collectors.toSet());
-        assertThat(syncIds).hasSize(1);
-    }
-
-    @Test
-    public void testRecoveryUsingSyncedFlushWithoutRetentionLease() throws Exception {
-        cluster().ensureAtLeastNumDataNodes(2);
-        String indexName = "test";
-        execute("CREATE TABLE doc.test (num INT)" +
-                " CLUSTERED INTO 1 SHARDS" +
-                " WITH (" +
-                "  number_of_replicas = 1," +
-                "  \"unassigned.node_left.delayed_timeout\"='24h'," +
-                "  \"soft_deletes.retention_lease.period\"='100ms'," +
-                "  \"soft_deletes.retention_lease.sync_interval\"='100ms'" +
-                " )");
-        int numDocs = randomIntBetween(1, 10);
-        var args = new Object[numDocs][];
-        for (int i = 0; i < numDocs; i++) {
-            args[i] = new Object[]{i};
-        }
-        execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
-
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
-        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId).successfulShards()).isEqualTo(2);
-
-        final ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
-        cluster().restartNode(
-            clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
-            new TestCluster.RestartCallback() {
-                @Override
-                public Settings onNodeStopped(String nodeName) throws Exception {
-                    assertBusy(() -> {
-                        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-                        assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
-                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync))).isFalse();
-                    });
-                    return super.onNodeStopped(nodeName);
-                }
-            });
-
-        ensureGreen(indexName);
     }
 
     @Test
