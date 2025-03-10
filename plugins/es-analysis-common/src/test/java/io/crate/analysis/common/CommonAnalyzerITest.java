@@ -29,8 +29,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.lucene.DisableGraphAttribute;
-import io.crate.lucene.DisableGraphAttributeImpl;
 import io.crate.testing.TestingHelpers;
 
 public class CommonAnalyzerITest extends IntegTestCase {
@@ -125,8 +123,5 @@ public class CommonAnalyzerITest extends IntegTestCase {
         ensureGreen();
         execute("insert into t2 (c1) values ('This sentence only has Humans in the text.');");
         execute("drop analyzer shingle_default");
-
-        var impl = new DisableGraphAttributeImpl();
-        assertThat(impl).isInstanceOf(DisableGraphAttribute.class);
     }
 }
