@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.seqno;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -39,12 +40,10 @@ import java.util.function.Consumer;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -514,7 +513,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
-    public void testCanAddRetentionLeaseWithoutWaitingForShards() throws InterruptedException {
+    public void testCanAddRetentionLeaseWithoutWaitingForShards() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         runWaitForShardsTest(
                 idForInitialRetentionLease,
@@ -529,7 +528,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
-    public void testCanRenewRetentionLeaseWithoutWaitingForShards() throws InterruptedException {
+    public void testCanRenewRetentionLeaseWithoutWaitingForShards() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         final long initialRetainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
         final AtomicReference<RetentionLease> retentionLease = new AtomicReference<>();
@@ -560,7 +559,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
-    public void testCanRemoveRetentionLeasesWithoutWaitingForShards() throws InterruptedException {
+    public void testCanRemoveRetentionLeasesWithoutWaitingForShards() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         runWaitForShardsTest(
                 idForInitialRetentionLease,
@@ -573,22 +572,25 @@ public class RetentionLeaseIT extends IntegTestCase  {
             final String idForInitialRetentionLease,
             final long initialRetainingSequenceNumber,
             final BiConsumer<IndexShard, ActionListener<ReplicationResponse>> primaryConsumer,
-            final Consumer<IndexShard> afterSync) throws InterruptedException {
+            final Consumer<IndexShard> afterSync) throws Exception {
         final int numDataNodes = cluster().numDataNodes();
+        int numReplicas = numDataNodes == 1 ? 0 : numDataNodes - 1;
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
             "   number_of_replicas = ?, " +
             "   \"soft_deletes.retention_lease.sync_interval\" = ?)",
             new Object[] {
-                numDataNodes == 1 ? 0 : numDataNodes - 1,
+                numReplicas,
                 TimeValue.timeValueSeconds(1).getStringRep()
             }
         );
-        ensureYellowAndNoInitializingShards("tbl");
-        var clusterHealthResponse = FutureUtils.get(
-            client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForActiveShards(numDataNodes)));
-        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
+        assertBusy(() -> {
+            execute("select count(*) from sys.allocations where current_state in ('STARTED', 'UNASSIGNED') and table_name = 'tbl'");
+            assertThat(response).hasRows(
+                Integer.toString(numReplicas + 1)
+            );
+        });
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
