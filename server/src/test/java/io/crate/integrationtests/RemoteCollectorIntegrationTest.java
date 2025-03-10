@@ -23,17 +23,12 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-
-import io.crate.common.unit.TimeValue;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends IntegTestCase {
@@ -67,12 +62,10 @@ public class RemoteCollectorIntegrationTest extends IntegTestCase {
 
         execute("alter table t reroute move shard 0 from ? to ?", new Object[] { sourceNodeId, targetNodeId });
 
-        FutureUtils.get(client().admin().cluster().health(
-            new ClusterHealthRequest(getFqn("t"))
-                .waitForEvents(Priority.LANGUID)
-                .waitForNoRelocatingShards(true)
-                .timeout(TimeValue.timeValueSeconds(5))
-            ));
+        assertBusy(() -> {
+            execute("select * from sys.allocations where table_name = 't' and current_state = 'RELOCATING'");
+            assertThat(response).hasRowCount(0);
+        });
 
         execute(plan).getResult();
 
