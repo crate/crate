@@ -150,12 +150,14 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         // STRICT (error based on type definition)
         assertThatThrownBy(() -> execute("CREATE TABLE test_strict AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (STRICT) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("Column object['field2'] unknown");
+            .hasMessageContaining("The cast of `'{\"field1\":123}'` to return type `OBJECT(STRICT) AS (\"field1\" BIGINT)` does not contain the key `field2`.\n" +
+                "Consider to include inner type definition in the `OBJECT` type while casting, disable DYNAMIC unknown key errors by the `error_on_unknown_object_key` setting or cast to `OBJECT(IGNORED)`.");
 
-        // DYNAMIC (error while evaluating the expression)
+        // DYNAMIC (error based on type definition)
         assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+            .hasMessageContaining("The cast of `'{\"field1\":123}'` to return type `OBJECT(DYNAMIC) AS (\"field1\" BIGINT)` does not contain the key `field2`.\n" +
+                "Consider to include inner type definition in the `OBJECT` type while casting, disable DYNAMIC unknown key errors by the `error_on_unknown_object_key` setting or cast to `OBJECT(IGNORED)`.");
 
         // IGNORED (error while using an undefined column as it cannot be stored)
         assertThatThrownBy(() -> execute("CREATE TABLE test_ignored AS \n" +

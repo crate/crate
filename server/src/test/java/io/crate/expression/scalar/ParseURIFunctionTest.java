@@ -21,12 +21,17 @@
 
 package io.crate.expression.scalar;
 
-import org.junit.Test;
-
-import io.crate.common.collections.MapBuilder;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Locale;
 import java.util.Map;
+
+import org.junit.Test;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class ParseURIFunctionTest extends ScalarTestCase {
 
@@ -47,7 +52,17 @@ public class ParseURIFunctionTest extends ScalarTestCase {
             .put("query", null)
             .put("fragment", null)
             .map();
-        assertEvaluate(String.format(Locale.ENGLISH,"parse_uri('%s')", uri), value);
+
+        ObjectType expectedType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("scheme", DataTypes.STRING)
+            .setInnerType("userinfo", DataTypes.STRING)
+            .setInnerType("hostname", DataTypes.STRING)
+            .setInnerType("port", DataTypes.INTEGER)
+            .setInnerType("path", DataTypes.STRING)
+            .setInnerType("query", DataTypes.STRING)
+            .setInnerType("fragment", DataTypes.STRING)
+            .build();
+        assertNormalize(String.format(Locale.ENGLISH,"parse_uri('%s')", uri), isLiteral(value, expectedType));
     }
 
     @Test
@@ -94,5 +109,4 @@ public class ParseURIFunctionTest extends ScalarTestCase {
             .map();
         assertEvaluate(String.format(Locale.ENGLISH,"parse_uri('%s')", uri), value);
     }
-
 }

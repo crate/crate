@@ -21,13 +21,13 @@
 
 package io.crate.sql.parser;
 
-import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.parser.SqlParser.createStatement;
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -37,12 +37,12 @@ import io.crate.sql.tree.Statement;
 final class TreeAssertions {
     private TreeAssertions() {}
 
-    static void assertFormattedSql(Node expected) {
-        String formatted = formatSql(expected);
+    static void assertFormattedSql(Node expected, Function<Node, String> formatter) {
+        String formatted = formatter.apply(expected);
 
         // verify round-trip of formatting already-formatted SQL
         Statement actual = parseFormatted(formatted, expected);
-        assertThat(formatSql(actual)).isEqualTo(formatted);
+        assertThat(formatter.apply(actual)).isEqualTo(formatted);
 
         // compare parsed tree with parsed tree of formatted SQL
         if (!actual.equals(expected)) {
