@@ -1360,19 +1360,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             : IndicesOptions.LENIENT_EXPAND_OPEN;
 
         Index[] indices;
-        if (partitionValues.isEmpty()) {
-            indices = IndexNameExpressionResolver.concreteIndices(
-                this,
-                indicesOptions,
-                relationName.indexNameOrAlias()
-            );
-        } else {
-            PartitionName partitionName = new PartitionName(relationName, partitionValues);
-            indices = IndexNameExpressionResolver.concreteIndices(
-                this,
-                indicesOptions,
-                partitionName.asIndexName()
-            );
+        try {
+            if (partitionValues.isEmpty()) {
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    this,
+                    indicesOptions,
+                    relationName.indexNameOrAlias()
+                );
+            } else {
+                PartitionName partitionName = new PartitionName(relationName, partitionValues);
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    this,
+                    indicesOptions,
+                    partitionName.asIndexName()
+                );
+            }
+        } catch (IndexNotFoundException ex) {
+            throw new RelationUnknown(relationName);
         }
         ArrayList<T> result = new ArrayList<>(indices.length);
         for (int i = 0; i < indices.length; i++) {
