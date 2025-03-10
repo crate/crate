@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
@@ -33,10 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.ShardId;
@@ -215,23 +213,10 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
 
             execute("alter table blob.test reroute move shard 0 from ? to ?", new Object[] { fromNode, toNode });
-            ClusterHealthResponse clusterHealthResponse = FutureUtils.get(cluster().client(node1).admin().cluster()
-                .health(
-                    new ClusterHealthRequest()
-                        .waitForEvents(Priority.LANGUID)
-                        .waitForNoRelocatingShards(true)
-                        .timeout(ACCEPTABLE_RELOCATION_TIME)
-                ));
-
-            assertThat(clusterHealthResponse.isTimedOut()).isFalse();
-            clusterHealthResponse = FutureUtils.get(cluster().client(node2).admin().cluster()
-                .health(
-                    new ClusterHealthRequest()
-                        .waitForEvents(Priority.LANGUID)
-                        .waitForNoRelocatingShards(true)
-                        .timeout(ACCEPTABLE_RELOCATION_TIME)
-                ));
-            assertThat(clusterHealthResponse.isTimedOut()).isFalse();
+            assertBusy(() -> {
+                execute("select node['name'], state from sys.shards where table_name = 'test' and id = 0");
+                assertThat(response).hasRows(toNode + "| STARTED");
+            });
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }
         logger.trace("--> done relocations");
