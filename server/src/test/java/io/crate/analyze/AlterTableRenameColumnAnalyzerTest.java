@@ -119,7 +119,7 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
     @Test
     public void test_cannot_rename_column_from_single_partition() throws Exception {
         e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 

@@ -82,7 +82,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void testAddColumnOnSinglePartitionNotAllowed() throws Exception {
         e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 

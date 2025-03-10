@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -103,7 +104,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
     public void test_rename_partitioned_by_columns() throws Exception {
         // alter table tbl rename column x to y; -- where y is a partitioned by col
         var e = SQLExecutor.of(clusterService)
-            .addPartitionedTable("create table doc.tbl (o object as (o2 object as (x int)), x int) partitioned by (o['o2']['x'], x)",
+            .addTable("create table doc.tbl (o object as (o2 object as (x int)), x int) partitioned by (o['o2']['x'], x)",
                 new PartitionName(new RelationName("doc", "tbl"), List.of("1", "2")).asIndexName(),
                 new PartitionName(new RelationName("doc", "tbl"), List.of("3", "4")).asIndexName());
         DocTableInfo tbl = e.resolveTableInfo("doc.tbl");

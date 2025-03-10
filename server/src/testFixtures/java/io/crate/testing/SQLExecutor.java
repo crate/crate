@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +52,6 @@ import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -59,10 +59,11 @@ import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -105,6 +106,7 @@ import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.TableParameters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -142,6 +144,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -450,7 +454,7 @@ public class SQLExecutor {
         try {
             SQLExecutor executor = builder(clusterService)
                 .build()
-                .addPartitionedTable(stmt);
+                .addTable(stmt);
             return executor.schemas().getTableInfo(name);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -701,12 +705,12 @@ public class SQLExecutor {
         return builder.build();
     }
 
-    public SQLExecutor addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
-        return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
+    public SQLExecutor addTable(String createTableStmt, String... partitions) throws IOException {
+        return addTable(createTableStmt, Settings.EMPTY, partitions);
     }
 
     @SuppressWarnings("unchecked")
-    public SQLExecutor addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
+    public SQLExecutor addTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
         CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
         AnalyzedCreateTable analyzedCreateTable = createTableAnalyzer.analyze(
@@ -720,109 +724,93 @@ public class SQLExecutor {
             Row.EMPTY,
             SubQueryResults.EMPTY
         );
-        if (!boundCreateTable.isPartitioned()) {
-            throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
+        boolean partitioned = boundCreateTable.isPartitioned();
+        if (!partitioned) {
+            if (partitions.length > 0) {
+                throw new IllegalArgumentException("Cannot set partitions manually for unpartitioned tables");
+            }
+            partitions = new String[] { boundCreateTable.tableName().indexNameOrAlias() };
         }
         ClusterState prevState = clusterService.state();
         var combinedSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(boundCreateTable.settings())
             .put(customSettings)
             .build();
 
         // addPartitionedTable can be called multiple times, create supplier based on existing state.
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+        RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
         LongSupplier columnOidSupplier =
                 this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-        Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
 
-        XContentBuilder mappingBuilder =
-            JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
+        Version smallestVersion = prevState.nodes().getSmallestNonClientNodeVersion();
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(combinedSettings);
+
+        // skip mapping generation if using RelationMetadata
+        // This is a bit different than production code but is done to avoids issues with duplicate oid generation
+        // (which would happen once here, and once again further done via mdBuilder.setTable)
+        Map<String, Object> mapping = versionCreated.before(Version.V_6_0_0)
+            ? mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable)
+            : (partitioned ? Map.of() : null);
         AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
-        IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
-            .patterns(singletonList(boundCreateTable.templatePrefix()))
-            .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
-            .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
-            .putAlias(alias);
-
-        mdBuilder.put(template);
-
-        RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
+        if (partitioned) {
+            XContentBuilder mappingBuilder =
+                JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
+            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
+                .patterns(singletonList(boundCreateTable.templatePrefix()))
+                .settings(buildSettings(false, combinedSettings, smallestVersion))
+                .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
+                .putAlias(alias);
+            mdBuilder.put(template);
+        }
+        List<String> indexUUIDs = new ArrayList<>();
+        ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
+            .blocks(prevState.blocks());
         for (String partition : partitions) {
-            IndexMetadata indexMetadata = getIndexMetadata(
+            IndexMetadata.Builder imdBuilder = getIndexMetadata(
                 partition,
                 combinedSettings,
                 mapping, // Each partition has the same mapping.
-                prevState.nodes().getSmallestNonClientNodeVersion())
-                .putAlias(alias)
-                .build();
+                smallestVersion
+            );
+            if (partitioned) {
+                imdBuilder.partitionValues(PartitionName.fromIndexOrTemplate(partition).values());
+                imdBuilder.putAlias(alias);
+            }
+            IndexMetadata indexMetadata = imdBuilder.build();
             mdBuilder.put(indexMetadata, true);
             routingBuilder.addAsNew(indexMetadata);
+            indexUUIDs.add(indexMetadata.getIndexUUID());
+            blocksBuilder.addBlocks(indexMetadata);
+        }
+        if (versionCreated.onOrAfter(Version.V_6_0_0)) {
+            RelationMetadata relation = prevState.metadata().getRelation(boundCreateTable.tableName());
+            if (partitioned && relation instanceof RelationMetadata.Table table) {
+                indexUUIDs = Lists.concatUnique(table.indexUUIDs(), indexUUIDs);
+            }
+            mdBuilder.setTable(
+                columnOidSupplier,
+                boundCreateTable.tableName(),
+                List.copyOf(boundCreateTable.columns().values()),
+                combinedSettings,
+                boundCreateTable.routingColumn(),
+                TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+                boundCreateTable.pkConstraintName(),
+                boundCreateTable.getCheckConstraints(),
+                Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+                Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+                State.OPEN,
+                indexUUIDs
+            );
         }
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
             .routingTable(routingBuilder.build())
+            .blocks(blocksBuilder)
             .build();
 
         ClusterServiceUtils.setState(clusterService, allocationService.reroute(newState, "assign shards"));
-        return this;
-    }
-
-    public SQLExecutor addTable(String createTableStmt) throws IOException {
-        return addTable(createTableStmt, Settings.EMPTY);
-    }
-
-    /**
-        * Add a table to the clusterState
-        */
-    @SuppressWarnings("unchecked")
-    public SQLExecutor addTable(String createTableStmt, Settings settings) throws IOException {
-        CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
-        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
-        AnalyzedCreateTable analyzedCreateTable = createTableAnalyzer.analyze(
-            stmt, ParamTypeHints.EMPTY, txnCtx);
-        var boundCreateTable = analyzedCreateTable.bind(
-            new NumberOfShards(clusterService),
-            fulltextAnalyzerResolver,
-            nodeCtx,
-            txnCtx,
-            Row.EMPTY,
-            SubQueryResults.EMPTY
-        );
-        if (boundCreateTable.isPartitioned()) {
-            throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
-        }
-
-        var combinedSettings = Settings.builder()
-            .put(boundCreateTable.settings())
-            .put(settings)
-            .build();
-
-        ClusterState prevState = clusterService.state();
-
-        // addTable can be called multiple times, create supplier based on existing state.
-        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-        LongSupplier columnOidSupplier =
-                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-
-        RelationName relationName = boundCreateTable.tableName();
-        IndexMetadata indexMetadata = getIndexMetadata(
-            relationName.indexNameOrAlias(),
-            combinedSettings,
-            TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
-            prevState.nodes().getSmallestNonClientNodeVersion()
-        ).build();
-
-        ClusterState state = ClusterState.builder(prevState)
-            .blocks(
-                ClusterBlocks.builder()
-                    .blocks(prevState.blocks())
-                    .updateBlocks(indexMetadata)
-            )
-            .metadata(mdBuilder.put(indexMetadata, true))
-            .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
-            .build();
-
-        ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
         return this;
     }
 
@@ -839,19 +827,37 @@ public class SQLExecutor {
     }
 
     public SQLExecutor closeTable(String tableName) throws IOException {
-        String indexName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME).indexNameOrAlias();
+        RelationName relationName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME);
         ClusterState prevState = clusterService.state();
         var metadata = prevState.metadata();
-        String[] concreteIndices = IndexNameExpressionResolver
-            .concreteIndexNames(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
-
+        List<IndexMetadata> indices = metadata.getIndices(
+            relationName,
+            List.of(),
+            false,
+            imd -> imd.getState() == State.OPEN ? imd : null);
         Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
+        RelationMetadata relation = metadata.getRelation(relationName);
+        if (relation instanceof RelationMetadata.Table table) {
+            mdBuilder.setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                State.CLOSE,
+                table.indexUUIDs()
+            );
+        }
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(clusterService.state().blocks());
 
-        for (String index: concreteIndices) {
-            mdBuilder.put(IndexMetadata.builder(metadata.index(index)).state(IndexMetadata.State.CLOSE));
-            blocksBuilder.addIndexBlock(index, INDEX_CLOSED_BLOCK);
+        for (IndexMetadata imd: indices) {
+            mdBuilder.put(IndexMetadata.builder(imd).state(IndexMetadata.State.CLOSE));
+            blocksBuilder.addIndexBlock(imd.getIndex().getName(), INDEX_CLOSED_BLOCK);
         }
 
         ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();

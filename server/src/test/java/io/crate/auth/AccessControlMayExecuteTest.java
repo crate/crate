@@ -135,7 +135,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)
@@ -418,6 +418,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCreateAnalyzer() throws Exception {
         analyze("create analyzer a1 (tokenizer lowercase)");
+        assertAskedForCluster(Permission.DDL);
+    }
+
+    @Test
+    public void testDropAnalyzer() {
+        analyze("drop analyzer a1");
         assertAskedForCluster(Permission.DDL);
     }
 

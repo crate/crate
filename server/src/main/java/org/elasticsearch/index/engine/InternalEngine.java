@@ -106,12 +106,10 @@ import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.Booleans;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.lucene.index.ShuffleForcedMergePolicy;
 import io.crate.metadata.doc.SysColumns;
 
 public class InternalEngine extends Engine {
@@ -2260,13 +2258,6 @@ public class InternalEngine extends Engine {
                 new PrunePostingsMergePolicy(mergePolicy, SysColumns.Names.ID)
             )
         );
-        boolean shuffleForcedMerge = Booleans.parseBoolean(System.getProperty("es.shuffle_forced_merge", Boolean.TRUE.toString()));
-        if (shuffleForcedMerge) {
-            // We wrap the merge policy for all indices even though it is mostly useful for time-based indices
-            // but there should be no overhead for other type of indices so it's simpler than adding a setting
-            // to enable it.
-            mergePolicy = new ShuffleForcedMergePolicy(mergePolicy);
-        }
         iwc.setMergePolicy(mergePolicy);
         iwc.setMaxFullFlushMergeWaitMillis(0);
         iwc.setRAMBufferSizeMB(engineConfig.getIndexingBufferSize().getMbFrac());

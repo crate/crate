@@ -54,7 +54,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionWithMeta() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("1"));
-        e.addPartitionedTable(
+        e.addTable(
             """
                 create table doc.tbl (
                     x int,
@@ -79,7 +79,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
         PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("foo", "2"));
-        e.addPartitionedTable(
+        e.addTable(
             """
                 create table doc.tbl (
                     x int,

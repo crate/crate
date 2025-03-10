@@ -92,10 +92,10 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         RelationName multiPartName = new RelationName("doc", "multi_parted");
         e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addPartitionedTable(
+            .addTable(
                 "create table doc.multi_parted (" +
                 "   id int," +
                 "   date timestamp with time zone," +

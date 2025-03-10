@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
+import static io.crate.testing.Asserts.isObjectLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -116,7 +117,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_two_objects() {
-        assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
+        assertNormalize("concat({a=1},{a=2,b=2})", isObjectLiteral(Map.of("a",2,"b",2)));
     }
 
     @Test
@@ -138,7 +139,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
     }
 
     public void test_concat_operator_with_objects() {
-        assertEvaluate("{a=1} || {a=2,b=2}", Map.of("a",2,"b",2));
+        assertNormalize("{a=1} || {a=2,b=2}", isObjectLiteral(Map.of("a",2,"b",2)));
     }
 
     @Test

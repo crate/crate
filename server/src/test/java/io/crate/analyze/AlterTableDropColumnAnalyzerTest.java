@@ -243,7 +243,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     @Test
     public void test_drop_column_from_single_partition_is_not_allowed() throws Exception {
         e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
 
@@ -255,10 +255,10 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
     @Test
     public void test_drop_partition_by_column_is_not_allowed() throws Exception {
         e = SQLExecutor.of(clusterService)
-            .addPartitionedTable(
+            .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addPartitionedTable("CREATE TABLE t2 (o object AS (oo object AS(ooa int))) PARTITIONED BY (o['oo']['ooa'])",
+            .addTable("CREATE TABLE t2 (o object AS (oo object AS(ooa int))) PARTITIONED BY (o['oo']['ooa'])",
                                  new PartitionName(new RelationName("doc", "t2"), singletonList("1")).asIndexName());
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE parted DROP COLUMN date"))

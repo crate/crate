@@ -61,7 +61,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addPartitionedTable(
+            .addTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
@@ -72,7 +72,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
-            .addPartitionedTable(
+            .addTable(
                 "create table parted_generated (" +
                 "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +

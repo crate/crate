@@ -34,4 +34,7 @@ public record BoundSignature(List<DataType<?>> argTypes, DataType<?> returnType)
         );
     }
 
+    public BoundSignature withReturnType(DataType<?> returnType) {
+        return new BoundSignature(argTypes(), returnType);
+    }
 }

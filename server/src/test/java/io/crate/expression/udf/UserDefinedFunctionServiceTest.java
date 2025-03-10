@@ -137,7 +137,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         sqlExecutor
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)");
+            .addTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)");
 
         assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -149,7 +149,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         sqlExecutor
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addPartitionedTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])");
+            .addTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])");
 
         assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)

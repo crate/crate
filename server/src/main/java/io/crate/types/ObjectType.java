@@ -147,11 +147,21 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
         DataType<?> innerType = DataTypes.UNDEFINED;
         ObjectType currentObject = this;
+        int arrayNesting = 0;
         for (int i = 0; i < path.size(); i++) {
             innerType = currentObject.innerType(path.get(i));
-            if (innerType.id() == ID) {
-                currentObject = (ObjectType) innerType;
+            while (innerType instanceof ArrayType<?> arrayType) {
+                arrayNesting++;
+                innerType = arrayType.innerType();
             }
+            if (innerType instanceof ObjectType objectType) {
+                currentObject = objectType;
+            } else if (i < path.size() - 1) {
+                return DataTypes.UNDEFINED;
+            }
+        }
+        for (int i = 0; i < arrayNesting; i++) {
+            innerType = new ArrayType<>(innerType);
         }
         return innerType;
     }
@@ -299,12 +309,18 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     private static ObjectType merge(ObjectType left, ObjectType right) {
+        return merge(left, right, DataTypes::merge);
+    }
+
+    public static ObjectType merge(ObjectType left,
+                                   ObjectType right,
+                                   BiFunction<DataType<?>, DataType<?>, DataType<?>> remappingFunction) {
         ObjectType.Builder mergedObjectBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
         for (var e : left.innerTypes().entrySet()) {
             mergedObjectBuilder.setInnerType(e.getKey(), e.getValue());
         }
         for (var e : right.innerTypes().entrySet()) {
-            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), DataTypes::merge);
+            mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), remappingFunction);
         }
         return mergedObjectBuilder.build();
     }

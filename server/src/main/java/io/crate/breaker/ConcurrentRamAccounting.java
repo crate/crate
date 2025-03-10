@@ -66,6 +66,9 @@ public final class ConcurrentRamAccounting implements RamAccounting {
 
     @Override
     public void addBytes(long bytes) {
+        if (bytes == 0) {
+            return;
+        }
         long currentUsedBytes = usedBytes.addAndGet(bytes);
         if (operationMemoryLimit > 0 && currentUsedBytes > operationMemoryLimit) {
             usedBytes.addAndGet(- bytes);
@@ -77,7 +80,11 @@ public final class ConcurrentRamAccounting implements RamAccounting {
             ));
         }
         try {
-            reserveBytes.accept(bytes);
+            if (bytes > 0) {
+                reserveBytes.accept(bytes);
+            } else {
+                releaseBytes.accept(- bytes);
+            }
         } catch (Exception e) {
             usedBytes.addAndGet(- bytes);
             throw e;

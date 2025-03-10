@@ -86,7 +86,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         e = SQLExecutor.of(clusterService)
             .addTable(USER_TABLE_DEFINITION)
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
-            .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
+            .addTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table my_blobs");
         plannerContext = e.getPlannerContext();
     }

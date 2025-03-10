@@ -125,7 +125,7 @@ public final class DocReferences {
                 for (var sourceRef : indexReference.columns()) {
                     newSources.add(referencesMap.get(sourceRef.column()));
                 }
-                references.set(i, indexReference.updateColumns(newSources));
+                references.set(i, indexReference.withColumns(newSources));
             }
         }
         return references;

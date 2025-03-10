@@ -43,5 +43,28 @@ public class ConcurrentRamAccountingTest {
         assertThat(usedBytes).as("value is not reserved if above limit").hasValue(19);
         assertThat(ramAccounting.totalBytes()).isEqualTo(19);
     }
+
+    @Test
+    void test_adding_positive_bytes_calls_reserveBytes_and_adding_negative_bytes_calls_releaseBytes() {
+        AtomicLong reserveBytes = new AtomicLong();
+        AtomicLong releaseBytes = new AtomicLong();
+        var ramAccounting = new ConcurrentRamAccounting(
+            reserveBytes::addAndGet, // verify it is called to reserve bytes
+            releaseBytes::addAndGet, // verify it is called to release bytes
+            "dummy",
+            20);
+
+        ramAccounting.addBytes(0);
+        assertThat(reserveBytes.get()).isEqualTo(0L);
+        assertThat(releaseBytes.get()).isEqualTo(0L);
+
+        ramAccounting.addBytes(1);
+        assertThat(reserveBytes.get()).isEqualTo(1L);
+        assertThat(releaseBytes.get()).isEqualTo(0L);
+
+        ramAccounting.addBytes(-1);
+        assertThat(reserveBytes.get()).isEqualTo(1L);
+        assertThat(releaseBytes.get()).isEqualTo(1L);
+    }
 }
 
