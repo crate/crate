@@ -3496,7 +3496,7 @@ Cast functions
 .. _fn-cast:
 
 ``CAST``
-^^^^^^^^
+''''''''
 
 Example usages:
 
@@ -3540,18 +3540,18 @@ converting an array of integer values to a boolean array.
 ``CAST to OBJECT``
 ''''''''''''''''''
 
-The following data types can be converted to an `OBJECT <type-object>`_ type:
- - any `CHARACTER <types-character-data>`_ type if it is a valid ``JSON``
-   string.
- - `GEO_SHAPE <type-geo_shape>`_
- - `OBJECT <type-object>`_
+The following data types can be converted to an :ref:`OBJECT <type-object>` type:
+ - any :ref:`CHARACTER <data-types-character-data>` type if it is a valid
+   ``JSON`` string.
+ - :ref:`GEO_SHAPE <type-geo_shape>`
+ - :ref:`OBJECT <type-object>`
 
 When casting from an object to an object (or array of objects), the resulting
 object type will contain all inner types from both types if the target
-`column policy <type-object-column-policy>`_ is not set to ``STRICT``.
+:ref:`column policy <type-object-column-policy>` is not set to ``STRICT``.
 If both types contain the same inner key, the target inner type definition
 will be used. Additionally, the resulting
-`column policy <type-object-column-policy>`_ is taken from the target type.
+:ref:`column policy <type-object-column-policy>` is taken from the target type.
 
 .. Warning::
 
@@ -3567,9 +3567,9 @@ will be used. Additionally, the resulting
 ``TRY_CAST``
 ''''''''''''
 
-While `CAST <fn-cast>`_ throws an error for incompatible type casts,
+While :ref:`CAST <fn-cast>` throws an error for incompatible type casts,
 ``TRY_CAST`` returns ``null`` in this case. Otherwise the result and behaviour
-is the same as with `CAST <fn-cast>`_.
+is the same as with :ref:`CAST <fn-cast>`.
 
 ::
 
