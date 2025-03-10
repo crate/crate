@@ -22,21 +22,22 @@
 package io.crate.execution.ddl;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardsObserver;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -125,15 +126,13 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     protected ClusterBlockException checkBlock(SwapRelationsRequest request, ClusterState state) {
         Set<String> affectedIndices = new HashSet<>();
         Metadata metadata = state.metadata();
+        Function<IndexMetadata, String> toOpenIndexName = imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null;
         for (RelationNameSwap swapAction : request.swapActions()) {
-            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.source().indexNameOrAlias())));
-            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, swapAction.target().indexNameOrAlias())));
+            affectedIndices.addAll(metadata.getIndices(swapAction.source(), List.of(), false, toOpenIndexName));
+            affectedIndices.addAll(metadata.getIndices(swapAction.target(), List.of(), false, toOpenIndexName));
         }
         for (RelationName dropRelation : request.dropRelations()) {
-            affectedIndices.addAll(Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(
-                metadata, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())));
+            affectedIndices.addAll(metadata.getIndices(dropRelation, List.of(), false, toOpenIndexName));
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
     }
