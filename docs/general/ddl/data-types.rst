@@ -3520,7 +3520,10 @@ Example usages:
     +-----+
     SELECT 1 row in set (... sec)
 
-It is also possible to convert array structures to different data types, e.g.
+``CAST to ARRAY``
+'''''''''''''''''
+
+It is possible to convert array structures to different data types, e.g.
 converting an array of integer values to a boolean array.
 
 ::
@@ -3533,20 +3536,40 @@ converting an array of integer values to a boolean array.
     +---------------------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
 
-   It is not possible to cast to or from ``OBJECT``, ``GEO_POINT``, and
-   ``GEO_SHAPE`` types.
+``CAST to OBJECT``
+''''''''''''''''''
 
+The following data types can be converted to an :ref:`OBJECT <type-object>` type:
+ - any :ref:`CHARACTER <data-types-character-data>` type if it is a valid
+   ``JSON`` string.
+ - :ref:`GEO_SHAPE <type-geo_shape>`
+ - :ref:`OBJECT <type-object>`
+
+When casting from an object to an object (or array of objects), the resulting
+object type will contain all inner types from both types if the target
+:ref:`column policy <type-object-column-policy>` is not set to ``STRICT``.
+If both types contain the same inner key, the target inner type definition
+will be used. Additionally, the resulting
+:ref:`column policy <type-object-column-policy>` is taken from the target type.
+
+.. Warning::
+
+    When the source type isn't an ``OBJECT`` type, or it does not contain any
+    inner type definition and the target ``OBJECT`` type does not as well, the
+    resulting ``OBJECT`` is always untyped and a query on any object property
+    will return an ``UNDEFINED`` type as the value type is not known until the
+    expression gets evaluated. This is important when using the resulting
+    symbol as an argument to any other expression.
 
 .. _fn-try-cast:
 
 ``TRY_CAST``
 ''''''''''''
 
-While ``CAST`` throws an error for incompatible type casts, ``TRY_CAST``
-returns ``null`` in this case. Otherwise the result is the same as with
-``CAST``.
+While :ref:`CAST <fn-cast>` throws an error for incompatible type casts,
+``TRY_CAST`` returns ``null`` in this case. Otherwise the result and behaviour
+is the same as with :ref:`CAST <fn-cast>`.
 
 ::
 

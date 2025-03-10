@@ -106,8 +106,8 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void testIndexExpressionIsNotInteger() throws Exception {
         assertThatThrownBy(
             () -> assertNormalize("subscript(['Youri', 'Ruben'], 'foo')", isLiteral("Ruben")))
-            .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("The expression's return type `ARRAY(TEXT)` does not contain the key `foo`");
     }
 
     @Test
@@ -115,7 +115,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> assertEvaluate("{}['y']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `y`");
+            .hasMessageContaining("The expression's return type `OBJECT(DYNAMIC)` does not contain the key `y`");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{}['y']");
     }
@@ -125,7 +125,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> assertEvaluate("[{}]['y']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `y`");
+            .hasMessageContaining("The expression's return type `ARRAY(OBJECT(DYNAMIC))` does not contain the key `y`");
 
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertNormalize("[{}]['y']", isLiteral(Arrays.stream(new Object[1]).toList()));
@@ -141,15 +141,15 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+            .hasMessageContaining("The expression's return type `OBJECT(STRICT)` does not contain the key `missing_key`");
         assertThatThrownBy(() -> assertEvaluate("{}::object(dynamic)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+            .hasMessageContaining("The expression's return type `OBJECT(DYNAMIC)` does not contain the key `missing_key`");
         assertEvaluateNull("{}::object(ignored)['missing_key']");
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertThatThrownBy(() -> assertEvaluate("{}::object(strict)['missing_key']", null))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `missing_key`");
+            .hasMessageContaining("The expression's return type `OBJECT(STRICT)` does not contain the key `missing_key`");
         assertEvaluateNull("{}::object(dynamic)['missing_key']");
         assertEvaluateNull("{}::object(ignored)['missing_key']");
     }

@@ -56,7 +56,7 @@ import io.crate.sql.parser.SqlParser;
 public class SqlExpressions {
 
     private final ExpressionAnalyzer expressionAnalyzer;
-    private final ExpressionAnalysisContext expressionAnalysisCtx;
+    private ExpressionAnalysisContext expressionAnalysisCtx;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final EvaluatingNormalizer normalizer;
     public final NodeContext nodeCtx;
@@ -134,5 +134,7 @@ public class SqlExpressions {
 
     public void setErrorOnUnknownObjectKey(boolean errorOnUnknownObjectKey) {
         this.coordinatorTxnCtx.sessionSettings().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
+        // re-create the context to apply the new settings
+        expressionAnalysisCtx = new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings());
     }
 }

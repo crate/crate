@@ -222,19 +222,19 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             }
             return result;
         } else if (base instanceof Map<?, ?> map) {
-            if (!map.containsKey(name)) {
-                ColumnPolicy columnPolicy = baseType.columnPolicy();
+            Object value = map.get(name);
+            ColumnPolicy columnPolicy = baseType.columnPolicy();
+            if (value == null) {
                 assert baseType instanceof ObjectType;
                 ObjectType objType = (ObjectType) baseType;
                 if (columnPolicy == ColumnPolicy.IGNORED
                     || (columnPolicy == ColumnPolicy.DYNAMIC && !errorOnUnknownObjectKey)
-                    || objType.innerTypes().containsKey(name)) {
+                    || (objType.innerTypes().containsKey(name))) {
                     return null;
                 }
                 throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
-            } else {
-                return map.get(name);
             }
+            return value;
         } else {
             throw new IllegalArgumentException("Base argument to subscript must be an object or array-of-objects, not " + base);
         }
