@@ -37,17 +37,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -217,18 +214,13 @@ public class DocTableInfoFactory {
         Map<String, Object> mappingSource;
         Settings tableParameters;
         IndexMetadata.State state;
-        String[] concreteIndices;
-        try {
-            concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                indexTemplateMetadata == null
-                    ? IndicesOptions.STRICT_EXPAND_OPEN
-                    : IndicesOptions.LENIENT_EXPAND_OPEN,
-                relation.indexNameOrAlias()
-            );
-        } catch (IndexNotFoundException e) {
-            throw new RelationUnknown(relation.fqn(), e);
-        }
+        boolean strict = indexTemplateMetadata == null;
+        List<String> concreteIndices = metadata.getIndices(
+            relation,
+            List.of(),
+            strict,
+            imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+        );
         long tableVersion;
         if (indexTemplateMetadata == null) {
             IndexMetadata index = metadata.index(relation.indexNameOrAlias());
@@ -242,7 +234,7 @@ public class DocTableInfoFactory {
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
             tableVersion = index.getVersion();
-            if (concreteIndices.length == 0) {
+            if (concreteIndices.isEmpty()) {
                 throw new RelationUnknown(relation);
             }
         } else {
