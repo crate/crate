@@ -744,30 +744,18 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return notNullColumns;
     }
 
-    /**
-     * Starting from 5.5 column OID-s are used as source keys.
-     * Even of 5.5, there are no OIDs (and thus no source key rewrite happening) for:
-     * <ul>
-     *  <li>OBJECT (IGNORED) sub-columns</li>
-     *  <li>Internal object keys of the geo shape column, such as "coordinates", "type"</li>
-     * </ul>
-     */
     public UnaryOperator<String> lookupNameBySourceKey() {
-        if (versionCreated.onOrAfter(Version.V_5_5_0)) {
-            return oidOrName -> {
-                String name = leafNamesByOid.get(oidOrName);
-                if (name == null) {
-                    if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
-                        assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
-                        return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
-                    }
-                    return oidOrName;
+        return oidOrName -> {
+            String name = leafNamesByOid.get(oidOrName);
+            if (name == null) {
+                if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
+                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                    return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
                 }
-                return name;
-            };
-        } else {
-            return UnaryOperator.identity();
-        }
+                return oidOrName;
+            }
+            return name;
+        };
     }
 
 
