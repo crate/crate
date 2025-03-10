@@ -359,7 +359,7 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_cast_object_to_object_uses_target_column_policy() {
         assertThatThrownBy(() -> assertNormalize("({a=1}::OBJECT(STRICT) AS (b TEXT))['a']", isLiteral(1, DataTypes.INTEGER)))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("Column object['a'] unknown");
+            .hasMessageContaining("The expression's return type `OBJECT(STRICT) AS (\"b\" TEXT)` does not contain the key `a`");
 
         // Nested objects will also receive the target column policy
         var expectedType = ObjectType.of(ColumnPolicy.IGNORED)

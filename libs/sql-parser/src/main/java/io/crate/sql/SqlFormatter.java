@@ -1020,7 +1020,7 @@ public final class SqlFormatter {
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
-                appendNestedNodeList(node.nestedColumns(), indent);
+                appendFlatNodeList(node.nestedColumns(), indent);
             }
             return null;
         }

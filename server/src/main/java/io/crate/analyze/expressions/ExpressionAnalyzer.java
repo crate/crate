@@ -94,7 +94,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.interval.IntervalParser;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
@@ -107,6 +106,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.Identifiers;
+import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -693,10 +693,12 @@ public class ExpressionAnalyzer {
                 // static array, function or a cast, so we recurse into it.
                 Symbol base = node.base().accept(this, context);
                 Symbol index = node.index().accept(this, context);
-                if (index.valueType() == DataTypes.STRING) {
-                    // If the index is a string, we can try to optimize the subscript function
-                    // to avoid the function call and directly access the object key.
-                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, subscriptContext.parts(), context, null);
+                // If the index is a string, we can try to optimize the subscript function
+                // to avoid the function call and directly access the object key.
+                if (index.valueType() == DataTypes.STRING && subscriptContext.parts().isEmpty() == false) {
+                    // Only the last path must be used (the index string value). The visitor will collect all parts of
+                    // the symbol tree, while with expression, only the path on the expression itself must be considered.
+                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, List.of(subscriptContext.parts().getLast()), context, null);
                     if (optimizedSubscript != null) {
                         return optimizedSubscript;
                     }
@@ -826,15 +828,10 @@ public class ExpressionAnalyzer {
                 if (e != null) {
                     throw e;
                 }
-                // If the exception argument is NULL, we must operate on expressions that are not columns.
-                // In this case, we fall through and let the SubscriptFunction throw the error, but NOT when the
-                // parent policy is STRICT. In this case, we must throw the error even if the map would contain the
-                // key, because the parent policy is strict.
-                if (parentPolicy == ColumnPolicy.STRICT) {
-                    throw ColumnUnknownException.ofUnknownRelation(
-                        String.format(Locale.ENGLISH, "Column %s unknown",
-                            ColumnIdent.fromNameSafe(baseType.toString(), path)));
-                }
+                throw ColumnUnknownException.ofUnknownRelation(
+                    String.format(Locale.ENGLISH, "The expression's return type `%s` does not contain the key `%s`",
+                        SqlFormatter.formatSql(baseType.toColumnType(null)),
+                        path.getLast()));
             }
             return null;
         }

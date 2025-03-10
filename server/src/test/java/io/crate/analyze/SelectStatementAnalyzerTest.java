@@ -2522,7 +2522,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> executor.analyze("SELECT ''::OBJECT['x']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{}` does not contain the key `x`");
+            .hasMessageContaining("The expression's return type `OBJECT(DYNAMIC)` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         var analyzed = executor.analyze("SELECT ''::OBJECT['x']");
         assertThat(analyzed.outputs()).hasSize(1);
@@ -2531,7 +2531,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         assertThatThrownBy(() -> executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
+            .hasMessageContaining("The expression's return type `ARRAY(OBJECT(DYNAMIC))` does not contain the key `x`");
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
         assertThat(analyzed.outputs()).hasSize(1);
@@ -3099,25 +3099,24 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         // DYNAMIC object cast
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
-        // If not wrapped into a sub-select, the JSON string expression gets normalized and results in a typed object literal
-        var analyzed = executor.analyze("SELECT '{\"a\":1}'::OBJECT['a']");
-        assertThat(analyzed.outputs().getFirst()).isLiteral(1, DataTypes.INTEGER);
-        // Normalization is not possible on references, such the return type is unknown
-        analyzed = executor.analyze("SELECT js::OBJECT['a'] FROM t1");
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
-
-        // Once wrapped, the subscript function gets resolved before any normalization, resulting in an exception
+        // Subscript on literals
+        assertThatThrownBy(() -> executor.analyze("SELECT '{\"a\":1}'::OBJECT['a']"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The expression's return type `OBJECT(DYNAMIC)` does not contain the key `a`");
         assertThatThrownBy(() -> executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT as myobj) t"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column myobj['a'] unknown");
-        // Same for references, but no normalization is possible anyway
+        // Subscript on references
+        assertThatThrownBy(() -> executor.analyze("SELECT js::OBJECT AS (b int)['a'] FROM t1"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessageContaining("The expression's return type `OBJECT(DYNAMIC) AS (\"b\" INTEGER)` does not contain the key `a`");
         assertThatThrownBy(() -> executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT as myobj FROM t1) t"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column myobj['a'] unknown");
 
         // Disabling error on unknown object key allows to use subscript without any error even that it is untyped
         executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
-        analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT as myobj) t");
+        var analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT as myobj) t");
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
         // Same for references
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT as myobj FROM t1) t");
