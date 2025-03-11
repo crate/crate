@@ -121,6 +121,9 @@ Performance and Resilience Improvements
   certain cases, where a shard has become idle after 5 minutes of no write
   activity.
 
+- Increased the frequency of retention lease synchronization, which will make
+  merges more likely to be able to remove recovery source.
+
 Administration and Operations
 -----------------------------
 
