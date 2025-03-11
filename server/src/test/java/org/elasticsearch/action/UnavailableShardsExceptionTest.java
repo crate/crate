@@ -19,31 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package org.elasticsearch.action;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.index.shard.ShardId;
+import org.junit.Test;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.index.shard.ShardId;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Locale;
 
-public class UnavailableShardsException extends RuntimeException implements TableScopeException {
+public class UnavailableShardsExceptionTest {
 
-    private final RelationName relationName;
+    @Test
+    public void test_can_get_relation_name_from_streamed_exception() throws Exception {
+        var ex = new UnavailableShardsException(new ShardId("idx1", UUIDs.randomBase64UUID(), 0));
+        var out = new BytesStreamOutput();
+        ex.writeTo(out);
+        try (var in = out.bytes().streamInput()) {
+            var inEx = new UnavailableShardsException(in);
 
-    public UnavailableShardsException(ShardId shardId) {
-        super(genMessage(shardId));
-        this.relationName = RelationName.fromIndexName(shardId.getIndexName());
-    }
-
-    private static String genMessage(ShardId shardId) {
-        return String.format(Locale.ENGLISH, "the shard %s of table %s is not available",
-            shardId.id(), shardId.getIndex());
-    }
-
-    @Override
-    public Collection<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
+            assertThat(inEx.getTableIdents()).containsExactly(new RelationName("doc", "idx1"));
+        }
     }
 }
+
