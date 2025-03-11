@@ -39,7 +39,31 @@ Released on 2025-01-21.
 Breaking Changes
 ================
 
-None
+- Accessing a key of an object type expression of a sub select may fail now
+  with an ``ColumnUnknownException`` even if the key is present in the
+  evaluated expressions value. This is related to the change to make error
+  handling of ``DYNAMIC`` and ``STRICT`` objects more consistent across all
+  cases. One popular case affected by this are sub-selects with ``JSON`` to
+  ``OBJECT`` casts where the ``JSON`` structure isn't visible during analysis.
+  For example::
+
+    SELECT myobj['x'] FROM (SELECT '{"x":1}'::OBJECT myobj) t;
+
+  will now throw a ``ColumnUnknownException``.
+  This can be solved by:
+
+ - defining the inner types while casting::
+
+    SELECT myobj['x'] FROM (SELECT '{"x":1}'::OBJECT AS (x INT) myobj) t;
+
+ - changing the column policy to ``IGNORED``::
+
+    SELECT myobj['x'] FROM (SELECT '{"x":1}'::OBJECT(IGNORED) myobj) t;
+
+ - or by disabling the error on unknown object keys for ``DYNAMIC`` objects::
+
+    SET SESSION error_on_unknown_object_key = false;
+
 
 Deprecations
 ============
