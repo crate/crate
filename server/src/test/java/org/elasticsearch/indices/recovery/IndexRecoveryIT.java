@@ -221,7 +221,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         return nodeResponses;
     }
 
-    private void createAndPopulateIndex(String name, int nodeCount, int shardCount, int replicaCount) {
+    private void createAndPopulateIndex(String name, int nodeCount, int shardCount, int replicaCount) throws Exception {
 
         logger.info("--> creating test index: {}", name);
         execute("CREATE TABLE " + name + " (foo_int INT, foo_string TEXT, foo_float FLOAT) " +
@@ -516,7 +516,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         restoreRecoverySpeed();
 
         // wait for it to be finished
-        ensureGreen(index.getName());
+        ensureGreen();
 
         response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
@@ -814,7 +814,6 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testDisconnectsWhileRecovering() throws Exception {
-        final String indexName = "test";
         final Settings nodeSettings = Settings.builder()
             .put(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING.getKey(), "100ms")
             .put(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING.getKey(), "1s")
@@ -831,7 +830,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut()).isFalse();
 
-        execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
+        execute("CREATE TABLE doc.test (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
                 " number_of_replicas=0," +
                 " \"routing.allocation.include.color\" = 'blue'" +
@@ -842,7 +841,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         for (int i = 0; i < numDocs; i++) {
             args[i] = new Object[]{i};
         }
-        execute("INSERT INTO doc." + indexName + " (id) VALUES (?)", args);
+        execute("INSERT INTO doc.test (id) VALUES (?)", args);
         ensureGreen();
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
@@ -850,8 +849,8 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
-        execute("refresh table doc." + indexName);
-        var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
+        execute("refresh table doc.test");
+        var searchResponse = execute("SELECT COUNT(*) FROM doc.test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
         String[] recoveryActions = new String[]{
@@ -898,7 +897,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
 
         logger.info("--> starting recovery from blue to red");
-        execute("ALTER TABLE doc." + indexName + " SET (" +
+        execute("ALTER TABLE doc.test SET (" +
                 " number_of_replicas=1," +
                 " \"routing.allocation.include.color\" = 'red,blue'" +
                 ")");
@@ -911,7 +910,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
         var nodeRedExecutor = executor(redNodeName);
-        searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc." + indexName);
+        searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc.test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
     }
 
@@ -1125,7 +1124,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         execute("ALTER TABLE test SET (number_of_replicas = 1)");
         cluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
-        ensureGreen(indexName);
+        ensureGreen();
 
         final RecoveryResponse recoveryResponse = client().admin().indices().recoveries(new RecoveryRequest(indexName)).get();
         final List<RecoveryState> recoveryStates = recoveryResponse.shardRecoveryStates().get(indexName);
@@ -1137,7 +1136,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     }
 
     @Test
-    public void testDoNotInfinitelyWaitForMapping() {
+    public void testDoNotInfinitelyWaitForMapping() throws Exception {
         cluster().ensureAtLeastNumDataNodes(3);
         execute("CREATE ANALYZER test_analyzer (" +
                 " TOKENIZER standard," +
@@ -1235,7 +1234,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 "  \"global_checkpoint_sync.interval\"='24h'," +
                 "  \"routing.allocation.include._name\"='" + String.join(",", nodes) + "'" +
                 " )");
-        ensureGreen(indexName);
+        ensureGreen();
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];
         for (int i = 0; i < numDocs; i++) {
@@ -1293,7 +1292,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(commitInfoAfterLocalRecovery.localCheckpoint).isEqualTo(lastSyncedGlobalCheckpoint);
         assertThat(commitInfoAfterLocalRecovery.maxSeqNo).isEqualTo(lastSyncedGlobalCheckpoint);
         assertThat(startRecoveryRequest.startingSeqNo()).isEqualTo(lastSyncedGlobalCheckpoint + 1);
-        ensureGreen(indexName);
+        ensureGreen();
         assertThat((long) localRecoveredOps.get()).isEqualTo(lastSyncedGlobalCheckpoint - localCheckpointOfSafeCommit);
         for (var recoveryState : client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get().shardRecoveryStates().get(indexName)) {
             if (startRecoveryRequest.targetNode().equals(recoveryState.getTargetNode())) {
@@ -1328,7 +1327,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
@@ -1357,7 +1356,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           }
                                       });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1382,7 +1381,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
@@ -1422,7 +1421,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 }
             });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1459,7 +1458,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
@@ -1538,7 +1537,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           }
                                       });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1576,7 +1575,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
         execute("ALTER TABLE doc.test SET (number_of_replicas = 1)");
-        ensureGreen(indexName);
+        ensureGreen();
         final long maxSeqNoAfterRecovery = primary.seqNoStats().getMaxSeqNo();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent

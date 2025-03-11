@@ -45,7 +45,7 @@ import io.crate.testing.UseRandomizedSchema;
 public class ClusterHealthIT extends IntegTestCase {
 
     @Test
-    public void testSimpleLocalHealth() {
+    public void testSimpleLocalHealth() throws Exception {
         execute("create table test (id int) with (number_of_replicas = 0)");
         ensureGreen(); // master should think it's green now.
 

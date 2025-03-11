@@ -171,7 +171,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         var indexName = getFqn("test");
 
         if (randomBoolean()) {
-            ensureGreen(indexName);
+            ensureGreen();
         }
 
         beforeIndexing.accept(indexName, client());
@@ -228,6 +228,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         }
     }
 
+    @Test
     public void testPersistGlobalCheckpoint() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
         if (randomBoolean()) {
@@ -244,13 +245,13 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
             );
         }
         if (randomBoolean()) {
-            ensureGreen(getFqn("test"));
+            ensureGreen();
         }
         int numDocs = randomIntBetween(1, 20);
         for (int i = 0; i < numDocs; i++) {
             execute("insert into test(id) values(?)", new Object[]{i});
         }
-        ensureGreen(getFqn("test"));
+        ensureGreen();
         assertBusy(() -> {
             for (IndicesService indicesService : cluster().getDataNodeInstances(IndicesService.class)) {
                 for (IndexService indexService : indicesService) {
@@ -265,7 +266,8 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         });
     }
 
-    public void testPersistLocalCheckpoint() {
+    @Test
+    public void testPersistLocalCheckpoint() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
         execute(
             "create table test(id integer) clustered into 1 shards with" +
@@ -273,8 +275,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
             new Object[]{"10ms", Translog.Durability.REQUEST.toString(), randomIntBetween(0, 1)}
         );
 
-        var indexName = getFqn("test");
-        ensureGreen(indexName);
+        ensureGreen();
         int numDocs = randomIntBetween(1, 20);
         logger.info("numDocs {}", numDocs);
         long maxSeqNo = 0;

@@ -26,8 +26,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -42,7 +42,7 @@ import io.crate.testing.UseRandomizedSchema;
 public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Before
-    public void prepareClosedTable() {
+    public void prepareClosedTable() throws Exception {
         execute("create table t (i int)");
         ensureYellow();
         execute("alter table t close");
@@ -63,7 +63,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_simple_close_open_with_records() {
+    public void test_simple_close_open_with_records() throws Exception {
         execute("alter table t open");
         execute("insert into t values (1), (2)");
         execute("refresh table t");
@@ -119,7 +119,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_open_close_is_not_blocked_with_read_and_write_blocks_enabled() {
+    public void test_open_close_is_not_blocked_with_read_and_write_blocks_enabled() throws Exception {
         execute("create table test (x int) with (number_of_replicas = 0) ");
         int bulkSize = randomIntBetween(10, 20);
         Object[][] bulkArgs = new Object[bulkSize][];
@@ -328,7 +328,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     }
 
     @UseRandomizedSchema(random = false)
-    public void test_auto_expand_closed_tables() throws IOException {
+    public void test_auto_expand_closed_tables() throws Exception {
         execute("create table test(a int) clustered into 6 shards with (number_of_replicas = '0-all')");
         ensureGreen();
 

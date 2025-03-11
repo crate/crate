@@ -55,7 +55,7 @@ public class DanglingIndicesIT extends IntegTestCase {
         cluster().startNodes(3, settings);
 
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
-        ensureGreen("test");
+        ensureGreen();
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
 
@@ -81,7 +81,7 @@ public class DanglingIndicesIT extends IntegTestCase {
             assertThat(execute("select 1 from information_schema.tables where table_name='test'").rowCount())
                 .as("Expected dangling index test to be recovered")
                 .isEqualTo((1L)));
-        ensureGreen("test");
+        ensureGreen();
         final IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
         assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
     }
@@ -94,7 +94,7 @@ public class DanglingIndicesIT extends IntegTestCase {
         cluster().startNodes(3, buildSettings(false, true));
 
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
-        ensureGreen("test");
+        ensureGreen();
 
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
