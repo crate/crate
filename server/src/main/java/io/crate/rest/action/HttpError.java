@@ -49,7 +49,6 @@ import io.crate.exceptions.RelationsUnknown;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnavailableShardsException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -149,8 +148,6 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof InvalidSnapshotNameException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
-        } else if (throwable instanceof UnavailableShardsException) {
-            httpErrorStatus = HttpErrorStatus.ONE_OR_MORE_SHARDS_NOT_AVAILABLE;
         } else if (throwable instanceof ElasticsearchException ex) {
             httpErrorStatus = ex.httpErrorStatus();
         }
