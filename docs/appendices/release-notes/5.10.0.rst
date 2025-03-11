@@ -43,8 +43,8 @@ Breaking Changes
   with an ``ColumnUnknownException`` even if the key is present in the
   evaluated expressions value. This is related to the change to make error
   handling of ``DYNAMIC`` and ``STRICT`` objects more consistent across all
-  cases. One popular case affected by this are sub-selects with ``JSON`` to
-  ``OBJECT`` casts where the ``JSON`` structure isn't visible during analysis.
+  cases. One popular case affected by this is a sub-select with a ``JSON`` to
+  ``OBJECT`` cast where the ``JSON`` structure is not visible during analysis.
   For example::
 
     SELECT myobj['x'] FROM (SELECT '{"x":1}'::OBJECT myobj) t;
