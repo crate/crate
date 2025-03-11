@@ -112,6 +112,10 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the handling of temporary unavailable shards during read-only
+  queries. There's now a higher chance that the system can deal with the
+  temporary failure without surfacing the error to the client.
+
 - Improved execution for queries with mixed implicit and explicit joins.
   Joins are now always executed in the original order of the query.
 
