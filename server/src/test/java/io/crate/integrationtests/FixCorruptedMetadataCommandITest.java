@@ -37,6 +37,8 @@ import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.cluster.commands.FixCorruptedMetadataCommand;
 import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionParser;
@@ -134,6 +136,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat (iterations = 20)
     public void test_swap_table_non_partitioned_dotted_src_to_non_partitioned_dotted_target() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata-5.1.2-swap-table-bug-#13380.zip");
         //create table m4.t4 (t char) with (refresh_interval = 300);
@@ -258,6 +261,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat (iterations = 10)
     public void test_swap_table_partitioned_dotted_src_to_non_partitioned_dotted_target() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata-5.1.2-swap-table-bug-#13380.zip");
         //create table m7.t7 (t boolean) partitioned by (t) with (refresh_interval = 300);
