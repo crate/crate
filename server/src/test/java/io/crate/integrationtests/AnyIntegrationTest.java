@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -122,7 +123,6 @@ public class AnyIntegrationTest extends IntegTestCase {
     @Test
     public void testNotAnyInWhereClauseDoesNotFilterOutEmptyArrays() {
         execute("create table t (b integer, labels array(string))");
-        ensureYellow();
         execute("insert into t (b, labels) values (1, ['one', 'two'])," +
                 "(2, ['two', 'three'])," +
                 "(3, ['three', 'four'])," +
@@ -139,7 +139,6 @@ public class AnyIntegrationTest extends IntegTestCase {
             "create table t (" +
             "   ts timestamp with time zone" +
             ") clustered into 1 shards with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into t values ('2017-12-31'), ('2016-12-31'), ('2015-12-31')");
         execute("refresh table t");
 

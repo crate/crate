@@ -21,6 +21,7 @@ package io.crate.analysis.common;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,7 +87,7 @@ public class CommonAnalyzerITest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectFromRoutines() {
+    public void testSelectFromRoutines() throws Exception {
         String stmt1 = "CREATE ANALYZER myAnalyzer WITH (" +
                        "  TOKENIZER whitespace," +
                        "  TOKEN_FILTERS (" +
@@ -121,7 +122,7 @@ public class CommonAnalyzerITest extends IntegTestCase {
     }
 
     @Test
-    public void testShingleFilterWithGraphOutput() {
+    public void testShingleFilterWithGraphOutput() throws Exception {
         execute("""
             CREATE ANALYZER shingle_default (
                 TOKENIZER "standard",

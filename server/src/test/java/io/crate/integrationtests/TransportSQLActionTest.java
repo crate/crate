@@ -918,7 +918,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectWhereBoolean() {
+    public void testSelectWhereBoolean() throws Exception {
         execute("create table a (v boolean)");
         ensureYellow();
 
@@ -943,7 +943,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectWhereBooleanPK() {
+    public void testSelectWhereBooleanPK() throws Exception {
         execute("create table b (v boolean primary key) clustered by (v)");
         ensureYellow();
 
@@ -1359,7 +1359,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testNumericScriptOnAllTypes() {
+    public void testNumericScriptOnAllTypes() throws Exception {
         // this test validates that no exception is thrown
         execute(
             "create table t (" +

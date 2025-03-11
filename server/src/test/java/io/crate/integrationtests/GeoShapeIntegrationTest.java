@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -222,7 +223,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testGeoPointInPolygonQueryLuceneBug() {
+    public void testGeoPointInPolygonQueryLuceneBug() throws Exception {
         // Relates to https://github.com/elastic/elasticsearch/issues/20333
         // and fails if GeoPointInPolygonQuery is used in LuceneQueryBuilder.getPolygonQuery()
         execute("create table test(id integer, geopos geo_point)");

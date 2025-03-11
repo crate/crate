@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -452,7 +453,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     public void testFilteredSelfJoinWithFilterOnBothRelations() {
         execute("create table test(id long primary key, num long, txt string) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test(id, num, txt) values(1, 1, '1111'), (2, 2, '2222'), (3, 1, '2222'), (4, 2, '2222')");
         execute("refresh table test");
 
@@ -499,7 +499,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     private void createColorsAndSizes() {
         execute("create table colors (name string) ");
         execute("create table sizes (name string) ");
-        ensureYellow();
 
         execute("insert into colors (name) values (?)", new Object[][]{
             new Object[]{"red"},
@@ -892,7 +891,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testInnerEquiJoinUsingHashJoin() {
         execute("create table t1 (a integer)");
         execute("create table t2 (x integer)");
-        ensureYellow();
         execute("insert into t1 (a) values (0), (0), (1), (2), (4)");
         execute("insert into t2 (x) values (1), (3), (3), (4), (4)");
         execute("refresh table t1, t2");

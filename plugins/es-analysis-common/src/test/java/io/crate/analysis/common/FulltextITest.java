@@ -224,7 +224,6 @@ public class FulltextITest extends IntegTestCase {
                 "  INDEX name_ft using fulltext(name) with (analyzer = 'english'), " +
                 "  INDEX quote_ft using fulltext(quote) with (analyzer = 'english') " +
                 ") clustered into 5 shards ");
-        ensureYellow();
         execute("insert into characters (id, name, quote) values (?, ?, ?)", new Object[][]{
             new Object[]{1, "Arthur", "What a country. It's terribly small, tiny little country."},
             new Object[]{2, "Trillian", " No, it's a country. Off the coast of Africa."},

@@ -523,7 +523,6 @@ public abstract class BaseGeoMatchIntegrationTest extends IntegTestCase {
 
     private void createTableWithOneShape(String shape) {
         execute("create table t (s geo_shape index using %s) with (number_of_replicas=0)".formatted(indexType()));
-        ensureGreen();
         execute("insert into t (s) values ('%s')".formatted(shape));
         execute("refresh table t");
     }

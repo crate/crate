@@ -282,7 +282,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute("create table test (x int, data text) clustered into 1 shards");
         var indexService = getIndexService("test");
         var indexName = indexService.index().getName();
-        ensureGreen(indexName);
+        ensureGreen();
         IndexService.AsyncRefreshTask refreshTask = indexService.getRefreshTask();
         assertThat(refreshTask.getInterval().millis()).isEqualTo(1000);
         assertThat(indexService.getRefreshTask().mustReschedule()).isTrue();
@@ -326,24 +326,24 @@ public class IndexServiceTests extends IntegTestCase {
         });
     }
 
+    @Test
     public void testAsyncFsyncActuallyWorks() throws Exception {
         execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '100ms', " +
                 "\"translog.durability\" = 'ASYNC')");
         IndexService indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
-        ensureGreen(indexName);
+        ensureGreen();
         assertThat(indexService.getRefreshTask().mustReschedule()).isTrue();
         execute("insert into test (x, data) values (1, 'foo')");
         IndexShard shard = indexService.getShard(0);
         assertBusy(() -> assertThat(shard.isSyncNeeded()).isFalse());
     }
 
+    @Test
     public void testRescheduleAsyncFsync() throws Exception {
         execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '100ms', \"translog.durability\" = 'REQUEST')");
         IndexService indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
 
-        ensureGreen(indexName);
+        ensureGreen();
         assertThat(indexService.getFsyncTask()).isNull();
 
         execute("alter table test set (\"translog.durability\" = 'ASYNC')");
@@ -362,11 +362,12 @@ public class IndexServiceTests extends IntegTestCase {
         assertThat(indexService.getFsyncTask()).isNotNull();
     }
 
+    @Test
     public void testAsyncTranslogTrimActuallyWorks() throws Exception {
         execute("create table test(x int, data string) clustered into 1 shards with (\"translog.sync_interval\" = '100ms')");
         IndexService indexService = getIndexService("test");
 
-        ensureGreen(indexService.index().getName());
+        ensureGreen();
         assertThat(indexService.getTrimTranslogTask().mustReschedule()).isTrue();
         execute("insert into test (x, data) values (1, 'foo')");
         IndexShard shard = indexService.getShard(0);
@@ -419,7 +420,7 @@ public class IndexServiceTests extends IntegTestCase {
                 .isEqualTo(Translog.DEFAULT_HEADER_SIZE_IN_BYTES));
 
         execute("alter table test open");
-        ensureGreen(indexName);
+        ensureGreen();
 
         indexService = getIndexService("test");
         translog = IndexShardTestCase.getTranslog(indexService.getShard(0));
@@ -440,7 +441,7 @@ public class IndexServiceTests extends IntegTestCase {
         IndexService indexService = getIndexService("test");
         var indexName = indexService.index().getName();
 
-        ensureGreen(indexName);
+        ensureGreen();
         assertThat(indexService.getFsyncTask()).isNull();
 
         execute("alter table test set (\"translog.sync_interval\" = '5s', \"translog.durability\" = 'async')");

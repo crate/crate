@@ -138,7 +138,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
     // Wait up to 1 minute (+10s in thread to ensure it does not time out) for threads to complete previous round before initiating next
     // round.
     @Test
-    public void testSeqNoCASLinearizability() {
+    public void testSeqNoCASLinearizability() throws Exception {
         final int disruptTimeSeconds = scaledRandomIntBetween(1, 8);
 
         int numberOfShards = between(1, 4);
