@@ -40,6 +40,7 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -175,7 +176,9 @@ public class SQLExceptions {
 
     public static boolean isShardFailure(Throwable e) {
         e = SQLExceptions.unwrap(e);
-        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
+        return e instanceof ShardNotFoundException
+            || e instanceof IllegalIndexShardStateException
+            || e instanceof UnavailableShardsException;
     }
 
     /***
@@ -191,6 +194,7 @@ public class SQLExceptions {
             || t instanceof NoSeedNodeLeftException
             || t instanceof IndexNotFoundException
             || t instanceof NoShardAvailableActionException
+            || t instanceof UnavailableShardsException
             || t instanceof AlreadyClosedException
             || t instanceof ElasticsearchTimeoutException;
     }

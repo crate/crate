@@ -27,11 +27,22 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.lucene.index.CorruptIndexException;
+import org.elasticsearch.action.UnavailableShardsException;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import io.crate.common.exceptions.Exceptions;
 
 public class SQLExceptionsTest {
+
+    @Test
+    public void test_unavailable_shard_exception_is_shard_failure() throws Exception {
+        ShardId shardId = new ShardId("idx1", UUIDs.randomBase64UUID(), 0);
+        UnavailableShardsException ex = new UnavailableShardsException(shardId);
+        assertThat(SQLExceptions.isShardFailure(ex)).isTrue();
+        assertThat(SQLExceptions.maybeTemporary(ex)).isTrue();
+    }
 
     @Test
     public void testUnwrap() {

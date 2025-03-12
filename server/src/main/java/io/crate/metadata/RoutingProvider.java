@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -51,7 +52,6 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.exceptions.UnavailableShardsException;
 
 /**
  * This component can be used to get the Routing for indices.

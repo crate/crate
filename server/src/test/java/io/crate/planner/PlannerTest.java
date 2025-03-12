@@ -34,15 +34,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.session.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.UnavailableShardsException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -52,6 +51,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.Cursors;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -150,6 +150,6 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             ))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5002)
-            .hasMessageContaining("the shard 11 of table [tbl/uuid] is not available");
+            .hasMessageContaining("[tbl] shard 11 is not available");
     }
 }

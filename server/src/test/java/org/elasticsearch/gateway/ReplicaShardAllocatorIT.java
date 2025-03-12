@@ -19,6 +19,7 @@
 
 package org.elasticsearch.gateway;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -31,13 +32,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
@@ -202,16 +200,24 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
             cluster().startDataOnlyNode(nodeWithReplicaSettings);
+
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
-            FutureUtils.get(
-                client().admin().cluster().health(
-                    new ClusterHealthRequest(indexName)
-                        .waitForYellowStatus()
-                        .waitForEvents(Priority.LANGUID)
-                ),
-                5,
-                TimeUnit.SECONDS
-            );
+            assertBusy(() -> {
+                execute("""
+                    select
+                        routing_state,
+                        count(*)
+                    from
+                        sys.shards
+                    where
+                        table_name = 'test'
+                    group by 1
+                    """
+                );
+                assertThat(response).hasRows(
+                    "STARTED| 2"
+                );
+            });
             blockRecovery.countDown();
             ensureGreen(indexName);
             assertThat(cluster().nodesInclude(indexName)).contains(newNode);
