@@ -132,14 +132,17 @@ public class SysClusterSettingsTest extends IntegTestCase {
 
         cluster().fullRestart();
 
-        execute("select settings from sys.cluster");
-        // Transient settings are back to defaults.
-        assertSettingsDefault(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
-        assertSettingsDefault(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING);
-        assertSettingsDefault(JobsLogService.STATS_ENABLED_SETTING);
+        // Can take a bit for state recovery to load persisted settings
+        assertBusy(() -> {
+            execute("select settings from sys.cluster");
+            // Transient settings are back to defaults.
+            assertSettingsDefault(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
+            assertSettingsDefault(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING);
+            assertSettingsDefault(JobsLogService.STATS_ENABLED_SETTING);
 
-        // Persisted value survived restart.
-        assertSettingsValue(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "123ms");
+            // Persisted value survived restart.
+            assertSettingsValue(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "123ms");
+        });
     }
 
     @Test
