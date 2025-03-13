@@ -19,7 +19,7 @@
 # software solely pursuant to the terms of the relevant commercial agreement.
 
 
-from unittest import TestCase
+from unittest import TestCase, TestSuite, TextTestRunner, TestLoader
 from testutils.paths import crate_path
 from testutils.ports import bind_port
 from cr8.run_crate import CrateNode
@@ -28,7 +28,27 @@ from dnslib.server import DNSServer
 from dnslib.zoneresolver import ZoneResolver
 
 
-class DnsSrvDiscoveryTest(TestCase):
+class ParametrizedTestCase(TestCase):
+    """ TestCase classes that want to be parametrized should
+        inherit from this class.
+    """
+    def __init__(self, methodName='runTest', useTcp=None):
+        super(ParametrizedTestCase, self).__init__(methodName)
+        self.useTcp = useTcp
+
+    @staticmethod
+    def parametrize(testcase_klass, useTcp=None):
+        """ Create a suite containing all tests taken from the given
+            subclass, passing them the parameter 'param'.
+        """
+        testloader = TestLoader()
+        testnames = testloader.getTestCaseNames(testcase_klass)
+        suite = TestSuite()
+        for name in testnames:
+            suite.addTest(testcase_klass(name, useTcp=useTcp))
+        return suite
+
+class DnsSrvDiscoveryTest(ParametrizedTestCase):
 
     num_nodes = 3
 
@@ -44,7 +64,7 @@ crate.internal.               600   IN   A     127.0.0.1'''
 _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(port=port)
 
         dns_port = bind_port()
-        self.dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port)
+        self.dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port, tcp=self.useTcp)
         self.dns_server.start_thread()
 
         self.nodes = nodes = []
@@ -60,6 +80,7 @@ _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(
             }
             if i == 0:
                 settings['cluster.initial_master_nodes'] = f'node-{i}'
+            print(f"Node {i} settings: {settings}")
             node = CrateNode(
                 crate_dir=crate_path(),
                 version=(4, 0, 0),
@@ -84,3 +105,9 @@ _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(
             c.execute('''select count(*) from sys.nodes''')
             result = c.fetchone()
         self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')
+
+
+suite = TestSuite()
+suite.addTest(ParametrizedTestCase.parametrize(DnsSrvDiscoveryTest, useTcp=False))
+suite.addTest(ParametrizedTestCase.parametrize(DnsSrvDiscoveryTest, useTcp=True))
+TextTestRunner(verbosity=2).run(suite)
