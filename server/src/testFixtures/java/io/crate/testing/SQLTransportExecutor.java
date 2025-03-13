@@ -545,13 +545,13 @@ public class SQLTransportExecutor {
                 """
                 select
                     (select count(*) from sys.nodes) as num_nodes,
-                    (select array_unique(array_agg(health)) from sys.health) as colors,
+                    (select array_unique(array_agg(health)) from sys.cluster_health) as colors,
                     (select
                         {
-                            states = array_unique(array_agg(state)),
-                            relocating = count(*) FILTER (WHERE relocating_node is not null)
+                            states = array_unique(array_agg(current_state)),
+                            relocating = count(*) FILTER (WHERE current_state = 'RELOCATING')
                         } as shards_state
-                        FROM sys.shards
+                        FROM sys.allocations
                     )
                 """
             );
