@@ -26,6 +26,7 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
 
 public class SysHealth {
@@ -40,5 +41,7 @@ public class SysHealth {
         .add("severity", SHORT, TableHealth::getSeverity)
         .add("missing_shards", LONG, TableHealth::getMissingShards)
         .add("underreplicated_shards", LONG, TableHealth::getUnderreplicatedShards)
+        .withRouting((state, routingProvider, sessionSettings) ->
+            Routing.forTableOnSingleNode(IDENT, state.nodes().getMasterNodeId()))
         .build();
 }

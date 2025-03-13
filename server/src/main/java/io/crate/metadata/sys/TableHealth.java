@@ -21,15 +21,18 @@
 
 package io.crate.metadata.sys;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
-
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.cluster.ClusterState;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.elasticsearch.cluster.health.ClusterStateHealth;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.IndexName;
 
@@ -45,13 +48,31 @@ class TableHealth {
         }
     }
 
-    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterState clusterState) {
-        var clusterHealth = new ClusterStateHealth(clusterState);
-        return completedFuture(
-            StreamSupport.stream(clusterHealth.spliterator(), false)
-                .filter(i -> IndexName.isDangling(i.getIndex()) == false)
-                .map(TableHealth::map)::iterator
-        );
+    private static final Logger LOGGER = LogManager.getLogger(TableHealth.class);
+
+    @VisibleForTesting
+    static final TableHealth GLOBAL_HEALTH_RED = new TableHealth(
+        "",
+        "",
+        null,
+        Health.RED,
+        0,
+        0
+    );
+
+    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterService clusterService) {
+        var clusterState = clusterService.state();
+        if (clusterState.blocks().hasGlobalBlockWithLevel(ClusterBlockLevel.METADATA_READ)) {
+            LOGGER.warn("Global block with level METADATA_READ is set, cannot compute tables health. Global blocks: {}", clusterState.blocks().global());
+            return CompletableFuture.completedFuture(List.of(GLOBAL_HEALTH_RED));
+        } else {
+            var clusterHealth = new ClusterStateHealth(clusterState);
+            return CompletableFuture.completedFuture(
+                StreamSupport.stream(clusterHealth.spliterator(), false)
+                    .filter(i -> IndexName.isDangling(i.getIndex()) == false)
+                    .map(TableHealth::map)::iterator
+            );
+        }
     }
 
     private static TableHealth map(ClusterIndexHealth indexHealth) {

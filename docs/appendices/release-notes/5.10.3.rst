@@ -73,3 +73,8 @@ Fixes
 
 - Fixed an issue that caused selecting from partitioned tables created before
   :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
+
+- Fixed an issue that caused queries to ``sys.health`` to return an empty result
+  set when the cluster is in a recovery state, for example when (re-)starting
+  nodes. As the cluster is in a ``RED`` state in such cases, a single entry
+  is return now reflecting this state.

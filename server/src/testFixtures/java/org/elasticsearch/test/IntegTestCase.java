@@ -1419,7 +1419,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return cluster().getInstance(Sessions.class);
+                    return cluster().getInstance(Sessions.class, nodeName);
                 }
             });
     }
