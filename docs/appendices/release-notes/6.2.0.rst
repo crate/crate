@@ -101,7 +101,8 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Enabled TCP fallback for SRV DNS queries used when
+  :ref:`Node Discovery via DNS <conf_dns_discovery>` is enabled.
 
 Client interfaces
 -----------------
