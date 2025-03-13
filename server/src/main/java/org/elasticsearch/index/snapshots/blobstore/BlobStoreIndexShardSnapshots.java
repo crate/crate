@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.server.xcontent.XContentParserUtils;
 
@@ -164,11 +165,13 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
         return this.shardSnapshots;
     }
 
-    public Map<String, FileInfo> files() {
+    @VisibleForTesting
+    Map<String, FileInfo> files() {
         return files;
     }
 
-    public Map<String, List<FileInfo>> physicalFiles() {
+    @VisibleForTesting
+    Map<String, List<FileInfo>> physicalFiles() {
         return physicalFiles;
     }
 
