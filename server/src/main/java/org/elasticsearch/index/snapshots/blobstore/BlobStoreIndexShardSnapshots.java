@@ -99,6 +99,14 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
         this.physicalFiles = unmodifiableMap(mapBuilder);
     }
 
+    private BlobStoreIndexShardSnapshots(List<SnapshotFiles> shardSnapshots,
+                                         Map<String, List<FileInfo>> physicalFiles,
+                                         Map<String, FileInfo> files) {
+        this.shardSnapshots = shardSnapshots;
+        this.physicalFiles = physicalFiles;
+        this.files = files;
+    }
+
     public static BlobStoreIndexShardSnapshots fromStream(StreamInput in) throws IOException {
         if (in.getVersion().after(Version.V_5_10_2)) {
             Map<String, FileInfo> filesByName = in.readMap(StreamInput::readString, FileInfo::new);
@@ -120,14 +128,6 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
                 in.readMap(StreamInput::readString, FileInfo::new)
             );
         }
-    }
-
-    private BlobStoreIndexShardSnapshots(List<SnapshotFiles> shardSnapshots,
-                                         Map<String, List<FileInfo>> physicalFiles,
-                                         Map<String, FileInfo> files) {
-        this.shardSnapshots = shardSnapshots;
-        this.physicalFiles = physicalFiles;
-        this.files = files;
     }
 
     @Override
