@@ -48,6 +48,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.dns.DefaultDnsQuestion;
 import io.netty.handler.codec.dns.DefaultDnsRawRecord;
 import io.netty.handler.codec.dns.DefaultDnsRecordDecoder;
@@ -123,6 +124,8 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     private DnsNameResolver buildResolver(Settings settings) {
         DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
         resolverBuilder.datagramChannelType(NioDatagramChannel.class);
+        resolverBuilder.socketChannelType(NioSocketChannel.class, true);
+        resolverBuilder.queryTimeoutMillis(Math.min(Math.abs(resolveTimeout.millis() / 2), 100));
 
         InetSocketAddress resolverAddress = parseResolverAddress(settings);
         if (resolverAddress != null) {

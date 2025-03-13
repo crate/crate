@@ -28,59 +28,74 @@ from dnslib.server import DNSServer
 from dnslib.zoneresolver import ZoneResolver
 
 
-class DnsSrvDiscoveryTest(TestCase):
+class DnsBaseTestCase:
 
-    num_nodes = 3
+    class BaseTest(TestCase):
 
-    def setUp(self):
-        zone_file = '''
+        num_nodes = 3
+
+        def setUpDns(self, useTcp):
+            zone_file = '''
 crate.internal.               600   IN   SOA   localhost localhost ( 2007120710 1d 2h 4w 1h )
 crate.internal.               400   IN   NS    localhost
 crate.internal.               600   IN   A     127.0.0.1'''
 
-        transport_ports = [bind_port() for _ in range(self.num_nodes)]
-        for port in transport_ports:
-            zone_file += '''
+            transport_ports = [bind_port() for _ in range(self.num_nodes)]
+            for port in transport_ports:
+                zone_file += '''
 _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(port=port)
 
-        dns_port = bind_port()
-        self.dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port)
-        self.dns_server.start_thread()
+            dns_port = bind_port()
+            self.dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port, tcp=useTcp)
+            self.dns_server.start_thread()
 
-        self.nodes = nodes = []
-        for i in range(self.num_nodes):
-            settings = {
-                'node.name': f'node-{i}',
-                'cluster.name': 'crate-dns-discovery',
-                'psql.port': 0,
-                'transport.tcp.port': transport_ports[i],
-                "discovery.seed_providers": "srv",
-                "discovery.srv.query": "_test._srv.crate.internal.",
-                "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
-            }
-            if i == 0:
-                settings['cluster.initial_master_nodes'] = f'node-{i}'
-            node = CrateNode(
-                crate_dir=crate_path(),
-                version=(4, 0, 0),
-                settings=settings,
-                env={
-                    'CRATE_HEAP_SIZE': '256M',
-                    'CRATE_JAVA_OPTS': '-Dio.netty.leakDetection.level=paranoid',
+            self.nodes = nodes = []
+            for i in range(self.num_nodes):
+                settings = {
+                    'node.name': f'node-{i}',
+                    'cluster.name': 'crate-dns-discovery',
+                    'psql.port': 0,
+                    'transport.tcp.port': transport_ports[i],
+                    "discovery.seed_providers": "srv",
+                    "discovery.srv.query": "_test._srv.crate.internal.",
+                    "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
                 }
-            )
-            node.start()
-            nodes.append(node)
+                if i == 0:
+                    settings['cluster.initial_master_nodes'] = f'node-{i}'
+                node = CrateNode(
+                    crate_dir=crate_path(),
+                    version=(4, 0, 0),
+                    settings=settings,
+                    env={
+                        'CRATE_HEAP_SIZE': '256M',
+                        'CRATE_JAVA_OPTS': '-Dio.netty.leakDetection.level=paranoid',
+                    }
+                )
+                node.start()
+                nodes.append(node)
 
-    def tearDown(self):
-        for node in self.nodes:
-            node.stop()
-        self.dns_server.server.server_close()
-        self.dns_server.stop()
+        def tearDown(self):
+            for node in self.nodes:
+                node.stop()
+            self.dns_server.server.server_close()
+            self.dns_server.stop()
 
-    def test_nodes_discover_each_other(self):
-        with connect(self.nodes[0].http_url) as conn:
-            c = conn.cursor()
-            c.execute('''select count(*) from sys.nodes''')
-            result = c.fetchone()
-        self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')
+        def test_nodes_discover_each_other(self):
+            with connect(self.nodes[0].http_url) as conn:
+                c = conn.cursor()
+                c.execute('''select count(*) from sys.nodes''')
+                result = c.fetchone()
+            self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')
+
+
+class UdpDnsSrvDiscoveryTestDns(DnsBaseTestCase.BaseTest):
+
+    def setUp(self):
+        self.setUpDns(False)
+
+
+class TcpDnsSrvDiscoveryTestDns(DnsBaseTestCase.BaseTest):
+
+    def setUp(self):
+        self.setUpDns(True)
+
