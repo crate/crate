@@ -2299,4 +2299,26 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select _doc from part order by id");
         assertThat(response.rows()[0][0]).isEqualTo(Map.of("id", 1, "name", "Ford", "obj", Map.of("x", "a")));
     }
+
+    @Test
+    public void test_primary_key_in_pg_index() {
+        execute("create table doc.t1 (id int, primary key (id)) partitioned by (id);");
+        execute("select i.indexrelid, i.indrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
+        assertThat(response).hasRows("-649073482| 728874843| [1]| 1");
+    }
+
+    @Test
+    public void test_composite_primary_key_in_pg_index() {
+        execute("create table doc.t2 (id1 int, id2 int, primary key (id1, id2)) partitioned by (id1);");
+        execute("select i.indexrelid, i.indrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't2' and c.oid = i.indrelid;");
+        assertThat(response).hasRows("-1587739190| 1737494392| [1, 2]| 2");
+    }
+
+    @Test
+    public void test_no_primary_key_in_pg_index() {
+        execute("create table doc.t3 (id int) partitioned by (id);");
+        execute("select i.indexrelid, i.indrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't3' and c.oid = i.indrelid;");
+        assertThat(response).isEmpty();
+    }
+
 }
