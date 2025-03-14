@@ -69,9 +69,12 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
         BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots = prepareData();
         BytesReference bytesReference = INDEX_SHARD_SNAPSHOTS_FORMAT.serialize(blobStoreIndexShardSnapshots, "dummyBlobName", true);
 
-        Set<String> uniqueWrittenFiles = new HashSet<>();
+        // FileInfo don't have equals/hashCode, so set will use identity check.
+        // That's exactly want we want:
+        // we need to make sure that we are using the same instance to save memory.
+        Set<FileInfo> uniqueWrittenFiles = new HashSet<>();
         for(SnapshotFiles snapshotFiles: blobStoreIndexShardSnapshots.snapshots()) {
-            uniqueWrittenFiles.addAll(snapshotFiles.indexFiles().stream().map(FileInfo::name).toList());
+            uniqueWrittenFiles.addAll(snapshotFiles.indexFiles());
         }
         assertThat(uniqueWrittenFiles.size()).isEqualTo(3);
 
@@ -82,9 +85,9 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
             bytesReference
         );
 
-        Set<String> uniqueReadFiles = new HashSet<>();
+        Set<FileInfo> uniqueReadFiles = new HashSet<>();
         for(SnapshotFiles snapshotFiles: blobStoreIndexShardSnapshots.snapshots()) {
-            uniqueReadFiles.addAll(snapshotFiles.indexFiles().stream().map(FileInfo::name).toList());
+            uniqueReadFiles.addAll(snapshotFiles.indexFiles());
         }
         assertThat(uniqueReadFiles.size()).isEqualTo(3);
     }
