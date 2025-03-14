@@ -23,9 +23,11 @@ package org.elasticsearch.index.snapshots.blobstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.INDEX_SHARD_SNAPSHOTS_FORMAT;
+import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.spy;
 
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,8 +41,7 @@ import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.F
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.sun.management.ThreadMXBean;
+import org.mockito.invocation.Invocation;
 
 public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
 
@@ -67,12 +68,23 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
 
     @Test
     public void test_read_from_stream_allocations() throws Exception {
-        BytesReference bytesReference = INDEX_SHARD_SNAPSHOTS_FORMAT.serialize(prepareData(), "dummyBlobName", true);
+        BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots = prepareData();
+        BytesReference bytesReference = INDEX_SHARD_SNAPSHOTS_FORMAT.serialize(blobStoreIndexShardSnapshots, "dummyBlobName", true);
 
-        ThreadMXBean threadMXBean = ManagementFactory.getPlatformMXBean(ThreadMXBean.class);
-        long threadId = Thread.currentThread().threadId();
-        long allocatedBytesBegin = threadMXBean.getThreadAllocatedBytes(threadId);
+        int writes = 0;
+        for (FileInfo fileInfo: blobStoreIndexShardSnapshots.files().values()) {
+            Collection<Invocation> invocations = mockingDetails(fileInfo).getInvocations();
+            for (Invocation invocation: invocations) {
+                if (invocation.getMethod().getName().equals("writeTo")) {
+                    writes++;
+                }
+            }
+        }
+        assertThat(writes).isEqualTo(3); //Obvious, it's always sizeof(blobStoreIndexShardSnapshots.files())
 
+      //  if I check BlobStoreIndexShardSnapshots.shardSnapshots then I get 4 writes but it's wrong because overlapping instance is actually same instance,
+        //  we need to count unique instances instead
+        int reads = 0;
         INDEX_SHARD_SNAPSHOTS_FORMAT.deserialize(
             "dummyBlobname",
             writableRegistry(),
@@ -80,11 +92,6 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
             bytesReference
         );
 
-        long allocatedBytesAfter = threadMXBean.getThreadAllocatedBytes(threadId);
-        long allocatedBytes = allocatedBytesAfter - allocatedBytesBegin;
-        // Actual value fluctuates around 9_877_672.
-        // Used to fluctuate around 29_228_160 on 5.10.2 when instances were not re-used.
-        assertThat(allocatedBytes).isLessThanOrEqualTo(10_000_000L);
     }
 
     /**
@@ -94,24 +101,22 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
      * We need to ensure that we can read such optimal file in a way that deserialized instance also has an optimal structure.
      */
     private static BlobStoreIndexShardSnapshots prepareData() throws Exception {
-        // Method getThreadAllocatedBytes is a rough estimation and returned value fluctuates a little bit.
-        // Generate a bigger list so that difference with/without the fix is visible (like 3x) and can't be treated as a noise.
         List<FileInfo> fileInfos = new ArrayList<>();
-        for (int i = 1; i <= 10_000; i++) {
+        for (int i = 1; i <= 3; i++) {
             String name = "name" + i;
             fileInfos.add(
-                new FileInfo(
+                spy(new FileInfo(
                     name,
                     new StoreFileMetadata(name, 1, "dummy_checksum", org.apache.lucene.util.Version.LUCENE_9_12_0),
                     new ByteSizeValue(i)
-                )
+                ))
             );
         }
 
         // Different SnapshotFiles can refer to the same FileInfo-s in the SnapshotFiles.indexFiles field.
-        // Making 2 lists almost completely overlapping to make difference visible and eliminate getThreadAllocatedBytes fluctuation noise.
-        SnapshotFiles snapshot1 = new SnapshotFiles("1", fileInfos.subList(10, fileInfos.size()), null);
-        SnapshotFiles snapshot2 = new SnapshotFiles("1", fileInfos.subList(0, fileInfos.size() - 10), null);
+        // Setup: 2 lists share 1 instance, so in total we should see 3 writes and reads of FileInfo.
+        SnapshotFiles snapshot1 = new SnapshotFiles("1", fileInfos.subList(0, 2), null);
+        SnapshotFiles snapshot2 = new SnapshotFiles("1", fileInfos.subList(1, 3), null);
         return new BlobStoreIndexShardSnapshots(List.of(snapshot1, snapshot2));
     }
 
