@@ -248,7 +248,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         "snapshots",
         SNAPSHOT_INDEX_NAME_FORMAT,
         BlobStoreIndexShardSnapshots::fromXContent,
-        BlobStoreIndexShardSnapshots::new
+        BlobStoreIndexShardSnapshots::fromStream
     );
 
     private final boolean readOnly;

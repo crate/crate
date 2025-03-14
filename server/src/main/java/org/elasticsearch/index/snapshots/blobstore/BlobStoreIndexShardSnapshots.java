@@ -30,12 +30,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.server.xcontent.XContentParserUtils;
 
@@ -97,17 +99,61 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
         this.physicalFiles = unmodifiableMap(mapBuilder);
     }
 
-    public BlobStoreIndexShardSnapshots(StreamInput in) throws IOException {
-        this.shardSnapshots = in.readList(SnapshotFiles::new);
-        this.physicalFiles = in.readMap(StreamInput::readString, x -> x.readList(FileInfo::new));
-        this.files = in.readMap(StreamInput::readString, FileInfo::new);
+    private BlobStoreIndexShardSnapshots(List<SnapshotFiles> shardSnapshots,
+                                         Map<String, List<FileInfo>> physicalFiles,
+                                         Map<String, FileInfo> files) {
+        this.shardSnapshots = shardSnapshots;
+        this.physicalFiles = physicalFiles;
+        this.files = files;
+    }
+
+    public static BlobStoreIndexShardSnapshots fromStream(StreamInput in) throws IOException {
+        if (in.getVersion().after(Version.V_5_10_2)) {
+            Map<String, FileInfo> filesByName = in.readMap(StreamInput::readString, FileInfo::new);
+            List<SnapshotFiles> shardSnapshots = new ArrayList<>();
+            int shardSnapshotsSize = in.readVInt();
+            for (int i = 0; i < shardSnapshotsSize; i++) {
+                shardSnapshots.add(
+                    new SnapshotFiles(
+                        in.readString(),
+                        in.readList(input -> filesByName.get(input.readString())), // reuse instance
+                        in.readOptionalString())
+                );
+            }
+            return new BlobStoreIndexShardSnapshots(filesByName, shardSnapshots);
+        } else {
+            return new BlobStoreIndexShardSnapshots(
+                in.readList(SnapshotFiles::new),
+                in.readMap(StreamInput::readString, x -> x.readList(FileInfo::new)),
+                in.readMap(StreamInput::readString, FileInfo::new)
+            );
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeList(shardSnapshots);
-        out.writeMap(physicalFiles, StreamOutput::writeString, (o, v) -> o.writeList(v));
-        out.writeMap(files, StreamOutput::writeString, (o, v) -> v.writeTo(out));
+        if (out.getVersion().after(Version.V_5_10_2)) {
+            // Don't write "shardSnapshots" as is.
+            // Each SnapshotFiles has list of FileInfo (indexFiles) and those lists can overlap across many SnapshotFiles instances.
+            // We use 5.9 approach: write names that are basically links to the "files".
+            // This way, deserialization code can read "files" once and re-use those instances across all SnapshotFiles.
+
+            // Same applies for physicalFiles, when derived from files and shardSnapshots,
+            // it re-uses FileInfo instances from "files", so we shouldn't write it as well.
+
+            // In addition to having lower memory footprint on reading, writing less data leads to smaller snapshots.
+            out.writeMap(files, StreamOutput::writeString, (o, fileInfo) -> fileInfo.writeTo(o));
+            out.writeVInt(shardSnapshots.size());
+            for (SnapshotFiles snapshotFiles: shardSnapshots) {
+                out.writeString(snapshotFiles.snapshot());
+                out.writeCollection(snapshotFiles.indexFiles(), (o, fileInfo) -> o.writeString(fileInfo.name()));
+                out.writeOptionalString(snapshotFiles.shardStateIdentifier());
+            }
+        } else {
+            out.writeList(shardSnapshots);
+            out.writeMap(physicalFiles, StreamOutput::writeString, (o, v) -> o.writeList(v));
+            out.writeMap(files, StreamOutput::writeString, (o, v) -> v.writeTo(out));
+        }
     }
 
     /**
@@ -117,6 +163,16 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
      */
     public List<SnapshotFiles> snapshots() {
         return this.shardSnapshots;
+    }
+
+    @VisibleForTesting
+    Map<String, FileInfo> files() {
+        return files;
+    }
+
+    @VisibleForTesting
+    Map<String, List<FileInfo>> physicalFiles() {
+        return physicalFiles;
     }
 
     /**
