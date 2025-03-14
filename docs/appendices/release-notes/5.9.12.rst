@@ -47,4 +47,8 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to falsely return `NULL` values.
+
+- Fixed an issue that caused selecting from partitioned tables created before
+  :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
