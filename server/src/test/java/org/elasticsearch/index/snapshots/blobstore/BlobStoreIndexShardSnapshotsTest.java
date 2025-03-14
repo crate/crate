@@ -149,7 +149,7 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
         }
 
         List<SnapshotFiles> shapshotFiles1 = shardSnapshot1.snapshots();
-        List<SnapshotFiles> shapshotFiles2 = shardSnapshot1.snapshots();
+        List<SnapshotFiles> shapshotFiles2 = shardSnapshot2.snapshots();
         if (shapshotFiles1.size() != shapshotFiles2.size()) {
             return false;
         }
