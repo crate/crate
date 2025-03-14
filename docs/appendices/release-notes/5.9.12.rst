@@ -52,3 +52,6 @@ Fixes
 
 - Fixed an issue that caused selecting from partitioned tables created before
   :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
+
+- Fixed an issue that caused replica shards of partitioned tables created
+  before :ref:`version_5.5.0` to fail to be allocated.
