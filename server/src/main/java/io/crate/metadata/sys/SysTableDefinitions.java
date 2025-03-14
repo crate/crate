@@ -211,6 +211,14 @@ public class SysTableDefinitions {
                 )
             ),
             Map.entry(
+                SysClusterHealth.IDENT,
+                new StaticTableDefinition<>(
+                    () -> SysClusterHealth.compute(clusterService.state()),
+                    SysClusterHealth.INSTANCE.expressions(),
+                    true
+                )
+            ),
+            Map.entry(
                 SysMetricsTableInfo.NAME,
                 new StaticTableDefinition<>(
                     () -> completedFuture(jobsLogs.metrics()), SysMetricsTableInfo.create(localNode).expressions(), false)
