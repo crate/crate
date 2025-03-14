@@ -23,14 +23,13 @@ package org.elasticsearch.index.snapshots.blobstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.INDEX_SHARD_SNAPSHOTS_FORMAT;
-import static org.mockito.Mockito.mockingDetails;
-import static org.mockito.Mockito.spy;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -41,7 +40,6 @@ import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.F
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-import org.mockito.invocation.Invocation;
 
 public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
 
@@ -67,31 +65,28 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
     }
 
     @Test
-    public void test_read_from_stream_allocations() throws Exception {
+    public void test_number_of_unique_files_across_snapshots_equal_to_number_of_files() throws Exception {
         BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots = prepareData();
         BytesReference bytesReference = INDEX_SHARD_SNAPSHOTS_FORMAT.serialize(blobStoreIndexShardSnapshots, "dummyBlobName", true);
 
-        int writes = 0;
-        for (FileInfo fileInfo: blobStoreIndexShardSnapshots.files().values()) {
-            Collection<Invocation> invocations = mockingDetails(fileInfo).getInvocations();
-            for (Invocation invocation: invocations) {
-                if (invocation.getMethod().getName().equals("writeTo")) {
-                    writes++;
-                }
-            }
+        Set<String> uniqueWrittenFiles = new HashSet<>();
+        for(SnapshotFiles snapshotFiles: blobStoreIndexShardSnapshots.snapshots()) {
+            uniqueWrittenFiles.addAll(snapshotFiles.indexFiles().stream().map(FileInfo::name).toList());
         }
-        assertThat(writes).isEqualTo(3); //Obvious, it's always sizeof(blobStoreIndexShardSnapshots.files())
+        assertThat(uniqueWrittenFiles.size()).isEqualTo(3);
 
-      //  if I check BlobStoreIndexShardSnapshots.shardSnapshots then I get 4 writes but it's wrong because overlapping instance is actually same instance,
-        //  we need to count unique instances instead
-        int reads = 0;
-        INDEX_SHARD_SNAPSHOTS_FORMAT.deserialize(
+        blobStoreIndexShardSnapshots = INDEX_SHARD_SNAPSHOTS_FORMAT.deserialize(
             "dummyBlobname",
             writableRegistry(),
             xContentRegistry(),
             bytesReference
         );
 
+        Set<String> uniqueReadFiles = new HashSet<>();
+        for(SnapshotFiles snapshotFiles: blobStoreIndexShardSnapshots.snapshots()) {
+            uniqueReadFiles.addAll(snapshotFiles.indexFiles().stream().map(FileInfo::name).toList());
+        }
+        assertThat(uniqueReadFiles.size()).isEqualTo(3);
     }
 
     /**
@@ -105,11 +100,11 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
         for (int i = 1; i <= 3; i++) {
             String name = "name" + i;
             fileInfos.add(
-                spy(new FileInfo(
+                new FileInfo(
                     name,
                     new StoreFileMetadata(name, 1, "dummy_checksum", org.apache.lucene.util.Version.LUCENE_9_12_0),
                     new ByteSizeValue(i)
-                ))
+                )
             );
         }
 
