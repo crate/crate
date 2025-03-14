@@ -131,7 +131,7 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
         }
 
         Map<String, List<FileInfo>> physicalFiles1 = shardSnapshot1.physicalFiles();
-        Map<String, List<FileInfo>> physicalFiles2 = shardSnapshot1.physicalFiles();
+        Map<String, List<FileInfo>> physicalFiles2 = shardSnapshot2.physicalFiles();
         if (physicalFiles1.size() != physicalFiles2.size()) {
             return false;
         }
