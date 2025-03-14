@@ -56,8 +56,8 @@ class TableHealth {
         "",
         null,
         Health.RED,
-        0,
-        0
+        -1,
+        -1
     );
 
     public static CompletableFuture<Iterable<TableHealth>> compute(ClusterState clusterState) {

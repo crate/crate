@@ -1821,16 +1821,18 @@ rejected due to an invalid license.
 Health
 ======
 
-The ``sys.health`` table lists the `health` of each table and table
-partition. The `health` is computed by checking the states of the shard of each
-table/partition.
+The ``sys.health`` table lists the `health` of each table and table partition
+or a single cluster-wide health entry. Each table `health` is computed by
+checking the states of the shards of each partition.
 
 +----------------------------+------------------------------------+--------------+
 | Column Name                | Description                        | Return Type  |
 +============================+====================================+==============+
-| ``table_name``             | The table name.                    | ``TEXT``     |
+| ``table_name``             | The table name or empty on         | ``TEXT``     |
+|                            | cluster-wide health.               |              |
 +----------------------------+------------------------------------+--------------+
-| ``table_schema``           | The schema of the table.           | ``TEXT``     |
+| ``table_schema``           | The schema of the table or empty   | ``TEXT``     |
+|                            | on cluster-wide health.            |              |
 +----------------------------+------------------------------------+--------------+
 | ``partition_ident``        | The `ident` of the partition.      | ``TEXT``     |
 |                            | NULL for non-partitioned tables.   |              |
@@ -1852,6 +1854,9 @@ Both ``missing_shards`` and ``underreplicated_shards`` might return ``-1`` if
 the cluster is in an unhealthy state that prevents the exact number from being
 calculated. This could be the case when the cluster can't elect a master,
 because there are not enough eligible nodes available.
+If the cluster is in a state were it cannot read any metadata of the tables,
+a single entry will be returned containing an empty ``table_name`` and
+``table_schema`` indicating a cluster-wide health status.
 
 ::
 
