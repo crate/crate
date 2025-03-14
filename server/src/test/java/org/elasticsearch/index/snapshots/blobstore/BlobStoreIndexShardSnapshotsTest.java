@@ -120,7 +120,7 @@ public class BlobStoreIndexShardSnapshotsTest extends ESTestCase {
 
     private static boolean isSame(BlobStoreIndexShardSnapshots shardSnapshot1, BlobStoreIndexShardSnapshots shardSnapshot2) {
         Map<String, FileInfo> files1 = shardSnapshot1.files();
-        Map<String, FileInfo> files2 = shardSnapshot1.files();
+        Map<String, FileInfo> files2 = shardSnapshot2.files();
         if (files1.size() != files2.size()) {
             return false;
         }
