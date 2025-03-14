@@ -27,10 +27,10 @@ import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.elasticsearch.cluster.health.ClusterStateHealth;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -60,8 +60,7 @@ class TableHealth {
         0
     );
 
-    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterService clusterService) {
-        var clusterState = clusterService.state();
+    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterState clusterState) {
         if (clusterState.blocks().hasGlobalBlockWithLevel(ClusterBlockLevel.METADATA_READ)) {
             LOGGER.warn("Global block with level METADATA_READ is set, cannot compute tables health. Global blocks: {}", clusterState.blocks().global());
             return CompletableFuture.completedFuture(List.of(GLOBAL_HEALTH_RED));

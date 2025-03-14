@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -39,7 +38,6 @@ public class TableHealthTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_global_red_health_on_global_block() {
-        var emptyState = clusterService.state();
         var globalBlock = new ClusterBlock(
             1,
             "uuid",
@@ -50,18 +48,17 @@ public class TableHealthTest extends CrateDummyClusterServiceUnitTest {
             RestStatus.INTERNAL_SERVER_ERROR,
             EnumSet.of(ClusterBlockLevel.METADATA_READ)
         );
-        var newState = ClusterState.builder(clusterService.state())
+        var emptyState = clusterService.state();
+        var newState = ClusterState.builder(emptyState)
                 .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
                 .build();
-        ClusterServiceUtils.setState(clusterService, newState);
 
-        var future = TableHealth.compute(clusterService);
+        var future = TableHealth.compute(newState);
         assertThat(future.isDone()).isTrue();
         var healths = future.join();
         assertThat(healths.iterator().next()).isEqualTo(TableHealth.GLOBAL_HEALTH_RED);
 
-        ClusterServiceUtils.setState(clusterService, emptyState);
-        future = TableHealth.compute(clusterService);
+        future = TableHealth.compute(emptyState);
         assertThat(future.isDone()).isTrue();
         healths = future.join();
         assertThat(healths.iterator().hasNext()).isFalse();

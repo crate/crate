@@ -204,7 +204,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysHealth.IDENT,
                 new StaticTableDefinition<>(
-                    () -> TableHealth.compute(clusterService),
+                    () -> TableHealth.compute(clusterService.state()),
                     SysHealth.INSTANCE.expressions(),
                     (user, tableHealth) -> roles.hasAnyPrivilege(user, Securable.TABLE, tableHealth.fqn()),
                     true
