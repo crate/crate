@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -276,9 +275,10 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @Test
-    public void test_primary_key_in_pg_index() {
-        execute("select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
-        assertThat(response).hasRows("-649073482| 728874843| [1]");
+    public void test_composite_primary_key_in_pg_index() {
+        execute("create table doc.t2 (id int, id2 int, primary key (id, id2))");
+        execute("select i.indexrelid, i.indrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't2' and c.oid = i.indrelid;");
+        assertThat(response).hasRows("-811118696| 1737494392| [1, 2]| 2");
     }
 
     @Test
