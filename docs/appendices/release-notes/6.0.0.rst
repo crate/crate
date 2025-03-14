@@ -98,6 +98,9 @@ SQL Standard and PostgreSQL Compatibility
   :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
   and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
 
+- Populated the ``pg_index.indnkeyatts`` column with the number of key
+  attributes in the primary key.
+
 Data Types
 ----------
 
