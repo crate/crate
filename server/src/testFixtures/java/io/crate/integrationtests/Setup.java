@@ -152,7 +152,7 @@ public class Setup {
         groupBySetup("integer");
     }
 
-    public void groupBySetup(String numericType) {
+    public void groupBySetup(String numericType) throws Exception {
         transportExecutor.exec(String.format(Locale.ENGLISH, "create table characters (" +
                                                              " race string," +
                                                              " gender string," +
@@ -184,7 +184,7 @@ public class Setup {
         transportExecutor.exec("refresh table characters");
     }
 
-    public void setUpEmployees() {
+    public void setUpEmployees() throws Exception {
         transportExecutor.exec("create table employees (" +
                                " name string, " +
                                " department string," +
@@ -238,7 +238,7 @@ public class Setup {
         transportExecutor.exec("refresh table ot");
     }
 
-    public void setUpArrayTables() {
+    public void setUpArrayTables() throws Exception {
         transportExecutor.exec("create table any_table (" +
                                "  id int primary key," +
                                "  temps array(double)," +
@@ -260,11 +260,11 @@ public class Setup {
         transportExecutor.exec("refresh table any_table");
     }
 
-    public void partitionTableSetup() {
+    public void partitionTableSetup() throws Exception {
         partitionTableSetup(null);
     }
 
-    public void partitionTableSetup(@Nullable Integer numberOfShards) {
+    public void partitionTableSetup(@Nullable Integer numberOfShards) throws Exception {
         String stmt = "create table parted (" +
             "id int primary key," +
             "date timestamp with time zone primary key," +
@@ -282,7 +282,7 @@ public class Setup {
         transportExecutor.exec("refresh table parted");
     }
 
-    public void createTestTableWithPrimaryKey() {
+    public void createTestTableWithPrimaryKey() throws Exception {
         transportExecutor.exec("create table test (" +
                                "  pk_col string primary key, " +
                                "  message string" +
@@ -290,7 +290,7 @@ public class Setup {
         transportExecutor.ensureGreen();
     }
 
-    public void setUpCharacters() {
+    public void setUpCharacters() throws Exception {
         transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
         transportExecutor.ensureYellowOrGreen();
         transportExecutor.execBulk("insert into characters (id, name, female) values (?, ?, ?)",
@@ -304,7 +304,7 @@ public class Setup {
         transportExecutor.exec("refresh table characters");
     }
 
-    public void setUpJobs() {
+    public void setUpJobs() throws Exception {
         transportExecutor.exec("create table jobs (id int primary key, department string, min_salary double, max_salary double)");
         transportExecutor.ensureYellowOrGreen();
         transportExecutor.execBulk("insert into jobs (id, department, min_salary, max_salary) values (?, ?, ?, ?)",

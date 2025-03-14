@@ -76,6 +76,16 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         return levelHolders.get(level).global();
     }
 
+    public Set<ClusterBlock> global(RestStatus status) {
+        Set<ClusterBlock> blocks = new HashSet<>();
+        for (ClusterBlock clusterBlock : global) {
+            if (clusterBlock.status().equals(status)) {
+                blocks.add(clusterBlock);
+            }
+        }
+        return blocks;
+    }
+
     public ImmutableOpenMap<String, Set<ClusterBlock>> indices(ClusterBlockLevel level) {
         return levelHolders.get(level).indices();
     }

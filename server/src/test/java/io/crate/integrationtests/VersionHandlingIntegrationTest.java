@@ -24,8 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-
-import java.io.IOException;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -39,7 +38,7 @@ public class VersionHandlingIntegrationTest extends IntegTestCase {
     private final Setup setup = new Setup(sqlExecutor);
 
     @Test
-    public void selectMultiGetRequestWithColumnAlias() throws IOException {
+    public void selectMultiGetRequestWithColumnAlias() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
         execute("insert into test (pk_col, message) values ('1', 'foo')");
         execute("insert into test (pk_col, message) values ('2', 'bar')");

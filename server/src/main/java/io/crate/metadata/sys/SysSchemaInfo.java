@@ -64,6 +64,7 @@ public class SysSchemaInfo implements SchemaInfo {
             Map.entry(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.INSTANCE),
             Map.entry(SysAllocationsTableInfo.IDENT.name(), SysAllocationsTableInfo.INSTANCE),
             Map.entry(SysHealth.IDENT.name(), SysHealth.INSTANCE),
+            Map.entry(SysClusterHealth.IDENT.name(), SysClusterHealth.INSTANCE),
             Map.entry(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode)),
             Map.entry(SysSegmentsTableInfo.IDENT.name(), SysSegmentsTableInfo.create(clusterService::localNode)),
             Map.entry(

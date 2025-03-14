@@ -51,12 +51,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -499,48 +497,88 @@ public class SQLTransportExecutor {
         }
     }
 
-    public ClusterHealthStatus ensureGreen() {
-        return ensureState(ClusterHealthStatus.GREEN, null);
+    public void ensureGreen() throws Exception {
+        ensureState(ClusterHealthStatus.GREEN, null);
     }
 
-    public ClusterHealthStatus ensureGreen(Integer expectedNumNodes) {
-        return ensureState(ClusterHealthStatus.GREEN, expectedNumNodes);
+    public void ensureGreen(Integer expectedNumNodes) throws Exception {
+        ensureState(ClusterHealthStatus.GREEN, expectedNumNodes);
     }
 
-    public ClusterHealthStatus ensureYellowOrGreen(Integer expectedNumNOdes) {
-        return ensureState(ClusterHealthStatus.YELLOW, expectedNumNOdes);
+    public void ensureYellowOrGreen(Integer expectedNumNOdes) throws Exception {
+        ensureState(ClusterHealthStatus.YELLOW, expectedNumNOdes);
     }
 
-    public ClusterHealthStatus ensureYellowOrGreen() {
-        return ensureState(ClusterHealthStatus.YELLOW, null);
+    public void ensureYellowOrGreen() throws Exception {
+        ensureState(ClusterHealthStatus.YELLOW, null);
     }
 
-    private ClusterHealthStatus ensureState(ClusterHealthStatus state, @Nullable Integer expectedNumNodes) {
-        Client client = clientProvider.client();
-        ClusterHealthRequest request = new ClusterHealthRequest()
-            .waitForStatus(state)
-            .waitForEvents(Priority.LANGUID)
-            .waitForNoRelocatingShards(true)
-            .waitForNoInitializingShards(false);
-        if (expectedNumNodes != null) {
-            // We currently often use ensureGreen or ensureYellow to check whether the cluster is back in a good state after shutting down
-            // a node. If the node that is stopped is the master node, another node will become master and publish a cluster state where it
-            // is master but where the node that was stopped hasn't been removed yet from the cluster state. It will only subsequently
-            // publish a second state where the old master is removed. If the ensureGreen/ensureYellow is timed just right, it will get to
-            // execute before the second cluster state update removes the old master and the condition ensureGreen / ensureYellow will
-            // trivially hold if it held before the node was shut down. The following "waitForNodes" condition ensures that the node has
-            // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
-            request.waitForNodes(Integer.toString(expectedNumNodes));
-        }
-        ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(request));
-        if (state == ClusterHealthStatus.YELLOW) {
-            assertThat(actionGet.getStatus()).satisfiesAnyOf(
-                s -> assertThat(s).isEqualTo(state),
-                s -> assertThat(s).isEqualTo(ClusterHealthStatus.GREEN));
-        } else {
-            assertThat(actionGet.getStatus()).isEqualTo(state);
-        }
-        return actionGet.getStatus();
+    @SuppressWarnings("unchecked")
+    private void ensureState(ClusterHealthStatus state, @Nullable Integer expectedNumNodes) throws Exception {
+        // Client client = clientProvider.client();
+        // ClusterHealthRequest request = new ClusterHealthRequest()
+        //     .waitForStatus(state)
+        //     .waitForEvents(Priority.LANGUID)
+        //     .waitForNoRelocatingShards(true)
+        //     .waitForNoInitializingShards(false);
+        // if (expectedNumNodes != null) {
+        //     // We currently often use ensureGreen or ensureYellow to check whether the cluster is back in a good state after shutting down
+        //     // a node. If the node that is stopped is the master node, another node will become master and publish a cluster state where it
+        //     // is master but where the node that was stopped hasn't been removed yet from the cluster state. It will only subsequently
+        //     // publish a second state where the old master is removed. If the ensureGreen/ensureYellow is timed just right, it will get to
+        //     // execute before the second cluster state update removes the old master and the condition ensureGreen / ensureYellow will
+        //     // trivially hold if it held before the node was shut down. The following "waitForNodes" condition ensures that the node has
+        //     // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
+        //     request.waitForNodes(Integer.toString(expectedNumNodes));
+        // }
+        // ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(request));
+        // if (state == ClusterHealthStatus.YELLOW) {
+        //     assertThat(actionGet.getStatus()).satisfiesAnyOf(
+        //         s -> assertThat(s).isEqualTo(state),
+        //         s -> assertThat(s).isEqualTo(ClusterHealthStatus.GREEN));
+        // } else {
+        //     assertThat(actionGet.getStatus()).isEqualTo(state);
+        // }
+
+        ESTestCase.assertBusy(() -> {
+            var response = exec(
+                """
+                select
+                    (select count(*) from sys.nodes) as num_nodes,
+                    (select array_unique(array_agg(health)) from sys.cluster_health) as colors,
+                    (select
+                        {
+                            states = array_unique(array_agg(current_state)),
+                            relocating = count(*) FILTER (WHERE current_state = 'RELOCATING')
+                        } as shards_state
+                        FROM sys.allocations
+                    )
+                """
+            );
+            if (expectedNumNodes != null) {
+                assertThat(response.rows()[0][0]).isEqualTo((long) expectedNumNodes);
+            }
+            List<String> colors = (List<String>) response.rows()[0][1];
+            Map<String, Object> shardState = (Map<String, Object>) response.rows()[0][2];
+            long numRelocating = ((Number) shardState.get("relocating")).longValue();
+            List<String> states = (List<String>) shardState.get("states");
+            if (state == ClusterHealthStatus.GREEN) {
+                assertThat(numRelocating).isEqualTo(0);
+                assertThat(colors).satisfiesAnyOf(
+                    x -> assertThat(x).isEmpty(),
+                    x -> assertThat(x).isEqualTo(List.of("GREEN"))
+                );
+                assertThat(states).satisfiesAnyOf(
+                    x -> assertThat(x).isEmpty(),
+                    x -> assertThat(x).isEqualTo(List.of("STARTED"))
+                );
+            } else {
+                assertThat(colors).satisfiesAnyOf(
+                    x -> assertThat(x).isEmpty(),
+                    x -> assertThat((List<String>) x).containsAnyOf("GREEN", "YELLOW")
+                );
+            }
+        });
     }
 
     public interface ClientProvider {

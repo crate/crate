@@ -782,7 +782,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_non_recursive_with_query() {
+    public void test_non_recursive_with_query() throws Exception {
         setup.setUpCharacters();
 
         execute("WITH ch AS (SELECT * FROM characters WHERE female = true) " +
