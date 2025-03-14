@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.rest.RestStatus;
 
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
 
 public class SysClusterHealth {
@@ -48,8 +47,6 @@ public class SysClusterHealth {
         .add("description", STRING, ClusterHealth::description)
         .add("missing_shards", LONG, ClusterHealth::missingShards)
         .add("underreplicated_shards", LONG, ClusterHealth::underreplicatedShards)
-        .withRouting((state, routingProvider, sessionSettings) ->
-            Routing.forTableOnSingleNode(IDENT, state.nodes().getMasterNodeId()))
         .build();
 
     public static CompletableFuture<Iterable<ClusterHealth>> compute(ClusterState clusterState) {
