@@ -92,7 +92,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.regex.Regex;
@@ -638,71 +637,15 @@ public abstract class IntegTestCase extends ESTestCase {
      * It is useful to ensure that all action on the cluster have finished and all shards that were currently relocating
      * are now allocated and started.
      */
-    public ClusterHealthStatus ensureGreen(String... indices) {
-        return ensureGreen(TimeValue.timeValueSeconds(30), indices);
-    }
-
-    /**
-     * Ensures the cluster has a green state via the cluster health API. This method will also wait for relocations.
-     * It is useful to ensure that all action on the cluster have finished and all shards that were currently relocating
-     * are now allocated and started.
-     *
-     * @param timeout time out value to set on {@link org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest}
-     */
-    public ClusterHealthStatus ensureGreen(TimeValue timeout, String... indices) {
-        return ensureColor(ClusterHealthStatus.GREEN, timeout, false, indices);
+    public void ensureGreen() throws Exception {
+        sqlExecutor.ensureGreen(cluster().size());
     }
 
     /**
      * Ensures the cluster has a yellow state via the cluster health API.
      */
-    public ClusterHealthStatus ensureYellow(String... indices) {
-        return ensureColor(ClusterHealthStatus.YELLOW, TimeValue.timeValueSeconds(30), false, indices);
-    }
-
-    /**
-     * Ensures the cluster has a yellow state via the cluster health API and ensures the that cluster has no initializing shards
-     * for the given indices
-     */
-    public ClusterHealthStatus ensureYellowAndNoInitializingShards(String... indices) {
-        return ensureColor(ClusterHealthStatus.YELLOW, TimeValue.timeValueSeconds(30), true, indices);
-    }
-
-    private ClusterHealthStatus ensureColor(ClusterHealthStatus clusterHealthStatus, TimeValue timeout, boolean waitForNoInitializingShards,
-                                            String... indices) {
-        String color = clusterHealthStatus.name().toLowerCase(Locale.ROOT);
-        String method = "ensure" + Strings.capitalize(color);
-
-        ClusterHealthRequest healthRequest = new ClusterHealthRequest(indices)
-            .timeout(timeout)
-            .waitForStatus(clusterHealthStatus)
-            .waitForEvents(Priority.LANGUID)
-            .waitForNoRelocatingShards(true)
-            .waitForNoInitializingShards(waitForNoInitializingShards)
-            // We currently often use ensureGreen or ensureYellow to check whether the cluster is back in a good state after shutting down
-            // a node. If the node that is stopped is the master node, another node will become master and publish a cluster state where it
-            // is master but where the node that was stopped hasn't been removed yet from the cluster state. It will only subsequently
-            // publish a second state where the old master is removed. If the ensureGreen/ensureYellow is timed just right, it will get to
-            // execute before the second cluster state update removes the old master and the condition ensureGreen / ensureYellow will
-            // trivially hold if it held before the node was shut down. The following "waitForNodes" condition ensures that the node has
-            // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
-            .waitForNodes(Integer.toString(cluster().size()));
-
-        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(healthRequest));
-        if (actionGet.isTimedOut()) {
-            var pendingClusterTasks = FutureUtils.get(client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
-            ClusterState state = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
-            logger.info("{} timed out, cluster state:\n{}\n{}",
-                method,
-                state,
-                pendingClusterTasks);
-            fail("timed out waiting for " + color + " state");
-        }
-        assertThat(actionGet.getStatus().value())
-            .as("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus())
-            .isLessThanOrEqualTo(clusterHealthStatus.value());
-        logger.debug("indices {} are {}", indices.length == 0 ? "[_all]" : indices, color);
-        return actionGet.getStatus();
+    public void ensureYellow() throws Exception {
+        sqlExecutor.ensureYellowOrGreen(cluster().size());
     }
 
     private static final long AWAIT_BUSY_THRESHOLD = 1000L;

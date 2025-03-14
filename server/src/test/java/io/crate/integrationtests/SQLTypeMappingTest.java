@@ -25,6 +25,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -42,11 +43,11 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends IntegTestCase {
 
-    private void setUpSimple() {
+    private void setUpSimple() throws Exception {
         setUpSimple(2);
     }
 
-    private void setUpSimple(int numShards) {
+    private void setUpSimple(int numShards) throws Exception {
         String stmt = String.format(Locale.ENGLISH, "create table t1 (" +
                                                     " id integer primary key," +
                                                     " string_field string," +
@@ -67,7 +68,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertAtNodeWithoutShard() {
+    public void testInsertAtNodeWithoutShard() throws Exception {
         setUpSimple(1);
 
         try (var session = createSessionOnNode(cluster().getNodeNames()[0])) {
@@ -100,7 +101,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response.rows()[1][3]).isEqualTo((byte) -128);
     }
 
-    public void setUpObjectTable() {
+    public void setUpObjectTable() throws Exception {
         execute("create table test12 (" +
                 " object_field object(dynamic) as (size byte, created timestamp with time zone)," +
                 " strict_field object(strict) as (path string, created timestamp with time zone)," +
@@ -585,7 +586,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertTimestamp() {
+    public void testInsertTimestamp() throws Exception {
         // This is a regression test that we allow timestamps that have more than 13 digits.
         execute(
             "create table ts_table (" +
@@ -609,7 +610,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertTimestampPreferMillis() {
+    public void testInsertTimestampPreferMillis() throws Exception {
         execute("create table ts_table (ts timestamp with time zone) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
         ensureYellow();

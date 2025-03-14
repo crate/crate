@@ -707,13 +707,12 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final String repoName = "test-repo";
         createRepo(repoName, "mock");
 
-        final String table = "tbl1";
         execute(
             "create table tbl1 (id string primary key, s string) " +
                 "clustered into 1 shards with (number_of_replicas = 1)");
         execute("insert into tbl1 (id, s) values ('some_id', 'foo')");
         execute("refresh table tbl1");
-        ensureYellow(table);
+        ensureYellow();
 
         mockRepo(repoName, dataNode).blockOnDataFiles(true);
         var firstSnapshotResponse = startFullSnapshotFromMasterClient(repoName, "snapshot-one");
@@ -721,14 +720,14 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         cluster().startDataOnlyNode();
         ensureStableCluster(3);
-        ensureGreen(table);
+        ensureGreen();
 
         String secondSnapshot = "snapshot-two";
         var secondSnapshotResponse = startFullSnapshotFromMasterClient(repoName, secondSnapshot);
 
         cluster().restartNode(dataNode, TestCluster.EMPTY_CALLBACK);
         ensureStableCluster(3);
-        ensureGreen(table);
+        ensureGreen();
 
         assertThat(firstSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
         assertThat(secondSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
@@ -846,7 +845,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         execute("CREATE TABLE \"" + testTable + "\"(a int, s string) CLUSTERED BY (a) INTO " + noShards +
                 " SHARDS WITH (number_of_replicas=0)");
 
-        ensureGreen(testTable);
+        ensureGreen();
 
         logger.info("--> indexing some data");
         Object[][] data = new Object[100][2];

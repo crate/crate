@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -100,7 +101,6 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date) with (refresh_interval=0)");
-        ensureYellow();
 
         Asserts.assertSQLError(() -> execute("optimize table parted partition(date=0)"))
             .hasPGError(INTERNAL_ERROR)
@@ -116,7 +116,6 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date)");
-        ensureYellow();
 
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +
@@ -148,7 +147,6 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date) with (number_of_replicas=0, refresh_interval=-1)");
-        ensureYellow();
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Groucho', '1970-01-01')," +
@@ -193,7 +191,6 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
             "   date timestamp with time zone" +
             ") partitioned by (date, age) " +
             "with (number_of_replicas=0, refresh_interval=-1)");
-        ensureYellow();
 
         execute("insert into t1 (id, name, age, date) values " +
                 "(1, 'Trillian', 90, '1970-01-01')," +

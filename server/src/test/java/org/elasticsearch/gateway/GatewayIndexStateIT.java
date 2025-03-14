@@ -440,7 +440,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
     public void testArchiveBrokenClusterSettings() throws Exception {
         logger.info("--> starting one node");
         cluster().startNode();
-        var tableName = getFqn("test");
         execute("create table test (id int) with (number_of_replicas = 0)");
         execute("insert into test (id) values (1)");
         execute("refresh table test");
@@ -458,7 +457,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                     .put(SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), "broken").build()).build();
         restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(brokenMeta));
 
-        ensureYellow(tableName); // wait for state recovery
+        ensureYellow(); // wait for state recovery
         state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();

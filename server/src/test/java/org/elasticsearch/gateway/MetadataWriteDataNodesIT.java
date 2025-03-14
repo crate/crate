@@ -48,7 +48,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         String dataNode = cluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table doc.test(x int) with (number_of_replicas = 0)");
         execute("insert into doc.test values(1)");
-        ensureGreen("test");
+        ensureGreen();
         assertIndexInMetaState(dataNode, "test");
         assertIndexInMetaState(masterNode, "test");
     }

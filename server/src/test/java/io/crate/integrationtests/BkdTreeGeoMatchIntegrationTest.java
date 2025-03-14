@@ -42,7 +42,6 @@ public class BkdTreeGeoMatchIntegrationTest extends BaseGeoMatchIntegrationTest 
     @Test
     public void test_geo_match_within_does_not_support_linestring() {
         execute("create table t (s geo_shape index using bkdtree) with (number_of_replicas=0)");
-        ensureGreen();
         execute("insert into t (s) values ('POLYGON((13 53, 13 52, 14 52, 14 53, 13 53))')");
         execute("refresh table t");
 

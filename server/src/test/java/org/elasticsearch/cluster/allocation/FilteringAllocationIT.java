@@ -71,8 +71,6 @@ public class FilteringAllocationIT extends IntegTestCase {
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
                 new Object[]{numberOfShards()});
 
-        String tableName = getFqn("test");
-
         for (int i = 0; i < 100; i++) {
             execute("insert into test(x, value) values(?,?)", new Object[]{i, Integer.toString(i)});
         }
@@ -84,13 +82,13 @@ public class FilteringAllocationIT extends IntegTestCase {
         final boolean closed = randomBoolean();
         if (closed) {
             execute("alter table test close");
-            ensureGreen(tableName);
+            ensureGreen();
         }
 
         logger.info("--> decommission the second node");
         execute("set global \"cluster.routing.allocation.exclude._name\" = ?", new Object[]{node_1});
 
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> verify all are allocated on node1 now");
         ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -104,7 +102,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         if (closed) {
             execute("alter table test open");
-            ensureGreen(tableName);
+            ensureGreen();
         }
 
         execute("select count(*) from test");
@@ -127,7 +125,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(1);
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> filter out the second node");
         if (randomBoolean()) {
@@ -135,7 +133,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         } else {
             execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_1});
         }
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> verify all are allocated on node1 now");
         final var cs = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -162,7 +160,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         execute("create table test(x int, value text) clustered into 2 shards with (number_of_replicas='0')");
 
         String tableName = getFqn("test");
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> index some data");
         for (int i = 0; i < 100; i++) {
@@ -176,7 +174,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         final boolean closed = randomBoolean();
         if (closed) {
             execute("alter table test close");
-            ensureGreen(tableName);
+            ensureGreen();
         }
 
         ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -201,7 +199,7 @@ public class FilteringAllocationIT extends IntegTestCase {
             execute("alter table test open");
         }
         execute("alter table test set( \"routing.allocation.exclude._name\" = ?)", new Object[]{node_0});
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> verify all shards are allocated on node_1 now");
         var state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -214,7 +212,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         logger.info("--> disable allocation filtering ");
         execute(" alter table test reset( \"routing.allocation.exclude._name\")");
 
-        ensureGreen(tableName);
+        ensureGreen();
 
         logger.info("--> verify that there are shards allocated on both nodes now");
         state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -234,6 +232,7 @@ public class FilteringAllocationIT extends IntegTestCase {
             .hasMessage("invalid IP address [192.168.1.1.] for [" + filterSetting.getKey() + ipKey + "]");
     }
 
+    @Test
     public void testTransientSettingsStillApplied() throws Exception {
         List<String> nodes = cluster().startNodes(6);
         Set<String> excludeNodes = new HashSet<>(nodes.subList(0, 3));
@@ -247,8 +246,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
                 new Object[]{numberOfShards()});
 
-        String tableName = getFqn("test");
-        ensureGreen(tableName);
+        ensureGreen();
 
 
         if (randomBoolean()) {

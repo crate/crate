@@ -43,13 +43,11 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.indices.IndicesService;
@@ -74,7 +72,7 @@ import io.crate.metadata.IndexName;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@IntegTestCase.Slow
+// @IntegTestCase.Slow
 public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
     @Override
@@ -277,11 +275,11 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         NetworkDisruption scheme = addRandomDisruptionType(partitions);
         scheme.startDisrupting();
         ensureStableCluster(2, notIsolatedNode);
-        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
-        assertThat(FutureUtils.get(
-            client(notIsolatedNode).admin().cluster().health(
-                new ClusterHealthRequest(indexName).waitForYellowStatus()
-            )).isTimedOut()).isFalse();
+
+        assertBusy(() -> {
+            execute("select health from sys.health where table_name = 't'");
+            assertThat(response).hasRows("YELLOW");
+        });
 
         execute("insert into t (id, x) values (1, 10)", null, notIsolatedNode);
 

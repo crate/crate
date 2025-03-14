@@ -274,7 +274,6 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
             "   name string," +
             "   date timestamp with time zone) " +
             "partitioned by (date) with (number_of_replicas = 0)");
-        ensureYellow();
         execute("alter table t1 set (\"blocks.read_only\" = true)");
 
         execute("select settings['blocks']['read_only'] from information_schema.tables where table_name = 't1'");

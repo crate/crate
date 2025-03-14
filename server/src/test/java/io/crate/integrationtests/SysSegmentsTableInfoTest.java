@@ -34,7 +34,7 @@ import org.junit.Test;
 public class SysSegmentsTableInfoTest extends IntegTestCase {
 
     @Test
-    public void test_retrieve_segment_information() {
+    public void test_retrieve_segment_information() throws Exception {
         execute(
             """
                 CREATE TABLE t1 (id INTEGER, name STRING)

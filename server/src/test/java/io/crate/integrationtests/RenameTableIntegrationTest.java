@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -66,7 +67,6 @@ public class RenameTableIntegrationTest extends IntegTestCase {
 
         // creating a new table using the old name must succeed
         execute("create table t1 (id int) with (number_of_replicas = 0)");
-        ensureYellow();
         // also inserting must work (no old blocks traces)
         execute("insert into t1 (id) values (1), (2)");
     }

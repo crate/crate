@@ -53,9 +53,6 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
@@ -503,28 +500,39 @@ public class SQLTransportExecutor {
     }
 
     public ClusterHealthStatus ensureGreen() {
-        return ensureState(ClusterHealthStatus.GREEN);
+        return ensureState(ClusterHealthStatus.GREEN, null);
+    }
+
+    public ClusterHealthStatus ensureGreen(Integer expectedNumNodes) {
+        return ensureState(ClusterHealthStatus.GREEN, expectedNumNodes);
+    }
+
+    public ClusterHealthStatus ensureYellowOrGreen(Integer expectedNumNOdes) {
+        return ensureState(ClusterHealthStatus.YELLOW, expectedNumNOdes);
     }
 
     public ClusterHealthStatus ensureYellowOrGreen() {
-        return ensureState(ClusterHealthStatus.YELLOW);
+        return ensureState(ClusterHealthStatus.YELLOW, null);
     }
 
-    private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
+    private ClusterHealthStatus ensureState(ClusterHealthStatus state, @Nullable Integer expectedNumNodes) {
         Client client = clientProvider.client();
-        ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(
-            new ClusterHealthRequest()
-                .waitForStatus(state)
-                .waitForEvents(Priority.LANGUID)
-                .waitForNoRelocatingShards(false)
-        ));
-
-        if (actionGet.isTimedOut()) {
-            var clusterState = FutureUtils.get(client.admin().cluster().state(new ClusterStateRequest())).getState();
-            var pendingClusterTasks = FutureUtils.get(client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", clusterState, pendingClusterTasks);
-            assertThat(actionGet.isTimedOut()).as("timed out waiting for state").isFalse();
+        ClusterHealthRequest request = new ClusterHealthRequest()
+            .waitForStatus(state)
+            .waitForEvents(Priority.LANGUID)
+            .waitForNoRelocatingShards(true)
+            .waitForNoInitializingShards(false);
+        if (expectedNumNodes != null) {
+            // We currently often use ensureGreen or ensureYellow to check whether the cluster is back in a good state after shutting down
+            // a node. If the node that is stopped is the master node, another node will become master and publish a cluster state where it
+            // is master but where the node that was stopped hasn't been removed yet from the cluster state. It will only subsequently
+            // publish a second state where the old master is removed. If the ensureGreen/ensureYellow is timed just right, it will get to
+            // execute before the second cluster state update removes the old master and the condition ensureGreen / ensureYellow will
+            // trivially hold if it held before the node was shut down. The following "waitForNodes" condition ensures that the node has
+            // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
+            request.waitForNodes(Integer.toString(expectedNumNodes));
         }
+        ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(request));
         if (state == ClusterHealthStatus.YELLOW) {
             assertThat(actionGet.getStatus()).satisfiesAnyOf(
                 s -> assertThat(s).isEqualTo(state),

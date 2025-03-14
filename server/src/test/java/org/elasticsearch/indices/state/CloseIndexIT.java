@@ -54,9 +54,9 @@ public class CloseIndexIT extends IntegTestCase {
 
         execute("alter table doc.test close");
         execute("alter table doc.test set (\"routing.allocation.include._name\" = ?)", new Object[] { dataNodes.get(1) });
-        ensureGreen("test");
+        ensureGreen();
         cluster().fullRestart();
-        ensureGreen("test");
+        ensureGreen();
         assertIndexIsClosed("test");
     }
 

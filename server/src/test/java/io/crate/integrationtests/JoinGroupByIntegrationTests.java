@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +47,6 @@ public class JoinGroupByIntegrationTests extends IntegTestCase {
     private void createColorsAndFruits() {
         execute("create table colors (id integer, name string)");
         execute("create table fruits (id integer, price float, name string)");
-        ensureYellow();
 
         execute("insert into colors (id, name) values (1, 'red'), (2, 'yellow')");
         execute("insert into fruits (id, price, name) values (1, 1.9, 'apple'), (2, 0.8, 'banana'), (2, 0.5, 'lemon')");

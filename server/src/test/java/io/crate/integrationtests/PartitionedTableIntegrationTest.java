@@ -87,7 +87,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() {
+    public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Throwable {
         execute("create table quotes (" +
                 "   id integer primary key," +
                 "   date timestamp with time zone primary key," +
@@ -302,7 +302,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testMultiValueInsertPartitionedTable() {
+    public void testMultiValueInsertPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
         execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
@@ -319,7 +319,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testBulkInsertPartitionedTable() {
+    public void testBulkInsertPartitionedTable() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
         execute("insert into parted (id, name, date) values (?, ?, ?)", new Object[][]{
@@ -360,7 +360,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExists() {
+    public void testInsertPartitionedTableOnlyPartitionedColumnsAlreadyExists() throws Exception {
         execute("create table parted (name string, date timestamp with time zone)" +
                 "partitioned by (name, date)");
 
@@ -385,7 +385,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testInsertPartitionedTablePrimaryKeysDuplicate() {
+    public void testInsertPartitionedTablePrimaryKeysDuplicate() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
                 "  name string, " +
@@ -453,7 +453,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectFromPartitionedTableWhereClause() {
+    public void testSelectFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -468,7 +468,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectCountFromPartitionedTableWhereClause() {
+    public void testSelectCountFromPartitionedTableWhereClause() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -487,7 +487,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectFromPartitionedTable() {
+    public void testSelectFromPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -539,7 +539,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdatePartitionedTable() {
+    public void testUpdatePartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -570,7 +570,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdatePartitionedUnknownPartition() {
+    public void testUpdatePartitionedUnknownPartition() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer, " +
@@ -593,7 +593,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdatePartitionedUnknownColumn() {
+    public void testUpdatePartitionedUnknownColumn() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer, " +
@@ -616,7 +616,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdatePartitionedUnknownColumnKnownValue() {
+    public void testUpdatePartitionedUnknownColumnKnownValue() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, timestamp) values(?, ?, ?)",
@@ -636,7 +636,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testUpdateUnknownColumnKnownValueAndConjunction() {
+    public void testUpdateUnknownColumnKnownValueAndConjunction() throws Exception {
         execute("create table quotes (id integer, quote string, timestamp timestamp with time zone) " +
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureYellow();
@@ -664,7 +664,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testDeleteFromPartitionedTable() {
+    public void testDeleteFromPartitionedTable() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer," +
@@ -743,7 +743,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testDeleteFromPartitionedTableDeleteByQuery() {
+    public void testDeleteFromPartitionedTableDeleteByQuery() throws Exception {
         String defaultSchema = sqlExecutor.getCurrentSchema();
         execute("create table quotes (" +
                 "   id integer, " +
@@ -786,7 +786,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() {
+    public void testDeleteFromPartitionedTableDeleteByPartitionAndByQuery() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer," +
@@ -907,7 +907,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testGroupByPartitionedColumns() {
+    public void testGroupByPartitionedColumns() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
 
@@ -941,7 +941,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testGroupByPartitionedColumnWhereClause() {
+    public void testGroupByPartitionedColumnWhereClause() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
 
@@ -972,7 +972,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testGlobalAggregateWhereClause() {
+    public void testGlobalAggregateWhereClause() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone)" +
                 "partitioned by (date)");
 
@@ -1095,7 +1095,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testPartitionedTableAllConstraintsRoundTrip() {
+    public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp with time zone primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
@@ -1131,7 +1131,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testPartitionedTableSchemaAllConstraintsRoundTrip() {
+    public void testPartitionedTableSchemaAllConstraintsRoundTrip() throws Exception {
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp with time zone primary key, user_id string primary key) " +
                 "partitioned by(date, user_id) clustered by (id) with (number_of_replicas=0)");
@@ -1191,7 +1191,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testPartitionedTableNestedAllConstraintsRoundTrip() {
+    public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (" +
                 "id integer, " +
                 "quote string, " +
@@ -1234,7 +1234,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAlterNumberOfReplicas() throws Exception {
-        String defaultSchema = sqlExecutor.getCurrentSchema();
         execute(
             "create table tbl (id int, p int) partitioned by (p) " +
             "clustered into 3 shards with (number_of_replicas = '0-all')"
@@ -1398,7 +1397,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testRefreshPartitionedTableAllPartitions() {
+    public void testRefreshPartitionedTableAllPartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp with time zone) " +
             "partitioned by (date) with (refresh_interval=0)");
 
@@ -1442,7 +1441,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testRefreshPartitionedTableSinglePartitions() {
+    public void testRefreshPartitionedTableSinglePartitions() throws Exception {
         execute(
             "create table parted (" +
             "   id integer," +
@@ -1539,7 +1538,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testCountPartitionedTable() {
+    public void testCountPartitionedTable() throws Exception {
         execute("create table parted (" +
                 "  id int, " +
                 "  name string, " +
@@ -2036,7 +2035,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testDisableWriteOnSinglePartition() {
+    public void testDisableWriteOnSinglePartition() throws Exception {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");
@@ -2065,7 +2064,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testMultipleWritesWhenOnePartitionIsReadOnly() {
+    public void testMultipleWritesWhenOnePartitionIsReadOnly() throws Exception {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");

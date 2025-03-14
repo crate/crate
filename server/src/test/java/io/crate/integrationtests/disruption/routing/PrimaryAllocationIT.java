@@ -146,7 +146,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         cluster().startDataOnlyNode(inSyncDataPathSettings);
 
         logger.info("--> check that the up-to-date primary shard gets promoted and that documents are available");
-        ensureYellow(indexName);
+        ensureYellow();
         execute("select * from t");
         assertThat(response).hasRowCount(2);
     }

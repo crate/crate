@@ -48,7 +48,7 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
             "   number_of_replicas = ?)",
             new Object[] { numberOfReplicas }
         );
-        ensureGreen("tbl");
+        ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()

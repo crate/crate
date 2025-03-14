@@ -20,8 +20,6 @@ package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
@@ -33,7 +31,7 @@ import org.junit.Test;
 public class InternalTestClusterIT extends IntegTestCase {
 
     @Test
-    public void testStartingAndStoppingNodes() throws IOException {
+    public void testStartingAndStoppingNodes() throws Exception {
         logger.info("--> cluster has [{}] nodes", cluster().size());
         if (cluster().size() < 5) {
             final int nodesToStart = randomIntBetween(Math.max(2, cluster().size() + 1), 5);
@@ -52,7 +50,8 @@ public class InternalTestClusterIT extends IntegTestCase {
         ensureGreen();
     }
 
-    public void testStoppingNodesOneByOne() throws IOException {
+    @Test
+    public void testStoppingNodesOneByOne() throws Exception {
         // In a 5+ node cluster there must be at least one reconfiguration as the nodes are shut down one-by-one before we drop to 2 nodes.
         // If the nodes shut down too quickly then this reconfiguration does not have time to occur and the quorum is lost in the 3->2
         // transition, even though in a stable cluster the 3->2 transition requires no special treatment.
@@ -67,6 +66,7 @@ public class InternalTestClusterIT extends IntegTestCase {
         ensureGreen();
     }
 
+    @Test
     public void testOperationsDuringRestart() throws Exception {
         cluster().startMasterOnlyNode();
         cluster().startDataOnlyNodes(2);

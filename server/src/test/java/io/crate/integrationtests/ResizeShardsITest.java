@@ -130,7 +130,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    public void testNumberOfShardsOfATableCanBeIncreased() {
+    public void testNumberOfShardsOfATableCanBeIncreased() throws Exception {
         execute("create table t1 (x int, p int) clustered into 1 shards " +
                 "with (number_of_replicas = 1, number_of_routing_shards = 10)");
         execute("insert into t1 (x, p) values (1, 1), (2, 1)");
@@ -149,7 +149,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    public void test_number_of_shards_of_a_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+    public void test_number_of_shards_of_a_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() throws Exception {
         execute("create table t1 (x int, p int) clustered into 1 shards " +
             "with (number_of_replicas = 2)");
         execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
@@ -169,7 +169,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    public void test_number_of_shards_on_a_one_sharded_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+    public void test_number_of_shards_on_a_one_sharded_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() throws Exception {
         execute("create table t1 (x int, p int) clustered into 1 shards " +
             "with (number_of_replicas = 2)");
         execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
@@ -205,7 +205,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    public void testNumberOfShardsOfAPartitionCanBeIncreased() {
+    public void testNumberOfShardsOfAPartitionCanBeIncreased() throws Exception {
         execute("create table t_parted (x int, p int) partitioned by (p) clustered into 1 shards " +
                 "with (number_of_replicas = 0, number_of_routing_shards = 10)");
         execute("insert into t_parted (x, p) values (1, 1), (2, 1)");

@@ -30,7 +30,6 @@ public class SimpleVersioningIT extends IntegTestCase {
     public void test_compare_and_set() {
 
         execute("create table test (id integer primary key, value string)");
-        ensureGreen();
 
         execute("insert into test (id, value) values (?, ?) returning _seq_no, _primary_term", new Object[]{1, "value1_1"});
 

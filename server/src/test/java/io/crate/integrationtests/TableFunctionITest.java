@@ -60,7 +60,6 @@ public class TableFunctionITest extends IntegTestCase {
     @Test
     public void testInsertIntoFromSelectUnnest() {
         execute("create table t (id int primary key, name string) with (number_of_replicas = 0)");
-        ensureYellow();
 
         Object[] args = $(List.of(1, 2), List.of("Marvin", "Trillian")); // non-bulk request
         execute("insert into t (select * from unnest(?, ?))", args);
@@ -88,7 +87,6 @@ public class TableFunctionITest extends IntegTestCase {
     @Test
     public void testJoinUnnestWithTable() {
         execute("create table t (id int primary key)");
-        ensureYellow();
         execute("insert into t (id) values (1)");
         execute("refresh table t");
         assertThat(execute("select * from unnest([1, 2]) inner join t on t.id = unnest::integer")).hasRows(
