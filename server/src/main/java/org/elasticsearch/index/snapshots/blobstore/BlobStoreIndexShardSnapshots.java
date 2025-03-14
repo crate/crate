@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -101,6 +102,7 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, Wr
         this.shardSnapshots = in.readList(SnapshotFiles::new);
         this.physicalFiles = in.readMap(StreamInput::readString, x -> x.readList(FileInfo::new));
         this.files = in.readMap(StreamInput::readString, FileInfo::new);
+        throw new CircuitBreakingException("dummy");
     }
 
     @Override
