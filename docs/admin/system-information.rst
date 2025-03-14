@@ -1901,6 +1901,55 @@ Health definition
    The ``sys.health`` table is subject to :ref:`shard_table_permissions` as it
    will expose a summary of table shard states.
 
+.. _sys-cluster_health:
+
+Cluster Health
+==============
+
+The ``sys.cluster_health`` table returns the health of the entire cluster. Only
+a single entry is returned, containing the overall health of the cluster,
+including the overall number of missing shards and underreplicated shards of all
+tables. Any table-specific health issues, exposed by the
+:ref:`sys.health <sys-health>` will be reflected here as well.
+
++----------------------------+-------------------------------------+--------------+
+| Column Name                | Description                         | Return Type  |
++============================+=====================================+==============+
+| ``health``                 | The cluster health label.           | ``TEXT``     |
+|                            | Can be RED, YELLOW or GREEN.        |              |
++----------------------------+-------------------------------------+--------------+
+| ``severity``               | The health as a ``smallint`` value. | ``SMALLINT`` |
+|                            | Useful when ordering on health.     |              |
++----------------------------+-------------------------------------+--------------+
+| ``description``            | A description of the current health | ``TEXT``     |
++----------------------------+-------------------------------------+--------------+
+| ``missing_shards``         | The number of unassigned or not     | ``INTEGER``  |
+|                            | started shards of all tables.       |              |
++----------------------------+-------------------------------------+--------------+
+| ``underreplicated_shards`` | The number of shards which are      | ``INTEGER``  |
+|                            | not fully replicated of all tables. |              |
++----------------------------+-------------------------------------+--------------+
+
+Both ``missing_shards`` and ``underreplicated_shards`` might return ``-1`` if
+the cluster is in an unhealthy state that prevents the exact number from being
+calculated. This could be the case when the cluster can't elect a master,
+because there are not enough eligible nodes available. In this case, the
+``description`` field will contain appropriate explanation regarding the
+cluster status.
+
+::
+
+    cr> select * from sys.cluster_health order by severity desc;
+    +-------------+--------+----------------+----------+------------------------+
+    | description | health | missing_shards | severity | underreplicated_shards |
+    +-------------+--------+----------------+----------+------------------------+
+    |             | GREEN  |              0 |        1 |                      0 |
+    +-------------+--------+----------------+----------+------------------------+
+    SELECT 1 row in set (... sec)
+
+The `health` with the highest `severity` will always define the `health` of the
+query scope.
+
 .. _sys-repositories:
 
 Repositories

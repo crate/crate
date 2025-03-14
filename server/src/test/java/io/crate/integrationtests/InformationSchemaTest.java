@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -114,6 +113,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| allocations| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| checks| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| cluster| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| cluster_health| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| health| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs_log| sys| BASE TABLE| NULL",
@@ -213,12 +213,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(72L);
+        assertThat(response.rowCount()).isEqualTo(73L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(73L);
+        assertThat(response.rowCount()).isEqualTo(74L);
     }
 
     @Test
@@ -571,7 +571,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1042);
+        assertThat(response.rowCount()).isEqualTo(1047);
     }
 
     @Test
@@ -889,7 +889,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(75L);
+        assertThat(response.rows()[0][0]).isEqualTo(76L);
     }
 
     @Test
