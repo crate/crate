@@ -22,15 +22,19 @@ package org.elasticsearch.common.breaker;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Breaker that will check a parent's when incrementing
  */
 public class ChildMemoryCircuitBreaker implements CircuitBreaker {
+
+    private static final String CHILD_LOGGER_PREFIX = "org.elasticsearch.indices.breaker.";
 
     private final long memoryBytesLimit;
     private final AtomicLong used;
@@ -48,8 +52,8 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * @param logger the logger instance to use
      * @param parent parent circuit breaker service to delegate tripped breakers to
      */
-    public ChildMemoryCircuitBreaker(BreakerSettings settings, Logger logger, CircuitBreakerService parent) {
-        this(settings, null, logger, parent);
+    public ChildMemoryCircuitBreaker(BreakerSettings settings, CircuitBreakerService parent) {
+        this(settings, null, parent);
     }
 
     /**
@@ -63,11 +67,10 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * @param parent parent circuit breaker service to delegate tripped breakers to
      */
     public ChildMemoryCircuitBreaker(BreakerSettings settings,
-                                     ChildMemoryCircuitBreaker oldBreaker,
-                                     Logger logger,
+                                     @Nullable ChildMemoryCircuitBreaker oldBreaker,
                                      CircuitBreakerService parent) {
-        this.name = settings.getName();
-        this.memoryBytesLimit = settings.getLimit();
+        this.name = settings.name();
+        this.memoryBytesLimit = settings.bytesLimit();
         if (memoryBytesLimit == -1) {
             freeSupplier = () -> Long.MAX_VALUE;
         } else if (memoryBytesLimit == 0) {
@@ -83,7 +86,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
             this.used = oldBreaker.used;
             this.trippedCount = oldBreaker.trippedCount;
         }
-        this.logger = logger;
+        this.logger = LogManager.getLogger(CHILD_LOGGER_PREFIX + settings.name());
         if (logger.isTraceEnabled()) {
             logger.trace("creating ChildCircuitBreaker with settings {}", settings);
         }
