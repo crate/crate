@@ -137,16 +137,7 @@ Available parameters are:
   The number of segments to merge to. To fully merge the table or
   partition set it to ``1``.
 
-  Defaults to simply checking if a merge is necessary, and if so,
-  executes it.
-
-  .. CAUTION::
-
-    Forcing a merge to a small number of segments can harm query performance
-    if segments become too big.
-
-    If ``max_num_segments`` gets omitted, CrateDB will automatically determine
-    the ideal number of segments based on internal criteria.
+  Defaults to simply checking if a merge is necessary, and if so, executes it.
 
 :only_expunge_deletes:
   Should the merge process only expunge segments with deletes in it.
