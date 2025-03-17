@@ -69,8 +69,8 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     public ChildMemoryCircuitBreaker(BreakerSettings settings,
                                      @Nullable ChildMemoryCircuitBreaker oldBreaker,
                                      CircuitBreakerService parent) {
-        this.name = settings.getName();
-        this.memoryBytesLimit = settings.getLimit();
+        this.name = settings.name();
+        this.memoryBytesLimit = settings.bytesLimit();
         if (memoryBytesLimit == -1) {
             freeSupplier = () -> Long.MAX_VALUE;
         } else if (memoryBytesLimit == 0) {
@@ -86,7 +86,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
             this.used = oldBreaker.used;
             this.trippedCount = oldBreaker.trippedCount;
         }
-        this.logger = LogManager.getLogger(CHILD_LOGGER_PREFIX + settings.getName());
+        this.logger = LogManager.getLogger(CHILD_LOGGER_PREFIX + settings.name());
         if (logger.isTraceEnabled()) {
             logger.trace("creating ChildCircuitBreaker with settings {}", settings);
         }
