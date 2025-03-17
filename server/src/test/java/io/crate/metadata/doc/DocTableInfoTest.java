@@ -249,7 +249,63 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
+    public void test_lookup_name_by_source_with_columns_with_and_without_oids_added_to_table_created_before_5_5_0() {
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        SimpleReference withoutOid = new SimpleReference(
+            new ReferenceIdent(relationName, ColumnIdent.of("withoutOid", List.of())),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null
+        );
+        SimpleReference withOid = new SimpleReference(
+            new ReferenceIdent(relationName, ColumnIdent.of("withOid", List.of())),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            1, // oid
+            false,
+            null
+        );
+        DocTableInfo docTableInfo = new DocTableInfo(
+            relationName,
+            Map.of(
+                withoutOid.column(), withoutOid,
+                withOid.column(), withOid
+            ),
+            Map.of(),
+            Map.of(),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.V_5_4_0,
+            null,
+            false,
+            Operation.ALL,
+            0
+        );
+        assertThat(docTableInfo.lookupNameBySourceKey().apply("withoutOid")).isEqualTo("withoutOid");
+        assertThat(docTableInfo.lookupNameBySourceKey().apply("1")).isEqualTo("withOid");
+    }
+
+    @Test
+    public void test_lookup_name_by_source_returns_null_for_deleted_columns() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         ColumnIdent a = ColumnIdent.of("a", List.of());
