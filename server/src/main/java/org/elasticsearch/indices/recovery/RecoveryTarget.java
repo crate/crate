@@ -33,7 +33,6 @@ import org.apache.lucene.index.IndexFormatTooOldException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -323,7 +322,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                 indexShard.trimOperationOfPreviousPrimaryTerms(trimAboveSeqNo);
             }
             if (hasUncommittedOperations()) {
-                indexShard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+                indexShard.forceFlush();
             }
             indexShard.finalizeRecovery();
             return null;

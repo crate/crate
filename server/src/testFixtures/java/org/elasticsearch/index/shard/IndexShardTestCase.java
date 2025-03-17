@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -278,7 +277,11 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     public static void flushShard(IndexShard shard, boolean force) {
-        shard.flush(new FlushRequest(shard.shardId().getIndexName()).force(force));
+        if (force) {
+            shard.forceFlush();
+        } else {
+            shard.flush(false);
+        }
     }
 
     public static boolean recoverFromStore(IndexShard newShard) throws IOException {
