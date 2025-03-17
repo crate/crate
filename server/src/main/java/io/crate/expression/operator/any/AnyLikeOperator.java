@@ -57,9 +57,7 @@ public final class AnyLikeOperator extends AnyOperator<String> {
 
     @Override
     boolean matches(String probe, String candidate) {
-        // Accept both sides of arguments to be patterns
-        return LikeOperators.matches(probe, candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) ||
-               LikeOperators.matches(candidate, probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
+        return LikeOperators.matches(probe, candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
@@ -87,7 +85,7 @@ public final class AnyLikeOperator extends AnyOperator<String> {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), LikeOperators.DEFAULT_ESCAPE, candidates.indexType() != IndexType.NONE);
+        return null;
     }
 
     @Override

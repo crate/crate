@@ -32,6 +32,8 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
+import org.assertj.core.api.Assertions;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.data.Input;
@@ -40,6 +42,7 @@ import io.crate.expression.operator.any.AnyNotLikeOperatorTest;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.testing.QueryTester;
 
 public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -219,6 +222,99 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
                     .isExactlyInstanceOf(IllegalArgumentException.class)
                     .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
             }
+        }
+    }
+
+    @Test
+    public void test_any_like_queries_with_combinations_of_reference_and_literal_arguments() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (txt text, txt_arr text[], pattern text, pattern_arr text[])");
+        builder.indexValues(List.of("txt", "txt_arr", "pattern", "pattern_arr"), "a", List.of("a", "aa"), "a%", List.of("a", "a_"));
+
+        // NOTE: other than `<ref> like any <literal>`, generic function queries are used.
+        try (QueryTester tester = builder.build()) {
+            // <ref> like any <ref>
+            Query query = tester.toQuery("txt like any(pattern_arr)");
+            assertThat(query).hasToString("(txt LIKE ANY(pattern_arr))");
+            Assertions.assertThat(tester.runQuery("txt", "txt like any(pattern_arr)"))
+                .containsExactly("a");
+            query = tester.toQuery("pattern like any(txt_arr)");
+            assertThat(query).hasToString("(pattern LIKE ANY(txt_arr))");
+            Assertions.assertThat(tester.runQuery("pattern", "pattern like any(txt_arr)"))
+                .isEmpty(); // only RHS args are considered as patterns
+
+            // <ref> like any <literal>
+            query = tester.toQuery("pattern like any(['a__'])");
+            assertThat(query).hasToString("(pattern:a??)~1");
+            Assertions.assertThat(tester.runQuery("txt", "txt like any(['a__'])"))
+                .isEmpty();
+            query = tester.toQuery("txt like any(['a%', 'b_'])");
+            assertThat(query).hasToString("(txt:a* txt:b?)~1");
+            Assertions.assertThat(tester.runQuery("txt", "txt like any(['a%'])"))
+                .containsExactly("a");
+
+            // <literal> like any <ref>
+            query = tester.toQuery("'aa' like any(txt_arr)");
+            assertThat(query).hasToString("('aa' LIKE ANY(txt_arr))");
+            Assertions.assertThat(tester.runQuery("txt_arr", "'aa' like any(txt_arr)"))
+                .containsExactly(List.of("a", "aa"));
+            query = tester.toQuery("'a_' like any(txt_arr)");
+            assertThat(query).hasToString("('a_' LIKE ANY(txt_arr))");
+            Assertions.assertThat(tester.runQuery("txt_arr", "'a_' like any(txt_arr)"))
+                .isEmpty(); // only RHS args are considered as patterns
+            query = tester.toQuery("'aa' like any(pattern_arr)");
+            assertThat(query).hasToString("('aa' LIKE ANY(pattern_arr))");
+            Assertions.assertThat(tester.runQuery("pattern_arr", "'a_' like any(pattern_arr)"))
+                .containsExactly(List.of("a", "a_"));
+        }
+    }
+
+    @Test
+    public void test_all_like_queries_with_combinations_of_reference_and_literal_arguments() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (txt text, txt_arr text[], pattern text, pattern_arr text[])");
+        builder.indexValues(List.of("txt", "txt_arr", "pattern", "pattern_arr"), "aa", List.of("a", "aa"), "a%", List.of("a_", "%a"));
+
+        try (QueryTester tester = builder.build()) {
+            // <ref> like all <ref>
+            Query query = tester.toQuery("txt like all(pattern_arr)");
+            assertThat(query).hasToString("(txt LIKE ALL(pattern_arr))");
+            assertThat(tester.runQuery("txt", "txt like all(pattern_arr)"))
+                .containsExactly("aa");
+            query = tester.toQuery("pattern like all(txt_arr)");
+            assertThat(query).hasToString("(pattern LIKE ALL(txt_arr))");
+            assertThat(tester.runQuery("pattern", "pattern like all(txt_arr)"))
+                .isEmpty(); // only RHS args are considered as patterns
+
+            // <ref> like all <literal>
+            query = tester.toQuery("pattern like all(['a__'])");
+            assertThat(query).hasToString("(pattern LIKE ALL(['a__']))");
+            assertThat(tester.runQuery("txt", "txt like all(['a__'])"))
+                .isEmpty();
+            query = tester.toQuery("txt like all(['a%', '%a'])");
+            assertThat(query).hasToString("(txt LIKE ALL(['a%', '%a']))");
+            assertThat(tester.runQuery("txt", "txt like all(['a%', '%a'])"))
+                .containsExactly("aa");
+
+            // <literal> like all <ref>
+            query = tester.toQuery("'aa' like all([txt])");
+            assertThat(query).hasToString("('aa' LIKE ALL([txt]))");
+            assertThat(tester.runQuery("txt_arr", "'aa' like all([txt])"))
+                .containsExactly(List.of("a", "aa"));
+            query = tester.toQuery("'a%' like all(txt_arr)");
+            assertThat(query).hasToString("('a%' LIKE ALL(txt_arr))");
+            assertThat(tester.runQuery("txt_arr", "'a%' like all(txt_arr)"))
+                .isEmpty(); // only RHS args are considered as patterns
+            query = tester.toQuery("'aa' like all(pattern_arr)");
+            assertThat(query).hasToString("('aa' LIKE ALL(pattern_arr))");
+            assertThat(tester.runQuery("pattern_arr", "'aa' like all(pattern_arr)"))
+                .containsExactly(List.of("a_", "%a"));
         }
     }
 }

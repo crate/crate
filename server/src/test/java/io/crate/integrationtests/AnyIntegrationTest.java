@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -41,14 +40,14 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("insert into t (i, ia, s, sa) values (?, ?, ?, ?)", new Object[][]{
             {1, new Object[]{1, 2, 3}, "foo", new Object[]{"abc", "def", "ghi"}},
             {2, new Object[]{3, 4, 5}, "bar", new Object[]{"rst", "uvw", "aaa"}},
-            {3, new Object[]{7, 8, 9}, "baz", new Object[]{"bar", "baz"}}
+            {3, new Object[]{7, 8, 9}, "baz", new Object[]{"baz"}}
         });
         execute("refresh table t");
 
         execute("select i, s from t where i = ANY([1,2,4]) order by i");
         assertThat(response).hasRows("1| foo", "2| bar");
 
-        execute("select i, sa from t where 'ba%' not like ANY(sa) order by i");
+        execute("select i, sa from t where s not like ANY(sa) order by i");
         assertThat(response).hasRows("1| [abc, def, ghi]", "2| [rst, uvw, aaa]");
 
         execute("update t set s='updated' where i > ANY([?, ?, ?])", new Object[]{2, 4, 5});
@@ -58,12 +57,12 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("select s from t order by i");
         assertThat(response).hasRows("foo", "bar", "updated");
 
-        execute("delete from t where 'a%' like ANY (sa)");
+        execute("delete from t where s like ANY (['f%', 'ba_'])");
         assertThat(response).hasRowCount(2);
         execute("refresh table t");
 
         execute("select * from t");
-        assertThat(response).hasRows("3| [7, 8, 9]| updated| [bar, baz]");
+        assertThat(response).hasRows("3| [7, 8, 9]| updated| [baz]");
     }
 
     @Test
