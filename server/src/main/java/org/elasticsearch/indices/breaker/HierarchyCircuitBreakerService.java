@@ -51,8 +51,6 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
 
     private static final Logger LOGGER = LogManager.getLogger(HierarchyCircuitBreakerService.class);
 
-    private static final String CHILD_LOGGER_PREFIX = "org.elasticsearch.indices.breaker.";
-
     private static final MemoryMXBean MEMORY_MX_BEAN = ManagementFactory.getMemoryMXBean();
     private static final double PARENT_BREAKER_ESCAPE_HATCH_PERCENTAGE = 0.30;
 
@@ -287,11 +285,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             breakers.put(breakerSettings.getName(), breaker);
         } else {
             CircuitBreaker oldBreaker;
-            CircuitBreaker breaker = new ChildMemoryCircuitBreaker(
-                breakerSettings,
-                LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
-                this
-            );
+            CircuitBreaker breaker = new ChildMemoryCircuitBreaker(breakerSettings, this);
             for (;;) {
                 oldBreaker = breakers.putIfAbsent(breakerSettings.getName(), breaker);
                 if (oldBreaker == null) {
@@ -300,7 +294,6 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 breaker = new ChildMemoryCircuitBreaker(
                     breakerSettings,
                     (ChildMemoryCircuitBreaker) oldBreaker,
-                    LogManager.getLogger(CHILD_LOGGER_PREFIX + breakerSettings.getName()),
                     this
                 );
 
