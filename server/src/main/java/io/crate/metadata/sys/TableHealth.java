@@ -118,6 +118,10 @@ class TableHealth {
         return partitionIdent;
     }
 
+    public Health health() {
+        return health;
+    }
+
     public String getHealth() {
         return health.toString();
     }

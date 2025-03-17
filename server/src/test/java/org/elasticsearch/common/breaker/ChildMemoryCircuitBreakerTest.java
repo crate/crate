@@ -23,7 +23,6 @@ package org.elasticsearch.common.breaker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.junit.Test;
 
@@ -33,7 +32,6 @@ public class ChildMemoryCircuitBreakerTest {
     public void test_get_free_returns_max_long_if_breaking_is_disabled() {
         var breaker = new ChildMemoryCircuitBreaker(
             new BreakerSettings("test", -1, CircuitBreaker.Type.MEMORY),
-            LogManager.getLogger(getClass()),
             null
         );
 
@@ -44,7 +42,6 @@ public class ChildMemoryCircuitBreakerTest {
     public void test_get_free_returns_zero_if_usage_is_disabled() {
         var breaker = new ChildMemoryCircuitBreaker(
             new BreakerSettings("test", 0, CircuitBreaker.Type.MEMORY),
-            LogManager.getLogger(getClass()),
             null
         );
 
