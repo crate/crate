@@ -32,7 +32,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.test.IntegTestCase;
@@ -430,32 +429,18 @@ public class AlterTableIntegrationTest extends IntegTestCase {
 
         cluster().fullRestart();
 
-        assertBusy(() -> {
-            try {
-                var res = execute("SELECT * FROM q1_old order by a");
-                assertThat(res).hasRows("1", "2");
-            } catch (Exception e) {
-                // Ignore possible ShardUnavailableException
-            }
-        }, 20, TimeUnit.SECONDS);
+        ensureGreen();
 
+        var res = execute("SELECT * FROM q1_old order by a");
+        assertThat(res).hasRows("1", "2");
 
-        assertBusy(() -> {
-            try {
-                var res = execute("SELECT * FROM q1 order by a");
-                assertThat(res).hasRows("3", "4");
-            } catch (Exception e) {
-                // Ignore possible ShardUnavailableException
-            }
-        }, 20, TimeUnit.SECONDS);
+        res = execute("SELECT * FROM q1 order by a");
+        assertThat(res).hasRows("3", "4");
 
-        assertBusy(
-            () -> assertSQLError(() -> execute("SELECT * FROM q2"))
+        assertSQLError(() -> execute("SELECT * FROM q2"))
             .hasPGError(UNDEFINED_TABLE)
             .hasHTTPError(NOT_FOUND, 4041)
-            .hasMessageContaining("Relation 'q2' unknown"),
-            20,
-            TimeUnit.SECONDS
-        );
+            .hasMessageContaining("Relation 'q2' unknown");
+
     }
 }
