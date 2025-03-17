@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.data.breaker.RamAccounting;
@@ -143,14 +144,20 @@ public final class RamAccountingQueue<T> implements Queue<T> {
         return delegate.offer(o);
     }
 
+    private T deallocate(T item) {
+        long elementSize = getElementSize.applyAsLong(item);
+        ramAccounting.addBytes(- elementSize);
+        return item;
+    }
+
     @Override
     public T remove() {
-        return delegate.remove();
+        return deallocate(delegate.remove());
     }
 
     @Override
     public T poll() {
-        return delegate.poll();
+        return deallocate(delegate.poll());
     }
 
     @Override
@@ -166,6 +173,12 @@ public final class RamAccountingQueue<T> implements Queue<T> {
     public void release() {
         delegate.clear();
         ramAccounting.release();
+    }
+
+
+    @VisibleForTesting
+    long usedBytes() {
+        return ramAccounting.totalBytes();
     }
 
     /**
