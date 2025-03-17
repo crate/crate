@@ -124,6 +124,9 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance for ``SELECT COUNT(not_null_column) FROM tbl``. It is
+  now executed the same way as ``SELECT COUNT(*) FROM tbl``.
+
 - Improved the handling of temporary unavailable shards during read-only
   queries. There's now a higher chance that the system can deal with the
   temporary failure without surfacing the error to the client.

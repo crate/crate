@@ -739,6 +739,21 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan.mergePhase().projections()).hasSize(1);
         assertThat(plan.mergePhase().projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
+
+        LogicalPlan logicalPlan = e.logicalPlan("select count(name) from users");
+        assertThat(logicalPlan)
+            .as("Uses HashAggregate for count on nullable column")
+            .hasOperators(
+                "HashAggregate[count(name)]",
+                "  └ Collect[doc.users | [name] | true]"
+            );
+
+        logicalPlan = e.logicalPlan("select count(id) from users");
+        assertThat(logicalPlan)
+            .as("Uses Count operator for count on not-null column")
+            .hasOperators(
+                "Count[doc.users | true]"
+            );
     }
 
     @Test
