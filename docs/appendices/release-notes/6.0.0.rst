@@ -147,5 +147,10 @@ Administration and Operations
   to give more information on ongoing merges and whether the recovery source is
   still present in merged segments.
 
+- Added the :ref:`sys.cluster_health <sys-cluster_health>` table to provide
+  information about the health of the whole cluster in comparison to
+  the :ref:`sys.health <sys-health>` table which exposes health about each
+  table only.
+
 Client interfaces
 -----------------

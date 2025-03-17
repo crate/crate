@@ -124,6 +124,7 @@ number of replicas.
     | sys                | allocations                       | BASE TABLE |             NULL | NULL               |
     | sys                | checks                            | BASE TABLE |             NULL | NULL               |
     | sys                | cluster                           | BASE TABLE |             NULL | NULL               |
+    | sys                | cluster_health                    | BASE TABLE |             NULL | NULL               |
     | sys                | health                            | BASE TABLE |             NULL | NULL               |
     | sys                | jobs                              | BASE TABLE |             NULL | NULL               |
     | sys                | jobs_log                          | BASE TABLE |             NULL | NULL               |
@@ -143,7 +144,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 76 rows in set (... sec)
+    SELECT 77 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
