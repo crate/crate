@@ -152,12 +152,23 @@ public final class SqlFormatter {
     }
 
     public static String formatSql(Node root) {
-        return formatSql(root, null);
+        return formatSql(root, null, "\n", 1);
+    }
+
+    /**
+     * Format the SQL without any newlines or indentation (inline), useful for error messages.
+     */
+    public static String formatSqlInline(Node root) {
+        return formatSql(root, null, "", 0);
     }
 
     public static String formatSql(Node root, @Nullable List<Expression> parameters) {
+        return formatSql(root, parameters, "\n", 1);
+    }
+
+    private static String formatSql(Node root, @Nullable List<Expression> parameters, String newLine, int indentBy) {
         StringBuilder builder = new StringBuilder();
-        Formatter formatter = new Formatter(builder, parameters);
+        Formatter formatter = new Formatter(builder, parameters, newLine, indentBy);
         root.accept(formatter, 0);
         return builder.toString();
     }
@@ -167,10 +178,14 @@ public final class SqlFormatter {
 
         @Nullable
         private final List<Expression> parameters;
+        private final String newLine;
+        private final int indentBy;
 
-        Formatter(StringBuilder builder, @Nullable List<Expression> parameters) {
+        Formatter(StringBuilder builder, @Nullable List<Expression> parameters, String newLine, int indentBy) {
             this.builder = builder;
             this.parameters = parameters;
+            this.newLine = newLine;
+            this.indentBy = indentBy;
         }
 
         @Override
@@ -484,21 +499,22 @@ public final class SqlFormatter {
             node.getQueryBody().accept(this, indent);
 
             if (!node.getOrderBy().isEmpty()) {
+                append(indent, " ");
                 append(indent,
                     "ORDER BY " + node.getOrderBy().stream()
                         .map(e -> formatSortItem(e, parameters))
                         .collect(COMMA_JOINER)
-                ).append('\n');
+                ).append(newLine);
             }
 
             if (node.getLimit().isPresent()) {
                 append(indent, "LIMIT " + node.getLimit().get())
-                    .append('\n');
+                    .append(newLine);
             }
 
             if (node.getOffset().isPresent()) {
                 append(indent, "OFFSET " + node.getOffset().get())
-                    .append('\n');
+                    .append(newLine);
             }
 
             return null;
@@ -509,15 +525,16 @@ public final class SqlFormatter {
             node.getSelect().accept(this, indent);
 
             if (!node.getFrom().isEmpty()) {
+                appendNewLineOrSpace();
                 append(indent, "FROM");
                 if (node.getFrom().size() > 1) {
-                    builder.append('\n');
-                    append(indent, "  ");
+                    appendNewLineOrSpace();
+                    append(indent, " ");
                     Iterator<Relation> relations = node.getFrom().iterator();
                     while (relations.hasNext()) {
                         relations.next().accept(this, indent);
                         if (relations.hasNext()) {
-                            builder.append('\n');
+                            builder.append(newLine);
                             append(indent, ", ");
                         }
                     }
@@ -527,33 +544,32 @@ public final class SqlFormatter {
                 }
             }
 
-            builder.append('\n');
-
             if (node.getWhere().isPresent()) {
-                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere().get(), parameters))
-                    .append('\n');
+                appendNewLineOrSpace();
+                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere().get(), parameters));
             }
 
             if (node.getGroupBy().isPresent()) {
+                appendNewLineOrSpace();
                 GroupBy groupBy = node.getGroupBy().get();
                 if (groupBy.isAll()) {
-                    append(indent, "GROUP BY ALL\n");
+                    append(indent, "GROUP BY ALL");
                 } else if (!groupBy.getExpressions().isEmpty()) {
                     append(indent, "GROUP BY ");
                     append(indent,
                         groupBy.getExpressions().stream()
                             .map(e -> formatStandaloneExpression(e, parameters))
                             .collect(COMMA_JOINER));
-                    builder.append('\n');
                 }
             }
 
             if (node.getHaving().isPresent()) {
-                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get(), parameters))
-                    .append('\n');
+                appendNewLineOrSpace();
+                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get(), parameters));
             }
 
             if (!node.getWindows().isEmpty()) {
+                appendNewLineOrSpace();
                 append(indent, "WINDOW ");
                 var windows = node.getWindows().entrySet().iterator();
                 while (windows.hasNext()) {
@@ -564,26 +580,27 @@ public final class SqlFormatter {
                         append(indent, ", ");
                     }
                 }
-                builder.append('\n');
             }
 
             if (!node.getOrderBy().isEmpty()) {
+                appendNewLineOrSpace();
                 append(indent,
                     "ORDER BY " + node.getOrderBy().stream()
                         .map(e -> formatSortItem(e, parameters))
                         .collect(COMMA_JOINER)
-                ).append('\n');
+                );
             }
 
             if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
-                    .append('\n');
+                appendNewLineOrSpace();
+                append(indent, "LIMIT " + node.getLimit().get());
             }
 
             if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
-                    .append('\n');
+                appendNewLineOrSpace();
+                append(indent, "OFFSET " + node.getOffset().get());
             }
+            builder.append(newLine);
             return null;
         }
 
@@ -623,9 +640,9 @@ public final class SqlFormatter {
             if (node.getSelectItems().size() > 1) {
                 boolean first = true;
                 for (SelectItem item : node.getSelectItems()) {
-                    builder.append("\n")
-                        .append(indentString(indent))
-                        .append(first ? "  " : ", ");
+                    builder.append(newLine)
+                        .append(indentString(indent));
+                    builder.append(first ? " " : ", ");
 
                     item.accept(this, indent);
                     first = false;
@@ -635,7 +652,6 @@ public final class SqlFormatter {
                 Lists.getOnlyElement(node.getSelectItems()).accept(this, indent);
             }
 
-            builder.append('\n');
             return null;
         }
 
@@ -706,16 +722,16 @@ public final class SqlFormatter {
 
             Optional<ClusteredBy> clusteredBy = node.clusteredBy();
             if (clusteredBy.isPresent()) {
-                builder.append("\n");
+                appendNewLineOrSpace();
                 clusteredBy.get().accept(this, indent);
             }
             Optional<PartitionedBy> partitionedBy = node.partitionedBy();
             if (partitionedBy.isPresent()) {
-                builder.append("\n");
+                appendNewLineOrSpace();
                 partitionedBy.get().accept(this, indent);
             }
             if (!node.properties().isEmpty()) {
-                builder.append("\n");
+                appendNewLineOrSpace();
                 node.properties().accept(this, indent);
             }
             return null;
@@ -852,7 +868,7 @@ public final class SqlFormatter {
             builder.append("CREATE ").append(node.isUser() ? "USER " : "ROLE ");
             builder.append(quoteIdentifierIfNeeded(node.name())).append(" ");
             if (node.properties() != null && node.properties().isEmpty() == false) {
-                builder.append("\n");
+                builder.append(newLine);
                 node.properties().accept(this, indent);
             }
             return null;
@@ -944,7 +960,8 @@ public final class SqlFormatter {
         @Override
         public Void visitGenericProperties(GenericProperties<?> node, Integer indent) {
             if (node.isEmpty() == false) {
-                builder.append("WITH (\n");
+                builder.append("WITH (");
+                builder.append(newLine);
                 appendProperties(node, indent);
                 append(indent, ")");
             }
@@ -1154,11 +1171,13 @@ public final class SqlFormatter {
         @Override
         protected Void visitUnion(Union node, Integer context) {
             node.getLeft().accept(this, context);
-            builder.append(" UNION ");
+            append(context, " ");
+            builder.append("UNION");
             if (!node.isDistinct()) {
-                builder.append(" ALL");
+                append(context, " ");
+                builder.append("ALL");
             }
-            builder.append(" ");
+            append(context, " ");
             node.getRight().accept(this, context);
             return null;
         }
@@ -1174,7 +1193,7 @@ public final class SqlFormatter {
             builder.append('(');
             node.getLeft().accept(this, indent);
 
-            builder.append('\n');
+            builder.append(newLine);
             append(indent, type).append(" JOIN ");
 
             node.getRight().accept(this, indent);
@@ -1208,9 +1227,9 @@ public final class SqlFormatter {
         @Override
         protected Void visitTableSubquery(TableSubquery node, Integer indent) {
             builder.append('(')
-                .append('\n');
+                .append(newLine);
 
-            node.getQuery().accept(this, indent + 1);
+            node.getQuery().accept(this, indent + indentBy);
 
             append(indent, ")");
 
@@ -1405,7 +1424,7 @@ public final class SqlFormatter {
                     builder.append(",");
                 }
             }
-            builder.append("\n");
+            builder.append(newLine);
             return null;
         }
 
@@ -1565,7 +1584,7 @@ public final class SqlFormatter {
             int count = 0;
             Map<String, Expression> sortedMap = ((GenericProperties<Expression>) properties).toMap(TreeMap::new);
             for (Map.Entry<String, Expression> propertyEntry : sortedMap.entrySet()) {
-                builder.append(indentString(indent + 1));
+                builder.append(indentString(indent + indentBy));
                 String key = propertyEntry.getKey();
                 if (propertyEntry.getKey().contains(".")) {
                     key = String.format(Locale.ENGLISH, "\"%s\"", key);
@@ -1575,7 +1594,7 @@ public final class SqlFormatter {
                 if (++count < properties.size()) {
                     builder.append(",");
                 }
-                builder.append("\n");
+                builder.append(newLine);
             }
         }
 
@@ -1641,35 +1660,44 @@ public final class SqlFormatter {
         }
 
         private void appendFlatNodeList(List<? extends Node> nodes, Integer indent) {
-            int count = 0;
-            int max = nodes.size();
-            builder.append("(");
-            for (Node node : nodes) {
-                node.accept(this, indent);
-                if (++count < max) {
-                    builder.append(", ");
-                }
-            }
-            builder.append(")");
+            appendNestedNodeList(nodes, 0, "", 0);
         }
 
         private void appendNestedNodeList(List<? extends Node> nodes, Integer indent) {
+            appendNestedNodeList(nodes, indent, newLine, indentBy);
+        }
+
+        private void appendNestedNodeList(List<? extends Node> nodes, Integer indent, String newLine, int indentBy) {
             int count = 0;
             int max = nodes.size();
-            builder.append("(\n");
+            builder.append("(");
+            builder.append(newLine);
             for (Node node : nodes) {
-                builder.append(indentString(indent + 1));
-                node.accept(this, indent + 1);
+                builder.append(indentString(indent + indentBy));
+                node.accept(this, indent + indentBy);
                 if (++count < max) {
                     builder.append(",");
+                    if (newLine.isEmpty()) {
+                        builder.append(" ");
+                    }
                 }
-                builder.append("\n");
+                builder.append(newLine);
             }
             append(indent, ")");
         }
 
         private StringBuilder append(int indent, String value) {
-            return builder.append(indentString(indent)).append(value);
+            builder.append(indentString(indent));
+            return builder.append(value);
+        }
+
+        private StringBuilder appendNewLineOrSpace() {
+            if (newLine.isEmpty()) {
+                builder.append(" ");
+            } else {
+                builder.append(newLine);
+            }
+            return builder;
         }
 
         private static String indentString(int indent) {

@@ -1677,7 +1677,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    void test_array_overlap_operator() {
+    public void test_array_overlap_operator() {
         Expression expression = SqlParser.createExpression("[1] && [2]");
         assertThat(expression).isExactlyInstanceOf(FunctionCall.class);
         FunctionCall functionCall = (FunctionCall) expression;
@@ -2167,7 +2167,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    void test_alter_server() {
+    public void test_alter_server() {
         printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo', SET dbname 'cratedb', DROP port)");
         printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo')");
         printStatement("ALTER SERVER jarvis OPTIONS (SET dbname 'cratedb')");
@@ -2177,7 +2177,7 @@ public class TestStatementBuilder {
 
     @SuppressWarnings("unchecked")
     @Test
-    void test_alter_server_default_option_operation_is_add() {
+    public void test_alter_server_default_option_operation_is_add() {
         AlterServer<Expression> alterServer = (AlterServer<Expression>) SqlParser.createStatement("ALTER SERVER jarvis OPTIONS (host 'foo')");
         assertThat(alterServer.options()).contains(new AlterServer.Option<>(AlterServer.Operation.ADD, "host", new StringLiteral("foo")));
     }
@@ -2286,7 +2286,8 @@ public class TestStatementBuilder {
 
             println(SqlFormatter.formatSql(statement));
             println("");
-            assertFormattedSql(statement);
+            assertFormattedSql(statement, SqlFormatter::formatSql);
+            assertFormattedSql(statement, SqlFormatter::formatSqlInline);
         }
 
         println("=".repeat(60));

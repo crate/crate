@@ -147,17 +147,19 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
 
         // Fields does not exist
-        // STRICT
+        // STRICT (error based on type definition)
         assertThatThrownBy(() -> execute("CREATE TABLE test_strict AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (STRICT) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+            .hasMessageContaining("The cast of `'{\"field1\":123}'` to return type `OBJECT(STRICT) AS (\"field1\" BIGINT)` does not contain the key `field2`.\n" +
+                "Consider to include inner type definition in the `OBJECT` type while casting, disable DYNAMIC unknown key errors by the `error_on_unknown_object_key` setting or cast to `OBJECT(IGNORED)`.");
 
-        // DYNAMIC
+        // DYNAMIC (error based on type definition)
         assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("The object `{field1=123}` does not contain the key `field2`");
+            .hasMessageContaining("The cast of `'{\"field1\":123}'` to return type `OBJECT(DYNAMIC) AS (\"field1\" BIGINT)` does not contain the key `field2`.\n" +
+                "Consider to include inner type definition in the `OBJECT` type while casting, disable DYNAMIC unknown key errors by the `error_on_unknown_object_key` setting or cast to `OBJECT(IGNORED)`.");
 
-        // IGNORED
+        // IGNORED (error while using an undefined column as it cannot be stored)
         assertThatThrownBy(() -> execute("CREATE TABLE test_ignored AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (IGNORED) AS (field1 BIGINT) ['field2']"))
             .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
@@ -165,7 +167,7 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         try (Session session = sqlExecutor.newSession()) {
             execute("SET SESSION error_on_unknown_object_key=false", session);
 
-            // DYNAMIC
+            // DYNAMIC (same as IGNORED, error while using an undefined column as it cannot be stored)
             assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
                 "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']", session))
                 .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");

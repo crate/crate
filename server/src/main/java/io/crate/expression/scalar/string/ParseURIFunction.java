@@ -35,17 +35,30 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public final class ParseURIFunction extends Scalar<Object, String> {
 
     private static final String NAME = "parse_uri";
 
+    // Our type signatures do not support carrying over the column policy, so lets just use the default one (DYNAMIC)
+    private static final ObjectType RETURN_TYPE = ObjectType.of(ColumnPolicy.DYNAMIC)
+        .setInnerType("scheme", DataTypes.STRING)
+        .setInnerType("userinfo", DataTypes.STRING)
+        .setInnerType("hostname", DataTypes.STRING)
+        .setInnerType("port", DataTypes.INTEGER)
+        .setInnerType("path", DataTypes.STRING)
+        .setInnerType("query", DataTypes.STRING)
+        .setInnerType("fragment", DataTypes.STRING)
+        .build();
+
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
-                .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ParseURIFunction::new
@@ -66,10 +79,10 @@ public final class ParseURIFunction extends Scalar<Object, String> {
         return parseURI(uri);
     }
 
-    private final Object parseURI(String uriText) {
+    private static Object parseURI(String uriText) {
         final Map<String, Object> uriMap = new HashMap<>();
 
-        URI uri = null;
+        URI uri;
 
         try {
             uri = new URI(uriText);

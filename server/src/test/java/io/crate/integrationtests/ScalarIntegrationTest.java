@@ -53,11 +53,12 @@ public class ScalarIntegrationTest extends IntegTestCase {
                         session))
                 .isExactlyInstanceOf(ColumnUnknownException.class)
                 .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
+            // Different error due to wrapping the unnest in an array
             Assertions.assertThatThrownBy(() -> sqlExecutor.exec(
                     "SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                     session))
                 .isExactlyInstanceOf(ColumnUnknownException.class)
-                .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
+                .hasMessageContaining("The return type `ARRAY(OBJECT(DYNAMIC))` of the expression `[unnest.unnest]` does not contain the key `x`");
         }
 
         try (var session2 = sqlExecutor.newSession()) {

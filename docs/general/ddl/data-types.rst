@@ -3520,7 +3520,10 @@ Example usages:
     +-----+
     SELECT 1 row in set (... sec)
 
-It is also possible to convert array structures to different data types, e.g.
+``CAST to ARRAY``
+'''''''''''''''''
+
+It is possible to convert array structures to different data types, e.g.
 converting an array of integer values to a boolean array.
 
 ::
@@ -3533,20 +3536,97 @@ converting an array of integer values to a boolean array.
     +---------------------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
 
-   It is not possible to cast to or from ``OBJECT``, ``GEO_POINT``, and
-   ``GEO_SHAPE`` types.
+.. _cast_to_object:
 
+``CAST to OBJECT``
+''''''''''''''''''
+
+The following data types can be converted to an :ref:`OBJECT <type-object>` type:
+ - any :ref:`CHARACTER <data-types-character-data>` type if it is a valid
+   :ref:`JSON <data-type-json>` string.
+ - :ref:`GEO_SHAPE <type-geo_shape>`
+ - :ref:`OBJECT <type-object>`
+
+When casting from an object to an object (or array of objects), the resulting
+object type will contain all inner types from both types if the target
+:ref:`column policy <type-object-column-policy>` is not set to
+:ref:`type-object-columns-strict`. If both types contain the same inner key,
+the target inner type definition will be used. Additionally, the resulting
+:ref:`column policy <type-object-column-policy>` is taken from the target type.
+
+The availability of the inner types in the resulting object type is important
+when trying to access the keys of an object. The following examples will
+demonstrate how the object type merges and policy will affect a subscript
+expression on the resulting object type.
+
+By default, the target type policy is set to :ref:`type-object-columns-dynamic`,
+such selecting any type not contained in the source expression type will lead
+to an error if :ref:`conf-session-error_on_unknown_object_key` is `true`.
+
+.. HIDE:
+
+    cr> SET SESSION error_on_unknown_object_key = true;
+    SET OK, 0 rows affected (... sec)
+
+::
+
+    cr> SELECT person['name'], person['age'] FROM (SELECT {name = 'Alice'}::OBJECT AS person) t;
+    ColumnUnknownException[Column person['age'] unknown]
+
+When defining additional inner types in the target object type, these keys can
+be queried even that they do not exist in the source object type or value.
+
+::
+
+    cr> SELECT person['name'], person['age'] FROM (SELECT {name = 'Alice'}::OBJECT AS(age INT) AS person) t;
+    +----------------+---------------+
+    | person['name'] | person['age'] |
+    +----------------+---------------+
+    | Alice          | NULL          |
+    +----------------+---------------+
+    SELECT 1 row in set (... sec)
+
+If the the target type policy is changed to :ref:`type-object-columns-strict`,
+selecting any key not defined at the target type will lead to an error.
+
+::
+
+    cr> SELECT person['name'], person['age'] FROM (SELECT {name = 'Alice'}::OBJECT(STRICT) AS(age INT) AS person) t;
+    ColumnUnknownException[Column person['name'] unknown]
+
+In contrast, changing the target type policy to
+:ref:`type-object-columns-ignored` will allow selecting any key from the object,
+even if it is not defined in the target type.
+
+::
+
+    cr> SELECT person['name'], person['age'] FROM (SELECT {name = 'Alice'}::OBJECT(IGNORED) AS person) t;
+    +----------------+---------------+
+    | person['name'] | person['age'] |
+    +----------------+---------------+
+    | Alice          | NULL          |
+    +----------------+---------------+
+    SELECT 1 row in set (... sec)
+
+.. Note::
+
+    When the source type is not an :ref:`OBJECT <type-object>` type, or it does
+    not contain any inner type definition and the target
+    :ref:`OBJECT <type-object>` type does not as well, the resulting
+    :ref:`OBJECT <type-object>` is always untyped and a query on any object
+    property will return an ``UNDEFINED`` type as the value type is not known
+    until the expression gets evaluated. This is important when using the
+    resulting symbol as an argument to any other expression.
 
 .. _fn-try-cast:
 
 ``TRY_CAST``
 ''''''''''''
 
-While ``CAST`` throws an error for incompatible type casts, ``TRY_CAST``
-returns ``null`` in this case. Otherwise the result is the same as with
-``CAST``.
+While :ref:`CAST <fn-cast>` throws an error for incompatible type casts,
+``TRY_CAST`` returns ``null`` in this case. Otherwise the result and behaviour
+is the same as with :ref:`CAST <fn-cast>`.
 
 ::
 
