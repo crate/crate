@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import static io.crate.testing.Asserts.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,7 +34,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -80,10 +82,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     }
 
     public static CircuitBreaker breaker() {
-        CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
-        // mocked CircuitBreaker has unlimited memory (⌐■_■)
-        when(circuitBreaker.getLimit()).thenReturn(Long.MAX_VALUE);
-        return circuitBreaker;
+        return new NoopCircuitBreaker("test");
     }
 
     @Test
@@ -143,9 +142,13 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     @Test
     public void testTimedRamAccountingQueueSink() throws Exception {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
-        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), x -> 0);
+        ChildMemoryCircuitBreaker breaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings("test", Integer.MAX_VALUE, CircuitBreaker.Type.MEMORY),
+            new NoneCircuitBreakerService()
+        );
+        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker, x -> 10);
         TimeValue timeValue = TimeValue.timeValueSeconds(1L);
-        ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(1000L, 1000L, q, scheduler, timeValue);
+        ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(1000L, 1000L, ramAccountingQueue, scheduler, timeValue);
         logSink = new QueueSink<>(ramAccountingQueue, () -> {
             task.cancel(false);
             ramAccountingQueue.release();
@@ -155,6 +158,11 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
             logSink.add(new NoopLog());
         }
         assertThat(ramAccountingQueue).hasSize(100);
+        assertThat(ramAccountingQueue.usedBytes()).isEqualTo(1_000);
+
         assertBusy(() -> assertThat(ramAccountingQueue).isEmpty(), 10, TimeUnit.SECONDS);
+
+        assertThat(ramAccountingQueue.usedBytes()).isEqualTo(0L);
+        assertThat(breaker.getUsed()).isEqualTo(0L);
     }
 }
