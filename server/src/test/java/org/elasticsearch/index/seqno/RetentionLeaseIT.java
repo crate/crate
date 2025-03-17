@@ -82,7 +82,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "with (number_of_replicas = ?)",
             new Object[] { numberOfReplicas }
         );
-        ensureGreen("tbl");
+        ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
@@ -131,7 +131,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         execute("create table doc.tbl (x int) clustered into 1 shards with (number_of_replicas = ?)",
                 new Object[]{numberOfReplicas});
 
-        ensureGreen("tbl");
+        ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
@@ -199,7 +199,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 retentionLeaseTimeToLive.getStringRep()
             }
         );
-        ensureGreen("tbl");
+        ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
@@ -274,7 +274,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             }
         );
 
-        ensureGreen("tbl");
+        ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
@@ -336,7 +336,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             }
         );
         allowNodes("tbl", 1);
-        ensureYellow("tbl");
+        ensureYellow();
         execute("alter table doc.tbl set (number_of_replicas = ?)", new Object[] { numberOfReplicas });
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
@@ -381,7 +381,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
         // now allow the replicas to be allocated and wait for recovery to finalize
         allowNodes("tbl", 1 + numberOfReplicas);
-        ensureGreen("tbl");
+        ensureGreen();
 
         // check current retention leases have been synced to all replicas
         for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
@@ -400,7 +400,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
-    public void testCanAddRetentionLeaseUnderBlock() throws InterruptedException {
+    public void testCanAddRetentionLeaseUnderBlock() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         runUnderBlockTest(
                 idForInitialRetentionLease,
@@ -415,7 +415,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
-    public void testCanRenewRetentionLeaseUnderBlock() throws InterruptedException {
+    public void testCanRenewRetentionLeaseUnderBlock() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         final long initialRetainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
         final AtomicReference<RetentionLease> retentionLease = new AtomicReference<>();
@@ -445,7 +445,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
     }
 
-    public void testCanRemoveRetentionLeasesUnderBlock() throws InterruptedException {
+    @Test
+    public void testCanRemoveRetentionLeasesUnderBlock() throws Exception {
         final String idForInitialRetentionLease = randomAlphaOfLength(8);
         runUnderBlockTest(
                 idForInitialRetentionLease,
@@ -458,7 +459,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             final String idForInitialRetentionLease,
             final long initialRetainingSequenceNumber,
             final BiConsumer<IndexShard, ActionListener<ReplicationResponse>> primaryConsumer,
-            final Consumer<IndexShard> afterSync) throws InterruptedException {
+            final Consumer<IndexShard> afterSync) throws Exception {
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
@@ -466,7 +467,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             "   \"soft_deletes.retention_lease.sync_interval\" = '1s' " +
             ")"
         );
-        ensureGreen("tbl");
+        ensureGreen();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();

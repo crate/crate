@@ -31,6 +31,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -822,6 +823,20 @@ public class SQLExecutor {
             clusterState = allocationService.applyStartedShards(clusterState, startedShards);
         }
         clusterState = allocationService.reroute(clusterState, "reroute after starting");
+        ClusterServiceUtils.setState(clusterService, clusterState);
+        return this;
+    }
+
+    public SQLExecutor failShards(String... indices) {
+        var clusterState = clusterService.state();
+        for (var index : indices) {
+            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
+            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, STARTED);
+            for (ShardRouting shard : startedShards) {
+                clusterState = allocationService.applyFailedShard(clusterState, shard, false);
+            }
+        }
+        clusterState = allocationService.reroute(clusterState, "reroute after failing shards");
         ClusterServiceUtils.setState(clusterService, clusterState);
         return this;
     }

@@ -35,7 +35,6 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("create table employees (id integer, name string, office_id integer, profession_id integer)");
         execute("create table offices (id integer, name string, size integer)");
         execute("create table professions (id integer, name string)");
-        ensureYellow();
         execute("insert into employees (id, name, office_id, profession_id) values" +
                 " (1, 'Trillian', 2, 3), (2, 'Ford Perfect', 4, 2), (3, 'Douglas Adams', 3, 1)");
         execute("insert into offices (id, name, size) values (1, 'Hobbit House', 10), (2, 'Entresol', 70), (3, 'Chief Office', 150)");

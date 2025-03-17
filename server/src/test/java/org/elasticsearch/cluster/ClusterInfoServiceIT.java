@@ -58,7 +58,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
         if (randomBoolean()) {
             execute("alter table test close");
         }
-        ensureGreen("test");
+        ensureGreen();
         TestCluster internalTestCluster = cluster();
         // Get the cluster info service on the master node
         final InternalClusterInfoService infoService = (InternalClusterInfoService) internalTestCluster

@@ -98,6 +98,9 @@ SQL Standard and PostgreSQL Compatibility
   :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
   and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
 
+- Populated the ``pg_index.indnkeyatts`` column with the number of key
+  attributes in the primary key.
+
 Data Types
 ----------
 
@@ -143,6 +146,11 @@ Administration and Operations
 - Added ``merge_id`` and ``fully_merged_docs`` columns to the sys.segments table
   to give more information on ongoing merges and whether the recovery source is
   still present in merged segments.
+
+- Added the :ref:`sys.cluster_health <sys-cluster_health>` table to provide
+  information about the health of the whole cluster in comparison to
+  the :ref:`sys.health <sys-health>` table which exposes health about each
+  table only.
 
 Client interfaces
 -----------------

@@ -29,6 +29,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -325,7 +326,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
-        ensureYellow();
 
         try (Session testUserSession = testUserSession()) {
             execute("select * from t1_renamed", null, testUserSession);
@@ -354,7 +354,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
-        ensureYellow();
 
         try (Session testUserSession = testUserSession()) {
             execute("select * from t1_renamed", null, testUserSession);
@@ -369,7 +368,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
-        ensureYellow();
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
@@ -390,7 +388,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop view v1");
-        ensureYellow();
 
         executeAsSuperuser("create view doc.v1 as select 1");
         Asserts.assertSQLError(() -> {
@@ -411,7 +408,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
-        ensureYellow();
 
         executeAsSuperuser("select * from sys.privileges where grantee = ? and ident = ?",
                            new Object[] {TEST_USERNAME, "doc.t1"});
@@ -433,7 +429,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("create table doc.t1 (x int)");
         executeAsSuperuser("set search_path to 'custom_schema'");
         executeAsSuperuser("create table t2 (x int)");
-        ensureYellow();
 
         executeAsSuperuser("grant dql on table t2 to " + TEST_USERNAME);
         assertThat(response).hasRowCount(1L);
@@ -459,7 +454,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     public void testOperationOnClosedTableAsAuthorizedUser() {
         executeAsSuperuser("create table s.t1 (x int)");
         executeAsSuperuser("alter table s.t1 close");
-        ensureYellow();
 
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         assertThat(response).hasRowCount(1L);
@@ -482,7 +476,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on schema test to " + TEST_USERNAME);
         executeAsSuperuser("deny dql on schema doc to " + TEST_USERNAME);
         assertThat(response).hasRowCount(1L);
-        ensureYellow();
 
         try (Session testUserSession = testUserSession("s")) {
             execute("select t.x from test.test as t", null, testUserSession);
@@ -497,7 +490,6 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         executeAsSuperuser("deny dql on schema doc to " + TEST_USERNAME);
         assertThat(response).hasRowCount(1L);
-        ensureYellow();
 
         try (Session testUserSession = testUserSession("s")) {
             execute("select t.x from (select x from t1) as t", null, testUserSession);

@@ -23,6 +23,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
@@ -264,7 +265,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> create index test");
         execute("create table doc.test (x int)");
-        ensureGreen("test");
+        ensureGreen();
 
         Settings master1DataPathSettings = cluster().dataPathSettings(masterNodes.get(0));
         Settings master2DataPathSettings = cluster().dataPathSettings(masterNodes.get(1));
@@ -323,7 +324,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         });
 
         logger.info("--> ensure index test is green");
-        ensureGreen("test");
+        ensureGreen();
         IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
         assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
 
@@ -361,7 +362,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         execute("insert into doc.test values(1)");
         execute("refresh table doc.test");
-        ensureGreen("test");
+        ensureGreen();
 
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
@@ -405,7 +406,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
                 "1"
             );
         });
-        ensureGreen("test");
+        ensureGreen();
 
         logger.info("--> verify the doc is there");
         execute("select count(*) from doc.test");

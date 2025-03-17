@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -384,7 +385,6 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     @Test
     public void testNotEqualAnyWithAndWithoutThreeValuedLogic() {
         execute("create table t1 (a array(integer)) clustered into 2 shards with (number_of_replicas = 0)");
-        ensureYellow();
 
         execute("insert into t1(a) values ([1, 2, 3])");
         execute("insert into t1(a) values ([1, 2, 3, null])");

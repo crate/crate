@@ -68,8 +68,16 @@ Fixes
   caused settings set by the ``SET GLOBAL TRANSIENT`` statement be persisted
   and survive cluster restart.
 
+- Fixed a regression introduced in :ref:`version_5.10.0` that
+  caused ``CREATE SNAPSHOT`` to write more data and, as a consequence, use more
+  memory when creating incremental snapshots and reading data of the previously
+  taken snapshots and fail with ``OutOfMemoryError`` under memory pressure.
+
 - Fixed an issue that caused selecting from partitioned tables created before
   :ref:`version_5.5.0` to falsely return `NULL` values.
 
 - Fixed an issue that caused selecting from partitioned tables created before
   :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
+
+- Fixed an issue that caused replica shards of partitioned tables created
+  before :ref:`version_5.5.0` to fail to be allocated.

@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
 
@@ -36,7 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -50,7 +50,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.env.Environment;
@@ -200,7 +199,7 @@ public class DiskUsagesITest extends IntegTestCase {
     }
 
     @Test
-    public void testDoesNotExceedLowWatermarkWhenRebalancing() {
+    public void testDoesNotExceedLowWatermarkWhenRebalancing() throws Exception {
         for (int i = 0; i < 3; i++) {
             // ensure that each node has a single data path
             cluster().startNode(
@@ -424,9 +423,6 @@ public class DiskUsagesITest extends IntegTestCase {
                 IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK
             );
         });
-
-        assertThat(FutureUtils.get(client().admin().cluster()
-            .health(new ClusterHealthRequest("test").waitForEvents(Priority.LANGUID))).isTimedOut()).isFalse();
 
         // Cannot add further documents
         assertBlocked(
