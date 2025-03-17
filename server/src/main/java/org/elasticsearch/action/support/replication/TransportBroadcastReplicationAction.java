@@ -35,7 +35,6 @@ import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedE
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -51,6 +50,8 @@ import io.crate.exceptions.SQLExceptions;
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
  * This action sends shard requests to all primary shards of the indices and they are then replicated like write requests
+ * <p/>
+ * The indices set on a BroadcastRequest should already be resolved to concrete index names
  */
 public abstract class TransportBroadcastReplicationAction<Request extends BroadcastRequest<Request>, Response extends BroadcastResponse, ShardRequest extends ReplicationRequest<ShardRequest>, ShardResponse extends ReplicationResponse>
         extends HandledTransportAction<Request, Response> {
@@ -76,7 +77,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         final ClusterState clusterState = clusterService.state();
         List<ShardId> shards = shards(request, clusterState);
         final CopyOnWriteArrayList<ShardResponse> shardsResponses = new CopyOnWriteArrayList<>();
-        if (shards.size() == 0) {
+        if (shards.isEmpty()) {
             finishAndNotifyListener(listener, shardsResponses);
         }
         final CountDown responsesCountDown = new CountDown(shards.size());
@@ -125,8 +126,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
      */
     protected List<ShardId> shards(Request request, ClusterState clusterState) {
         List<ShardId> shardIds = new ArrayList<>();
-        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
-        for (String index : concreteIndices) {
+        for (String index : request.indices()) {
             IndexMetadata indexMetadata = clusterState.metadata().indices().get(index);
             if (indexMetadata != null) {
                 IndexRoutingTable indexRoutingTable = clusterState.routingTable().indicesRouting().get(index);
@@ -150,9 +150,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         List<DefaultShardOperationFailedException> shardFailures = null;
         for (int i = 0; i < shardsResponses.size(); i++) {
             ReplicationResponse shardResponse = shardsResponses.get(i);
-            if (shardResponse == null) {
-                // non active shard, ignore
-            } else {
+            if (shardResponse != null) {
                 failedShards += shardResponse.getShardInfo().getFailed();
                 successfulShards += shardResponse.getShardInfo().getSuccessful();
                 totalNumCopies += shardResponse.getShardInfo().getTotal();
