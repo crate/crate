@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -81,7 +80,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import io.crate.common.unit.TimeValue;
 
@@ -205,12 +203,9 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
 
     @Test
     public void testShardIsFlushed() throws Throwable {
-        final ArgumentCaptor<FlushRequest> flushRequest = ArgumentCaptor.forClass(FlushRequest.class);
-        when(indexShard.flush(flushRequest.capture())).thenReturn(new Engine.CommitId(new byte[0]));
-
+        when(indexShard.forceFlush()).thenReturn(new Engine.CommitId(new byte[0]));
         executeOnPrimaryOrReplica();
-        verify(indexShard, times(1)).flush(any(FlushRequest.class));
-        assertThat(flushRequest.getValue().force()).isTrue();
+        verify(indexShard, times(1)).forceFlush();
     }
 
     @Test
@@ -226,7 +221,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         assertThatThrownBy(this::executeOnPrimaryOrReplica)
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage("Index shard " + indexShard.shardId() + " is not blocking all operations during closing");
-        verify(indexShard, times(0)).flush(any(FlushRequest.class));
+        verify(indexShard, times(0)).forceFlush();
+        verify(indexShard, times(0)).flush(anyBoolean());
     }
 
     @Test
@@ -236,14 +232,16 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         assertThatThrownBy(this::executeOnPrimaryOrReplica)
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage("Index shard " + indexShard.shardId() + " must be blocked by " + clusterBlock + " before closing");
-        verify(indexShard, times(0)).flush(any(FlushRequest.class));
+        verify(indexShard, times(0)).forceFlush();
+        verify(indexShard, times(0)).flush(anyBoolean());
     }
 
     @Test
     public void testVerifyShardBeforeIndexClosing() throws Throwable {
         executeOnPrimaryOrReplica();
         verify(indexShard, times(1)).verifyShardBeforeIndexClosing();
-        verify(indexShard, times(1)).flush(any(FlushRequest.class));
+        verify(indexShard, times(1)).forceFlush();
+        verify(indexShard, times(0)).flush(anyBoolean());
     }
 
     @Test
@@ -252,7 +250,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         assertThatThrownBy(this::executeOnPrimaryOrReplica)
             .isExactlyInstanceOf(IllegalStateException.class);
         verify(indexShard, times(1)).verifyShardBeforeIndexClosing();
-        verify(indexShard, times(0)).flush(any(FlushRequest.class));
+        verify(indexShard, times(0)).forceFlush();
+        verify(indexShard, times(0)).flush(anyBoolean());
     }
 
     @Test

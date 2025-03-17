@@ -72,7 +72,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -1041,15 +1040,34 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     /**
-     * Executes the given flush request against the engine.
-     *
-     * @param request the flush request
+     * Executes a flush against the engine
+     * @param waitIfOngoing if {@code true} will block until all concurrent flushes are complete
      * @return the commit ID
      */
-    public Engine.CommitId flush(FlushRequest request) {
-        final boolean waitIfOngoing = request.waitIfOngoing();
-        final boolean force = request.force();
-        logger.trace("flush with {}", request);
+    public Engine.CommitId flush(boolean waitIfOngoing) {
+        return flush(false, waitIfOngoing);
+    }
+
+    /**
+     * Forces a flush and commit against the engine, even if there are no new segments to write
+     * <p/>
+     * This call will block until all concurrent flushes are complete
+     *
+     * @return the commit ID
+     */
+    public Engine.CommitId forceFlush() {
+        return flush(true, true);
+    }
+
+    /**
+     * Executes the given flush request against the engine.
+     *
+     * @param force if {@code true} then commit even if there are no segments to be written
+     * @param waitIfOngoing if {@code true} then blocks until all concurrent flushes are complete
+     * @return the commit ID
+     */
+    private Engine.CommitId flush(boolean force, boolean waitIfOngoing) {
+        logger.trace("flush with waitIfOngoing={}, force={}", waitIfOngoing, force);
         /*
          * We allow flushes while recovery since we allow operations to happen while recovering and we want to keep the translog under
          * control (up to deletes, which we do not GC). Yet, we do not use flush internally to clear deletes and flush the index writer
@@ -1718,7 +1736,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
                     @Override
                     protected void doRun() {
-                        flush(new FlushRequest().waitIfOngoing(false).force(false));
+                        flush(false, false);
                         periodicFlushMetric.inc();
                     }
                 });
@@ -2989,7 +3007,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
                         @Override
                         protected void doRun() throws IOException {
-                            flush(new FlushRequest());
+                            flush(false, false);
                             periodicFlushMetric.inc();
                         }
 
@@ -3274,7 +3292,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final SeqNoStats seqNoStats = seqNoStats();
         final TranslogStats translogStats = translogStats();
         // flush to make sure the latest commit, which will be opened by the read-only engine, includes all operations.
-        flush(new FlushRequest().waitIfOngoing(true));
+        flush(false, true);
 
         SetOnce<Engine> newEngineReference = new SetOnce<>();
         final long globalCheckpoint = getLastKnownGlobalCheckpoint();
