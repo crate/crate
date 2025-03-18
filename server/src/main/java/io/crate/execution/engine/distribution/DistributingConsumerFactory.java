@@ -33,7 +33,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.Streamer;
-import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -60,11 +59,11 @@ public class DistributingConsumerFactory {
         this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
     }
 
-    public RowConsumer create(NodeOperation nodeOperation,
-                              RamAccounting ramAccounting,
-                              DistributionInfo distributionInfo,
-                              UUID jobId,
-                              int pageSize) {
+    public DistributingConsumer create(NodeOperation nodeOperation,
+                                       RamAccounting ramAccounting,
+                                       DistributionInfo distributionInfo,
+                                       UUID jobId,
+                                       int pageSize) {
         Streamer<?>[] streamers = nodeOperation.executionPhase().getStreamers();
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
