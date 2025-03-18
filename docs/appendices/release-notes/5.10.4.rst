@@ -44,6 +44,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Tuned the sizing of internal intermediate result requests for statements like
+  JOINS to reduce memory pressure on clusters with more than one node.
+
 - Fixed an issue that could cause ``INSERT INTO`` statements which dynamically
   create thousands of columns to overload the cluster state update process
   before running into the ``mapping.total_fields.limit`` limit, causing other
