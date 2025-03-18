@@ -24,9 +24,14 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import java.util.List;
+
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;
@@ -45,9 +50,21 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
         this.pattern = typeOf(HashAggregate.class)
             .with(source(), typeOf(Collect.class).capturedAs(collectCapture)
                 .with(collect -> collect.relation().tableInfo() instanceof DocTableInfo))
-            .with(aggregate ->
-                aggregate.aggregates().size() == 1
-                && aggregate.aggregates().get(0).signature().equals(CountAggregation.COUNT_STAR_SIGNATURE));
+            .with(aggregate -> isCountAggregate(aggregate.aggregates()));
+    }
+
+    private static boolean isCountAggregate(List<Function> aggregates) {
+        if (aggregates.size() != 1) {
+            return false;
+        }
+        Function aggregate = aggregates.get(0);
+        Signature signature = aggregate.signature();
+        if (signature.equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
+            return true;
+        }
+        return signature.getName().equals(CountAggregation.SIGNATURE.getName())
+            && aggregate.arguments().get(0) instanceof Reference ref
+            && !ref.isNullable();
     }
 
     @Override

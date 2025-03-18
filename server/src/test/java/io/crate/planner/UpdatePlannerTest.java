@@ -204,8 +204,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Asserts.assertThat(outerSubSelectPlan).withPlanStats(e.planStats()).hasOperators(
             "Limit[2::bigint;0::bigint] (rows=1)",
             "  └ MultiPhase (rows=1)",
-            "    └ HashAggregate[count(id)] (rows=1)",
-            "      └ Collect[doc.users | [id] | (id = ANY((SELECT unnest([1, 2, 3, 4]) FROM (empty_row))))] (rows=unknown)",
+            "    └ Count[doc.users | (id = ANY((SELECT unnest([1, 2, 3, 4]) FROM (empty_row))))] (rows=1)",
             "    └ OrderBy[unnest([1, 2, 3, 4]) ASC] (rows=unknown)",
             "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
             "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
