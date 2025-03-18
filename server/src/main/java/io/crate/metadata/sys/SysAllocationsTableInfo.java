@@ -56,6 +56,6 @@ public class SysAllocationsTableInfo {
             ColumnIdent.of("partition_ident"),
             ColumnIdent.of("shard_id")
         )
-        .withRouting((state, ignored, ignored2) -> Routing.forTableOnSingleNode(IDENT, state.nodes().getMasterNodeId()))
+        .withRouting((state, ignored, ignored2) -> Routing.forMasterNode(IDENT, state))
         .build();
 }
