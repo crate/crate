@@ -19,9 +19,6 @@
 
 package org.elasticsearch.common.breaker;
 
-
-import java.util.Locale;
-
 /**
  * Interface for an object that can be incremented, breaking after some
  * configured limit has been reached.
@@ -50,28 +47,6 @@ public interface CircuitBreaker {
      * writing requests on the network layer.
      */
     String IN_FLIGHT_REQUESTS = "in_flight_requests";
-
-    enum Type {
-        // A regular or child MemoryCircuitBreaker
-        MEMORY,
-        // A special parent-type for the hierarchy breaker service
-        PARENT,
-        // A breaker where every action is a noop, it never breaks
-        NOOP;
-
-        public static Type parseValue(String value) {
-            switch (value.toLowerCase(Locale.ROOT)) {
-                case "noop":
-                    return Type.NOOP;
-                case "parent":
-                    return Type.PARENT;
-                case "memory":
-                    return Type.MEMORY;
-                default:
-                    throw new IllegalArgumentException("No CircuitBreaker with type: " + value);
-            }
-        }
-    }
 
     /**
      * add bytes to the breaker and maybe trip

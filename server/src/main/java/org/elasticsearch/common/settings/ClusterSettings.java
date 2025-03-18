@@ -307,7 +307,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         MasterService.MASTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING,
         ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
         NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING,
-        HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_TYPE_SETTING,
         TransportReplicationAction.REPLICATION_INITIAL_RETRY_BACKOFF_BOUND,
         TransportReplicationAction.REPLICATION_RETRY_TIMEOUT,
         TransportSettings.HOST,

@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -96,7 +95,7 @@ public class NodeFetchResponseTest extends ESTestCase {
                 ConcurrentRamAccounting.forCircuitBreaker(
                     "test",
                     new ChildMemoryCircuitBreaker(
-                        new BreakerSettings("test", 2, CircuitBreaker.Type.MEMORY),
+                        new BreakerSettings("test", 2),
                         new NoneCircuitBreakerService()
                     ),
                     10

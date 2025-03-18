@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -146,7 +145,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
                 ConcurrentRamAccounting.forCircuitBreaker(
                     "query",
                     new ChildMemoryCircuitBreaker(
-                        new BreakerSettings("query", 197, CircuitBreaker.Type.MEMORY),
+                        new BreakerSettings("query", 197),
                         new NoneCircuitBreakerService()
                     ),
                     0
