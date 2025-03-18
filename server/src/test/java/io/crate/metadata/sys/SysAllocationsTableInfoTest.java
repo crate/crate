@@ -23,6 +23,7 @@ package io.crate.metadata.sys;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.node.DiscoveryNodeRole.DATA_ROLE;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
 
@@ -33,6 +34,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,5 +65,12 @@ public class SysAllocationsTableInfoTest extends CrateDummyClusterServiceUnitTes
         var allocationsTable = SysAllocationsTableInfo.INSTANCE;
         var routing = allocationsTable.getRouting(clusterService.state(), null, null, null, null);
         assertThat(routing.nodes()).contains(NODE_ID);
+    }
+
+    @Test
+    public void test_exception_is_thrown_when_no_master_is_discovered() {
+        var allocationsTable = SysAllocationsTableInfo.INSTANCE;
+        assertThatThrownBy(() -> allocationsTable.getRouting(ClusterState.EMPTY_STATE, null, null, null, null))
+            .isInstanceOf(MasterNotDiscoveredException.class);
     }
 }
