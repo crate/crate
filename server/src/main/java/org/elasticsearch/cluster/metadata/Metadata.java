@@ -682,6 +682,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public static class Builder {
 
+        public static final LongSupplier NO_OID_COLUMN_OID_SUPPLIER = () -> 0L;
         private String clusterUUID;
         private boolean clusterUUIDCommitted;
         private long version;

@@ -1267,4 +1267,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    public List<Reference> references() {
+        return Lists.concat(references.values(), droppedColumns);
+    }
 }

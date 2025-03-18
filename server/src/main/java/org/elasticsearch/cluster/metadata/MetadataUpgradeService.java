@@ -19,7 +19,11 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
+
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,10 +36,14 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.sql.tree.CheckConstraint;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -91,6 +99,42 @@ public class MetadataUpgradeService {
         newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
+    }
+
+    public Metadata upgradeRelationMetadata(Metadata metadata) {
+        Metadata.Builder newMetadata = Metadata.builder(metadata);
+        for (IndexMetadata indexMetadata : metadata) {
+            if (IndexName.isPartitioned(indexMetadata.getIndex().getName()) == false) {
+                var indexParts = IndexName.decode(indexMetadata.getIndex().getName());
+                var relationName = new RelationName(indexParts.schema(), indexParts.table());
+                DocTableInfo docTable = tableFactory.create(relationName, metadata);
+                List<String> indexUUIDs = metadata.getIndices(
+                    relationName,
+                    List.of(),
+                    false,
+                    IndexMetadata::getIndexUUID
+                );
+
+                newMetadata.setTable(
+                    docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                        ? NO_OID_COLUMN_OID_SUPPLIER
+                        : newMetadata.columnOidSupplier(),
+                    relationName,
+                    docTable.references(),
+                    docTable.parameters(),
+                    docTable.clusteredBy(),
+                    docTable.columnPolicy(),
+                    docTable.pkConstraintName(),
+                    docTable.checkConstraints()
+                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                    docTable.primaryKey(),
+                    docTable.partitionedBy(),
+                    indexMetadata.getState(),
+                    indexUUIDs
+                );
+            }
+        }
+        return newMetadata.build();
     }
 
     public Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {

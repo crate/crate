@@ -64,7 +64,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         Metadata metadata = randomMetadata();
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(true));
         assertThat(upgrade).isNotSameAs(metadata);
-        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
+        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isFalse();
         }
