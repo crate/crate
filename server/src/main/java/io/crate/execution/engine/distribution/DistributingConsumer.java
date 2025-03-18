@@ -29,13 +29,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -69,6 +68,9 @@ public class DistributingConsumer implements RowConsumer {
     private final CompletableFuture<Void> completionFuture;
 
     @VisibleForTesting
+    final long maxBytes;
+
+    @VisibleForTesting
     final MultiBucketBuilder multiBucketBuilder;
 
     private volatile Throwable failure;
@@ -97,6 +99,8 @@ public class DistributingConsumer implements RowConsumer {
         for (String downstreamNodeId : downstreamNodeIds) {
             downstreams.add(new Downstream(downstreamNodeId));
         }
+        assert downstreams.size() > 0 : "Must always have at least one downstream";
+        this.maxBytes = Math.max(Paging.MAX_PAGE_BYTES / downstreams.size(), 2 * 1024 * 1024);
     }
 
     @Override
@@ -118,7 +122,7 @@ public class DistributingConsumer implements RowConsumer {
         try {
             while (it.moveNext()) {
                 multiBucketBuilder.add(it.currentElement());
-                if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= Paging.MAX_PAGE_BYTES) {
+                if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
                     forwardResults(it, false);
                     return;
                 }

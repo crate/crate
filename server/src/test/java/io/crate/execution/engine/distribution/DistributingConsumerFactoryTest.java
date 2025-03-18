@@ -37,7 +37,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Paging;
-import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -61,7 +60,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
         );
     }
 
-    private RowConsumer createDownstream(Set<String> downstreamExecutionNodes) {
+    private DistributingConsumer createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
             Map.of("n1", Map.of("i1", IntArrayList.from(1, 2)))
@@ -95,14 +94,16 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        RowConsumer downstream = createDownstream(Set.of("downstream_node"));
-        assertThat(downstream).isExactlyInstanceOf(DistributingConsumer.class);
-        assertThat(((DistributingConsumer) downstream).multiBucketBuilder).isExactlyInstanceOf(BroadcastingBucketBuilder.class);
+        DistributingConsumer downstream = createDownstream(Set.of("downstream_node"));
+        assertThat(downstream.multiBucketBuilder).isExactlyInstanceOf(BroadcastingBucketBuilder.class);
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        RowConsumer downstream = createDownstream(Set.of("downstream_node1", "downstream_node2"));
-        assertThat(((DistributingConsumer) downstream).multiBucketBuilder).isExactlyInstanceOf(ModuloBucketBuilder.class);
+        DistributingConsumer downstream = createDownstream(Set.of("downstream_node1", "downstream_node2"));
+        assertThat(downstream.multiBucketBuilder).isExactlyInstanceOf(ModuloBucketBuilder.class);
+        assertThat(downstream.maxBytes)
+            .as("Max bytes for requests is max_page_bytes / num-nodes to account for downstreams receiving data from multiple nodes")
+            .isEqualTo((long) (Paging.MAX_PAGE_BYTES / 2.0));
     }
 }
