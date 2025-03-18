@@ -43,3 +43,7 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 
 Fixes
 =====
+
+- Fixed NPE when querying the :ref:`sys.allocations <sys-allocations>` table
+  while no master node has been discovered. A proper exception is now thrown
+  instead of an NPE.
