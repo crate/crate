@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -46,7 +45,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new ChildMemoryCircuitBreaker(
-                    new BreakerSettings("test", 10, CircuitBreaker.Type.MEMORY),
+                    new BreakerSettings("test", 10),
                     new NoneCircuitBreakerService()),
                 0
             ));
@@ -62,7 +61,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new ChildMemoryCircuitBreaker(
-                    new BreakerSettings("test", 10, CircuitBreaker.Type.MEMORY),
+                    new BreakerSettings("test", 10),
                     new NoneCircuitBreakerService()
                 ),
                 0
@@ -80,7 +79,7 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new ChildMemoryCircuitBreaker(
-                    new BreakerSettings("test", 10, CircuitBreaker.Type.MEMORY),
+                    new BreakerSettings("test", 10),
                     new NoneCircuitBreakerService()
                 ),
                 0

@@ -143,7 +143,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     public void testTimedRamAccountingQueueSink() throws Exception {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
         ChildMemoryCircuitBreaker breaker = new ChildMemoryCircuitBreaker(
-            new BreakerSettings("test", Integer.MAX_VALUE, CircuitBreaker.Type.MEMORY),
+            new BreakerSettings("test", Integer.MAX_VALUE),
             new NoneCircuitBreakerService()
         );
         RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker, x -> 10);

@@ -130,7 +130,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         CircuitBreaker circuitBreaker = new ChildMemoryCircuitBreaker(
-            new BreakerSettings("test", 30, CircuitBreaker.Type.MEMORY),
+            new BreakerSettings("test", 30),
             new NoneCircuitBreakerService()
         );
         TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
