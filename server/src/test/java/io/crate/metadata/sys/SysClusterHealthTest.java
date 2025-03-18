@@ -22,6 +22,7 @@
 package io.crate.metadata.sys;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -30,6 +31,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
 
@@ -40,10 +42,11 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_green_no_tables() {
-        var healths = SysClusterHealth.compute(clusterService.state()).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
+            0,
             0,
             0
         );
@@ -56,10 +59,11 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table doc.t1 (id int) with (number_of_replicas = 0)");
         executor.startShards("doc.t1");
 
-        var healths = SysClusterHealth.compute(clusterService.state()).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
+            0,
             0,
             0
         );
@@ -81,10 +85,11 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
             .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
             .build();
-        var healths = SysClusterHealth.compute(newState).join();
+        var healths = SysClusterHealth.compute(newState, 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "cannot write metadata",
+            0,
             0,
             0
         );
@@ -96,23 +101,25 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.builder(clusterService).build()
             .addTable("create table doc.t1 (id int) with (number_of_replicas = 1)");
 
-        var healths = SysClusterHealth.compute(clusterService.state()).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "One or more tables are missing shards",
             4,
-            4
+            4,
+            0
         );
         assertThat(healths).containsExactly(expected);
 
         executor.startShards("doc.t1");
 
-        healths = SysClusterHealth.compute(clusterService.state()).join();
+        healths = SysClusterHealth.compute(clusterService.state(), 0).join();
         expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "One or more tables have underreplicated shards",
             0,
-            4
+            4,
+            0
         );
         assertThat(healths).containsExactly(expected);
     }
@@ -136,12 +143,13 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
             .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
             .build();
-        var healths = SysClusterHealth.compute(newState).join();
+        var healths = SysClusterHealth.compute(newState, 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "Cannot write metadata",    // cluster level message takes precedence
             0,
-            4
+            4,
+            0
         );
         assertThat(healths).containsExactly(expected);
     }
@@ -164,13 +172,13 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
                 .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
                 .build();
-
-        var healths = SysClusterHealth.compute(newState).join();
+        var healths = SysClusterHealth.compute(newState, 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.RED,
             "recovering",   // cluster level message takes precedence
             -1,
-            -1
+            -1,
+            0
         );
         assertThat(healths).containsExactly(expected);
     }
@@ -182,13 +190,42 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         executor.startShards("doc.t1");
         executor.failShards("doc.t1");
 
-        var healths = SysClusterHealth.compute(clusterService.state()).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.RED,
             "One or more tables are missing shards",
             4,
+            0,
             0
         );
         assertThat(healths).containsExactly(expected);
+    }
+
+    @Test
+    public void test_pending_tasks() throws Exception {
+        var healths = SysClusterHealth.compute(clusterService.state(), 1).join();
+        assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
+            TableHealth.Health.GREEN,
+            "",
+            0,
+            0,
+            1
+        ));
+
+        healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
+            TableHealth.Health.GREEN,
+            "",
+            0,
+            0,
+            0
+        ));
+    }
+
+    @Test
+    public void test_exception_is_thrown_when_no_master_is_discovered() {
+        var healthTable = SysClusterHealth.INSTANCE;
+        assertThatThrownBy(() -> healthTable.getRouting(ClusterState.EMPTY_STATE, null, null, null, null))
+            .isInstanceOf(MasterNotDiscoveredException.class);
     }
 }

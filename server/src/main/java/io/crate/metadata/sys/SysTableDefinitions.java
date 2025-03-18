@@ -213,7 +213,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysClusterHealth.IDENT,
                 new StaticTableDefinition<>(
-                    () -> SysClusterHealth.compute(clusterService.state()),
+                    () -> SysClusterHealth.compute(clusterService.state(), clusterService.getMasterService().numberOfPendingTasks()),
                     SysClusterHealth.INSTANCE.expressions(),
                     false
                 )

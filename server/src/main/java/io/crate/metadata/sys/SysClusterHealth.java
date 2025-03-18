@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.rest.RestStatus;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
 
 public class SysClusterHealth {
@@ -47,9 +48,11 @@ public class SysClusterHealth {
         .add("description", STRING, ClusterHealth::description)
         .add("missing_shards", LONG, ClusterHealth::missingShards)
         .add("underreplicated_shards", LONG, ClusterHealth::underreplicatedShards)
+        .add("pending_tasks", LONG, ClusterHealth::pendingTasks)
+        .withRouting((state, ignored, ignored2) -> Routing.forMasterNode(IDENT, state))
         .build();
 
-    public static CompletableFuture<Iterable<ClusterHealth>> compute(ClusterState clusterState) {
+    public static CompletableFuture<Iterable<ClusterHealth>> compute(ClusterState clusterState, long numPendingTasks) {
         // Following implementation of {@link org.elasticsearch.cluster.health.ClusterStateHealth}
         Set<ClusterBlock> blocksRed = clusterState.blocks().global(RestStatus.SERVICE_UNAVAILABLE);
         if (!blocksRed.isEmpty()) {
@@ -58,7 +61,8 @@ public class SysClusterHealth {
                 TableHealth.Health.RED,
                 block.description(),
                 -1,
-                -1
+                -1,
+                numPendingTasks
             );
             return CompletableFuture.completedFuture(List.of(clusterHealth));
         }
@@ -86,11 +90,15 @@ public class SysClusterHealth {
                     missingShards += tableHealth.getMissingShards();
                     underreplicatedShards += tableHealth.getUnderreplicatedShards();
                 }
-                return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards));
+                return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
             });
     }
 
-    public record ClusterHealth(TableHealth.Health health, String description, long missingShards, long underreplicatedShards) {
+    public record ClusterHealth(TableHealth.Health health,
+                                String description,
+                                long missingShards,
+                                long underreplicatedShards,
+                                long pendingTasks) {
 
         public String getHealth() {
             return health.name();
