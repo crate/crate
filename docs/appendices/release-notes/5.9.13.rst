@@ -1,19 +1,26 @@
-.. _version_5.9.12:
+.. _version_5.9.13:
 
-==============
-Version 5.9.12
-==============
+===========================
+Version 5.9.13 - Unreleased
+===========================
 
-Released on 2025-03-18.
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.9.13 isn't released yet. These are the release notes for
+    the upcoming release.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
-    before you upgrade to 5.9.12.
+    before you upgrade to 5.9.13.
 
     We recommend that you upgrade to the latest 5.8 release before moving to
-    5.9.12.
+    5.9.13.
 
-    A rolling upgrade from 5.8.x to 5.9.12 is supported.
+    A rolling upgrade from 5.8.x to 5.9.13 is supported.
 
     Before upgrading, you should `back up your data`_.
 
@@ -40,11 +47,4 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that caused selecting from partitioned tables created before
-  :ref:`version_5.5.0` to falsely return `NULL` values.
-
-- Fixed an issue that caused selecting from partitioned tables created before
-  :ref:`version_5.5.0` to return ``oids`` as column names of the result set.
-
-- Fixed an issue that caused replica shards of partitioned tables created
-  before :ref:`version_5.5.0` to fail to be allocated.
+None
