@@ -247,7 +247,8 @@ public class GatewayMetaState implements Closeable {
             upgradedMetadata.put(newMetadata, false);
         }
 
-        return changed ? upgradedMetadata.build() : metadata;
+        // return changed ? upgradedMetadata.build() : metadata;
+        return changed ? metadataUpgradeService.upgradeRelationMetadata(upgradedMetadata.build()) : metadata;
     }
 
     public static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
