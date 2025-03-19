@@ -31,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.common.unit.TimeValue;
 
-public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest.Replaceable {
+public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest {
 
     public static final TimeValue DEFAULT_WAIT_FOR_NODE_TIMEOUT = TimeValue.timeValueMinutes(1);
 
@@ -112,7 +112,6 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return indices;
     }
 
-    @Override
     public ClusterStateRequest indices(String... indices) {
         this.indices = indices;
         return this;

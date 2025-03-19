@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends TransportRequest implements IndicesRequest.Replaceable {
+public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends TransportRequest implements IndicesRequest {
 
     protected String[] indices;
     private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED;
@@ -47,13 +47,6 @@ public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends
     @Override
     public String[] indices() {
         return indices;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public final Request indices(String... indices) {
-        this.indices = indices;
-        return (Request) this;
     }
 
     @Override

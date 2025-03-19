@@ -77,9 +77,8 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
 
         String indexName = "tbl";
         assertBusy(() -> {
-            RecoveryRequest request = new RecoveryRequest();
+            RecoveryRequest request = new RecoveryRequest(indexName);
             request
-                .indices(indexName)
                 .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN)
                 .activeOnly(true);
             final RecoveryResponse recoveries = client().admin().indices().recoveries(request).get(5, TimeUnit.SECONDS);

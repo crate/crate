@@ -56,8 +56,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
  * <li>must not contain invalid file name characters {@link org.elasticsearch.common.Strings#INVALID_FILENAME_CHARS} </li>
  * </ul>
  */
-public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest>
-    implements IndicesRequest.Replaceable {
+public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest> implements IndicesRequest {
 
     private String snapshot;
 
@@ -170,7 +169,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      *
      * @return this request
      */
-    @Override
     public CreateSnapshotRequest indices(String... indices) {
         this.indices = indices;
         return this;
