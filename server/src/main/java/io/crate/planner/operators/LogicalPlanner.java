@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -701,7 +702,7 @@ public class LogicalPlanner {
         } catch (ConversionException e) {
             throw e;
         } catch (Exception e) {
-            if (e instanceof CrateException) {
+            if (e instanceof CrateException || e instanceof ElasticsearchException) {
                 // Don't hide errors like MissingShardOperationsException, UnavailableShardsException
                 throw e;
             }
