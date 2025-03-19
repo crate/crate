@@ -29,9 +29,11 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -72,8 +74,9 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
         ArrayList<Symbol> toPushDown = new ArrayList<>();
         ArrayList<Symbol> toKeep = new ArrayList<>();
         for (var part : queryParts) {
-            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction) &&
-                outputs.containsAll(extractColumns(part))) {
+            Set<Symbol> partColumns = extractColumns(part);
+            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction)
+                    && partColumns.stream().allMatch(x -> Symbols.contains(outputs, x))) {
                 toPushDown.add(part);
             } else {
                 toKeep.add(part);
