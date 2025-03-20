@@ -24,7 +24,11 @@ package io.crate.protocols.postgres;
 import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyChar;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -817,8 +821,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                                                      @Nullable Throwable failure,
                                                      @Nullable CompletableFuture future) {
         Sessions sqlOperations = Mockito.mock(Sessions.class);
-        Session session = mock(Session.class);
-        when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).thenReturn(future);
+        Session session = spy(this.sqlOperations.newSystemSession());
+        doReturn(future).when(session).execute(any(String.class), any(int.class), any(RowCountReceiver.class));
         var sessionSettings = new CoordinatorSessionSettings(Role.CRATE_USER);
         when(session.sessionSettings()).thenReturn(sessionSettings);
         when(session.newTimeoutToken()).thenReturn(
@@ -831,7 +835,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ).thenReturn(session);
         DescribeResult describeResult = mock(DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
-        when(session.describe(Mockito.anyChar(), Mockito.anyString())).thenReturn(describeResult);
+        doReturn(describeResult).when(session).describe(anyChar(), anyString());
         when(session.transactionState()).thenReturn(TransactionState.IDLE);
 
         PostgresWireProtocol ctx =
