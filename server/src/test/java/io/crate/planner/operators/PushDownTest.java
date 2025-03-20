@@ -355,6 +355,26 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filters_on_project_set_are_pushed_down_for_subscripts_on_standalone_outputs() throws Exception {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            """
+            SELECT * FROM
+            (
+                SELECT name, address, unnest(friends['id']) as friend_ids
+                FROM doc.users
+            ) t
+            WHERE address['postcode'] = '1234'
+            """
+        );
+        assertThat(plan).hasOperators(
+            "Rename[name, address, friend_ids] AS t",
+            "  └ Eval[name, address, unnest(friends['id']) AS friend_ids]",
+            "    └ ProjectSet[unnest(friends['id']), friends['id'], name, address]",
+            "      └ Collect[doc.users | [friends['id'], name, address] | (address['postcode'] = '1234')]"
+        );
+    }
+
+    @Test
     public void test_filters_on_project_set_are_pushed_down_only_for_standalone_outputs() {
         var plan = sqlExecutor.logicalPlan(
             """

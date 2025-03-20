@@ -27,11 +27,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.discovery.MasterNotDiscoveredException;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -205,6 +207,14 @@ public class Routing implements Writeable {
             indicesByNode.put(node.getId(), shardsByIndex);
         }
         return new Routing(indicesByNode);
+    }
+
+    public static Routing forMasterNode(RelationName relationName, ClusterState clusterState) {
+        String masterNodeId = clusterState.nodes().getMasterNodeId();
+        if (masterNodeId == null) {
+            throw new MasterNotDiscoveredException();
+        }
+        return forTableOnSingleNode(relationName, masterNodeId);
     }
 
     @Override

@@ -113,6 +113,27 @@ public final class Symbols {
         return false;
     }
 
+    /**
+     * Similar to {@link Collection#contains(Object) this will check if
+     * {@code symbol} is contained in {@code symbols} but opposed to
+     * {@link Collection#contains(Object)} this will also return true if
+     * {@code symbol} is a subscript on a column contained in {@code symbols}
+     **/
+    public static boolean contains(Collection<? extends Symbol> symbols, Symbol symbol) {
+        if (symbols.contains(symbol)) {
+            return true;
+        }
+        ColumnIdent column = symbol.toColumn();
+        if (!column.isRoot()) {
+            for (var parent : column.parents()) {
+                if (hasColumn(symbols, parent)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
         out.writeVInt(symbols.size());
         for (Symbol symbol : symbols) {
