@@ -233,7 +233,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         }
     }
 
-    public static class Request extends SingleShardRequest<Request> {
+    public static class Request extends SingleShardRequest {
 
         private final ShardId shardId;
         private final long fromSeqNo;

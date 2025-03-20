@@ -117,7 +117,7 @@ public class GetStoreMetadataAction extends ActionType<GetStoreMetadataAction.Re
         }
     }
 
-    public static class Request extends RestoreShardRequest<Request> {
+    public static class Request extends RestoreShardRequest {
 
         public Request(String restoreUUID,
                        DiscoveryNode node,

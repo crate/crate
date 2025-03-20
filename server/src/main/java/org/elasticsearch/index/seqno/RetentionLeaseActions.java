@@ -53,7 +53,7 @@ public class RetentionLeaseActions {
 
     public static final long RETAIN_ALL = -1;
 
-    abstract static class TransportRetentionLeaseAction<T extends Request<T>> extends TransportSingleShardAction<T, Response> {
+    abstract static class TransportRetentionLeaseAction<T extends Request> extends TransportSingleShardAction<T, Response> {
 
         private final IndicesService indicesService;
 
@@ -237,7 +237,7 @@ public class RetentionLeaseActions {
         }
     }
 
-    private abstract static class Request<T extends SingleShardRequest<T>> extends SingleShardRequest<T> {
+    private abstract static class Request extends SingleShardRequest {
 
         private final ShardId shardId;
 
@@ -272,7 +272,7 @@ public class RetentionLeaseActions {
 
     }
 
-    public static class AddOrRenewRequest extends Request<AddOrRenewRequest> {
+    public static class AddOrRenewRequest extends Request {
 
         private final long retainingSequenceNumber;
 
@@ -310,7 +310,7 @@ public class RetentionLeaseActions {
 
     }
 
-    public static class RemoveRequest extends Request<RemoveRequest> {
+    public static class RemoveRequest extends Request {
 
         RemoveRequest(StreamInput in) throws IOException {
             super(in);

@@ -108,7 +108,7 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
         }
     }
 
-    public static class Request extends RestoreShardRequest<Request> {
+    public static class Request extends RestoreShardRequest {
 
         public Request(String restoreUUID,
                        DiscoveryNode node,
