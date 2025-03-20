@@ -47,3 +47,6 @@ Fixes
 - Fixed NPE when querying the :ref:`sys.allocations <sys-allocations>` table
   while no master node has been discovered. A proper exception is now thrown
   instead of an NPE.
+
+- Fixed an issue that caused queries submitted via PG wire to not be logged in
+  :ref:`sys.jobs_log <sys-logs>` in case of a parsing failure.
