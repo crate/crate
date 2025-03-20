@@ -51,7 +51,11 @@ Fixes
   while no master node has been discovered. A proper exception is now thrown
   instead of an NPE.
 
+- Fixed an issue that caused queries submitted via PG wire to not be logged in
+  :ref:`sys.jobs_log <sys-logs>` in case of a parsing failure.
+
 - Fixed an issue causing shards to not be allocated if the shard was not
   closed properly, e.g. due to an unclean node shutdown and the node was
   restarting with still holding a lock on the shard. The existing retry logic
   to solve this situation was not working in some cases.
+
