@@ -59,7 +59,7 @@ import org.jetbrains.annotations.Nullable;
  * the read operation can be performed on other shard copies. Concrete implementations can provide their own list
  * of candidate shards to try the read operation on.
  */
-public abstract class TransportSingleShardAction<Request extends SingleShardRequest<Request>, Response extends TransportResponse>
+public abstract class TransportSingleShardAction<Request extends SingleShardRequest, Response extends TransportResponse>
     extends TransportAction<Request, Response> {
 
     protected final ThreadPool threadPool;
