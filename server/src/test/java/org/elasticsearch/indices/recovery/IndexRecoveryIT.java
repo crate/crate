@@ -1463,7 +1463,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
             for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
                 assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
@@ -1472,7 +1472,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
 
-        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
@@ -1483,7 +1483,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
         assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
@@ -1528,7 +1528,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                               execute("OPTIMIZE TABLE doc.test");
 
                                               assertBusy(() -> {
-                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
                                                   assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
                                                             ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
                                                         "should no longer have lease for " + replicaShardRouting).isFalse();

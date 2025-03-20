@@ -242,7 +242,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
         assertBusy(() -> {
-            IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).clear()));
+            IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
                 assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
             }

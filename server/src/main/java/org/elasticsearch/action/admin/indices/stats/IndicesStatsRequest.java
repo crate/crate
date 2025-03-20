@@ -54,19 +54,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         return this;
     }
 
-    /**
-     * Sets specific search group stats to retrieve the stats for. Mainly affects search
-     * when enabled.
-     */
-    public IndicesStatsRequest groups(String... groups) {
-        flags.groups(groups);
-        return this;
-    }
-
-    public String[] groups() {
-        return this.flags.groups();
-    }
-
     public IndicesStatsRequest docs(boolean docs) {
         flags.set(Flag.Docs, docs);
         return this;
@@ -85,33 +72,6 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         return flags.isSet(Flag.Store);
     }
 
-    public IndicesStatsRequest fieldDataFields(String... fieldDataFields) {
-        flags.fieldDataFields(fieldDataFields);
-        return this;
-    }
-
-    public String[] fieldDataFields() {
-        return flags.fieldDataFields();
-    }
-
-    public IndicesStatsRequest completionFields(String... completionDataFields) {
-        flags.completionDataFields(completionDataFields);
-        return this;
-    }
-
-    public String[] completionFields() {
-        return flags.completionDataFields();
-    }
-
-    public boolean includeSegmentFileSizes() {
-        return flags.includeSegmentFileSizes();
-    }
-
-    public IndicesStatsRequest includeSegmentFileSizes(boolean includeSegmentFileSizes) {
-        flags.includeSegmentFileSizes(includeSegmentFileSizes);
-        return this;
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
@@ -123,6 +83,7 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         flags = new CommonStatsFlags(in);
     }
 
-    public IndicesStatsRequest() {
+    public IndicesStatsRequest(String... indices) {
+        super(indices);
     }
 }

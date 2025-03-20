@@ -40,10 +40,4 @@ public interface IndicesRequest {
      */
     IndicesOptions indicesOptions();
 
-    interface Replaceable extends IndicesRequest {
-        /**
-         * Sets the indices that the action relates to.
-         */
-        IndicesRequest indices(String... indices);
-    }
 }

@@ -36,7 +36,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.common.unit.TimeValue;
 
-public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest.Replaceable {
+public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest {
 
     private String[] indices = Strings.EMPTY_ARRAY;
     private IndicesOptions indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
@@ -66,7 +66,6 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         return indices;
     }
 
-    @Override
     public ClusterHealthRequest indices(String... indices) {
         assert indices != null : "Must not set indices to null";
         this.indices = indices;
