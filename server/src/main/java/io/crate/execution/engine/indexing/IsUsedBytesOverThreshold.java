@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,10 +40,12 @@ class IsUsedBytesOverThreshold implements Predicate<Accountable> {
 
     private final CircuitBreaker queryCircuitBreaker;
     private final ConcurrencyLimit nodeLimit;
+    private final AtomicLong avgItemSize;
 
-    public IsUsedBytesOverThreshold(CircuitBreaker queryCircuitBreaker, ConcurrencyLimit nodeLimit) {
+    public IsUsedBytesOverThreshold(CircuitBreaker queryCircuitBreaker, ConcurrencyLimit nodeLimit, AtomicLong avgItemSize) {
         this.queryCircuitBreaker = queryCircuitBreaker;
         this.nodeLimit = nodeLimit;
+        this.avgItemSize = avgItemSize;
     }
 
     @Override
@@ -52,6 +55,8 @@ class IsUsedBytesOverThreshold implements Predicate<Accountable> {
         long maxUsableByShardRequests = Math.max(
             (long) (queryCircuitBreaker.getFree() * ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE * memoryRatio), MIN_ACCEPTABLE_BYTES);
         long usedMemoryEstimate = accountable.ramBytesUsed();
+        long l = avgItemSize.get();
+        usedMemoryEstimate = usedMemoryEstimate + 20_000;
         boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
         if (requestsTooBig && LOGGER.isDebugEnabled()) {
             LOGGER.debug(

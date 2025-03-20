@@ -29,12 +29,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -84,6 +87,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ClusterService clusterService;
     private int numItems = -1;
     private final RamAccounting ramAccounting;
+    private final AtomicLong avgItemSize = new AtomicLong(1L);
+    private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
+
 
 
     public ShardDMLExecutor(UUID jobId,
@@ -151,10 +157,16 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             @Override
             public void onResponse(ShardResponse response) {
                 nodeLimit.onSample(startTime, false);
+                Long size = response.avgItemSize();
+                if (size != null) {
+                    LOGGER.info("Update avg size to {}", size);
+                    avgItemSize.set(size);
+                }
                 long totalBytesUsed = 0;
                 for (var item : request.items()) {
                     totalBytesUsed += item.ramBytesUsed();
                 }
+
                 synchronized (ramAccounting) {
                     ramAccounting.addBytes(- totalBytesUsed);
                 }
@@ -198,7 +210,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     @Override
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, avgItemSize);
         BatchIterator<TReq> reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
