@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -39,6 +40,8 @@ import org.junit.Test;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.execution.engine.indexing.ShardDMLExecutor;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
@@ -1133,5 +1136,27 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
+    }
+
+
+
+    public void test_bulk_update_with_dynamic_adaption() {
+        execute("create table doc.t1(id TEXT, document OBJECT(DYNAMIC))");
+        int bulkSize = 50000;
+        Object[][] bulkArgs = new Object[bulkSize][];
+        for (int i = 0; i < bulkSize; i++) {
+            HashMap<String, Object> doc = new HashMap<>();
+            for (int j = 0; j < 100; j++) {
+                doc.put(Integer.toString(j), randomAlphaOfLength(20));
+            }
+            bulkArgs[i] = new Object[]{i, doc};
+        }
+        var rowCounts = execute("insert into doc.t1 (id, document) values (?, ?)", bulkArgs);
+        assertThat(rowCounts.size()).isEqualTo(bulkSize);
+
+        ShardDMLExecutor.DEFAULT_BULK_SIZE = 1000;
+        ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE = 0.001;
+
+        execute("UPDATE doc.t1 SET document['1'] = document['2']");
     }
 }

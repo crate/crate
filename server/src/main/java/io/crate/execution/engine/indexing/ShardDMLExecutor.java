@@ -70,7 +70,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TResult extends Iterable<? extends Row>>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
-    public static final int DEFAULT_BULK_SIZE = 10_000;
+    public static int DEFAULT_BULK_SIZE = 10_000;
 
     private final UUID jobId;
     private final int bulkSize;
@@ -127,7 +127,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
         synchronized (ramAccounting) {
-            ramAccounting.addBytes(item.ramBytesUsed());
+            ramAccounting.addBytes(item.ramBytesUsed() + avgItemSize.get());
         }
         req.add(numItems, item);
     }

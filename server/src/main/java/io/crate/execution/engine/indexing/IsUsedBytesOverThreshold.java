@@ -56,7 +56,7 @@ class IsUsedBytesOverThreshold implements Predicate<Accountable> {
             (long) (queryCircuitBreaker.getFree() * ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE * memoryRatio), MIN_ACCEPTABLE_BYTES);
         long usedMemoryEstimate = accountable.ramBytesUsed();
         long l = avgItemSize.get();
-        usedMemoryEstimate = usedMemoryEstimate + 20_000;
+        usedMemoryEstimate = usedMemoryEstimate + avgItemSize.get();
         boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
         if (requestsTooBig && LOGGER.isDebugEnabled()) {
             LOGGER.debug(
