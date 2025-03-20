@@ -22,10 +22,8 @@ package org.elasticsearch.action.support.replication;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
@@ -38,8 +36,7 @@ import io.crate.common.unit.TimeValue;
  * Requests that are run on a particular replica, first on the primary and then on the replicas like
  * {@link TransportShardRefreshAction}.
  */
-public abstract class ReplicationRequest<Request extends ReplicationRequest<Request>> extends TransportRequest
-        implements IndicesRequest {
+public abstract class ReplicationRequest<Request extends ReplicationRequest<Request>> extends TransportRequest {
 
     public static final TimeValue DEFAULT_TIMEOUT = new TimeValue(1, TimeUnit.MINUTES);
 
@@ -99,16 +96,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     public final Request index(String index) {
         this.index = index;
         return (Request) this;
-    }
-
-    @Override
-    public String[] indices() {
-        return new String[]{index};
-    }
-
-    @Override
-    public IndicesOptions indicesOptions() {
-        return IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED;
     }
 
     public ActiveShardCount waitForActiveShards() {
