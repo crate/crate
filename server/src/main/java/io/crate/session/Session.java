@@ -22,6 +22,7 @@
 package io.crate.session;
 
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -85,6 +86,7 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Declare;
@@ -589,6 +591,21 @@ public class Session implements AutoCloseable {
             var result = activeExecution;
             activeExecution = null;
             return result;
+        }
+    }
+
+    public List<Statement> simpleQuery(String queryString) {
+        try {
+            return SqlParser.createStatementsForSimpleQuery(
+                queryString,
+                str -> PgArrayParser.parse(
+                    str,
+                    bytes -> new String(bytes, StandardCharsets.UTF_8)
+                )
+            );
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), queryString, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            throw t;
         }
     }
 

@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.sql.Connection;
@@ -177,6 +177,17 @@ public class PostgresJobsLogsITest extends IntegTestCase {
                 assertJobLogContains(conn, new String[]{insertNull}, true);
             }
         }
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/17651
+    @Test
+    public void test_simple_query_failures_are_logged_in_sys_jobs_log() {
+        try {
+            sqlExecutor.newSession().simpleQuery("foo");
+        } catch (Exception e) {
+        }
+        execute("SELECT stmt FROM sys.jobs_log WHERE error IS NOT NULL AND stmt = 'foo'");
+        assertThat(response).hasRows("foo");
     }
 
     private void assertJobLogContains(final Connection conn,

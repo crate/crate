@@ -62,7 +62,6 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
-import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
@@ -70,7 +69,6 @@ import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
-import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
@@ -788,13 +786,7 @@ public class PostgresWireProtocol {
 
         List<Statement> statements;
         try {
-            statements = SqlParser.createStatementsForSimpleQuery(
-                    queryString,
-                    str -> PgArrayParser.parse(
-                            str,
-                            bytes -> new String(bytes, StandardCharsets.UTF_8)
-                    )
-                );
+            statements = session.simpleQuery(queryString);
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), ex);
             sendReadyForQuery(channel, TransactionState.IDLE);
