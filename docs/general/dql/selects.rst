@@ -612,17 +612,6 @@ For example, this query returns any row where the array
 This query combines the ``ANY`` operator with the :ref:`LIKE <sql_dql_like>`
 operator::
 
-    cr> select inhabitants['name'], inhabitants['interests'] from locations
-    ... where '%stories%' LIKE ANY(inhabitants['interests']);
-    +---------------------+------------------------------+
-    | inhabitants['name'] | inhabitants['interests']     |
-    +---------------------+------------------------------+
-    | Minories            | ["netball", "short stories"] |
-    +---------------------+------------------------------+
-    SELECT 1 row in set (... sec)
-
-For ``LIKE ANY`` operators, the patterns can be provided on either sides::
-
     cr> select name from locations where name ILIKE ANY(['al%', 'ar%']) order
     ... by name asc;
     +---------------------+

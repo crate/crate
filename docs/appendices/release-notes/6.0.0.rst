@@ -73,6 +73,12 @@ Breaking Changes
   inner type definition is used. See also the related
   :ref:`documentation <cast_to_object>`
 
+- Removed support for patterns on the left side argument of
+  :ref:`LIKE/ILIKE <sql_dql_like>` operators because it led to ambiguities when
+  both sides contained possible pattern like strings e.g.::
+
+    SELECT 'a%' LIKE ANY(['a__']);
+
 Deprecations
 ============
 

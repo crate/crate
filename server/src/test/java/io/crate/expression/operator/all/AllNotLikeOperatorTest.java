@@ -42,48 +42,39 @@ public class AllNotLikeOperatorTest extends ScalarTestCase {
     @Test
     public void testNormalizeSymbolLikeZeroOrMore() {
         // Following tests: wildcard: '%' ... zero or more characters (0...N)
-        assertNormalize("'%bar' not like all (['foobar', 'bar'])", isLiteral(false));
-        assertNormalize("'%bar' not like all (['bar'])", isLiteral(false));
-        assertNormalize("'%bar' not like all (['ar', 'car'])", isLiteral(true));
-        assertNormalize("'foo%' not like all (['foobar', 'kuhbar'])", isLiteral(false));
-        assertNormalize("'foo%' not like all (['foo', 'kuh'])", isLiteral(false));
-        assertNormalize("'foo%' not like all (['fo', 'kuh'])", isLiteral(true));
-        assertNormalize("'%oob%' not like all (['foobar'])", isLiteral(false));
-
-        assertNormalize("'foo%' not ilike all (['FOO', 'foo'])", isLiteral(false));
-        assertNormalize("'foo%' not ilike all (['fo', 'kuh'])", isLiteral(true));
-        assertNormalize("'%oob%' not ilike all (['FOOBAR'])", isLiteral(false));
+        assertNormalize("'bar' not like all (['%bar'])", isLiteral(false));
+        assertNormalize("'foobar' not like all (['%bar'])", isLiteral(false));
+        assertNormalize("'bar' not like all (['%ar', '%car'])", isLiteral(false));
+        assertNormalize("'bar' not like all (['%car', '%dar'])", isLiteral(true));
+        assertNormalize("'foobar' not like all (['%oob%'])", isLiteral(false));
+        assertNormalize("'FOObAr' not ilike all (['%bar'])", isLiteral(false));
+        assertNormalize("'bOOb' not ilike all (['%oob%'])", isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolLikeExactlyOne() {
         // Following tests: wildcard: '_' ... all single character (exactly one)
-        assertNormalize("'_ar' not like all (['bar'])", isLiteral(false));
-        assertNormalize("'_bar' not like all (['bar'])", isLiteral(true));
-        assertNormalize("'fo_' not like all (['foo', 'for'])", isLiteral(false));
-        assertNormalize("'foo_' not like all (['foo', 'foo'])", isLiteral(true));
-        assertNormalize("'_o_' not like all (['foo'])", isLiteral(false));
-        assertNormalize("'_foobar_' not like all (['foobar'])", isLiteral(true));
-
-        assertNormalize("'foo_' not ilike all (['FOO'])", isLiteral(true));
-        assertNormalize("'_o_' not ilike all (['fOo'])", isLiteral(false));
-        assertNormalize("'_foobar_' not ilike all (['foObar'])", isLiteral(true));
+        assertNormalize("'bar' not like all (['_ar'])", isLiteral(false));
+        assertNormalize("'bar' not like all (['_bar'])", isLiteral(true));
+        assertNormalize("'foot' not like all (['foo_'])", isLiteral(false));
+        assertNormalize("'foo' not like all (['foo_'])", isLiteral(true));
+        assertNormalize("'foo' not like all (['_o_'])", isLiteral(false));
+        assertNormalize("'foobar' not like all (['_foobar_'])", isLiteral(true));
+        assertNormalize("'bAR' not ilike all (['_ar'])", isLiteral(false));
+        assertNormalize("'fOo' not ilike all (['_o_'])", isLiteral(false));
+        assertNormalize("'foo' not ilike all (['fOO_'])", isLiteral(true));
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        assertNormalize("'%o_ar' not like all (['oar', 'aoar'])", isLiteral(true));
-        assertNormalize("'%a_' not like all (['foobar'])", isLiteral(false));
-        assertNormalize("'%o_a%' not like all (['foobar'])", isLiteral(false));
-        assertNormalize("'%i%m%' not like all (['Lorem ipsum dolor...'])", isLiteral(false));
-        assertNormalize("'%%%sum%%' not like all (['Lorem ipsum dolor...'])", isLiteral(false));
-        assertNormalize("'%i%m' not like all (['Lorem ipsum dolor...'])", isLiteral(true));
-
-        assertNormalize("'%i%m%' not ilike all (['LOREM IPSUM DOLOR...'])", isLiteral(false));
-        assertNormalize("'%%%sum%%' not ilike all (['LOREM IPSUM DOLOR...'])", isLiteral(false));
-        assertNormalize("'%i%m' not ilike all (['LOREM IPSUM DOLOR...'])", isLiteral(true));
+        assertNormalize("'foobar' not like all (['%o_ar', '%o_a%'])", isLiteral(false));
+        assertNormalize("'Lorem ipsum dolor...' not like all (['%i%m%'])", isLiteral(false));
+        assertNormalize("'Lorem ipsum dolor...' not like all (['%%%sum%%'])", isLiteral(false));
+        assertNormalize("'Lorem ipsum dolor...' not like all (['%i%m'])", isLiteral(true));
+        assertNormalize("'fOObar' not ilike all (['%o_a%'])", isLiteral(false));
+        assertNormalize("'Lorem IpSuM dolor...' not ilike all (['%%%sum%%'])", isLiteral(false));
     }
 
     @Test
@@ -100,14 +91,12 @@ public class AllNotLikeOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateLikeMixed() {
-        assertEvaluate("'%o_ar' not like all (['foobar', 'foobaz'])", false);
-        assertEvaluate("'%a_' not like all (['foobar'])", false);
-        assertEvaluate("'%o_a%' not like all (['foobar'])", false);
-        assertEvaluate("'%i%m%' not like all (['Lorem ipsum dolor..'])", false);
-        assertEvaluate("'%%%sum%%' not like all (['Lorem ipsum dolor...'])", false);
-        assertEvaluate("'%i%m' not like all (['Lorem ipsum dolor...'])", true);
-        assertEvaluate("'%%%sum%%' not ilike all (['Lorem IPSUM dolor...'])", false);
-
+        assertEvaluate("'foobar' not like all (['%o_ar', '%o_a%'])", false);
+        assertEvaluate("'Lorem ipsum dolor...' not like all (['%i%m%'])", false);
+        assertEvaluate("'Lorem ipsum dolor...' not like all (['%%%sum%%'])", false);
+        assertEvaluate("'Lorem ipsum dolor...' not like all (['%i%m'])", true);
+        assertEvaluate("'fOObar' not ilike all (['%o_a%'])", false);
+        assertEvaluate("'Lorem IpSuM dolor...' not ilike all (['%%%sum%%'])", false);
     }
 
     @Test
@@ -133,16 +122,6 @@ public class AllNotLikeOperatorTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_patterns_on_right_arg() {
-        assertNormalize("'foobar' not like all (['%barr'])", isLiteral(true));
-        assertNormalize("'bar' not like all (['_ar'])", isLiteral(false));
-        assertNormalize("'foobar' not like all (['%o_a%'])", isLiteral(false));
-        assertNormalize("'fOobAR' not ilike all (['%BaR'])", isLiteral(false));
-        assertNormalize("'BaR' not ilike all (['z_ar'])", isLiteral(true));
-        assertNormalize("'foobar' not ilike all (['%O_a%'])", isLiteral(false));
-    }
-
-    @Test
     public void test_wildcard_escaped_in_c_style_string() {
         assertEvaluate("'TextToMatch' NOT LIKE ALL ([E'Te\\%tch'])", false);
         assertEvaluate("'TextToMatch' NOT ILIKE ALL ([E'te\\%tch'])", false);
@@ -156,5 +135,10 @@ public class AllNotLikeOperatorTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluate("'TextToMatch' NOT ILIKE ALL (['texttomatch', 'ab\\'])", false))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
+    }
+
+    @Test
+    public void test_only_rhs_arg_can_be_pattern() {
+        assertEvaluate("'a%' not like all(['a__'])", true);
     }
 }
