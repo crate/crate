@@ -50,7 +50,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     private final Setup setup = new Setup(sqlExecutor);
 
     @Before
-    public void initTestData() {
+    public void initTestData() throws Exception {
         setup.setUpEmployees();
     }
 

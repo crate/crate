@@ -30,7 +30,7 @@ import org.elasticsearch.transport.RemoteClusterAwareRequest;
 
 import java.io.IOException;
 
-public class RestoreShardRequest<T extends SingleShardRequest<T>> extends SingleShardRequest<T>
+public class RestoreShardRequest extends SingleShardRequest
     implements RemoteClusterAwareRequest {
 
     private final String restoreUUID;

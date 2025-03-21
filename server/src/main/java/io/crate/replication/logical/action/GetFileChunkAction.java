@@ -126,7 +126,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
         }
     }
 
-    public static class Request extends RestoreShardRequest<Request> {
+    public static class Request extends RestoreShardRequest {
 
         private final StoreFileMetadata storeFileMetadata;
         private final long offset;

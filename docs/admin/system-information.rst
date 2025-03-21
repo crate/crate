@@ -1912,23 +1912,26 @@ including the overall number of missing shards and underreplicated shards of all
 tables. Any table-specific health issues, exposed by the
 :ref:`sys.health <sys-health>` will be reflected here as well.
 
-+----------------------------+-------------------------------------+--------------+
-| Column Name                | Description                         | Return Type  |
-+============================+=====================================+==============+
-| ``health``                 | The cluster health label.           | ``TEXT``     |
-|                            | Can be RED, YELLOW or GREEN.        |              |
-+----------------------------+-------------------------------------+--------------+
-| ``severity``               | The health as a ``smallint`` value. | ``SMALLINT`` |
-|                            | Useful when ordering on health.     |              |
-+----------------------------+-------------------------------------+--------------+
-| ``description``            | A description of the current health | ``TEXT``     |
-+----------------------------+-------------------------------------+--------------+
-| ``missing_shards``         | The number of unassigned or not     | ``INTEGER``  |
-|                            | started shards of all tables.       |              |
-+----------------------------+-------------------------------------+--------------+
-| ``underreplicated_shards`` | The number of shards which are      | ``INTEGER``  |
-|                            | not fully replicated of all tables. |              |
-+----------------------------+-------------------------------------+--------------+
++----------------------------+--------------------------------------+--------------+
+| Column Name                | Description                          | Return Type  |
++============================+======================================+==============+
+| ``health``                 | The cluster health label.            | ``TEXT``     |
+|                            | Can be RED, YELLOW or GREEN.         |              |
++----------------------------+--------------------------------------+--------------+
+| ``severity``               | The health as a ``smallint`` value.  | ``SMALLINT`` |
+|                            | Useful when ordering on health.      |              |
++----------------------------+--------------------------------------+--------------+
+| ``description``            | A description of the current health. | ``TEXT``     |
++----------------------------+--------------------------------------+--------------+
+| ``pending_tasks``          | The number of pending cluster state  | ``BIGINT``   |
+|                            | update tasks.                        |              |
++----------------------------+--------------------------------------+--------------+
+| ``missing_shards``         | The number of unassigned or not      | ``BIGINT``   |
+|                            | started shards of all tables.        |              |
++----------------------------+--------------------------------------+--------------+
+| ``underreplicated_shards`` | The number of shards which are       | ``BIGINT``   |
+|                            | not fully replicated of all tables.  |              |
++----------------------------+--------------------------------------+--------------+
 
 Both ``missing_shards`` and ``underreplicated_shards`` might return ``-1`` if
 the cluster is in an unhealthy state that prevents the exact number from being
@@ -1940,11 +1943,11 @@ cluster status.
 ::
 
     cr> select * from sys.cluster_health order by severity desc;
-    +-------------+--------+----------------+----------+------------------------+
-    | description | health | missing_shards | severity | underreplicated_shards |
-    +-------------+--------+----------------+----------+------------------------+
-    |             | GREEN  |              0 |        1 |                      0 |
-    +-------------+--------+----------------+----------+------------------------+
+    +-------------+--------+----------------+---------------+----------+------------------------+
+    | description | health | missing_shards | pending_tasks | severity | underreplicated_shards |
+    +-------------+--------+----------------+---------------+----------+------------------------+
+    |             | GREEN  |              0 |             0 |        1 |                      0 |
+    +-------------+--------+----------------+---------------+----------+------------------------+
     SELECT 1 row in set (... sec)
 
 The `health` with the highest `severity` will always define the `health` of the
