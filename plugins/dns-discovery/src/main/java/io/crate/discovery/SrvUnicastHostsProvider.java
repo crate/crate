@@ -27,7 +27,9 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -41,7 +43,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.discovery.SeedHostsProvider;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoopGroup;
@@ -73,8 +77,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     private final TransportService transportService;
     private final String query;
     private final TimeValue resolveTimeout;
-    private final DnsNameResolver resolver;
-    private final EventLoopGroup eventLoopGroup;
+    private final DnsResolver resolver;
 
     @Inject
     public SrvUnicastHostsProvider(Settings settings, TransportService transportService) {
@@ -82,56 +85,15 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         this.query = DISCOVERY_SRV_QUERY.get(settings);
         this.resolveTimeout = DISCOVERY_SRV_RESOLVE_TIMEOUT.get(settings);
 
-        eventLoopGroup = new NioEventLoopGroup(1, daemonThreadFactory(settings, "netty-dns-resolver"));
-        resolver = buildResolver(settings);
+        EventLoopGroup eventLoopGroup = new NioEventLoopGroup(1, daemonThreadFactory(settings, "netty-dns-resolver"));
+        resolver = new DnsResolver(eventLoopGroup, settings);
     }
 
+    @VisibleForTesting
     EventLoopGroup eventLoopGroup() {
-        return eventLoopGroup;
+        return resolver.eventLoopGroup();
     }
 
-    InetSocketAddress parseResolverAddress(Settings settings) {
-        String hostname;
-        int port = 53;
-        String resolverAddress = DISCOVERY_SRV_RESOLVER.get(settings);
-        if (Strings.hasLength(resolverAddress)) {
-            String[] parts = resolverAddress.split(":");
-            if (parts.length > 0) {
-                hostname = parts[0];
-                if (parts.length > 1) {
-                    try {
-                        port = Integer.parseInt(parts[1]);
-                    } catch (Exception e) {
-                        LOGGER.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
-                    }
-                }
-                try {
-                    return new InetSocketAddress(hostname, port);
-                } catch (IllegalArgumentException e) {
-                    LOGGER.warn("Resolver port '{}' is out of range. Using default port 53", parts[1]);
-                    return new InetSocketAddress(hostname, 53);
-                }
-            }
-        }
-        return null;
-    }
-
-    private DnsNameResolver buildResolver(Settings settings) {
-        DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
-        resolverBuilder.datagramChannelType(NioDatagramChannel.class);
-        resolverBuilder.socketChannelType(NioSocketChannel.class, true);
-        resolverBuilder.queryTimeoutMillis(Math.min(Math.abs(resolveTimeout.millis() / 2), 100));
-
-        InetSocketAddress resolverAddress = parseResolverAddress(settings);
-        if (resolverAddress != null) {
-            try {
-                resolverBuilder.nameServerProvider(new SingletonDnsServerAddressStreamProvider(resolverAddress));
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn("Could not create custom dns resolver. Using default resolver.", e);
-            }
-        }
-        return resolverBuilder.build();
-    }
 
     @Override
     public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
@@ -201,4 +163,96 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         resolver.close();
     }
 
+    static InetSocketAddress parseResolverAddress(Settings settings) {
+        String hostname;
+        int port = 53;
+        String resolverAddress = DISCOVERY_SRV_RESOLVER.get(settings);
+        if (Strings.hasLength(resolverAddress)) {
+            String[] parts = resolverAddress.split(":");
+            if (parts.length > 0) {
+                hostname = parts[0];
+                if (parts.length > 1) {
+                    try {
+                        port = Integer.parseInt(parts[1]);
+                    } catch (Exception e) {
+                        LOGGER.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
+                    }
+                }
+                try {
+                    return new InetSocketAddress(hostname, port);
+                } catch (IllegalArgumentException e) {
+                    LOGGER.warn("Resolver port '{}' is out of range. Using default port 53", parts[1]);
+                    return new InetSocketAddress(hostname, 53);
+                }
+            }
+        }
+        return null;
+    }
+
+    public static class DnsResolver {
+
+        private static final long QUERY_TIMEOUT_FOR_TCP_RESOLVER = 10;
+
+        private final EventLoopGroup eventLoopGroup;
+        private final DnsNameResolver resolverUdp;
+        private final DnsNameResolver resolverTcp;
+
+        public DnsResolver(EventLoopGroup eventLoopGroup, Settings settings) {
+            this.eventLoopGroup = eventLoopGroup;
+            this.resolverUdp = buildResolver(settings, eventLoopGroup, false);
+            this.resolverTcp = buildResolver(settings, eventLoopGroup, true);
+        }
+
+        public Future<List<DnsRecord>> resolveAll(DefaultDnsQuestion question, List<DnsRecord> additional) {
+            CompletableFuture<List<DnsRecord>> finalFuture = new CompletableFuture<>();
+
+            CompletableFutures.asCompletableFuture(resolverTcp.resolveAll(question, additional))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        LOGGER.warn("Failed to resolve SRV records using TCP. Falling back to UDP.", throwable);
+                    } else {
+                        finalFuture.complete(result);
+                    }
+                });
+            CompletableFutures.asCompletableFuture(resolverUdp.resolveAll(question, additional))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        LOGGER.warn("Failed to resolve SRV records using UDP.", throwable);
+                        finalFuture.completeExceptionally(throwable);
+                    } else {
+                        finalFuture.complete(result);
+                    }
+                });
+
+            return finalFuture;
+        }
+
+        private EventLoopGroup eventLoopGroup() {
+            return eventLoopGroup;
+        }
+
+        public void close() {
+            resolverUdp.close();
+            resolverTcp.close();
+        }
+
+        private DnsNameResolver buildResolver(Settings settings, EventLoopGroup eventLoopGroup, boolean useTcp) {
+            DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
+            resolverBuilder.datagramChannelType(NioDatagramChannel.class);
+            resolverBuilder.socketChannelType(NioSocketChannel.class, useTcp);
+            if (useTcp) {
+                resolverBuilder.queryTimeoutMillis(QUERY_TIMEOUT_FOR_TCP_RESOLVER);
+            }
+
+            InetSocketAddress resolverAddress = parseResolverAddress(settings);
+            if (resolverAddress != null) {
+                try {
+                    resolverBuilder.nameServerProvider(new SingletonDnsServerAddressStreamProvider(resolverAddress));
+                } catch (IllegalArgumentException e) {
+                    LOGGER.warn("Could not create custom dns resolver. Using default resolver.", e);
+                }
+            }
+            return resolverBuilder.build();
+        }
+    }
 }
