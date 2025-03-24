@@ -383,6 +383,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
+    public Collection<Reference> allColumns() {
+        return allColumns.values();
+    }
+
+    @Override
     public Set<Reference> droppedColumns() {
         return droppedColumns;
     }
