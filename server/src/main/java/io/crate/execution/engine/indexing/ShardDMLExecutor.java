@@ -191,7 +191,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             scheduler,
             l -> operation.accept(request, l),
             listener,
-            BackoffPolicy.unlimitedDynamic(nodeLimit)
+            BackoffPolicy.limitedDynamic(nodeLimit)
         );
     }
 
