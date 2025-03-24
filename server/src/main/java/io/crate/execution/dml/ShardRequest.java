@@ -43,8 +43,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     extends ReplicationRequest<T>
     implements Iterable<I>, Accountable {
 
-    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ShardRequest.class);
-
     private final UUID jobId;
     protected List<I> items;
 
@@ -116,9 +114,11 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                '}';
     }
 
+    protected abstract long shallowSize();
+
     @Override
     public long ramBytesUsed() {
-        long bytes = SHALLOW_SIZE;
+        long bytes = shallowSize();
         for (var item : items) {
             bytes += item.ramBytesUsed();
         }
