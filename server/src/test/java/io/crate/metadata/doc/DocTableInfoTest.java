@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -569,6 +571,31 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(ColumnIdent.of("o")))
             .hasName("o")
             .hasType(oType);
+    }
+
+    @Test
+    public void test_add_columns_fails_eagerly_on_too_many_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (\"mapping.total_fields.limit\" = 3)");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Function<String, Reference> newRef = name -> new SimpleReference(
+            new ReferenceIdent(table.ident(), ColumnIdent.of(name)),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        Reference a = newRef.apply("a");
+        Reference b = newRef.apply("b");
+        Reference c = newRef.apply("c");
+        assertThatThrownBy(() -> table.addColumns(
+            e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
+            () -> 1,
+            List.of(a, b, c),
+            new IntArrayList(),
+            Map.of()
+        )).hasMessage("Limit of total columns [3] in table [doc.tbl] exceeded");
     }
 
     @Test
