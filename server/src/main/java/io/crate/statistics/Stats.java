@@ -22,8 +22,8 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -138,10 +138,9 @@ public class Stats implements Writeable {
         return statsByColumn.get(column);
     }
 
-    public long estimateSizeForColumns(List<Symbol> toCollect) {
+    public <T extends Symbol> long estimateSizeForColumns(Collection<T> toCollect) {
         long sum = 0L;
-        for (int i = 0; i < toCollect.size(); i++) {
-            Symbol symbol = toCollect.get(i);
+        for (Symbol symbol : toCollect) {
             ColumnStats<?> columnStats = null;
             while (symbol instanceof AliasSymbol alias) {
                 symbol = alias.symbol();

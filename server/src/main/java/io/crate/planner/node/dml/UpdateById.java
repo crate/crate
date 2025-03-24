@@ -173,7 +173,8 @@ public final class UpdateById implements Plan {
                 assignmentSources,
                 version,
                 seqNo,
-                primaryTerm
+                primaryTerm,
+                0
             );
             request.add(location, item);
         }
