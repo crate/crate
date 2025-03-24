@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
@@ -36,10 +35,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.common.unit.TimeValue;
 
-public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> implements IndicesRequest {
+public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> {
 
-    private String[] indices = Strings.EMPTY_ARRAY;
-    private IndicesOptions indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
     private TimeValue timeout = new TimeValue(30, TimeUnit.SECONDS);
     private ClusterHealthStatus waitForStatus;
     private boolean waitForNoRelocatingShards = false;
@@ -54,32 +51,6 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
     private Level level = Level.SHARDS;
 
     public ClusterHealthRequest() {
-    }
-
-    public ClusterHealthRequest(String... indices) {
-        assert indices != null : "Must not set indices to null";
-        this.indices = indices;
-    }
-
-    @Override
-    public String[] indices() {
-        return indices;
-    }
-
-    public ClusterHealthRequest indices(String... indices) {
-        assert indices != null : "Must not set indices to null";
-        this.indices = indices;
-        return this;
-    }
-
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    public ClusterHealthRequest indicesOptions(final IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return this;
     }
 
     public TimeValue timeout() {
@@ -217,7 +188,10 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
 
     public ClusterHealthRequest(StreamInput in) throws IOException {
         super(in);
-        indices = in.readStringArray();
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            // was indices array before
+            in.readStringArray();
+        }
         timeout = in.readTimeValue();
         if (in.readBoolean()) {
             waitForStatus = ClusterHealthStatus.fromValue(in.readByte());
@@ -229,17 +203,17 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
             waitForEvents = Priority.readFrom(in);
         }
         waitForNoInitializingShards = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            indicesOptions = IndicesOptions.readIndicesOptions(in);
-        } else {
-            indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN;
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            IndicesOptions.readIndicesOptions(in);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArray(indices);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            out.writeStringArray(Strings.EMPTY_ARRAY);
+        }
         out.writeTimeValue(timeout);
         if (waitForStatus == null) {
             out.writeBoolean(false);
@@ -257,8 +231,8 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
             Priority.writeTo(waitForEvents, out);
         }
         out.writeBoolean(waitForNoInitializingShards);
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED.writeIndicesOptions(out);
         }
     }
 
