@@ -33,12 +33,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.execution.engine.indexing.ShardDMLExecutor;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
@@ -1133,5 +1137,31 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
+    }
+
+    private static final Logger LOGGER = LogManager.getLogger(UpdateIntegrationTest.class);
+
+    public void test_bulk_update_with_dynamic_adaption() throws Exception {
+        execute("create table doc.t1(id TEXT, document OBJECT(DYNAMIC))");
+        int bulkSize = 10_000;
+        Object[][] bulkArgs = new Object[bulkSize][];
+        for (int i = 0; i < bulkSize; i++) {
+            HashMap<String, Object> doc = new HashMap<>();
+            for (int j = 0; j < 100; j++) {
+                doc.put(Integer.toString(j), randomAlphaOfLength(20));
+            }
+            bulkArgs[i] = new Object[]{i, doc};
+        }
+        var rowCounts = execute("insert into doc.t1 (id, document) values (?, ?)", bulkArgs);
+        assertThat(rowCounts.size()).isEqualTo(bulkSize);
+        assertNoTasksAreLeftOpen();
+
+        LOGGER.info("------- Start batch update ------");
+
+        ShardDMLExecutor.DEFAULT_BULK_SIZE = 1_000;
+        ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE = 0.0001d;
+
+
+        execute("UPDATE doc.t1 SET document['1'] = document['2']");
     }
 }

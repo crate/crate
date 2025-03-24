@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -90,6 +92,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final Schemas schemas;
     private final NodeContext nodeCtx;
     private final TransportAddColumnAction addColumnAction;
+    private static final Logger LOGGER = LogManager.getLogger(TransportShardUpsertAction.class);
+
 
 
     @Inject
@@ -123,6 +127,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
+        LOGGER.info("Receive shard upsert request with {} items", request.items().size());
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
@@ -203,6 +208,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         Translog.Location translogLocation = null;
+        ArrayList<Long> itemSize = new ArrayList<>();
         for (ShardUpsertRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
@@ -224,6 +230,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     rawIndexer
                 );
                 if (indexItemResponse != null) {
+                    if (indexItemResponse.size != null) {
+                        itemSize.add(indexItemResponse.size);
+                    }
                     if (indexItemResponse.translog != null) {
                         shardResponse.add(location);
                         translogLocation = indexItemResponse.translog;
@@ -262,6 +271,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
         }
+        long itemSizeSum = 0;
+        for (Long l : itemSize) {
+            itemSizeSum += l;
+        }
+        long avgItemSize = itemSizeSum / request.items().size();
+        shardResponse.avgItemSize(avgItemSize);
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
@@ -411,6 +426,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
+        Long rawSize = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
@@ -435,13 +451,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.seqNo(),
                         item.primaryTerm(),
                         actualTable);
+                    rawSize = (long) doc.getRaw().length();
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
-                return insert(
+                var returnValue = insert(
                     tryInsertFirst ? indexer : updatingIndexer,
                     request,
                     item,
@@ -450,6 +467,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     rawIndexer,
                     version
                 );
+                returnValue.size = rawSize;
+                return returnValue;
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -484,10 +503,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         final Translog.Location translog;
         @Nullable
         final Object[] returnValues;
+        @Nullable
+        Long size;
 
-        IndexItemResponse(@Nullable Translog.Location translog, @Nullable Object[] returnValues) {
+        IndexItemResponse(@Nullable Translog.Location translog, @Nullable Object[] returnValues, @Nullable Long size) {
             this.translog = translog;
             this.returnValues = returnValues;
+            this.size = size;
         }
     }
 
@@ -551,7 +573,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.seqNo(result.getSeqNo());
                 item.version(result.getVersion());
                 item.primaryTerm(result.getTerm());
-                return new IndexItemResponse(result.getTranslogLocation(), indexer.returnValues(item));
+                return new IndexItemResponse(result.getTranslogLocation(), indexer.returnValues(item), 0L);
 
             case FAILURE:
                 Exception failure = result.getFailure();

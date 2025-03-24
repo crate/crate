@@ -30,6 +30,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -83,7 +84,7 @@ public class ShardingUpsertExecutor
     public static final int BULK_RESPONSE_MAX_ERRORS_PER_SHARD = 10;
 
     static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
-    static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
+    public static double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeLimits nodeLimits;
@@ -103,6 +104,7 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
     private final Predicate<UpsertResults> earlyTerminationCondition;
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
+    private final AtomicLong avgItemSize = new AtomicLong();
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            BiConsumer<String, IndexItem> constraintsChecker,
@@ -267,7 +269,7 @@ public class ShardingUpsertExecutor
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         long startTime = nodeLimit.startSample();
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, avgItemSize);
         var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
