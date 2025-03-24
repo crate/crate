@@ -66,18 +66,8 @@ public class ClusterHealthIT extends IntegTestCase {
 
     @Test
     public void testHealth() {
-        logger.info("--> running cluster health on an index that does not exists");
-        ClusterHealthResponse healthResponse = FutureUtils.get(client().admin().cluster().health(
-            new ClusterHealthRequest("test1")
-                .waitForYellowStatus()
-                .timeout("1s")
-            ));
-        assertThat(healthResponse.isTimedOut()).isTrue();
-        assertThat(healthResponse.getStatus()).isEqualTo(ClusterHealthStatus.RED);
-        assertThat(healthResponse.getIndices().isEmpty()).isTrue();
-
         logger.info("--> running cluster wide health");
-        healthResponse = FutureUtils.get(client().admin().cluster().health(
+        ClusterHealthResponse healthResponse = FutureUtils.get(client().admin().cluster().health(
             new ClusterHealthRequest()
                 .waitForGreenStatus()
                 .timeout("10s")
@@ -89,9 +79,9 @@ public class ClusterHealthIT extends IntegTestCase {
         logger.info("--> Creating index test1 with zero replicas");
         execute("create table doc.test1 (x int) with (number_of_replicas = 0)");
 
-        logger.info("--> running cluster health on an index that does exists");
+        logger.info("--> running cluster health, checking concrete table health");
         healthResponse = FutureUtils.get(client().admin().cluster().health(
-            new ClusterHealthRequest("test1")
+            new ClusterHealthRequest()
                 .waitForGreenStatus()
                 .timeout("10s")
             ));
@@ -99,16 +89,18 @@ public class ClusterHealthIT extends IntegTestCase {
         assertThat(healthResponse.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
         assertThat(healthResponse.getIndices().get("test1").getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
 
-        logger.info("--> running cluster health on an index that does exists and an index that doesn't exists");
+        logger.info("--> Creating index test2 with 10 replicas");
+        execute("create table doc.test2 (x int) with (number_of_replicas = 10)");
+        logger.info("--> running cluster health, expecting timeout");
         healthResponse = FutureUtils.get(client().admin().cluster().health(
-            new ClusterHealthRequest("test1", "test2")
-                .waitForYellowStatus()
+            new ClusterHealthRequest()
+                .waitForGreenStatus()
                 .timeout("1s")
             ));
         assertThat(healthResponse.isTimedOut()).isTrue();
-        assertThat(healthResponse.getStatus()).isEqualTo(ClusterHealthStatus.RED);
+        assertThat(healthResponse.getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
         assertThat(healthResponse.getIndices().get("test1").getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-        assertThat(healthResponse.getIndices()).hasSize(1);
+        assertThat(healthResponse.getIndices().get("test2").getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
     }
 
     @Test
@@ -138,36 +130,6 @@ public class ClusterHealthIT extends IntegTestCase {
             assertThat(response.getIndices()).hasSize(3);
             assertThat(response.getIndices().get(table_1).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.getIndices().get(table_2).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-            assertThat(response.getIndices().get(table_3).getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
-        }
-        {
-            ClusterHealthResponse response = FutureUtils.get(
-                client().admin().cluster().health(new ClusterHealthRequest(table_1)),
-                REQUEST_TIMEOUT
-            );
-            assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-            assertThat(response.isTimedOut()).isFalse();
-            assertThat(response.getIndices()).hasSize(1);
-            assertThat(response.getIndices().get(table_1).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-        }
-        {
-            ClusterHealthResponse response = FutureUtils.get(
-                client().admin().cluster().health(new ClusterHealthRequest(table_2)),
-                REQUEST_TIMEOUT
-            );
-            assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-            assertThat(response.isTimedOut()).isFalse();
-            assertThat(response.getIndices()).hasSize(1);
-            assertThat(response.getIndices().get(table_2).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-        }
-        {
-            ClusterHealthResponse response = FutureUtils.get(
-                client().admin().cluster().health(new ClusterHealthRequest(table_3)),
-                REQUEST_TIMEOUT
-            );
-            assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
-            assertThat(response.isTimedOut()).isFalse();
-            assertThat(response.getIndices()).hasSize(1);
             assertThat(response.getIndices().get(table_3).getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
         }
 
@@ -210,11 +172,6 @@ public class ClusterHealthIT extends IntegTestCase {
 
     @Test
     public void testWaitForEventsRetriesIfOtherConditionsNotMet() throws Exception {
-        final CompletableFuture<ClusterHealthResponse> healthResponseFuture = client().admin().cluster().health(
-            new ClusterHealthRequest("tbl")
-                .waitForEvents(Priority.LANGUID)
-                .waitForGreenStatus()
-            );
 
         final AtomicBoolean keepSubmittingTasks = new AtomicBoolean(true);
         final ClusterService clusterService = cluster().getInstance(ClusterService.class, cluster().getMasterName());
@@ -237,8 +194,14 @@ public class ClusterHealthIT extends IntegTestCase {
                 }
             });
 
+        final CompletableFuture<ClusterHealthResponse> healthResponseFuture = client().admin().cluster().health(
+            new ClusterHealthRequest()
+                .waitForEvents(Priority.LANGUID)
+                .waitForGreenStatus()
+        );
+
         execute("create table doc.tbl (x int) with (number_of_replicas = 0)");
-        var clusterHealthResponse = FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForGreenStatus()));
+        var clusterHealthResponse = FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForGreenStatus()));
         assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         // at this point the original health response should not have returned: there was never a point where the index was green AND
