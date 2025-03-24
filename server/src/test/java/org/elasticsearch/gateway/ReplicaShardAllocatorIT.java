@@ -204,6 +204,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             cluster().startDataOnlyNode(nodeWithReplicaSettings);
 
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
+            ensureYellow();
             assertBusy(() -> {
                 execute("""
                     select
