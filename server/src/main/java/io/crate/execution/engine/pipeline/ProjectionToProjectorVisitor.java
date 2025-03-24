@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.execution.dml.upsert.ShardUpsertRequest.Item.sizeEstimateForUpdate;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.planner.operators.InsertFromValues.checkConstraints;
@@ -555,6 +556,16 @@ public class ProjectionToProjectorVisitor
         Context context, UpdateProjection projection,
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
+        // Get Stats to improve ram estimation for the update items
+        assert shardId != null : "ShardId must be provided for updates";
+
+        String indexName = shardId.getIndexName();
+        RelationName relationName = RelationName.fromIndexName(indexName);
+
+        long sizeEstimate = sizeEstimateForUpdate(
+            nodeCtx.tableStats().getStats(relationName),
+            nodeCtx.schemas().getTableInfo(relationName)
+        );
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
@@ -584,7 +595,8 @@ public class ProjectionToProjectorVisitor
                     projection.assignments(),
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                    sizeEstimate
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),

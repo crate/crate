@@ -47,9 +47,13 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.table.TableInfo;
+import io.crate.statistics.Stats;
 import io.crate.types.DataType;
 
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ShardUpsertRequest.class);
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
@@ -269,6 +273,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         return result;
     }
 
+    @Override
+    protected long shallowSize() {
+        return SHALLOW_SIZE;
+    }
+
     /**
      * A single update item.
      */
@@ -304,8 +313,10 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                      Symbol[] assignments,
                                      long requiredVersion,
                                      long seqNo,
-                                     long primaryTerm) {
+                                     long primaryTerm,
+                                     long sizeEstimate) {
             long usedBytes = SHALLOW_SIZE;
+            usedBytes += sizeEstimate;
             usedBytes += RamUsageEstimator.sizeOf(id);
             for (var assignment : assignments) {
                 usedBytes += assignment.ramBytesUsed();
@@ -321,6 +332,17 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 usedBytes
             );
+        }
+
+        public static long sizeEstimateForUpdate(Stats stats, TableInfo tableInfo) {
+            // if stats are not available we fall back to estimate the size based on
+            // column types. Therefore we need to get the column information.
+            if (stats.isEmpty()) {
+                Collection<Reference> ramAccountedColumns = tableInfo.allColumns();
+                return stats.estimateSizeForColumns(ramAccountedColumns);
+            } else {
+                return stats.averageSizePerRowInBytes();
+            }
         }
 
         public static Item forInsert(String id,

@@ -46,6 +46,7 @@ public class NodeContext {
     private final long serverStartTimeInMs;
     private final Roles roles;
     private final Schemas schemas;
+    private final TableStats tableStats;
 
     public static NodeContext of(Environment environment,
                                  ClusterService clusterService,
@@ -73,14 +74,18 @@ public class NodeContext {
             );
             schemas.start();
             return schemas;
-        });
+        }, tableStats);
     }
 
-    public NodeContext(Functions functions, Roles roles, Function<NodeContext, Schemas> createSchemas) {
+    public NodeContext(Functions functions,
+                       Roles roles,
+                       Function<NodeContext, Schemas> createSchemas,
+                       TableStats tableStats) {
         this.functions = functions;
         this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
         this.roles = roles;
         this.schemas = createSchemas.apply(this);
+        this.tableStats = tableStats;
     }
 
     public Functions functions() {
@@ -97,5 +102,9 @@ public class NodeContext {
 
     public Schemas schemas() {
         return schemas;
+    }
+
+    public TableStats tableStats() {
+        return tableStats;
     }
 }
