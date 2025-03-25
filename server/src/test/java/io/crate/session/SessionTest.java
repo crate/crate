@@ -461,4 +461,22 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    @Test
+    public void test_simple_query_parse_failure_is_logged() throws Exception {
+        // https://github.com/crate/crate/issues/17651
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
+        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.updateJobsLog(new QueueSink<>(new BlockingEvictingQueue<>(1), () -> {}));
+        try (Session session = sqlExecutor.createSession()) {
+            assertThatThrownBy(() -> session.simpleQuery("sele"))
+                .hasMessageContaining("mismatched input 'sele' expecting");
+
+            assertThat(sqlExecutor.jobsLogs.activeJobs()).isEmpty();
+            assertThat(sqlExecutor.jobsLogs.jobsLog()).satisfiesExactly(
+                x -> {
+                    assertThat(x.statement()).isEqualTo("sele");
+                }
+            );
+        }
+    }
 }
