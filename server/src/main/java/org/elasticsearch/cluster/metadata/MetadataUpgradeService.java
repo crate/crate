@@ -19,7 +19,12 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
+
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,12 +35,18 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.sql.tree.CheckConstraint;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -91,6 +102,87 @@ public class MetadataUpgradeService {
         newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
+    }
+
+    /**
+     * If {@link RelationMetadata} doesn't exist for simple or partitioned tables, create them using the already
+     * upgraded {@link IndexMetadata} or {@link IndexTemplateMetadata} respectively. If they exist (this is handled in
+     * {@link DocTableInfoFactory#create(RelationName, Metadata)}), then override them to set the settings that have
+     * been upgraded on @link IndexMetadata} or {@link IndexTemplateMetadata}.
+     */
+    public Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
+        Metadata.Builder newMetadata = Metadata.builder(metadata);
+        for (IndexMetadata indexMetadata : metadata) {
+            String indexName = indexMetadata.getIndex().getName();
+            if (IndexName.isPartitioned(indexName) == false) {
+                RelationName relationName = IndexName.decode(indexName).toRelationName();
+                DocTableInfo docTable = tableFactory.create(relationName, metadata);
+                List<String> indexUUIDs = metadata.getIndices(
+                    relationName,
+                    List.of(),
+                    false,
+                    IndexMetadata::getIndexUUID
+                );
+
+                newMetadata.setTable(
+                    docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                        ? NO_OID_COLUMN_OID_SUPPLIER
+                        : newMetadata.columnOidSupplier(),
+                    relationName,
+                    docTable.allReferences(),
+                    // If RelationMetadata exist in the cluster state, make sure to override them with
+                    // the upgraded settings which currently takes place on IndexMetadata
+                    indexMetadata.getSettings(),
+                    docTable.clusteredBy(),
+                    docTable.columnPolicy(),
+                    docTable.pkConstraintName(),
+                    docTable.checkConstraints()
+                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                    docTable.primaryKey(),
+                    docTable.partitionedBy(),
+                    indexMetadata.getState(),
+                    indexUUIDs
+                );
+            }
+        }
+
+        for (ObjectObjectCursor<String, IndexTemplateMetadata> entry : metadata.templates()) {
+            IndexTemplateMetadata indexTemplateMetadata = entry.value;
+            RelationName relationName = IndexName.decode(indexTemplateMetadata.name()).toRelationName();
+            DocTableInfo docTable = tableFactory.create(relationName, metadata);
+            List<String> indexUUIDs = metadata.getIndices(
+                relationName,
+                List.of(),
+                false,
+                IndexMetadata::getIndexUUID
+            );
+            // versionCreated could be missing from the template settings and "calculated" afterwards
+            // in DocTableInfo, so put it back to RelationMetadata#parameters
+            Settings settings = Settings.builder()
+                // If RelationMetadata exist in the cluster state, make sure to override them with
+                // the upgraded settings which currently takes place on IndexTemplateMetadata
+                .put(indexTemplateMetadata.settings())
+                .put(SETTING_INDEX_VERSION_CREATED.getKey(), docTable.versionCreated())
+                .build();
+            newMetadata.setTable(
+                docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                    ? NO_OID_COLUMN_OID_SUPPLIER
+                    : newMetadata.columnOidSupplier(),
+                relationName,
+                docTable.allReferences(),
+                settings,
+                docTable.clusteredBy(),
+                docTable.columnPolicy(),
+                docTable.pkConstraintName(),
+                docTable.checkConstraints()
+                    .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                docTable.primaryKey(),
+                docTable.partitionedBy(),
+                docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
+                indexUUIDs
+            );
+        }
+        return newMetadata.build();
     }
 
     public Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
