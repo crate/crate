@@ -1275,4 +1275,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    /**
+     * All columns, including dropped and nested columns
+     **/
+    public List<Reference> allReferences() {
+        return Lists.concat(allColumns.values(), droppedColumns);
+    }
 }
