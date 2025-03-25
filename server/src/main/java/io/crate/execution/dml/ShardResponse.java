@@ -133,10 +133,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     @Nullable
     private Exception failure;
 
-    @Nullable
-    private Long avgItemSize;
-
-
     public ShardResponse() {
     }
 
@@ -171,14 +167,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             resultRows = new ArrayList<>();
         }
         resultRows.add(rows);
-    }
-
-    public @Nullable Long avgItemSize() {
-        return avgItemSize;
-    }
-
-    public void avgItemSize(@Nullable Long avgItemSize) {
-        this.avgItemSize = avgItemSize;
     }
 
     @Nullable
@@ -241,7 +229,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                 }
             }
         }
-        avgItemSize = in.readLong();
     }
 
     @Override
@@ -283,9 +270,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             } else {
                 out.writeVInt(0);
             }
-        }
-        if (avgItemSize != null) {
-            out.writeLong(avgItemSize);
         }
     }
 

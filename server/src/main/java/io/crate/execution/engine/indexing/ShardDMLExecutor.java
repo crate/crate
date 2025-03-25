@@ -87,7 +87,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ClusterService clusterService;
     private int numItems = -1;
     private final RamAccounting ramAccounting;
-    private final AtomicLong avgItemSize = new AtomicLong(0);
     private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
 
 
@@ -157,16 +156,10 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             @Override
             public void onResponse(ShardResponse response) {
                 nodeLimit.onSample(startTime, false);
-                Long size = response.avgItemSize();
-                if (size != null) {
-                    LOGGER.info("Update avg size to {}", size);
-                    avgItemSize.set(size);
-                }
                 long totalBytesUsed = 0;
                 for (var item : request.items()) {
                     totalBytesUsed += item.ramBytesUsed();
                 }
-
                 synchronized (ramAccounting) {
                     ramAccounting.addBytes(- totalBytesUsed);
                 }
@@ -210,7 +203,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     @Override
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, avgItemSize);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, new AtomicLong());
         BatchIterator<TReq> reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
