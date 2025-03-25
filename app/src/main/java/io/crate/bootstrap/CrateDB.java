@@ -63,6 +63,7 @@ public class CrateDB extends EnvironmentAwareCommand {
      * Main entry point for starting crate
      */
     public static void main(final String[] args) throws Exception {
+        System.setProperty("aws.java.v1.disableDeprecationAnnouncement", "true");
         LogConfigurator.registerErrorListener();
         try (CrateDB crate = new CrateDB()) {
             int status = crate.main(args, Terminal.DEFAULT);

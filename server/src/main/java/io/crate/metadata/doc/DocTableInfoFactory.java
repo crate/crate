@@ -204,9 +204,9 @@ public class DocTableInfoFactory {
     public DocTableInfo create(RelationName relation, Metadata metadata) {
         RelationMetadata relationMetadata = metadata.getRelation(relation);
         PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
-        if (relationMetadata instanceof RelationMetadata.Table table) {
-            return tableFromRelationMetadata(table, publicationsMetadata);
-        }
+//        if (relationMetadata instanceof RelationMetadata.Table table) {
+//            return tableFromRelationMetadata(table, publicationsMetadata);
+//        }
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
         Version versionCreated;

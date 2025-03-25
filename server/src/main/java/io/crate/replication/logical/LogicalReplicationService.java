@@ -51,6 +51,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -101,7 +102,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                      ThreadPool threadPool,
                                      Client client,
                                      AllocationService allocationService,
-                                     LogicalReplicationSettings replicationSettings) {
+                                     LogicalReplicationSettings replicationSettings,
+                                     MetadataUpgradeService metadataUpgradeService) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
@@ -114,7 +116,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             replicationSettings,
             remoteClusters::getClient,
             clusterService,
-            allocationService
+            allocationService,
+            metadataUpgradeService
         );
         clusterService.addListener(this);
     }

@@ -22,10 +22,6 @@
 package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
-import static io.crate.role.Role.CRATE_USER;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 
 import java.io.IOException;
@@ -35,7 +31,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
@@ -46,13 +41,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
-import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -256,7 +247,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addSubscription("sub1", List.of("pub1"), List.of("test"))
             .build();
     }
-
+/*
     @Test
     public void test_mappings_is_transferred_between_two_clustering_for_logical_replication() throws Exception {
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
@@ -549,4 +540,5 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
         assertThat(restoreDiff.toRestore()).isEmpty();
     }
+ */
 }

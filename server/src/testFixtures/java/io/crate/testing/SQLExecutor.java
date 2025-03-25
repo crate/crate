@@ -64,6 +64,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -374,7 +375,8 @@ public class SQLExecutor {
                 threadPool,
                 new NodeClient(settings, threadPool),
                 allocationService,
-                logicalReplicationSettings
+                logicalReplicationSettings,
+                new MetadataUpgradeService(nodeCtx, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, udfService)
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);

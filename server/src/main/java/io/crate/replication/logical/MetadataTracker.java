@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -91,6 +92,7 @@ public final class MetadataTracker implements Closeable {
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
+    private final MetadataUpgradeService metadataUpgradeService;
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = Set.of();
@@ -104,7 +106,8 @@ public final class MetadataTracker implements Closeable {
                            LogicalReplicationSettings replicationSettings,
                            Function<String, Client> remoteClient,
                            ClusterService clusterService,
-                           AllocationService allocationService) {
+                           AllocationService allocationService,
+                           MetadataUpgradeService metadataUpgradeService) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.replicationService = replicationService;
@@ -114,6 +117,7 @@ public final class MetadataTracker implements Closeable {
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
+        this.metadataUpgradeService = metadataUpgradeService;
     }
 
     private void start() {
@@ -336,11 +340,11 @@ public final class MetadataTracker implements Closeable {
     }
 
     @VisibleForTesting
-    static ClusterState updateIndexMetadata(String subscriptionName,
-                                            Subscription subscription,
-                                            ClusterState subscriberClusterState,
-                                            Response publicationsState,
-                                            IndexScopedSettings indexScopedSettings) {
+    ClusterState updateIndexMetadata(String subscriptionName,
+                                     Subscription subscription,
+                                     ClusterState subscriberClusterState,
+                                     Response publicationsState,
+                                     IndexScopedSettings indexScopedSettings) {
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
@@ -379,7 +383,8 @@ public final class MetadataTracker implements Closeable {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Updated index metadata for subscription {}", subscriptionName);
             }
-            return ClusterState.builder(subscriberClusterState).metadata(updatedMetadataBuilder).build();
+            Metadata newMetadata = metadataUpgradeService.upgradeRelationMetadata(updatedMetadataBuilder.build());
+            return ClusterState.builder(subscriberClusterState).metadata(newMetadata).build();
         } else {
             return subscriberClusterState;
         }
@@ -509,7 +514,8 @@ public final class MetadataTracker implements Closeable {
             updatedClusterState = DropSubscriptionAction.removeSubscriptionSetting(
                 changedRelations,
                 updatedClusterState,
-                Metadata.builder(updatedClusterState.metadata())
+                Metadata.builder(updatedClusterState.metadata()),
+                metadataUpgradeService
             );
 
             updatedClusterState = UpdateSubscriptionAction.update(

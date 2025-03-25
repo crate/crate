@@ -104,9 +104,9 @@ public class MetadataUpgradeService {
     public Metadata upgradeRelationMetadata(Metadata metadata) {
         Metadata.Builder newMetadata = Metadata.builder(metadata);
         for (IndexMetadata indexMetadata : metadata) {
-            if (IndexName.isPartitioned(indexMetadata.getIndex().getName()) == false) {
-                var indexParts = IndexName.decode(indexMetadata.getIndex().getName());
-                var relationName = new RelationName(indexParts.schema(), indexParts.table());
+            String indexName = indexMetadata.getIndex().getName();
+            if (IndexName.isPartitioned(indexName) == false) {
+                RelationName relationName = IndexName.decode(indexName).toRelationName();
                 DocTableInfo docTable = tableFactory.create(relationName, metadata);
                 List<String> indexUUIDs = metadata.getIndices(
                     relationName,
@@ -121,7 +121,7 @@ public class MetadataUpgradeService {
                         : newMetadata.columnOidSupplier(),
                     relationName,
                     docTable.references(),
-                    docTable.parameters(),
+                    indexMetadata.getSettings(),
                     docTable.clusteredBy(),
                     docTable.columnPolicy(),
                     docTable.pkConstraintName(),

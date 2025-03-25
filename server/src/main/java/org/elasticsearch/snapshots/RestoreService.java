@@ -62,8 +62,8 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -659,9 +659,9 @@ public class RestoreService implements ClusterStateApplier {
                 // We don't have any indices to restore - we are done
                 restoreInfo = new RestoreInfo(snapshotId.getName(), Collections.unmodifiableList(new ArrayList<>(indices.keySet())), shards.size(), shards.size() - failedShards(shards));
             }
-
+            Metadata newMetadata = metadataIndexUpgradeService.upgradeRelationMetadata(mdBuilder.build());
             RoutingTable rt = rtBuilder.build();
-            ClusterState updatedState = builder.metadata(mdBuilder).blocks(blocks).routingTable(rt).build();
+            ClusterState updatedState = builder.metadata(newMetadata).blocks(blocks).routingTable(rt).build();
             return allocationService.reroute(updatedState, "restored snapshot [" + snapshot + "]");
         }
 

@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,8 +71,9 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
      * (Without this setting, indices will use the default read-write engine)
      */
     public static ClusterState removeSubscriptionSetting(Collection<RelationName> relations,
-                                                  ClusterState currentState,
-                                                  Metadata.Builder mdBuilder) {
+                                                         ClusterState currentState,
+                                                         Metadata.Builder mdBuilder,
+                                                         MetadataUpgradeService metadataUpgradeService) {
         Metadata metadata = currentState.metadata();
         for (var relationName : relations) {
             var concreteIndices = metadata.getIndices(
@@ -101,15 +103,19 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 mdBuilder.put(templateBuilder.settings(settingsBuilder.build()).build());
             }
         }
-        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+        Metadata newMetadata = metadataUpgradeService.upgradeRelationMetadata(mdBuilder.build());
+        return ClusterState.builder(currentState).metadata(newMetadata).build();
     }
 
     @Singleton
     public static class TransportAction extends AbstractDDLTransportAction<DropSubscriptionRequest, AcknowledgedResponse> {
 
+        private final MetadataUpgradeService metadataUpgradeService;
+
         @Inject
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
+                               MetadataUpgradeService metadataUpgradeService,
                                ThreadPool threadPool) {
             super(NAME,
                 transportService,
@@ -119,6 +125,7 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 AcknowledgedResponse::new,
                 AcknowledgedResponse::new,
                 "drop-subscription");
+            this.metadataUpgradeService = metadataUpgradeService;
         }
 
         @Override
@@ -137,7 +144,8 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
 
-                        return removeSubscriptionSetting(subscription.relations().keySet(), currentState, mdBuilder);
+                        return removeSubscriptionSetting(
+                            subscription.relations().keySet(), currentState, mdBuilder, metadataUpgradeService);
                     } else if (request.ifExists() == false) {
                         throw new SubscriptionUnknownException(request.name());
                     }
