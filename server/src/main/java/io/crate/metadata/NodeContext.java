@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.env.Environment;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -46,12 +47,14 @@ public class NodeContext {
     private final long serverStartTimeInMs;
     private final Roles roles;
     private final Schemas schemas;
+    @Nullable
+    private final TableStats tableStats;
 
     public static NodeContext of(Environment environment,
                                  ClusterService clusterService,
                                  Functions functions,
                                  Roles roles,
-                                 TableStats tableStats) {
+                                 @Nullable TableStats tableStats) {
         return new NodeContext(functions, roles, nodeCtx -> {
             var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             BlobSchemaInfo blobSchemaInfo = new BlobSchemaInfo(
@@ -73,14 +76,19 @@ public class NodeContext {
             );
             schemas.start();
             return schemas;
-        });
+        },
+            tableStats);
     }
 
-    public NodeContext(Functions functions, Roles roles, Function<NodeContext, Schemas> createSchemas) {
+    public NodeContext(Functions functions,
+                       Roles roles,
+                       Function<NodeContext, Schemas> createSchemas,
+                       TableStats tableStats) {
         this.functions = functions;
         this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
         this.roles = roles;
         this.schemas = createSchemas.apply(this);
+        this.tableStats = tableStats;
     }
 
     public Functions functions() {
@@ -97,5 +105,10 @@ public class NodeContext {
 
     public Schemas schemas() {
         return schemas;
+    }
+
+    @Nullable
+    public TableStats tableStats() {
+        return tableStats;
     }
 }
