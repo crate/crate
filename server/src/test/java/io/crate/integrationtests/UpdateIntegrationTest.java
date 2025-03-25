@@ -41,7 +41,6 @@ import org.junit.Test;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
-import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
@@ -1154,7 +1153,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
         }
 
         LOGGER.info("-------> Start inserts");
-
 
         var rowCounts = execute("insert into doc.t1 (id, document) values (?, ?)", bulkArgs);
         assertThat(rowCounts.size()).isEqualTo(bulkSize);

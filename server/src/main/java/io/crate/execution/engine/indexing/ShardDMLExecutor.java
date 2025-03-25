@@ -23,6 +23,7 @@ package io.crate.execution.engine.indexing;
 
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -63,8 +64,12 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
@@ -129,17 +134,20 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         numItems++;
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
-        long estimatedSize;
         TableStats tableStats = nodeContext.tableStats();
-        if (tableStats != null) {
-            RelationName relationName = RelationName.fromIndexName(req.index());
-            estimatedSize = tableStats.estimatedSizePerRow(relationName);
+        RelationName relationName = RelationName.fromIndexName(req.index());
+        Stats stats = tableStats.getStats(relationName);
+        long size;
+        if (stats.isEmpty()) {
+            TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
+            List<Reference> references = List.copyOf(tableInfo.allColumns());
+            size = stats.estimateSizeForColumns(references);
         } else {
-            estimatedSize = item.ramBytesUsed();
+            size = stats.averageSizePerRowInBytes();
         }
-        item.avgItemSize(estimatedSize);
+
         synchronized (ramAccounting) {
-            ramAccounting.addBytes(estimatedSize);
+            ramAccounting.addBytes(size);
         }
         req.add(numItems, item);
     }
