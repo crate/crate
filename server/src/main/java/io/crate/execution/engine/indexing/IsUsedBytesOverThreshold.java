@@ -31,6 +31,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 
 class IsUsedBytesOverThreshold implements Predicate<Accountable> {
 
@@ -54,7 +55,12 @@ class IsUsedBytesOverThreshold implements Predicate<Accountable> {
         double memoryRatio = 1.0 / localJobs;
         long maxUsableByShardRequests = Math.max(
             (long) (queryCircuitBreaker.getFree() * ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE * memoryRatio), MIN_ACCEPTABLE_BYTES);
-        long usedMemoryEstimate = accountable.ramBytesUsed();
+        long usedMemoryEstimate;
+        if (accountable instanceof ShardUpsertRequest r) {
+            usedMemoryEstimate = r.avgRamBytesUsed();
+        } else {
+            usedMemoryEstimate = accountable.ramBytesUsed();
+        }
         usedMemoryEstimate = usedMemoryEstimate + avgItemSize.get();
         boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
         if (requestsTooBig && LOGGER.isDebugEnabled()) {

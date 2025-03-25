@@ -63,6 +63,9 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.statistics.TableStats;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TItem extends ShardRequest.Item,
@@ -87,9 +90,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ClusterService clusterService;
     private int numItems = -1;
     private final RamAccounting ramAccounting;
+    private final NodeContext nodeContext;
     private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
-
-
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -100,6 +102,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             RamAccounting ramAccounting,
                             CircuitBreaker queryCircuitBreaker,
                             NodeLimits nodeLimits,
+                            NodeContext nodeContext,
                             Supplier<TReq> requestFactory,
                             Function<String, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
@@ -115,6 +118,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         this.uidExpression = uidExpression;
         this.clusterService = clusterService;
         this.nodeLimits = nodeLimits;
+        this.nodeContext = nodeContext;
         this.requestFactory = requestFactory;
         this.itemFactory = itemFactory;
         this.operation = transportAction;
@@ -125,8 +129,17 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         numItems++;
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
+        long estimatedSize;
+        TableStats tableStats = nodeContext.tableStats();
+        if (tableStats != null) {
+            RelationName relationName = RelationName.fromIndexName(req.index());
+            estimatedSize = tableStats.estimatedSizePerRow(relationName);
+        } else {
+            estimatedSize = item.ramBytesUsed();
+        }
+        item.avgItemSize(estimatedSize);
         synchronized (ramAccounting) {
-            ramAccounting.addBytes(item.ramBytesUsed());
+            ramAccounting.addBytes(estimatedSize);
         }
         req.add(numItems, item);
     }

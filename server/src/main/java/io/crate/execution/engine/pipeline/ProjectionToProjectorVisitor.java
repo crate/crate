@@ -576,6 +576,7 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
+            nodeCtx,
             () -> builder.newRequest(shardId),
             id -> {
                 Long requiredVersion = projection.requiredVersion();
@@ -606,6 +607,7 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
+            nodeCtx,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
             (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req).whenComplete(resp),

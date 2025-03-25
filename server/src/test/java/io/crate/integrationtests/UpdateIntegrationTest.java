@@ -1147,21 +1147,25 @@ public class UpdateIntegrationTest extends IntegTestCase {
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
             HashMap<String, Object> doc = new HashMap<>();
-            for (int j = 0; j < 100; j++) {
+            for (int j = 0; j < 300; j++) {
                 doc.put(Integer.toString(j), randomAlphaOfLength(20));
             }
             bulkArgs[i] = new Object[]{i, doc};
         }
+
+        LOGGER.info("-------> Start inserts");
+
+
         var rowCounts = execute("insert into doc.t1 (id, document) values (?, ?)", bulkArgs);
         assertThat(rowCounts.size()).isEqualTo(bulkSize);
         assertNoTasksAreLeftOpen();
 
-        LOGGER.info("------- Start batch update ------");
+        execute("analyze");
 
-        ShardDMLExecutor.DEFAULT_BULK_SIZE = 1_000;
-        ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE = 0.0001d;
+        assertNoTasksAreLeftOpen();
+        LOGGER.info("-------> Start batch update");
 
-
+        ShardingUpsertExecutor.BREAKER_LIMIT_PERCENTAGE = 0.10d;
         execute("UPDATE doc.t1 SET document['1'] = document['2']");
     }
 }
