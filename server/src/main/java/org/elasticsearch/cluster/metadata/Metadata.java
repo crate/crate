@@ -90,7 +90,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
-    public static long COLUMN_OID_UNASSIGNED = 0L;
+    public static final long COLUMN_OID_UNASSIGNED = 0L;
 
     public static final String ALL = "_all";
     public static final String UNKNOWN_CLUSTER_UUID = "_na_";
@@ -106,28 +106,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         SNAPSHOT
     }
 
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call but will not be persisted
-     */
-    public static EnumSet<XContentContext> API_ONLY = EnumSet.of(XContentContext.API);
 
     /**
      * Indicates that this custom metadata will be returned as part of an API call and will be persisted between
      * node restarts, but will not be a part of a snapshot global state
      */
     public static EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
-
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call and stored as a part of
-     * a snapshot global state, but will not be persisted between node restarts
-     */
-    public static EnumSet<XContentContext> API_AND_SNAPSHOT = EnumSet.of(XContentContext.API, XContentContext.SNAPSHOT);
-
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call, stored as a part of
-     * a snapshot global state, and will be persisted between node restarts
-     */
-    public static EnumSet<XContentContext> ALL_CONTEXTS = EnumSet.allOf(XContentContext.class);
 
     public interface Custom extends NamedDiffable<Custom> {
 
@@ -1253,7 +1237,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public static final MetadataStateFormat<Metadata> FORMAT_PRESERVE_CUSTOMS = createMetadataStateFormat(true);
 
     private static MetadataStateFormat<Metadata> createMetadataStateFormat(boolean preserveUnknownCustoms) {
-        return new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
+        return new MetadataStateFormat<>(GLOBAL_STATE_FILE_PREFIX) {
 
             @Override
             public Metadata fromXContent(XContentParser parser) throws IOException {
