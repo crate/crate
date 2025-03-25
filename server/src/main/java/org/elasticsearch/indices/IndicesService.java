@@ -62,8 +62,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -536,32 +536,40 @@ public class IndicesService extends AbstractLifecycleComponent
                 clusterService.getClusterApplierService().runOnApplierThread(
                     "create-shard",
                     (ClusterState state) -> {
+                        ShardRouting currentRouting = shardRouting;
                         if (!state.stateUUID().equals(originalState.stateUUID())) {
                             LOGGER.debug(
                                 "Cluster state changed from {} to {} before shard creation finished",
                                 originalState.stateUUID(),
                                 state.stateUUID()
                             );
-                            result.completeExceptionally(new IllegalStateException("Cluster state changed during shard creation"));
-                            return;
+
+                            RoutingNode localRoutingNode = state.getRoutingNodes().node(shardRouting.currentNodeId());
+                            currentRouting = localRoutingNode.getByShardId(shardId);
+                            if (currentRouting == null) {
+                                String msg = "Shard routing for " + shardId + " is not available while retrying to create the shard.";
+                                LOGGER.debug(msg);
+                                result.completeExceptionally(new IllegalStateException(msg));
+                                return;
+                            }
+                            if (currentRouting.initializing() == false) {
+                                String msg = "Shard " + shardId + " state changed and is not INITIALIZING while retrying to create the shard.";
+                                LOGGER.debug(msg);
+                                result.completeExceptionally(new IllegalStateException(msg));
+                                return;
+                            }
                         }
                         createShard(
                             result,
-                            originalState,
+                            state,
                             indexService,
-                            shardRouting,
+                            currentRouting,
                             globalCheckpointSyncer,
                             retentionLeaseSyncer,
                             backoffIt
                         );
                     },
-                    new ClusterApplyListener() {
-
-                        @Override
-                        public void onFailure(String source, Exception e) {
-                            result.completeExceptionally(e);
-                        }
-                    },
+                    (_, e1) -> result.completeExceptionally(e1),
                     Priority.NORMAL
                 );
             };
@@ -587,28 +595,28 @@ public class IndicesService extends AbstractLifecycleComponent
         ShardId shardId = shardRouting.shardId();
         CompletableFuture<IndexShard> future = new CompletableFuture<>();
         CompletableFuture<IndexShard> pending = pendingShardCreations.putIfAbsent(shardId, future);
-        if (pending == null) {
-            try {
-                createShard(future, state, indexService, shardRouting, globalCheckpointSyncer, retentionLeaseSyncer, null);
-            } catch (Throwable t) {
-                pendingShardCreations.remove(shardId);
-                throw t;
-            }
-            future.whenComplete((ignored, err) -> pendingShardCreations.remove(shardId));
-        } else {
-            future = pending;
+        if (pending != null) {
+            return pending;
         }
-        return future.thenCompose(indexShard -> {
-            indexShard.addShardFailureCallback(onShardFailure);
-            indexShard.startRecovery(
-                recoveryState,
-                recoveryTargetService,
-                recoveryListener,
-                repositoriesService,
-                this
-            );
-            return CompletableFuture.completedFuture(indexShard);
-        });
+        try {
+            createShard(future, state, indexService, shardRouting, globalCheckpointSyncer, retentionLeaseSyncer, null);
+        } catch (Throwable t) {
+            pendingShardCreations.remove(shardId);
+            throw t;
+        }
+        return future
+            .whenComplete((ignored, err) -> pendingShardCreations.remove(shardId))
+            .thenCompose(indexShard -> {
+                indexShard.addShardFailureCallback(onShardFailure);
+                indexShard.startRecovery(
+                    recoveryState,
+                    recoveryTargetService,
+                    recoveryListener,
+                    repositoriesService,
+                    this
+                );
+                return CompletableFuture.completedFuture(indexShard);
+            });
     }
 
     @Override
