@@ -30,6 +30,8 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
  */
 public abstract class ExecutorBuilder {
 
+    public static final String PREFIX_PART = "thread_pool.";
+
     private final String name;
 
     public ExecutorBuilder(String name) {
