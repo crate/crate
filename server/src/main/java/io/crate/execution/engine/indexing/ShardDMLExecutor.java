@@ -29,14 +29,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -93,7 +92,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private int numItems = -1;
     private final RamAccounting ramAccounting;
     private final NodeContext nodeContext;
-    private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
+    private final AtomicLong avgItemSize = new AtomicLong();
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -131,22 +130,29 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         numItems++;
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
-        TableStats tableStats = nodeContext.tableStats();
-        RelationName relationName = RelationName.fromIndexName(req.index());
-        Stats stats = tableStats.getStats(relationName);
-        long size;
-        if (stats.isEmpty()) {
-            TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
-            List<Reference> references = List.copyOf(tableInfo.allColumns());
-            size = stats.estimateSizeForColumns(references);
-        } else {
-            size = stats.averageSizePerRowInBytes();
-        }
-
+        setAvgItemSize(req.index());
         synchronized (ramAccounting) {
-            ramAccounting.addBytes(size);
+            ramAccounting.addBytes(avgItemSize.get());
         }
         req.add(numItems, item);
+    }
+
+    private void setAvgItemSize(String indexName) {
+        if (avgItemSize.get() != 0) {
+            return;
+        }
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        TableStats tableStats = nodeContext.tableStats();
+        if (tableStats != null) {
+            Stats stats = tableStats.getStats(relationName);
+            if (stats.isEmpty()) {
+                TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
+                List<Reference> references = List.copyOf(tableInfo.allColumns());
+                avgItemSize.set(stats.estimateSizeForColumns(references));
+            } else {
+                avgItemSize.set(stats.averageSizePerRowInBytes());
+            }
+        }
     }
 
     @Nullable
