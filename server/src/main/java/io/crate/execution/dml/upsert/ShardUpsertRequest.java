@@ -80,6 +80,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     @Nullable
     private Symbol[] returnValues;
 
+    private transient long avgSize = 0L;
+
 
     public ShardUpsertRequest(
         ShardId shardId,
@@ -194,6 +196,14 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
             out.writeBoolean(isRetry);
         }
+    }
+
+    public void avgSize(long avgSize) {
+        this.avgSize = avgSize;
+    }
+
+    public long avgSize() {
+        return avgSize;
     }
 
     @Override

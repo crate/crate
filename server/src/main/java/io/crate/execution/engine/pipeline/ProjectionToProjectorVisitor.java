@@ -568,8 +568,11 @@ public class ProjectionToProjectorVisitor
             projection.returnValues(),
             context.jobId
         );
-        // add stats here
-        Supplier<ShardUpsertRequest> shardUpsertRequestSupplier = () -> builder.newRequest(shardId);
+        Supplier<ShardUpsertRequest> shardUpsertRequestSupplier = () ->{
+            ShardUpsertRequest req  = builder.newRequest(shardId);
+            req.avgSize(estimateItemSizeInBytes(req, nodeCtx));
+            return req;
+        };
         return new ShardDMLExecutor<>(
             context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
@@ -589,7 +592,7 @@ public class ProjectionToProjectorVisitor
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
-                    estimateItemSizeInBytes(req, nodeCtx) // make this per request not per item
+                    req.avgSize()
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
