@@ -1293,6 +1293,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    public List<RelationMetadata.Table> tableRelations() {
+        ArrayList<RelationMetadata.Table> relations = new ArrayList<>();
+        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
+            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
+                RelationMetadata relationMetadata = relationCursor.value;
+                if (relationMetadata instanceof RelationMetadata.Table table) {
+                    relations.add(table);
+                }
+            }
+        }
+        return relations;
+    }
+
     /**
      * <p>
      * Resolve the indices for a relation and return their data either as

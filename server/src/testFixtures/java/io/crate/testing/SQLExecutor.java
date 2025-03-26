@@ -374,7 +374,8 @@ public class SQLExecutor {
                 threadPool,
                 new NodeClient(settings, threadPool),
                 allocationService,
-                logicalReplicationSettings
+                logicalReplicationSettings,
+                nodeCtx
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);

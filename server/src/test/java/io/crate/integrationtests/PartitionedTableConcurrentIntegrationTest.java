@@ -137,7 +137,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         Thread relocatingThread = new Thread(() -> {
             while (relocations.getCount() > 0) {
-                ClusterStateResponse clusterStateResponse = FutureUtils.get(admin().cluster().state(new ClusterStateRequest().indices(indexName)));
+                ClusterStateResponse clusterStateResponse = FutureUtils.get(admin().cluster().state(new ClusterStateRequest().relationNames(List.of(partitionName.relationName()))));
                 List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
 
                 int numMoves = 0;

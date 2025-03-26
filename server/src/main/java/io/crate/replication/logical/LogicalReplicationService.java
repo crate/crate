@@ -67,6 +67,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -101,7 +102,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                      ThreadPool threadPool,
                                      Client client,
                                      AllocationService allocationService,
-                                     LogicalReplicationSettings replicationSettings) {
+                                     LogicalReplicationSettings replicationSettings,
+                                     NodeContext nodeContext) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
@@ -114,7 +116,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             replicationSettings,
             remoteClusters::getClient,
             clusterService,
-            allocationService
+            allocationService,
+            nodeContext
         );
         clusterService.addListener(this);
     }
