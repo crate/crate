@@ -107,7 +107,6 @@ public class NodeContext {
         return schemas;
     }
 
-    @Nullable
     public TableStats tableStats() {
         return tableStats;
     }

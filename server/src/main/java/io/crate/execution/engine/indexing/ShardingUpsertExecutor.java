@@ -104,7 +104,6 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
     private final Predicate<UpsertResults> earlyTerminationCondition;
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
-    private final AtomicLong avgItemSize = new AtomicLong();
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            BiConsumer<String, IndexItem> constraintsChecker,

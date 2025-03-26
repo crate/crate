@@ -580,7 +580,6 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
-            nodeCtx,
             shardUpsertRequestSupplier,
             (id, req )-> {
                 Long requiredVersion = projection.requiredVersion();
@@ -590,14 +589,14 @@ public class ProjectionToProjectorVisitor
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
-                    avgItemSize(req, nodeCtx)
+                    estimateItemSize(req, nodeCtx)
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
             collector);
     }
 
-    private long avgItemSize(ShardUpsertRequest req, NodeContext nodeContext) {
+    private long estimateItemSize(ShardUpsertRequest req, NodeContext nodeContext) {
         RelationName relationName = RelationName.fromIndexName(req.index());
         TableStats tableStats = nodeContext.tableStats();
         Stats stats = tableStats.getStats(relationName);
@@ -625,7 +624,6 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
-            nodeCtx,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             (id, req) -> new ShardDeleteRequest.Item(req, id),
             (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req).whenComplete(resp),

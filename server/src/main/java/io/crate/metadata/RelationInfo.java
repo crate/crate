@@ -61,7 +61,7 @@ public interface RelationInfo extends Iterable<Reference> {
     Collection<Reference> columns();
 
     default Collection<Reference> allColumns() {
-        return List.of();
+        return columns();
     }
 
     default Collection<Reference> droppedColumns() {

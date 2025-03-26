@@ -61,7 +61,6 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
-import io.crate.metadata.NodeContext;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TItem extends ShardRequest.Item,
@@ -86,7 +85,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ClusterService clusterService;
     private int numItems = -1;
     private final RamAccounting ramAccounting;
-    private final NodeContext nodeContext;
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -97,7 +95,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             RamAccounting ramAccounting,
                             CircuitBreaker queryCircuitBreaker,
                             NodeLimits nodeLimits,
-                            NodeContext nodeContext,
                             Supplier<TReq> requestFactory,
                             BiFunction<String, TReq, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
@@ -113,7 +110,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         this.uidExpression = uidExpression;
         this.clusterService = clusterService;
         this.nodeLimits = nodeLimits;
-        this.nodeContext = nodeContext;
         this.requestFactory = requestFactory;
         this.itemFactory = itemFactory;
         this.operation = transportAction;
