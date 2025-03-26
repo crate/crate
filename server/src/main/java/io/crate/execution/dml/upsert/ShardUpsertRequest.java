@@ -305,8 +305,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                      long requiredVersion,
                                      long seqNo,
                                      long primaryTerm,
-                                     long bytes) {
-            long usedBytes = bytes + SHALLOW_SIZE;
+                                     long estimatedSize) {
+            long usedBytes = estimatedSize + SHALLOW_SIZE;
             usedBytes += RamUsageEstimator.sizeOf(id);
             for (var assignment : assignments) {
                 usedBytes += assignment.ramBytesUsed();
