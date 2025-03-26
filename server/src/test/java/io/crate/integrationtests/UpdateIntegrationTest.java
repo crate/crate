@@ -1146,7 +1146,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
             HashMap<String, Object> doc = new HashMap<>();
-            for (int j = 0; j < 300; j++) {
+            for (int j = 0; j < 100; j++) {
                 doc.put(Integer.toString(j), randomAlphaOfLength(20));
             }
             bulkArgs[i] = new Object[]{i, doc};

@@ -269,7 +269,7 @@ public class ShardingUpsertExecutor
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         final ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
         long startTime = nodeLimit.startSample();
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, avgItemSize);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
         var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,

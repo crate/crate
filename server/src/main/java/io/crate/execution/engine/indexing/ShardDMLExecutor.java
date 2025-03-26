@@ -23,14 +23,12 @@ package io.crate.execution.engine.indexing;
 
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -64,7 +62,6 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -224,7 +221,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     @Override
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
-        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit, new AtomicLong());
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
         BatchIterator<TReq> reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
