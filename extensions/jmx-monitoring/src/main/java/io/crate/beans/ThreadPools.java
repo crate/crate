@@ -21,18 +21,11 @@
 
 package io.crate.beans;
 
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolStats;
-
-import org.jetbrains.annotations.Nullable;
-import java.beans.ConstructorProperties;
-
 import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STARTED;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STORE;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FLUSH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.FORCE_MERGE;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
-import static org.elasticsearch.threadpool.ThreadPool.Names.GET;
 import static org.elasticsearch.threadpool.ThreadPool.Names.LISTENER;
 import static org.elasticsearch.threadpool.ThreadPool.Names.LOGICAL_REPLICATION;
 import static org.elasticsearch.threadpool.ThreadPool.Names.MANAGEMENT;
@@ -40,6 +33,12 @@ import static org.elasticsearch.threadpool.ThreadPool.Names.REFRESH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SNAPSHOT;
 import static org.elasticsearch.threadpool.ThreadPool.Names.WRITE;
+
+import java.beans.ConstructorProperties;
+
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPoolStats;
+import org.jetbrains.annotations.Nullable;
 
 public class ThreadPools implements ThreadPoolsMXBean {
 
@@ -139,11 +138,6 @@ public class ThreadPools implements ThreadPoolsMXBean {
     @Override
     public ThreadPoolInfo getListener() {
         return getThreadPoolInfo(LISTENER);
-    }
-
-    @Override
-    public ThreadPoolInfo getGet() {
-        return getThreadPoolInfo(GET);
     }
 
     @Override
