@@ -51,12 +51,6 @@ import io.crate.types.DataType;
 
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    public enum Operation {
-        INSERT,
-        INSERT_UPDATE_ON_CONFLICT,
-        UPDATE
-    }
-
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
         OVERWRITE,
@@ -149,18 +143,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             isRetry = in.readBoolean();
         } else {
             isRetry = false;
-        }
-    }
-
-    public Operation operation() {
-        if (insertColumns == null) {
-            return Operation.UPDATE;
-        } else {
-            if (updateColumns == null) {
-                return Operation.INSERT;
-            } else {
-                return Operation.INSERT_ON_CONFLICT;
-            }
         }
     }
 
