@@ -63,7 +63,6 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;

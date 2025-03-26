@@ -133,6 +133,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     @Nullable
     private Exception failure;
 
+
     public ShardResponse() {
     }
 
