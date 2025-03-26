@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -196,31 +195,40 @@ public class ThreadPool implements Scheduler {
     public ThreadPoolStats stats() {
         ArrayList<ThreadPoolStats.Stats> stats = new ArrayList<>(executors.size() - 1); // "same" is excluded
         for (ExecutorHolder holder : executors.values()) {
+
             final String name = holder.info.getName();
             // no need to have info on "same" thread pool
             if ("same".equals(name)) {
                 continue;
             }
-            int threads = -1;
-            int queue = -1;
-            int active = -1;
-            long rejected = -1;
-            int largest = -1;
-            long completed = -1;
-            if (holder.executor() instanceof ThreadPoolExecutor threadPoolExecutor) {
-                threads = threadPoolExecutor.getPoolSize();
-                queue = threadPoolExecutor.getQueue().size();
-                active = threadPoolExecutor.getActiveCount();
-                largest = threadPoolExecutor.getLargestPoolSize();
-                completed = threadPoolExecutor.getCompletedTaskCount();
-                RejectedExecutionHandler rejectedExecutionHandler = threadPoolExecutor.getRejectedExecutionHandler();
-                if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
-                    rejected = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
-                }
+            ThreadPoolStats.Stats poolStats = stats(name);
+            if (poolStats != null) {
+                stats.add(poolStats);
             }
-            stats.add(new ThreadPoolStats.Stats(name, threads, queue, active, rejected, largest, completed));
         }
         return new ThreadPoolStats(stats);
+    }
+
+    @Nullable
+    public ThreadPoolStats.Stats stats(String name) {
+        ExecutorHolder holder = executors.get(name);
+        if (holder == null) {
+            return null;
+        }
+        if (holder.executor() instanceof ThreadPoolExecutor threadPoolExecutor) {
+            return new ThreadPoolStats.Stats(
+                name,
+                threadPoolExecutor.getPoolSize(),
+                threadPoolExecutor.getQueue().size(),
+                threadPoolExecutor.getActiveCount(),
+                threadPoolExecutor.getRejectedExecutionHandler() instanceof XRejectedExecutionHandler rejectedHandler
+                    ? rejectedHandler.rejected()
+                    : -1,
+                threadPoolExecutor.getLargestPoolSize(),
+                threadPoolExecutor.getCompletedTaskCount()
+            );
+        }
+        return new ThreadPoolStats.Stats(name, -1, -1, -1, -1, -1, -1);
     }
 
     /**

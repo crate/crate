@@ -397,13 +397,11 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
     }
 
     ThreadPoolStats.Stats getRefreshThreadPoolStats() {
-        final ThreadPoolStats stats = threadPool.stats();
-        for (ThreadPoolStats.Stats s : stats) {
-            if (s.getName().equals(ThreadPool.Names.REFRESH)) {
-                return s;
-            }
+        final ThreadPoolStats.Stats stats = threadPool.stats(ThreadPool.Names.REFRESH);
+        if (stats == null) {
+            throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
         }
-        throw new AssertionError("refresh thread pool stats not found [" + stats + "]");
+        return stats;
     }
 
     public void testSkipRefreshIfShardIsRefreshingAlready() throws Exception {
@@ -455,13 +453,13 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations - 1);
+            assertThat(stats.completed()).isEqualTo(beforeStats.completed() + iterations - 1);
         });
 
         refreshLatch.get().countDown(); // allow refresh
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations);
+            assertThat(stats.completed()).isEqualTo(beforeStats.completed() + iterations);
         });
         closeShards(shard);
     }

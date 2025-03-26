@@ -115,19 +115,19 @@ public class ThreadPools implements ThreadPoolsMXBean {
 
     @Nullable
     private ThreadPoolInfo getThreadPoolInfo(String name) {
-        for (ThreadPoolStats.Stats stats : threadPool.stats()) {
-            if (stats.getName().equals(name)) {
-                return new ThreadPoolInfo(
-                    stats.getName(),
-                    stats.getThreads(),
-                    stats.getQueue(),
-                    stats.getLargest(),
-                    stats.getActive(),
-                    stats.getCompleted(),
-                    stats.getRejected());
-            }
+        ThreadPoolStats.Stats stats = threadPool.stats(name);
+        if (stats == null) {
+            return null;
         }
-        return null;
+        return new ThreadPoolInfo(
+            name,
+            stats.threads(),
+            stats.queue(),
+            stats.largest(),
+            stats.active(),
+            stats.completed(),
+            stats.rejected()
+        );
     }
 
     @Override
