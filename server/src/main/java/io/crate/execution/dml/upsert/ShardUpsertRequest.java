@@ -53,7 +53,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
     public enum Operation {
         INSERT,
-        INSERT_ON_CONFLICT,
+        INSERT_UPDATE_ON_CONFLICT,
         UPDATE
     }
 
