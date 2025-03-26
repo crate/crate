@@ -133,7 +133,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         private int location = -1;
         protected long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         protected long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-        protected long avgItemSize = -1L;
 
         public Item(String id) {
             this.id = id;
@@ -145,7 +144,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             location = in.readInt();
             seqNo = in.readLong();
             primaryTerm = in.readLong();
-            avgItemSize = in.readLong();
         }
 
         @Override
@@ -199,7 +197,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             out.writeInt(location);
             out.writeLong(seqNo);
             out.writeLong(primaryTerm);
-            out.writeLong(avgItemSize);
         }
 
         @Override
