@@ -29,8 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -62,11 +62,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.RetryListener;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
-import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TItem extends ShardRequest.Item,
@@ -83,7 +78,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final CollectExpression<Row, ?> uidExpression;
     private final NodeLimits nodeLimits;
     private final Supplier<TReq> requestFactory;
-    private final Function<String, TItem> itemFactory;
+    private final BiFunction<String, TReq, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final Collector<ShardResponse, TAcc, TResult> collector;
     private final String localNode;
@@ -92,7 +87,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private int numItems = -1;
     private final RamAccounting ramAccounting;
     private final NodeContext nodeContext;
-    private final AtomicLong avgItemSize = new AtomicLong();
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -105,7 +99,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             NodeLimits nodeLimits,
                             NodeContext nodeContext,
                             Supplier<TReq> requestFactory,
-                            Function<String, TItem> itemFactory,
+                            BiFunction<String, TReq, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
@@ -129,30 +123,11 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        TItem item = itemFactory.apply((String) uidExpression.value());
-        setAvgItemSize(req.index());
+        TItem item = itemFactory.apply((String) uidExpression.value(), req);
         synchronized (ramAccounting) {
-            ramAccounting.addBytes(avgItemSize.get());
+            ramAccounting.addBytes(item.ramBytesUsed());
         }
         req.add(numItems, item);
-    }
-
-    private void setAvgItemSize(String indexName) {
-        if (avgItemSize.get() != 0) {
-            return;
-        }
-        RelationName relationName = RelationName.fromIndexName(indexName);
-        TableStats tableStats = nodeContext.tableStats();
-        if (tableStats != null) {
-            Stats stats = tableStats.getStats(relationName);
-            if (stats.isEmpty()) {
-                TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
-                List<Reference> references = List.copyOf(tableInfo.allColumns());
-                avgItemSize.set(stats.estimateSizeForColumns(references));
-            } else {
-                avgItemSize.set(stats.averageSizePerRowInBytes());
-            }
-        }
     }
 
     @Nullable

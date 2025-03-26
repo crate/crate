@@ -40,8 +40,8 @@ public class ShardDeleteRequestTest extends ESTestCase {
         UUID jobId = UUID.randomUUID();
         ShardDeleteRequest request = new ShardDeleteRequest(shardId, jobId);
 
-        request.add(123, new ShardDeleteRequest.Item("99"));
-        request.add(5, new ShardDeleteRequest.Item("42"));
+        request.add(123, new ShardDeleteRequest.Item(request, "99"));
+        request.add(5, new ShardDeleteRequest.Item(request, "42"));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

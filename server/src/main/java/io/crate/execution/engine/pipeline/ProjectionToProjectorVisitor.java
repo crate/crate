@@ -63,6 +63,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;
@@ -137,7 +138,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -566,6 +570,7 @@ public class ProjectionToProjectorVisitor
             context.jobId
         );
 
+        Supplier<ShardUpsertRequest> shardUpsertRequestSupplier = () -> builder.newRequest(shardId);
         return new ShardDMLExecutor<>(
             context.jobId,
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
@@ -577,19 +582,33 @@ public class ProjectionToProjectorVisitor
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
             nodeCtx,
-            () -> builder.newRequest(shardId),
-            id -> {
+            shardUpsertRequestSupplier,
+            (id, req )-> {
                 Long requiredVersion = projection.requiredVersion();
                 return ShardUpsertRequest.Item.forUpdate(
                     id,
                     projection.assignments(),
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                    avgItemSize(req, nodeCtx)
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
             collector);
+    }
+
+    private long avgItemSize(ShardUpsertRequest req, NodeContext nodeContext) {
+        RelationName relationName = RelationName.fromIndexName(req.index());
+        TableStats tableStats = nodeContext.tableStats();
+        Stats stats = tableStats.getStats(relationName);
+        if (stats.isEmpty()) {
+            TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
+            List<Reference> references = List.copyOf(tableInfo.allColumns());
+            return stats.estimateSizeForColumns(references);
+        } else {
+            return stats.averageSizePerRowInBytes();
+        }
     }
 
     @Override
@@ -609,7 +628,7 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             nodeCtx,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
-            ShardDeleteRequest.Item::new,
+            (id, req) -> new ShardDeleteRequest.Item(req, id),
             (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req).whenComplete(resp),
             ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );

@@ -130,7 +130,7 @@ public class DeleteById implements Plan {
                             long version,
                             long seqNo,
                             long primaryTerm) {
-            ShardDeleteRequest.Item item = new ShardDeleteRequest.Item(id);
+            ShardDeleteRequest.Item item = new ShardDeleteRequest.Item(request, id);
             item.version(version);
             item.seqNo(seqNo);
             item.primaryTerm(primaryTerm);

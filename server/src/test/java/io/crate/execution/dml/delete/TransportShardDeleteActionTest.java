@@ -98,7 +98,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
     public void testKilledSetWhileProcessingItemsDoesNotThrowExceptionAndMustMarkItemPosition() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
-        request.add(1, new ShardDeleteRequest.Item("1"));
+        request.add(1, new ShardDeleteRequest.Item(null,"1"));
 
         TransportReplicationAction.PrimaryResult<ShardDeleteRequest, ShardResponse> result =
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -111,7 +111,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
     public void testReplicaOperationWillSkipItemsFromMarkedPositionOn() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
-        request.add(1, new ShardDeleteRequest.Item("1"));
+        request.add(1, new ShardDeleteRequest.Item(null, "1"));
         request.skipFromLocation(1);
 
         // replica operation must skip all not by primary processed items

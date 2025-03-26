@@ -48,7 +48,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
             RamAccounting.NO_ACCOUNTING
         );
         shardedRequests.add(
-            new ShardDeleteRequest.Item("id1"),
+            new ShardDeleteRequest.Item(null, "id1"),
             new PartitionName(relationName, List.of("1")).asIndexName(),
             null,
             RowSourceInfo.EMPTY_INSTANCE
