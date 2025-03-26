@@ -76,7 +76,7 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
                 clusterService,
                 transportService,
                 Request::new,
-                ThreadPool.Names.GET
+                ThreadPool.Names.SAME // operation is fairly fast
             );
             this.publisherRestoreService = publisherRestoreService;
             TransportActionProxy.registerProxyAction(

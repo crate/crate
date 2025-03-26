@@ -79,7 +79,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
                 clusterService,
                 transportService,
                 Request::new,
-                ThreadPool.Names.GET
+                ThreadPool.Names.SEARCH
             );
             this.indicesService = indicesService;
             this.publisherRestoreService = publisherRestoreService;
