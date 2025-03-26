@@ -30,7 +30,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -52,6 +51,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -84,6 +84,7 @@ public class ShardingUpsertExecutor
     public static final int BULK_RESPONSE_MAX_ERRORS_PER_SHARD = 10;
 
     static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
+    @VisibleForTesting
     public static double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;

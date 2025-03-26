@@ -568,7 +568,7 @@ public class ProjectionToProjectorVisitor
             projection.returnValues(),
             context.jobId
         );
-
+        // add stats here
         Supplier<ShardUpsertRequest> shardUpsertRequestSupplier = () -> builder.newRequest(shardId);
         return new ShardDMLExecutor<>(
             context.jobId,
@@ -581,7 +581,7 @@ public class ProjectionToProjectorVisitor
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
             shardUpsertRequestSupplier,
-            (id, req )-> {
+            (req, id )-> {
                 Long requiredVersion = projection.requiredVersion();
                 return ShardUpsertRequest.Item.forUpdate(
                     id,
@@ -589,14 +589,16 @@ public class ProjectionToProjectorVisitor
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
-                    estimateItemSize(req, nodeCtx)
+                    estimateItemSizeInBytes(req, nodeCtx) // make this per request not per item
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
             collector);
     }
 
-    private long estimateItemSize(ShardUpsertRequest req, NodeContext nodeContext) {
+    // Calculates the estimated size for an update item based on table stats or if not available
+    // based on column estimation
+    private long estimateItemSizeInBytes(ShardUpsertRequest req, NodeContext nodeContext) {
         RelationName relationName = RelationName.fromIndexName(req.index());
         TableStats tableStats = nodeContext.tableStats();
         Stats stats = tableStats.getStats(relationName);
@@ -625,7 +627,7 @@ public class ProjectionToProjectorVisitor
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
-            (id, req) -> new ShardDeleteRequest.Item(req, id),
+            ShardDeleteRequest.Item::new,
             (req, resp) -> elasticsearchClient.execute(ShardDeleteAction.INSTANCE, req).whenComplete(resp),
             ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );

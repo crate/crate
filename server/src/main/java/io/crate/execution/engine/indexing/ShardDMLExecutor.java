@@ -77,7 +77,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final CollectExpression<Row, ?> uidExpression;
     private final NodeLimits nodeLimits;
     private final Supplier<TReq> requestFactory;
-    private final BiFunction<String, TReq, TItem> itemFactory;
+    private final BiFunction<TReq, String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final Collector<ShardResponse, TAcc, TResult> collector;
     private final String localNode;
@@ -96,7 +96,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             CircuitBreaker queryCircuitBreaker,
                             NodeLimits nodeLimits,
                             Supplier<TReq> requestFactory,
-                            BiFunction<String, TReq, TItem> itemFactory,
+                            BiFunction<TReq,String, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
@@ -119,7 +119,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        TItem item = itemFactory.apply((String) uidExpression.value(), req);
+        TItem item = itemFactory.apply(req, (String) uidExpression.value());
         synchronized (ramAccounting) {
             ramAccounting.addBytes(item.ramBytesUsed());
         }
