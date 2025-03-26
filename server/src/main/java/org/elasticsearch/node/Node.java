@@ -622,7 +622,8 @@ public class Node implements Closeable {
                 threadPool,
                 client,
                 clusterModule.getAllocationService(),
-                logicalReplicationSettings
+                logicalReplicationSettings,
+                nodeContext
             );
             resourcesToClose.add(logicalReplicationService);
 

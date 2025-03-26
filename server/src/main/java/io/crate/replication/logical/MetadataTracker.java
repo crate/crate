@@ -25,6 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLIC
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,8 +68,11 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
@@ -91,6 +95,7 @@ public final class MetadataTracker implements Closeable {
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
+    private final NodeContext nodeContext;
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = Set.of();
@@ -104,7 +109,8 @@ public final class MetadataTracker implements Closeable {
                            LogicalReplicationSettings replicationSettings,
                            Function<String, Client> remoteClient,
                            ClusterService clusterService,
-                           AllocationService allocationService) {
+                           AllocationService allocationService,
+                           NodeContext nodeContext) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.replicationService = replicationService;
@@ -114,6 +120,7 @@ public final class MetadataTracker implements Closeable {
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
+        this.nodeContext = nodeContext;
     }
 
     private void start() {
@@ -319,7 +326,8 @@ public final class MetadataTracker implements Closeable {
                     subscription,
                     localClusterState,
                     response,
-                    indexScopedSettings
+                    indexScopedSettings,
+                    nodeContext
                 );
             }
 
@@ -340,7 +348,8 @@ public final class MetadataTracker implements Closeable {
                                             Subscription subscription,
                                             ClusterState subscriberClusterState,
                                             Response publicationsState,
-                                            IndexScopedSettings indexScopedSettings) {
+                                            IndexScopedSettings indexScopedSettings,
+                                            NodeContext nodeContext) {
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
@@ -369,7 +378,24 @@ public final class MetadataTracker implements Closeable {
                     updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L);
                 }
                 if (updatedMapping != null || updatedSettings != null) {
-                    updatedMetadataBuilder.put(updatedIndexMetadataBuilder.build(), true);
+                    IndexMetadata indexMetadata = updatedIndexMetadataBuilder.build();
+                    updatedMetadataBuilder.put(indexMetadata, true);
+
+                    // Update the table relation with the new index metadata
+                    if (subscriberClusterState.metadata().getRelation(followedTable) != null) {
+                        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
+                        Metadata tempMetadata = Metadata.builder(subscriberClusterState.metadata())
+                            .put(indexMetadata, true)
+                            .dropRelation(followedTable)
+                            .build();
+                        DocTableInfo newTable = docTableInfoFactory.create(followedTable, tempMetadata);
+                        try {
+                            newTable.writeTo(subscriberClusterState.metadata(), updatedMetadataBuilder);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
                     updateClusterState = true;
                 }
             }

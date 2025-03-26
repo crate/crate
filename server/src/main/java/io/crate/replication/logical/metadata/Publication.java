@@ -136,6 +136,10 @@ public class Publication implements Writeable {
 
         if (isForAllTables()) {
             Metadata metadata = state.metadata();
+            for (var table : metadata.tableRelations()) {
+                relations.add(table.name());
+            }
+
             for (var cursor : metadata.templates().keys()) {
                 String templateName = cursor.value;
                 IndexParts indexParts = IndexName.decode(templateName);
