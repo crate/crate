@@ -63,3 +63,6 @@ Fixes
   closed properly, e.g. due to an unclean node shutdown and the node was
   restarting with still holding a lock on the shard. The existing retry logic
   to solve this situation was not working in some cases.
+
+- Fixed the default ``CRATE_MIN_MEM`` value in the ``crate.bat`` script used
+  in Windows environments to match ``CRATE_MAX_MEM``.
