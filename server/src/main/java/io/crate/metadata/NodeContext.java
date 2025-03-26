@@ -54,7 +54,7 @@ public class NodeContext {
                                  ClusterService clusterService,
                                  Functions functions,
                                  Roles roles,
-                                 @Nullable TableStats tableStats) {
+                                 TableStats tableStats) {
         return new NodeContext(functions, roles, nodeCtx -> {
             var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             BlobSchemaInfo blobSchemaInfo = new BlobSchemaInfo(
