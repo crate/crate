@@ -416,7 +416,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
-        Long rawSize = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
