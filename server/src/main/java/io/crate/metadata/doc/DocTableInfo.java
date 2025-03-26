@@ -381,6 +381,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return droppedColumns;
     }
 
+    @Override
     public int maxPosition() {
         return Math.max(
             allColumns.values().stream()
@@ -816,7 +817,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo dropConstraint(String constraint) {
         List<CheckConstraint<Symbol>> newConstraints = checkConstraints.stream()
-            .filter(x -> !x.name().equals(constraint))
+            .filter(x -> !constraint.equals(x.name()))
             .toList();
         if (newConstraints.size() == checkConstraints.size()) {
             return this;
