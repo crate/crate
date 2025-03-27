@@ -82,22 +82,28 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 imd -> imd.getState() == State.OPEN ? imd : null
             );
             for (var indexMetadata : concreteIndices) {
-                var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
-                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+                var updatedSettings = removeSubscriptionSetting(indexMetadata.getSettings());
                 mdBuilder.put(
                     IndexMetadata
                         .builder(indexMetadata)
                         .settingsVersion(1 + indexMetadata.getSettingsVersion())
-                        .settings(settingsBuilder)
+                        .settings(updatedSettings)
                 );
             }
-            for (RelationMetadata.Table table : metadata.tableRelations()) {
-                var settingsBuilder = Settings.builder().put(table.settings());
-                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+
+            var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
+            var templateMetadata = currentState.metadata().templates().get(possibleTemplateName);
+            if (templateMetadata != null) {
+                var templateBuilder = new IndexTemplateMetadata.Builder(templateMetadata);
+                var settingsBuilder = removeSubscriptionSetting(templateMetadata.settings());
+                mdBuilder.put(templateBuilder.settings(settingsBuilder).build());
+            }
+
+            if (metadata.getRelation(relationName) instanceof RelationMetadata.Table table) {
                 mdBuilder.setTable(
                     table.name(),
                     table.columns(),
-                    settingsBuilder.build(),
+                    removeSubscriptionSetting(table.settings()),
                     table.routingColumn(),
                     table.columnPolicy(),
                     table.pkConstraintName(),
@@ -108,18 +114,14 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                     table.indexUUIDs()
                 );
             }
-
-            var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            var templateMetadata = currentState.metadata().templates().get(possibleTemplateName);
-            if (templateMetadata != null) {
-                var templateBuilder = new IndexTemplateMetadata.Builder(templateMetadata);
-                var settingsBuilder = Settings.builder()
-                    .put(templateMetadata.settings());
-                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
-                mdBuilder.put(templateBuilder.settings(settingsBuilder.build()).build());
-            }
         }
         return ClusterState.builder(currentState).metadata(mdBuilder).build();
+    }
+
+    private static Settings removeSubscriptionSetting(Settings settings) {
+        var settingsBuilder = Settings.builder().put(settings);
+        settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+        return settingsBuilder.build();
     }
 
     @Singleton
