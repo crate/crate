@@ -62,9 +62,6 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
  *
- * Regular tables are created through the creation of ES indices, see {@link TransportCreateIndexAction}.
- * Partitioned tables are created through ES templates, see {@link TransportPutIndexTemplateAction}.
- *
  * To atomically run the actions on the master, this action wraps around the ES actions and runs them
  * inside this action on the master with checking for views beforehand.
  *

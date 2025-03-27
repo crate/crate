@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -43,13 +44,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -77,6 +78,8 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
@@ -155,7 +158,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, true, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(false, true, resp.tables().stream().toList()))
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
@@ -170,6 +173,25 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         .settings(settings);
                     metadataBuilder.put(templateMetadata);
                 }
+                for (RelationMetadata.Table table : remoteClusterState.metadata().tableRelations()) {
+                    var settings = Settings.builder()
+                        .put(table.settings())
+                        .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
+                        .build();
+                    metadataBuilder.setTable(
+                        table.name(),
+                        table.columns(),
+                        settings,
+                        table.routingColumn(),
+                        table.columnPolicy(),
+                        table.pkConstraintName(),
+                        table.checkConstraints(),
+                        table.primaryKeys(),
+                        table.partitionedBy(),
+                        table.state(),
+                        table.indexUUIDs()
+                    );
+                }
                 return metadataBuilder.build();
             });
     }
@@ -179,8 +201,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                                                  SnapshotId snapshotId,
                                                                                  Collection<IndexId> indexIds) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        var remoteIndices = indexIds.stream().map(IndexId::getName).toArray(String[]::new);
-        return getRemoteClusterState(remoteIndices).thenApply(response -> {
+        var remoteRelationNames = indexIds.stream().map(indexId -> IndexName.decode(indexId.getName()).toRelationName()).toArray(RelationName[]::new);
+        return getRemoteClusterState(remoteRelationNames).thenApply(response -> {
             var result = new ArrayList<IndexMetadata>();
             ClusterState remoteClusterState = response.getState();
             for (var i : remoteClusterState.metadata().indices()) {
@@ -207,7 +229,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                                      SnapshotId snapshotId,
                                                                      IndexId index) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        return getRemoteClusterState(index.getName()).thenApply(response -> {
+        RelationName relationName = IndexName.decode(index.getName()).toRelationName();
+        return getRemoteClusterState(relationName).thenApply(response -> {
             ClusterState remoteClusterState = response.getState();
             var indexMetadata = remoteClusterState.metadata().index(index.getName());
             // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
@@ -225,7 +248,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(false, false, resp.tables().stream().toList()))
             .thenApply(remoteStateResp -> {
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
@@ -345,7 +368,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      RecoveryState recoveryState,
                                                      ActionListener<Void> listener) {
         // 1. Get all the files info from the publisher cluster for this shardId
-        var remoteClusterState = getRemoteClusterState(true, true, List.of(indexId.getName()), List.of());
+        RelationName relationName = IndexName.decode(indexId.getName()).toRelationName();
+        var remoteClusterState = getRemoteClusterState(true, true, List.of(relationName));
         remoteClusterState.whenComplete((resp, err) -> {
             if (err != null) {
                 listener.onFailure(Exceptions.toException(err));
@@ -394,7 +418,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         recoveryState.getIndex().setFileDetailsComplete();
                         listener.onResponse(null);
                     } else {
-                        LOGGER.error("Restore of " + store.shardId() + " failed due to ", throwable);
+                        LOGGER.error(String.format(
+                                Locale.ENGLISH,
+                                "Restore of %s failed due to ", store.shardId()),
+                            throwable);
                         releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                         listener.onFailure(Exceptions.toException(throwable));
                     }
@@ -436,22 +463,19 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return remoteClusters.getClient(subscriptionName);
     }
 
-    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(String... remoteIndices) {
-        return getRemoteClusterState(false, true, Arrays.asList(remoteIndices), List.of());
+    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(RelationName... remoteRelationNames) {
+        return getRemoteClusterState(false, true, Arrays.asList(remoteRelationNames));
     }
 
     private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
                                                                           boolean includeRouting,
-                                                                          List<String> remoteIndices,
-                                                                          List<String> remoteTemplates) {
+                                                                          List<RelationName> relationNames) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
-            .indices(remoteIndices.toArray(new String[0]))
-            .templates(remoteTemplates.toArray(new String[0]))
+            .relationNames(relationNames)
             .metadata(true)
             .nodes(includeNodes)
             .routingTable(includeRouting)
-            .indicesOptions(IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
         return remoteClient.admin().cluster().state(clusterStateRequest);
     }

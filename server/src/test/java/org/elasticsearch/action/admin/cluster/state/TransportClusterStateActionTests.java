@@ -23,21 +23,34 @@ package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class TransportClusterStateActionTests extends ESTestCase {
 
@@ -48,70 +61,112 @@ public class TransportClusterStateActionTests extends ESTestCase {
 
     @Before
     public void setup() throws Throwable {
+        var relationName1 = new RelationName("doc", "t1");
+        var indexUUID1 = UUIDs.randomBase64UUID();
+        var indexUUID2 = UUIDs.randomBase64UUID();
+        var relationName2 = new RelationName("doc", "t2");
+        var partitionName = new PartitionName(relationName2, List.of("1"));
         clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())
-                .put(IndexTemplateMetadata.builder("template1")
-                    .patterns(List.of("*"))
-                    .putMapping("{\"default\": {}}")
-                    .build())
-                .put(IndexMetadata.builder("index1")
-                         .settings(settings(Version.CURRENT))
-                         .numberOfShards(1)
-                         .numberOfReplicas(0)
-                         .build(),
-                     true
+                .setTable(
+                    relationName1,
+                    List.of(),
+                    settings(Version.CURRENT)
+                        .put(SETTING_NUMBER_OF_SHARDS, 1)
+                        .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                        .build(),
+                    null,
+                    ColumnPolicy.STRICT,
+                    null,
+                    Map.of(),
+                    List.of(),
+                    List.of(),
+                    IndexMetadata.State.OPEN,
+                    List.of(indexUUID1)
                 )
+                .setTable(
+                    relationName2,
+                    List.of(),
+                    settings(Version.CURRENT)
+                        .put(SETTING_NUMBER_OF_SHARDS, 1)
+                        .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                        .build(),
+                    null,
+                    ColumnPolicy.STRICT,
+                    null,
+                    Map.of(),
+                    List.of(),
+                    List.of(ColumnIdent.of("parted")),
+                    IndexMetadata.State.OPEN,
+                    List.of(indexUUID2)
+                )
+                .put(IndexMetadata.builder(relationName1.indexNameOrAlias())
+                        .settings(settings(Version.CURRENT)
+                            .put(SETTING_INDEX_UUID, indexUUID1))
+                        .numberOfShards(1)
+                        .numberOfReplicas(0)
+                        .build(),
+                    true)
+                .put(IndexMetadata.builder(relationName2.indexNameOrAlias())
+                        .settings(settings(Version.CURRENT)
+                            .put(SETTING_INDEX_UUID, indexUUID2))
+                        .numberOfShards(1)
+                        .numberOfReplicas(0)
+                        .build(),
+                    true)
+                .put(IndexTemplateMetadata.builder(PartitionName.templateName(relationName2.schema(), relationName2.name()))
+                    .patterns(List.of(PartitionName.templatePrefix(relationName2.schema(), relationName2.name())))
+                    .putAlias(new AliasMetadata(new Alias(relationName2.indexNameOrAlias()).name()))
+                    .settings(settings(Version.CURRENT))
+                    .putMapping("{}")
+                    .build())
                 .build()
             )
             .build();
     }
 
     @Test
-    public void test_response_contains_complete_metadata_if_no_indices_or_templates_requested() {
+    public void test_response_contains_complete_metadata_if_no_relations_requested() {
         var request = new ClusterStateRequest();
         request.metadata(true);
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
-        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
+
+        List<RelationName> relationNames = List.of(
+            new RelationName("doc", "t1"),
+            new RelationName("doc", "t2")
+        );
+        for (var relationName : relationNames) {
+            RelationMetadata.Table table = response.getState().metadata().getRelation(relationName);
+            assertThat(table).isNotNull();
+            for (String indexUUID : table.indexUUIDs()) {
+                assertThat(response.getState().metadata().indexByUUID(indexUUID)).isNotNull();
+            }
+            if (!table.partitionedBy().isEmpty()) {
+                String templateName = PartitionName.templateName(table.name().schema(), table.name().name());
+                assertThat(response.getState().metadata().templates().get(templateName)).isNotNull();
+            }
+        }
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isEqualTo("bar");
     }
 
     @Test
-    public void test_response_contains_templates_only() {
+    public void test_response_contains_relations_only() {
+        var relationName = new RelationName("doc", "t1");
         var request = new ClusterStateRequest();
         request.metadata(true);
-        request.templates("template1");
+        request.relationNames(List.of(relationName));
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
-        assertThat(response.getState().metadata().hasIndex("index1")).isFalse();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
-    }
+        assertThat(response.getState().metadata().templates().size()).isZero();
+        assertThat(response.getState().metadata().indices().size()).isEqualTo(1);
 
-    @Test
-    public void test_response_contains_indices_only() {
-        var request = new ClusterStateRequest();
-        request.metadata(true);
-        request.indices("index1");
-
-        var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNull();
-        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
-    }
-
-    @Test
-    public void test_response_contains_indices_and_templates_only() {
-        var request = new ClusterStateRequest();
-        request.metadata(true);
-        request.templates("template1");
-        request.indices("index1");
-
-        var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
-        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
+        RelationMetadata.Table table = response.getState().metadata().getRelation(relationName);
+        assertThat(table).isNotNull();
+        for (String indexUUID : table.indexUUIDs()) {
+            assertThat(response.getState().metadata().indexByUUID(indexUUID)).isNotNull();
+        }
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
 }

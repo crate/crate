@@ -83,7 +83,6 @@ import org.elasticsearch.indices.IndexCreationException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
@@ -118,14 +117,12 @@ public class MetadataCreateIndexService {
     private final ShardLimitValidator shardLimitValidator;
 
     public MetadataCreateIndexService(NodeContext nodeContext,
-                                      Settings settings,
                                       ClusterService clusterService,
                                       IndicesService indicesService,
                                       AllocationService allocationService,
                                       ShardLimitValidator shardLimitValidator,
                                       Environment env,
-                                      IndexScopedSettings indexScopedSettings,
-                                      ThreadPool threadPool) {
+                                      IndexScopedSettings indexScopedSettings) {
         this.nodeContext = nodeContext;
         this.clusterService = clusterService;
         this.indicesService = indicesService;

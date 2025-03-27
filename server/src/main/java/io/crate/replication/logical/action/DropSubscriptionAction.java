@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,8 +71,8 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
      * (Without this setting, indices will use the default read-write engine)
      */
     public static ClusterState removeSubscriptionSetting(Collection<RelationName> relations,
-                                                  ClusterState currentState,
-                                                  Metadata.Builder mdBuilder) {
+                                                         ClusterState currentState,
+                                                         Metadata.Builder mdBuilder) {
         Metadata metadata = currentState.metadata();
         for (var relationName : relations) {
             var concreteIndices = metadata.getIndices(
@@ -88,6 +89,23 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                         .builder(indexMetadata)
                         .settingsVersion(1 + indexMetadata.getSettingsVersion())
                         .settings(settingsBuilder)
+                );
+            }
+            for (RelationMetadata.Table table : metadata.tableRelations()) {
+                var settingsBuilder = Settings.builder().put(table.settings());
+                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+                mdBuilder.setTable(
+                    table.name(),
+                    table.columns(),
+                    settingsBuilder.build(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs()
                 );
             }
 
