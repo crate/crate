@@ -95,7 +95,7 @@ public final class MetadataTracker implements Closeable {
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
-    private final NodeContext nodeContext;
+    private final DocTableInfoFactory docTableInfoFactory;
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = Set.of();
@@ -120,7 +120,7 @@ public final class MetadataTracker implements Closeable {
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
-        this.nodeContext = nodeContext;
+        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     private void start() {
@@ -327,7 +327,7 @@ public final class MetadataTracker implements Closeable {
                     localClusterState,
                     response,
                     indexScopedSettings,
-                    nodeContext
+                    docTableInfoFactory
                 );
             }
 
@@ -349,7 +349,7 @@ public final class MetadataTracker implements Closeable {
                                             ClusterState subscriberClusterState,
                                             Response publicationsState,
                                             IndexScopedSettings indexScopedSettings,
-                                            NodeContext nodeContext) {
+                                            DocTableInfoFactory docTableInfoFactory) {
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
@@ -383,7 +383,6 @@ public final class MetadataTracker implements Closeable {
 
                     // Update the table relation with the new index metadata
                     if (subscriberClusterState.metadata().getRelation(followedTable) != null) {
-                        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
                         Metadata tempMetadata = Metadata.builder(subscriberClusterState.metadata())
                             .put(indexMetadata, true)
                             .dropRelation(followedTable)
@@ -429,7 +428,7 @@ public final class MetadataTracker implements Closeable {
             .filter(index -> metadata.hasIndex(index))
             .map(index -> RelationName.fromIndexName(index))
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
-            .collect(Collectors.toCollection(() -> new HashSet<>()));
+            .collect(Collectors.toSet());
 
         for (String t: publisherStateResponse.concreteTemplates()) {
             if (metadata.templates().containsKey(t)) {
@@ -474,7 +473,7 @@ public final class MetadataTracker implements Closeable {
             if (indexParts.isPartitioned()) {
                 var relationName = indexParts.toRelationName();
                 if (!subscriberState.metadata().templates().containsKey(templateName)
-                        && !toRestore.stream().anyMatch(x -> x.table().equals(relationName))) {
+                        && toRestore.stream().noneMatch(x -> x.table().equals(relationName))) {
                     toRestore.add(new TableOrPartition(relationName, null));
                 }
                 if (subscribedRelations.get(relationName) == null) {
@@ -561,7 +560,9 @@ public final class MetadataTracker implements Closeable {
         if (publisherMapping != null && subscriberMapping != null) {
             if (publisherIndexMetadata.getMappingVersion() > subscriberIndexMetadata.getMappingVersion()) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Updated index mapping {} for subscription {}", subscriberIndexMetadata.getIndex().getName(), publisherMapping.toString());
+                    LOGGER.debug("Updated index mapping {} for subscription {}",
+                        subscriberIndexMetadata.getIndex().getName(),
+                        publisherMapping);
                 }
                 return publisherMapping;
             }
