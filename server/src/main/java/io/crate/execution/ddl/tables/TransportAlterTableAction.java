@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -53,7 +52,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexScopedSettings indexScopedSettings,
-                                     MetadataCreateIndexService metadataCreateIndexService,
                                      MetadataUpdateSettingsService updateSettingsService,
                                      NodeContext nodeContext) {
         super(ACTION_NAME,
@@ -66,7 +64,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               "alter-table");
         executor = new AlterTableClusterStateExecutor(
             indexScopedSettings,
-            metadataCreateIndexService,
             updateSettingsService,
             nodeContext
         );
@@ -91,5 +88,4 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
     public ClusterBlockException checkBlock(AlterTableRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
-
 }
