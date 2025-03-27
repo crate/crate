@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -59,6 +60,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.action.FutureActionListener;
+import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
@@ -305,7 +307,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> creating snapshot");
         var createSnapshot = new CreateSnapshotRequest(repoName, snapshot)
             .waitForCompletion(true)
-            .indices("test-idx-*");
+            .relationNames(List.of(new RelationName("doc", "test1")));
         var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
 
