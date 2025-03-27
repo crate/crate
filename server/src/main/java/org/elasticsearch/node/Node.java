@@ -24,7 +24,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -246,10 +246,10 @@ public class Node implements Closeable {
     public static final Setting<String> NODE_NAME_SETTING = Setting.simpleString("node.name", Property.NodeScope);
     public static final Setting.AffixSetting<String> NODE_ATTRIBUTES = Setting.prefixKeySetting(
         "node.attr.",
-        (key) -> new Setting<>(
+        key -> new Setting<>(
             key,
             "",
-            (value) -> {
+            value -> {
                 if (value.length() > 0 && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
                     throw new IllegalArgumentException(key + " cannot have leading or trailing whitespace " + "[" + value + "]");
                 }
@@ -467,7 +467,7 @@ public class Node implements Closeable {
                     .flatMap(p -> p.getNamedWriteables().stream()),
                 ClusterModule.getNamedWriteables().stream(),
                 MetadataModule.getNamedWriteables().stream())
-                .flatMap(Function.identity()).collect(Collectors.toList());
+                .flatMap(Function.identity()).toList();
             final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
             NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(Stream.of(
                 IndicesModule.getNamedXContents().stream(),
@@ -475,7 +475,7 @@ public class Node implements Closeable {
                     .flatMap(p -> p.getNamedXContent().stream()),
                 ClusterModule.getNamedXWriteables().stream(),
                 MetadataModule.getNamedXContents(nodeContext).stream())
-                .flatMap(Function.identity()).collect(Collectors.toList()));
+                .flatMap(Function.identity()).toList());
             final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, namedWriteableRegistry, xContentRegistry);
             final PersistedClusterStateService persistedClusterStateService = new PersistedClusterStateService(
                 nodeEnvironment,
@@ -490,8 +490,7 @@ public class Node implements Closeable {
             final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders =
                 Stream.concat(
                     indicesModule.getEngineFactories().stream(),
-                    enginePlugins.stream().map(plugin -> plugin::getEngineFactory))
-                    .collect(Collectors.toList());
+                    enginePlugins.stream().map(plugin -> plugin::getEngineFactory)).toList();
 
 
             final Map<String, IndexStorePlugin.DirectoryFactory> indexStoreFactories =
@@ -520,21 +519,19 @@ public class Node implements Closeable {
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
                 nodeContext,
-                settings,
                 clusterService,
                 indicesService,
                 clusterModule.getAllocationService(),
                 shardLimitValidator,
                 environment,
-                indexScopedSettings,
-                threadPool
+                indexScopedSettings
             );
 
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.createComponents(client, clusterService, threadPool,
                                                  xContentRegistry, environment, nodeEnvironment,
                                                  namedWriteableRegistry, repositoriesServiceReference::get).stream())
-                .collect(Collectors.toList());
+                .toList();
 
             ActionModule actionModule = new ActionModule(
                 settings,
@@ -1000,7 +997,7 @@ public class Node implements Closeable {
 
         injector.getInstance(GatewayService.class).start();
         Coordinator coordinator = injector.getInstance(Coordinator.class);
-        clusterService.getMasterService().setClusterStatePublisher(coordinator::publish);
+        clusterService.getMasterService().setClusterStatePublisher(coordinator);
 
         HttpServerTransport httpServerTransport = injector.getInstance(HttpServerTransport.class);
         httpServerTransport.start();
@@ -1048,7 +1045,7 @@ public class Node implements Closeable {
         assert onDiskMetadata != null : "metadata is null but shouldn't"; // this is never null
         validateNodeBeforeAcceptingRequests(transportService.boundAddress(),
             pluginsService.filterPlugins(Plugin.class).stream()
-                .flatMap(p -> p.getBootstrapChecks().stream()).collect(Collectors.toList()));
+                .flatMap(p -> p.getBootstrapChecks().stream()).toList());
 
         // start after transport service so the local disco is known
         coordinator.start(); // start before cluster service so that it can set initial state on ClusterApplierService
@@ -1326,7 +1323,7 @@ public class Node implements Closeable {
     /** Writes a file to the logs dir containing the ports for the given transport type */
     private void writePortsFile(String type, BoundTransportAddress boundAddress) {
         Path tmpPortsFile = environment.logsFile().resolve(type + ".ports.tmp");
-        try (BufferedWriter writer = Files.newBufferedWriter(tmpPortsFile, Charset.forName("UTF-8"))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(tmpPortsFile, StandardCharsets.UTF_8)) {
             for (TransportAddress address : boundAddress.boundAddresses()) {
                 InetAddress inetAddress = InetAddress.getByName(address.getAddress());
                 writer.write(NetworkAddress.format(new InetSocketAddress(inetAddress, address.getPort())) + "\n");

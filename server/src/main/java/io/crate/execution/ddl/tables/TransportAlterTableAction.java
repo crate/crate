@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -53,7 +52,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
     public TransportAlterTableAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
-                                     IndicesService indicesService,
                                      IndexScopedSettings indexScopedSettings,
                                      MetadataCreateIndexService metadataCreateIndexService,
                                      MetadataUpdateSettingsService updateSettingsService,
@@ -67,7 +65,6 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
               AcknowledgedResponse::new,
               "alter-table");
         executor = new AlterTableClusterStateExecutor(
-            indicesService,
             indexScopedSettings,
             metadataCreateIndexService,
             updateSettingsService,
