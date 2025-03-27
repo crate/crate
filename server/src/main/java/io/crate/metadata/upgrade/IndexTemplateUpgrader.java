@@ -25,7 +25,6 @@ import static io.crate.metadata.upgrade.MetadataIndexUpgrader.removeInvalidPrope
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,11 +37,9 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -90,27 +87,21 @@ public class IndexTemplateUpgrader {
             IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(templateName)
                 .patterns(templateMetadata.patterns())
                 .settings(settings);
-            try {
-                var mappingSource = XContentHelper.toMap(templateMetadata.mapping().compressedReference(), XContentType.JSON);
-                Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
-                boolean updated = removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
-                updated |= populateColumnPositions(defaultMapping);
-                if (defaultMapping.containsKey("_all")) {
-                    // Support for `_all` was removed (in favour of `copy_to`.
-                    // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
-                    defaultMapping.remove("_all");
-                    updated = true;
-                }
-                updated |= MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
-                if (updated) {
-                    builder.putMapping(
-                        new CompressedXContent(BytesReference.bytes(JsonXContent.builder().value(mappingSource))));
-                } else {
-                    builder.putMapping(templateMetadata.mapping());
-                }
-            } catch (IOException e) {
-                logger.error("Error while trying to upgrade template '" + templateName + "'", e);
-                continue;
+            var mappingSource = XContentHelper.toMap(templateMetadata.mapping().compressedReference(), XContentType.JSON);
+            Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
+            boolean updated = removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
+            updated |= populateColumnPositions(defaultMapping);
+            if (defaultMapping.containsKey("_all")) {
+                // Support for `_all` was removed (in favour of `copy_to`.
+                // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
+                defaultMapping.remove("_all");
+                updated = true;
+            }
+            updated |= MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
+            if (updated) {
+                builder.putMapping(new CompressedXContent(mappingSource));
+            } else {
+                builder.putMapping(templateMetadata.mapping());
             }
 
             for (ObjectObjectCursor<String, AliasMetadata> container : templateMetadata.aliases()) {
