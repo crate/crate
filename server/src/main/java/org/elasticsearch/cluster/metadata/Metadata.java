@@ -111,7 +111,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * Indicates that this custom metadata will be returned as part of an API call and will be persisted between
      * node restarts, but will not be a part of a snapshot global state
      */
-    public static EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
+    static final EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
 
     public interface Custom extends NamedDiffable<Custom> {
 

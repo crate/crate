@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -417,7 +418,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         recoveryState.getIndex().setFileDetailsComplete();
                         listener.onResponse(null);
                     } else {
-                        LOGGER.error("Restore of " + store.shardId() + " failed due to ", throwable);
+                        LOGGER.error(String.format(
+                                Locale.ENGLISH,
+                                "Restore of %s failed due to ", store.shardId()),
+                            throwable);
                         releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                         listener.onFailure(Exceptions.toException(throwable));
                     }

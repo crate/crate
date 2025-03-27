@@ -320,7 +320,7 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        if (request.includeTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
+        if (request.includeTables() && tablesToRestore.isEmpty()) {
             resolvedTemplates.add(Metadata.ALL);
         }
 

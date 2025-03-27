@@ -785,7 +785,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncRefreshTask extends BaseAsyncTask {
+    static final class AsyncRefreshTask extends BaseAsyncTask {
 
         AsyncRefreshTask(IndexService indexService) {
             super(indexService, indexService.getIndexSettings().getRefreshInterval());
@@ -807,7 +807,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncTrimTranslogTask extends BaseAsyncTask {
+    static final class AsyncTrimTranslogTask extends BaseAsyncTask {
 
         AsyncTrimTranslogTask(IndexService indexService) {
             super(indexService, indexService.getIndexSettings()
@@ -858,7 +858,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     /**
      * Background task that syncs the global checkpoint to replicas.
      */
-    final class AsyncGlobalCheckpointTask extends BaseAsyncTask {
+    static final class AsyncGlobalCheckpointTask extends BaseAsyncTask {
 
         AsyncGlobalCheckpointTask(final IndexService indexService) {
             // index.global_checkpoint_sync_interval is not a real setting, it is only registered in tests
@@ -881,7 +881,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncRetentionLeaseSyncTask extends BaseAsyncTask {
+    static final class AsyncRetentionLeaseSyncTask extends BaseAsyncTask {
 
         AsyncRetentionLeaseSyncTask(final IndexService indexService) {
             super(indexService, RETENTION_LEASE_SYNC_INTERVAL_SETTING.get(indexService.getIndexSettings().getSettings()));
