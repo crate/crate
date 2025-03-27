@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.regex.Regex;
@@ -63,16 +62,13 @@ import io.crate.sql.tree.ColumnPolicy;
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataCreateIndexService metadataCreateIndexService;
     private final NodeContext nodeContext;
     private final MetadataUpdateSettingsService updateSettingsService;
 
     public AlterTableClusterStateExecutor(IndexScopedSettings indexScopedSettings,
-                                          MetadataCreateIndexService metadataCreateIndexService,
                                           MetadataUpdateSettingsService updateSettingsService,
                                           NodeContext nodeContext) {
         this.indexScopedSettings = indexScopedSettings;
-        this.metadataCreateIndexService = metadataCreateIndexService;
         this.nodeContext = nodeContext;
         this.updateSettingsService = updateSettingsService;
     }
