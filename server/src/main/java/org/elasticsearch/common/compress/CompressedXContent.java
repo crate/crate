@@ -21,6 +21,7 @@ package org.elasticsearch.common.compress;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
@@ -67,29 +68,34 @@ public final class CompressedXContent {
     }
 
     /**
-     * Create a {@link CompressedXContent} out of a {@link ToXContent} instance.
+     * Create a {@link CompressedXContent} out of a mapping
      */
-    public CompressedXContent(Map<String, Object> mapping) throws IOException {
-        BytesStreamOutput bStream = new BytesStreamOutput();
-        OutputStream compressedStream = CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream);
-        CRC32 crc32 = new CRC32();
-        try (OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
-            try (XContentBuilder builder = XContentFactory.builder(XContentType.JSON, checkedStream)) {
-                builder.startObject();
-                builder.mapContents(mapping);
-                builder.endObject();
+    public CompressedXContent(Map<String, Object> mapping) {
+        try {
+            BytesStreamOutput bStream = new BytesStreamOutput();
+            OutputStream compressedStream = CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream);
+            CRC32 crc32 = new CRC32();
+            try (OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
+                try (XContentBuilder builder = XContentFactory.builder(XContentType.JSON, checkedStream)) {
+                    builder.startObject();
+                    builder.mapContents(mapping);
+                    builder.endObject();
+                }
             }
+            this.bytes = BytesReference.toBytes(bStream.bytes());
+            this.crc32 = (int) crc32.getValue();
+            assertConsistent();
+        } catch (IOException e) {
+            // We are operating on a BytesOutputStream so this should never happen
+            throw new UncheckedIOException(e);
         }
-        this.bytes = BytesReference.toBytes(bStream.bytes());
-        this.crc32 = (int) crc32.getValue();
-        assertConsistent();
     }
 
     /**
-     * Create a {@link CompressedXContent} out of a serialized {@link ToXContent}
+     * Create a {@link CompressedXContent} out of serialized content
      * that may already be compressed.
      */
-    public CompressedXContent(BytesReference data) throws IOException {
+    public CompressedXContent(BytesReference data) {
         Compressor compressor = CompressorFactory.compressor(data);
         if (compressor != null) {
             // already compressed...
@@ -107,11 +113,11 @@ public final class CompressedXContent {
         assert this.crc32 == crc32(uncompressed());
     }
 
-    public CompressedXContent(byte[] data) throws IOException {
+    public CompressedXContent(byte[] data) {
         this(new BytesArray(data));
     }
 
-    public CompressedXContent(String str) throws IOException {
+    public CompressedXContent(String str) {
         this(new BytesArray(str.getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -127,11 +133,7 @@ public final class CompressedXContent {
 
     /** Return the uncompressed bytes. */
     public BytesReference uncompressed() {
-        try {
-            return CompressorFactory.uncompress(new BytesArray(bytes));
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot decompress compressed string", e);
-        }
+        return CompressorFactory.uncompress(new BytesArray(bytes));
     }
 
     public String string() {

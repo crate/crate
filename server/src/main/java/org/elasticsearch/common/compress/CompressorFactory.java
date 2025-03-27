@@ -19,14 +19,12 @@
 
 package org.elasticsearch.common.compress;
 
-import java.io.IOException;
 import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.dataformat.smile.SmileConstants;
 
@@ -114,16 +112,16 @@ public class CompressorFactory {
     }
 
     /**
-     * Uncompress the provided data, data can be detected as compressed using {@link #isCompressed(BytesReference)}.
+     * Uncompress the provided data
      * @throws NullPointerException a NullPointerException will be thrown when bytes is null
      */
-    public static BytesReference uncompressIfNeeded(BytesReference bytes) throws IOException {
+    public static BytesReference uncompressIfNeeded(BytesReference bytes) {
         Compressor compressor = compressor(Objects.requireNonNull(bytes, "the BytesReference must not be null"));
         return compressor == null ? bytes : compressor.uncompress(bytes);
     }
 
     /** Decompress the provided {@link BytesReference}. */
-    public static BytesReference uncompress(BytesReference bytes) throws IOException {
+    public static BytesReference uncompress(BytesReference bytes) {
         Compressor compressor = compressor(bytes);
         if (compressor == null) {
             throw new NotCompressedException();

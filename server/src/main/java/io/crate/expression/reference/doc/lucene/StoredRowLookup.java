@@ -166,11 +166,7 @@ public abstract class StoredRowLookup implements StoredRow {
 
         @Override
         public String asRaw() {
-            try {
-                return CompressorFactory.uncompressIfNeeded(loadStoredFields()).utf8ToString();
-            } catch (IOException e) {
-                throw new UncheckedIOException("Failed to decompress source", e);
-            }
+            return CompressorFactory.uncompressIfNeeded(loadStoredFields()).utf8ToString();
 
         }
 

@@ -24,6 +24,7 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -85,7 +86,7 @@ public class DeflateCompressor implements Compressor {
     // Reference to a deflater or inflater that is used to make sure we do not use the same stream twice when nesting streams.
     private static final class ReleasableReference<T> implements Releasable {
 
-        protected final T resource;
+        private final T resource;
 
         private final Releasable releasable;
 
@@ -95,7 +96,7 @@ public class DeflateCompressor implements Compressor {
         // true if this reference is currently in use and is not available for re-use
         boolean inUse;
 
-        protected ReleasableReference(T resource, Releasable releasable) {
+        private ReleasableReference(T resource, Releasable releasable) {
             this.resource = resource;
             this.releasable = releasable;
         }
@@ -226,11 +227,14 @@ public class DeflateCompressor implements Compressor {
     private static final ThreadLocal<Inflater> INFLATER_REF = ThreadLocal.withInitial(() -> new Inflater(true));
 
     @Override
-    public BytesReference uncompress(BytesReference bytesReference) throws IOException {
+    public BytesReference uncompress(BytesReference bytesReference) {
         final BytesStreamOutput buffer = BAOS.get();
         final Inflater inflater = INFLATER_REF.get();
         try (InflaterOutputStream ios = new InflaterOutputStream(buffer, inflater)) {
             bytesReference.slice(HEADER.length, bytesReference.length() - HEADER.length).writeTo(ios);
+        } catch (IOException e) {
+            // we're operating on a BytesStreamOutput so this should never happen!
+            throw new UncheckedIOException(e);
         } finally {
             inflater.reset();
         }
@@ -244,17 +248,22 @@ public class DeflateCompressor implements Compressor {
     private static final ThreadLocal<Deflater> DEFLATER_REF = ThreadLocal.withInitial(() -> new Deflater(LEVEL, true));
 
     @Override
-    public BytesReference compress(BytesReference bytesReference) throws IOException {
+    public BytesReference compress(BytesReference bytesReference) {
         final BytesStreamOutput buffer = BAOS.get();
-        buffer.write(HEADER);
-        final Deflater deflater = DEFLATER_REF.get();
-        try (DeflaterOutputStream dos = new DeflaterOutputStream(buffer, deflater, true)) {
-            bytesReference.writeTo(dos);
-        } finally {
-            deflater.reset();
+        try {
+            buffer.write(HEADER);
+            final Deflater deflater = DEFLATER_REF.get();
+            try (DeflaterOutputStream dos = new DeflaterOutputStream(buffer, deflater, true)) {
+                bytesReference.writeTo(dos);
+            } finally {
+                deflater.reset();
+            }
+            final BytesReference res = buffer.copyBytes();
+            buffer.reset();
+            return res;
+        } catch (IOException e) {
+            // We're working on a BytesStreamOutput so this should never happen
+            throw new UncheckedIOException(e);
         }
-        final BytesReference res = buffer.copyBytes();
-        buffer.reset();
-        return res;
     }
 }

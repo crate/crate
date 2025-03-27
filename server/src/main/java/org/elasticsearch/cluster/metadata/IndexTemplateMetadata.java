@@ -30,14 +30,12 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -264,7 +262,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             return this;
         }
 
-        public Builder putMapping(String mappingSource) throws IOException {
+        public Builder putMapping(String mappingSource) {
             mapping = new CompressedXContent(mappingSource);
             return this;
         }
@@ -302,10 +300,9 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                             if (token == XContentParser.Token.FIELD_NAME) {
                                 currentFieldName = parser.currentName();
                             } else if (token == XContentParser.Token.START_OBJECT) {
-                                String mappingType = currentFieldName;
                                 Map<String, Object> mappingSource =
-                                    MapBuilder.<String, Object>newMapBuilder().put(mappingType, parser.mapOrdered()).map();
-                                builder.putMapping(Strings.toString(JsonXContent.builder().map(mappingSource)));
+                                    MapBuilder.<String, Object>newMapBuilder().put(currentFieldName, parser.mapOrdered()).map();
+                                builder.putMapping(new CompressedXContent(mappingSource));
                             }
                         }
                     } else if ("aliases".equals(currentFieldName)) {
@@ -320,12 +317,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             Map<String, Object> mapping = parser.mapOrdered();
                             if (mapping.size() == 1) {
-                                String mappingSource = Strings.toString(JsonXContent.builder().map(mapping));
-                                if (mappingSource == null) {
-                                    // crap, no mapping source, warn?
-                                } else {
-                                    builder.putMapping(mappingSource);
-                                }
+                                builder.putMapping(new CompressedXContent(mapping));
                             }
                         }
                     } else if ("index_patterns".equals(currentFieldName)) {

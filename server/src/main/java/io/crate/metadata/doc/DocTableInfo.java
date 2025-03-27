@@ -50,11 +50,10 @@ import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1096,7 +1095,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .put(tableParameters.filter(s -> !indexTemplateMetadata.settings().hasValue(s)))
                 .build();
             var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
-                .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
+                .putMapping(new CompressedXContent(mapping))
                 .settings(settings)
                 .version(version == null ? 1 : version + 1)
                 .build();

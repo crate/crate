@@ -24,7 +24,6 @@ package io.crate.metadata.upgrade;
 import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -99,12 +98,7 @@ public class MetadataIndexUpgrader {
             }
         }
 
-        try {
-            return new MappingMetadata(Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
-        } catch (IOException e) {
-            logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
-            return mappingMetadata;
-        }
+        return new MappingMetadata(Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
     }
 
     /**
