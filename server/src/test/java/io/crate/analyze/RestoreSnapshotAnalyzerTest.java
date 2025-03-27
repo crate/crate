@@ -121,8 +121,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
-        assertThat(request.indices()).usingRecursiveComparison().ignoringCollectionOrder()
-            .isEqualTo(AnalyzedCreateSnapshot.ALL_INDICES.toArray(new String[0]));
+        assertThat(request.relationNames()).isEmpty();
         assertThat(request.repository()).isEqualTo("my_repo");
         assertThat(request.snapshot()).isEqualTo("my_snapshot");
         assertThat(request.settings().getAsStructuredMap()).containsExactly(
@@ -170,8 +169,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, t2 WITH (ignore_unavailable=true)");
-        assertThat(request.indices()).containsExactly("users");
-        assertThat(request.indicesOptions().ignoreUnavailable()).isTrue();
+        assertThat(request.relationNames()).containsExactly(new RelationName("doc", "users"));
     }
 
     @Test
@@ -179,8 +177,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, my_schema.t2 WITH (ignore_unavailable=true)");
-        assertThat(request.indices()).containsExactly("users");
-        assertThat(request.indicesOptions().ignoreUnavailable()).isTrue();
+        assertThat(request.relationNames()).containsExactly(new RelationName("doc", "users"));
     }
 
     @Test
@@ -190,7 +187,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, locations " +
             "WITH (wait_for_completion=true)");
         assertThat(request.includeGlobalState()).isFalse();
-        assertThat(request.indices()).containsExactlyInAnyOrder("users", "locations");
+        assertThat(request.relationNames()).containsExactlyInAnyOrder(new RelationName("doc", "users"), new RelationName("doc", "locations"));
         assertThat(request.repository()).isEqualTo("my_repo");
         assertThat(request.snapshot()).isEqualTo("my_snapshot");
         assertThat(request.settings().getAsStructuredMap()).containsExactly(Map.entry("wait_for_completion", "true"));
@@ -237,7 +234,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, locations, users");
-        assertThat(request.indices()).containsExactlyInAnyOrder("users", "locations");
+        assertThat(request.relationNames()).containsExactlyInAnyOrder(new RelationName("doc", "users"), new RelationName("doc", "locations"));
     }
 
     @Test
@@ -245,12 +242,9 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE parted, parted PARTITION (date=1395961200000)");
-        assertThat(request.indices()).containsExactlyInAnyOrder(
-                ".partitioned.parted.04732cpp6ks3ed1o60o30c1g",
-                ".partitioned.parted.0400",
-                ".partitioned.parted.04732cpp6ksjcc9i60o30c1g");
+        assertThat(request.relationNames()).containsExactly(new RelationName("doc", "parted"));
+        assertThat(request.partitionNames()).containsExactly(new PartitionName(new RelationName("doc", "parted"), List.of("1395961200000")));
         assertThat(request.includeGlobalState()).isFalse();
-        assertThat(request.templates()).containsExactly(".partitioned.parted.");
     }
 
     @Test
