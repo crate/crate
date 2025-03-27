@@ -46,6 +46,8 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
@@ -66,6 +68,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -1106,6 +1109,32 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(usersMetadata).isNull();
         usersPrivilegesMetadata = cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
         assertThat(usersPrivilegesMetadata).isNull();
+    }
+
+    @Test
+    public void test_restore_old_snapshot_create_and_use_relation_metadata() throws IOException {
+        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/5.12.2_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY old_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        execute("RESTORE SNAPSHOT old_repo.snap ALL with (wait_for_completion=true)");
+
+        execute("SELECT SUM(a) FROM doc.t");
+        assertThat(response).hasRows("55");
+        execute("SELECT SUM(a), b FROM doc.t_parted GROUP BY b");
+        assertThat(response).hasRows(
+            "55| 1",
+            "55| 2");
+
+        Metadata metadata = cluster().clusterService().state().metadata();
+        assertThat((RelationMetadata.Table) metadata.getRelation(new RelationName("doc", "t")))
+            .isNotNull();
+        assertThat((RelationMetadata.Table) metadata.getRelation(new RelationName("doc", "t_parted")))
+            .isNotNull();
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {
