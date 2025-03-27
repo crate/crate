@@ -94,7 +94,10 @@ public class DocTableInfoFactory {
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
 
-    public static class MappingKeys {
+    public static final class MappingKeys {
+
+        private MappingKeys() {}
+
         public static final String DOC_VALUES = "doc_values";
         public static final String DATE = "date";
         public static final String KEYWORD = "keyword";
@@ -167,7 +170,6 @@ public class DocTableInfoFactory {
                 SqlParser.createExpression(generatedExpressionStr),
                 expressionAnalysisContext
             ).cast(reference.valueType());
-            assert reference != null : "Column present in generatedColumns must exist";
             GeneratedReference generatedRef = new GeneratedReference(
                 reference,
                 generatedExpression
@@ -303,7 +305,6 @@ public class DocTableInfoFactory {
                 SqlParser.createExpression(generatedExpressionStr),
                 expressionAnalysisContext
             ).cast(reference.valueType());
-            assert reference != null : "Column present in generatedColumns must exist";
             GeneratedReference generatedRef = new GeneratedReference(
                 reference,
                 generatedExpression
