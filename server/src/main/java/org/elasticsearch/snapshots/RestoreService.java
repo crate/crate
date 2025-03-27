@@ -659,8 +659,10 @@ public class RestoreService implements ClusterStateApplier {
                 restoreInfo = new RestoreInfo(snapshotId.getName(), Collections.unmodifiableList(new ArrayList<>(indices.keySet())), shards.size(), shards.size() - failedShards(shards));
             }
 
+            // If older snapshot is restored, build RelationMetadata from IndexMetadata & IndexTemplateMetadata
+            Metadata newMetadata = metadataIndexUpgradeService.addOrUpgradeRelationMetadata(mdBuilder.build());
             RoutingTable rt = rtBuilder.build();
-            ClusterState updatedState = builder.metadata(mdBuilder).blocks(blocks).routingTable(rt).build();
+            ClusterState updatedState = builder.metadata(newMetadata).blocks(blocks).routingTable(rt).build();
             return allocationService.reroute(updatedState, "restored snapshot [" + snapshot + "]");
         }
 
