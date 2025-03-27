@@ -64,4 +64,5 @@ Fixes
   restarting with still holding a lock on the shard. The existing retry logic
   to solve this situation was not working in some cases.
 
-- Fixed an issue causing a CrateDB node to fail on startup in Windows environments when no custom CRATE_HEAP environment variable is set.
+- Fixed an issue causing a CrateDB node to fail on startup in Windows
+  environments when no custom CRATE_HEAP_SIZE environment variable is set.
