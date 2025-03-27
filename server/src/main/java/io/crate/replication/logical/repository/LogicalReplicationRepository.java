@@ -169,6 +169,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value).settings(settings);
                     metadataBuilder.put(templateMetadata);
                 }
+
+                // We update all tables with the subscription setting, not only the partitioned ones,
+                // as in getSnapshotIndexMetadata() we don't have access to the whole `Metadata` object.
                 for (RelationMetadata.Table table : remoteClusterState.metadata().tableRelations()) {
                     metadataBuilder.setTable(
                         table.name(),
