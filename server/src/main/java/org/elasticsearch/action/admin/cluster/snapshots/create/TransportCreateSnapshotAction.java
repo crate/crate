@@ -20,13 +20,14 @@
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -67,8 +68,13 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
         if (clusterBlockException != null) {
             return clusterBlockException;
         }
+        String[] indices = request.relationNames().stream()
+            .map(r ->
+                state.metadata().getIndices(r, List.of(), false, im -> im.getIndex().getName()))
+            .flatMap(Collection::stream)
+            .toArray(String[]::new);
         return state.blocks()
-            .indicesBlockedException(ClusterBlockLevel.READ, IndexNameExpressionResolver.concreteIndexNames(state, request));
+            .indicesBlockedException(ClusterBlockLevel.READ, indices);
     }
 
     @Override
