@@ -64,5 +64,4 @@ Fixes
   restarting with still holding a lock on the shard. The existing retry logic
   to solve this situation was not working in some cases.
 
-- Fixed the default ``CRATE_MIN_MEM`` value in the ``crate.bat`` script used
-  in Windows environments to match ``CRATE_MAX_MEM``.
+- Fixed an issue causing a CrateDB node to fail on startup in Windows environments when no custom CRATE_HEAP environment variable is set.
