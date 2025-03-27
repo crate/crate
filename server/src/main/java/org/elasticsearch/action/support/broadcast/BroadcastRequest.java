@@ -20,56 +20,38 @@
 package org.elasticsearch.action.support.broadcast;
 
 import java.io.IOException;
+import java.util.List;
 
-import org.elasticsearch.action.IndicesRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends TransportRequest implements IndicesRequest {
+import io.crate.metadata.Relation;
 
-    protected String[] indices;
-    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED;
+public class BroadcastRequest extends TransportRequest {
 
-    public BroadcastRequest() {
+    protected final List<Relation> relations;
+
+    protected BroadcastRequest(List<Relation> relations) {
+        this.relations = relations;
     }
 
-    protected BroadcastRequest(String[] indices) {
-        this.indices = indices;
+    protected BroadcastRequest(Relation relation) {
+        this(List.of(relation));
     }
 
-    protected BroadcastRequest(String[] indices, IndicesOptions indicesOptions) {
-        this.indices = indices;
-        this.indicesOptions = indicesOptions;
+    public BroadcastRequest(StreamInput in) throws IOException {
+        super(in);
+        this.relations = Relation.readList(in);
     }
 
-    @Override
-    public String[] indices() {
-        return indices;
-    }
-
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    @SuppressWarnings("unchecked")
-    public final Request indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return (Request) this;
+    public final List<Relation> relations() {
+        return relations;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArrayNullable(indices);
-        indicesOptions.writeIndicesOptions(out);
-    }
-
-    public BroadcastRequest(StreamInput in) throws IOException {
-        super(in);
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        Relation.writeList(out, relations);
     }
 }

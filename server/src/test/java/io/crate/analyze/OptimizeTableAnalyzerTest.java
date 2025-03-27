@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +38,8 @@ import org.junit.Test;
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.Relation;
+import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -71,111 +75,114 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizeSystemTable() throws Exception {
+    public void testOptimizeSystemTable() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");
     }
 
     @Test
-    public void testOptimizeTable() throws Exception {
+    public void testOptimizeTable() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
-        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("users"), List.of()));
     }
 
     @Test
-    public void testOptimizeBlobTable() throws Exception {
+    public void testOptimizeBlobTable() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
-        assertThat(analysis.indexNames()).containsExactly(".blob_blobs");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("blob.blobs"), List.of()));
     }
 
     @Test
-    public void testOptimizeTableWithParams() throws Exception {
+    public void testOptimizeTableWithParams() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
-        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("users"), List.of()));
         assertThat(MAX_NUM_SEGMENTS.get(analysis.settings())).isEqualTo(2);
         analysis = analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
 
-        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("users"), List.of()));
         assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings())).isEqualTo(Boolean.TRUE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (flush=false)");
-        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("users"), List.of()));
         assertThat(FLUSH.get(analysis.settings())).isEqualTo(Boolean.FALSE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
-        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("users"), List.of()));
         assertThat(UPGRADE_SEGMENTS.get(analysis.settings())).isEqualTo(Boolean.TRUE);
     }
 
     @Test
-    public void testOptimizeTableWithInvalidParamName() throws Exception {
+    public void testOptimizeTableWithInvalidParamName() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (invalidParam=123)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'invalidparam' is not supported");
     }
 
     @Test
-    public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() throws Exception {
+    public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (flush=false, upgrade_segments=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("cannot use other parameters if upgrade_segments is set to true");
     }
 
     @Test
-    public void testOptimizePartition() throws Exception {
+    public void testOptimizePartition() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
-        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("parted"), List.of("1395874800000")));
     }
 
     @Test
-    public void testOptimizePartitionedTableNullPartition() throws Exception {
+    public void testOptimizePartitionedTableNullPartition() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=null)");
-        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.0400");
+        List<String> nullList = new ArrayList<>();
+        nullList.add(null);
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("parted"), nullList));
     }
 
     @Test
-    public void testOptimizePartitionWithParams() throws Exception {
+    public void testOptimizePartitionWithParams() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
-        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+        assertThat(analysis.relations()).containsExactly(new Relation(RelationName.fromIndexName("parted"), List.of("1395874800000")));
     }
 
     @Test
-    public void testOptimizeMultipleTables() throws Exception {
+    public void testOptimizeMultipleTables() {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
-        assertThat(analysis.indexNames()).hasSize(4);
-        assertThat(analysis.indexNames())
-            .contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g", "users");
+        assertThat(analysis.relations()).hasSize(2);
+        assertThat(analysis.relations())
+            .contains(new Relation(RelationName.fromIndexName("users"), List.of()),
+                      new Relation(RelationName.fromIndexName("parted"), List.of()));
     }
 
     @Test
-    public void testOptimizeMultipleTablesUnknown() throws Exception {
+    public void testOptimizeMultipleTablesUnknown() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted, foo, bar"))
             .isExactlyInstanceOf(RelationUnknown.class)
             .hasMessage("Relation 'foo' unknown");
     }
 
     @Test
-    public void testOptimizeInvalidPartitioned() throws Exception {
+    public void testOptimizeInvalidPartitioned() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted PARTITION (invalid_column='hddsGNJHSGFEFZÜ')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("\"invalid_column\" is no known partition column");
     }
 
     @Test
-    public void testOptimizeNonPartitioned() throws Exception {
+    public void testOptimizeNonPartitioned() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users PARTITION (foo='n')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("table 'doc.users' is not partitioned");
     }
 
     @Test
-    public void testOptimizeSysPartitioned() throws Exception {
+    public void testOptimizeSysPartitioned() {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");

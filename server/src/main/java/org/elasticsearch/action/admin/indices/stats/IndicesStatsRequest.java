@@ -20,11 +20,15 @@
 package org.elasticsearch.action.admin.indices.stats;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.metadata.Relation;
+import io.crate.metadata.RelationName;
 
 /**
  * A request to get indices level stats. Allow to enable different stats to be returned.
@@ -34,7 +38,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
  * All the stats to be returned can be cleared using {@link #clear()}, at which point, specific
  * stats can be enabled.
  */
-public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
+public class IndicesStatsRequest extends BroadcastRequest {
 
     private CommonStatsFlags flags = new CommonStatsFlags();
 
@@ -83,7 +87,15 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         flags = new CommonStatsFlags(in);
     }
 
-    public IndicesStatsRequest(String... indices) {
-        super(indices);
+    public IndicesStatsRequest(String relation) {
+        this(new Relation(RelationName.fromIndexName(relation), List.of()));
+    }
+
+    public IndicesStatsRequest(Relation relation) {
+        super(relation);
+    }
+
+    public IndicesStatsRequest() {
+        super(List.of());
     }
 }
