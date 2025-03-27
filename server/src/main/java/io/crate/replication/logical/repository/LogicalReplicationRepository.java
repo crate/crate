@@ -165,23 +165,15 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 for (var cursor : remoteClusterState.metadata().templates().values()) {
                     // Add subscription name as a setting value which can be used to restrict operations on
                     // partitioned tables (e.g. forbid writes/creating new partitions)
-                    var settings = Settings.builder()
-                        .put(cursor.value.settings())
-                        .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
-                        .build();
-                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value)
-                        .settings(settings);
+                    var settings = addSubscriptionSetting(cursor.value.settings(), subscriptionName);
+                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value).settings(settings);
                     metadataBuilder.put(templateMetadata);
                 }
                 for (RelationMetadata.Table table : remoteClusterState.metadata().tableRelations()) {
-                    var settings = Settings.builder()
-                        .put(table.settings())
-                        .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
-                        .build();
                     metadataBuilder.setTable(
                         table.name(),
                         table.columns(),
-                        settings,
+                        addSubscriptionSetting(table.settings(), subscriptionName),
                         table.routingColumn(),
                         table.columnPolicy(),
                         table.pkConstraintName(),
@@ -195,6 +187,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 return metadataBuilder.build();
             });
     }
+
+    private static Settings addSubscriptionSetting(Settings settings, String subscriptionName) {
+        var settingsBuilder = Settings.builder().put(settings);
+        settingsBuilder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
+        return settingsBuilder.build();
+    }
+
 
     @Override
     public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData,
