@@ -1014,7 +1014,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_restore_old_users() throws IOException {
-        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
         try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldusersmetadata_repo.zip"))) {
             TestUtil.unzip(stream, repoDir.toPath());
         }
@@ -1113,7 +1113,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_restore_old_snapshot_create_and_use_relation_metadata() throws IOException {
-        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
         try (InputStream stream = Files.newInputStream(getDataPath("/repos/5.12.2_repo.zip"))) {
             TestUtil.unzip(stream, repoDir.toPath());
         }
