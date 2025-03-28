@@ -81,17 +81,6 @@ This information is useful for clients to detect that they're connecting to
 ``CrateDB`` instead of a PostgreSQL instance.
 
 
-.. _postgres-db-selection:
-
-Database selection
-''''''''''''''''''
-
-Since CrateDB uses schemas instead of databases, the ``database`` parameter
-sets the default schema name for future queries. If no schema is specified, the
-schema ``doc`` will be used as default. Additionally, the only supported
-charset is ``UTF8``.
-
-
 .. _postgres-query-modes:
 
 Query modes
