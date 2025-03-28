@@ -187,6 +187,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         this.failure = failure;
     }
 
+    @Nullable
     public Exception failure() {
         return failure;
     }
