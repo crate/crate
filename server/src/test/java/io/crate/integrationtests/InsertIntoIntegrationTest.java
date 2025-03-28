@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2064,5 +2063,52 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
+
+    @Test
+    public void test_insert_from_select_fail_fast() throws Exception {
+        execute("create table t (a int NOT NULL) clustered into 1 shards");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertSelectFailFast(true);
+            assertSQLError(() -> execute("insert into t (a) select unnest([NULL, 1])", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"a\" must not be null");
+
+            execute("refresh table t");
+            execute("select * from t");
+            assertThat(response).hasRowCount(0); // 1 is not written even though it's a valid value.
+        }
+
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) select unnest([NULL, 1])'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("\"a\" must not be null");
+    }
+
+    @Test
+    public void test_insert_from_select_new_batches_are_not_inserted_after_failure() throws Exception {
+        // No replicas to speed up the test, they are not relevant for the test
+        execute("""
+            create table t (a int check(a != 10))
+            clustered by (a) into 4 shards
+            with (number_of_replicas = 0)
+            """
+        );
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().insertSelectFailFast(true);
+            assertSQLError(() -> execute("insert into t select * from generate_series(1, 60000)", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Failed CONSTRAINT");
+
+            execute("refresh table t");
+            execute("select count(*) from t");
+            // Without applying early termination logic, consistently used to be 57479L.
+            // Currently, it depends on concurrency level of a testing machine
+            // but constantly less than 57000.
+            assertThat((long) response.rows()[0][0]).isLessThan(57000);
+        }
     }
 }
