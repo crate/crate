@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -90,6 +92,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final Schemas schemas;
     private final NodeContext nodeCtx;
     private final TransportAddColumnAction addColumnAction;
+    private static final Logger LOGGER = LogManager.getLogger(TransportShardUpsertAction.class);
+
 
 
     @Inject
@@ -123,6 +127,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
+        LOGGER.info("Received shard upsert request with {} items", request.items().size());
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));

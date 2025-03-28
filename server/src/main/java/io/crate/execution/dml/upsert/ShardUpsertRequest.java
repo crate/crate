@@ -80,6 +80,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     @Nullable
     private Symbol[] returnValues;
 
+    private transient long avgSize = 0L;
+
 
     public ShardUpsertRequest(
         ShardId shardId,
@@ -196,6 +198,14 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
     }
 
+    public void avgSize(long avgSize) {
+        this.avgSize = avgSize;
+    }
+
+    public long avgSize() {
+        return avgSize;
+    }
+
     @Override
     public void onRetry() {
         this.isRetry = true;
@@ -304,8 +314,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                      Symbol[] assignments,
                                      long requiredVersion,
                                      long seqNo,
-                                     long primaryTerm) {
-            long usedBytes = SHALLOW_SIZE;
+                                     long primaryTerm,
+                                     long estimatedSize) {
+            long usedBytes = estimatedSize + SHALLOW_SIZE;
             usedBytes += RamUsageEstimator.sizeOf(id);
             for (var assignment : assignments) {
                 usedBytes += assignment.ramBytesUsed();

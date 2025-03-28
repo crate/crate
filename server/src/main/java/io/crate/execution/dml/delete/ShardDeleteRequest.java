@@ -85,7 +85,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
             super(in);
         }
 
-        public Item(String id) {
+        public Item(ShardDeleteRequest req, String id) {
             super(id);
         }
     }

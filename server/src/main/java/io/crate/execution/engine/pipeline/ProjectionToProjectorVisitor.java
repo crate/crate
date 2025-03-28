@@ -137,7 +137,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -565,6 +568,11 @@ public class ProjectionToProjectorVisitor
             projection.returnValues(),
             context.jobId
         );
+        Supplier<ShardUpsertRequest> shardUpsertRequestSupplier = () -> {
+            ShardUpsertRequest req = builder.newRequest(shardId);
+            req.avgSize(estimateItemSizeInBytes(req, nodeCtx));
+            return req;
+        };
 
         return new ShardDMLExecutor<>(
             context.jobId,
@@ -576,19 +584,35 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
-            () -> builder.newRequest(shardId),
-            id -> {
+            shardUpsertRequestSupplier,
+            (req, id )-> {
                 Long requiredVersion = projection.requiredVersion();
                 return ShardUpsertRequest.Item.forUpdate(
                     id,
                     projection.assignments(),
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
+                    req.avgSize()
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),
             collector);
+    }
+
+    // Calculates the estimated size for an update item based on table stats or if not available
+    // based on column estimation
+    private long estimateItemSizeInBytes(ShardUpsertRequest req, NodeContext nodeContext) {
+        RelationName relationName = RelationName.fromIndexName(req.index());
+        TableStats tableStats = nodeContext.tableStats();
+        Stats stats = tableStats.getStats(relationName);
+        if (stats.isEmpty()) {
+            TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
+            List<Reference> references = List.copyOf(tableInfo.allColumns());
+            return stats.estimateSizeForColumns(references);
+        } else {
+            return stats.averageSizePerRowInBytes();
+        }
     }
 
     @Override

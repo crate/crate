@@ -138,7 +138,7 @@ public class Stats implements Writeable {
         return statsByColumn.get(column);
     }
 
-    public long estimateSizeForColumns(List<Symbol> toCollect) {
+    public <T extends Symbol> long estimateSizeForColumns(List<T> toCollect) {
         long sum = 0L;
         for (int i = 0; i < toCollect.size(); i++) {
             Symbol symbol = toCollect.get(i);

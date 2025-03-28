@@ -30,6 +30,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -76,7 +77,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final CollectExpression<Row, ?> uidExpression;
     private final NodeLimits nodeLimits;
     private final Supplier<TReq> requestFactory;
-    private final Function<String, TItem> itemFactory;
+    private final BiFunction<TReq, String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final Collector<ShardResponse, TAcc, TResult> collector;
     private final String localNode;
@@ -84,7 +85,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final ClusterService clusterService;
     private int numItems = -1;
     private final RamAccounting ramAccounting;
-
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -96,7 +96,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             CircuitBreaker queryCircuitBreaker,
                             NodeLimits nodeLimits,
                             Supplier<TReq> requestFactory,
-                            Function<String, TItem> itemFactory,
+                            BiFunction<TReq,String, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
@@ -119,7 +119,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        TItem item = itemFactory.apply((String) uidExpression.value());
+        TItem item = itemFactory.apply(req, (String) uidExpression.value());
         synchronized (ramAccounting) {
             ramAccounting.addBytes(item.ramBytesUsed());
         }
