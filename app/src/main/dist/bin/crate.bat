@@ -27,7 +27,7 @@ for %%I in ("%SCRIPT_DIR%..") do set CRATE_HOME=%%~dpfI
 REM ***** JAVA options *****
 
 if "%CRATE_MIN_MEM%" == "" (
-set CRATE_MIN_MEM=256m
+set CRATE_MIN_MEM=1g
 )
 
 if "%CRATE_MAX_MEM%" == "" (
