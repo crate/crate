@@ -708,7 +708,7 @@ To be able to calculate percentiles over a huge amount of data and to scale out
 CrateDB calculates approximate instead of accurate percentiles. The algorithm
 used by the percentile metric is called `TDigest`_. The accuracy/size trade-off
 of the algorithm is defined by a single ``compression`` parameter which has a
-default value of ``100.0``, but can be defined by passing in an optional 3rd
+default value of ``200.0``, but can be defined by passing in an optional 3rd
 ``double`` value argument as the ``compression``. However, there are a few
 guidelines to keep in mind in this implementation:
 
