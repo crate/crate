@@ -47,7 +47,8 @@ public class OptimizerTest {
             true,
             Set.of(MergeFilters.class),
             true,
-            0
+            0,
+            false
         );
 
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()), sessionSettings.excludedOptimizerRules());
@@ -66,7 +67,8 @@ public class OptimizerTest {
             true,
             Set.of(RewriteJoinPlan.class), // this rule can not be removed
             true,
-            0
+            0,
+            false
         );
         var rewriteJoinPlan = new RewriteJoinPlan();
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(rewriteJoinPlan), sessionSettings.excludedOptimizerRules());
