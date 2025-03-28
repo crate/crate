@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -94,7 +94,7 @@ public class NodeStatsContextTest extends ESTestCase {
         assertThat(ctx2.osStats().getTimestamp()).isEqualTo(ctx1.osStats().getTimestamp());
         assertThat(ctx2.fsInfo().getIoStats().getTotalOperations()).isEqualTo(ctx1.fsInfo().getIoStats().getTotalOperations());
         assertThat(ctx2.extendedOsStats().uptime()).isEqualTo(ctx1.extendedOsStats().uptime());
-        assertThat(ctx2.threadPools().getFirst().getActive()).isEqualTo(ctx1.threadPools().getFirst().getActive());
+        assertThat(ctx2.threadPools().getFirst().active()).isEqualTo(ctx1.threadPools().getFirst().active());
         assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
         assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(ctx1.psqlStats().receivedBytes());
         assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(ctx1.transportStats().sentMsgs());

@@ -21,9 +21,9 @@
 
 package io.crate.execution.engine.collect;
 
-import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThatThrownBy;
-import static io.crate.testing.Asserts.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -141,13 +141,13 @@ public class CollectTaskTest extends ESTestCase {
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.GET);
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
-        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.GET);
+        assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*

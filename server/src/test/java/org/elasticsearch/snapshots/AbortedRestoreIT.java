@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
 
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -112,7 +111,7 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
     }
 
     private static void waitForMaxActiveSnapshotThreads(final String node, int expectedCount) throws Exception {
-        assertBusy(() -> assertThat(threadPoolStats(node, ThreadPool.Names.SNAPSHOT).getActive()).isEqualTo(expectedCount), 30L, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(threadPoolStats(node, ThreadPool.Names.SNAPSHOT).active()).isEqualTo(expectedCount), 30L, TimeUnit.SECONDS);
     }
 
     private static ThreadPool threadPool(final String node) {
@@ -120,10 +119,12 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
     }
 
     private static ThreadPoolStats.Stats threadPoolStats(final String node, final String threadPoolName) {
-        return StreamSupport.stream(threadPool(node).stats().spliterator(), false)
-            .filter(threadPool -> threadPool.getName().equals(threadPoolName))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("Failed to find thread pool " + threadPoolName));
+        ThreadPool threadPool = threadPool(node);
+        ThreadPoolStats.Stats stats = threadPool.stats(threadPoolName);
+        if (stats == null) {
+            throw new AssertionError("Failed to find thread pool " + threadPoolName);
+        }
+        return stats;
     }
 }
 

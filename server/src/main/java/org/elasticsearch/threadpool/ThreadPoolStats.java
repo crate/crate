@@ -19,47 +19,36 @@
 
 package org.elasticsearch.threadpool;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.NotNull;
+
 public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> implements Writeable {
 
-    public static class Stats implements Writeable, Comparable<Stats> {
+    public static record Stats(String name,
+                               int threads,
+                               int queue,
+                               int active,
+                               long rejected,
+                               int largest,
+                               long completed) implements Writeable, Comparable<Stats> {
 
-        private final String name;
-        private final int threads;
-        private final int queue;
-        private final int active;
-        private final long rejected;
-        private final int largest;
-        private final long completed;
-
-        public Stats(String name, int threads, int queue, int active, long rejected, int largest, long completed) {
-            this.name = name;
-            this.threads = threads;
-            this.queue = queue;
-            this.active = active;
-            this.rejected = rejected;
-            this.largest = largest;
-            this.completed = completed;
-        }
-
-        public Stats(StreamInput in) throws IOException {
-            name = in.readString();
-            threads = in.readInt();
-            queue = in.readInt();
-            active = in.readInt();
-            rejected = in.readLong();
-            largest = in.readInt();
-            completed = in.readLong();
+        public static Stats of(StreamInput in) throws IOException {
+            String name = in.readString();
+            int threads = in.readInt();
+            int queue = in.readInt();
+            int active = in.readInt();
+            long rejected = in.readLong();
+            int largest = in.readInt();
+            long completed = in.readLong();
+            return new Stats(name, threads, queue, active, rejected, largest, completed);
         }
 
         @Override
@@ -73,53 +62,25 @@ public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> impleme
             out.writeLong(completed);
         }
 
-        public String getName() {
-            return this.name;
-        }
-
-        public int getThreads() {
-            return this.threads;
-        }
-
-        public int getQueue() {
-            return this.queue;
-        }
-
-        public int getActive() {
-            return this.active;
-        }
-
-        public long getRejected() {
-            return rejected;
-        }
-
-        public int getLargest() {
-            return largest;
-        }
-
-        public long getCompleted() {
-            return this.completed;
-        }
-
         @Override
         public int compareTo(Stats other) {
-            if ((getName() == null) && (other.getName() == null)) {
+            if ((name() == null) && (other.name() == null)) {
                 return 0;
-            } else if ((getName() != null) && (other.getName() == null)) {
+            } else if ((name() != null) && (other.name() == null)) {
                 return 1;
-            } else if (getName() == null) {
+            } else if (name() == null) {
                 return -1;
             } else {
-                int compare = getName().compareTo(other.getName());
+                int compare = name().compareTo(other.name());
                 if (compare == 0) {
-                    compare = Integer.compare(getThreads(), other.getThreads());
+                    compare = Integer.compare(threads(), other.threads());
                 }
                 return compare;
             }
         }
     }
 
-    private List<Stats> stats;
+    private final List<Stats> stats;
 
     public ThreadPoolStats(List<Stats> stats) {
         Collections.sort(stats);
@@ -127,7 +88,7 @@ public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> impleme
     }
 
     public ThreadPoolStats(StreamInput in) throws IOException {
-        stats = in.readList(Stats::new);
+        stats = in.readList(Stats::of);
     }
 
     @Override

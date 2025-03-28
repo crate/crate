@@ -21,14 +21,11 @@
 
 package io.crate.beans;
 
-@SuppressWarnings("unused")
 public interface ThreadPoolsMXBean {
 
     ThreadPools.ThreadPoolInfo getGeneric();
 
     ThreadPools.ThreadPoolInfo getListener();
-
-    ThreadPools.ThreadPoolInfo getGet();
 
     ThreadPools.ThreadPoolInfo getWrite();
 

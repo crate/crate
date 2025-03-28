@@ -1203,8 +1203,6 @@ dedicated to specific operations. The most important pools are:
   defaults to ``fixed``.
 * ``search``: Used for read operations like ``SELECT`` statements. The ``type``
   defaults to ``fixed``.
-* ``get``: Used for some specific read operations. For example on tables like
-  ``sys.shards`` or ``sys.nodes``. The ``type`` defaults to ``fixed``.
 * ``refresh``: Used for :ref:`refresh operations <refresh_data>`. The ``type``
   defaults to ``scaling``.
 * ``generic``: For internal tasks like cluster state management. The ``type``
@@ -1271,7 +1269,6 @@ settings.
 **thread_pool.<name>.queue_size**
   | *Default write:*  ``200``
   | *Default search:* ``1000``
-  | *Default get:* ``100``
   | *Runtime:*  ``no``
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
