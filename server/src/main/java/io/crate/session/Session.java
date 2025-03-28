@@ -763,19 +763,37 @@ public class Session implements AutoCloseable {
                                                        BulkResponse bulkResponse) {
         Object[] cells = new Object[2];
         RowN row = new RowN(cells);
+        boolean failedBulk = false;
+        Throwable bulkFailure = null;
         for (int i = 0; i < bulkResponse.size(); i++) {
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
+            bulkFailure = bulkResponse.failure(i);
             try {
                 cells[0] = bulkResponse.rowCount(i);
-                cells[1] = bulkResponse.failure(i);
+                cells[1] = bulkFailure;
             } catch (Throwable t) {
                 cells[0] = Row1.ERROR;
                 cells[1] = t;
             }
-            resultReceiver.setNextRow(row);
-            resultReceiver.allFinished();
+
+            if (bulkResponse.failFast() && bulkFailure != null && failedBulk == false) {
+                // We fail only one resultReceiver, others are finished normally.
+                // We set the first seen failure for all bulksIndices in InsertFromValues.
+                // In other components that implement executeBulk failures can be different,
+                // but we want to show only the first seen to a user.
+                failedBulk = true;
+                resultReceiver.fail(bulkFailure);
+            } else {
+                resultReceiver.setNextRow(row);
+                resultReceiver.allFinished();
+            }
         }
-        jobsLogs.logExecutionEnd(jobId, null);
+        if (bulkResponse.failFast() && bulkFailure != null) {
+            // Message is already in human-readable format.
+            jobsLogs.logExecutionEnd(jobId, bulkFailure.getMessage());
+        } else {
+            jobsLogs.logExecutionEnd(jobId, null);
+        }
     }
 
     @VisibleForTesting

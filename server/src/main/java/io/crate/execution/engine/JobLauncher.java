@@ -187,7 +187,7 @@ public class JobLauncher {
         List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
         List<RowConsumer> handlerConsumers = new ArrayList<>(nodeOperationTrees.size());
         CompletableFuture<BulkResponse> result = new CompletableFuture<>();
-        var bulkResponse = new BulkResponse(nodeOperationTrees.size());
+        var bulkResponse = new BulkResponse(nodeOperationTrees.size(), txnCtx.sessionSettings().dmlFailFast());
         List<CompletableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
         for (int i = 0; i < nodeOperationTrees.size(); i++) {
             NodeOperationTree nodeOperationTree = nodeOperationTrees.get(i);
