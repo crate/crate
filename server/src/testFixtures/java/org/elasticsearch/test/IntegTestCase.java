@@ -1673,6 +1673,17 @@ public abstract class IntegTestCase extends ESTestCase {
         return sqlExecutor.execBulk(stmt, bulkArgs, timeout);
     }
 
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt     the SQL Statement
+     * @param bulkArgs the bulk arguments of the statement
+     * @param session the Session to use
+     */
+    public BulkResponse executeBulk(String stmt, Object[][] bulkArgs, Session session) {
+        return sqlExecutor.execBulk(stmt, bulkArgs, session);
+    }
+
 
     /**
      * Execute an SQL Statement on a random node of the cluster

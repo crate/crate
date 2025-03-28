@@ -132,11 +132,15 @@ public class SQLTransportExecutor {
     }
 
     public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
-        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
+        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT, null);
     }
 
     public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
-        return executeBulk(statement, bulkArgs, timeout);
+        return executeBulk(statement, bulkArgs, timeout, null);
+    }
+
+    public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, Session session) {
+        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT, session);
     }
 
     @VisibleForTesting
@@ -284,7 +288,7 @@ public class SQLTransportExecutor {
     private static void execute(String stmt,
                                 @Nullable Object[] args,
                                 ActionListener<SQLResponse> listener,
-                                Session session) {
+                                @Nullable Session session) {
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
@@ -303,12 +307,19 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<BulkResponse> listener) {
+    private void executeBulk(String stmt,
+                             @Nullable Object[][] bulkArgs,
+                             final ActionListener<BulkResponse> listener,
+                             @Nullable Session s) {
         if (bulkArgs != null && bulkArgs.length == 0) {
             listener.onResponse(new BulkResponse(0));
             return;
         }
-        Session session = newSession();
+
+        if (s == null) {
+            s = newSession();
+        }
+        final Session session = s; // Final for lambda.
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
@@ -483,10 +494,10 @@ public class SQLTransportExecutor {
     /**
      * @return an array with the rowCounts
      */
-    private BulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    private BulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout, @Nullable Session session) {
         try {
             FutureActionListener<BulkResponse> listener = new FutureActionListener<>();
-            execute(stmt, bulkArgs, listener);
+            executeBulk(stmt, bulkArgs, listener, session);
             var future = listener.exceptionally(err -> {
                 Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
                 return null;
