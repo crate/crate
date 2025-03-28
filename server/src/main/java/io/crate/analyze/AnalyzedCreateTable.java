@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -40,7 +41,6 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -120,13 +120,13 @@ public record AnalyzedCreateTable(
                 primaryKeys.add(reference);
                 pkConstraintNames.add(column.pkConstraintName());
             }
-            if (reference instanceof IndexReference indexRef) {
-                String analyzer = indexRef.analyzer();
-                if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzer)) {
-                    Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer);
-                    builder.put(settings);
-                }
-            }
+        }
+        try {
+            fulltextAnalyzerResolver.getCustomAnalyzers().keySet().forEach(
+                analyzer -> builder.put(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzer))
+            );
+        } catch (IOException e) {
+            throw new IllegalStateException("An error occurred while processing the custom fulltext analyzers");
         }
         String pkConstraintName = null;
         if (!pkConstraintNames.isEmpty()) {
