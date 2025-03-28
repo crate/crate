@@ -185,5 +185,8 @@ Administration and Operations
   the :ref:`sys.health <sys-health>` table which exposes health about each
   table only.
 
+- Added a :ref:`dml_fail_fast <conf-session-dml-fail-fast>` session setting
+  that allows partial failures of ``INSERT`` and ``UPDATE`` statements.
+
 Client interfaces
 -----------------

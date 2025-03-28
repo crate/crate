@@ -310,18 +310,18 @@ public class SQLTransportExecutor {
                              @Nullable Object[][] bulkArgs,
                              final ActionListener<BulkResponse> listener,
                              @Nullable Session s) {
-        if (bulkArgs != null && bulkArgs.length == 0) {
-            listener.onResponse(new BulkResponse(0));
-            return;
-        }
-
         if (s == null) {
             s = newSession();
         }
         final Session session = s; // Final for lambda.
+
+        if (bulkArgs != null && bulkArgs.length == 0) {
+            listener.onResponse(new BulkResponse(0, session.sessionSettings().dmlFailFast()));
+            return;
+        }
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
-            var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
+            var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length, session.sessionSettings().dmlFailFast());
             if (bulkArgs == null) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
                 session.execute(UNNAMED, 0, new BaseResultReceiver());

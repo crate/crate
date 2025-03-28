@@ -61,10 +61,12 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.auth.AccessControl;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -250,13 +252,16 @@ public class InsertFromValues implements LogicalPlan {
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
+        // If INSERT FROM VALUES inserts only 1 row, we throw an error regardless of insert_fail_fast setting value.
+        boolean continueOnError = !plannerContext.transactionContext().sessionSettings().dmlFailFast() && rows.size() > 1;
+
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            rows.size() > 1, // continueOnErrors
+            continueOnError,
             onConflictColumns,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
@@ -357,13 +362,20 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.partitionIdent(),
             partitionedByInputs);
 
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
+        AccessControl accessControl = dependencies
+            .nodeContext()
+            .roles()
+            .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
+
+        boolean failFast = plannerContext.transactionContext().sessionSettings().dmlFailFast();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            true, // continueOnErrors
+            !failFast,
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
@@ -384,7 +396,7 @@ public class InsertFromValues implements LogicalPlan {
         );
 
 
-        var bulkResponse = new BulkResponse(bulkParams.size());
+        var bulkResponse = new BulkResponse(bulkParams.size(), failFast);
         IntArrayList bulkIndices = new IntArrayList();
         CompletableFuture<BulkResponse> result = new CompletableFuture<>();
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
@@ -453,10 +465,16 @@ public class InsertFromValues implements LogicalPlan {
         }).whenComplete((response, t) -> {
             if (t == null) {
                 bulkResponse.update(response, bulkIndices);
-                result.complete(bulkResponse);
             } else {
-                result.completeExceptionally(t);
+                assert response == null : "No response when one bulk short circuited." +
+                    "Creating a bulkResponse by setting up the same error to all bulks.";
+                for (IntCursor c : bulkIndices) {
+                    int resultIdx = c.value;
+                    t = SQLExceptions.prepareForClientTransmission(accessControl, t);
+                    bulkResponse.setFailure(resultIdx, t);
+                }
             }
+            result.complete(bulkResponse);
         });
         return result;
     }

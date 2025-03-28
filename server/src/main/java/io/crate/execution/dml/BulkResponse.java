@@ -36,10 +36,13 @@ public final class BulkResponse {
     @Nullable
     private final Throwable[] failures;
 
-    public BulkResponse(int size) {
+    private final boolean failFast;
+
+    public BulkResponse(int size, boolean failFast) {
         this.size = size;
         rowCounts = new long[size];
         failures = new Throwable[size];
+        this.failFast = failFast;
     }
 
     /**
@@ -114,5 +117,12 @@ public final class BulkResponse {
     @VisibleForTesting
     public long[] rowCounts() {
         return rowCounts;
+    }
+
+    /**
+     * This is only a hint for a Session how to show the response for a user.
+     */
+    public boolean failFast() {
+        return failFast;
     }
 }

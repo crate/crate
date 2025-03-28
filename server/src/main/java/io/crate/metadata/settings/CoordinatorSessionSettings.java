@@ -80,7 +80,8 @@ public class CoordinatorSessionSettings extends SessionSettings {
             true,
             excludedOptimizerRules,
             true,
-            0
+            0,
+            false
         );
     }
 
@@ -90,14 +91,16 @@ public class CoordinatorSessionSettings extends SessionSettings {
                                       boolean hashJoinsEnabled,
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
                                       boolean errorOnUnknownObjectKey,
-                                      int memoryLimit) {
-        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit);
+                                      int memoryLimit,
+                                      boolean dmlFailFast) {
+        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, dmlFailFast);
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
         this.memoryLimit = memoryLimit;
+        this.dmlFailFast = dmlFailFast;
     }
 
     /**
@@ -178,6 +181,10 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.memoryLimit = memoryLimit;
     }
 
+    public void dmlFailFast(boolean dmlFailFast) {
+        this.dmlFailFast = dmlFailFast;
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> map = new TreeMap<>();
         map.put(SessionSettingRegistry.HASH_JOIN_KEY, hashJoinsEnabled);
@@ -188,6 +195,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         map.put(SessionSettingRegistry.APPLICATION_NAME_KEY, applicationName);
         map.put(Sessions.MEMORY_LIMIT_KEY, memoryLimit);
         map.put(Sessions.STATEMENT_TIMEOUT_KEY, statementTimeout.toString());
+        map.put(SessionSettingRegistry.DML_FAIL_FAST_KEY, dmlFailFast);
         map.put("disabled_optimizer_rules",
             excludedOptimizerRules
                 .stream()

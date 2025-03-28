@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2064,5 +2063,53 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
+
+    @Test
+    public void test_insert_from_values_fail() throws Exception {
+        execute("create table t (a int primary key, b int)");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().dmlFailFast(true);
+            assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2)", session))
+                .hasPGError(UNIQUE_VIOLATION)
+                .hasHTTPError(CONFLICT, 4091)
+                .hasMessageContaining("A document with the same primary key exists already");
+        }
+    }
+
+    @Test
+    public void test_insert_from_select_fail_fast() throws Exception {
+        execute("create table t (a int NOT NULL, b int)");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().dmlFailFast(true);
+            assertSQLError(() -> execute("insert into t (a,b) select NULL, 1", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"a\" must not be null");
+
+        }
+    }
+
+    @Test
+    public void test_bulk_insert_from_values_fail_fast() throws Exception {
+        execute("create table t (a int primary key)");
+
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().dmlFailFast(true);
+            Object[][] bulkArgs = new Object[][]{
+                new Object[]{1},
+                new Object[]{1}
+            };
+            assertSQLError(() -> executeBulk("insert into t (a) values (?)", bulkArgs, session))
+                .hasPGError(UNIQUE_VIOLATION)
+                .hasHTTPError(CONFLICT, 4091)
+                .hasMessageContaining("A document with the same primary key exists already");
+        }
+
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) values%'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("A document with the same primary key exists already");
     }
 }

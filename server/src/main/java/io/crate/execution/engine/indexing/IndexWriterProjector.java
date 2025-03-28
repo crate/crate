@@ -110,7 +110,7 @@ public class IndexWriterProjector implements Projector {
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             overwriteDuplicates ? DuplicateKeyAction.OVERWRITE : DuplicateKeyAction.UPDATE_OR_FAIL,
-            true,
+            true, // dml_fail_fast setting is never applied, COPY FROM has own fail_fast and RETURN SUMMARY
             null,
             missingAssignmentsColumns,
             null,

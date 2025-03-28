@@ -82,7 +82,8 @@ public class DeleteById implements Plan {
                                                        List<Row> bulkParams,
                                                        SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
-            .executeBulk(bulkParams, subQueryResults);
+            // dml_fail_fast is not supported for DELETE or bulk DeleteById.
+            .executeBulk(bulkParams, subQueryResults, false);
     }
 
     private ShardRequestExecutor<ShardDeleteRequest> createExecutor(DependencyCarrier dependencies,

@@ -24,7 +24,6 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -309,7 +308,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                                                        SubQueryResults subQueryResults) {
                         // Do another execution to overwrite `mostRecentJobID`
                         session.quickExec("SELECT 1", new BaseResultReceiver(), null);
-                        var response = new BulkResponse(2);
+                        var response = new BulkResponse(2, false);
                         response.update(0, 1L, null);
                         response.update(1, 1L, null);
                         return completedFuture(response);

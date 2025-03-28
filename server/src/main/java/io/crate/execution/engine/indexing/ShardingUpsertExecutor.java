@@ -367,8 +367,14 @@ public class ShardingUpsertExecutor
             }
         }
 
+        /**
+         * @param failure is not NULL only when continueOnError is false.
+         * Hence, can use interrupt not only for KILL requests
+         * but also to reflect continueOnError derived from the dml_fail_fast setting.
+         */
         private void maybeSetInterrupt(@Nullable Exception failure) {
-            if (failure instanceof InterruptedException) {
+            if (failure != null) {
+                // No need to call prepareForClientTransmission, it's done later.
                 interrupt.set(failure);
             }
         }
