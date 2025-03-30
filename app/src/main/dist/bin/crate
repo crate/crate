@@ -78,12 +78,58 @@ for libname in "$CRATE_HOME"/lib/*.jar; do
     fi
 done
 
+get_total_memory_kb() {
+  if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+    # Running in a Docker container / kubernetes pod
+    memory_limit_bytes=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+    memory_limit_kb=$((memory_limit_bytes / 1024))
+    # Check for unlimited memory limit (value 9223372036854771712 or higher)
+    if [ "$memory_limit_bytes" -ge 9223372036854771712 ]; then
+      grep MemTotal /proc/meminfo | awk '{print $2}'
+    else
+      echo "$memory_limit_kb"
+    fi
+  else
+    if [ -f /proc/meminfo ]; then
+      # Running in a non-Docker environment
+      grep MemTotal /proc/meminfo | awk '{print $2}'
+    else
+      # Fallback for systems without /proc/meminfo
+      return -1
+    fi
+  fi
+}
+
 if [ "$CRATE_MIN_MEM" = "" ]; then
-    CRATE_MIN_MEM=256m
+    CRATE_MIN_MEM=1024m
 fi
 if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
     CRATE_MIN_MEM=$CRATE_HEAP_SIZE
     CRATE_MAX_MEM=$CRATE_HEAP_SIZE
+else
+    # User hasn't specified CRATE_HEAP_SIZE, so calculate it automatically
+    total_mem_kb=$(get_total_memory_kb)
+    if [ $total_mem_kb -lt 0 ]; then
+        echo "ERROR: Unable to determine total memory on this system." >&2
+    else
+        # Calculate 25% of total memory in kB
+        heap_size_kb=$((total_mem_kb / 4))
+
+        # Convert kB to MB (JVM expects the value in MB for -Xmx)
+        heap_size_mb=$((heap_size_kb / 1024))
+
+        # Ensure heap size is within 1GB and 30.5GB limits
+        min_heap_size_mb=1024      # 1GB in MB
+        max_heap_size_mb=31232     # 30.5GB in MB
+
+        if [ $heap_size_mb -lt $min_heap_size_mb ]; then
+            heap_size_mb=$min_heap_size_mb
+        elif [ $heap_size_mb -gt $max_heap_size_mb ]; then
+            heap_size_mb=$max_heap_size_mb
+        fi
+
+        CRATE_HEAP_SIZE="${heap_size_mb}m"
+    fi
 fi
 
 # min and max heap sizes should be set to the same value to avoid
