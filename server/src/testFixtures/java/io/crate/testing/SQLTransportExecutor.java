@@ -54,7 +54,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -555,11 +554,10 @@ public class SQLTransportExecutor {
                         """
                 );
             } catch (Exception e) {
-                if (e instanceof MasterNotDiscoveredException) {
-                    // retry
-                    throw new AssertionError("Master not discovered", e);
-                }
-                throw e;
+                // retry, don't trip assertBusy early.
+                // There can be recoverable exceptions:
+                // master not yet discovered, timeout, CoordinationStateRejectedException e.t.c
+                throw new AssertionError(e);
             }
             if (expectedNumNodes != null) {
                 assertThat(response.rows()[0][0]).isEqualTo((long) expectedNumNodes);
