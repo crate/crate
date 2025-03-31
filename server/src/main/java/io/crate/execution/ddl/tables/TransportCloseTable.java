@@ -525,7 +525,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             final Map<Index, AcknowledgedResponse> results = new ConcurrentHashMap<>();
             final CountDown countDown = new CountDown(blockedIndices.size());
             final ClusterState state = clusterService.state();

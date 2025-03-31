@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 /**
@@ -58,7 +58,7 @@ public final class ThreadedActionListener<Response> implements ActionListener<Re
             }
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 listener.onResponse(response);
             }
         });
@@ -66,14 +66,14 @@ public final class ThreadedActionListener<Response> implements ActionListener<Re
 
     @Override
     public void onFailure(final Exception e) {
-        threadPool.executor(executor).execute(new AbstractRunnable() {
+        threadPool.executor(executor).execute(new RejectableRunnable() {
             @Override
             public boolean isForceExecution() {
                 return forceExecution;
             }
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 listener.onFailure(e);
             }
 

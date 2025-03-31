@@ -65,7 +65,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.Index;
@@ -340,14 +340,14 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 }
             }
             if (indexSettings != null) {
-                threadPool.generic().execute(new AbstractRunnable() {
+                threadPool.generic().execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to complete pending deletion for index", index), e);
                     }
 
                     @Override
-                    protected void doRun() throws Exception {
+                    public void doRun() throws Exception {
                         try {
                             // we are waiting until we can lock the index / all shards on the node and then we ack the delete of the store
                             // to the master. If we can't acquire the locks here immediately there might be a shard of this index still

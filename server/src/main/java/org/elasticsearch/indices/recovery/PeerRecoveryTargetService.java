@@ -46,7 +46,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.CancellableThreads;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.RecoveryEngineException;
 import org.elasticsearch.index.mapper.MapperException;
@@ -538,7 +538,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         return listener;
     }
 
-    class RecoveryRunner extends AbstractRunnable {
+    class RecoveryRunner implements RejectableRunnable {
 
         final long recoveryId;
         private final StartRecoveryRequest startRecoveryRequest;

@@ -46,7 +46,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -198,7 +198,7 @@ public class InternalSnapshotsInfoService implements ClusterStateListener, Snaps
         }
     }
 
-    private class FetchingSnapshotShardSizeRunnable extends AbstractRunnable {
+    private class FetchingSnapshotShardSizeRunnable implements RejectableRunnable {
 
         private final SnapshotShard snapshotShard;
         private boolean removed;
@@ -210,7 +210,7 @@ public class InternalSnapshotsInfoService implements ClusterStateListener, Snaps
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             final RepositoriesService repositories = repositoriesService.get();
             assert repositories != null;
             final Repository repository = repositories.repository(snapshotShard.snapshot.getRepository());

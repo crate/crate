@@ -19,23 +19,8 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
-import org.elasticsearch.cluster.coordination.CoordinationState.VoteCollection;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.gateway.GatewayMetaState;
-import org.elasticsearch.monitor.StatusInfo;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPool.Names;
+import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 import java.util.HashSet;
 import java.util.List;
@@ -45,8 +30,24 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.CoordinationState.VoteCollection;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
+import org.elasticsearch.gateway.GatewayMetaState;
+import org.elasticsearch.monitor.StatusInfo;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPool.Names;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.unit.TimeValue;
 
 public class ClusterFormationFailureHelper {
 
@@ -92,14 +93,14 @@ public class ClusterFormationFailureHelper {
         }
 
         void scheduleNextWarning() {
-            threadPool.scheduleUnlessShuttingDown(clusterFormationWarningTimeout, Names.GENERIC, new AbstractRunnable() {
+            threadPool.scheduleUnlessShuttingDown(clusterFormationWarningTimeout, Names.GENERIC, new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     LOGGER.debug("unexpected exception scheduling cluster formation warning", e);
                 }
 
                 @Override
-                protected void doRun() {
+                public void doRun() {
                     if (isActive()) {
                         logLastFailedJoinAttempt.run();
                         LOGGER.warn(clusterFormationStateSupplier.get().getDescription());

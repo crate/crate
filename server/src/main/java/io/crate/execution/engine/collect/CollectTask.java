@@ -30,6 +30,9 @@ import java.util.function.Function;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
+import org.elasticsearch.common.util.concurrent.PriorityRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -44,9 +47,11 @@ import io.crate.data.RowConsumer;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 
 
@@ -98,7 +103,9 @@ public class CollectTask implements Task {
             if (err == null) {
                 try {
                     String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
-                    collectOperation.launch(() -> consumer.accept(it, null), threadPoolName);
+                    Priority priority = getPriority(collectPhase);
+                    PrioritizedRunnable runnable = PriorityRunnable.of(priority, () -> consumer.accept(it, null));
+                    collectOperation.launch(runnable, threadPoolName);
                 } catch (Throwable t) {
                     consumer.accept(null, t);
                 }
@@ -244,6 +251,16 @@ public class CollectTask implements Task {
 
     public SharedShardContexts sharedShardContexts() {
         return sharedShardContexts;
+    }
+
+    @VisibleForTesting
+    static Priority getPriority(CollectPhase phase) {
+        if (phase instanceof RoutedCollectPhase routedPhase) {
+            if (routedPhase.maxRowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
+                return Priority.URGENT;
+            }
+        }
+        return Priority.LOW;
     }
 
     @VisibleForTesting

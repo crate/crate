@@ -34,7 +34,7 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -92,9 +92,9 @@ public class DelayedAllocationService extends AbstractLifecycleComponent impleme
         }
 
         public void schedule() {
-            cancellable = threadPool.schedule(new AbstractRunnable() {
+            cancellable = threadPool.schedule(new RejectableRunnable() {
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     if (cancelScheduling.get()) {
                         return;
                     }

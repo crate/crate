@@ -36,10 +36,10 @@ import io.crate.types.DataTypes;
 /**
  * A builder for fixed executors.
  */
-public final class FixedExecutorBuilder extends ExecutorBuilder {
+public class FixedExecutorBuilder extends ExecutorBuilder {
 
-    private final Setting<Integer> sizeSetting;
-    private final Setting<Integer> queueSizeSetting;
+    protected final Setting<Integer> sizeSetting;
+    protected final Setting<Integer> queueSizeSetting;
 
     /**
      * Construct a fixed executor builder.

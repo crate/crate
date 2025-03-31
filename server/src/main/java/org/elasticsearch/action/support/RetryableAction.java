@@ -89,7 +89,7 @@ public abstract class RetryableAction<Response> {
         return new ActionRunnable<Response>(retryingListener) {
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 retryTask = null;
                 // It is possible that the task was cancelled in between the retry being dispatched and now
                 if (isDone.get() == false) {

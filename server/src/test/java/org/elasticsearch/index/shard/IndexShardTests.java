@@ -102,9 +102,9 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -2950,14 +2950,14 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShardTestCase.updateRoutingEntry(shard, relocationRouting);
         CyclicBarrier cyclicBarrier = new CyclicBarrier(3);
         AtomicReference<Exception> relocationException = new AtomicReference<>();
-        Thread relocationThread = new Thread(new AbstractRunnable() {
+        Thread relocationThread = new Thread(new RejectableRunnable() {
             @Override
             public void onFailure(Exception e) {
                 relocationException.set(e);
             }
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 cyclicBarrier.await();
                 shard.relocated(
                     relocationRouting.getTargetRelocatingShard().allocationId().getId(),
@@ -2966,14 +2966,14 @@ public class IndexShardTests extends IndexShardTestCase {
         });
         relocationThread.start();
         AtomicReference<Exception> cancellingException = new AtomicReference<>();
-        Thread cancellingThread = new Thread(new AbstractRunnable() {
+        Thread cancellingThread = new Thread(new RejectableRunnable() {
             @Override
             public void onFailure(Exception e) {
                 cancellingException.set(e);
             }
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 cyclicBarrier.await();
                 IndexShardTestCase.updateRoutingEntry(shard, originalRouting);
             }

@@ -248,7 +248,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new ActionRunnable<>(listener) {
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 final String verificationToken = repository.startVerification();
                 if (verificationToken != null) {
                     try {

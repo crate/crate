@@ -58,7 +58,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractAsyncTask;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.gateway.MetadataStateFormat;
@@ -585,14 +585,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 // it doesn't matter if we move from or to <code>-1</code>  in both cases we want
                 // docs to become visible immediately. This also flushes all pending indexing / search requests
                 // that are waiting for a refresh.
-                threadPool.executor(ThreadPool.Names.REFRESH).execute(new AbstractRunnable() {
+                threadPool.executor(ThreadPool.Names.REFRESH).execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         logger.warn("forced refresh failed after interval change", e);
                     }
 
                     @Override
-                    protected void doRun() throws Exception {
+                    public void doRun() throws Exception {
                         maybeRefreshEngine(true);
                     }
 

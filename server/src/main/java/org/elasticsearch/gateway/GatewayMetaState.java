@@ -55,9 +55,9 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -348,7 +348,7 @@ public class GatewayMetaState implements Closeable {
         private void scheduleUpdate() {
             assert Thread.holdsLock(mutex);
             assert threadPoolExecutor.getQueue().isEmpty() : "threadPoolExecutor queue not empty";
-            threadPoolExecutor.execute(new AbstractRunnable() {
+            threadPoolExecutor.execute(new RejectableRunnable() {
 
                 @Override
                 public void onFailure(Exception e) {
@@ -361,7 +361,7 @@ public class GatewayMetaState implements Closeable {
                 }
 
                 @Override
-                protected void doRun() {
+                public void doRun() {
                     final Long term;
                     final ClusterState clusterState;
                     synchronized (mutex) {
