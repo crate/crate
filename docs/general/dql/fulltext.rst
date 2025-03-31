@@ -64,11 +64,10 @@ relevant the row::
     SELECT 2 rows in set (... sec)
 
 The MATCH predicate in its simplest form performs a fulltext search against a
-single column. It takes the ``query_term`` and, if no ``analyzer`` was
-provided, analyzes the term with the analyzer configured on
-``column_or_idx_ident``. The resulting tokens are then matched against the
-index at ``column_or_idx_ident`` and if one of them matches, MATCH returns
-``TRUE``.
+single column. It takes the ``query_term`` and analyzes the term with the
+analyzer configured on ``column_or_idx_ident``. The resulting tokens are then
+matched against the index at ``column_or_idx_ident`` and if one of them
+matches, MATCH returns ``TRUE``.
 
 The MATCH predicate can be also used to perform a fulltext search on multiple
 columns with a single ``query_term`` and to add weight to specific columns it's
@@ -111,11 +110,9 @@ Arguments
   The default boost is 1.
 
 :query_term:
-  This string is analyzed (using the explicitly given ``analyzer`` or
-  the analyzer of the columns to perform the search on) and the
-  resulting tokens are compared to the index. The tokens used for search
-  are combined using the boolean ``OR`` operator unless stated otherwise
-  using the ``operator`` option.
+  This string is analyzed and the resulting tokens are compared to the index.
+  The tokens used for search are combined using the boolean ``OR`` operator
+  unless stated otherwise using the ``operator`` option.
 
 :match_type:
   Optional. Defaults to ``best_fields`` for fulltext indices. For
@@ -197,7 +194,9 @@ certain match type works. Not all options are applicable to all match types.
 See the options below for details.
 
 :analyzer:
-  The analyzer used to convert the ``query_term`` into tokens.
+  The analyzer used to convert the ``query_term`` into tokens. Currently the
+  only acceptable analyzer is the one that is used to index the
+  ``column_or_idx_ident``.
 
 :boost:
   This numeric value is multiplied with the resulting :ref:`_score
