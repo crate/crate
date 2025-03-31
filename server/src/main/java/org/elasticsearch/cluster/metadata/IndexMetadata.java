@@ -917,7 +917,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
          * @deprecated mapping is on table level {@link RelationMetadata.Table}
          **/
         @Deprecated
-        public Builder putMapping(String source) throws IOException {
+        public Builder putMapping(String source) {
             putMapping(new MappingMetadata(XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, source, true)));
             return this;
         }

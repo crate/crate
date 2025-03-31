@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.role.Role.CRATE_USER;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -56,6 +57,7 @@ import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -264,7 +266,9 @@ public class MetadataTrackerTest extends ESTestCase {
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new DocTableInfoFactory(createNodeContext())
+        );
         // Nothing in the indexMetadata changed, so the cluster state must be equal
         assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
@@ -287,7 +291,8 @@ public class MetadataTrackerTest extends ESTestCase {
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new DocTableInfoFactory(createNodeContext())
         );
 
         assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
@@ -315,7 +320,8 @@ public class MetadataTrackerTest extends ESTestCase {
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new DocTableInfoFactory(createNodeContext())
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
@@ -342,7 +348,8 @@ public class MetadataTrackerTest extends ESTestCase {
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new DocTableInfoFactory(createNodeContext())
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default")).isNotEqualTo(publisherIndexUuid);
@@ -367,7 +374,8 @@ public class MetadataTrackerTest extends ESTestCase {
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new DocTableInfoFactory(createNodeContext())
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);

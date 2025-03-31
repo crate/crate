@@ -42,7 +42,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
@@ -122,7 +121,7 @@ public final class Templates {
                 request.references(),
                 metadataBuilder.columnOidSupplier()
             );
-            var mapping = Map.of(
+            Map<String, Object> mapping = Map.of(
                 Constants.DEFAULT_MAPPING_TYPE,
                 MappingUtil.createMapping(
                     MappingUtil.AllocPosition.forNewTable(),
@@ -136,8 +135,7 @@ public final class Templates {
                 )
             );
             try {
-                templateBuilder
-                    .putMapping(new CompressedXContent(Strings.toString(JsonXContent.builder().map(mapping))));
+                templateBuilder.putMapping(new CompressedXContent(mapping));
             } catch (Exception e) {
                 throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
             }

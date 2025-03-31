@@ -67,6 +67,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -101,7 +102,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                      ThreadPool threadPool,
                                      Client client,
                                      AllocationService allocationService,
-                                     LogicalReplicationSettings replicationSettings) {
+                                     LogicalReplicationSettings replicationSettings,
+                                     NodeContext nodeContext) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
@@ -114,7 +116,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             replicationSettings,
             remoteClusters::getClient,
             clusterService,
-            allocationService
+            allocationService,
+            nodeContext
         );
         clusterService.addListener(this);
     }
@@ -281,9 +284,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
      *
      * @param subscriptionName      The name of the subscription relations will be restored for
      * @param restoreSettings       The restore settings needed by the {@link RestoreService}
-     * @param relationNames         Collection of {@link RelationName}'s to update their {@link Subscription.RelationState}
-     * @param indicesToRestore      List of concrete indices to restore
-     * @param templatesToRestore    List of concrete templates to restore
+     * @param tablesToRestore       List of {@link TableOrPartition}'s to update their {@link Subscription.RelationState}
      */
     public CompletableFuture<Boolean> restore(String subscriptionName,
                                               Settings restoreSettings,
@@ -309,9 +310,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             .map(TableOrPartition::table)
             .collect(Collectors.toUnmodifiableSet());
         var restoreFuture = restoreListener
-            .whenComplete((_, _) -> {
-                activeOperations.decrementAndGet();
-            })
+            .whenComplete((_, _) -> activeOperations.decrementAndGet())
             // Update subscription state, we want to wait until this update is done before proceeding
             .thenCompose(_ -> updateSubscriptionState(
                 subscriptionName,

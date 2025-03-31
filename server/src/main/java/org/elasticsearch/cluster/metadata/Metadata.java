@@ -111,7 +111,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * Indicates that this custom metadata will be returned as part of an API call and will be persisted between
      * node restarts, but will not be a part of a snapshot global state
      */
-    public static EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
+    static final EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
 
     public interface Custom extends NamedDiffable<Custom> {
 
@@ -1291,6 +1291,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 relation,
                 "The relation " + relation.sqlFqn() + " doesn't support the operation");
         }
+    }
+
+    public List<RelationMetadata.Table> tableRelations() {
+        ArrayList<RelationMetadata.Table> relations = new ArrayList<>();
+        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
+            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
+                RelationMetadata relationMetadata = relationCursor.value;
+                if (relationMetadata instanceof RelationMetadata.Table table) {
+                    relations.add(table);
+                }
+            }
+        }
+        return relations;
     }
 
     /**

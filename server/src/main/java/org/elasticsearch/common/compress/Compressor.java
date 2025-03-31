@@ -53,7 +53,7 @@ public interface Compressor {
      * @param bytesReference bytes to decompress
      * @return decompressed bytes
      */
-    BytesReference uncompress(BytesReference bytesReference) throws IOException;
+    BytesReference uncompress(BytesReference bytesReference);
 
     /**
      * Compress bytes into a newly allocated buffer.
@@ -61,5 +61,5 @@ public interface Compressor {
      * @param bytesReference bytes to compress
      * @return compressed bytes
      */
-    BytesReference compress(BytesReference bytesReference) throws IOException;
+    BytesReference compress(BytesReference bytesReference);
 }

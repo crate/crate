@@ -47,7 +47,7 @@ public sealed interface RelationMetadata extends Writeable permits
 
     RelationName name();
 
-    public static RelationMetadata of(StreamInput in) throws IOException {
+    static RelationMetadata of(StreamInput in) throws IOException {
         short ord = in.readShort();
         return switch (ord) {
             case BlobTable.ORD -> RelationMetadata.BlobTable.of(in);
@@ -56,12 +56,12 @@ public sealed interface RelationMetadata extends Writeable permits
         };
     }
 
-    public static void toStream(StreamOutput out, RelationMetadata v) throws IOException {
+    static void toStream(StreamOutput out, RelationMetadata v) throws IOException {
         out.writeShort(v.ord());
         v.writeTo(out);
     }
 
-    public static record BlobTable(RelationName name, String indexUUID) implements RelationMetadata {
+    record BlobTable(RelationName name, String indexUUID) implements RelationMetadata {
 
         private static final short ORD = 0;
 
@@ -83,18 +83,17 @@ public sealed interface RelationMetadata extends Writeable permits
         }
     }
 
-    public static final record Table(
-            RelationName name,
-            List<Reference> columns,
-            Settings settings,
-            @Nullable ColumnIdent routingColumn,
-            ColumnPolicy columnPolicy,
-            @Nullable String pkConstraintName,
-            Map<String, String> checkConstraints,
-            List<ColumnIdent> primaryKeys,
-            List<ColumnIdent> partitionedBy,
-            IndexMetadata.State state,
-            List<String> indexUUIDs) implements RelationMetadata {
+    record Table(RelationName name,
+                 List<Reference> columns,
+                 Settings settings,
+                 @Nullable ColumnIdent routingColumn,
+                 ColumnPolicy columnPolicy,
+                 @Nullable String pkConstraintName,
+                 Map<String, String> checkConstraints,
+                 List<ColumnIdent> primaryKeys,
+                 List<ColumnIdent> partitionedBy,
+                 IndexMetadata.State state,
+                 List<String> indexUUIDs) implements RelationMetadata {
 
         private static final short ORD = 1;
 

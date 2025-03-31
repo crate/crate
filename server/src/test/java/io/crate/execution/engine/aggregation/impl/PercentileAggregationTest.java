@@ -279,11 +279,11 @@ public class PercentileAggregationTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(112L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(96L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(152L);
     }
 
     @Test

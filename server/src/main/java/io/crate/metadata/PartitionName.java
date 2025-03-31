@@ -36,6 +36,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,7 +46,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.types.DataTypes;
 
-public class PartitionName {
+public class PartitionName implements Writeable {
 
     /**
      * Create a {@link PartitionName} for the given assignments.
@@ -137,6 +139,17 @@ public class PartitionName {
     public PartitionName(RelationName relationName, @NotNull String partitionIdent) {
         this.relationName = relationName;
         this.ident = Objects.requireNonNull(partitionIdent);
+    }
+
+    public PartitionName(StreamInput in) throws IOException {
+        relationName = new RelationName(in);
+        int size = in.readVInt();
+        if (size > 0) {
+            values = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                values.add(in.readOptionalString());
+            }
+        }
     }
 
     public static String templateName(String indexName) {
@@ -294,6 +307,19 @@ public class PartitionName {
     @Override
     public int hashCode() {
         return asIndexName().hashCode();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        relationName.writeTo(out);
+        if (values == null || values.isEmpty()) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(values.size());
+            for (String value : values) {
+                out.writeOptionalString(value);
+            }
+        }
     }
 
     /**

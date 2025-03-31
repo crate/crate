@@ -24,7 +24,6 @@ import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -70,8 +69,8 @@ import org.elasticsearch.cluster.SnapshotsInProgress.State;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -108,6 +107,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.PartitionName;
 
 /**
  * Service responsible for creating snapshots. This service runs all the steps executed on the master node during snapshot creation and
@@ -256,12 +256,49 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
                 ensureBelowConcurrencyLimit(repositoryName, snapshotName, snapshots, deletionsInProgress);
                 // Store newSnapshot here to be processed in clusterStateProcessed
-                List<String> indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState, request));
 
+                HashSet<String> indices = new HashSet<>();
+                HashSet<String> templates = new HashSet<>();
+
+                List<RelationMetadata.Table> relationsMetadata;
+                if (request.relationNames().isEmpty() && request.partitionNames().isEmpty()) {
+                    // Resolve ALL tables
+                    relationsMetadata = currentState.metadata().tableRelations();
+                } else {
+                    relationsMetadata = request.relationNames().stream()
+                        .map(r -> currentState.metadata().getRelation(r))
+                        .filter(r -> r instanceof RelationMetadata.Table)
+                        .map(r -> (RelationMetadata.Table) r)
+                        .toList();
+                }
+                for (RelationMetadata.Table table : relationsMetadata) {
+                    if (!table.partitionedBy().isEmpty()) {
+                        templates.add(PartitionName.templateName(table.name().schema(), table.name().name()));
+                    }
+                    List<String> relationIndices = currentState.metadata().getIndices(
+                        table.name(),
+                        List.of(),
+                        false,
+                        im -> im.getIndex().getName()
+                    );
+                    indices.addAll(relationIndices);
+                }
+
+                // Resolve indices of concrete partitions
+                for (PartitionName partitionName : request.partitionNames()) {
+                    templates.add(PartitionName.templateName(partitionName.relationName().schema(), partitionName.relationName().name()));
+                    List<String> partitionIndices = currentState.metadata().getIndices(
+                        partitionName.relationName(),
+                        partitionName.values(),
+                        false,
+                        im -> im.getIndex().getName()
+                    );
+                    indices.addAll(partitionIndices);
+                }
 
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 final List<IndexId> indexIds = repositoryData.resolveNewIndices(
-                    indices,
+                    indices.stream().toList(),
                     runningSnapshots.stream()
                         .filter(entry -> entry.repository().equals(repositoryName))
                         .flatMap(entry -> entry.indices().stream())
@@ -291,12 +328,13 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                                 new Snapshot(repositoryName, snapshotId), "Indices don't have primary shards " + missing);
                     }
                 }
+
                 newEntry = SnapshotsInProgress.startedEntry(
                     new Snapshot(repositoryName, snapshotId),
                     request.includeGlobalState(),
                     request.partial(),
                     indexIds,
-                    List.of(request.templates()),
+                    templates.stream().toList(),
                     threadPool.absoluteTimeInMillis(),
                     repositoryData.getGenId(),
                     shards,
