@@ -25,6 +25,7 @@ import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQue
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.Analyzer;
@@ -56,7 +57,6 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.lucene.DisableGraphAttribute;
 import io.crate.lucene.ExtendedCommonTermsQuery;
@@ -109,20 +109,45 @@ public class MatchQuery {
 
     protected final LuceneQueryBuilder.Context context;
     protected final ParsedOptions parsedOptions;
-    protected final Analyzer analyzer;
 
 
     public MatchQuery(LuceneQueryBuilder.Context context, ParsedOptions parsedOptions) {
         this.context = context;
         this.parsedOptions = parsedOptions;
-        this.analyzer = getAnalyzer(parsedOptions.analyzer());
     }
 
-    private Analyzer getAnalyzer(@Nullable String analyzerName) {
-        if (analyzerName == null) {
-            return Lucene.KEYWORD_ANALYZER;
+    /**
+     * Returns the analyzer that was used to index the given column, but throws an exception when the search-analyzer
+     * specified in parse-options is different(from the index-analyzer).
+     */
+    protected Analyzer getSafeAnalyzer(Reference ref) {
+        String searchAnalyzer = parsedOptions.analyzer();
+        if (ref instanceof IndexReference indexRef) {
+            if (searchAnalyzer == null || searchAnalyzer.equals(indexRef.analyzer())) {
+                return context.getAnalyzer(indexRef.analyzer());
+            }
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Column '%s' was indexed with the '%s' analyzer, searching with a different analyzer, '%s' is not supported",
+                    indexRef.column(),
+                    indexRef.analyzer(),
+                    searchAnalyzer
+                )
+            );
+        } else {
+            if (searchAnalyzer == null || searchAnalyzer.equals("keyword")) {
+                return Lucene.KEYWORD_ANALYZER;
+            }
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Column '%s' was indexed with the 'keyword' analyzer, searching with a different analyzer, '%s' is not supported",
+                    ref.column(),
+                    searchAnalyzer
+                )
+            );
         }
-        return context.getAnalyzer(analyzerName);
     }
 
     public Query parse(Type type, String fieldName, Object value) {
@@ -131,9 +156,7 @@ public class MatchQuery {
             return newUnmappedFieldQuery(fieldName);
         }
         final String field = ref.storageIdent();
-        Analyzer analyzer = ref instanceof IndexReference indexRef
-            ? getAnalyzer(indexRef.analyzer())
-            : this.analyzer;
+        Analyzer analyzer = getSafeAnalyzer(ref);
 
         /*
          * If a keyword analyzer is used, we know that further analysis isn't

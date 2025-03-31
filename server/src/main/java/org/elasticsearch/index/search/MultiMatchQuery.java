@@ -35,14 +35,12 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 
 import io.crate.lucene.BlendedTermQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.match.ParsedOptions;
-import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 
 public class MultiMatchQuery extends MatchQuery {
@@ -152,18 +150,13 @@ public class MultiMatchQuery extends MatchQuery {
                 String name = entry.getKey();
                 Reference reference = context.getRef(name);
                 if (reference != null) {
-                    Analyzer actualAnalyzer;
-                    if (reference instanceof IndexReference indexRef) {
-                        actualAnalyzer = context.getAnalyzer(indexRef.analyzer());
-                    } else {
-                        actualAnalyzer = Lucene.KEYWORD_ANALYZER;
-                    }
-                    if (!groups.containsKey(actualAnalyzer)) {
-                        groups.put(actualAnalyzer, new ArrayList<>());
+                    Analyzer analyzer = getSafeAnalyzer(reference);
+                    if (!groups.containsKey(analyzer)) {
+                        groups.put(analyzer, new ArrayList<>());
                     }
                     Float boost = entry.getValue();
                     boost = boost == null ? Float.valueOf(1.0f) : boost;
-                    groups.get(actualAnalyzer).add(new RefAndBoost(reference, boost));
+                    groups.get(analyzer).add(new RefAndBoost(reference, boost));
                 } else {
                     queries.add(new MatchNoDocsQuery("unknown field " + name));
                 }
