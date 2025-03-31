@@ -212,13 +212,11 @@ public class EsExecutors {
 
         @Override
         public Thread newThread(Runnable r) {
-            Thread t = new Thread(group, r,
-                    namePrefix + "[T#" + threadNumber.getAndIncrement() + "]",
-                    0);
+            String name = namePrefix + "[T#" + threadNumber.getAndIncrement() + "]";
+            Thread t = new Thread(group, r, name, 0);
             t.setDaemon(true);
             return t;
         }
-
     }
 
     /**

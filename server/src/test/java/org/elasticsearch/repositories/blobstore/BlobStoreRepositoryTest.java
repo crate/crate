@@ -97,7 +97,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         final int testBlobLen = randomIntBetween(1, 100);
         genericExec.execute(new ActionRunnable<>(future) {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 final BlobStore blobStore = repo.blobStore();
                 blobStore.blobContainer(repo.basePath().add("foo"))
                     .writeBlob("nested-blob", new ByteArrayInputStream(randomByteArrayOfLength(testBlobLen)), testBlobLen, false);
@@ -122,7 +122,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 final BlobStore blobStore = repository.blobStore();
                 future.onResponse(blobStore.blobContainer(path).listBlobsByPrefix(prefix));
             }
@@ -143,7 +143,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 final BlobStore blobStore = repository.blobStore();
                 future.onResponse(blobStore.blobContainer(path).children().keySet());
             }

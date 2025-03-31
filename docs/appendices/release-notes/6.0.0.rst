@@ -142,6 +142,11 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Changed how scheduling and prioritization for read queries, in particular
+  queries against ``sys.shards`` and ``sys.nodes`` work. This should help
+  continue monitoring a cluster that is overloaded with too many concurrent
+  queries.
+
 - Improved the logic to push down expressions within the ``WHERE`` clause to the
   table to use index lookups instead of resulting in post-filtering when using
   virtual tables involving table functions and object columns. For example, the

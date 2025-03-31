@@ -34,7 +34,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
@@ -183,7 +183,7 @@ public class PrimaryReplicaSyncer {
                   ActionListener<ReplicationResponse> listener);
     }
 
-    static class SnapshotSender extends AbstractRunnable implements ActionListener<ReplicationResponse> {
+    static class SnapshotSender implements RejectableRunnable, ActionListener<ReplicationResponse> {
         private final SyncAction syncAction;
         private final ResyncTask task; // to track progress
         private final String primaryAllocationId;
@@ -240,7 +240,7 @@ public class PrimaryReplicaSyncer {
         private static final Translog.Operation[] EMPTY_ARRAY = new Translog.Operation[0];
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             long size = 0;
             final List<Translog.Operation> operations = new ArrayList<>();
 

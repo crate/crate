@@ -39,7 +39,7 @@ import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
@@ -257,7 +257,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         final CountDownLatch blockLatch = new CountDownLatch(1);
         final CountDownLatch start = new CountDownLatch(1);
         if (randomBoolean()) {
-            Thread t = new Thread(new AbstractRunnable() {
+            Thread t = new Thread(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     logger.error("unexpected error", e);
@@ -267,7 +267,7 @@ public class NodeEnvironmentTests extends ESTestCase {
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     start.await();
                     try (ShardLock autoCloses = env.shardLock(new ShardId(index, 0), "2")) {
                         blockLatch.countDown();

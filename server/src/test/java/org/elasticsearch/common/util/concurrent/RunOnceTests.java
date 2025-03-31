@@ -78,9 +78,9 @@ public class RunOnceTests extends ESTestCase {
         final AtomicInteger onFailure = new AtomicInteger(0);
         final AtomicInteger onAfter = new AtomicInteger(0);
 
-        final RunOnce runOnce = new RunOnce(new AbstractRunnable() {
+        final RunOnce runOnce = new RunOnce(new RejectableRunnable() {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 onRun.incrementAndGet();
                 throw new RuntimeException("failure");
             }

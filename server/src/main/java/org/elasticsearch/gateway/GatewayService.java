@@ -40,7 +40,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -208,7 +208,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
         if (enforceRecoverAfterTime && recoverAfterTime != null) {
             if (scheduledRecovery.compareAndSet(false, true)) {
                 LOGGER.info("delaying initial state recovery for [{}]. {}", recoverAfterTime, reason);
-                threadPool.schedule(new AbstractRunnable() {
+                threadPool.schedule(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.warn("delayed state recovery failed", e);
@@ -216,7 +216,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                     }
 
                     @Override
-                    protected void doRun() {
+                    public void doRun() {
                         if (recoveryInProgress.compareAndSet(false, true)) {
                             LOGGER.info("recover_after_time [{}] elapsed. performing state recovery...", recoverAfterTime);
                             runRecovery();
@@ -226,7 +226,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
             }
         } else {
             if (recoveryInProgress.compareAndSet(false, true)) {
-                threadPool.generic().execute(new AbstractRunnable() {
+                threadPool.generic().execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(final Exception e) {
                         LOGGER.warn("state recovery failed", e);
@@ -234,7 +234,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                     }
 
                     @Override
-                    protected void doRun() {
+                    public void doRun() {
                         LOGGER.debug("performing state recovery...");
                         runRecovery();
                     }

@@ -49,7 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
@@ -401,7 +401,7 @@ public final class MockTransportService extends TransportService {
                 request.writeTo(bStream);
                 final TransportRequest clonedRequest = reg.newRequest(bStream.bytes().streamInput());
 
-                Runnable runnable = new AbstractRunnable() {
+                Runnable runnable = new RejectableRunnable() {
                     AtomicBoolean requestSent = new AtomicBoolean();
 
                     @Override
@@ -410,7 +410,7 @@ public final class MockTransportService extends TransportService {
                     }
 
                     @Override
-                    protected void doRun() throws IOException {
+                    public void doRun() throws IOException {
                         if (requestSent.compareAndSet(false, true)) {
                             connection.sendRequest(requestId, action, clonedRequest, options);
                         }

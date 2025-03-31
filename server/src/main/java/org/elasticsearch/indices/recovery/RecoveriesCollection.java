@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
@@ -252,7 +252,7 @@ public class RecoveriesCollection {
         }
     }
 
-    private class RecoveryMonitor extends AbstractRunnable {
+    private class RecoveryMonitor implements RejectableRunnable {
         private final long recoveryId;
         private final TimeValue checkInterval;
 
@@ -270,7 +270,7 @@ public class RecoveriesCollection {
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             RecoveryTarget status = onGoingRecoveries.get(recoveryId);
             if (status == null) {
                 logger.trace("[monitor] no status found for [{}], shutting down", recoveryId);

@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -122,7 +123,13 @@ public class CollectTaskTest extends ESTestCase {
     }
 
     @Test
-    public void testThreadPoolNameForNonDocTables() throws Exception {
+    public void test_collect_on_user_table_uses_normal_priority() throws Exception {
+        Priority priority = CollectTask.getPriority(collectPhase);
+        assertThat(priority).isEqualTo(Priority.LOW);
+    }
+
+    @Test
+    public void test_priority_and_thead_pool_for_sys_tables() throws Exception {
         RoutedCollectPhase collectPhase = Mockito.mock(RoutedCollectPhase.class);
         Routing routing = Mockito.mock(Routing.class);
         when(collectPhase.routing()).thenReturn(routing);
@@ -132,16 +139,19 @@ public class CollectTaskTest extends ESTestCase {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
         String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
+        assertThat(CollectTask.getPriority(collectPhase)).isEqualTo(Priority.URGENT);
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
+        assertThat(CollectTask.getPriority(collectPhase)).isEqualTo(Priority.URGENT);
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
+        assertThat(CollectTask.getPriority(collectPhase)).isEqualTo(Priority.URGENT);
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
@@ -149,11 +159,13 @@ public class CollectTaskTest extends ESTestCase {
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SEARCH);
         when(routing.containsShards(localNodeId)).thenReturn(false);
+        assertThat(CollectTask.getPriority(collectPhase)).isEqualTo(Priority.URGENT);
 
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, false);
         assertThat(threadPoolExecutorName).isEqualTo(ThreadPool.Names.SAME);
+        assertThat(CollectTask.getPriority(collectPhase)).isEqualTo(Priority.LOW);
     }
 
 

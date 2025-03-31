@@ -101,7 +101,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -558,9 +558,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         if (isReadOnly()) {
             listener.onFailure(new RepositoryException(metadata.name(), "cannot delete snapshot from a readonly repository"));
         } else {
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new AbstractRunnable() {
+            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new RejectableRunnable() {
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     final Map<String, BlobMetadata> rootBlobs = blobContainer().listBlobs();
                     final RepositoryData repositoryData = safeRepositoryData(repositoryStateId, rootBlobs);
                     // Cache the indices that were found before writing out the new index-N blob so that a stuck master will never
@@ -756,9 +756,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     new GroupedActionListener<>(deleteIndexMetadataListener, shardCount);
                 for (int shardId = 0; shardId < shardCount; shardId++) {
                     final int finalShardId = shardId;
-                    executor.execute(new AbstractRunnable() {
+                    executor.execute(new RejectableRunnable() {
                         @Override
-                        protected void doRun() throws Exception {
+                        public void doRun() throws Exception {
                             final BlobContainer shardContainer = shardContainer(indexId, finalShardId);
                             final Set<String> blobs = shardContainer.listBlobs().keySet();
                             final BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots;
