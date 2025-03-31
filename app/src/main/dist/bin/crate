@@ -62,7 +62,7 @@ CRATE_HOME=$(dirname "$SCRIPT")/..
 CRATE_HOME=$(cd "$CRATE_HOME"; pwd)
 
 
-if [ "x$CRATE_CLASSPATH" != "x" ]; then
+if [ -n "$CRATE_CLASSPATH" ]; then
     cat >&2 << EOF
 Error: Don't modify the classpath with CRATE_CLASSPATH.
 Add plugins and their dependencies into the plugins/ folder instead.
@@ -71,7 +71,7 @@ EOF
 fi
 
 for libname in "$CRATE_HOME"/lib/*.jar; do
-    if [ "x$CRATE_CLASSPATH" != "x" ]; then
+    if [ -n "$CRATE_CLASSPATH" ]; then
         CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
     else
         CRATE_CLASSPATH="$libname"
@@ -95,21 +95,21 @@ get_total_memory_kb() {
       grep MemTotal /proc/meminfo | awk '{print $2}'
     else
       # Fallback for systems without /proc/meminfo
-      return -1
+      return 0
     fi
   fi
 }
 
-if [ "$CRATE_MIN_MEM" = "" ]; then
+if [ -z "$CRATE_MIN_MEM" ]; then
     CRATE_MIN_MEM=1024m
 fi
-if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
+if [ -n "$CRATE_HEAP_SIZE" ]; then
     CRATE_MIN_MEM=$CRATE_HEAP_SIZE
     CRATE_MAX_MEM=$CRATE_HEAP_SIZE
 else
     # User hasn't specified CRATE_HEAP_SIZE, so calculate it automatically
     total_mem_kb=$(get_total_memory_kb)
-    if [ $total_mem_kb -lt 0 ]; then
+    if [ "$total_mem_kb" -eq 0 ]; then
         echo "ERROR: Unable to determine total memory on this system." >&2
     else
         # Calculate 25% of total memory in kB
@@ -137,17 +137,17 @@ fi
 # heap in memory on startup to prevent any of it from being swapped
 # out.
 JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
-if [ "x$CRATE_MAX_MEM" != "x" ]; then
+if [ -n "$CRATE_MAX_MEM" ]; then
     JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
 fi
 
 # new generation
-if [ "x$CRATE_HEAP_NEWSIZE" != "x" ]; then
+if [ -n "$CRATE_HEAP_NEWSIZE" ]; then
     JAVA_OPTS="$JAVA_OPTS -Xmn${CRATE_HEAP_NEWSIZE}"
 fi
 
 # max direct memory
-if [ "x$CRATE_DIRECT_SIZE" != "x" ]; then
+if [ -n "$CRATE_DIRECT_SIZE" ]; then
     JAVA_OPTS="$JAVA_OPTS -XX:MaxDirectMemorySize=${CRATE_DIRECT_SIZE}"
 fi
 
@@ -155,7 +155,7 @@ fi
 JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
 
 # Force the JVM to use IPv4 stack
-if [ "x$CRATE_USE_IPV4" != "x" ]; then
+if [ -n "$CRATE_USE_IPV4" ]; then
   JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
 fi
 
@@ -164,7 +164,7 @@ JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOcc
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
-if [ "$CRATE_DISABLE_GC_LOGGING" = "" ]; then
+if [ -z "$CRATE_DISABLE_GC_LOGGING" ]; then
   # GC log directory needs to be set explicitly by packages
   # GC logging requires 16x64mb = 1g of free disk space
   GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
