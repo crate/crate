@@ -55,7 +55,7 @@ public final class FixedExecutorBuilder extends ExecutorBuilder {
         final String sizeKey = settingsKey(prefix, "size");
         this.sizeSetting = new Setting<>(
             sizeKey,
-            s -> Integer.toString(size),
+            _ -> Integer.toString(size),
             s -> Setting.parseInt(s, 1, applyHardSizeLimit(settings, name), sizeKey),
             DataTypes.INTEGER,
             Setting.Property.NodeScope
@@ -91,9 +91,9 @@ public final class FixedExecutorBuilder extends ExecutorBuilder {
         return String.format(
             Locale.ROOT,
             "name [%s], size [%d], queue size [%s]",
-            info.getName(),
-            info.getMax(),
-            info.getQueueSize() == null ? "unbounded" : info.getQueueSize());
+            info.name(),
+            info.max(),
+            info.queueSize() == null ? "unbounded" : info.queueSize());
     }
 
 }

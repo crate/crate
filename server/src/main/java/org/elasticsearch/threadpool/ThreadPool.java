@@ -155,8 +155,8 @@ public class ThreadPool implements Scheduler {
         final Map<String, ExecutorHolder> executors = new HashMap<>();
         for (final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
             final ExecutorHolder executorHolder = entry.getValue().build(settings);
-            if (executors.containsKey(executorHolder.info.getName())) {
-                throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.getName() + "] registered");
+            if (executors.containsKey(executorHolder.info.name())) {
+                throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.name() + "] registered");
             }
             LOGGER.debug("created thread pool: {}", entry.getValue().formatInfo(executorHolder.info));
             executors.put(entry.getKey(), executorHolder);
@@ -196,7 +196,7 @@ public class ThreadPool implements Scheduler {
         ArrayList<ThreadPoolStats.Stats> stats = new ArrayList<>(executors.size() - 1); // "same" is excluded
         for (ExecutorHolder holder : executors.values()) {
 
-            final String name = holder.info.getName();
+            final String name = holder.info.name();
             // no need to have info on "same" thread pool
             if ("same".equals(name)) {
                 continue;
@@ -493,39 +493,25 @@ public class ThreadPool implements Scheduler {
         }
     }
 
-    public static class Info implements Writeable {
-
-        private final String name;
-        private final ThreadPoolType type;
-        private final int min;
-        private final int max;
-        private final TimeValue keepAlive;
-        private final SizeValue queueSize;
+    public record Info(String name,
+                       ThreadPoolType type,
+                       int min,
+                       int max,
+                       @Nullable TimeValue keepAlive,
+                       @Nullable SizeValue queueSize) implements Writeable {
 
         public Info(String name, ThreadPoolType type) {
-            this(name, type, -1);
+            this(name, type, -1, -1, null, null);
         }
 
-        public Info(String name, ThreadPoolType type, int size) {
-            this(name, type, size, size, null, null);
-        }
-
-        public Info(String name, ThreadPoolType type, int min, int max, @Nullable TimeValue keepAlive, @Nullable SizeValue queueSize) {
-            this.name = name;
-            this.type = type;
-            this.min = min;
-            this.max = max;
-            this.keepAlive = keepAlive;
-            this.queueSize = queueSize;
-        }
-
-        public Info(StreamInput in) throws IOException {
-            name = in.readString();
-            type = ThreadPoolType.fromType(in.readString());
-            min = in.readInt();
-            max = in.readInt();
-            keepAlive = in.readOptionalTimeValue();
-            queueSize = in.readOptionalWriteable(SizeValue::new);
+        public static Info of(StreamInput in) throws IOException {
+            String name = in.readString();
+            ThreadPoolType type = ThreadPoolType.fromType(in.readString());
+            int min = in.readInt();
+            int max = in.readInt();
+            TimeValue keepAlive = in.readOptionalTimeValue();
+            SizeValue queueSize = in.readOptionalWriteable(SizeValue::new);
+            return new Info(name, type, min, max, keepAlive, queueSize);
         }
 
         @Override
@@ -537,33 +523,6 @@ public class ThreadPool implements Scheduler {
             out.writeOptionalTimeValue(keepAlive);
             out.writeOptionalWriteable(queueSize);
         }
-
-        public String getName() {
-            return this.name;
-        }
-
-        public ThreadPoolType getThreadPoolType() {
-            return this.type;
-        }
-
-        public int getMin() {
-            return this.min;
-        }
-
-        public int getMax() {
-            return this.max;
-        }
-
-        @Nullable
-        public TimeValue getKeepAlive() {
-            return this.keepAlive;
-        }
-
-        @Nullable
-        public SizeValue getQueueSize() {
-            return this.queueSize;
-        }
-
     }
 
     /**
