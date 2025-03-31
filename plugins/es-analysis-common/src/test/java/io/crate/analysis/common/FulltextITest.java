@@ -53,7 +53,7 @@ public class FulltextITest extends IntegTestCase {
         execute("refresh table locations");
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
-                "using best_fields with (analyzer='english') order by _score desc");
+                "using best_fields order by _score desc");
         assertThat(response).hasRows(
             "End of the Galaxy| 0.895417",
             "Altair| 0.49754602",
@@ -182,7 +182,7 @@ public class FulltextITest extends IntegTestCase {
         this.setup.setUpLocationsWithFTIndex();
         execute("refresh table locations");
         execute("select name, description, kind, _score from locations " +
-                "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
+                "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields order by _score desc");
         assertThat(response).hasRows(
             "Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.57336456",
             "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.32080865",
