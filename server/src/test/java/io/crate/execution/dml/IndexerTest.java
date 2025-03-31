@@ -24,11 +24,11 @@ package io.crate.execution.dml;
 import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_PREFIX;
 import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.lucene.document.Field;
@@ -343,6 +344,44 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var parsedDoc = indexer.index(item(1));
         assertThat(source(parsedDoc, table)).isEqualTo(
             "{\"x\":1,\"y\":3}"
+        );
+    }
+
+    @Test
+    public void test_collect_columns_of_dynamic_object_array() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (data OBJECT(DYNAMIC))");
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(ColumnIdent.of("data"));
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(x),
+            null
+        );
+
+        // Create 1 object with a nested object array of 2 elements with 4 columns each
+        Map<String, Object> item = Map.of(
+            "a", 1,
+            "b", "foo",
+            "c", 2,
+            "d", 123
+        );
+        ArrayList<Map<String, Object>> list = new ArrayList<>();
+        IntStream.range(0, 2).forEach(_ -> list.add(item));
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+
+        var references = indexer.collectSchemaUpdates(item(data));
+        // Must result in 5 columns, duplicates of each of the 2 elements must be ignored
+        assertThat(references).satisfiesExactly(
+            isReference("data['list']"),
+            isReference("data['list']['a']"),
+            isReference("data['list']['b']"),
+            isReference("data['list']['c']"),
+            isReference("data['list']['d']")
         );
     }
 
