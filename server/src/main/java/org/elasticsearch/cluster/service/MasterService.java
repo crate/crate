@@ -57,6 +57,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -424,15 +425,13 @@ public class MasterService extends AbstractLifecycleComponent {
         return Lists.map(
             threadPoolExecutor.getPending(),
             pending -> {
-                assert pending.task instanceof SourcePrioritizedRunnable :
-                    "thread pool executor should only use SourcePrioritizedRunnable instances but found: " + pending.task.getClass().getName();
-                SourcePrioritizedRunnable task = (SourcePrioritizedRunnable) pending.task;
+                PrioritizedRunnable task = pending.task();
                 return new PendingClusterTask(
-                    pending.insertionOrder,
-                    pending.priority,
-                    task.source(),
+                    pending.insertionOrder(),
+                    pending.priority(),
+                    task instanceof SourcePrioritizedRunnable sourcePrioritizedRunnable ? sourcePrioritizedRunnable.source() : "Unknown",
                     task.getAgeInMillis(),
-                    pending.executing
+                    pending.executing()
                 );
             }
         );
