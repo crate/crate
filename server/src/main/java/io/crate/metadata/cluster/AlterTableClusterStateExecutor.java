@@ -253,18 +253,16 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     @VisibleForTesting
     static Settings filterSettings(Settings settings, List<Setting<?>> settingsFilter) {
         Settings.Builder settingsBuilder = Settings.builder();
+        Set<String> settingNames = settings.keySet();
         for (Setting<?> setting : settingsFilter) {
+            String key = setting.getKey();
             if (setting.isGroupSetting()) {
-                String prefix = setting.getKey(); // getKey() returns prefix for a group setting
-                var settingsGroup = settings.getByPrefix(prefix);
+                var settingsGroup = settings.getByPrefix(key);
                 for (String name : settingsGroup.keySet()) {
-                    settingsBuilder.put(prefix + name, settingsGroup.get(name)); // No dot added as prefix already has dot at the end.
+                    settingsBuilder.put(key + name, settingsGroup.get(name)); // No dot added as prefix already has dot at the end.
                 }
-            } else {
-                String value = settings.get(setting.getKey());
-                if (value != null) {
-                    settingsBuilder.put(setting.getKey(), value);
-                }
+            } else if (settingNames.contains(key)) {
+                settingsBuilder.put(key, settings.get(key));
             }
         }
         return settingsBuilder.build();
