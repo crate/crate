@@ -172,7 +172,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
                 // We update all tables with the subscription setting, not only the partitioned ones,
                 // as in getSnapshotIndexMetadata() we don't have access to the whole `Metadata` object.
-                for (RelationMetadata.Table table : remoteClusterState.metadata().tableRelations()) {
+                for (var table : remoteClusterState.metadata().relations(RelationMetadata.Table.class)) {
                     metadataBuilder.setTable(
                         table.name(),
                         table.columns(),
