@@ -75,7 +75,6 @@ import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
@@ -929,7 +928,7 @@ public class IndexShardTests extends IndexShardTestCase {
             if (randomBoolean()) {
                 indexShard.refresh("test");
             } else {
-                indexShard.flush(new FlushRequest());
+                indexShard.flush(false);
             }
             {
                 IndexShard shard = indexShard;
@@ -985,10 +984,7 @@ public class IndexShardTests extends IndexShardTestCase {
             }
             indexShard.sync();
             // flush the buffered deletes
-            FlushRequest flushRequest = new FlushRequest();
-            flushRequest.force(false);
-            flushRequest.waitIfOngoing(false);
-            indexShard.flush(flushRequest);
+            indexShard.flush(false);
 
             if (randomBoolean()) {
                 indexShard.refresh("test");
@@ -1009,7 +1005,7 @@ public class IndexShardTests extends IndexShardTestCase {
             if (randomBoolean()) {
                 indexShard.refresh("test");
             } else {
-                indexShard.flush(new FlushRequest());
+                indexShard.flush(false);
             }
             {
                 DocsStats docStats = indexShard.docStats();
@@ -1056,7 +1052,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 .isEqualTo(0L);
 
             if (randomBoolean()) {
-                indexShard.flush(new FlushRequest());
+                indexShard.flush(false);
             } else {
                 indexShard.refresh("test");
             }
@@ -1089,7 +1085,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 }
             }
             if (randomBoolean()) {
-                indexShard.flush(new FlushRequest());
+                indexShard.flush(false);
             } else {
                 indexShard.refresh("test");
             }
@@ -1123,7 +1119,7 @@ public class IndexShardTests extends IndexShardTestCase {
             indexShard.refresh("test");
         }
         indexDoc(indexShard, "1", "{}");
-        indexShard.flush(new FlushRequest());
+        indexShard.flush(false);
         closeShards(indexShard);
 
         final IndexShard newShard = reinitShard(indexShard);
@@ -1169,7 +1165,7 @@ public class IndexShardTests extends IndexShardTestCase {
         for (long i = 0; i < numDocs; i++) {
             indexDoc(indexShard, Long.toString(i), "{}");
         }
-        indexShard.flush(new FlushRequest());
+        indexShard.flush(false);
         closeShards(indexShard);
 
         ShardPath shardPath = indexShard.shardPath();
@@ -1822,7 +1818,7 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.applyIndexOperationOnReplica(3, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id-3", new BytesArray("{}"), XContentType.JSON));
         // Flushing a new commit with local checkpoint=1 allows to skip the translog gen #1 in recovery.
-        shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+        shard.forceFlush();
         shard.applyIndexOperationOnReplica(2, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
             new SourceToParse(shard.shardId().getIndexName(), "id-2", new BytesArray("{}"), XContentType.JSON));
         shard.applyIndexOperationOnReplica(5, primaryTerm, 1, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
@@ -1835,7 +1831,7 @@ public class IndexShardTests extends IndexShardTestCase {
             // Advance the global checkpoint to remove the 1st commit; this shard will recover the 2nd commit.
             shard.updateGlobalCheckpointOnReplica(3, "test");
             logger.info("--> flushing shard");
-            shard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+            shard.forceFlush();
             translogOps = 4; // delete #1 won't be replayed.
             replayedOps = 3;
         } else {
@@ -3327,7 +3323,7 @@ public class IndexShardTests extends IndexShardTestCase {
             names.add(segment.getName());
         }
         assertThat(segments).hasSize(3);
-        shard.flush(new FlushRequest());
+        shard.flush(false);
         shard.forceMerge(new ForceMergeRequest().maxNumSegments(1).flush(false));
         shard.refresh("test");
         segments = shard.segments();
@@ -3778,7 +3774,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 gap = true;
             }
             if (withFlush && rarely()) {
-                indexShard.flush(new FlushRequest());
+                indexShard.flush(false);
             }
         }
         indexShard.sync(); // advance local checkpoint
@@ -3830,11 +3826,11 @@ public class IndexShardTests extends IndexShardTestCase {
             );
             shard.updateGlobalCheckpointOnReplica(shard.getLocalCheckpoint(), "test");
             if (randomInt(100) < 10) {
-                shard.flush(new FlushRequest());
+                shard.flush(false);
             }
             seqNo++;
         }
-        shard.flush(new FlushRequest());
+        shard.flush(false);
         assertThat(shard.docStats().getCount()).isEqualTo(numDocs);
         ShardRouting replicaRouting = shard.routingEntry();
         ShardRouting readonlyShardRouting = newShardRouting(

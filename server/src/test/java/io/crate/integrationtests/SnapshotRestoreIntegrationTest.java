@@ -46,6 +46,8 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
@@ -66,6 +68,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -1011,7 +1014,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_restore_old_users() throws IOException {
-        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
         try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldusersmetadata_repo.zip"))) {
             TestUtil.unzip(stream, repoDir.toPath());
         }
@@ -1106,6 +1109,46 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(usersMetadata).isNull();
         usersPrivilegesMetadata = cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
         assertThat(usersPrivilegesMetadata).isNull();
+    }
+
+    @Test
+    public void test_restore_old_snapshot_create_and_use_relation_metadata() throws IOException {
+        // CREATE TABLE t(id int, text text, INDEX text_ft USING FULLTEXT(text));
+        // CREATE TABLE t_parted(id int, p int, text text, INDEX text_ft USING FULLTEXT(text)) PARTITIONED BY(p);
+        // INSERT INTO t(id, text) SELECT g, 'This is CrateDB ' || g FROM generate_series(1,5,1) AS g;
+        // INSERT INTO t_parted(id, p, text) SELECT g, 1, 'This is CrateDB ' || g FROM generate_series(1,5,1) AS g;
+        // INSERT INTO t_parted(id, p, text) SELECT g, 2, 'This is CrateDB ' || g FROM generate_series(1,5,1) AS g;
+        // REFRESH TABLE t, t_parted;
+        // CREATE REPOSITORY r TYPE fs WITH(location='/tmp/repo');
+        // CREATE SNAPSHOT r.old_snap ALL;
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/5.12.2_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY old_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        execute("RESTORE SNAPSHOT old_repo.old_snap ALL with (wait_for_completion=true)");
+
+        execute("SELECT SUM(id) FROM doc.t");
+        assertThat(response).hasRows("15");
+        execute("SELECT SUM(id), p FROM doc.t_parted GROUP BY p ORDER BY p");
+        assertThat(response).hasRows(
+            "15| 1",
+            "15| 2");
+
+        // Test that analyzed columns work correctly
+        execute("SELECT count(*) FROM doc.t WHERE match(text_ft, 'cratedb')");
+        assertThat(response).hasRows("5");
+        execute("SELECT count(*) FROM doc.t_parted WHERE match(text_ft, 'cratedb')");
+        assertThat(response).hasRows("10");
+
+        Metadata metadata = cluster().clusterService().state().metadata();
+        assertThat((RelationMetadata.Table) metadata.getRelation(new RelationName("doc", "t")))
+            .isNotNull();
+        assertThat((RelationMetadata.Table) metadata.getRelation(new RelationName("doc", "t_parted")))
+            .isNotNull();
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

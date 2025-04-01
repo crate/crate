@@ -211,6 +211,14 @@ public class SysTableDefinitions {
                 )
             ),
             Map.entry(
+                SysClusterHealth.IDENT,
+                new StaticTableDefinition<>(
+                    () -> SysClusterHealth.compute(clusterService.state(), clusterService.getMasterService().numberOfPendingTasks()),
+                    SysClusterHealth.INSTANCE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
                 SysMetricsTableInfo.NAME,
                 new StaticTableDefinition<>(
                     () -> completedFuture(jobsLogs.metrics()), SysMetricsTableInfo.create(localNode).expressions(), false)

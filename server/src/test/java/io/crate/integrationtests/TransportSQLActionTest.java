@@ -918,7 +918,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectWhereBoolean() {
+    public void testSelectWhereBoolean() throws Exception {
         execute("create table a (v boolean)");
         ensureYellow();
 
@@ -943,7 +943,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectWhereBooleanPK() {
+    public void testSelectWhereBooleanPK() throws Exception {
         execute("create table b (v boolean primary key) clustered by (v)");
         ensureYellow();
 
@@ -1091,7 +1091,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             "3| [Hangelsberg, Berlin]"
         );
 
-        execute("select id, names from any_table where 'Ber%' LIKE ANY (names) order by id");
+        execute("select id, names from any_table where names[2] LIKE ANY (['Ber%']) order by id");
         assertThat(response).hasRows(
             "1| [Dornbirn, Berlin, St. Margrethen]",
             "3| [Hangelsberg, Berlin]"
@@ -1120,17 +1120,16 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void testAnyLike() throws Exception {
         this.setup.setUpArrayTables();
 
-        execute("select id from any_table where 'kuh%' LIKE ANY (tags) order by id");
+        execute("select id from any_table where tags[1] LIKE ANY (['kuh%']) order by id");
         assertThat(response).hasRows(
             "3",
             "4"
         );
 
-        execute("select id from any_table where 'kuh%' NOT LIKE ANY (tags) order by id");
+        execute("select id from any_table where tags[1] NOT LIKE ANY (['kuh%']) order by id");
         assertThat(response).hasRows(
             "1",
-            "2",
-            "3"
+            "2"
         );
     }
 
@@ -1359,7 +1358,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
-    public void testNumericScriptOnAllTypes() {
+    public void testNumericScriptOnAllTypes() throws Exception {
         // this test validates that no exception is thrown
         execute(
             "create table t (" +

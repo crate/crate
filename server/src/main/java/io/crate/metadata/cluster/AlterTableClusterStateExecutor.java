@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -42,18 +40,14 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
-import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -68,17 +62,13 @@ import io.crate.sql.tree.ColumnPolicy;
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataCreateIndexService metadataCreateIndexService;
     private final NodeContext nodeContext;
     private final MetadataUpdateSettingsService updateSettingsService;
 
-    public AlterTableClusterStateExecutor(IndicesService indicesService,
-                                          IndexScopedSettings indexScopedSettings,
-                                          MetadataCreateIndexService metadataCreateIndexService,
+    public AlterTableClusterStateExecutor(IndexScopedSettings indexScopedSettings,
                                           MetadataUpdateSettingsService updateSettingsService,
                                           NodeContext nodeContext) {
         this.indexScopedSettings = indexScopedSettings;
-        this.metadataCreateIndexService = metadataCreateIndexService;
         this.nodeContext = nodeContext;
         this.updateSettingsService = updateSettingsService;
     }
@@ -150,17 +140,15 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     request.tableIdent(),
                     settings,
                     newMapping,
-                    (name, s) -> validateSettings(name, s, indexScopedSettings, metadataCreateIndexService),
                     indexScopedSettings
                 );
 
                 if (!request.excludePartitions()) {
                     // These settings only apply for already existing partitions
-                    List<Setting<?>> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-                        .supportedSettings()
-                        .values()
-                        .stream()
-                        .collect(Collectors.toList());
+                    List<Setting<?>> supportedSettings = new ArrayList<>(
+                        TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                            .supportedSettings()
+                            .values());
 
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
                     supportedSettings.add(AutoExpandReplicas.SETTING);
@@ -180,9 +168,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         return currentState;
     }
 
-    /**
-     * @param mappingDelta is dynamic policy setting which for now is the only mapping change allowed by ALTER TABLE SET
-     */
     private ClusterState updateMapping(ClusterState currentState,
                                        List<Index> concreteIndices,
                                        @Nullable ColumnPolicy columnPolicy) throws IOException {
@@ -206,7 +191,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
         return ClusterState.builder(currentState).metadata(metadataBuilder).build();
     }
-
 
 
     /**
@@ -257,10 +241,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     static ClusterState updateTemplate(ClusterState currentState,
                                        RelationName relationName,
-                                       Settings newSetting,
+                                       Settings newSettings,
                                        Map<String, Object> newMapping,
-                                       BiConsumer<String, Settings> settingsValidator,
-                                       IndexScopedSettings indexScopedSettings) throws IOException {
+                                       IndexScopedSettings indexScopedSettings) {
 
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
@@ -268,34 +251,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             indexTemplateMetadata,
             newMapping,
             Collections.emptyMap(),
-            newSetting,
+            newSettings,
             indexScopedSettings
         );
 
         final Metadata.Builder metadata = Metadata.builder(currentState.metadata()).put(newIndexTemplateMetadata);
         return ClusterState.builder(currentState).metadata(metadata).build();
-    }
-
-    private static void validateSettings(String name,
-                                         Settings settings,
-                                         IndexScopedSettings indexScopedSettings,
-                                         MetadataCreateIndexService metadataCreateIndexService) {
-        List<String> validationErrors = new ArrayList<>();
-        try {
-            indexScopedSettings.validate(settings, true); // templates must be consistent with regards to dependencies
-        } catch (IllegalArgumentException iae) {
-            validationErrors.add(iae.getMessage());
-            for (Throwable t : iae.getSuppressed()) {
-                validationErrors.add(t.getMessage());
-            }
-        }
-        List<String> indexSettingsValidation = metadataCreateIndexService.getIndexSettingsValidationErrors(settings, true);
-        validationErrors.addAll(indexSettingsValidation);
-        if (!validationErrors.isEmpty()) {
-            ValidationException validationException = new ValidationException();
-            validationException.addValidationErrors(validationErrors);
-            throw new InvalidIndexTemplateException(name, validationException.getMessage());
-        }
     }
 
     @VisibleForTesting

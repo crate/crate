@@ -21,13 +21,20 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-
 import java.util.Collections;
 import java.util.Locale;
 
 import org.jetbrains.annotations.NotNull;
+
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.sql.SqlFormatter;
 
 public class ColumnUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
 
@@ -69,6 +76,10 @@ public class ColumnUnknownException extends RuntimeException implements Resource
         return new ColumnUnknownException(message, relationName, RelationType.TABLE_FUNCTION);
     }
 
+    public static ColumnUnknownException forSubscript(Symbol symbol, String key) {
+        return symbol.accept(UnknownSubColumnError.INSTANCE, key);
+    }
+
     @Override
     public Iterable<RelationName> getTableIdents() {
         return (relationName == null) ? Collections.emptyList() : Collections.singletonList(relationName);
@@ -82,5 +93,43 @@ public class ColumnUnknownException extends RuntimeException implements Resource
     @NotNull
     public RelationType relationType() {
         return relationType;
+    }
+
+    public static class UnknownSubColumnError extends SymbolVisitor<String, ColumnUnknownException> {
+
+        public static final UnknownSubColumnError INSTANCE = new UnknownSubColumnError();
+
+        private static final String CAST_HINT = "Consider to include inner type definition in the `OBJECT` type while " +
+            "casting, disable DYNAMIC unknown key errors by the `error_on_unknown_object_key` setting or cast to `OBJECT(IGNORED)`.";
+
+        @Override
+        protected ColumnUnknownException visitSymbol(Symbol symbol, String key) {
+            return ColumnUnknownException.ofUnknownRelation(
+                String.format(Locale.ENGLISH, "The return type `%s` of the expression `%s` does not contain the key `%s`",
+                    SqlFormatter.formatSqlInline(symbol.valueType().toColumnType(null)),
+                    ColumnIdent.of(symbol.toString(Style.QUALIFIED)),
+                    key));
+        }
+
+        @Override
+        public ColumnUnknownException visitFunction(Function symbol, String key) {
+            if (symbol.name().equals(ExplicitCastFunction.NAME)) {
+                return ColumnUnknownException.ofUnknownRelation(
+                    String.format(Locale.ENGLISH, "The cast of `%s` to return type `%s` does not contain the key `%s`.\n%s",
+                        ColumnIdent.of(symbol.arguments().getFirst().toString(Style.QUALIFIED)),
+                        SqlFormatter.formatSqlInline(symbol.valueType().toColumnType(null)),
+                        key,
+                        CAST_HINT));
+            }
+            return visitSymbol(symbol, key);
+        }
+
+        @Override
+        public ColumnUnknownException visitLiteral(Literal<?> symbol, String key) {
+            return ColumnUnknownException.ofUnknownRelation(
+                String.format(Locale.ENGLISH, "The literal `%s` does not contain the key `%s`",
+                    symbol.value(),
+                    key));
+        }
     }
 }

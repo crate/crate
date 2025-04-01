@@ -77,7 +77,6 @@ public class AlterTableClusterStateExecutorTest {
                                                           relationName,
                                                           settings,
                                                           Map.of(),
-                                                          (_, _) -> { },
                                                           indexScopedSettings);
 
         IndexTemplateMetadata template = result.metadata().templates().get(templateName);
@@ -93,7 +92,7 @@ public class AlterTableClusterStateExecutorTest {
     }
 
     @Test
-    public void test_group_settings_are_not_filtered_out() throws IOException {
+    public void test_group_settings_are_not_filtered_out() {
         String fullName = INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + "." + "_name";
         Settings settingToFilter = Settings.builder()
             .put(fullName , "node1").build();
@@ -136,7 +135,6 @@ public class AlterTableClusterStateExecutorTest {
                 relationName,
                 settings,
                 Map.of(),
-                (_, _) -> { },
                 indexScopedSettings);
 
         IndexTemplateMetadata template = result.metadata().templates().get(templateName);

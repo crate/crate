@@ -40,14 +40,14 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("insert into t (i, ia, s, sa) values (?, ?, ?, ?)", new Object[][]{
             {1, new Object[]{1, 2, 3}, "foo", new Object[]{"abc", "def", "ghi"}},
             {2, new Object[]{3, 4, 5}, "bar", new Object[]{"rst", "uvw", "aaa"}},
-            {3, new Object[]{7, 8, 9}, "baz", new Object[]{"bar", "baz"}}
+            {3, new Object[]{7, 8, 9}, "baz", new Object[]{"baz"}}
         });
         execute("refresh table t");
 
         execute("select i, s from t where i = ANY([1,2,4]) order by i");
         assertThat(response).hasRows("1| foo", "2| bar");
 
-        execute("select i, sa from t where 'ba%' not like ANY(sa) order by i");
+        execute("select i, sa from t where s not like ANY(sa) order by i");
         assertThat(response).hasRows("1| [abc, def, ghi]", "2| [rst, uvw, aaa]");
 
         execute("update t set s='updated' where i > ANY([?, ?, ?])", new Object[]{2, 4, 5});
@@ -57,12 +57,12 @@ public class AnyIntegrationTest extends IntegTestCase {
         execute("select s from t order by i");
         assertThat(response).hasRows("foo", "bar", "updated");
 
-        execute("delete from t where 'a%' like ANY (sa)");
+        execute("delete from t where s like ANY (['f%', 'ba_'])");
         assertThat(response).hasRowCount(2);
         execute("refresh table t");
 
         execute("select * from t");
-        assertThat(response).hasRows("3| [7, 8, 9]| updated| [bar, baz]");
+        assertThat(response).hasRows("3| [7, 8, 9]| updated| [baz]");
     }
 
     @Test
@@ -122,7 +122,6 @@ public class AnyIntegrationTest extends IntegTestCase {
     @Test
     public void testNotAnyInWhereClauseDoesNotFilterOutEmptyArrays() {
         execute("create table t (b integer, labels array(string))");
-        ensureYellow();
         execute("insert into t (b, labels) values (1, ['one', 'two'])," +
                 "(2, ['two', 'three'])," +
                 "(3, ['three', 'four'])," +
@@ -139,7 +138,6 @@ public class AnyIntegrationTest extends IntegTestCase {
             "create table t (" +
             "   ts timestamp with time zone" +
             ") clustered into 1 shards with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into t values ('2017-12-31'), ('2016-12-31'), ('2015-12-31')");
         execute("refresh table t");
 

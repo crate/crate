@@ -83,6 +83,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -443,7 +444,16 @@ public class PersistedClusterStateService {
             if (builderReference.get() != null) {
                 throw new IllegalStateException("duplicate global metadata found in [" + dataPath + "]");
             }
-            builderReference.set(Metadata.builder(metadata));
+            // https://github.com/crate/crate/commit/4a82981501619780ce1156aa5015a627de5ff1e1
+            // Changed metadata storage to use Writable instead of toXContent.
+            // As part of that change it accidentally persisted transient
+            // settings and duplicated indices information into the global
+            // metadata in `makeGlobalMetadataDocument`
+
+            // Need to exclude them on read to account for that
+            // Indices are stored in a separate `index` document.
+            // TODO: Remove BWC code and load Metadata as is.
+            builderReference.set(Metadata.builder(metadata).removeAllIndices().transientSettings(Settings.EMPTY));
         });
 
         final Metadata.Builder builder = builderReference.get();
@@ -876,7 +886,12 @@ public class PersistedClusterStateService {
                 GLOBAL_TYPE_NAME,
                 out -> {
                     Version.writeVersion(Version.CURRENT, out);
-                    metadata.writeTo(out);
+                    // Reflecting state after https://github.com/crate/crate/commit/4a82981501619780ce1156aa5015a627de5ff1e1
+                    Metadata globalMetadata = Metadata.builder(metadata)
+                        .removeAllIndices() // Indices are written via makeIndexMetadataDocument
+                        .transientSettings(Settings.EMPTY) // Transient settings must not be persisted
+                        .build();
+                    globalMetadata.writeTo(out);
                 },
                 documentBuffer
             );

@@ -23,13 +23,11 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.execution.ddl.tables.TransportCloseTable.isEmptyPartitionedTable;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -40,7 +38,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
@@ -48,7 +45,6 @@ import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
 @Singleton
 public class TransportOpenTableAction extends AbstractDDLTransportAction<OpenTableRequest, AcknowledgedResponse> {
 
-    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
 
     private final OpenTableClusterStateTaskExecutor openExecutor;
@@ -88,21 +84,12 @@ public class TransportOpenTableAction extends AbstractDDLTransportAction<OpenTab
         if (isEmptyPartitionedTable(relation, state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        String[] indexNames;
-        if (request.partitionValues().isEmpty()) {
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                relation.indexNameOrAlias()
-            );
-        } else {
-            PartitionName partition = new PartitionName(relation, request.partitionValues());
-            indexNames = IndexNameExpressionResolver.concreteIndexNames(
-                state.metadata(),
-                STRICT_INDICES_OPTIONS,
-                partition.asIndexName()
-            );
-        }
+        String[] indexNames = state.metadata().getIndices(
+            relation,
+            request.partitionValues(),
+            true,
+            imd -> imd.getIndex().getName()
+        ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 }

@@ -63,7 +63,6 @@ public class SchemasITest extends IntegTestCase {
                 "CONSTRAINT not_miguel CHECK (name != 'miguel'), " +
                 "details object(dynamic) as (size byte, created timestamp with time zone)" +
                 ") clustered into 10 shards with (number_of_replicas=1)");
-        ensureYellow();
 
         DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
         assertThat(ti.ident().name()).isEqualTo("t1");

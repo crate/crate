@@ -27,14 +27,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardsObserver;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -53,7 +52,6 @@ import io.crate.metadata.view.ViewsMetadata;
 public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/rename";
-    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
 
     private final RenameTableClusterStateExecutor executor;
     private final ActiveShardsObserver activeShardsObserver;
@@ -106,15 +104,12 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     ClusterState updatedState = executor.execute(currentState, request);
-                    IndicesOptions openIndices = IndicesOptions.fromOptions(
-                        true,
-                        true,
-                        true,
+                    newIndexNames.set(updatedState.metadata().getIndices(
+                        request.targetName(),
+                        List.of(),
                         false,
-                        true
-                    );
-                    newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(
-                        updatedState.metadata(), openIndices, request.targetName().indexNameOrAlias()));
+                        imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+                    ).toArray(String[]::new));
                     return updatedState;
                 }
 

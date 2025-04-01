@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.junit.Test;
 
+import io.crate.execution.engine.aggregation.impl.StandardDeviationAggregation;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -44,7 +45,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-                Signature.builder("stddev", FunctionType.AGGREGATE)
+                Signature.builder("stddev_pop", FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
@@ -56,17 +57,19 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (DataType<?> type : Stream.concat(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
-            Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
+        for (var name: StandardDeviationAggregation.NAMES) {
+            for (DataType<?> type : Stream.concat(
+                DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+                Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
 
-            FunctionImplementation stddev = nodeCtx.functions().get(
-                null,
-                StandardDeviationAggregation.NAME,
-                List.of(Literal.of(type, null)),
-                SearchPath.pathWithPGCatalogAndDoc()
-            );
-            assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+                FunctionImplementation stddev = nodeCtx.functions().get(
+                    null,
+                    name,
+                    List.of(Literal.of(type, null)),
+                    SearchPath.pathWithPGCatalogAndDoc()
+                );
+                assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+            }
         }
     }
 
@@ -121,7 +124,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: stddev(INPUT(0))," +
+            .hasMessageStartingWith("Unknown function: stddev_pop(INPUT(0))," +
                 " no overload found for matching argument types: (geo_point).");
     }
 }

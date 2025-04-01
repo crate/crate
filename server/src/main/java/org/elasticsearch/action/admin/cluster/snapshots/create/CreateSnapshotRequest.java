@@ -19,19 +19,18 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
-import static org.elasticsearch.common.Strings.EMPTY_ARRAY;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
@@ -41,6 +40,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Create snapshot request
@@ -56,18 +60,15 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
  * <li>must not contain invalid file name characters {@link org.elasticsearch.common.Strings#INVALID_FILENAME_CHARS} </li>
  * </ul>
  */
-public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest>
-    implements IndicesRequest.Replaceable {
+public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest> {
 
     private String snapshot;
 
     private String repository;
 
-    private String[] indices = EMPTY_ARRAY;
+    private List<RelationName> relationNames = List.of();
 
-    private String[] templates = EMPTY_ARRAY;
-
-    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN;
+    private List<PartitionName> partitionNames = List.of();
 
     private boolean partial = false;
 
@@ -76,9 +77,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
     private boolean includeGlobalState = true;
 
     private boolean waitForCompletion;
-
-    public CreateSnapshotRequest() {
-    }
 
     /**
      * Constructs a new put repository request with the provided snapshot and repository names
@@ -95,15 +93,34 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         super(in);
         snapshot = in.readString();
         repository = in.readString();
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
-        if (in.getVersion().after(Version.V_4_5_1)) {
-            templates = in.readStringArray();
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            String[] oldIndices = in.readStringArray();
+            IndicesOptions.readIndicesOptions(in);
+            String[] oldTemplates = in.readStringArray();
+            HashSet<RelationName> relationNames = new HashSet<>();
+            ArrayList<PartitionName> partitionNames = new ArrayList<>();
+            for (String index : oldIndices) {
+                IndexParts indexParts = IndexName.decode(index);
+                if (indexParts.isPartitioned()) {
+                    partitionNames.add(PartitionName.fromIndexOrTemplate(index));
+                } else {
+                    relationNames.add(indexParts.toRelationName());
+                }
+            }
+            for (String template : oldTemplates) {
+                relationNames.add(IndexName.decode(template).toRelationName());
+            }
+            this.relationNames = new ArrayList<>(relationNames);
+            this.partitionNames = partitionNames;
         }
         settings = readSettingsFromStream(in);
         includeGlobalState = in.readBoolean();
         waitForCompletion = in.readBoolean();
         partial = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            relationNames = in.readList(RelationName::new);
+            partitionNames = in.readList(PartitionName::new);
+        }
     }
 
     @Override
@@ -111,15 +128,29 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         super.writeTo(out);
         out.writeString(snapshot);
         out.writeString(repository);
-        out.writeStringArray(indices);
-        indicesOptions.writeIndicesOptions(out);
-        if (out.getVersion().after(Version.V_4_5_1)) {
-            out.writeStringArray(templates);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            // old indices
+            HashSet<String> indices = new HashSet<>();
+            relationNames.stream().map(RelationName::indexNameOrAlias).forEach(indices::add);
+            partitionNames.stream().map(PartitionName::asIndexName).forEach(indices::add);
+            out.writeStringArray(indices.toArray(String[]::new));
+            IndicesOptions.STRICT_EXPAND_OPEN.writeIndicesOptions(out);
+
+            // old templates, we don't know if the relations are partitioned or not, so we always add templates for
+            out.writeStringArray(
+                relationNames.stream()
+                    .map(r -> PartitionName.templateName(r.schema(), r.name()))
+                    .toArray(String[]::new)
+            );
         }
         writeSettingsToStream(out, settings);
         out.writeBoolean(includeGlobalState);
         out.writeBoolean(waitForCompletion);
         out.writeBoolean(partial);
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeList(relationNames);
+            out.writeList(partitionNames);
+        }
     }
 
     /**
@@ -161,75 +192,23 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         return this.repository;
     }
 
-    /**
-     * Sets a list of indices that should be included into the snapshot
-     * <p>
-     * The list of indices supports multi-index syntax. For example: "+test*" ,"-test42" will index all indices with
-     * prefix "test" except index "test42". Aliases are supported. An empty list or {"_all"} will snapshot all open
-     * indices in the cluster.
-     *
-     * @return this request
-     */
-    @Override
-    public CreateSnapshotRequest indices(String... indices) {
-        this.indices = indices;
+    public CreateSnapshotRequest relationNames(List<RelationName> relationNames) {
+        this.relationNames = relationNames;
         return this;
     }
 
-    /**
-     * Sets a list of indices that should be included into the snapshot
-     * <p>
-     * The list of indices supports multi-index syntax. For example: "+test*" ,"-test42" will index all indices with
-     * prefix "test" except index "test42". Aliases are supported. An empty list or {"_all"} will snapshot all open
-     * indices in the cluster.
-     *
-     * @return this request
-     */
-    public CreateSnapshotRequest indices(List<String> indices) {
-        this.indices = indices.toArray(new String[indices.size()]);
+    public List<RelationName> relationNames() {
+        return relationNames;
+    }
+
+    public CreateSnapshotRequest partitionNames(List<PartitionName> partitionNames) {
+        this.partitionNames = partitionNames;
         return this;
     }
 
-    /**
-     * Returns a list of indices that should be included into the snapshot
-     *
-     * @return list of indices
-     */
-    @Override
-    public String[] indices() {
-        return indices;
+    public List<PartitionName> partitionNames() {
+        return partitionNames;
     }
-
-    /**
-     * Specifies the indices options. Like what type of requested indices to ignore. For example indices that don't exist.
-     *
-     * @return the desired behaviour regarding indices options
-     */
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    /**
-     * Specifies the indices options. Like what type of requested indices to ignore. For example indices that don't exist.
-     *
-     * @param indicesOptions the desired behaviour regarding indices options
-     * @return this request
-     */
-    public CreateSnapshotRequest indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return this;
-    }
-
-    public CreateSnapshotRequest templates(List<String> templates) {
-        this.templates = templates.toArray(new String[0]);
-        return this;
-    }
-
-    public String[] templates() {
-        return templates;
-    }
-
 
     /**
      * Returns true if indices with unavailable shards should be be partially snapshotted.
@@ -377,17 +356,24 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
             waitForCompletion == that.waitForCompletion &&
             Objects.equals(snapshot, that.snapshot) &&
             Objects.equals(repository, that.repository) &&
-            Arrays.equals(indices, that.indices) &&
-            Objects.equals(indicesOptions, that.indicesOptions) &&
+            Objects.equals(relationNames, that.relationNames) &&
+            Objects.equals(partitionNames, that.partitionNames) &&
             Objects.equals(settings, that.settings) &&
             Objects.equals(masterNodeTimeout, that.masterNodeTimeout);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(snapshot, repository, indicesOptions, partial, settings, includeGlobalState, waitForCompletion);
-        result = 31 * result + Arrays.hashCode(indices);
-        return result;
+        return Objects.hash(
+            snapshot,
+            repository,
+            relationNames,
+            partitionNames,
+            partial,
+            settings,
+            includeGlobalState,
+            waitForCompletion
+        );
     }
 
     @Override
@@ -395,8 +381,8 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         return "CreateSnapshotRequest{" +
             "snapshot='" + snapshot + '\'' +
             ", repository='" + repository + '\'' +
-            ", indices=" + (indices == null ? null : Arrays.asList(indices)) +
-            ", indicesOptions=" + indicesOptions +
+            ", relationNames=" + relationNames +
+            ", partitionNames=" + partitionNames +
             ", partial=" + partial +
             ", settings=" + settings +
             ", includeGlobalState=" + includeGlobalState +

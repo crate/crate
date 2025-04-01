@@ -20,9 +20,11 @@
 package org.elasticsearch.gateway;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
 
@@ -39,8 +41,6 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -55,10 +55,8 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
@@ -67,9 +65,9 @@ import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.TestCluster.RestartCallback;
 import org.junit.Test;
 
-import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -210,7 +208,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
         execute("create table test (id int) with (number_of_replicas = 0, \"write.wait_for_active_shards\" = 0)",
                 null,
                 new TimeValue(90, TimeUnit.SECONDS));
-        var tableName = getFqn("test");
 
         logger.info("--> restarting master node");
         cluster().fullRestart(new RestartCallback(){
@@ -220,22 +217,11 @@ public class GatewayIndexStateIT extends IntegTestCase {
             }
         });
 
-        logger.info("--> waiting for test index to be created");
-        ClusterHealthResponse health = FutureUtils.get(
-            client().admin().cluster().health(
-                new ClusterHealthRequest(tableName)
-                    .waitForEvents(Priority.LANGUID)
-            ),
-            REQUEST_TIMEOUT
-        );
-        assertThat(health.isTimedOut()).isFalse();
-
         logger.info("--> verify we have an index");
-        var clusterStateResponse = client().admin().cluster().state(
-            new ClusterStateRequest()
-                .indices(tableName)
-            ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName)).isTrue();
+        assertBusy(() -> {
+            execute("select health from sys.health where table_name = 'test'");
+            assertThat(response).hasRows("RED"); // no data nodes, no allocated shards
+        });
     }
 
     @Test
@@ -260,22 +246,15 @@ public class GatewayIndexStateIT extends IntegTestCase {
         cluster().startNodes(2);
 
         logger.info("--> indexing a simple document");
-        var tableName = getFqn("test");
         execute("create table test (id int) with (number_of_replicas = 0)");
         execute("insert into test (id) values (1)");
         execute("refresh table test");
 
         logger.info("--> waiting for green status");
-        ClusterHealthResponse health = FutureUtils.get(
-            client().admin().cluster().health(
-                new ClusterHealthRequest()
-                    .waitForEvents(Priority.LANGUID)
-                    .waitForGreenStatus()
-                    .waitForNodes("2")
-            ),
-            REQUEST_TIMEOUT
-        );
-        assertThat(health.isTimedOut()).isFalse();
+        assertBusy(() -> {
+            execute("select health from sys.health where table_name = 'test'");
+            assertThat(response).hasRows("GREEN");
+        });
 
         logger.info("--> verify 1 doc in the index");
         for (int i = 0; i < 10; i++) {
@@ -286,26 +265,20 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> closing test index...");
         execute("alter table test close");
 
-        ClusterStateResponse stateResponse = client().admin().cluster()
-            .state(new ClusterStateRequest())
-            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.CLOSE);
-        assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
+        execute("select closed from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows("true");
+
+        assertThatThrownBy(() -> execute("select * from test"))
+            .hasMessageContaining("doesn't support or allow READ operations, as it is currently closed");
 
         logger.info("--> opening the index...");
         execute("alter table test open");
 
         logger.info("--> waiting for green status");
-        health = FutureUtils.get(
-            client().admin().cluster().health(
-                new ClusterHealthRequest()
-                    .waitForEvents(Priority.LANGUID)
-                    .waitForGreenStatus()
-                    .waitForNodes("2")
-            ),
-            REQUEST_TIMEOUT
-        );
-        assertThat(health.isTimedOut()).isFalse();
+        assertBusy(() -> {
+            execute("select health from sys.health where table_name = 'test'");
+            assertThat(response).hasRows("GREEN");
+        });
 
         logger.info("--> verify 1 doc in the index");
         execute("select id from test");
@@ -329,7 +302,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
         nodes = cluster().startNodes(numNodes,
             Settings.builder().put(IndexGraveyard.SETTING_MAX_TOMBSTONES.getKey(), randomIntBetween(10, 100)).build());
         logger.info("--> create an index");
-        //createIndex(indexName);
         execute("create table my_schema.test (id int) with (number_of_replicas = 0)");
         var tableName = "my_schema.test";
 
@@ -371,10 +343,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
                     }
                 };
                 var sqlExecutor = new SQLTransportExecutor(clientProvider);
-                //client.admin().indices().prepareDelete(indexName).execute().actionGet();
                 sqlExecutor.exec("drop table my_schema.test");
                 assertThat(response.rowCount()).isEqualTo(1L);
-                //assertFalse(indexExists(indexName, client));
                 try {
                     sqlExecutor.exec("select * from my_schema.test");
                     fail("expecting index to be deleted");
@@ -387,22 +357,14 @@ public class GatewayIndexStateIT extends IntegTestCase {
         });
 
         logger.info("--> wait until all nodes are back online");
-        var clusterHealthRequest = new ClusterHealthRequest()
-            .waitForEvents(Priority.LANGUID)
-            .waitForNodes(Integer.toString(numNodes));
-        FutureUtils.get(client().admin().cluster().health(clusterHealthRequest), REQUEST_TIMEOUT);
+        assertBusy(() -> {
+            execute("select count(*) from sys.nodes");
+            assertThat(response).hasRows(Integer.toString(numNodes));
+        });
 
-        logger.info("--> waiting for green status");
-        ensureGreen();
-
-        logger.info("--> verify that the deleted index is removed from the cluster and not reimported as dangling by the restarted node");
-        //assertFalse(indexExists(indexName));
-        try {
-            execute("select * from my_schema.test");
-            fail("expecting index to be deleted");
-        } catch (Exception e) {
-            // pass
-        }
+        assertThatThrownBy(() -> execute("select * from my_schema.test"))
+            .as("verify that the deleted index is removed from the cluster and not reimported as dangling by the restarted node")
+            .hasMessageContaining("Schema 'my_schema' unknown");
         assertBusy(() -> {
             final NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class);
             try {
@@ -429,16 +391,10 @@ public class GatewayIndexStateIT extends IntegTestCase {
         execute("insert into test (id) values (1)");
         execute("refresh table test");
         logger.info("--> waiting for green status");
-        if (usually()) {
-            ensureYellow();
-        } else {
-            cluster().startNode();
-            FutureUtils.get(client().admin().cluster()
-                .health(new ClusterHealthRequest()
-                    .waitForGreenStatus()
-                    .waitForEvents(Priority.LANGUID)
-                    .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
-        }
+        assertBusy(() -> {
+            execute("select health from sys.health where table_name = 'test'");
+            assertThat(response).hasRows("GREEN");
+        });
         ClusterState state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
@@ -484,21 +440,13 @@ public class GatewayIndexStateIT extends IntegTestCase {
     public void testArchiveBrokenClusterSettings() throws Exception {
         logger.info("--> starting one node");
         cluster().startNode();
-        var tableName = getFqn("test");
         execute("create table test (id int) with (number_of_replicas = 0)");
         execute("insert into test (id) values (1)");
         execute("refresh table test");
         logger.info("--> waiting for green status");
-        if (usually()) {
-            ensureYellow();
-        } else {
-            cluster().startNode();
-            FutureUtils.get(client().admin().cluster()
-                .health(new ClusterHealthRequest()
-                    .waitForGreenStatus()
-                    .waitForEvents(Priority.LANGUID)
-                    .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
-        }
+        assertBusy(() -> {
+            assertThat(execute("select health from sys.health where table_name = 'test'")).hasRows("GREEN");
+        });
         ClusterState state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
@@ -509,7 +457,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                     .put(SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), "broken").build()).build();
         restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(brokenMeta));
 
-        ensureYellow(tableName); // wait for state recovery
+        ensureYellow(); // wait for state recovery
         state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();

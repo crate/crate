@@ -320,10 +320,9 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        if (request.includeTables() && (tablesToRestore == null || tablesToRestore.isEmpty())) {
+        if (request.includeTables() && tablesToRestore.isEmpty()) {
             resolvedTemplates.add(Metadata.ALL);
         }
-
     }
 
     public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
@@ -619,7 +618,7 @@ public class RestoreService implements ClusterStateApplier {
             validateExistingTemplates(templates);
             checkAliasNameConflicts(indices, aliases);
             // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(templates, mdBuilder, currentState);
+            restoreTemplates(templates, mdBuilder);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && snapshotMetadata.persistentSettings() != null) {
@@ -641,7 +640,7 @@ public class RestoreService implements ClusterStateApplier {
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
-                boolean includeAll = customMetadataTypes.size() == 0;
+                boolean includeAll = customMetadataTypes.isEmpty();
 
                 for (ObjectObjectCursor<String, Metadata.Custom> cursor : snapshotMetadata.customs()) {
                     if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
@@ -660,8 +659,10 @@ public class RestoreService implements ClusterStateApplier {
                 restoreInfo = new RestoreInfo(snapshotId.getName(), Collections.unmodifiableList(new ArrayList<>(indices.keySet())), shards.size(), shards.size() - failedShards(shards));
             }
 
+            // If older snapshot is restored, build RelationMetadata from IndexMetadata & IndexTemplateMetadata
+            Metadata newMetadata = metadataIndexUpgradeService.addOrUpgradeRelationMetadata(mdBuilder.build());
             RoutingTable rt = rtBuilder.build();
-            ClusterState updatedState = builder.metadata(mdBuilder).blocks(blocks).routingTable(rt).build();
+            ClusterState updatedState = builder.metadata(newMetadata).blocks(blocks).routingTable(rt).build();
             return allocationService.reroute(updatedState, "restored snapshot [" + snapshot + "]");
         }
 
@@ -701,9 +702,7 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        private void restoreTemplates(List<String> templates,
-                                      Metadata.Builder mdBuilder,
-                                      ClusterState currentState) {
+        private void restoreTemplates(List<String> templates, Metadata.Builder mdBuilder) {
             ImmutableOpenMap<String, IndexTemplateMetadata> templateMetadata = snapshotMetadata.templates();
             if (templateMetadata == null) {
                 return;
@@ -1105,16 +1104,16 @@ public class RestoreService implements ClusterStateApplier {
     /**
      * Restore snapshot request
      */
-    public static record RestoreRequest(String repositoryName,
-                                        String snapshotName,
-                                        IndicesOptions indicesOptions,
-                                        Settings settings,
-                                        TimeValue masterNodeTimeout,
-                                        boolean includeTables,
-                                        boolean includeCustomMetadata,
-                                        String[] customMetadataTypes,
-                                        boolean includeGlobalSettings,
-                                        String[] globalSettings) {
+    public record RestoreRequest(String repositoryName,
+                                 String snapshotName,
+                                 IndicesOptions indicesOptions,
+                                 Settings settings,
+                                 TimeValue masterNodeTimeout,
+                                 boolean includeTables,
+                                 boolean includeCustomMetadata,
+                                 String[] customMetadataTypes,
+                                 boolean includeGlobalSettings,
+                                 String[] globalSettings) {
 
         /**
          * @return rename pattern

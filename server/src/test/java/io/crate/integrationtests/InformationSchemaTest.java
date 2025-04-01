@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -114,6 +113,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| allocations| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| checks| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| cluster| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| cluster_health| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| health| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs_log| sys| BASE TABLE| NULL",
@@ -213,17 +213,16 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(72L);
+        assertThat(response.rowCount()).isEqualTo(73L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
-        ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(73L);
+        assertThat(response.rowCount()).isEqualTo(74L);
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderBy() {
+    public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
         String defaultSchema = sqlExecutor.getCurrentSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, " +
@@ -257,7 +256,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() {
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
@@ -272,7 +271,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() {
+    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         execute("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
@@ -287,7 +286,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() {
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
         String defaultSchema = sqlExecutor.getCurrentSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
@@ -308,7 +307,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectFromInformationSchemaTable() {
+    public void testSelectFromInformationSchemaTable() throws Exception {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='doc'");
         assertThat(response.rowCount()).isEqualTo(0L);
 
@@ -326,7 +325,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectBlobTablesFromInformationSchemaTable() {
+    public void testSelectBlobTablesFromInformationSchemaTable() throws Exception {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='blob'");
         assertThat(response.rowCount()).isEqualTo(0L);
 
@@ -352,7 +351,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testSelectPartitionedTablesFromInformationSchemaTable() {
+    public void testSelectPartitionedTablesFromInformationSchemaTable() throws Exception {
         execute("create table test (id int, name string, o object as (i int), primary key (id, o['i']))" +
                 " partitioned by (o['i'])");
         execute("insert into test (id, name, o) values (1, 'Youri', {i=10}), (2, 'Ruben', {i=20})");
@@ -370,7 +369,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTable() {
+    public void testSelectStarFromInformationSchemaTable() throws Exception {
         execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
@@ -474,9 +473,8 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testRefreshTableConstraints() {
+    public void testRefreshTableConstraints() throws Exception {
         execute("CREATE TABLE test (col1 INTEGER PRIMARY KEY, col2 STRING)");
-        ensureGreen();
         execute("SELECT table_name, constraint_name FROM Information_schema" +
                 ".table_constraints WHERE table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount()).isEqualTo(2L); // 1 PK + 1 NOT NULL derived from PK
@@ -488,7 +486,6 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("CREATE TABLE test2 (" +
             "   col1a STRING PRIMARY KEY," +
             "   \"Col2a\" TIMESTAMP WITH TIME ZONE NOT NULL)");
-        ensureGreen();
         execute("SELECT table_name, constraint_name FROM information_schema.table_constraints WHERE table_schema = ? " +
                 "ORDER BY table_name ASC",
             new Object[]{sqlExecutor.getCurrentSchema()});
@@ -556,8 +553,6 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table test2 (col21 double primary key, col22 string)");
         execute("create table abc (col31 integer primary key, col32 string)");
 
-        ensureGreen();
-
         execute("select table_name from INFORMATION_SCHEMA.table_constraints " +
                 "where table_schema not in ('sys', 'information_schema')  " +
                 "ORDER BY table_name");
@@ -576,7 +571,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1042);
+        assertThat(response.rowCount()).isEqualTo(1048);
     }
 
     @Test
@@ -688,7 +683,6 @@ public class InformationSchemaTest extends IntegTestCase {
                 "  ) not null" +
                 ") not null)");
 
-        ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where table_schema = ? order by column_name asc", new Object[]{defaultSchema});
         assertThat(response).hasColumns(
             "character_maximum_length",
@@ -794,7 +788,6 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSelectFromTableColumnsRefresh() {
         execute("create table test (col1 integer, col2 string, age integer)");
-        ensureGreen();
         execute("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
@@ -802,7 +795,6 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo("test");
 
         execute("create table test2 (col1 integer, col2 string, age integer)");
-        ensureGreen();
         execute("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns " +
                 "where table_schema = ? " +
@@ -817,7 +809,6 @@ public class InformationSchemaTest extends IntegTestCase {
     public void testSelectFromTableColumnsMultiField() {
         execute("create table test (col1 string, col2 string," +
                 "index col1_col2_ft using fulltext(col1, col2))");
-        ensureGreen();
         execute("select table_name, column_name," +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
@@ -854,7 +845,6 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
-        ensureYellow();
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount()).isEqualTo(1);
@@ -870,7 +860,6 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t1 (id integer, col1 string) clustered into 1 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 2 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
-        ensureYellow();
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where table_schema = ? and table_name != 't1'",
             new Object[]{sqlExecutor.getCurrentSchema()});
@@ -887,7 +876,6 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
-        ensureYellow();
         execute("select min(number_of_shards) as min_shards from information_schema.tables where table_name = 't1'");
         assertThat(response.rowCount()).isEqualTo(1);
 
@@ -901,13 +889,12 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(75L);
+        assertThat(response.rows()[0][0]).isEqualTo(76L);
     }
 
     @Test
     public void testGlobalCountDistinct() {
         execute("create table t3 (TableInfoid integer, col1 string)");
-        ensureGreen();
         execute("select count(distinct table_schema) from information_schema.tables order by count(distinct table_schema)");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(4L);
@@ -946,7 +933,6 @@ public class InformationSchemaTest extends IntegTestCase {
                 "    last_name string" +
                 "  )" +
                 ")");
-        ensureYellow();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertThat(response.rowCount()).isEqualTo(4);
 
@@ -975,7 +961,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testTablePartitions() {
+    public void testTablePartitions() throws Exception {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");
@@ -1124,7 +1110,6 @@ public class InformationSchemaTest extends IntegTestCase {
             "   metadata object as (date timestamp with time zone)" +
             ") clustered into 5 shards " +
             "partitioned by (metadata['date'])");
-        ensureYellow();
         execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
             new Object[]{
                 1, Map.of("date", "1970-01-01"),
@@ -1149,7 +1134,6 @@ public class InformationSchemaTest extends IntegTestCase {
             "   names array(string)" +
             ") partitioned by (date)");
         execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
-        ensureGreen();
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0]).isEqualTo("any1");
@@ -1192,7 +1176,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)
-    public void testRegexpMatch() {
+    public void testRegexpMatch() throws Exception {
         execute("create blob table blob_t1");
         execute("create table t(id String)");
         ensureYellow();
@@ -1273,7 +1257,6 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testOpenCloseTableInformation() {
         execute("create table t (i int)");
-        ensureYellow();
 
         execute("alter table t close");
         execute("select closed from information_schema.tables where table_name = 't'");
@@ -1287,7 +1270,7 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testOpenClosePartitionInformation() {
+    public void testOpenClosePartitionInformation() throws Exception {
         execute("create table t (i int) partitioned by (i)");
 
         execute("insert into t values (1)");
@@ -1326,12 +1309,11 @@ public class InformationSchemaTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectFromKeyColumnUsage() {
+    public void testSelectFromKeyColumnUsage() throws Exception {
         execute("create table table1 (id1 integer)");
         execute("create table table2 (id2 integer primary key)");
         execute("create table table3 (id3 integer, name string, other double, " +
                 "constraint pk_of_table3 primary key (id3, name))");
-        ensureYellow();
 
         execute("select * from information_schema.key_column_usage order by table_name, ordinal_position asc");
         assertThat(response.rowCount()).isEqualTo(3L);

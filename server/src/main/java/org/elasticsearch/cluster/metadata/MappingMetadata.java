@@ -42,11 +42,11 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
 
     private final CompressedXContent source;
 
-    public MappingMetadata(CompressedXContent mapping) throws IOException {
+    public MappingMetadata(CompressedXContent mapping) {
         this.source = mapping;
     }
 
-    public MappingMetadata(Map<String, Object> mapping) throws IOException {
+    public MappingMetadata(Map<String, Object> mapping) {
         this.source = new CompressedXContent(mapping);
     }
 

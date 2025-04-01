@@ -29,7 +29,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -76,14 +76,10 @@ public class DDLClusterStateHelpers {
         if (mapping.size() != 1 || mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE) == false) {
             mapping = MapBuilder.<String, Object>newMapBuilder().put(Constants.DEFAULT_MAPPING_TYPE, mapping).map();
         }
-        try {
-            return new IndexTemplateMetadata.Builder(indexTemplateMetadata)
-                .settings(settings)
-                .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
-                .build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return new IndexTemplateMetadata.Builder(indexTemplateMetadata)
+            .settings(settings)
+            .putMapping(new CompressedXContent(mapping))
+            .build();
     }
 
     @Nullable

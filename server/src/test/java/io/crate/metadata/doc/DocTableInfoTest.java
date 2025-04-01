@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
@@ -251,6 +252,60 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_lookup_name_by_source_with_columns_with_and_without_oids_added_to_table_created_before_5_5_0() {
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        SimpleReference withoutOid = new SimpleReference(
+            new ReferenceIdent(relationName, ColumnIdent.of("withoutOid", List.of())),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null
+        );
+        SimpleReference withOid = new SimpleReference(
+            new ReferenceIdent(relationName, ColumnIdent.of("withOid", List.of())),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            IndexType.PLAIN,
+            true,
+            false,
+            1,
+            1, // oid
+            false,
+            null
+        );
+        DocTableInfo docTableInfo = new DocTableInfo(
+            relationName,
+            Map.of(
+                withoutOid.column(), withoutOid,
+                withOid.column(), withOid
+            ),
+            Map.of(),
+            Set.of(),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.V_5_4_0,
+            null,
+            false,
+            Operation.ALL,
+            0
+        );
+        assertThat(docTableInfo.lookupNameBySourceKey().apply("withoutOid")).isEqualTo("withoutOid");
+        assertThat(docTableInfo.lookupNameBySourceKey().apply("1")).isEqualTo("withOid");
+    }
+
+    @Test
     public void test_lookup_name_by_source_returns_null_for_deleted_columns() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
@@ -395,6 +450,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         AtomicLong oidSupplier = new AtomicLong(2);
         DocTableInfo table2 = table1.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
@@ -426,6 +482,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo table3 = table2.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
@@ -451,6 +508,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() ->
             table.addColumns(
                 e.nodeCtx,
+                e.fulltextAnalyzerResolver(),
                 () -> 2,
                 List.of(ox),
                 new IntArrayList(),
@@ -487,6 +545,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         DocTableInfo newTable = table.addColumns(
             e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
             () -> 10, // any oid
             List.of(newReference1, newReference2, newReference3),
             new IntArrayList(),
@@ -512,6 +571,31 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(ColumnIdent.of("o")))
             .hasName("o")
             .hasType(oType);
+    }
+
+    @Test
+    public void test_add_columns_fails_eagerly_on_too_many_columns() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (\"mapping.total_fields.limit\" = 3)");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Function<String, Reference> newRef = name -> new SimpleReference(
+            new ReferenceIdent(table.ident(), ColumnIdent.of(name)),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -1,
+            null
+        );
+        Reference a = newRef.apply("a");
+        Reference b = newRef.apply("b");
+        Reference c = newRef.apply("c");
+        assertThatThrownBy(() -> table.addColumns(
+            e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
+            () -> 1,
+            List.of(a, b, c),
+            new IntArrayList(),
+            Map.of()
+        )).hasMessage("Limit of total columns [3] in table [doc.tbl] exceeded");
     }
 
     @Test

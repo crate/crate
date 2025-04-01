@@ -24,18 +24,19 @@ package io.crate.replication.logical.action;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,25 +71,23 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
      * (Without this setting, indices will use the default read-write engine)
      */
     public static ClusterState removeSubscriptionSetting(Collection<RelationName> relations,
-                                                  ClusterState currentState,
-                                                  Metadata.Builder mdBuilder) {
+                                                         ClusterState currentState,
+                                                         Metadata.Builder mdBuilder) {
         Metadata metadata = currentState.metadata();
         for (var relationName : relations) {
-            var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.LENIENT_EXPAND_OPEN,
-                relationName.indexNameOrAlias()
+            var concreteIndices = metadata.getIndices(
+                relationName,
+                List.of(),
+                false,
+                imd -> imd.getState() == State.OPEN ? imd : null
             );
-            for (var indexName : concreteIndices) {
-                IndexMetadata indexMetadata = currentState.metadata().index(indexName);
-                assert indexMetadata != null : "Cannot resolve indexMetadata for relation=" + relationName;
-                var settingsBuilder = Settings.builder().put(indexMetadata.getSettings());
-                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+            for (var indexMetadata : concreteIndices) {
+                var updatedSettings = removeSubscriptionSetting(indexMetadata.getSettings());
                 mdBuilder.put(
                     IndexMetadata
                         .builder(indexMetadata)
                         .settingsVersion(1 + indexMetadata.getSettingsVersion())
-                        .settings(settingsBuilder)
+                        .settings(updatedSettings)
                 );
             }
 
@@ -96,13 +95,33 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
             var templateMetadata = currentState.metadata().templates().get(possibleTemplateName);
             if (templateMetadata != null) {
                 var templateBuilder = new IndexTemplateMetadata.Builder(templateMetadata);
-                var settingsBuilder = Settings.builder()
-                    .put(templateMetadata.settings());
-                settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
-                mdBuilder.put(templateBuilder.settings(settingsBuilder.build()).build());
+                var settingsBuilder = removeSubscriptionSetting(templateMetadata.settings());
+                mdBuilder.put(templateBuilder.settings(settingsBuilder).build());
+            }
+
+            if (metadata.getRelation(relationName) instanceof RelationMetadata.Table table) {
+                mdBuilder.setTable(
+                    table.name(),
+                    table.columns(),
+                    removeSubscriptionSetting(table.settings()),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs()
+                );
             }
         }
         return ClusterState.builder(currentState).metadata(mdBuilder).build();
+    }
+
+    private static Settings removeSubscriptionSetting(Settings settings) {
+        var settingsBuilder = Settings.builder().put(settings);
+        settingsBuilder.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+        return settingsBuilder.build();
     }
 
     @Singleton

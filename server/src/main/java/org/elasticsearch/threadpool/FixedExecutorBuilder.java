@@ -42,28 +42,16 @@ public final class FixedExecutorBuilder extends ExecutorBuilder {
     private final Setting<Integer> queueSizeSetting;
 
     /**
-     * Construct a fixed executor builder; the settings will have the key prefix "thread_pool." followed by the executor name.
-     *
-     * @param settings  the node-level settings
-     * @param name      the name of the executor
-     * @param size      the fixed number of threads
-     * @param queueSize the size of the backing queue, -1 for unbounded
-     */
-    FixedExecutorBuilder(final Settings settings, final String name, final int size, final int queueSize) {
-        this(settings, name, size, queueSize, "thread_pool." + name);
-    }
-
-    /**
      * Construct a fixed executor builder.
      *
      * @param settings  the node-level settings
      * @param name      the name of the executor
      * @param size      the fixed number of threads
      * @param queueSize the size of the backing queue, -1 for unbounded
-     * @param prefix    the prefix for the settings keys
      */
-    public FixedExecutorBuilder(final Settings settings, final String name, final int size, final int queueSize, final String prefix) {
+    public FixedExecutorBuilder(Settings settings, String name, int size, int queueSize) {
         super(name);
+        String prefix = ExecutorBuilder.PREFIX_PART + name;
         final String sizeKey = settingsKey(prefix, "size");
         this.sizeSetting = new Setting<>(
             sizeKey,

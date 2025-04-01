@@ -63,6 +63,10 @@ public class CrateDB extends EnvironmentAwareCommand {
      * Main entry point for starting crate
      */
     public static void main(final String[] args) throws Exception {
+        // Remove once AWS SDK is upgraded to v2
+        // https://github.com/crate/crate/issues/12098
+        System.setProperty("aws.java.v1.disableDeprecationAnnouncement", "true");
+
         LogConfigurator.registerErrorListener();
         try (CrateDB crate = new CrateDB()) {
             int status = crate.main(args, Terminal.DEFAULT);

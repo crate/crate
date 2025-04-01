@@ -28,7 +28,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -36,17 +35,13 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.LocalClusterUpdateTask;
 import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.ProcessClusterEventTimeoutException;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -230,16 +225,13 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         if (request.waitForNodes().isEmpty() == false) {
             waitCount++;
         }
-        if (request.indices().length > 0) { // check that they actually exists in the meta data
-            waitCount++;
-        }
         return waitCount;
     }
 
     private boolean validateRequest(final ClusterHealthRequest request, ClusterState clusterState, final int waitCount) {
-        ClusterHealthResponse response = clusterHealth(request, clusterState, clusterService.getMasterService().numberOfPendingTasks(),
+        ClusterHealthResponse response = clusterHealth(clusterState, clusterService.getMasterService().numberOfPendingTasks(),
             allocationService.getNumberOfInFlightFetches(), clusterService.getMasterService().getMaxTaskWaitTime());
-        return prepareResponse(request, response, clusterState) == waitCount;
+        return prepareResponse(request, response) == waitCount;
     }
 
     private enum TimeoutState {
@@ -250,9 +242,9 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
 
     private ClusterHealthResponse getResponse(final ClusterHealthRequest request, ClusterState clusterState,
                                               final int waitFor, TimeoutState timeoutState) {
-        ClusterHealthResponse response = clusterHealth(request, clusterState, clusterService.getMasterService().numberOfPendingTasks(),
+        ClusterHealthResponse response = clusterHealth(clusterState, clusterService.getMasterService().numberOfPendingTasks(),
             allocationService.getNumberOfInFlightFetches(), clusterService.getMasterService().getMaxTaskWaitTime());
-        int readyCounter = prepareResponse(request, response, clusterState);
+        int readyCounter = prepareResponse(request, response);
         boolean valid = (readyCounter == waitFor);
         assert valid || (timeoutState != TimeoutState.OK);
         // If valid && timeoutState == TimeoutState.ZERO_TIMEOUT then we immediately found **and processed** a valid state, so we don't
@@ -262,8 +254,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         return response;
     }
 
-    static int prepareResponse(final ClusterHealthRequest request, final ClusterHealthResponse response,
-                               final ClusterState clusterState) {
+    static int prepareResponse(final ClusterHealthRequest request, final ClusterHealthResponse response) {
         int waitForCounter = 0;
         if (request.waitForStatus() != null && response.getStatus().value() <= request.waitForStatus().value()) {
             waitForCounter++;
@@ -286,15 +277,6 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
             } else if (waitForActiveShards.enoughShardsActive(response.getActiveShards())) {
                 // there are enough active shards to meet the requirements of the request
                 waitForCounter++;
-            }
-        }
-        if (request.indices().length > 0) {
-            try {
-                IndexNameExpressionResolver.concreteIndexNames(clusterState.metadata(), IndicesOptions.STRICT_EXPAND_OPEN_CLOSED, request.indices());
-                waitForCounter++;
-            } catch (IndexNotFoundException e) {
-                response.setStatus(ClusterHealthStatus.RED); // no indices, make sure its RED
-                // missing indices, wait a bit more...
             }
         }
         if (!request.waitForNodes().isEmpty()) {
@@ -349,24 +331,15 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
     }
 
 
-    private ClusterHealthResponse clusterHealth(ClusterHealthRequest request, ClusterState clusterState, int numberOfPendingTasks, int numberOfInFlightFetch,
+    private ClusterHealthResponse clusterHealth(ClusterState clusterState,
+                                                int numberOfPendingTasks,
+                                                int numberOfInFlightFetch,
                                                 TimeValue pendingTaskTimeInQueue) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("Calculating health based on state version [{}]", clusterState.version());
         }
 
-        String[] concreteIndices;
-        try {
-            concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
-        } catch (IndexNotFoundException e) {
-            // one of the specified indices is not there - treat it as RED.
-            ClusterHealthResponse response = new ClusterHealthResponse(clusterState.getClusterName().value(), Strings.EMPTY_ARRAY, clusterState,
-                    numberOfPendingTasks, numberOfInFlightFetch, UnassignedInfo.getNumberOfDelayedUnassigned(clusterState),
-                    pendingTaskTimeInQueue);
-            response.setStatus(ClusterHealthStatus.RED);
-            return response;
-        }
-
+        String[] concreteIndices = clusterState.metadata().getConcreteAllIndices();
         return new ClusterHealthResponse(clusterState.getClusterName().value(), concreteIndices, clusterState, numberOfPendingTasks,
                 numberOfInFlightFetch, UnassignedInfo.getNumberOfDelayedUnassigned(clusterState), pendingTaskTimeInQueue);
     }

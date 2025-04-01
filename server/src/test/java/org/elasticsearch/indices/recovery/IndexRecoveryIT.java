@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +51,6 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -92,7 +89,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.AnalysisModule;
-import org.elasticsearch.indices.flush.SyncedFlushUtil;
 import org.elasticsearch.node.RecoverySettingsChunkSizePlugin;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -225,7 +221,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         return nodeResponses;
     }
 
-    private void createAndPopulateIndex(String name, int nodeCount, int shardCount, int replicaCount) {
+    private void createAndPopulateIndex(String name, int nodeCount, int shardCount, int replicaCount) throws Exception {
 
         logger.info("--> creating test index: {}", name);
         execute("CREATE TABLE " + name + " (foo_int INT, foo_string TEXT, foo_float FLOAT) " +
@@ -520,7 +516,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         restoreRecoverySpeed();
 
         // wait for it to be finished
-        ensureGreen(index.getName());
+        ensureGreen();
 
         response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
@@ -818,7 +814,6 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testDisconnectsWhileRecovering() throws Exception {
-        final String indexName = "test";
         final Settings nodeSettings = Settings.builder()
             .put(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING.getKey(), "100ms")
             .put(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING.getKey(), "1s")
@@ -835,7 +830,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut()).isFalse();
 
-        execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
+        execute("CREATE TABLE doc.test (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
                 " number_of_replicas=0," +
                 " \"routing.allocation.include.color\" = 'blue'" +
@@ -846,7 +841,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         for (int i = 0; i < numDocs; i++) {
             args[i] = new Object[]{i};
         }
-        execute("INSERT INTO doc." + indexName + " (id) VALUES (?)", args);
+        execute("INSERT INTO doc.test (id) VALUES (?)", args);
         ensureGreen();
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
@@ -854,8 +849,8 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
-        execute("refresh table doc." + indexName);
-        var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
+        execute("refresh table doc.test");
+        var searchResponse = execute("SELECT COUNT(*) FROM doc.test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
         String[] recoveryActions = new String[]{
@@ -902,7 +897,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
 
         logger.info("--> starting recovery from blue to red");
-        execute("ALTER TABLE doc." + indexName + " SET (" +
+        execute("ALTER TABLE doc.test SET (" +
                 " number_of_replicas=1," +
                 " \"routing.allocation.include.color\" = 'red,blue'" +
                 ")");
@@ -915,7 +910,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
         var nodeRedExecutor = executor(redNodeName);
-        searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc." + indexName);
+        searchResponse = nodeRedExecutor.exec("SELECT COUNT(*) FROM doc.test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
     }
 
@@ -1129,7 +1124,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         execute("ALTER TABLE test SET (number_of_replicas = 1)");
         cluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
-        ensureGreen(indexName);
+        ensureGreen();
 
         final RecoveryResponse recoveryResponse = client().admin().indices().recoveries(new RecoveryRequest(indexName)).get();
         final List<RecoveryState> recoveryStates = recoveryResponse.shardRecoveryStates().get(indexName);
@@ -1141,7 +1136,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     }
 
     @Test
-    public void testDoNotInfinitelyWaitForMapping() {
+    public void testDoNotInfinitelyWaitForMapping() throws Exception {
         cluster().ensureAtLeastNumDataNodes(3);
         execute("CREATE ANALYZER test_analyzer (" +
                 " TOKENIZER standard," +
@@ -1213,93 +1208,17 @@ public class IndexRecoveryIT extends IntegTestCase {
             cluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-            assertThat(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut()).isFalse();
+
+            assertBusy(() -> {
+                execute("select count(*) from sys.allocations where table_name = 'test' and current_state = 'STARTED'");
+                assertThat(response).hasRows("2");
+            });
         } finally {
             allowToCompletePhase1Latch.countDown();
         }
         ensureGreen();
-    }
-
-    @Test
-    public void testRecoveryFlushReplica() throws Exception {
-        cluster().ensureAtLeastNumDataNodes(3);
-        String indexName = "test";
-        execute("CREATE TABLE doc.test (num INT)" +
-                " CLUSTERED INTO 1 SHARDS" +
-                " WITH (number_of_replicas = 0)");
-        int numDocs = randomIntBetween(1, 10);
-        var args = new Object[numDocs][];
-        for (int i = 0; i < numDocs; i++) {
-            args[i] = new Object[]{i};
-        }
-        execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        execute("ALTER TABLE doc.test SET (number_of_replicas = 1)");
-        ensureGreen();
-
-        ShardId shardId = null;
-        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        for (ShardStats shardStats : indicesStats.getIndex(indexName).getShards()) {
-            shardId = shardStats.getShardRouting().shardId();
-            if (shardStats.getShardRouting().primary() == false) {
-                assertThat(shardStats.getCommitStats().getNumDocs()).isEqualTo(numDocs);
-                SequenceNumbers.CommitInfo commitInfo = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(
-                    shardStats.getCommitStats().getUserData().entrySet());
-                assertThat(commitInfo.localCheckpoint).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
-                assertThat(commitInfo.maxSeqNo).isEqualTo(shardStats.getSeqNoStats().getMaxSeqNo());
-            }
-        }
-        SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId);
-        assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards()).isEqualTo(0));
-        execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-        ensureGreen(indexName);
-        // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
-        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        Set<String> syncIds = indicesStats.getIndex(indexName).getShards().stream()
-            .map(shardStats -> shardStats.getCommitStats().syncId())
-            .collect(Collectors.toSet());
-        assertThat(syncIds).hasSize(1);
-    }
-
-    @Test
-    public void testRecoveryUsingSyncedFlushWithoutRetentionLease() throws Exception {
-        cluster().ensureAtLeastNumDataNodes(2);
-        String indexName = "test";
-        execute("CREATE TABLE doc.test (num INT)" +
-                " CLUSTERED INTO 1 SHARDS" +
-                " WITH (" +
-                "  number_of_replicas = 1," +
-                "  \"unassigned.node_left.delayed_timeout\"='24h'," +
-                "  \"soft_deletes.retention_lease.period\"='100ms'," +
-                "  \"soft_deletes.retention_lease.sync_interval\"='100ms'" +
-                " )");
-        int numDocs = randomIntBetween(1, 10);
-        var args = new Object[numDocs][];
-        for (int i = 0; i < numDocs; i++) {
-            args[i] = new Object[]{i};
-        }
-        execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
-
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
-        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId).successfulShards()).isEqualTo(2);
-
-        final ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
-        cluster().restartNode(
-            clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
-            new TestCluster.RestartCallback() {
-                @Override
-                public Settings onNodeStopped(String nodeName) throws Exception {
-                    assertBusy(() -> {
-                        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-                        assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
-                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync))).isFalse();
-                    });
-                    return super.onNodeStopped(nodeName);
-                }
-            });
-
-        ensureGreen(indexName);
+        execute("select count(*) from sys.allocations where table_name = 'test' and current_state = 'STARTED'");
+        assertThat(response).hasRows("3");
     }
 
     @Test
@@ -1315,7 +1234,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 "  \"global_checkpoint_sync.interval\"='24h'," +
                 "  \"routing.allocation.include._name\"='" + String.join(",", nodes) + "'" +
                 " )");
-        ensureGreen(indexName);
+        ensureGreen();
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];
         for (int i = 0; i < numDocs; i++) {
@@ -1373,7 +1292,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(commitInfoAfterLocalRecovery.localCheckpoint).isEqualTo(lastSyncedGlobalCheckpoint);
         assertThat(commitInfoAfterLocalRecovery.maxSeqNo).isEqualTo(lastSyncedGlobalCheckpoint);
         assertThat(startRecoveryRequest.startingSeqNo()).isEqualTo(lastSyncedGlobalCheckpoint + 1);
-        ensureGreen(indexName);
+        ensureGreen();
         assertThat((long) localRecoveredOps.get()).isEqualTo(lastSyncedGlobalCheckpoint - localCheckpointOfSafeCommit);
         for (var recoveryState : client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get().shardRecoveryStates().get(indexName)) {
             if (startRecoveryRequest.targetNode().equals(recoveryState.getTargetNode())) {
@@ -1408,7 +1327,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
@@ -1437,7 +1356,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           }
                                       });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1462,7 +1381,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
@@ -1502,7 +1421,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 }
             });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1539,12 +1458,12 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
-        ensureGreen(indexName);
+        ensureGreen();
 
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
             for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
                 assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
@@ -1553,7 +1472,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
 
-        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
@@ -1564,7 +1483,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
         assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
@@ -1609,7 +1528,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                               execute("OPTIMIZE TABLE doc.test");
 
                                               assertBusy(() -> {
-                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
                                                   assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
                                                             ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
                                                         "should no longer have lease for " + replicaShardRouting).isFalse();
@@ -1618,7 +1537,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           }
                                       });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
         final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
@@ -1656,7 +1575,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
         execute("ALTER TABLE doc.test SET (number_of_replicas = 1)");
-        ensureGreen(indexName);
+        ensureGreen();
         final long maxSeqNoAfterRecovery = primary.seqNoStats().getMaxSeqNo();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent

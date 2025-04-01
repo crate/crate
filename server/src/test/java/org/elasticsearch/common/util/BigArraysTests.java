@@ -17,17 +17,26 @@
  * under the License.
  */
 
-package org.elasticsearch.action.admin.indices.flush;
+package org.elasticsearch.common.util;
 
-import org.elasticsearch.action.ActionType;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
-public class SyncedFlushAction extends ActionType<SyncedFlushResponse> {
+public class BigArraysTests extends ESTestCase {
 
-    public static final SyncedFlushAction INSTANCE = new SyncedFlushAction();
-    public static final String NAME = "indices:admin/synced_flush";
-
-    private SyncedFlushAction() {
-        super(NAME);
+    @Test
+    public void testOverSizeUsesMinPageCount() {
+        final int pageSize = 1 << (randomIntBetween(2, 16));
+        final int minSize = randomIntBetween(1, pageSize) * randomIntBetween(1, 100);
+        final long size = BigArrays.overSize(minSize, pageSize, 1);
+        assertThat(size).isGreaterThanOrEqualTo(minSize);
+        if (size >= pageSize) {
+            assertThat(size % pageSize)
+                .as(size + " is a multiple of " + pageSize)
+                .isEqualTo(0L);
+        }
+        assertThat(size - minSize).isLessThan(pageSize);
     }
 }

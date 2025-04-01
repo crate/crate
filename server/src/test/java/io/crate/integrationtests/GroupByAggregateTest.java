@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
@@ -49,7 +50,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     private final Setup setup = new Setup(sqlExecutor);
 
     @Before
-    public void initTestData() {
+    public void initTestData() throws Exception {
         setup.setUpEmployees();
     }
 
@@ -100,7 +101,6 @@ public class GroupByAggregateTest extends IntegTestCase {
                 "CLUSTERED BY (pk2) INTO 3 SHARDS " +
                 "PARTITIONED BY (pk3) " +
                 "WITH (column_policy = 'strict', number_of_replicas=0)");
-        ensureYellow();
         execute("insert into tickets (pk1, pk2, pk3, value) values (?, ?, ?, ?)",
             new Object[][]{
                 {1L, 42, 1425168000000L, "foo"},
@@ -109,7 +109,6 @@ public class GroupByAggregateTest extends IntegTestCase {
                 {4L, 45, 499651200000L, null},
                 {5L, 42, 0L, "foo"}
             });
-        ensureYellow();
         execute("refresh table tickets");
         execute("select pk2, count(pk2) from tickets group by pk2 order by pk2 limit 100");
         assertThat(response).hasRows(
@@ -119,7 +118,6 @@ public class GroupByAggregateTest extends IntegTestCase {
             "45| 1");
 
         execute("create table tickets_export (c2 int, c long) with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into tickets_export (c2, c) (select pk2, count(pk2) from tickets group by pk2)");
         execute("refresh table tickets_export");
 

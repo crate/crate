@@ -139,8 +139,8 @@ public class GatewayMetaState implements Closeable {
                     if (DiscoveryNode.isMasterEligibleNode(settings)) {
                         persistedState = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
                     } else {
-                        persistedState = new AsyncLucenePersistedState(settings, transportService.getThreadPool(),
-                                                                       new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState));
+                        persistedState = new AsyncLucenePersistedState(settings,
+                            new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState));
                     }
                     if (DiscoveryNode.isDataNode(settings)) {
                         metaStateService.unreferenceAll(); // unreference legacy files (only keep them for dangling indices functionality)
@@ -247,7 +247,9 @@ public class GatewayMetaState implements Closeable {
             upgradedMetadata.put(newMetadata, false);
         }
 
-        return changed ? upgradedMetadata.build() : metadata;
+        return changed
+            ? metadataUpgradeService.addOrUpgradeRelationMetadata(upgradedMetadata.build())
+            : metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
     }
 
     public static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
@@ -280,8 +282,8 @@ public class GatewayMetaState implements Closeable {
     // visible for testing
     public boolean allPendingAsyncStatesWritten() {
         final PersistedState ps = persistedState.get();
-        if (ps instanceof AsyncLucenePersistedState) {
-            return ((AsyncLucenePersistedState) ps).allPendingAsyncStatesWritten();
+        if (ps instanceof AsyncLucenePersistedState alps) {
+            return alps.allPendingAsyncStatesWritten();
         } else {
             return true;
         }
@@ -301,7 +303,7 @@ public class GatewayMetaState implements Closeable {
 
         private final Object mutex = new Object();
 
-        AsyncLucenePersistedState(Settings settings, ThreadPool threadPool, PersistedState persistedState) {
+        AsyncLucenePersistedState(Settings settings, PersistedState persistedState) {
             super(persistedState.getCurrentTerm(), persistedState.getLastAcceptedState());
             final String nodeName = Objects.requireNonNull(Node.NODE_NAME_SETTING.get(settings));
             threadPoolExecutor = EsExecutors.newFixed(

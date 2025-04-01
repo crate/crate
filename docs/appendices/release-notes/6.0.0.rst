@@ -64,6 +64,30 @@ Breaking Changes
   The setting defaulted to ``true`` since 4.3.0, was deprecated in 4.5.0 and
   soft deletes became mandatory in 5.0.0.
 
+- When casting an expression of type :ref:`OBJECT <type-object>` to an
+  :ref:`OBJECT <type-object>`, the inner types are merged instead of being
+  replaced by the target type and the target
+  :ref:`column policy <type-object-column-policy>` is used. The only exception
+  is when the target column policy is set to
+  :ref:`STRICT <type-object-columns-strict>`. In this case, only the target
+  inner type definition is used. See also the related
+  :ref:`documentation <cast_to_object>`
+
+- Removed support for patterns on the left side argument of
+  :ref:`LIKE/ILIKE <sql_dql_like>` operators because it led to ambiguities when
+  both sides contained possible pattern like strings e.g.::
+
+    SELECT 'a%' LIKE ANY(['a__']);
+
+- Updated the default ``compression`` of
+  :ref:`percentile aggregation <aggregation-percentile>` from ``100.0`` to
+  ``200.0`` which increases the accuracy of the approximations but with the
+  cost of slightly more memory consumption and increased execution time,
+  depending on the used data set.
+  To regain existing behaviour, adjust the ``compression`` argument of the
+  :ref:`percentile aggregation <aggregation-percentile>` accordingly.
+
+
 Deprecations
 ============
 
@@ -89,6 +113,9 @@ SQL Standard and PostgreSQL Compatibility
   :ref:`information_schema.administrable_role_authorizations <administrable_role_authorizations>`
   and :ref:`information_schema.role_table_grants <role_table_grants>` tables.
 
+- Populated the ``pg_index.indnkeyatts`` column with the number of key
+  attributes in the primary key.
+
 Data Types
 ----------
 
@@ -105,8 +132,34 @@ Scalar and Aggregation Functions
 - Added support for the :ref:`array_overlap<scalar-array_overlap>` scalar
   function and the associated :ref:`&&<array_overlap_operator>` operator.
 
+- Added support for the :ref:`aggregation-stddev-pop` function to compute
+  the population standard deviation.
+
+- Replaced `t-digest <https://github.com/tdunning/t-digest>`_ algorithm used by
+  :ref:`percentile aggregation <aggregation-percentile>` from ``AVLTreeDigest``
+  to ``MergingDigest`` to improve the consistency and accuracy of the result.
+
 Performance and Resilience Improvements
 ---------------------------------------
+
+- Improved the logic to push down expressions within the ``WHERE`` clause to the
+  table to use index lookups instead of resulting in post-filtering when using
+  virtual tables involving table functions and object columns. For example, the
+  following case now gets optimized::
+
+    SELECT *
+    FROM (
+      SELECT *, unnest(document['arr'])
+      FROM tbl
+    ) t
+    WHERE document['field1'] >=1;
+
+- Improved the performance for ``SELECT COUNT(not_null_column) FROM tbl``. It is
+  now executed the same way as ``SELECT COUNT(*) FROM tbl``.
+
+- Improved the handling of temporary unavailable shards during read-only
+  queries. There's now a higher chance that the system can deal with the
+  temporary failure without surfacing the error to the client.
 
 - Improved execution for queries with mixed implicit and explicit joins.
   Joins are now always executed in the original order of the query.
@@ -117,12 +170,20 @@ Performance and Resilience Improvements
   certain cases, where a shard has become idle after 5 minutes of no write
   activity.
 
+- Increased the frequency of retention lease synchronization, which will make
+  merges more likely to be able to remove recovery source.
+
 Administration and Operations
 -----------------------------
 
 - Added ``merge_id`` and ``fully_merged_docs`` columns to the sys.segments table
   to give more information on ongoing merges and whether the recovery source is
   still present in merged segments.
+
+- Added the :ref:`sys.cluster_health <sys-cluster_health>` table to provide
+  information about the health of the whole cluster in comparison to
+  the :ref:`sys.health <sys-health>` table which exposes health about each
+  table only.
 
 Client interfaces
 -----------------

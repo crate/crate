@@ -24,7 +24,6 @@ package io.crate.planner.node.ddl;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 
@@ -32,7 +31,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -54,6 +52,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -145,8 +144,8 @@ public class CreateSnapshotPlan implements Plan {
 
         boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
 
-        final HashSet<String> snapshotIndices;
-        final HashSet<String> templates = new HashSet<>();
+        final HashSet<RelationName> snapshotTables;
+        final HashSet<PartitionName> snapshotPartitions = new HashSet<>();
         if (createSnapshot.tables().isEmpty()) {
             for (SchemaInfo schemaInfo : schemas) {
                 for (TableInfo tableInfo : schemaInfo.getTables()) {
@@ -156,9 +155,9 @@ public class CreateSnapshotPlan implements Plan {
                     }
                 }
             }
-            snapshotIndices = new HashSet<>(AnalyzedCreateSnapshot.ALL_INDICES);
+            snapshotTables = new HashSet<>();
         } else {
-            snapshotIndices = HashSet.newHashSet(createSnapshot.tables().size());
+            snapshotTables = HashSet.newHashSet(createSnapshot.tables().size());
             for (Table<Symbol> table : createSnapshot.tables()) {
                 DocTableInfo docTableInfo;
                 try {
@@ -178,19 +177,14 @@ public class CreateSnapshotPlan implements Plan {
                         throw e;
                     }
                 }
-                if (docTableInfo.isPartitioned()) {
-                    templates.add(
-                        PartitionName.templateName(docTableInfo.ident().schema(), docTableInfo.ident().name())
-                    );
-                }
 
-
+                // Only add tables as snapshot tables, partitions are added separately, they also include their table
                 if (table.partitionProperties().isEmpty()) {
-                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices(metadata)));
+                    snapshotTables.add(docTableInfo.ident());
                 } else {
                     try {
                         PartitionName partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(table.partitionProperties(), x -> x.map(eval)), metadata);
-                        snapshotIndices.add(partitionName.asIndexName());
+                        snapshotPartitions.add(partitionName);
                     } catch (PartitionUnknownException ex) {
                         if (ignoreUnavailable) {
                             LOGGER.info(
@@ -208,15 +202,8 @@ public class CreateSnapshotPlan implements Plan {
         return new CreateSnapshotRequest(createSnapshot.repositoryName(), createSnapshot.snapshotName())
             .includeGlobalState(createSnapshot.tables().isEmpty())
             .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-            .indices(snapshotIndices.toArray(new String[0]))
-            .indicesOptions(
-                IndicesOptions.fromOptions(
-                    ignoreUnavailable,
-                    true,
-                    true,
-                    false,
-                    IndicesOptions.LENIENT_EXPAND_OPEN))
-            .templates(templates.stream().toList())
+            .relationNames(snapshotTables.stream().toList())
+            .partitionNames(snapshotPartitions.stream().toList())
             .settings(settings);
     }
 }

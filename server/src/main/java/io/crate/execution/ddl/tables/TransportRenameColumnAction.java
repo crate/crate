@@ -41,7 +41,7 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
 
     @VisibleForTesting
     public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
-        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
+        (req, docTableInfo, _, _, _) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
     private final NodeContext nodeContext;
 
     @Inject
@@ -62,7 +62,7 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
 
     @Override
     public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), RENAME_COLUMN_OPERATOR);
+        return new AlterTableTask<>(nodeContext, request.relationName(), null, RENAME_COLUMN_OPERATOR);
     }
 
 

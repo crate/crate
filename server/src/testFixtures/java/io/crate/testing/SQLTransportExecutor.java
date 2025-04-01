@@ -51,15 +51,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -136,11 +131,15 @@ public class SQLTransportExecutor {
     }
 
     public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
-        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
+        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT, null);
     }
 
     public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
-        return executeBulk(statement, bulkArgs, timeout);
+        return executeBulk(statement, bulkArgs, timeout, null);
+    }
+
+    public BulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, Session session) {
+        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT, session);
     }
 
     @VisibleForTesting
@@ -288,7 +287,7 @@ public class SQLTransportExecutor {
     private static void execute(String stmt,
                                 @Nullable Object[] args,
                                 ActionListener<SQLResponse> listener,
-                                Session session) {
+                                @Nullable Session session) {
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
@@ -307,12 +306,19 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<BulkResponse> listener) {
+    private void executeBulk(String stmt,
+                             @Nullable Object[][] bulkArgs,
+                             final ActionListener<BulkResponse> listener,
+                             @Nullable Session s) {
         if (bulkArgs != null && bulkArgs.length == 0) {
             listener.onResponse(new BulkResponse(0));
             return;
         }
-        Session session = newSession();
+
+        if (s == null) {
+            s = newSession();
+        }
+        final Session session = s; // Final for lambda.
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
@@ -487,10 +493,10 @@ public class SQLTransportExecutor {
     /**
      * @return an array with the rowCounts
      */
-    private BulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    private BulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout, @Nullable Session session) {
         try {
             FutureActionListener<BulkResponse> listener = new FutureActionListener<>();
-            execute(stmt, bulkArgs, listener);
+            executeBulk(stmt, bulkArgs, listener, session);
             var future = listener.exceptionally(err -> {
                 Exceptions.rethrowUnchecked(SQLExceptions.prepareForClientTransmission(AccessControl.DISABLED, err));
                 return null;
@@ -502,37 +508,85 @@ public class SQLTransportExecutor {
         }
     }
 
-    public ClusterHealthStatus ensureGreen() {
-        return ensureState(ClusterHealthStatus.GREEN);
+    public void ensureGreen() throws Exception {
+        ensureState(ClusterHealthStatus.GREEN, null);
     }
 
-    public ClusterHealthStatus ensureYellowOrGreen() {
-        return ensureState(ClusterHealthStatus.YELLOW);
+    public void ensureGreen(Integer expectedNumNodes) throws Exception {
+        ensureState(ClusterHealthStatus.GREEN, expectedNumNodes);
     }
 
-    private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
-        Client client = clientProvider.client();
-        ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(
-            new ClusterHealthRequest()
-                .waitForStatus(state)
-                .waitForEvents(Priority.LANGUID)
-                .waitForNoRelocatingShards(false)
-        ));
+    public void ensureYellowOrGreen(Integer expectedNumNOdes) throws Exception {
+        ensureState(ClusterHealthStatus.YELLOW, expectedNumNOdes);
+    }
 
-        if (actionGet.isTimedOut()) {
-            var clusterState = FutureUtils.get(client.admin().cluster().state(new ClusterStateRequest())).getState();
-            var pendingClusterTasks = FutureUtils.get(client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", clusterState, pendingClusterTasks);
-            assertThat(actionGet.isTimedOut()).as("timed out waiting for state").isFalse();
-        }
-        if (state == ClusterHealthStatus.YELLOW) {
-            assertThat(actionGet.getStatus()).satisfiesAnyOf(
-                s -> assertThat(s).isEqualTo(state),
-                s -> assertThat(s).isEqualTo(ClusterHealthStatus.GREEN));
-        } else {
-            assertThat(actionGet.getStatus()).isEqualTo(state);
-        }
-        return actionGet.getStatus();
+    public void ensureYellowOrGreen() throws Exception {
+        ensureState(ClusterHealthStatus.YELLOW, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void ensureState(ClusterHealthStatus state, @Nullable Integer expectedNumNodes) throws Exception {
+        assertThat(state)
+            .as("ensureState can only be used to check for GREEN or YELLOW state")
+            .isNotEqualTo(ClusterHealthStatus.RED);
+        ESTestCase.assertBusy(() -> {
+            SQLResponse response;
+            try {
+                response = exec(
+                    """
+                        select
+                            (select count(*) from sys.nodes) as num_nodes,
+                            (select
+                                {
+                                    health = health,
+                                    pending_tasks = pending_tasks
+                                } as cluster_health
+                                FROM sys.cluster_health
+                            ),
+                            (select
+                                {
+                                    all_states = array_unique(array_agg(current_state)),
+                                    primary_states = array_unique(array_agg(current_state) FILTER (WHERE primary = true)),
+                                    relocating = count(*) FILTER (WHERE current_state = 'RELOCATING')
+                                } as shards_state
+                                FROM sys.allocations
+                            )
+                        """
+                );
+            } catch (Exception e) {
+                // retry, don't trip assertBusy early.
+                // There can be recoverable exceptions:
+                // master not yet discovered, timeout, CoordinationStateRejectedException e.t.c
+                throw new AssertionError(e);
+            }
+            if (expectedNumNodes != null) {
+                assertThat(response.rows()[0][0]).isEqualTo((long) expectedNumNodes);
+            }
+            Map<String, Object> clusterHealth = (Map<String, Object>) response.rows()[0][1];
+            Map<String, Object> shardsState = (Map<String, Object>) response.rows()[0][2];
+
+            long pendingTasks = ((Number) clusterHealth.get("pending_tasks")).longValue();
+            assertThat(pendingTasks).isEqualTo(0);
+            long numRelocating = ((Number) shardsState.get("relocating")).longValue();
+            assertThat(numRelocating).isEqualTo(0);
+
+            String color = (String) clusterHealth.get("health");
+            List<String> statesToCheck;
+            if (state == ClusterHealthStatus.GREEN) {
+                assertThat(color).isEqualTo("GREEN");
+                statesToCheck = (List<String>) shardsState.get("all_states");
+            } else {
+                assertThat(color).satisfiesAnyOf(
+                    x -> assertThat(x).isEqualTo("GREEN"),
+                    x -> assertThat(x).isEqualTo("YELLOW")
+                );
+                statesToCheck = (List<String>) shardsState.get("primary_states");
+            }
+            assertThat(statesToCheck).satisfiesAnyOf(
+                x -> assertThat(x).isEmpty(),
+                x -> assertThat(x).isEqualTo(List.of("STARTED"))
+            );
+        });
     }
 
     public interface ClientProvider {

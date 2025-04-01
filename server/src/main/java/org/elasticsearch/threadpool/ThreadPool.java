@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -63,7 +62,6 @@ public class ThreadPool implements Scheduler {
         public static final String SAME = "same";
         public static final String GENERIC = "generic";
         public static final String LISTENER = "listener";
-        public static final String GET = "get";
         public static final String WRITE = "write";
         public static final String SEARCH = "search";
         public static final String MANAGEMENT = "management";
@@ -137,7 +135,6 @@ public class ThreadPool implements Scheduler {
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
         builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
         builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
-        builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, halfProcMaxAt10, 100));
         builders.put(Names.SEARCH, new FixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
         builders.put(Names.MANAGEMENT, new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)));
         // no queue as this means clients will need to handle rejections on listener queue even if the operation succeeded
@@ -198,31 +195,40 @@ public class ThreadPool implements Scheduler {
     public ThreadPoolStats stats() {
         ArrayList<ThreadPoolStats.Stats> stats = new ArrayList<>(executors.size() - 1); // "same" is excluded
         for (ExecutorHolder holder : executors.values()) {
+
             final String name = holder.info.getName();
             // no need to have info on "same" thread pool
             if ("same".equals(name)) {
                 continue;
             }
-            int threads = -1;
-            int queue = -1;
-            int active = -1;
-            long rejected = -1;
-            int largest = -1;
-            long completed = -1;
-            if (holder.executor() instanceof ThreadPoolExecutor threadPoolExecutor) {
-                threads = threadPoolExecutor.getPoolSize();
-                queue = threadPoolExecutor.getQueue().size();
-                active = threadPoolExecutor.getActiveCount();
-                largest = threadPoolExecutor.getLargestPoolSize();
-                completed = threadPoolExecutor.getCompletedTaskCount();
-                RejectedExecutionHandler rejectedExecutionHandler = threadPoolExecutor.getRejectedExecutionHandler();
-                if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
-                    rejected = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
-                }
+            ThreadPoolStats.Stats poolStats = stats(name);
+            if (poolStats != null) {
+                stats.add(poolStats);
             }
-            stats.add(new ThreadPoolStats.Stats(name, threads, queue, active, rejected, largest, completed));
         }
         return new ThreadPoolStats(stats);
+    }
+
+    @Nullable
+    public ThreadPoolStats.Stats stats(String name) {
+        ExecutorHolder holder = executors.get(name);
+        if (holder == null) {
+            return null;
+        }
+        if (holder.executor() instanceof ThreadPoolExecutor threadPoolExecutor) {
+            return new ThreadPoolStats.Stats(
+                name,
+                threadPoolExecutor.getPoolSize(),
+                threadPoolExecutor.getQueue().size(),
+                threadPoolExecutor.getActiveCount(),
+                threadPoolExecutor.getRejectedExecutionHandler() instanceof XRejectedExecutionHandler rejectedHandler
+                    ? rejectedHandler.rejected()
+                    : -1,
+                threadPoolExecutor.getLargestPoolSize(),
+                threadPoolExecutor.getCompletedTaskCount()
+            );
+        }
+        return new ThreadPoolStats.Stats(name, -1, -1, -1, -1, -1, -1);
     }
 
     /**

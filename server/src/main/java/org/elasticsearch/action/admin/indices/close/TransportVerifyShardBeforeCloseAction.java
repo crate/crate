@@ -19,9 +19,10 @@
 
 package org.elasticsearch.action.admin.indices.close;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -40,8 +41,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 public class TransportVerifyShardBeforeCloseAction extends TransportReplicationAction<
     TransportVerifyShardBeforeCloseAction.ShardRequest, TransportVerifyShardBeforeCloseAction.ShardRequest, ReplicationResponse> {
@@ -128,7 +127,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
             indexShard.sync();
         } else {
             indexShard.verifyShardBeforeIndexClosing();
-            indexShard.flush(new FlushRequest().force(true).waitIfOngoing(true));
+            indexShard.forceFlush();
             logger.trace("{} shard is ready for closing", shardId);
         }
     }

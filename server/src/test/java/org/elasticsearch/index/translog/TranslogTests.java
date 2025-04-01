@@ -2454,16 +2454,22 @@ public class TranslogTests extends ESTestCase {
         }
     }
 
-    private Translog getFailableTranslog(final FailSwitch fail, final TranslogConfig config, final boolean partialWrites,
-                                         final boolean throwUnknownException, String translogUUID,
-                                         final TranslogDeletionPolicy deletionPolicy) throws IOException {
+    private Translog getFailableTranslog(FailSwitch fail,
+                                         TranslogConfig config,
+                                         boolean partialWrites,
+                                         boolean throwUnknownException,
+                                         String translogUUID,
+                                         TranslogDeletionPolicy deletionPolicy) throws IOException {
         return getFailableTranslog(fail, config, partialWrites, throwUnknownException, translogUUID, deletionPolicy, null);
     }
 
-    private Translog getFailableTranslog(final FailSwitch fail, final TranslogConfig config, final boolean partialWrites,
-                                         final boolean throwUnknownException, String translogUUID,
-                                         final TranslogDeletionPolicy deletionPolicy,
-                                         final List<FileChannel> fileChannels) throws IOException {
+    private Translog getFailableTranslog(FailSwitch fail,
+                                         TranslogConfig config,
+                                         boolean partialWrites,
+                                         boolean throwUnknownException,
+                                         String translogUUID,
+                                         TranslogDeletionPolicy deletionPolicy,
+                                         List<FileChannel> fileChannels) throws IOException {
         final ChannelFactory channelFactory = (file, openOption) -> {
             FileChannel channel = FileChannel.open(file, openOption);
             if (fileChannels != null) {
@@ -2764,8 +2770,14 @@ public class TranslogTests extends ESTestCase {
             String generationUUID = null;
             try {
                 boolean committing = false;
-                final Translog failableTLog = getFailableTranslog(fail, config, randomBoolean(), false,
-                    generationUUID, createTranslogDeletionPolicy());
+                final Translog failableTLog = getFailableTranslog(
+                    fail,
+                    config,
+                    randomBoolean(),
+                    false,
+                    generationUUID,
+                    createTranslogDeletionPolicy()
+                );
                 try {
                     LineFileDocs lineFileDocs = new LineFileDocs(random()); //writes pretty big docs so we cross buffer boarders regularly
                     for (int opsAdded = 0; opsAdded < numOps; opsAdded++) {
@@ -2789,7 +2801,6 @@ public class TranslogTests extends ESTestCase {
                             syncedDocs.clear();
                             failableTLog.trimUnreferencedReaders();
                             committing = false;
-                            syncedDocs.clear();
                         }
                     }
                     // we survived all the randomness!!!
@@ -2805,7 +2816,9 @@ public class TranslogTests extends ESTestCase {
                     assertThat(ex).isEqualTo(failableTLog.getTragicException());
                 } catch (RuntimeException ex) {
                     assertThat("simulated").isEqualTo(ex.getMessage());
-                    assertThat(ex).isEqualTo(failableTLog.getTragicException());
+                    assertThat(failableTLog.getTragicException())
+                        .as("Don't consider failures while trimming unreferenced readers as tragedy")
+                        .isNull();
                 } finally {
                     Checkpoint checkpoint = Translog.readCheckpoint(config.getTranslogPath());
                     if (checkpoint.numOps == unsynced.size() + syncedDocs.size()) {

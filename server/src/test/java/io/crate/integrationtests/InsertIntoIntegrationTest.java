@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -145,7 +146,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "\"string\" array(string) " +
                 ") with (number_of_replicas=0)"
         );
-        ensureYellow();
 
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
             new Object[]{
@@ -374,7 +374,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "stuff object(dynamic) AS (" +
                 "  level1 string not null" +
                 ") not null)");
-        ensureYellow();
 
         assertSQLError(() -> execute("insert into test (stuff) values('{\"other_field\":\"value\"}')"))
             .hasPGError(INTERNAL_ERROR)
@@ -390,7 +389,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "    level2 string not null" +
                 "  ) not null" +
                 ") not null)");
-        ensureYellow();
 
         assertSQLError(() -> execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"))
             .hasPGError(INTERNAL_ERROR)
@@ -992,7 +990,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "  dirty_names array(string)," +
                 "  lashes short primary key" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
         int bulkSize = randomIntBetween(1, 250);
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
@@ -1032,7 +1029,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " \"user\" object as (name string)," +
                 " name as concat(\"user\"['name'], 'bar')" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test_generated_column (ts, \"user\") values (?, ?)", new Object[][]{
             new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
             new Object[]{"2015-11-18T17:41:00", null},
@@ -1076,7 +1072,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00Z"});
         execute("refresh table test_generated_column");
@@ -1096,7 +1091,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (" +
             "id int, " +
             "created timestamp with time zone generated always as current_timestamp)");
-        ensureYellow();
         execute("insert into t (id) values(1)");
         execute("refresh table t");
         execute("select id, created from t");
@@ -1108,7 +1102,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void testInsertOnCurrentSchemaGeneratedColumn() {
         execute("create table t (id int, schema string generated always as current_schema)", (String) null);
         execute("create table t (id int, schema string generated always as current_schema)", "foo");
-        ensureYellow();
 
         execute("insert into t (id) values (1)", (String) null);
         execute("refresh table t", (String) null);
@@ -1130,7 +1123,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
 
         assertSQLError(() -> execute("insert into generated_column (id, ts) values (1, null)"))
             .hasPGError(INTERNAL_ERROR)
@@ -1145,7 +1137,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
         assertSQLError(() -> execute("insert into generated_column (id, gen_col) values (1, null)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -1163,7 +1154,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00"});
@@ -1187,7 +1177,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") partitioned by (day) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
             1, "2015-11-18T11:11:00"});
@@ -1212,7 +1201,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into source_table (id, ts, day) values (?, ?, ?)", new Object[]{
             1, "2015-11-18T11:11:00", "2015-11-18T11:11:00"});
@@ -1329,7 +1317,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into source (id) values (1)");
         execute("refresh table source");
@@ -2005,7 +1992,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             )
             """
         );
-        ensureGreen();
         execute("INSERT INTO tbl(a) VALUES (1)");
         execute("refresh table tbl");
 
@@ -2038,7 +2024,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
      * Tests a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
      */
     @Test
-    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() {
+    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() throws Exception {
         execute("""
             CREATE TABLE tbl (
                id int PRIMARY KEY,

@@ -120,17 +120,29 @@ public class SysClusterSettingsTest extends IntegTestCase {
     public void testDynamicTransientSettings() throws Exception {
         execute("set global transient stats.jobs_log_size = 1, stats.operations_log_size = 2, stats.enabled = false");
 
+        // We had a regression on 5.10 that would cause transient setting survive restart
+        // if we also set persistent settings or there was any other metadata change visible by the Metadata.isGlobalStateEquals().
+        execute("set global persistent stats['jobs_log_expiration'] = 123");
+
         execute("select settings from sys.cluster");
         assertSettingsValue(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1);
         assertSettingsValue(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 2);
         assertSettingsValue(JobsLogService.STATS_ENABLED_SETTING.getKey(), false);
+        assertSettingsValue(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "123ms");
 
         cluster().fullRestart();
 
-        execute("select settings from sys.cluster");
-        assertSettingsDefault(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
-        assertSettingsDefault(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING);
-        assertSettingsDefault(JobsLogService.STATS_ENABLED_SETTING);
+        // Can take a bit for state recovery to load persisted settings
+        assertBusy(() -> {
+            execute("select settings from sys.cluster");
+            // Transient settings are back to defaults.
+            assertSettingsDefault(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
+            assertSettingsDefault(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING);
+            assertSettingsDefault(JobsLogService.STATS_ENABLED_SETTING);
+
+            // Persisted value survived restart.
+            assertSettingsValue(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "123ms");
+        });
     }
 
     @Test

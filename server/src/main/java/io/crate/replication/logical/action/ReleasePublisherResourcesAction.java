@@ -76,7 +76,7 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
                 clusterService,
                 transportService,
                 Request::new,
-                ThreadPool.Names.GET
+                ThreadPool.Names.SAME // operation is fairly fast
             );
             this.publisherRestoreService = publisherRestoreService;
             TransportActionProxy.registerProxyAction(
@@ -108,7 +108,7 @@ public class ReleasePublisherResourcesAction extends ActionType<AcknowledgedResp
         }
     }
 
-    public static class Request extends RestoreShardRequest<Request> {
+    public static class Request extends RestoreShardRequest {
 
         public Request(String restoreUUID,
                        DiscoveryNode node,

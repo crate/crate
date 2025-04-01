@@ -22,7 +22,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -74,6 +73,7 @@ import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
+import io.crate.metadata.RelationName;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -122,7 +122,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .execute(
                 CreateSnapshotAction.INSTANCE,
                 new CreateSnapshotRequest(repoName, "fast-snapshot")
-                    .indices("tbl_fast")
+                    .relationNames(List.of(new RelationName("doc", "tbl_fast")))
                     .waitForCompletion(true)
             ).thenApply(x -> x.getSnapshotInfo());
         assertSuccessful(future);
@@ -417,7 +417,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .execute(
                 CreateSnapshotAction.INSTANCE,
                 new CreateSnapshotRequest(repoName, "snapshot-three")
-                    .indices(secondTable)
+                    .relationNames(List.of(new RelationName("doc", secondTable)))
                     .waitForCompletion(true)
             ).thenApply(x -> x.getSnapshotInfo());
 
@@ -707,13 +707,12 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final String repoName = "test-repo";
         createRepo(repoName, "mock");
 
-        final String table = "tbl1";
         execute(
             "create table tbl1 (id string primary key, s string) " +
                 "clustered into 1 shards with (number_of_replicas = 1)");
         execute("insert into tbl1 (id, s) values ('some_id', 'foo')");
         execute("refresh table tbl1");
-        ensureYellow(table);
+        ensureYellow();
 
         mockRepo(repoName, dataNode).blockOnDataFiles(true);
         var firstSnapshotResponse = startFullSnapshotFromMasterClient(repoName, "snapshot-one");
@@ -721,14 +720,14 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         cluster().startDataOnlyNode();
         ensureStableCluster(3);
-        ensureGreen(table);
+        ensureGreen();
 
         String secondSnapshot = "snapshot-two";
         var secondSnapshotResponse = startFullSnapshotFromMasterClient(repoName, secondSnapshot);
 
         cluster().restartNode(dataNode, TestCluster.EMPTY_CALLBACK);
         ensureStableCluster(3);
-        ensureGreen(table);
+        ensureGreen();
 
         assertThat(firstSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
         assertThat(secondSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
@@ -841,12 +840,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         createRepo(repoName, "fs");
 
         final String testTable = "tbl1";
+        final RelationName relationName = new RelationName("doc", testTable);
         final int noShards = between(2, 10);
         // Create index on two nodes and make sure each node has a primary by setting no replicas
         execute("CREATE TABLE \"" + testTable + "\"(a int, s string) CLUSTERED BY (a) INTO " + noShards +
                 " SHARDS WITH (number_of_replicas=0)");
 
-        ensureGreen(testTable);
+        ensureGreen();
 
         logger.info("--> indexing some data");
         Object[][] data = new Object[100][2];
@@ -878,8 +878,8 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         logger.info("--> start two snapshots");
         final String snapshotOne = "snap-1";
         final String snapshotTwo = "snap-2";
-        final var snapOneResponse = startFullSnapshot(repoName, snapshotOne, testTable);
-        final var snapTwoResponse = startFullSnapshot(repoName, snapshotTwo, testTable);
+        final var snapOneResponse = startFullSnapshot(repoName, snapshotOne, relationName);
+        final var snapTwoResponse = startFullSnapshot(repoName, snapshotTwo, relationName);
 
         awaitNoMoreRunningOperations();
         logger.info("--> wait for snapshot to complete");
@@ -1274,8 +1274,8 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
     private CompletableFuture<SnapshotInfo> startFullSnapshot(String repoName,
                                                               String snapshotName,
-                                                              String... indices) {
-        return createSnapshot(cluster().client(), repoName, snapshotName, false, indices);
+                                                              RelationName... relationNames) {
+        return createSnapshot(cluster().client(), repoName, snapshotName, false, relationNames);
     }
 
     private CompletableFuture<SnapshotInfo> startFullSnapshotFromMasterClient(String repoName,
@@ -1287,10 +1287,10 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                                                            String repoName,
                                                            String snapshotName,
                                                            boolean partial,
-                                                           String... indices) {
+                                                           RelationName... relationNames) {
         logger.info("--> creating full snapshot [{}] to repo [{}]", snapshotName, repoName);
         CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest(repoName, snapshotName)
-            .indices(indices)
+            .relationNames(Arrays.asList(relationNames))
             .partial(partial)
             .waitForCompletion(true);
         return client
@@ -1380,12 +1380,9 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         logger.info("--> waiting for master to finish all repo operations on its SNAPSHOT pool");
         final ThreadPool masterThreadPool = cluster().getMasterNodeInstance(ThreadPool.class);
         assertBusy(() -> {
-            for (ThreadPoolStats.Stats stat : masterThreadPool.stats()) {
-                if (ThreadPool.Names.SNAPSHOT.equals(stat.getName())) {
-                    assertThat(stat.getActive()).isEqualTo(0);
-                    break;
-                }
-            }
+            ThreadPoolStats.Stats stats = masterThreadPool.stats(ThreadPool.Names.SNAPSHOT);
+            assertThat(stats).isNotNull();
+            assertThat(stats.active()).isEqualTo(0);
         });
     }
 }

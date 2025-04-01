@@ -31,11 +31,11 @@ import java.util.function.Function;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.annotations.GuardedBy;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.RefCountedItem;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -44,11 +44,9 @@ import io.crate.data.RowConsumer;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 
 
@@ -250,14 +248,6 @@ public class CollectTask implements Task {
 
     @VisibleForTesting
     static String threadPoolName(CollectPhase phase, boolean involvedIO) {
-        if (phase instanceof RoutedCollectPhase) {
-            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-            if (collectPhase.maxRowGranularity() == RowGranularity.NODE
-                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-                // Node or Shard system table collector
-                return ThreadPool.Names.GET;
-            }
-        }
         // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
         // of a context switch would be bigger than running this directly.
         return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;

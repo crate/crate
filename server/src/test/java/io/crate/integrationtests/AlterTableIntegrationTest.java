@@ -23,12 +23,12 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertExpectedLogMessages;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -413,5 +413,34 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("alter table tbl set (\"routing.allocation.total_shards_per_node\" = 200)");
         execute("alter table tbl partition (p = 1) set (number_of_shards = ?)", new Object[] { numShards }, TimeValue.timeValueSeconds(30));
         assertBusy(() -> assertThat(execute("select * from tbl")).hasRowCount(4));
+    }
+
+    @Test
+    public void test_renamed_tables_can_be_queried_after_cluster_restart() throws Exception {
+        execute("CREATE TABLE q1 (a INTEGER)");
+        execute("CREATE TABLE q2 (a INTEGER)");
+
+        execute("INSERT INTO q1 VALUES (1), (2)");
+        execute("INSERT INTO q2 VALUES (3), (4)");
+        execute("REFRESH TABLE q1, q2");
+
+        execute("ALTER TABLE q1 RENAME TO q1_old");
+        execute("ALTER TABLE q2 RENAME TO q1");
+
+        cluster().fullRestart();
+
+        ensureGreen();
+
+        var res = execute("SELECT * FROM q1_old order by a");
+        assertThat(res).hasRows("1", "2");
+
+        res = execute("SELECT * FROM q1 order by a");
+        assertThat(res).hasRows("3", "4");
+
+        assertSQLError(() -> execute("SELECT * FROM q2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 'q2' unknown");
+
     }
 }

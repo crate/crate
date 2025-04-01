@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,31 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.lucene;
 
-import io.crate.metadata.RelationName;
-import org.elasticsearch.index.shard.ShardId;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Locale;
+import org.apache.lucene.util.AttributeFactory;
+import org.junit.Test;
 
-public class UnavailableShardsException extends RuntimeException implements TableScopeException {
+public class DisableGraphAttributeTest {
 
-    private final RelationName relationName;
-
-    public UnavailableShardsException(ShardId shardId) {
-        super(genMessage(shardId));
-        this.relationName = RelationName.fromIndexName(shardId.getIndexName());
+    @Test
+    public void testInstantiation() {
+        var impl = AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY.createAttributeInstance(DisableGraphAttribute.class);
+        assertThat(impl).isInstanceOf(DisableGraphAttributeImpl.class);
     }
 
-    private static String genMessage(ShardId shardId) {
-        return String.format(Locale.ENGLISH, "the shard %s of table %s is not available",
-            shardId.id(), shardId.getIndex());
-    }
-
-    @Override
-    public Collection<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
-    }
 }

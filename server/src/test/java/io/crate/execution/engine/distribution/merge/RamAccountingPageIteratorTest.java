@@ -30,17 +30,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -145,12 +143,14 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             () -> new TypedRowAccounting(
                 types,
                 ConcurrentRamAccounting.forCircuitBreaker(
-                    "test",
-                    new MemoryCircuitBreaker(
-                        new ByteSizeValue(197, ByteSizeUnit.BYTES),
-                        1,
-                        LogManager.getLogger(RowAccountingWithEstimatorsTest.class)), 0
-                )
+                    "query",
+                    new ChildMemoryCircuitBreaker(
+                        new BreakerSettings("query", 197),
+                        new NoneCircuitBreakerService()
+                    ),
+                    0
+                ),
+                0
             ));
         assertThatThrownBy(() -> pagingIterator.merge(Arrays.asList(
                 new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),

@@ -90,7 +90,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
-    public static long COLUMN_OID_UNASSIGNED = 0L;
+    public static final long COLUMN_OID_UNASSIGNED = 0L;
 
     public static final String ALL = "_all";
     public static final String UNKNOWN_CLUSTER_UUID = "_na_";
@@ -106,28 +106,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         SNAPSHOT
     }
 
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call but will not be persisted
-     */
-    public static EnumSet<XContentContext> API_ONLY = EnumSet.of(XContentContext.API);
 
     /**
      * Indicates that this custom metadata will be returned as part of an API call and will be persisted between
      * node restarts, but will not be a part of a snapshot global state
      */
-    public static EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
-
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call and stored as a part of
-     * a snapshot global state, but will not be persisted between node restarts
-     */
-    public static EnumSet<XContentContext> API_AND_SNAPSHOT = EnumSet.of(XContentContext.API, XContentContext.SNAPSHOT);
-
-    /**
-     * Indicates that this custom metadata will be returned as part of an API call, stored as a part of
-     * a snapshot global state, and will be persisted between node restarts
-     */
-    public static EnumSet<XContentContext> ALL_CONTEXTS = EnumSet.allOf(XContentContext.class);
+    static final EnumSet<XContentContext> API_AND_GATEWAY = EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
 
     public interface Custom extends NamedDiffable<Custom> {
 
@@ -682,6 +666,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public static class Builder {
 
+        public static final LongSupplier NO_OID_COLUMN_OID_SUPPLIER = () -> COLUMN_OID_UNASSIGNED;
         private String clusterUUID;
         private boolean clusterUUIDCommitted;
         private long version;
@@ -1252,7 +1237,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public static final MetadataStateFormat<Metadata> FORMAT_PRESERVE_CUSTOMS = createMetadataStateFormat(true);
 
     private static MetadataStateFormat<Metadata> createMetadataStateFormat(boolean preserveUnknownCustoms) {
-        return new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
+        return new MetadataStateFormat<>(GLOBAL_STATE_FILE_PREFIX) {
 
             @Override
             public Metadata fromXContent(XContentParser parser) throws IOException {
@@ -1308,6 +1293,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    public List<RelationMetadata.Table> tableRelations() {
+        ArrayList<RelationMetadata.Table> relations = new ArrayList<>();
+        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
+            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
+                RelationMetadata relationMetadata = relationCursor.value;
+                if (relationMetadata instanceof RelationMetadata.Table table) {
+                    relations.add(table);
+                }
+            }
+        }
+        return relations;
+    }
+
     /**
      * <p>
      * Resolve the indices for a relation and return their data either as
@@ -1317,6 +1315,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * {@code null} values returned from {@code as} are excluded from the result.
      * This can be used to filter based on state or similar.
      * </p>
+     * @param partitionValues filter by a single partition. Use `List.of()` to include all partitions.
      **/
     public <T> List<T> getIndices(RelationName relationName,
                                   List<String> partitionValues,
@@ -1360,19 +1359,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             : IndicesOptions.LENIENT_EXPAND_OPEN;
 
         Index[] indices;
-        if (partitionValues.isEmpty()) {
-            indices = IndexNameExpressionResolver.concreteIndices(
-                this,
-                indicesOptions,
-                relationName.indexNameOrAlias()
-            );
-        } else {
-            PartitionName partitionName = new PartitionName(relationName, partitionValues);
-            indices = IndexNameExpressionResolver.concreteIndices(
-                this,
-                indicesOptions,
-                partitionName.asIndexName()
-            );
+        try {
+            if (partitionValues.isEmpty()) {
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    this,
+                    indicesOptions,
+                    relationName.indexNameOrAlias()
+                );
+            } else {
+                PartitionName partitionName = new PartitionName(relationName, partitionValues);
+                indices = IndexNameExpressionResolver.concreteIndices(
+                    this,
+                    indicesOptions,
+                    partitionName.asIndexName()
+                );
+            }
+        } catch (IndexNotFoundException ex) {
+            throw new RelationUnknown(relationName);
         }
         ArrayList<T> result = new ArrayList<>(indices.length);
         for (int i = 0; i < indices.length; i++) {

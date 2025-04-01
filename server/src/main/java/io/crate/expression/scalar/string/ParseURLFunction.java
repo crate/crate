@@ -43,17 +43,31 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public final class ParseURLFunction extends Scalar<Object, String> {
 
     private static final String NAME = "parse_url";
 
+    // Our type signatures do not support carrying over the column policy, so lets just use the default one (DYNAMIC)
+    private static final ObjectType RETURN_TYPE = ObjectType.of(ColumnPolicy.DYNAMIC)
+        .setInnerType("scheme", DataTypes.STRING)
+        .setInnerType("userinfo", DataTypes.STRING)
+        .setInnerType("hostname", DataTypes.STRING)
+        .setInnerType("port", DataTypes.INTEGER)
+        .setInnerType("path", DataTypes.STRING)
+        .setInnerType("query", DataTypes.STRING)
+        .setInnerType("fragment", DataTypes.STRING)
+        .setInnerType("parameters", ObjectType.of(ColumnPolicy.DYNAMIC).build())
+        .build();
+
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
-                .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ParseURLFunction::new
@@ -74,10 +88,10 @@ public final class ParseURLFunction extends Scalar<Object, String> {
         return parseURL(url);
     }
 
-    private final Object parseURL(String urlText) {
+    private static Object parseURL(String urlText) {
         final Map<String, Object> urlMap = new HashMap<>();
 
-        URL url = null;
+        URL url;
 
         try {
             url = URL.of(new URI(urlText), null);
@@ -99,23 +113,23 @@ public final class ParseURLFunction extends Scalar<Object, String> {
         return urlMap;
     }
 
-    private final Map<String,List<String>> parseQuery(String query) {
+    private static Map<String,List<String>> parseQuery(String query) {
         if (Strings.isNullOrEmpty(query)) {
             return null;
         }
 
-        Map<String,List<String>> queryMap = new HashMap<String,List<String>>();
+        Map<String,List<String>> queryMap = new HashMap<>();
         String[] parameters = query.split("&(?!amp)");
         for (String parameter : parameters) {
             final int idx = parameter.indexOf("=");
             final String key = idx > 0 ? decodeText(parameter.substring(0, idx)) : decodeText(parameter);
             final String value = idx > 0 && parameter.length() > idx + 1 ? decodeText(parameter.substring(idx + 1)) : null;
-            queryMap.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+            queryMap.computeIfAbsent(key, _ -> new ArrayList<>()).add(value);
         }
         return queryMap;
     }
 
-    private final String decodeText(String text) {
+    private static String decodeText(String text) {
         return text != null ? URLDecoder.decode(text, StandardCharsets.UTF_8) : null;
     }
 

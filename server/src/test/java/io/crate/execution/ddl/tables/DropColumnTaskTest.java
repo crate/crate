@@ -23,7 +23,6 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -49,14 +48,18 @@ import io.crate.types.ObjectType;
 
 public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
+    private static AlterTableTask<DropColumnRequest> buildDropColumnTask(SQLExecutor e, RelationName tblName) {
+        return new AlterTableTask<>(
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+    }
+
     @Test
     public void test_can_drop_simple_column() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState initialState = clusterService.state();
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
@@ -90,8 +93,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int GENERATED ALWAYS AS (x+1), z int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState initialState = clusterService.state();
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
@@ -124,8 +126,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("o", "oo"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
@@ -148,11 +149,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (o2 object as (c int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx,
-            tbl.ident(),
-            TransportDropColumnAction.DROP_COLUMN_OPERATOR
-        );
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         // parent specified first then its child
         Reference colToDrop1 = tbl.getReference(ColumnIdent.of("o", "o2"));
         Reference colToDrop2 = tbl.getReference(ColumnIdent.of("o", List.of("o2", "c")));
@@ -172,8 +169,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "z");
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -192,8 +188,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int check (x > 0), y int check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -217,8 +212,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int, z as (y + 1))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("y"));
 
         DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
@@ -234,8 +228,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (" +
                       "a int check (o['oo']['a'] > 0), b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo", "a"));
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -257,8 +250,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int, check (x > 0), check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -285,7 +277,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("2")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName());
         DocTableInfo tbl = e.resolveTableInfo("doc.parted");
-        var dropColumnTask = new AlterTableTask<>(e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
             refIdent,
@@ -309,8 +301,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (" +
                 "a int, ooo object AS (a int))), check (o['oo']['a'] + o['oo']['ooo']['a']> 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        var dropColumnTask = new AlterTableTask<>(
-            e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+        var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo"));
         SimpleReference colToDrop = new SimpleReference(
             refIdent,

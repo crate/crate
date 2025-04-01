@@ -19,6 +19,7 @@
 
 package org.elasticsearch.gateway;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -31,16 +32,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
@@ -88,7 +83,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
 
         String nodeWithReplica = cluster().startDataOnlyNode();
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
-        ensureGreen(indexName);
 
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(100, 500)});
 
@@ -125,7 +119,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 create table doc.dummy (x int)
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
-            ensureGreen(indexName);
+            assertBusy(() -> {
+                execute("select health from sys.health where table_name = 'test'");
+                assertThat(response).hasRows("GREEN");
+            });
             assertThat(cluster().nodesInclude(indexName)).contains(nodeWithReplica);
             assertNoOpRecoveries(indexName);
             blockRecovery.countDown();
@@ -157,16 +154,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         String nodeWithReplica = cluster().startDataOnlyNode();
         DiscoveryNode discoNodeWithReplica = cluster().getInstance(ClusterService.class, nodeWithReplica).localNode();
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
-        ensureGreen(indexName);
+        ensureGreen();
         execute("insert into doc.test (x) values (?)", new Object[][] {
             new Object[] { randomIntBetween(10, 100) },
             new Object[] { randomIntBetween(10, 100) },
-        });
-        assertBusy(() -> {
-            SyncedFlushResponse syncedFlushResponse = client()
-                .execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
-                .get(5, TimeUnit.SECONDS);
-            assertThat(syncedFlushResponse.successfulShards()).isEqualTo(2);
         });
         cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
@@ -211,18 +202,30 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
             cluster().startDataOnlyNode(nodeWithReplicaSettings);
+
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
-            FutureUtils.get(
-                client().admin().cluster().health(
-                    new ClusterHealthRequest(indexName)
-                        .waitForYellowStatus()
-                        .waitForEvents(Priority.LANGUID)
-                ),
-                5,
-                TimeUnit.SECONDS
-            );
+            ensureYellow();
+            assertBusy(() -> {
+                execute("""
+                    select
+                        routing_state,
+                        count(*)
+                    from
+                        sys.shards
+                    where
+                        table_name = 'test'
+                    group by 1
+                    """
+                );
+                assertThat(response).hasRows(
+                    "STARTED| 2"
+                );
+            });
             blockRecovery.countDown();
-            ensureGreen(indexName);
+            assertBusy(() -> {
+                execute("select health from sys.health where table_name = 'test'");
+                assertThat(response).hasRows("GREEN");
+            });
             assertThat(cluster().nodesInclude(indexName)).contains(newNode);
 
             execute("select recovery['files'] from sys.shards where table_name = 'test'");
@@ -251,7 +254,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
             """, new Object[] {numOfReplicas, randomIntBetween(10, 100) + "kb",  });
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
 
@@ -268,9 +271,9 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         }
         execute("set global \"cluster.routing.allocation.enable\" = 'primaries'");
         cluster().fullRestart();
-        ensureYellow(indexName);
+        ensureYellow();
         execute("reset global \"cluster.routing.allocation.enable\"");
-        ensureGreen(indexName);
+        ensureGreen();
         assertNoOpRecoveries(indexName);
     }
 
@@ -280,10 +283,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
      * step. And if the recovery fails and retries, then the recovery stage might not transition properly. This test simulates
      * this behavior by changing the global checkpoint in phase1 to unassigned.
      */
+    @Test
     public void testSimulateRecoverySourceOnOldNode() throws Exception {
         cluster().startMasterOnlyNode();
         String source = cluster().startDataOnlyNode();
-        String indexName = "test";
 
         execute("""
             create table doc.test (x int)
@@ -292,7 +295,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
             """, new Object[] {});
 
-        ensureGreen(indexName);
+        ensureGreen();
 
         if (randomBoolean()) {
             execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
@@ -320,7 +323,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         });
 
         execute("alter table doc.test set (number_of_replicas=1)");
-        ensureGreen(indexName);
+        ensureGreen();
         transportService.clearAllRules();
     }
 
@@ -342,7 +345,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
             """);
 
-        ensureGreen(indexName);
+        ensureGreen();
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
 
         String brokenNode = cluster().startDataOnlyNode();
@@ -365,7 +368,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         execute("alter table doc.test set (number_of_replicas=1)");
         cluster().startDataOnlyNode();
         newNodeStarted.countDown();
-        ensureGreen(indexName);
+        ensureGreen();
         transportService.clearAllRules();
     }
 

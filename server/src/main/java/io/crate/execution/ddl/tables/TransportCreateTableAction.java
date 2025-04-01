@@ -25,7 +25,6 @@ package io.crate.execution.ddl.tables;
 import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -62,9 +61,6 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
- *
- * Regular tables are created through the creation of ES indices, see {@link TransportCreateIndexAction}.
- * Partitioned tables are created through ES templates, see {@link TransportPutIndexTemplateAction}.
  *
  * To atomically run the actions on the master, this action wraps around the ES actions and runs them
  * inside this action on the master with checking for views beforehand.
@@ -192,39 +188,36 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                     newState = createIndexService.add(currentState, request, normalizedSettings);
                 }
 
-                if (currentState.nodes().getSmallestNonClientNodeVersion().onOrAfter(Version.V_6_0_0)) {
-                    List<String> indexUUIDs = newState.metadata().getIndices(
+
+                List<String> indexUUIDs = newState.metadata().getIndices(
+                    relationName,
+                    List.of(),
+                    false,
+                    imd -> imd.getIndexUUID()
+                );
+
+                // To avoid assigning new oids this needs to use references from the already updated metadata
+                DocTableInfo docTable = docTableInfoFactory.create(relationName, newState.metadata());
+                List<Reference> columns = Lists.map(request.references(), ref -> {
+                    ColumnIdent column = ref.column();
+                    Reference reference = docTable.getReference(column);
+                    return reference != null ? reference : docTable.indexColumn(column);
+                });
+                Metadata.Builder newMetadata = Metadata.builder(newState.metadata())
+                    .setTable(
                         relationName,
-                        List.of(),
-                        false,
-                        imd -> imd.getIndexUUID()
+                        columns,
+                        normalizedSettings,
+                        request.routingColumn(),
+                        request.tableColumnPolicy(),
+                        request.pkConstraintName(),
+                        request.checkConstraints(),
+                        request.primaryKeys(),
+                        request.partitionedBy(),
+                        State.OPEN,
+                        indexUUIDs
                     );
-
-                    // To avoid assigning new oids this needs to use references from the already updated metadata
-                    DocTableInfo docTable = docTableInfoFactory.create(relationName, newState.metadata());
-                    List<Reference> columns = Lists.map(request.references(), ref -> {
-                        ColumnIdent column = ref.column();
-                        Reference reference = docTable.getReference(column);
-                        return reference != null ? reference : docTable.indexColumn(column);
-                    });
-                    Metadata.Builder newMetadata = Metadata.builder(newState.metadata())
-                        .setTable(
-                            relationName,
-                            columns,
-                            normalizedSettings,
-                            request.routingColumn(),
-                            request.tableColumnPolicy(),
-                            request.pkConstraintName(),
-                            request.checkConstraints(),
-                            request.primaryKeys(),
-                            request.partitionedBy(),
-                            State.OPEN,
-                            indexUUIDs
-                        );
-                    return ClusterState.builder(newState).metadata(newMetadata).build();
-                }
-
-                return newState;
+                return ClusterState.builder(newState).metadata(newMetadata).build();
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

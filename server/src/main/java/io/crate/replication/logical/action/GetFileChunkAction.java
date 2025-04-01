@@ -79,7 +79,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
                 clusterService,
                 transportService,
                 Request::new,
-                ThreadPool.Names.GET
+                ThreadPool.Names.SEARCH
             );
             this.indicesService = indicesService;
             this.publisherRestoreService = publisherRestoreService;
@@ -126,7 +126,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
         }
     }
 
-    public static class Request extends RestoreShardRequest<Request> {
+    public static class Request extends RestoreShardRequest {
 
         private final StoreFileMetadata storeFileMetadata;
         private final long offset;

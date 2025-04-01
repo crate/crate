@@ -267,12 +267,9 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         logger.info("--> waiting for master to finish all repo operations on its SNAPSHOT pool");
         final ThreadPool masterThreadPool = cluster().getMasterNodeInstance(ThreadPool.class);
         assertBusy(() -> {
-            for (ThreadPoolStats.Stats stat : masterThreadPool.stats()) {
-                if (ThreadPool.Names.SNAPSHOT.equals(stat.getName())) {
-                    assertThat(stat.getActive()).isEqualTo(0);
-                    break;
-                }
-            }
+            ThreadPoolStats.Stats stats = masterThreadPool.stats(ThreadPool.Names.SNAPSHOT);
+            assertThat(stats).isNotNull();
+            assertThat(stats.active()).isEqualTo(0);
         });
     }
 

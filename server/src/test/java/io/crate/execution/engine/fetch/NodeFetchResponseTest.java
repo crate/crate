@@ -24,13 +24,12 @@ package io.crate.execution.engine.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,11 +94,12 @@ public class NodeFetchResponseTest extends ESTestCase {
                 streamers,
                 ConcurrentRamAccounting.forCircuitBreaker(
                     "test",
-                    new MemoryCircuitBreaker(
-                        new ByteSizeValue(2, ByteSizeUnit.BYTES),
-                        1.0,
-                        LogManager.getLogger(NodeFetchResponseTest.class)),
- 0)))
-            .isExactlyInstanceOf(CircuitBreakingException.class);
+                    new ChildMemoryCircuitBreaker(
+                        new BreakerSettings("test", 2),
+                        new NoneCircuitBreakerService()
+                    ),
+                    10
+                ))
+            ).isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

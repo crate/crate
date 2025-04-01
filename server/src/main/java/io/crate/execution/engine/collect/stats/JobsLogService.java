@@ -253,11 +253,22 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, ToLongFunction<E> getElementSize, String breaker) {
         Queue<E> q;
         long expirationMillis = expiration.millis();
-        final Runnable onClose;
         if (size == 0 && expirationMillis == 0) {
             return NoopLogSink.instance();
-        } else if (expirationMillis > 0) {
+        }
+        if (expirationMillis > 0) {
             q = new ConcurrentLinkedDeque<>();
+        } else {
+            q = new BlockingEvictingQueue<>(size);
+        }
+
+        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(
+            q,
+            breakerService.getBreaker(breaker),
+            getElementSize
+        );
+        final Runnable onClose;
+        if (expirationMillis > 0) {
             long delay = 0L;
             long intervalInMs = clearInterval(expiration);
             ScheduledFuture<?> scheduledFuture = TimeBasedQEviction.scheduleTruncate(
@@ -269,12 +280,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             );
             onClose = () -> scheduledFuture.cancel(false);
         } else {
-            q = new BlockingEvictingQueue<>(size);
             onClose = () -> {
             };
         }
-
-        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, breakerService.getBreaker(breaker), getElementSize);
         return new QueueSink<>(accountingQueue, () -> {
             accountingQueue.release();
             onClose.run();

@@ -565,12 +565,21 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
+            Symbol expression = node.getExpression().accept(this, context);
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
+            DataType<?> valueType = expression.valueType();
+            DataType<?> unnestedReturnType = ArrayType.unnest(returnType);
+            DataType<?> unnestedValueType = ArrayType.unnest(valueType);
+
+            if (unnestedReturnType.id() == ObjectType.ID
+                && unnestedValueType.id() == ObjectType.ID
+                && unnestedReturnType.columnPolicy() != ColumnPolicy.STRICT) {
+                returnType = DataTypes.merge(valueType, returnType, returnType.columnPolicy());
+            }
             if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
                 throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
             }
-            return node.getExpression()
-                .accept(this, context)
+            return expression
                 .cast(
                     returnType,
                     CastMode.EXPLICIT
@@ -683,10 +692,12 @@ public class ExpressionAnalyzer {
                 // static array, function or a cast, so we recurse into it.
                 Symbol base = node.base().accept(this, context);
                 Symbol index = node.index().accept(this, context);
-                if (index.valueType() == DataTypes.STRING) {
-                    // If the index is a string, we can try to optimize the subscript function
-                    // to avoid the function call and directly access the object key.
-                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, subscriptContext.parts(), context, null);
+                // If the index is a string, we can try to optimize the subscript function
+                // to avoid the function call and directly access the object key.
+                if (index.valueType() == DataTypes.STRING && subscriptContext.parts().isEmpty() == false) {
+                    // Only the last path must be used (the index string value). The visitor will collect all parts of
+                    // the symbol tree, while with expression, only the path on the expression itself must be considered.
+                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, List.of(subscriptContext.parts().getLast()), context, null);
                     if (optimizedSubscript != null) {
                         return optimizedSubscript;
                     }
@@ -816,6 +827,7 @@ public class ExpressionAnalyzer {
                 if (e != null) {
                     throw e;
                 }
+                throw ColumnUnknownException.forSubscript(base, path.getLast());
             }
             return null;
         }

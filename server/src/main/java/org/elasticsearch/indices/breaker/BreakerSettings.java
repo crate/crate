@@ -25,34 +25,10 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 /**
  * Settings for a {@link CircuitBreaker}
  */
-public class BreakerSettings {
-
-    private final String name;
-    private final long limitBytes;
-    private final CircuitBreaker.Type type;
-
-    public BreakerSettings(String name, long limitBytes, CircuitBreaker.Type type) {
-        this.name = name;
-        this.limitBytes = limitBytes;
-        this.type = type;
-    }
-
-    public String getName() {
-        return this.name;
-    }
-
-    public long getLimit() {
-        return this.limitBytes;
-    }
-
-    public CircuitBreaker.Type getType() {
-        return this.type;
-    }
+public record BreakerSettings(String name, long bytesLimit) {
 
     @Override
     public String toString() {
-        return "[" + this.name +
-                ",type=" + this.type.toString() +
-                ",limit=" + this.limitBytes + "/" + new ByteSizeValue(this.limitBytes) + "]";
+        return "[" + this.name + ",limit=" + this.bytesLimit + "/" + new ByteSizeValue(this.bytesLimit) + "]";
     }
 }

@@ -1,0 +1,60 @@
+.. _version_5.9.13:
+
+===========================
+Version 5.9.13 - Unreleased
+===========================
+
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.9.13 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.9.13.
+
+    We recommend that you upgrade to the latest 5.8 release before moving to
+    5.9.13.
+
+    A rolling upgrade from 5.8.x to 5.9.13 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.9.0` release notes for a full list of changes in the
+5.9 series.
+
+Fixes
+=====
+
+- Fixed NPE when querying the :ref:`sys.allocations <sys-allocations>` table
+  while no master node has been discovered. A proper exception is now thrown
+  instead of an NPE.
+
+- Fixed an issue that caused queries submitted via PG wire to not be logged in
+  :ref:`sys.jobs_log <sys-logs>` in case of a parsing failure.
+
+- Fixed an issue causing shards to not be allocated if the shard was not
+  closed properly, e.g. due to an unclean node shutdown and the node was
+  restarting with still holding a lock on the shard. The existing retry logic
+  to solve this situation was not working in some cases.

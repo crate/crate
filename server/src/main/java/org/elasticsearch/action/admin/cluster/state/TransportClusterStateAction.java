@@ -20,6 +20,8 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.function.Predicate;
 
 import org.apache.logging.log4j.Logger;
@@ -30,9 +32,9 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.Custom;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -46,6 +48,8 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
 
@@ -143,9 +147,13 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
             builder.nodes(currentState.nodes());
         }
         if (request.routingTable()) {
-            if (request.indices().length > 0) {
+            if (!request.relationNames().isEmpty()) {
                 RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-                String[] indices = IndexNameExpressionResolver.concreteIndexNames(currentState, request);
+                List<String> indices = request.relationNames().stream()
+                    .map(r ->
+                        currentState.metadata().getIndices(r, List.of(), false, im -> im.getIndex().getName()))
+                    .flatMap(Collection::stream)
+                    .toList();
                 for (String filteredIndex : indices) {
                     if (currentState.routingTable().indicesRouting().containsKey(filteredIndex)) {
                         routingTableBuilder.add(currentState.routingTable().indicesRouting().get(filteredIndex));
@@ -164,22 +172,35 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         mdBuilder.clusterUUID(currentState.metadata().clusterUUID());
 
         if (request.metadata()) {
-            if (request.indices().length == 0 && request.templates().length == 0) {
+            if (request.relationNames().isEmpty()) {
                 mdBuilder = Metadata.builder(currentState.metadata());
             } else {
-                if (request.indices().length > 0) {
-                    String[] indices = IndexNameExpressionResolver.concreteIndexNames(currentState, request);
-                    for (String filteredIndex : indices) {
-                        IndexMetadata indexMetadata = currentState.metadata().index(filteredIndex);
-                        if (indexMetadata != null) {
-                            mdBuilder.put(indexMetadata, false);
+                for (RelationName relationName : request.relationNames()) {
+                    RelationMetadata relationMetadata = currentState.metadata().getRelation(relationName);
+                    if (relationMetadata instanceof RelationMetadata.Table table) {
+                        mdBuilder.setTable(
+                            relationName,
+                            table.columns(),
+                            table.settings(),
+                            table.routingColumn(),
+                            table.columnPolicy(),
+                            table.pkConstraintName(),
+                            table.checkConstraints(),
+                            table.primaryKeys(),
+                            table.partitionedBy(),
+                            table.state(),
+                            table.indexUUIDs()
+                        );
+                        for (String indexUUID : table.indexUUIDs()) {
+                            IndexMetadata indexMetadata = currentState.metadata().indexByUUID(indexUUID);
+                            if (indexMetadata != null) {
+                                mdBuilder.put(indexMetadata, false);
+                            }
                         }
-                    }
-                }
-                for (String template : request.templates()) {
-                    var templateMetadata = currentState.metadata().templates().get(template);
-                    if (templateMetadata != null) {
-                        mdBuilder.put(templateMetadata);
+                        if (!table.partitionedBy().isEmpty()) {
+                            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+                            mdBuilder.put(currentState.metadata().templates().get(templateName));
+                        }
                     }
                 }
             }

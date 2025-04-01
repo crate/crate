@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.http.HttpServerTransport;
@@ -65,7 +64,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
 
     @Before
-    public void setup() throws ExecutionException, InterruptedException {
+    public void setup() throws Exception {
         httpClient = HttpClient.newBuilder()
             .followRedirects(Redirect.NORMAL)
             .executor(cluster().getInstance(ThreadPool.class).generic())

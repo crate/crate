@@ -38,7 +38,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -72,7 +71,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         for (int i = 0; i < numDocs; i++) {
             indexDoc(sourceShard, "_doc", Integer.toString(i));
         }
-        sourceShard.flush(new FlushRequest());
+        sourceShard.flush(false);
         Store.MetadataSnapshot sourceSnapshot = sourceShard.store().getMetadata(null);
         List<StoreFileMetadata> mdFiles = new ArrayList<>();
         for (StoreFileMetadata md : sourceSnapshot) {
@@ -160,7 +159,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
                 false, new SourceToParse(shard.shardId().getIndexName(), UUIDs.randomBase64UUID(), new BytesArray("{}"), XContentType.JSON)
             );
             if (randomInt(100) < 5) {
-                shard.flush(new FlushRequest().waitIfOngoing(true));
+                shard.flush(true);
             }
         }
         shard.sync();

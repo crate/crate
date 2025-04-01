@@ -239,7 +239,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
      * Index documents until all the shards are at least WATERMARK_BYTES in size, and return the size of the smallest shard
      * @param indexName
      */
-    private long createReasonableSizedShards(String indexName) throws InterruptedException, ExecutionException {
+    private long createReasonableSizedShards(String indexName) throws Exception {
         String tableName = "doc." + indexName; // UseRandomizedSchema is set to false
         while (true) {
 
@@ -250,7 +250,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
             execute("refresh table " + tableName);
 
-            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).store(true)).get();
+            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName).store(true)).get();
             final List<ShardStats> shardStatses = indicesStats.getIndex(indexName).getShards();
 
             final long[] shardSizes = new long[shardStatses.size()];

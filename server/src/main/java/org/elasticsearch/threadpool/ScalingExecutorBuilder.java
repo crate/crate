@@ -44,7 +44,7 @@ public final class ScalingExecutorBuilder extends ExecutorBuilder {
 
     /**
      * Construct a scaling executor builder; the settings will have the
-     * key prefix "thread_pool." followed by the executor name.
+     * specified key prefix.
      *
      * @param name      the name of the executor
      * @param core      the minimum number of threads in the pool
@@ -53,22 +53,8 @@ public final class ScalingExecutorBuilder extends ExecutorBuilder {
      *                  threads will be kept alive
      */
     public ScalingExecutorBuilder(final String name, final int core, final int max, final TimeValue keepAlive) {
-        this(name, core, max, keepAlive, "thread_pool." + name);
-    }
-
-    /**
-     * Construct a scaling executor builder; the settings will have the
-     * specified key prefix.
-     *
-     * @param name      the name of the executor
-     * @param core      the minimum number of threads in the pool
-     * @param max       the maximum number of threads in the pool
-     * @param keepAlive the time that spare threads above {@code core}
-     *                  threads will be kept alive
-     * @param prefix    the prefix for the settings keys
-     */
-    public ScalingExecutorBuilder(final String name, final int core, final int max, final TimeValue keepAlive, final String prefix) {
         super(name);
+        String prefix = ExecutorBuilder.PREFIX_PART + name;
         this.coreSetting =
             Setting.intSetting(settingsKey(prefix, "core"), core, Setting.Property.NodeScope);
         this.maxSetting = Setting.intSetting(settingsKey(prefix, "max"), max, Setting.Property.NodeScope);

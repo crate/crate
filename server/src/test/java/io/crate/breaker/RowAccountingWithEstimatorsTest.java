@@ -26,11 +26,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collections;
 import java.util.stream.IntStream;
 
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -45,10 +44,9 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
-                new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES),
-                    1.01,
-                    LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                new ChildMemoryCircuitBreaker(
+                    new BreakerSettings("test", 10),
+                    new NoneCircuitBreakerService()),
                 0
             ));
 
@@ -62,8 +60,10 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
-                new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                new ChildMemoryCircuitBreaker(
+                    new BreakerSettings("test", 10),
+                    new NoneCircuitBreakerService()
+                ),
                 0
             ), 0);
 
@@ -78,8 +78,10 @@ public class RowAccountingWithEstimatorsTest extends ESTestCase {
             Collections.singletonList(DataTypes.INTEGER),
             ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
-                new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class)),
+                new ChildMemoryCircuitBreaker(
+                    new BreakerSettings("test", 10),
+                    new NoneCircuitBreakerService()
+                ),
                 0
             ),
             2);

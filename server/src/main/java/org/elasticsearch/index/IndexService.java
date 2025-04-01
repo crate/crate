@@ -124,7 +124,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
-    private final IndexAnalyzers indexAnalyzers;
+    private final AnalysisRegistry analysisRegistry;
+    private IndexAnalyzers indexAnalyzers;
     private final Analyzer indexAnalyzer;
     private final NodeContext nodeContext;
     private final DocTableInfoFactory tableFactory;
@@ -135,7 +136,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexCreationContext indexCreationContext,
             NodeEnvironment nodeEnv,
             ShardStoreDeleter shardStoreDeleter,
-            AnalysisRegistry registry,
+            AnalysisRegistry analysisRegistry,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
@@ -150,13 +151,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexSettings = indexSettings;
         this.circuitBreakerService = circuitBreakerService;
+        this.analysisRegistry = analysisRegistry;
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
             this.indexAnalyzers = null;
             this.indexAnalyzer = null;
             this.queryCache = null;
         } else {
-            this.indexAnalyzers = registry.build(indexSettings);
+            this.indexAnalyzers = this.analysisRegistry.build(indexSettings);
             this.queryCache = queryCache;
             this.indexAnalyzer = new DelegatingAnalyzerWrapper(Analyzer.PER_FIELD_REUSE_STRATEGY) {
 
@@ -562,6 +564,12 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
 
         if (updateIndexSettings) {
+            try {
+                this.indexAnalyzers = analysisRegistry.build(indexSettings);
+            } catch (IOException e) {
+                logger.warn("Could not re-build analyzers", e);
+            }
+
             for (final IndexShard shard : this.shards.values()) {
                 try {
                     shard.onSettingsChanged(currentIndexMetadata.getSettings());
@@ -777,7 +785,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncRefreshTask extends BaseAsyncTask {
+    static final class AsyncRefreshTask extends BaseAsyncTask {
 
         AsyncRefreshTask(IndexService indexService) {
             super(indexService, indexService.getIndexSettings().getRefreshInterval());
@@ -799,7 +807,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncTrimTranslogTask extends BaseAsyncTask {
+    static final class AsyncTrimTranslogTask extends BaseAsyncTask {
 
         AsyncTrimTranslogTask(IndexService indexService) {
             super(indexService, indexService.getIndexSettings()
@@ -841,7 +849,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     public static final Setting<TimeValue> RETENTION_LEASE_SYNC_INTERVAL_SETTING =
             Setting.timeSetting(
                     "index.soft_deletes.retention_lease.sync_interval",
-                    new TimeValue(5, TimeUnit.MINUTES),
+                    new TimeValue(30, TimeUnit.SECONDS),
                     new TimeValue(0, TimeUnit.MILLISECONDS),
                     Property.Dynamic,
                     Property.IndexScope,
@@ -850,7 +858,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     /**
      * Background task that syncs the global checkpoint to replicas.
      */
-    final class AsyncGlobalCheckpointTask extends BaseAsyncTask {
+    static final class AsyncGlobalCheckpointTask extends BaseAsyncTask {
 
         AsyncGlobalCheckpointTask(final IndexService indexService) {
             // index.global_checkpoint_sync_interval is not a real setting, it is only registered in tests
@@ -873,7 +881,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    final class AsyncRetentionLeaseSyncTask extends BaseAsyncTask {
+    static final class AsyncRetentionLeaseSyncTask extends BaseAsyncTask {
 
         AsyncRetentionLeaseSyncTask(final IndexService indexService) {
             super(indexService, RETENTION_LEASE_SYNC_INTERVAL_SETTING.get(indexService.getIndexSettings().getSettings()));

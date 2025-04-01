@@ -27,11 +27,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -129,10 +129,10 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
-        MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-            1,
-            LogManager.getLogger(
-                    SortingLimitAndOffsetProjectorTest.class));
+        CircuitBreaker circuitBreaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings("test", 30),
+            new NoneCircuitBreakerService()
+        );
         TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
             List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
             ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),

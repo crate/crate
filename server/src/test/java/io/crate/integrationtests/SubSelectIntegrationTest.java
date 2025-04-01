@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -459,7 +460,6 @@ public class SubSelectIntegrationTest extends IntegTestCase {
     public void testJoinOnSubQueriesWithLimitAndOffset() {
         execute("create table t1(col1 integer)");
         execute("create table t2(col1 integer)");
-        ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
@@ -481,7 +481,6 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         Paging.PAGE_SIZE = 2;
         execute("create table t1(col1 integer)");
         execute("create table t2(col1 integer)");
-        ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
@@ -503,7 +502,6 @@ public class SubSelectIntegrationTest extends IntegTestCase {
     public void testJoinWithAggregationsOnSubQueriesWithLimitOffsetAndAggregations() {
         execute("create table t1(col1 integer)");
         execute("create table t2(col1 integer)");
-        ensureYellow();
         execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
         execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
@@ -784,7 +782,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_non_recursive_with_query() {
+    public void test_non_recursive_with_query() throws Exception {
         setup.setUpCharacters();
 
         execute("WITH ch AS (SELECT * FROM characters WHERE female = true) " +

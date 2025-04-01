@@ -20,9 +20,11 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
 import org.elasticsearch.common.Strings;
@@ -30,8 +32,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
-public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> implements IndicesRequest.Replaceable {
+public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateRequest> {
 
     public static final TimeValue DEFAULT_WAIT_FOR_NODE_TIMEOUT = TimeValue.timeValueMinutes(1);
 
@@ -42,9 +47,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
     private boolean customs = true;
     private Long waitForMetadataVersion;
     private TimeValue waitForTimeout = DEFAULT_WAIT_FOR_NODE_TIMEOUT;
-    private String[] indices = Strings.EMPTY_ARRAY;
-    private String[] templates = Strings.EMPTY_ARRAY;
-    private IndicesOptions indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN;
+    private List<RelationName> relationNames = new ArrayList<>();
 
     public ClusterStateRequest() {
     }
@@ -55,8 +58,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         metadata = true;
         blocks = true;
         customs = true;
-        indices = Strings.EMPTY_ARRAY;
-        templates = Strings.EMPTY_ARRAY;
+        relationNames = new ArrayList<>();
         return this;
     }
 
@@ -66,8 +68,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         metadata = false;
         blocks = false;
         customs = false;
-        indices = Strings.EMPTY_ARRAY;
-        templates = Strings.EMPTY_ARRAY;
+        relationNames = new ArrayList<>();
         return this;
     }
 
@@ -107,34 +108,13 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return this;
     }
 
-    @Override
-    public String[] indices() {
-        return indices;
-    }
-
-    @Override
-    public ClusterStateRequest indices(String... indices) {
-        this.indices = indices;
+    public ClusterStateRequest relationNames(List<RelationName> relationNames) {
+        this.relationNames = relationNames;
         return this;
     }
 
-    @Override
-    public IndicesOptions indicesOptions() {
-        return this.indicesOptions;
-    }
-
-    public final ClusterStateRequest indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return this;
-    }
-
-    public String[] templates() {
-        return templates;
-    }
-
-    public ClusterStateRequest templates(String... templates) {
-        this.templates = templates;
-        return this;
+    public List<RelationName> relationNames() {
+        return relationNames;
     }
 
     public ClusterStateRequest customs(boolean customs) {
@@ -166,15 +146,31 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         metadata = in.readBoolean();
         blocks = in.readBoolean();
         customs = in.readBoolean();
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        String[] oldIndices = Strings.EMPTY_ARRAY;
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            oldIndices = in.readStringArray();
+            IndicesOptions.readIndicesOptions(in);
+        }
         if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
             waitForTimeout = in.readTimeValue();
             waitForMetadataVersion = in.readOptionalLong();
         }
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            templates = in.readStringArray();
+        String[] oldTemplates = Strings.EMPTY_ARRAY;
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            oldTemplates = in.readStringArray();
         }
+        HashSet<RelationName> relationNamesSet = new HashSet<>();
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            relationNamesSet.addAll(in.readList(RelationName::new));
+        }
+        for (String index : oldIndices) {
+            relationNamesSet.add(IndexName.decode(index).toRelationName());
+        }
+        for (String template : oldTemplates) {
+            RelationName relationName = IndexName.decode(template).toRelationName();
+            relationNamesSet.add(relationName);
+        }
+        relationNames = new ArrayList<>(relationNamesSet);
     }
 
     @Override
@@ -185,14 +181,25 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         out.writeBoolean(metadata);
         out.writeBoolean(blocks);
         out.writeBoolean(customs);
-        out.writeStringArray(indices);
-        indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            // old indices
+            out.writeStringArray(relationNames.stream().map(RelationName::indexNameOrAlias).toArray(String[]::new));
+            IndicesOptions.LENIENT_EXPAND_OPEN.writeIndicesOptions(out);
+        }
         if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
             out.writeTimeValue(waitForTimeout);
             out.writeOptionalLong(waitForMetadataVersion);
         }
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeStringArray(templates);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            // old templates
+            out.writeStringArray(
+                relationNames.stream()
+                .map(r -> PartitionName.templateName(r.schema(), r.name()))
+                .toArray(String[]::new)
+            );
+        }
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeList(relationNames);
         }
     }
 
