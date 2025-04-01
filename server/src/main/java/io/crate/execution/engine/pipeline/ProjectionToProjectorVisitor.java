@@ -559,7 +559,7 @@ public class ProjectionToProjectorVisitor
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            !context.txnCtx.sessionSettings().dmlFailFast(), // continueOnErrors,
+            !context.txnCtx.sessionSettings().dmlFailFast(),
             projection.assignmentsColumns(),
             null,
             projection.returnValues(),
