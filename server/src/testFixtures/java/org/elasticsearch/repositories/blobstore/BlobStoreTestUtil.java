@@ -220,7 +220,7 @@ public final class BlobStoreTestUtil {
                 assertThat(indexContainer.listBlobs()).containsKey(
                     String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT,
                         repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, indexId)));
-                IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexId).get();
+                IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, List.of(indexId)).get().stream().toList().getFirst();
                 for (Map.Entry<String, BlobContainer> entry : indexContainer.children().entrySet()) {
                     // Skip Lucene MockFS extraN directory
                     if (entry.getKey().startsWith("extra")) {
