@@ -89,7 +89,7 @@ public final class TaskBatcher<T> {
                 BatchedTask<T> duplicateTask = tasksIdentity.get(existing.getTask());
                 if (duplicateTask != null) {
                     throw new IllegalStateException("task [" + duplicateTask.describeTasks(
-                        Collections.singletonList(existing)) + "] with source [" + duplicateTask.source + "] is already queued");
+                        Collections.singletonList(existing)) + "] with source [" + duplicateTask.source() + "] is already queued");
                 }
             }
             existingTasks.addAll(tasks);
@@ -106,7 +106,7 @@ public final class TaskBatcher<T> {
         final ArrayList<BatchedTask<T>> toRemove = new ArrayList<>();
         for (BatchedTask<T> task : tasks) {
             if (task.processed.getAndSet(true) == false) {
-                logger.debug("task [{}] timed out after [{}]", task.source, timeout);
+                logger.debug("task [{}] timed out after [{}]", task.source(), timeout);
                 toRemove.add(task);
             }
         }
@@ -135,8 +135,8 @@ public final class TaskBatcher<T> {
     protected void onTimeout(List<BatchedTask<T>> tasks, TimeValue timeout) {
         genericExecutor.execute(() ->
             tasks.forEach(task -> task.listener.onFailure(
-                task.source,
-                new ProcessClusterEventTimeoutException(timeout, task.source))));
+                task.source(),
+                new ProcessClusterEventTimeoutException(timeout, task.source()))));
     }
 
     void runIfNotProcessed(BatchedTask<T> updateTask) {
@@ -152,7 +152,7 @@ public final class TaskBatcher<T> {
                         if (task.processed.getAndSet(true) == false) {
                             logger.trace("will process {}", task);
                             toExecute.add(task);
-                            processTasksBySource.computeIfAbsent(task.source, s -> new ArrayList<>()).add(task);
+                            processTasksBySource.computeIfAbsent(task.source(), s -> new ArrayList<>()).add(task);
                         } else {
                             logger.trace("skipping {}, already processed", task);
                         }

@@ -27,18 +27,18 @@ public class PriorityRunnable {
 
     private PriorityRunnable() {}
 
-    public static PrioritizedRunnable of(Priority priority, Runnable runnable) {
+    public static PrioritizedRunnable of(Priority priority, String source, Runnable runnable) {
         return runnable instanceof RejectableRunnable rejectableRunnable
-            ? new RejectablePriorityRunnable(priority, rejectableRunnable)
-            : new SimplePriorityRunnable(priority, runnable);
+            ? new RejectablePriorityRunnable(priority, source, rejectableRunnable)
+            : new SimplePriorityRunnable(priority, source, runnable);
     }
 
     public static class RejectablePriorityRunnable extends PrioritizedRunnable implements RejectableRunnable, WrappedRunnable {
 
         private final RejectableRunnable runnable;
 
-        private RejectablePriorityRunnable(Priority priority, RejectableRunnable runnable) {
-            super(priority);
+        private RejectablePriorityRunnable(Priority priority, String source, RejectableRunnable runnable) {
+            super(priority, source);
             this.runnable = runnable;
         }
 
@@ -72,8 +72,8 @@ public class PriorityRunnable {
 
         private final Runnable runnable;
 
-        private SimplePriorityRunnable(Priority priority, Runnable runnable) {
-            super(priority);
+        private SimplePriorityRunnable(Priority priority, String source, Runnable runnable) {
+            super(priority, source);
             this.runnable = runnable;
         }
 

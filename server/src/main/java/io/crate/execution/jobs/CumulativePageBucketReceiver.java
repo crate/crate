@@ -35,6 +35,7 @@ import java.util.concurrent.RejectedExecutionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.common.util.concurrent.PriorityRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -176,7 +177,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             if (error == null) {
                 try {
                     pagingIterator.merge(buckets);
-                    executor.execute(PriorityRunnable.of(PRIORITY, this::consumeRows));
+                    PrioritizedRunnable runnable = PriorityRunnable.of(
+                        PRIORITY,
+                        "pageBucketReceiver",
+                        this::consumeRows
+                    );
+                    executor.execute(runnable);
                 } catch (Throwable e) {
                     consumer.accept(null, e);
                     throwable = e;
@@ -187,7 +193,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         } else {
             if (error == null) {
                 try {
-                    executor.execute(PriorityRunnable.of(PRIORITY, () -> currentPage.complete(buckets)));
+                    PrioritizedRunnable runnable = PriorityRunnable.of(
+                        PRIORITY,
+                        "pageBucketReceiver",
+                        () -> currentPage.complete(buckets)
+                    );
+                    executor.execute(runnable);
                 } catch (RejectedExecutionException e) {
                     currentPage.completeExceptionally(e);
                     throwable = e;
