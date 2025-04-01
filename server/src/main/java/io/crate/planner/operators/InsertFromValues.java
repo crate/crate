@@ -375,7 +375,7 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            !failFast,
+            continueOnError,
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
@@ -396,7 +396,7 @@ public class InsertFromValues implements LogicalPlan {
         );
 
 
-        var bulkResponse = new BulkResponse(bulkParams.size(), failFast);
+        var bulkResponse = new BulkResponse(bulkParams.size(), continueOnError);
         IntArrayList bulkIndices = new IntArrayList();
         CompletableFuture<BulkResponse> result = new CompletableFuture<>();
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
