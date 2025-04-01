@@ -104,7 +104,11 @@ public class CollectTask implements Task {
                 try {
                     String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
                     Priority priority = getPriority(collectPhase);
-                    PrioritizedRunnable runnable = PriorityRunnable.of(priority, () -> consumer.accept(it, null));
+                    PrioritizedRunnable runnable = PriorityRunnable.of(
+                        priority,
+                        collectPhase.name(),
+                        () -> consumer.accept(it, null)
+                    );
                     collectOperation.launch(runnable, threadPoolName);
                 } catch (Throwable t) {
                     consumer.accept(null, t);

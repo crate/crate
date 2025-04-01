@@ -85,7 +85,7 @@ public final class PrioFixedExecutorBuilder extends FixedExecutorBuilder {
                 if (command instanceof PrioritizedRunnable) {
                     return command;
                 }
-                return PriorityRunnable.of(Priority.NORMAL, command);
+                return PriorityRunnable.of(Priority.NORMAL, "implicit", command);
             }
         };
         final ThreadPool.Info info = new ThreadPool.Info(
