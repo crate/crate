@@ -2069,7 +2069,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_insert_from_values_fail() throws Exception {
         execute("create table t (a int primary key, b int)");
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().dmlFailFast(true);
+            session.sessionSettings().allowFailOnPartialWrites(true);
             assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2)", session))
                 .hasPGError(UNIQUE_VIOLATION)
                 .hasHTTPError(CONFLICT, 4091)
@@ -2081,7 +2081,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_insert_from_select_fail_fast() throws Exception {
         execute("create table t (a int NOT NULL, b int)");
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().dmlFailFast(true);
+            session.sessionSettings().allowFailOnPartialWrites(true);
             assertSQLError(() -> execute("insert into t (a,b) select NULL, 1", session))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -2095,7 +2095,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (a int primary key)");
 
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().dmlFailFast(true);
+            session.sessionSettings().allowFailOnPartialWrites(true);
             Object[][] bulkArgs = new Object[][]{
                 new Object[]{1},
                 new Object[]{1}

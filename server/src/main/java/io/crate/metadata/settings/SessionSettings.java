@@ -45,7 +45,7 @@ public class SessionSettings implements Writeable {
     protected boolean hashJoinsEnabled;
     protected boolean errorOnUnknownObjectKey;
     protected int memoryLimit;
-    protected boolean dmlFailFast;
+    protected boolean allowFailOnPartialWrites;
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
@@ -57,13 +57,13 @@ public class SessionSettings implements Writeable {
                            boolean hashJoinsEnabled,
                            boolean errorOnUnknownObjectKey,
                            int memoryLimit,
-                           boolean dmlFailFast) {
+                           boolean allowFailOnPartialWrites) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
         this.memoryLimit = memoryLimit;
-        this.dmlFailFast = dmlFailFast;
+        this.allowFailOnPartialWrites = allowFailOnPartialWrites;
     }
 
 
@@ -83,9 +83,9 @@ public class SessionSettings implements Writeable {
             this.memoryLimit = 0;
         }
         if (version.onOrAfter(Version.V_6_0_0)) {
-            this.dmlFailFast = in.readBoolean();
+            this.allowFailOnPartialWrites = in.readBoolean();
         } else {
-            this.dmlFailFast = false;
+            this.allowFailOnPartialWrites = false;
         }
     }
 
@@ -102,7 +102,7 @@ public class SessionSettings implements Writeable {
             out.writeVInt(memoryLimit);
         }
         if (version.onOrAfter(Version.V_6_0_0)) {
-            out.writeBoolean(dmlFailFast);
+            out.writeBoolean(allowFailOnPartialWrites);
         }
     }
 
@@ -149,8 +149,8 @@ public class SessionSettings implements Writeable {
     }
 
 
-    public boolean dmlFailFast() {
-        return dmlFailFast;
+    public boolean allowFailOnPartialWrites() {
+        return allowFailOnPartialWrites;
     }
 
 
@@ -167,11 +167,11 @@ public class SessionSettings implements Writeable {
                Objects.equals(searchPath, that.searchPath) &&
                Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
                Objects.equals(memoryLimit, that.memoryLimit) &&
-               Objects.equals(dmlFailFast, that.dmlFailFast);
+               Objects.equals(allowFailOnPartialWrites, that.allowFailOnPartialWrites);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit, dmlFailFast);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit, allowFailOnPartialWrites);
     }
 }

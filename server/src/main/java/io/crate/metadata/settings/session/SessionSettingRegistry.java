@@ -54,7 +54,7 @@ public class SessionSettingRegistry {
     public static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     public static final String APPLICATION_NAME_KEY = "application_name";
     public static final String DATE_STYLE_KEY = "datestyle";
-    public static final String DML_FAIL_FAST_KEY = "dml_fail_fast";
+    public static final String ALLOW_FAIL_ON_PARTIAL_WRITES_KEY = "allow_fail_on_partial_writes";
 
     static final String MAX_INDEX_KEYS = "max_index_keys";
     static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
@@ -122,11 +122,11 @@ public class SessionSettingRegistry {
         DataTypes.INTEGER
     );
 
-    static final SessionSetting<Boolean> DML_FAIL_FAST = new SessionSetting<>(
-        DML_FAIL_FAST_KEY,
+    static final SessionSetting<Boolean> ALLOW_FAIL_ON_PARTIAL_WRITES = new SessionSetting<>(
+        ALLOW_FAIL_ON_PARTIAL_WRITES_KEY,
         inputs -> DataTypes.BOOLEAN.implicitCast(inputs[0]),
-        CoordinatorSessionSettings::dmlFailFast,
-        settings -> Boolean.toString(settings.dmlFailFast()),
+        CoordinatorSessionSettings::allowFailOnPartialWrites,
+        settings -> Boolean.toString(settings.allowFailOnPartialWrites()),
         () -> "false",
         "Allows partial failure of 'INSERT' and 'UPDATE' statements",
         DataTypes.BOOLEAN
@@ -245,7 +245,7 @@ public class SessionSettingRegistry {
             .put(DATE_STYLE.name(), DATE_STYLE)
             .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
             .put(MEMORY_LIMIT.name(), MEMORY_LIMIT)
-            .put(DML_FAIL_FAST.name(), DML_FAIL_FAST);
+            .put(ALLOW_FAIL_ON_PARTIAL_WRITES.name(), ALLOW_FAIL_ON_PARTIAL_WRITES);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {

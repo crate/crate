@@ -166,9 +166,9 @@ public class SessionSettingRegistryTest extends ESTestCase {
 
     @Test
     public void test_statement_insert_fail_fast() throws Exception {
-        var insertFailFast = SessionSettingRegistry.DML_FAIL_FAST;
+        var insertFailFast = SessionSettingRegistry.ALLOW_FAIL_ON_PARTIAL_WRITES;
         insertFailFast.apply(SESSION_SETTINGS, generateInput("true"), EVAL);
-        assertThat(SESSION_SETTINGS.dmlFailFast()).isTrue();
+        assertThat(SESSION_SETTINGS.allowFailOnPartialWrites()).isTrue();
     }
 
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,

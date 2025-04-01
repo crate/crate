@@ -253,7 +253,7 @@ public class InsertFromValues implements LogicalPlan {
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
         // If INSERT FROM VALUES inserts only 1 row, we throw an error regardless of insert_fail_fast setting value.
-        boolean continueOnError = !plannerContext.transactionContext().sessionSettings().dmlFailFast() && rows.size() > 1;
+        boolean continueOnError = !plannerContext.transactionContext().sessionSettings().allowFailOnPartialWrites() && rows.size() > 1;
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
@@ -368,7 +368,7 @@ public class InsertFromValues implements LogicalPlan {
             .roles()
             .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
 
-        boolean continueOnError = !sessionSettings.dmlFailFast();
+        boolean continueOnError = !sessionSettings.allowFailOnPartialWrites();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),

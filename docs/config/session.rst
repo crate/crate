@@ -276,13 +276,14 @@ consumption for the particular query.
   cr> SET search_path TO DEFAULT;
   SET OK, 0 rows affected (... sec)
 
-.. _conf-session-dml-fail-fast:
+.. _conf-session-fail-writes:
 
-**dml_fail_fast**
+**allow_fail_on_partial_writes**
   | *Default:* ``false``
   | *Modifiable:* ``yes``
    This setting enables partial failures of ``INSERT`` and ``UPDATE``
    statements. If enabled, the first error encountered gets propagated and the
-   operation is terminated. The number of already written records is not reported.
+   operation is terminated. The number of already written records is not
+   reported.
 
 .. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH

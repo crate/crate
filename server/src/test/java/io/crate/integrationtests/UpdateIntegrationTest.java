@@ -1142,7 +1142,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table test");
 
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().dmlFailFast(true);
+            session.sessionSettings().allowFailOnPartialWrites(true);
             assertSQLError(() -> execute("update test set a = a + 98", session))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -1157,7 +1157,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().dmlFailFast(true);
+            session.sessionSettings().allowFailOnPartialWrites(true);
             Object[][] bulkArgs = new Object[][]{
                 new Object[]{2},
                 new Object[]{3}

@@ -92,15 +92,15 @@ public class CoordinatorSessionSettings extends SessionSettings {
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
                                       boolean errorOnUnknownObjectKey,
                                       int memoryLimit,
-                                      boolean dmlFailFast) {
-        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, dmlFailFast);
+                                      boolean allowFailOnPartialWrites) {
+        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, allowFailOnPartialWrites);
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
         this.memoryLimit = memoryLimit;
-        this.dmlFailFast = dmlFailFast;
+        this.allowFailOnPartialWrites = allowFailOnPartialWrites;
     }
 
     /**
@@ -181,8 +181,8 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.memoryLimit = memoryLimit;
     }
 
-    public void dmlFailFast(boolean dmlFailFast) {
-        this.dmlFailFast = dmlFailFast;
+    public void allowFailOnPartialWrites(boolean allowFailOnPartialWrites) {
+        this.allowFailOnPartialWrites = allowFailOnPartialWrites;
     }
 
     public Map<String, Object> toMap() {
@@ -195,7 +195,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         map.put(SessionSettingRegistry.APPLICATION_NAME_KEY, applicationName);
         map.put(Sessions.MEMORY_LIMIT_KEY, memoryLimit);
         map.put(Sessions.STATEMENT_TIMEOUT_KEY, statementTimeout.toString());
-        map.put(SessionSettingRegistry.DML_FAIL_FAST_KEY, dmlFailFast);
+        map.put(SessionSettingRegistry.ALLOW_FAIL_ON_PARTIAL_WRITES_KEY, allowFailOnPartialWrites);
         map.put("disabled_optimizer_rules",
             excludedOptimizerRules
                 .stream()

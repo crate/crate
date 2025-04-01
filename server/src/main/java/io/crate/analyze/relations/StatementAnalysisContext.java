@@ -119,7 +119,7 @@ public class StatementAnalysisContext {
                     sessionSettings.excludedOptimizerRules(),
                     sessionSettings.errorOnUnknownObjectKey(),
                     sessionSettings.memoryLimitInBytes(),
-                    sessionSettings.dmlFailFast()
+                    sessionSettings.allowFailOnPartialWrites()
                 )),
             parentOutputColumns
         );

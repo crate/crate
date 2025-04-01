@@ -751,7 +751,7 @@ public class Session implements AutoCloseable {
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         result
-            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp, sessionSettings.dmlFailFast()));
+            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp, sessionSettings.allowFailOnPartialWrites()));
         addStatementTimeout(result, timeoutToken);
         return result.runAfterBoth(allResultReceivers, () -> {});
 
