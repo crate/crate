@@ -363,11 +363,6 @@ public class InsertFromValues implements LogicalPlan {
             partitionedByInputs);
 
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        AccessControl accessControl = dependencies
-            .nodeContext()
-            .roles()
-            .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-
         boolean continueOnError = !sessionSettings.allowFailOnPartialWrites();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
@@ -468,6 +463,10 @@ public class InsertFromValues implements LogicalPlan {
             } else {
                 assert response == null : "No response when one bulk short circuited." +
                     "Creating a bulkResponse by setting up the same error to all bulks.";
+                AccessControl accessControl = dependencies
+                    .nodeContext()
+                    .roles()
+                    .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
                 for (IntCursor c : bulkIndices) {
                     int resultIdx = c.value;
                     t = SQLExceptions.prepareForClientTransmission(accessControl, t);
