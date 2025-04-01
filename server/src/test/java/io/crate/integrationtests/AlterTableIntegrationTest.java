@@ -443,4 +443,30 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasMessageContaining("Relation 'q2' unknown");
 
     }
+
+    @Test
+    public void test_reset_setting_on_complete_partitioned_table() {
+        execute("CREATE TABLE t1 (a INTEGER, b INTEGER) PARTITIONED BY (a)");
+        execute("INSERT INTO t1 VALUES (1, 2), (2, 3)");
+        execute("ALTER TABLE t1 SET (\"blocks.write\" = TRUE)");
+        execute("SELECT table_name, settings['blocks']['write'] FROM information_schema.tables WHERE table_name = 't1' ORDER BY 1");
+        assertThat(response).hasRows(
+            "t1| true"
+        );
+        execute("SELECT partition_ident, settings['blocks']['write'] FROM information_schema.table_partitions WHERE table_name = 't1' ORDER BY 1");
+        assertThat(response).hasRows(
+            "04132| true",
+            "04134| true"
+        );
+        execute("ALTER TABLE t1 RESET (\"blocks.write\")");
+        execute("SELECT table_name, settings['blocks']['write'] FROM information_schema.tables WHERE table_name = 't1' ORDER BY 1");
+        assertThat(response).hasRows(
+            "t1| false"
+        );
+        execute("SELECT partition_ident, settings['blocks']['write'] FROM information_schema.table_partitions WHERE table_name = 't1' ORDER BY 1");
+        assertThat(response).hasRows(
+            "04132| false",
+            "04134| false"
+        );
+    }
 }
