@@ -10,7 +10,7 @@ body:
       placeholder: 4.6.1
     validations:
       required: true
-    - type: textarea
+  - type: textarea
     id: config
     attributes:
       label: CrateDB setup information
