@@ -120,38 +120,32 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
     }
 
     public void execute(Runnable command, final TimeValue timeout, final Runnable timeoutCallback) {
-        command = wrapRunnable(command);
-        execute(command);
+        TieBreakingPrioritizedRunnable tieBreaking = wrapRunnable(command);
+        execute(tieBreaking);
         if (timeout.nanos() >= 0) {
-            if (command instanceof TieBreakingPrioritizedRunnable tieBreaking) {
-                tieBreaking.scheduleTimeout(timer, timeoutCallback, timeout);
-            } else {
-                // We really shouldn't be here. The only way we can get here if somebody created PrioritizedFutureTask
-                // and passed it to execute, which doesn't make much sense
-                throw new UnsupportedOperationException("Execute with timeout is not supported for future tasks");
-            }
+            tieBreaking.scheduleTimeout(timer, timeoutCallback, timeout);
         }
     }
 
     @Override
-    protected Runnable wrapRunnable(Runnable command) {
+    protected TieBreakingPrioritizedRunnable wrapRunnable(Runnable command) {
+        if (command instanceof TieBreakingPrioritizedRunnable tieBreaking) {
+            return tieBreaking;
+        }
         if (command instanceof PrioritizedRunnable prioritized) {
-            if (command instanceof TieBreakingPrioritizedRunnable) {
-                return command;
-            }
             Priority priority = prioritized.priority();
             return new TieBreakingPrioritizedRunnable(
                 super.wrapRunnable(command),
                 priority,
                 insertionOrder.incrementAndGet()
             );
-        } else { // it might be a callable wrapper...
-            return new TieBreakingPrioritizedRunnable(
-                super.wrapRunnable(command),
-                Priority.NORMAL,
-                insertionOrder.incrementAndGet()
-            );
         }
+        // it might be a callable wrapper...
+        return new TieBreakingPrioritizedRunnable(
+            super.wrapRunnable(command),
+            Priority.NORMAL,
+            insertionOrder.incrementAndGet()
+        );
     }
 
     public static class Pending {
