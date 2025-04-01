@@ -346,7 +346,11 @@ public class ShardingUpsertExecutor
         public void onResponse(ShardResponse shardResponse) {
             nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
-            maybeSetInterrupt(shardResponse.failure());
+            var failure = shardResponse.failure();
+            if (failure != null) {
+                // No need to call prepareForClientTransmission, it's done later.
+                interrupt.set(failure);
+            }
             countdown();
         }
 
