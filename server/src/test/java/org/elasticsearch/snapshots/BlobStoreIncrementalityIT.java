@@ -24,6 +24,7 @@ import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.INDEX
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakGroup;
 
-import io.crate.common.concurrent.CompletableFutures;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
@@ -323,13 +323,12 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         BlobStoreRepository repository = (BlobStoreRepository) repositoriesService.repository(repositoryName);
         RepositoryData repositoryData = getRepositoryData(repository);
 
-        List<CompletableFuture<IndexMetadata>> listeners = new ArrayList<>(snapshotInfo.indices().size());
-        for (String index : snapshotInfo.indices()) {
-            IndexId indexId = repositoryData.resolveIndexId(index);
-            listeners.add(repository.getSnapshotIndexMetadata(repositoryData, snapshotInfo.snapshotId(), indexId));
-        }
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();
-        List<IndexMetadata> indexMetadataList = CompletableFutures.allAsList(listeners).get(10, TimeUnit.SECONDS);
+        Collection<IndexMetadata> indexMetadataList = repository.getSnapshotIndexMetadata(
+                repositoryData,
+                snapshotInfo.snapshotId(),
+                snapshotInfo.indices().stream().map(repositoryData::resolveIndexId).toList()
+            ).get(10, TimeUnit.SECONDS);
         for (IndexMetadata indexMetadata : indexMetadataList) {
             if (indexMetadata != null) {
                 int numberOfShards = indexMetadata.getNumberOfShards();
