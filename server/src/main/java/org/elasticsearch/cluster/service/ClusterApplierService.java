@@ -158,7 +158,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
 
         @Override
-        public void run() {
+        public void doRun() {
             runTask(this);
         }
     }
@@ -272,7 +272,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         try {
             threadPoolExecutor.execute(new SourcePrioritizedRunnable(Priority.HIGH, "_add_listener_") {
                 @Override
-                public void run() {
+                public void doRun() {
                     final NotifyTimeout notifyTimeout = new NotifyTimeout(listener, timeout);
                     final NotifyTimeout previous = timeoutClusterStateListeners.put(listener, notifyTimeout);
                     assert previous == null : "Added same listener [" + listener + "]";

@@ -33,7 +33,7 @@ public class PriorityRunnable {
             : new SimplePriorityRunnable(priority, runnable);
     }
 
-    public static class RejectablePriorityRunnable extends PrioritizedRunnable implements RejectableRunnable, WrappedRunnable {
+    public static class RejectablePriorityRunnable extends PrioritizedRunnable {
 
         private final RejectableRunnable runnable;
 
@@ -61,14 +61,9 @@ public class PriorityRunnable {
         public void doRun() throws Exception {
             runnable.doRun();
         }
-
-        @Override
-        public Runnable unwrap() {
-            return runnable;
-        }
     }
 
-    public static class SimplePriorityRunnable extends PrioritizedRunnable implements WrappedRunnable {
+    public static class SimplePriorityRunnable extends PrioritizedRunnable {
 
         private final Runnable runnable;
 
@@ -78,13 +73,8 @@ public class PriorityRunnable {
         }
 
         @Override
-        public void run() {
+        public void doRun() {
             runnable.run();
-        }
-
-        @Override
-        public Runnable unwrap() {
-            return runnable;
         }
     }
 }

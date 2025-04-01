@@ -85,7 +85,7 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-        EsExecutors.rethrowErrors(unwrap(r));
+        EsExecutors.rethrowErrors(r);
     }
 
 
@@ -109,12 +109,5 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
 
     protected Runnable wrapRunnable(Runnable command) {
         return command;
-    }
-
-    protected Runnable unwrap(Runnable runnable) {
-        while (runnable instanceof WrappedRunnable wrapped) {
-            runnable = wrapped.unwrap();
-        }
-        return runnable;
     }
 }

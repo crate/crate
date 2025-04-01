@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.Priority;
 
-public abstract class PrioritizedRunnable implements Runnable, Comparable<PrioritizedRunnable> {
+public abstract class PrioritizedRunnable implements RejectableRunnable, Comparable<PrioritizedRunnable> {
 
     private final Priority priority;
     private final long creationDate;

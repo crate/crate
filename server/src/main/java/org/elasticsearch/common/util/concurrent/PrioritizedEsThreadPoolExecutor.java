@@ -102,7 +102,7 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
                     /** innerRunnable can be null if task is finished but not removed from executor yet,
                      * see {@link TieBreakingPrioritizedRunnable#run} and {@link TieBreakingPrioritizedRunnable#runAndClean}
                      */
-                    pending.add(new Pending(super.unwrap(innerRunnable), t.priority(), t.insertionOrder, executing));
+                    pending.add(new Pending(innerRunnable, t.priority(), t.insertionOrder, executing));
                 }
             }
         }
@@ -141,13 +141,13 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
             }
             Priority priority = prioritized.priority();
             return new TieBreakingPrioritizedRunnable(
-                super.wrapRunnable(command),
+                command,
                 priority,
                 insertionOrder.incrementAndGet()
             );
         } else { // it might be a callable wrapper...
             return new TieBreakingPrioritizedRunnable(
-                super.wrapRunnable(command),
+                command,
                 Priority.NORMAL,
                 insertionOrder.incrementAndGet()
             );
@@ -168,7 +168,7 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         }
     }
 
-    private final class TieBreakingPrioritizedRunnable extends PrioritizedRunnable implements WrappedRunnable {
+    private final class TieBreakingPrioritizedRunnable extends PrioritizedRunnable {
 
         private Runnable runnable;
         private final long insertionOrder;
@@ -184,7 +184,34 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         }
 
         @Override
-        public void run() {
+        public void onRejection(Exception e) {
+            if (runnable instanceof RejectableRunnable rejected) {
+                rejected.onRejection(e);
+            } else {
+                super.onRejection(e);
+            }
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+            if (runnable instanceof RejectableRunnable rejected) {
+                rejected.onFailure(e);
+            } else {
+                super.onFailure(e);
+            }
+        }
+
+        @Override
+        public void onAfter() {
+            if (runnable instanceof RejectableRunnable rejected) {
+                rejected.onAfter();
+            } else {
+                super.onAfter();
+            }
+        }
+
+        @Override
+        public void doRun() {
             synchronized (this) {
                 // make the task as stared. This is needed for synchronization with the timeout handling
                 // see  #scheduleTimeout()
@@ -234,11 +261,5 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
                 timeoutFuture = null;
             }
         }
-
-        @Override
-        public Runnable unwrap() {
-            return runnable;
-        }
-
     }
 }

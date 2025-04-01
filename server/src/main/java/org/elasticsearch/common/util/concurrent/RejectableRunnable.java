@@ -19,6 +19,8 @@
 
 package org.elasticsearch.common.util.concurrent;
 
+import io.crate.common.exceptions.Exceptions;
+
 /**
  * An extension to runnable.
  **/
@@ -52,7 +54,9 @@ public interface RejectableRunnable extends Runnable {
     /**
      * This method is invoked for all exception thrown by {@link #doRun()}
      */
-    void onFailure(Exception e);
+    default void onFailure(Exception e) {
+        Exceptions.rethrowUnchecked(e);
+    }
 
     /**
      * This should be executed if the thread-pool executing this action rejected the execution.

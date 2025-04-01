@@ -66,7 +66,7 @@ public final class BatchedTask<T> extends SourcePrioritizedRunnable {
     }
 
     @Override
-    public void run() {
+    public void doRun() {
         this.taskBatcher.runIfNotProcessed(this);
     }
 
