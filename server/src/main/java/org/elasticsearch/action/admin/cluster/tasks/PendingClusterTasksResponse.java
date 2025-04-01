@@ -50,20 +50,20 @@ public class PendingClusterTasksResponse extends TransportResponse implements It
         StringBuilder sb = new StringBuilder();
         sb.append("tasks: (").append(pendingTasks.size()).append("):\n");
         for (PendingClusterTask pendingClusterTask : this) {
-            sb.append(pendingClusterTask.getInsertOrder())
+            sb.append(pendingClusterTask.insertOrder())
                 .append("/")
-                .append(pendingClusterTask.getPriority())
+                .append(pendingClusterTask.priority())
                 .append("/")
-                .append(pendingClusterTask.getSource())
+                .append(pendingClusterTask.source())
                 .append("/")
-                .append(pendingClusterTask.getTimeInQueue())
+                .append(pendingClusterTask.timeInQueue())
                 .append("\n");
         }
         return sb.toString();
     }
 
     public PendingClusterTasksResponse(StreamInput in) throws IOException {
-        pendingTasks = in.readList(PendingClusterTask::new);
+        pendingTasks = in.readList(PendingClusterTask::of);
     }
 
     @Override
