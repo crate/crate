@@ -396,7 +396,7 @@ public class InsertFromValues implements LogicalPlan {
         );
 
 
-        var bulkResponse = new BulkResponse(bulkParams.size(), continueOnError);
+        var bulkResponse = new BulkResponse(bulkParams.size());
         IntArrayList bulkIndices = new IntArrayList();
         CompletableFuture<BulkResponse> result = new CompletableFuture<>();
         for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {

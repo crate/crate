@@ -308,7 +308,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                                                        SubQueryResults subQueryResults) {
                         // Do another execution to overwrite `mostRecentJobID`
                         session.quickExec("SELECT 1", new BaseResultReceiver(), null);
-                        var response = new BulkResponse(2, false);
+                        var response = new BulkResponse(2);
                         response.update(0, 1L, null);
                         response.update(1, 1L, null);
                         return completedFuture(response);

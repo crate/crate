@@ -316,12 +316,12 @@ public class SQLTransportExecutor {
         final Session session = s; // Final for lambda.
 
         if (bulkArgs != null && bulkArgs.length == 0) {
-            listener.onResponse(new BulkResponse(0, session.sessionSettings().dmlFailFast()));
+            listener.onResponse(new BulkResponse(0));
             return;
         }
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
-            var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length, session.sessionSettings().dmlFailFast());
+            var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
             if (bulkArgs == null) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
                 session.execute(UNNAMED, 0, new BaseResultReceiver());

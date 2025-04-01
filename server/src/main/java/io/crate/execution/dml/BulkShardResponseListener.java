@@ -49,9 +49,8 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
-                              IntCollection resultIndices,
-                              boolean failFast) {
-        var bulkResponse = new BulkResponse(numBulkParams, failFast);
+                              IntCollection resultIndices) {
+        var bulkResponse = new BulkResponse(numBulkParams);
         this.results = new FutureActionListener<>();
         this.compressedResult = new ShardResponse.CompressedResult();
         listener = new MultiActionListener<>(

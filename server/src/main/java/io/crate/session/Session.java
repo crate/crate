@@ -751,7 +751,7 @@ public class Session implements AutoCloseable {
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         result
-            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp));
+            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp, sessionSettings.dmlFailFast()));
         addStatementTimeout(result, timeoutToken);
         return result.runAfterBoth(allResultReceivers, () -> {});
 
@@ -760,7 +760,8 @@ public class Session implements AutoCloseable {
     private static void emitRowCountsToResultReceivers(UUID jobId,
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
-                                                       BulkResponse bulkResponse) {
+                                                       BulkResponse bulkResponse,
+                                                       boolean failFast) {
         Object[] cells = new Object[2];
         RowN row = new RowN(cells);
         boolean failedBulk = false;
@@ -776,7 +777,7 @@ public class Session implements AutoCloseable {
                 cells[1] = t;
             }
 
-            if (bulkResponse.failFast() && bulkFailure != null && failedBulk == false) {
+            if (failFast && bulkFailure != null && failedBulk == false) {
                 // We fail only one resultReceiver, others are finished normally.
                 // We set the first seen failure for all bulksIndices in InsertFromValues.
                 // In other components that implement executeBulk failures can be different,
@@ -788,7 +789,7 @@ public class Session implements AutoCloseable {
                 resultReceiver.allFinished();
             }
         }
-        if (bulkResponse.failFast() && bulkFailure != null) {
+        if (failFast && bulkFailure != null) {
             // Message is already in human-readable format.
             jobsLogs.logExecutionEnd(jobId, bulkFailure.getMessage());
         } else {

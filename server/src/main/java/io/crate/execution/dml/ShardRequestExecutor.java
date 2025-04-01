@@ -125,8 +125,7 @@ public class ShardRequestExecutor<Req> {
     }
 
     public CompletableFuture<BulkResponse> executeBulk(List<Row> bulkParams,
-                                                       SubQueryResults subQueryResults,
-                                                       boolean dmlFailFast) {
+                                                       SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requests = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList(bulkParams.size() * docKeys.size());
         int location = 0;
@@ -140,7 +139,7 @@ public class ShardRequestExecutor<Req> {
             }
         }
         BulkShardResponseListener listener =
-            new BulkShardResponseListener(requests.size(), bulkParams.size(), bulkIndices, dmlFailFast);
+            new BulkShardResponseListener(requests.size(), bulkParams.size(), bulkIndices);
         for (Req req : requests.values()) {
             transportAction.accept(req, listener);
         }
