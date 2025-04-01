@@ -368,7 +368,7 @@ public class InsertFromValues implements LogicalPlan {
             .roles()
             .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
 
-        boolean failFast = plannerContext.transactionContext().sessionSettings().dmlFailFast();
+        boolean continueOnError = !sessionSettings.dmlFailFast();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
