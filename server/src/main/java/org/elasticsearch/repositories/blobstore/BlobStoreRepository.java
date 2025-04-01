@@ -1090,17 +1090,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }
     }
 
-    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId index) {
-        try {
-            IndexMetadata result = INDEX_METADATA_FORMAT.read(indexContainer(index),
-                repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedWriteableRegistry, namedXContentRegistry);
-            return CompletableFuture.completedFuture(result);
-        } catch (IOException ex) {
-            return CompletableFuture.failedFuture(ex);
-        }
-    }
-
-
     @Override
     public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds) {
         try {
