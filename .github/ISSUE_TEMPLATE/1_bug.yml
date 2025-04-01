@@ -10,16 +10,16 @@ body:
       placeholder: 4.6.1
     validations:
       required: true
-  - type: textarea
+    - type: textarea
     id: config
     attributes:
       label: CrateDB setup information
       description: Number of nodes, HEAP setting, and tell us if you're using special master/data/client node configuration
-      placeholder: |-
+      value: |-
 
-        Number of nodes: 1
-        CRATE_HEAP_SIZE: 4g
-        CRATE_JAVA_OPTS: empty
+        Number of nodes: ?
+        CRATE_HEAP_SIZE: ?
+        CRATE_JAVA_OPTS: ?
 
         crate.yml contents:
 
