@@ -63,3 +63,8 @@ Fixes
   closed properly, e.g. due to an unclean node shutdown and the node was
   restarting with still holding a lock on the shard. The existing retry logic
   to solve this situation was not working in some cases.
+
+- Fixed an issue causing a ``ALTER TABLE <table> RESET <setting>`` statement on
+  a complete partitioned table to not reset the setting on all partitions, but
+  only on the table itself, so the reset value of the setting would only have
+  taken effect for new partitions.
