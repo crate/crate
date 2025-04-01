@@ -1137,8 +1137,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_update_fail_fast() {
-        execute("create table test (a int CHECK (a < 100))");
-        execute("insert into test (a) values (1), (2), (3)");
+        execute("create table test (id int, a int CHECK (a < 100)) clustered by (id) into 1 shards");
+        execute("insert into test (id, a) values (1, 1), (2, 2), (3, 3), (0, 0)");
         execute("refresh table test");
 
         try (var session = sqlExecutor.newSession()) {
@@ -1148,11 +1148,17 @@ public class UpdateIntegrationTest extends IntegTestCase {
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("Failed CONSTRAINT");
         }
+
+        execute("refresh table test");
+        execute("select a from test order by a");
+        // 1 + 98 < 100 and it's already written as 99 as it's processed before we failed a check.
+        // However, 0 + 98 < 100 but it's not written as 2 failing a check already caused stoppage.
+        assertThat(response).hasRows("0", "2", "3", "99");
     }
 
     @Test
     public void test_bulk_update_by_id_fail_fast() throws Exception {
-        execute("create table t (id int primary key, a int CHECK (a < 100))");
+        execute("create table t (id int primary key, a int CHECK (a < 100)) clustered by (id) into 1 shards");
         execute("insert into t (id, a) values (1, 1), (2, 2), (3, 3)");
         execute("refresh table t");
 
@@ -1166,6 +1172,10 @@ public class UpdateIntegrationTest extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("Failed CONSTRAINT");
+
+            execute("refresh table t");
+            execute("select a from t order by a");
+            assertThat(response).hasRows("1", "2", "3"); // 1 + 98 < 100 but the whole bulk has failed.
         }
 
         // First error encountered is reflected in jobs_log.

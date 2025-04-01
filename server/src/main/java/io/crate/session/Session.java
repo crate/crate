@@ -751,7 +751,14 @@ public class Session implements AutoCloseable {
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         result
-            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp, sessionSettings.allowFailOnPartialWrites()));
+            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp))
+            .exceptionally(t -> {
+                for (int i = 0; i < toExec.size(); i++) {
+                    toExec.get(i).resultReceiver().fail(t);
+                }
+                jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
+                return null;
+            });
         addStatementTimeout(result, timeoutToken);
         return result.runAfterBoth(allResultReceivers, () -> {});
 
@@ -760,41 +767,22 @@ public class Session implements AutoCloseable {
     private static void emitRowCountsToResultReceivers(UUID jobId,
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
-                                                       BulkResponse bulkResponse,
-                                                       boolean failFast) {
+                                                       BulkResponse bulkResponse) {
         Object[] cells = new Object[2];
         RowN row = new RowN(cells);
-        boolean failedBulk = false;
-        Throwable bulkFailure = null;
         for (int i = 0; i < bulkResponse.size(); i++) {
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
-            bulkFailure = bulkResponse.failure(i);
             try {
                 cells[0] = bulkResponse.rowCount(i);
-                cells[1] = bulkFailure;
+                cells[1] = bulkResponse.failure(i);
             } catch (Throwable t) {
                 cells[0] = Row1.ERROR;
                 cells[1] = t;
             }
-
-            if (failFast && bulkFailure != null && failedBulk == false) {
-                // We fail only one resultReceiver, others are finished normally.
-                // We set the first seen failure for all bulksIndices in InsertFromValues.
-                // In other components that implement executeBulk failures can be different,
-                // but we want to show only the first seen to a user.
-                failedBulk = true;
-                resultReceiver.fail(bulkFailure);
-            } else {
-                resultReceiver.setNextRow(row);
-                resultReceiver.allFinished();
-            }
+            resultReceiver.setNextRow(row);
+            resultReceiver.allFinished();
         }
-        if (failFast && bulkFailure != null) {
-            // Message is already in human-readable format.
-            jobsLogs.logExecutionEnd(jobId, bulkFailure.getMessage());
-        } else {
-            jobsLogs.logExecutionEnd(jobId, null);
-        }
+        jobsLogs.logExecutionEnd(jobId, null);
     }
 
     @VisibleForTesting

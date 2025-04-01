@@ -107,7 +107,7 @@ public final class UpdateById implements Plan {
                                                        List<Row> bulkParams,
                                                        SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
-            .executeBulk(bulkParams, subQueryResults);
+            .executeBulk(bulkParams, subQueryResults, plannerContext.transactionContext().sessionSettings().allowFailOnPartialWrites());
     }
 
     private ShardRequestExecutor<ShardUpsertRequest> createExecutor(DependencyCarrier dependencies,

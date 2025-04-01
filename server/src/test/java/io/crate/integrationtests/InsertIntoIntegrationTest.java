@@ -2075,6 +2075,11 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 .hasHTTPError(CONFLICT, 4091)
                 .hasMessageContaining("A document with the same primary key exists already");
         }
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a,b) values %'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("version conflict, document already exists");
     }
 
     @Test
@@ -2088,28 +2093,11 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 .hasMessageContaining("\"a\" must not be null");
 
         }
-    }
-
-    @Test
-    public void test_bulk_insert_from_values_fail_fast() throws Exception {
-        execute("create table t (a int primary key)");
-
-        try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().allowFailOnPartialWrites(true);
-            Object[][] bulkArgs = new Object[][]{
-                new Object[]{1},
-                new Object[]{1}
-            };
-            assertSQLError(() -> executeBulk("insert into t (a) values (?)", bulkArgs, session))
-                .hasPGError(UNIQUE_VIOLATION)
-                .hasHTTPError(CONFLICT, 4091)
-                .hasMessageContaining("A document with the same primary key exists already");
-        }
 
         // First error encountered is reflected in jobs_log.
         var response = execute("""
-                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) values%'
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a,b) select %'
                 """);
-        assertThat((String) response.rows()[0][0]).contains("A document with the same primary key exists already");
+        assertThat((String) response.rows()[0][0]).contains("\"a\" must not be null");
     }
 }

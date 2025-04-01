@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -49,29 +50,47 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
-                              IntCollection resultIndices) {
+                              IntCollection resultIndices,
+                              boolean allowFailOnPartialWrites) {
         var bulkResponse = new BulkResponse(numBulkParams);
         this.results = new FutureActionListener<>();
         this.compressedResult = new ShardResponse.CompressedResult();
         listener = new MultiActionListener<>(
             numCallbacks,
             () -> compressedResult,
-            BulkShardResponseListener::onResponse,
+            onResponse(allowFailOnPartialWrites),
             responses -> bulkResponse.update(responses, resultIndices),
             results
         );
     }
 
-    private static void onResponse(ShardResponse.CompressedResult result, ShardResponse response) {
-        Exception failure = response.failure();
-        if (failure == null) {
-            result.update(response);
-        } else {
-            Throwable t = SQLExceptions.unwrap(failure);
-            if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
-                throw new RuntimeException(t);
+    private static BiConsumer<ShardResponse.CompressedResult, ShardResponse> onResponse(boolean allowFailOnPartialWrites) {
+        return (result, response) -> {
+            Exception failure = response.failure();
+            if (failure == null) {
+                if (allowFailOnPartialWrites == false) {
+                    result.update(response);
+                } else {
+                    for (int i = 0; i < response.itemIndices().size(); i++) {
+                        ShardResponse.Failure itemFailure = response.failures().get(i);
+                        if (itemFailure != null) {
+                            throw new RuntimeException(itemFailure.error());
+                        }
+                    }
+                    // No error encountered in items, fall back to normal behavior
+                    result.update(response);
+                }
+            } else {
+                // If shardResponse has a failure we must throw.
+                // This is not necessarily controlled by the allowFailOnPartialWrites setting,
+                // KILL can use it as well, so this behavior is kept intact.
+                Throwable t = SQLExceptions.unwrap(failure);
+                if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
+                    throw new RuntimeException(t);
+                }
             }
-        }
+
+        };
     }
 
     public CompletableFuture<BulkResponse> bulkResponseFuture() {

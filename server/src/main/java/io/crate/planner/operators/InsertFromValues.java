@@ -61,12 +61,10 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.auth.AccessControl;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -460,20 +458,10 @@ public class InsertFromValues implements LogicalPlan {
         }).whenComplete((response, t) -> {
             if (t == null) {
                 bulkResponse.update(response, bulkIndices);
+                result.complete(bulkResponse);
             } else {
-                assert response == null : "No response when one bulk short circuited." +
-                    "Creating a bulkResponse by setting up the same error to all bulks.";
-                AccessControl accessControl = dependencies
-                    .nodeContext()
-                    .roles()
-                    .getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-                for (IntCursor c : bulkIndices) {
-                    int resultIdx = c.value;
-                    t = SQLExceptions.prepareForClientTransmission(accessControl, t);
-                    bulkResponse.setFailure(resultIdx, t);
-                }
+                result.completeExceptionally(t);
             }
-            result.complete(bulkResponse);
         });
         return result;
     }

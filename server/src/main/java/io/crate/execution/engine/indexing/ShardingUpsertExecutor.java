@@ -50,7 +50,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -348,7 +347,6 @@ public class ShardingUpsertExecutor
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             var failure = shardResponse.failure();
             if (failure != null) {
-                // No need to call prepareForClientTransmission, it's done later.
                 interrupt.set(failure);
             }
             countdown();
@@ -368,18 +366,6 @@ public class ShardingUpsertExecutor
                 } else {
                     upsertResultFuture.completeExceptionally(interruptedException);
                 }
-            }
-        }
-
-        /**
-         * @param failure is not NULL only when continueOnError is false.
-         * Hence, can use interrupt not only for KILL requests
-         * but also to reflect continueOnError derived from the dml_fail_fast setting.
-         */
-        private void maybeSetInterrupt(@Nullable Exception failure) {
-            if (failure != null) {
-                // No need to call prepareForClientTransmission, it's done later.
-                interrupt.set(failure);
             }
         }
     }
