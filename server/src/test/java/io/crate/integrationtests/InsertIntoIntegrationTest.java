@@ -2067,7 +2067,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_insert_from_values_fail() throws Exception {
-        execute("create table t (a int primary key, b int)");
+        execute("create table t (a int primary key, b int) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().allowFailOnPartialWrites(true);
             assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2)", session))
