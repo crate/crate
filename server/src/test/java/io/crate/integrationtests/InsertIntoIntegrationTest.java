@@ -2070,10 +2070,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (a int primary key, b int) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().allowFailOnPartialWrites(true);
-            assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2), (2, 2)", session))
+            assertSQLError(() -> execute("insert into t (a,b) values (1, 1), (1, 2), (2, 2)", session))
                 .hasPGError(UNIQUE_VIOLATION)
                 .hasHTTPError(CONFLICT, 4091)
                 .hasMessageContaining("A document with the same primary key exists already");
+
+            execute("refresh table t");
+            execute("select a, b from t order by a");
+            assertThat(response).hasRows("1| 1"); // (2,2) is not written even though it doesn't cause PK conflict.
         }
         // First error encountered is reflected in jobs_log.
         var response = execute("""
@@ -2092,11 +2096,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("\"a\" must not be null");
 
+            execute("refresh table t");
+            execute("select * from t");
+            assertThat(response).hasRowCount(0); // 1 is not written even though it's a valid value.
         }
 
         // First error encountered is reflected in jobs_log.
         var response = execute("""
-                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a,b) select %'
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) select unnest([NULL, 1])'
                 """);
         assertThat((String) response.rows()[0][0]).contains("\"a\" must not be null");
     }
