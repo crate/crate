@@ -33,7 +33,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.network.CloseableChannel;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
@@ -279,10 +279,10 @@ public class InboundHandler {
             error = new RemoteTransportException(error.getMessage(), error);
         }
         final RemoteTransportException rtx = (RemoteTransportException) error;
-        threadPool.executor(handler.executor()).execute(new AbstractRunnable() {
+        threadPool.executor(handler.executor()).execute(new RejectableRunnable() {
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 try {
                     handler.handleException(rtx);
                 } catch (Exception e) {
@@ -315,7 +315,7 @@ public class InboundHandler {
         assert version.equals(in.getVersion()) : "Stream version [" + in.getVersion() + "] does not match version [" + version + "]";
     }
 
-    private static class RequestHandler<T extends TransportRequest> extends AbstractRunnable {
+    private static class RequestHandler<T extends TransportRequest> implements RejectableRunnable {
         private final RequestHandlerRegistry<T> reg;
         private final T request;
         private final TransportChannel transportChannel;
@@ -327,7 +327,7 @@ public class InboundHandler {
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             reg.processMessageReceived(request, transportChannel);
         }
 

@@ -56,7 +56,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -308,7 +308,7 @@ public abstract class TransportReplicationAction<
             request, new ChannelActionListener<>(channel, transportPrimaryAction, request)).run();
     }
 
-    class AsyncPrimaryAction extends AbstractRunnable {
+    class AsyncPrimaryAction implements RejectableRunnable {
         private final ActionListener<Response> onCompletionListener;
         private final ConcreteShardRequest<Request> primaryRequest;
 
@@ -318,7 +318,7 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             final ShardId shardId = primaryRequest.getRequest().shardId();
             final IndexShard indexShard = getIndexShard(shardId);
             final ShardRouting shardRouting = indexShard.routingEntry();
@@ -532,7 +532,7 @@ public abstract class TransportReplicationAction<
         }
     }
 
-    private final class AsyncReplicaAction extends AbstractRunnable implements ActionListener<Releasable> {
+    private final class AsyncReplicaAction implements RejectableRunnable, ActionListener<Releasable> {
         private final ActionListener<ReplicaResponse> onCompletionListener;
         private final IndexShard replica;
         // important: we pass null as a timeout as failing a replica is
@@ -619,7 +619,7 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        protected void doRun() throws Exception {
+        public void doRun() throws Exception {
             final String actualAllocationId = this.replica.routingEntry().allocationId().getId();
             if (actualAllocationId.equals(replicaRequest.getTargetAllocationID()) == false) {
                 throw new ShardNotFoundException(this.replica.shardId(), "expected allocation id [{}] but found [{}]",
@@ -642,7 +642,7 @@ public abstract class TransportReplicationAction<
      *
      * Resolves index and shard id for the request before routing it to target node
      */
-    final class ReroutePhase extends AbstractRunnable {
+    final class ReroutePhase implements RejectableRunnable {
         private final ActionListener<Response> listener;
         private final Request request;
         private final ClusterStateObserver observer;
@@ -660,7 +660,7 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        protected void doRun() {
+        public void doRun() {
             final ClusterState state = observer.setAndGetObservedState();
             final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexName());
             if (blockException != null) {

@@ -54,8 +54,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -211,7 +211,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             for (final Transport.ResponseContext<?> holderToNotify : responseHandlers.prune(h -> true)) {
                 // callback that an exception happened, but on a different thread since we don't
                 // want handlers to worry about stack overflows
-                getExecutorService().execute(new AbstractRunnable() {
+                getExecutorService().execute(new RejectableRunnable() {
 
                     @Override
                     public void onRejection(Exception e) {
@@ -633,7 +633,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             // thread on a best effort basis though.
             final SendRequestTransportException sendRequestException = new SendRequestTransportException(node, action, e);
             final String executor = lifecycle.stoppedOrClosed() ? ThreadPool.Names.SAME : ThreadPool.Names.GENERIC;
-            threadPool.executor(executor).execute(new AbstractRunnable() {
+            threadPool.executor(executor).execute(new RejectableRunnable() {
                 @Override
                 public void onRejection(Exception e) {
                     // if we get rejected during node shutdown we don't wanna bubble it up
@@ -654,7 +654,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     contextToNotify.handler().handleException(sendRequestException);
                 }
             });
@@ -676,9 +676,9 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 //noinspection unchecked
                 reg.processMessageReceived(request, channel);
             } else {
-                threadPool.executor(executor).execute(new AbstractRunnable() {
+                threadPool.executor(executor).execute(new RejectableRunnable() {
                     @Override
-                    protected void doRun() throws Exception {
+                    public void doRun() throws Exception {
                         //noinspection unchecked
                         reg.processMessageReceived(request, channel);
                     }

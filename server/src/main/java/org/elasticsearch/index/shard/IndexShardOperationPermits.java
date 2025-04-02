@@ -36,7 +36,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
@@ -121,7 +121,7 @@ final class IndexShardOperationPermits implements Closeable {
      */
     public void asyncBlockOperations(final ActionListener<Releasable> onAcquired, final long timeout, final TimeUnit timeUnit) {
         delayOperations();
-        threadPool.executor(ThreadPool.Names.GENERIC).execute(new AbstractRunnable() {
+        threadPool.executor(ThreadPool.Names.GENERIC).execute(new RejectableRunnable() {
 
             final AtomicBoolean released = new AtomicBoolean(false);
 
@@ -135,7 +135,7 @@ final class IndexShardOperationPermits implements Closeable {
             }
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 final Releasable releasable = acquireAll(timeout, timeUnit);
                 onAcquired.onResponse(() -> {
                     try {
@@ -264,7 +264,7 @@ final class IndexShardOperationPermits implements Closeable {
                                 }
 
                                 @Override
-                                protected void doRun() {
+                                public void doRun() {
                                     listener.onResponse(r);
                                 }
 

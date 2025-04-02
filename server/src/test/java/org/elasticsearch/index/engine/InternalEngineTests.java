@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
@@ -151,7 +152,7 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
@@ -3077,14 +3078,14 @@ public class InternalEngineTests extends EngineTestCase {
     public void testConcurrentEngineClosed() throws BrokenBarrierException, InterruptedException {
         Thread[] closingThreads = new Thread[3];
         CyclicBarrier barrier = new CyclicBarrier(1 + closingThreads.length + 1);
-        Thread failEngine = new Thread(new AbstractRunnable() {
+        Thread failEngine = new Thread(new RejectableRunnable() {
             @Override
             public void onFailure(Exception e) {
                 throw new AssertionError(e);
             }
 
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 barrier.await();
                 engine.failEngine("test", new RuntimeException("test"));
             }
@@ -3092,14 +3093,14 @@ public class InternalEngineTests extends EngineTestCase {
         failEngine.start();
         for (int i = 0;i < closingThreads.length ; i++) {
             boolean flushAndClose = randomBoolean();
-            closingThreads[i] = new Thread(new AbstractRunnable() {
+            closingThreads[i] = new Thread(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     throw new AssertionError(e);
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     barrier.await();
                     if (flushAndClose) {
                         engine.flushAndClose();
@@ -5431,14 +5432,14 @@ public class InternalEngineTests extends EngineTestCase {
             for (int i = 0; i < snapshotThreads.length; i++) {
                 final long min = randomLongBetween(0, maxSeqNo - 5);
                 final long max = randomLongBetween(min, maxSeqNo);
-                snapshotThreads[i] = new Thread(new AbstractRunnable() {
+                snapshotThreads[i] = new Thread(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         throw new AssertionError(e);
                     }
 
                     @Override
-                    protected void doRun() throws Exception {
+                    public void doRun() throws Exception {
                         latch.await();
                         Translog.Snapshot changes = engine.newChangesSnapshot("test", min, max, true);
                         changes.close();

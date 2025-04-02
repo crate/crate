@@ -41,7 +41,7 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         return name;
     }
 
-    EsThreadPoolExecutor(String name,
+    public EsThreadPoolExecutor(String name,
                          int corePoolSize,
                          int maximumPoolSize,
                          long keepAliveTime,
@@ -52,7 +52,7 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
-    EsThreadPoolExecutor(String name,
+    public EsThreadPoolExecutor(String name,
                          int corePoolSize,
                          int maximumPoolSize,
                          long keepAliveTime,
@@ -70,14 +70,11 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         try {
             super.execute(command);
         } catch (EsRejectedExecutionException ex) {
-            if (command instanceof AbstractRunnable runnable) {
-                // If we are an abstract runnable we can handle the rejection
-                // directly and don't need to rethrow it.
+            if (command instanceof RejectableRunnable runnable) {
                 try {
                     runnable.onRejection(ex);
                 } finally {
                     runnable.onAfter();
-
                 }
             } else {
                 throw ex;

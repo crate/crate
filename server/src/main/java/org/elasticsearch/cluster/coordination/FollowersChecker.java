@@ -41,7 +41,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.monitor.NodeHealthService;
 import org.elasticsearch.monitor.StatusInfo;
 import org.elasticsearch.threadpool.ThreadPool.Names;
@@ -183,9 +183,9 @@ public class FollowersChecker {
             throw new CoordinationStateRejectedException("rejecting " + request + " since local state is " + this);
         }
 
-        transportService.getThreadPool().generic().execute(new AbstractRunnable() {
+        transportService.getThreadPool().generic().execute(new RejectableRunnable() {
             @Override
-            protected void doRun() throws IOException {
+            public void doRun() throws IOException {
                 LOGGER.trace("responding to {} on slow path", request);
                 try {
                     handleRequestAndUpdateState.accept(request);

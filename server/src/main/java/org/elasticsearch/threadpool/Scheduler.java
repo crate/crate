@@ -27,10 +27,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsAbortPolicy;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.exceptions.Exceptions;
@@ -169,7 +169,7 @@ public interface Scheduler {
      * {@link ScheduledThreadPoolExecutor#scheduleWithFixedDelay(Runnable, long, long, TimeUnit)} semantics as an exception there would
      * terminate the rescheduling of the runnable.
      */
-    final class ReschedulingRunnable extends AbstractRunnable implements Cancellable {
+    final class ReschedulingRunnable implements RejectableRunnable, Cancellable {
 
         private final Runnable runnable;
         private final TimeValue interval;

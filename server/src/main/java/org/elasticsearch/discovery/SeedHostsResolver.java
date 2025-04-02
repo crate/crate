@@ -19,21 +19,6 @@
 
 package org.elasticsearch.discovery;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.CancellableThreads;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.discovery.PeerFinder.ConfiguredHostsResolver;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,6 +36,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.CancellableThreads;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
+import org.elasticsearch.discovery.PeerFinder.ConfiguredHostsResolver;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
 
 public class SeedHostsResolver extends AbstractLifecycleComponent implements ConfiguredHostsResolver, SeedHostsProvider.HostsResolver {
     public static final Setting<Integer> DISCOVERY_SEED_RESOLVER_MAX_CONCURRENT_RESOLVERS_SETTING =
@@ -175,14 +176,14 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
         }
 
         if (resolveInProgress.compareAndSet(false, true)) {
-            transportService.getThreadPool().generic().execute(new AbstractRunnable() {
+            transportService.getThreadPool().generic().execute(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     LOGGER.debug("failure when resolving unicast hosts list", e);
                 }
 
                 @Override
-                protected void doRun() {
+                public void doRun() {
                     if (lifecycle.started() == false) {
                         LOGGER.debug("resolveConfiguredHosts.doRun: lifecycle is {}, not proceeding", lifecycle);
                         return;

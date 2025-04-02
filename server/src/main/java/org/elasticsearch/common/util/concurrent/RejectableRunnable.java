@@ -21,18 +21,17 @@ package org.elasticsearch.common.util.concurrent;
 
 /**
  * An extension to runnable.
- */
-public abstract class AbstractRunnable implements Runnable {
+ **/
+public interface RejectableRunnable extends Runnable {
 
     /**
      * Should the runnable force its execution in case it gets rejected?
      */
-    public boolean isForceExecution() {
+    default boolean isForceExecution() {
         return false;
     }
 
-    @Override
-    public final void run() {
+    default void run() {
         try {
             doRun();
         } catch (Exception t) {
@@ -46,20 +45,20 @@ public abstract class AbstractRunnable implements Runnable {
      * This method is called in a finally block after successful execution
      * or on a rejection.
      */
-    public void onAfter() {
+    default void onAfter() {
         // nothing by default
     }
 
     /**
      * This method is invoked for all exception thrown by {@link #doRun()}
      */
-    public abstract void onFailure(Exception e);
+    void onFailure(Exception e);
 
     /**
      * This should be executed if the thread-pool executing this action rejected the execution.
      * The default implementation forwards to {@link #onFailure(Exception)}
      */
-    public void onRejection(Exception e) {
+    default void onRejection(Exception e) {
         onFailure(e);
     }
 
@@ -67,5 +66,5 @@ public abstract class AbstractRunnable implements Runnable {
      * This method has the same semantics as {@link Runnable#run()}
      * @throws InterruptedException if the run method throws an InterruptedException
      */
-    protected abstract void doRun() throws Exception;
+    void doRun() throws Exception;
 }

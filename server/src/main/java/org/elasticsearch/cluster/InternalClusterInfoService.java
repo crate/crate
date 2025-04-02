@@ -50,8 +50,8 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -420,7 +420,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
     /**
      * Runs {@link InternalClusterInfoService#refresh()}, logging failures/rejections appropriately.
      */
-    private class RefreshRunnable extends AbstractRunnable {
+    private class RefreshRunnable implements RejectableRunnable {
         private final String reason;
 
         RefreshRunnable(String reason) {
@@ -428,7 +428,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         }
 
         @Override
-        protected void doRun() {
+        public void doRun() {
             if (enabled) {
                 LOGGER.trace("refreshing cluster info [{}]", reason);
                 refresh();
@@ -460,7 +460,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         }
 
         @Override
-        protected void doRun() {
+        public void doRun() {
             if (this == refreshAndRescheduleRunnable.get()) {
                 super.doRun();
             } else {

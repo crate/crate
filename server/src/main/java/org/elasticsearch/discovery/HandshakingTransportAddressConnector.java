@@ -35,7 +35,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -73,11 +73,11 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
 
     @Override
     public void connectToRemoteMasterNode(TransportAddress transportAddress, ActionListener<DiscoveryNode> listener) {
-        transportService.getThreadPool().generic().execute(new AbstractRunnable() {
-            private final AbstractRunnable thisConnectionAttempt = this;
+        transportService.getThreadPool().generic().execute(new RejectableRunnable() {
+            private final RejectableRunnable thisConnectionAttempt = this;
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 // We could skip this if the transportService were already connected to the given address, but the savings would be minimal
                 // so we open a new connection anyway.
 

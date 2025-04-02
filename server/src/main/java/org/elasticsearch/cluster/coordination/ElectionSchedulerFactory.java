@@ -19,7 +19,10 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import io.crate.common.SuppressForbidden;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -27,14 +30,12 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 
 /**
  * It's provably impossible to guarantee that any leader election algorithm ever elects a leader, but they generally work (with probability
@@ -152,7 +153,7 @@ public class ElectionSchedulerFactory {
             // to overflow here would take over a million years of failed election attempts, so we won't worry about that:
             final long maxDelayMillis = Math.min(maxTimeout.millis(), initialTimeout.millis() + thisAttempt * backoffTime.millis());
             final long delayMillis = toPositiveLongAtMost(random.nextLong(), maxDelayMillis) + gracePeriod.millis();
-            final Runnable runnable = new AbstractRunnable() {
+            final Runnable runnable = new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     LOGGER.debug(new ParameterizedMessage("unexpected exception in wakeup of {}", this), e);
@@ -160,7 +161,7 @@ public class ElectionSchedulerFactory {
                 }
 
                 @Override
-                protected void doRun() {
+                public void doRun() {
                     if (isClosed.get()) {
                         LOGGER.debug("{} not starting election", this);
                     } else {

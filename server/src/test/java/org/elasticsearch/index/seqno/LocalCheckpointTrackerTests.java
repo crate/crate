@@ -35,7 +35,7 @@ import java.util.stream.IntStream;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 
@@ -173,14 +173,14 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         final CyclicBarrier barrier = new CyclicBarrier(threads.length);
         for (int t = 0; t < threads.length; t++) {
             final int threadId = t;
-            threads[t] = new Thread(new AbstractRunnable() {
+            threads[t] = new Thread(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     throw new ElasticsearchException("failure in background thread", e);
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     barrier.await();
                     for (int i = 0; i < opsPerThread; i++) {
                         long seqNo = tracker.generateSeqNo();
@@ -225,14 +225,14 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         final CyclicBarrier barrier = new CyclicBarrier(threads.length);
         for (int t = 0; t < threads.length; t++) {
             final int threadId = t;
-            threads[t] = new Thread(new AbstractRunnable() {
+            threads[t] = new Thread(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     throw new ElasticsearchException("failure in background thread", e);
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     barrier.await();
                     Integer[] ops = seqNoPerThread[threadId];
                     for (int seqNo : ops) {

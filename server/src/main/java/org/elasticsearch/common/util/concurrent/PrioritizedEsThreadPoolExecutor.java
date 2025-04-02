@@ -95,14 +95,13 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
 
     private void addPending(Collection<Runnable> runnables, List<Pending> pending, boolean executing) {
         for (Runnable runnable : runnables) {
-            if (runnable instanceof TieBreakingPrioritizedRunnable) {
-                TieBreakingPrioritizedRunnable t = (TieBreakingPrioritizedRunnable) runnable;
-                Runnable innerRunnable = t.runnable;
+            if (runnable instanceof TieBreakingPrioritizedRunnable tieBreaking) {
+                PrioritizedRunnable innerRunnable = tieBreaking.runnable;
                 if (innerRunnable != null) {
                     /** innerRunnable can be null if task is finished but not removed from executor yet,
                      * see {@link TieBreakingPrioritizedRunnable#run} and {@link TieBreakingPrioritizedRunnable#runAndClean}
                      */
-                    pending.add(new Pending(super.unwrap(innerRunnable), t.priority(), t.insertionOrder, executing));
+                    pending.add(new Pending(innerRunnable, tieBreaking.priority(), tieBreaking.insertionOrder, executing));
                 }
             }
         }
@@ -120,65 +119,43 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
     }
 
     public void execute(Runnable command, final TimeValue timeout, final Runnable timeoutCallback) {
-        command = wrapRunnable(command);
-        execute(command);
+        TieBreakingPrioritizedRunnable tieBreaking = wrapRunnable(command);
+        execute(tieBreaking);
         if (timeout.nanos() >= 0) {
-            if (command instanceof TieBreakingPrioritizedRunnable tieBreaking) {
-                tieBreaking.scheduleTimeout(timer, timeoutCallback, timeout);
-            } else {
-                // We really shouldn't be here. The only way we can get here if somebody created PrioritizedFutureTask
-                // and passed it to execute, which doesn't make much sense
-                throw new UnsupportedOperationException("Execute with timeout is not supported for future tasks");
-            }
+            tieBreaking.scheduleTimeout(timer, timeoutCallback, timeout);
         }
     }
 
     @Override
-    protected Runnable wrapRunnable(Runnable command) {
+    protected TieBreakingPrioritizedRunnable wrapRunnable(Runnable command) {
+        if (command instanceof TieBreakingPrioritizedRunnable tieBreaking) {
+            return tieBreaking;
+        }
         if (command instanceof PrioritizedRunnable prioritized) {
-            if (command instanceof TieBreakingPrioritizedRunnable) {
-                return command;
-            }
             Priority priority = prioritized.priority();
             return new TieBreakingPrioritizedRunnable(
-                super.wrapRunnable(command),
+                prioritized,
                 priority,
                 insertionOrder.incrementAndGet()
             );
-        } else { // it might be a callable wrapper...
-            return new TieBreakingPrioritizedRunnable(
-                super.wrapRunnable(command),
-                Priority.NORMAL,
-                insertionOrder.incrementAndGet()
-            );
         }
+        throw new UnsupportedOperationException("Cannot run non-prioritized runnable with " + getClass().getSimpleName());
     }
 
-    public static class Pending {
-        public final Object task;
-        public final Priority priority;
-        public final long insertionOrder;
-        public final boolean executing;
-
-        public Pending(Object task, Priority priority, long insertionOrder, boolean executing) {
-            this.task = task;
-            this.priority = priority;
-            this.insertionOrder = insertionOrder;
-            this.executing = executing;
-        }
+    public record Pending(PrioritizedRunnable task, Priority priority, long insertionOrder, boolean executing) {
     }
 
     private final class TieBreakingPrioritizedRunnable extends PrioritizedRunnable implements WrappedRunnable {
 
-        private Runnable runnable;
+        private PrioritizedRunnable runnable;
         private final long insertionOrder;
 
         // these two variables are protected by 'this'
         private ScheduledFuture<?> timeoutFuture;
         private boolean started = false;
 
-        TieBreakingPrioritizedRunnable(Runnable runnable, Priority priority, long insertionOrder) {
-            super(priority);
+        TieBreakingPrioritizedRunnable(PrioritizedRunnable runnable, Priority priority, long insertionOrder) {
+            super(priority, runnable.source());
             this.runnable = runnable;
             this.insertionOrder = insertionOrder;
         }
@@ -236,9 +213,8 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         }
 
         @Override
-        public Runnable unwrap() {
+        public PrioritizedRunnable unwrap() {
             return runnable;
         }
-
     }
 }

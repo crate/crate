@@ -263,7 +263,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 TransportReplicationAction.AsyncPrimaryAction asyncPrimaryAction =
                     singlePermitAction.new AsyncPrimaryAction(primaryRequest, listener) {
                         @Override
-                        protected void doRun() throws Exception {
+                        public void doRun() throws Exception {
                             if (delayed) {
                                 logger.trace("op [{}] has started and will resume execution once allPermitsAction is terminated", threadId);
                                 delayedOperationsBarrier.await();

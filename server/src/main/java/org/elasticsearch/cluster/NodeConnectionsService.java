@@ -31,8 +31,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,9 +47,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -209,8 +208,8 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
         runnables.forEach(Runnable::run);
     }
 
-    class ConnectionChecker extends AbstractRunnable {
-        protected void doRun() {
+    class ConnectionChecker implements RejectableRunnable {
+        public void doRun() {
             if (connectionChecker == this) {
                 connectDisconnectedTargets(this::scheduleNextCheck);
             }
@@ -301,12 +300,12 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
 
         private final AtomicInteger consecutiveFailureCount = new AtomicInteger();
 
-        private final Runnable connectActivity = new AbstractRunnable() {
+        private final Runnable connectActivity = new RejectableRunnable() {
 
-            final AbstractRunnable abstractRunnable = this;
+            final RejectableRunnable abstractRunnable = this;
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 if (transportService.nodeConnected(discoveryNode)) {
                     // transportService.connectToNode is a no-op if already connected, but we don't want any DEBUG logging in this case
@@ -355,9 +354,9 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             }
         };
 
-        private final Runnable disconnectActivity = new AbstractRunnable() {
+        private final Runnable disconnectActivity = new RejectableRunnable() {
             @Override
-            protected void doRun() {
+            public void doRun() {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 transportService.disconnectFromNode(discoveryNode);
                 consecutiveFailureCount.set(0);

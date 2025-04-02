@@ -103,7 +103,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
@@ -862,7 +862,7 @@ public class TranslogTests extends ESTestCase {
         for (int i = 0; i < writers.length; i++) {
             final String threadName = "writer_" + i;
             final int threadId = i;
-            writers[i] = new Thread(new AbstractRunnable() {
+            writers[i] = new Thread(new RejectableRunnable() {
                 @Override
                 public void doRun() throws BrokenBarrierException, InterruptedException, IOException {
                     barrier.await();
@@ -928,7 +928,7 @@ public class TranslogTests extends ESTestCase {
 
         for (int i = 0; i < readers.length; i++) {
             final String threadId = "reader_" + i;
-            readers[i] = new Thread(new AbstractRunnable() {
+            readers[i] = new Thread(new RejectableRunnable() {
                 Closeable retentionLock = null;
                 long committedLocalCheckpointAtView;
 
@@ -960,7 +960,7 @@ public class TranslogTests extends ESTestCase {
                 }
 
                 @Override
-                protected void doRun() throws Exception {
+                public void doRun() throws Exception {
                     barrier.await();
                     int iter = 0;
                     while (idGenerator.get() < maxOps) {

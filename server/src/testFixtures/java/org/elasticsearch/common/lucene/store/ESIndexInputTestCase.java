@@ -29,10 +29,10 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainFuture;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -121,14 +121,14 @@ public class ESIndexInputTestCase extends ESTestCase {
                     final int mainThreadReadEnd = randomIntBetween(readPos + 1, length);
 
                     for (int i = 0; i < cloneCount; i++) {
-                        executor.execute(new AbstractRunnable() {
+                        executor.execute(new RejectableRunnable() {
                             @Override
                             public void onFailure(Exception e) {
                                 throw new AssertionError(e);
                             }
 
                             @Override
-                            protected void doRun() throws Exception {
+                            public void doRun() throws Exception {
                                 final IndexInput clone;
                                 final int readStart = between(0, length);
                                 final int readEnd = between(readStart, length);

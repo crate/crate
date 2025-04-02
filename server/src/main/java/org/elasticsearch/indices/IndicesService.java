@@ -74,10 +74,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -1088,14 +1088,14 @@ public class IndicesService extends AbstractLifecycleComponent
             LOGGER.trace("triggered dangling indices update for {}", index);
             final long triggeredTimeMillis = threadPool.relativeTimeInMillis();
             try {
-                danglingIndicesThreadPoolExecutor.execute(new AbstractRunnable() {
+                danglingIndicesThreadPoolExecutor.execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.warn(() -> new ParameterizedMessage("failed to write dangling indices state for index {}", index), e);
                     }
 
                     @Override
-                    protected void doRun() {
+                    public void doRun() {
                         final boolean exists = danglingIndicesToWrite.remove(index);
                         assert exists : "removed non-existing item for " + index;
                         final IndexService indexService = indices.get(index.getUUID());

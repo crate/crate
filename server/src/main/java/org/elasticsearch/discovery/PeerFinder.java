@@ -19,27 +19,7 @@
 
 package org.elasticsearch.discovery;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.coordination.PeersResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.threadpool.ThreadPool.Names;
-import org.elasticsearch.transport.TransportException;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponseHandler;
-import org.elasticsearch.transport.TransportService;
+import static java.util.Collections.emptyList;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -50,7 +30,29 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.coordination.PeersResponse;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
+import org.elasticsearch.threadpool.ThreadPool.Names;
+import org.elasticsearch.transport.TransportException;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponseHandler;
+import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.unit.TimeValue;
 
 public abstract class PeerFinder {
 
@@ -256,7 +258,7 @@ public abstract class PeerFinder {
             }
         });
 
-        transportService.getThreadPool().scheduleUnlessShuttingDown(findPeersInterval, Names.GENERIC, new AbstractRunnable() {
+        transportService.getThreadPool().scheduleUnlessShuttingDown(findPeersInterval, Names.GENERIC, new RejectableRunnable() {
             @Override
             public boolean isForceExecution() {
                 return true;
@@ -269,7 +271,7 @@ public abstract class PeerFinder {
             }
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 synchronized (mutex) {
                     if (handleWakeUp() == false) {
                         return;

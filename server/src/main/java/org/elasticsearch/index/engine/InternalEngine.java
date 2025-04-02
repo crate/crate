@@ -85,8 +85,8 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.KeyedLock;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
@@ -2329,7 +2329,7 @@ public class InternalEngine extends Engine {
                 System.nanoTime() - lastWriteNanos >= engineConfig.getFlushMergesAfter().nanos()) {
                 // NEVER do this on a merge thread since we acquire some locks blocking here and if we concurrently rollback the writer
                 // we deadlock on engine#close for instance.
-                engineConfig.getThreadPool().executor(ThreadPool.Names.FLUSH).execute(new AbstractRunnable() {
+                engineConfig.getThreadPool().executor(ThreadPool.Names.FLUSH).execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         if (isClosed.get() == false) {
@@ -2338,7 +2338,7 @@ public class InternalEngine extends Engine {
                     }
 
                     @Override
-                    protected void doRun() {
+                    public void doRun() {
                         // if we have no pending merges and we are supposed to flush once merges have finished
                         // we try to renew a sync commit which is the case when we are having a big merge after we
                         // are inactive. If that didn't work we go and do a real flush which is ok since it only doesn't work
@@ -2360,14 +2360,14 @@ public class InternalEngine extends Engine {
 
         @Override
         protected void handleMergeException(final Throwable exc) {
-            engineConfig.getThreadPool().generic().execute(new AbstractRunnable() {
+            engineConfig.getThreadPool().generic().execute(new RejectableRunnable() {
                 @Override
                 public void onFailure(Exception e) {
                     logger.debug("merge failure action rejected", e);
                 }
 
                 @Override
-                protected void doRun() {
+                public void doRun() {
                     /*
                      * We do this on another thread rather than the merge thread that we are initially called on so that we have complete
                      * confidence that the call stack does not contain catch statements that would cause the error that might be thrown

@@ -19,17 +19,17 @@
 
 package org.elasticsearch.common.util.concurrent;
 
+import java.util.Objects;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.Lifecycle;
 
-import java.util.Objects;
-
 /**
- * {@code AbstractLifecycleRunnable} is a service-lifecycle aware {@link AbstractRunnable}.
+ * {@code AbstractLifecycleRunnable} is a service-lifecycle aware {@link RejectableRunnable}.
  * <p>
  * This simplifies the running and rescheduling of {@link Lifecycle}-based {@code Runnable}s.
  */
-public abstract class AbstractLifecycleRunnable extends AbstractRunnable {
+public abstract class AbstractLifecycleRunnable implements RejectableRunnable {
     /**
      * The monitored lifecycle for the associated service.
      */
@@ -58,7 +58,7 @@ public abstract class AbstractLifecycleRunnable extends AbstractRunnable {
      * immediately.
      */
     @Override
-    protected final void doRun() throws Exception {
+    public final void doRun() throws Exception {
         // prevent execution if the service is stopped
         if (lifecycle.stoppedOrClosed()) {
             logger.trace("lifecycle is stopping. exiting");

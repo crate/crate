@@ -21,22 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.Streamer;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import io.crate.execution.engine.distribution.merge.PagingIterator;
-import io.netty.util.collection.IntObjectHashMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.jetbrains.annotations.NotNull;
-import io.crate.common.annotations.GuardedBy;
-import io.crate.common.concurrent.KillableCompletionStage;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -48,6 +32,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
+import org.elasticsearch.common.util.concurrent.PriorityRunnable;
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.Streamer;
+import io.crate.common.annotations.GuardedBy;
+import io.crate.common.concurrent.KillableCompletionStage;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.netty.util.collection.IntObjectHashMap;
+
 /**
  * A {@link PageBucketReceiver} which receives buckets from upstreams, wait to receive the page from all upstreams
  * and forwards the merged bucket results to the consumers for further processing. It then continues to receive
@@ -56,6 +60,12 @@ import java.util.concurrent.RejectedExecutionException;
 public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     private static final Logger LOGGER = LogManager.getLogger(CumulativePageBucketReceiver.class);
+
+    /**
+     * Priority to finish queries is higher than starting new queries, except for system queries.
+     * See also `getPriority` in {@link CollectTask}
+     **/
+    private static final Priority PRIORITY = Priority.HIGH;
 
     private final Object lock = new Object();
     private final String nodeName;
@@ -167,7 +177,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             if (error == null) {
                 try {
                     pagingIterator.merge(buckets);
-                    executor.execute(this::consumeRows);
+                    PrioritizedRunnable runnable = PriorityRunnable.of(
+                        PRIORITY,
+                        "pageBucketReceiver",
+                        this::consumeRows
+                    );
+                    executor.execute(runnable);
                 } catch (Throwable e) {
                     consumer.accept(null, e);
                     throwable = e;
@@ -178,7 +193,12 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         } else {
             if (error == null) {
                 try {
-                    executor.execute(() -> currentPage.complete(buckets));
+                    PrioritizedRunnable runnable = PriorityRunnable.of(
+                        PRIORITY,
+                        "pageBucketReceiver",
+                        () -> currentPage.complete(buckets)
+                    );
+                    executor.execute(runnable);
                 } catch (RejectedExecutionException e) {
                     currentPage.completeExceptionally(e);
                     throwable = e;

@@ -88,8 +88,8 @@ import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.AsyncIOProcessor;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.util.concurrent.RunOnce;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.WriteStateException;
@@ -1726,7 +1726,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             boolean wasActive = active.getAndSet(false);
             if (wasActive) {
                 logger.debug("flushing shard on inactive");
-                threadPool.executor(ThreadPool.Names.FLUSH).execute(new AbstractRunnable() {
+                threadPool.executor(ThreadPool.Names.FLUSH).execute(new RejectableRunnable() {
                     @Override
                     public void onFailure(Exception e) {
                         if (state != IndexShardState.CLOSED) {
@@ -1735,7 +1735,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     }
 
                     @Override
-                    protected void doRun() {
+                    public void doRun() {
                         flush(false, false);
                         periodicFlushMetric.inc();
                     }
@@ -1873,7 +1873,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         logger.debug("turn off the translog retention for the replication group {} " +
             "as it starts using retention leases exclusively in peer recoveries", shardId);
         // Off to the generic threadPool as pruning the delete tombstones can be expensive.
-        threadPool.generic().execute(new AbstractRunnable() {
+        threadPool.generic().execute(new RejectableRunnable() {
             @Override
             public void onFailure(Exception e) {
                 if (state != IndexShardState.CLOSED) {
@@ -1882,7 +1882,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             }
 
             @Override
-            protected void doRun() {
+            public void doRun() {
                 applyEngineSettings();
                 trimTranslog();
             }
@@ -2997,7 +2997,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                  */
                 if (shouldPeriodicallyFlush()) {
                     logger.debug("submitting async flush request");
-                    final AbstractRunnable flush = new AbstractRunnable() {
+                    final RejectableRunnable flush = new RejectableRunnable() {
                         @Override
                         public void onFailure(final Exception e) {
                             if (state != IndexShardState.CLOSED) {
@@ -3006,7 +3006,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         }
 
                         @Override
-                        protected void doRun() throws IOException {
+                        public void doRun() throws IOException {
                             flush(false, false);
                             periodicFlushMetric.inc();
                         }
@@ -3020,7 +3020,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     threadPool.executor(ThreadPool.Names.FLUSH).execute(flush);
                 } else if (shouldRollTranslogGeneration()) {
                     logger.debug("submitting async roll translog generation request");
-                    final AbstractRunnable roll = new AbstractRunnable() {
+                    final RejectableRunnable roll = new RejectableRunnable() {
                         @Override
                         public void onFailure(final Exception e) {
                             if (state != IndexShardState.CLOSED) {
@@ -3029,7 +3029,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                         }
 
                         @Override
-                        protected void doRun() throws Exception {
+                        public void doRun() throws Exception {
                             rollTranslogGeneration();
                         }
 

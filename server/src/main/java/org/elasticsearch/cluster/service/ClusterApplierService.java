@@ -59,6 +59,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
@@ -141,7 +142,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             threadPool.scheduler());
     }
 
-    class UpdateTask extends SourcePrioritizedRunnable implements UnaryOperator<ClusterState> {
+    class UpdateTask extends PrioritizedRunnable implements UnaryOperator<ClusterState> {
         final ClusterApplyListener listener;
         final UnaryOperator<ClusterState> updateFunction;
 
@@ -270,7 +271,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
         // call the post added notification on the same event thread
         try {
-            threadPoolExecutor.execute(new SourcePrioritizedRunnable(Priority.HIGH, "_add_listener_") {
+            threadPoolExecutor.execute(new PrioritizedRunnable(Priority.HIGH, "_add_listener_") {
                 @Override
                 public void run() {
                     final NotifyTimeout notifyTimeout = new NotifyTimeout(listener, timeout);
@@ -375,78 +376,78 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
 
     private void runTask(UpdateTask task) {
         if (!lifecycle.started()) {
-            LOGGER.debug("processing [{}]: ignoring, cluster applier service not started", task.source);
+            LOGGER.debug("processing [{}]: ignoring, cluster applier service not started", task.source());
             return;
         }
 
-        LOGGER.debug("processing [{}]: execute", task.source);
+        LOGGER.debug("processing [{}]: execute", task.source());
         final ClusterState previousClusterState = state.get();
 
         long startTimeMS = currentTimeInMillis();
         final StopWatch stopWatch = new StopWatch();
         final ClusterState newClusterState;
         try {
-            try (Releasable ignored = stopWatch.timing("running task [" + task.source + ']')) {
+            try (Releasable ignored = stopWatch.timing("running task [" + task + ']')) {
                 newClusterState = task.apply(previousClusterState);
             }
         } catch (Exception e) {
             TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
             LOGGER.trace(() -> new ParameterizedMessage(
                 "failed to execute cluster state applier in [{}], state:\nversion [{}], source [{}]\n{}",
-                executionTime, previousClusterState.version(), task.source, previousClusterState), e);
-            warnAboutSlowTaskIfNeeded(executionTime, task.source, stopWatch);
-            task.listener.onFailure(task.source, e);
+                executionTime, previousClusterState.version(), task.source(), previousClusterState), e);
+            warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
+            task.listener.onFailure(task.source(), e);
             return;
         }
 
         if (previousClusterState == newClusterState) {
             TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
-            LOGGER.debug("processing [{}]: took [{}] no change in cluster state", task.source, executionTime);
-            warnAboutSlowTaskIfNeeded(executionTime, task.source, stopWatch);
-            task.listener.onSuccess(task.source);
+            LOGGER.debug("processing [{}]: took [{}] no change in cluster state", task.source(), executionTime);
+            warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
+            task.listener.onSuccess(task.source());
         } else {
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.debug("cluster state updated, version [{}], source [{}]\n{}", newClusterState.version(), task.source,
+                LOGGER.debug("cluster state updated, version [{}], source [{}]\n{}", newClusterState.version(), task.source(),
                     newClusterState);
             } else {
-                LOGGER.debug("cluster state updated, version [{}], source [{}]", newClusterState.version(), task.source);
+                LOGGER.debug("cluster state updated, version [{}], source [{}]", newClusterState.version(), task.source());
             }
             try {
                 applyChanges(task, previousClusterState, newClusterState, stopWatch);
                 TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
-                LOGGER.debug("processing [{}]: took [{}] done applying updated cluster state (version: {}, uuid: {})", task.source,
+                LOGGER.debug("processing [{}]: took [{}] done applying updated cluster state (version: {}, uuid: {})", task.source(),
                     executionTime, newClusterState.version(),
                     newClusterState.stateUUID());
-                warnAboutSlowTaskIfNeeded(executionTime, task.source, stopWatch);
-                task.listener.onSuccess(task.source);
+                warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
+                task.listener.onSuccess(task.source());
             } catch (Exception e) {
                 TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.warn(new ParameterizedMessage(
                             "failed to apply updated cluster state in [{}]:\nversion [{}], uuid [{}], source [{}]\n{}",
-                            executionTime, newClusterState.version(), newClusterState.stateUUID(), task.source, newClusterState), e);
+                            executionTime, newClusterState.version(), newClusterState.stateUUID(), task.source(), newClusterState), e);
                 } else {
                     LOGGER.warn(new ParameterizedMessage(
                             "failed to apply updated cluster state in [{}]:\nversion [{}], uuid [{}], source [{}]",
-                            executionTime, newClusterState.version(), newClusterState.stateUUID(), task.source), e);
+                            executionTime, newClusterState.version(), newClusterState.stateUUID(), task.source()), e);
                 }
                 // failing to apply a cluster state with an exception indicates a bug in validation or in one of the appliers; if we
                 // continue we will retry with the same cluster state but that might not help.
                 assert applicationMayFail();
-                task.listener.onFailure(task.source, e);
+                task.listener.onFailure(task.source(), e);
             }
         }
     }
 
     private void applyChanges(UpdateTask task, ClusterState previousClusterState, ClusterState newClusterState, StopWatch stopWatch) {
-        ClusterChangedEvent clusterChangedEvent = new ClusterChangedEvent(task.source, newClusterState, previousClusterState);
+        ClusterChangedEvent clusterChangedEvent = new ClusterChangedEvent(task.source(), newClusterState, previousClusterState);
         // new cluster state, notify all listeners
         final DiscoveryNodes.Delta nodesDelta = clusterChangedEvent.nodesDelta();
         if (nodesDelta.hasChanges() && LOGGER.isInfoEnabled()) {
             String summary = nodesDelta.shortSummary();
             if (summary.length() > 0) {
                 LOGGER.info("{}, term: {}, version: {}, reason: {}",
-                    summary, newClusterState.term(), newClusterState.version(), task.source);
+                    summary, newClusterState.term(), newClusterState.version(), task.source());
             }
         }
 

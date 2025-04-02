@@ -27,9 +27,11 @@ public abstract class PrioritizedRunnable implements Runnable, Comparable<Priori
 
     private final Priority priority;
     private final long creationDate;
+    protected final String source;
 
-    protected PrioritizedRunnable(Priority priority) {
+    protected PrioritizedRunnable(Priority priority, String source) {
         this.priority = priority;
+        this.source = source;
         this.creationDate = System.nanoTime();
     }
 
@@ -56,5 +58,14 @@ public abstract class PrioritizedRunnable implements Runnable, Comparable<Priori
 
     public Priority priority() {
         return priority;
+    }
+
+    public String source() {
+        return source;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + source + "/" + priority + "]";
     }
 }

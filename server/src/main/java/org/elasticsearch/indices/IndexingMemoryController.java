@@ -38,7 +38,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
@@ -173,7 +173,7 @@ public class IndexingMemoryController implements IndexingOperationListener, Clos
 
     /** ask this shard to refresh, in the background, to free up heap */
     protected void writeIndexingBufferAsync(IndexShard shard) {
-        threadPool.executor(ThreadPool.Names.REFRESH).execute(new AbstractRunnable() {
+        threadPool.executor(ThreadPool.Names.REFRESH).execute(new RejectableRunnable() {
             @Override
             public void doRun() {
                 shard.writeIndexingBuffer();

@@ -19,16 +19,17 @@
 
 package org.elasticsearch.action;
 
-import io.crate.common.CheckedSupplier;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.common.util.concurrent.RejectableRunnable;
+
+import io.crate.common.CheckedSupplier;
 
 /**
  * Base class for {@link Runnable}s that need to call {@link ActionListener#onFailure(Exception)} in case an uncaught
  * exception or error is thrown while the actual action is run.
  */
-public abstract class ActionRunnable<Response> extends AbstractRunnable {
+public abstract class ActionRunnable<Response> implements RejectableRunnable {
 
     protected final ActionListener<Response> listener;
 
@@ -41,7 +42,7 @@ public abstract class ActionRunnable<Response> extends AbstractRunnable {
     public static <T> ActionRunnable<T> run(ActionListener<T> listener, CheckedRunnable<Exception> runnable) {
         return new ActionRunnable<>(listener) {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 runnable.run();
                 listener.onResponse(null);
             }
@@ -69,7 +70,7 @@ public abstract class ActionRunnable<Response> extends AbstractRunnable {
     public static <T> ActionRunnable<T> wrap(ActionListener<T> listener, CheckedConsumer<ActionListener<T>, Exception> consumer) {
         return new ActionRunnable<>(listener) {
             @Override
-            protected void doRun() throws Exception {
+            public void doRun() throws Exception {
                 consumer.accept(listener);
             }
         };

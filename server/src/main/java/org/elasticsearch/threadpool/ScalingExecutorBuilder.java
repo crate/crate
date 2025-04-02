@@ -90,9 +90,9 @@ public final class ScalingExecutorBuilder extends ExecutorBuilder {
         return String.format(
             Locale.ROOT,
             "name [%s], core [%d], max [%d], keep alive [%s]",
-            info.getName(),
-            info.getMin(),
-            info.getMax(),
-            info.getKeepAlive());
+            info.name(),
+            info.min(),
+            info.max(),
+            info.keepAlive());
     }
 }

@@ -26,56 +26,25 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.common.unit.TimeValue;
+public record PendingClusterTask(long insertOrder,
+                                 Priority priority,
+                                 String source,
+                                 long timeInQueue,
+                                 boolean executing) implements Writeable {
 
-public class PendingClusterTask implements Writeable {
 
-    private final long insertOrder;
-    private final Priority priority;
-    private final String source;
-    private final long timeInQueue;
-    private final boolean executing;
-
-    public PendingClusterTask(long insertOrder, Priority priority, String source, long timeInQueue, boolean executing) {
+    public PendingClusterTask {
         assert timeInQueue >= 0 : "got a negative timeInQueue [" + timeInQueue + "]";
         assert insertOrder >= 0 : "got a negative insertOrder [" + insertOrder + "]";
-        this.insertOrder = insertOrder;
-        this.priority = priority;
-        this.source = source;
-        this.timeInQueue = timeInQueue;
-        this.executing = executing;
     }
 
-    public long getInsertOrder() {
-        return insertOrder;
-    }
-
-    public Priority getPriority() {
-        return priority;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public long getTimeInQueueInMillis() {
-        return timeInQueue;
-    }
-
-    public TimeValue getTimeInQueue() {
-        return new TimeValue(getTimeInQueueInMillis());
-    }
-
-    public boolean isExecuting() {
-        return executing;
-    }
-
-    public PendingClusterTask(StreamInput in) throws IOException {
-        insertOrder = in.readVLong();
-        priority = Priority.readFrom(in);
-        source = in.readString();
-        timeInQueue = in.readLong();
-        executing = in.readBoolean();
+    public static PendingClusterTask of(StreamInput in) throws IOException {
+        long insertOrder = in.readVLong();
+        Priority priority = Priority.readFrom(in);
+        String source = in.readString();
+        long timeInQueue = in.readLong();
+        boolean executing = in.readBoolean();
+        return new PendingClusterTask(insertOrder, priority, source, timeInQueue, executing);
     }
 
     @Override
