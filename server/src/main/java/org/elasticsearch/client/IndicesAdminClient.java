@@ -21,8 +21,6 @@ package org.elasticsearch.client;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -41,11 +39,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Indices stats.
      */
     CompletableFuture<IndicesStatsResponse> stats(IndicesStatsRequest request);
-
-    /**
-     * Indices recoveries
-     */
-    CompletableFuture<RecoveryResponse> recoveries(RecoveryRequest request);
 
     /**
      * Explicitly refresh one or more indices (making the content indexed since the last refresh searchable).

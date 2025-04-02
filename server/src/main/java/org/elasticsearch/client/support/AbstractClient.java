@@ -31,9 +31,6 @@ import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -161,11 +158,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
             return execute(IndicesStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public CompletableFuture<RecoveryResponse> recoveries(final RecoveryRequest request) {
-            return execute(RecoveryAction.INSTANCE, request);
         }
 
         @Override
