@@ -346,9 +346,7 @@ public class ShardingUpsertExecutor
             nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             var failure = shardResponse.failure();
-            if (failure != null) {
-                interrupt.set(failure);
-            }
+            interrupt.set(failure);
             countdown();
         }
 
