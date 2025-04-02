@@ -57,8 +57,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
-import org.elasticsearch.action.admin.indices.recovery.TransportRecoveryAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
@@ -189,7 +187,6 @@ public class ActionModule extends AbstractModule {
         actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
         actions.register(ForceMergeAction.INSTANCE, TransportForceMergeAction.class);
         actions.register(SyncRetentionLeasesAction.INSTANCE, TransportSyncRetentionLeasesAction.class);
-        actions.register(RecoveryAction.INSTANCE, TransportRecoveryAction.class);
         actions.register(AddVotingConfigExclusionsAction.INSTANCE, TransportAddVotingConfigExclusionsAction.class);
         actions.register(ClearVotingConfigExclusionsAction.INSTANCE, TransportClearVotingConfigExclusionsAction.class);
         actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
