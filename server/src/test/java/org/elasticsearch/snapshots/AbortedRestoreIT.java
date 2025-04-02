@@ -21,16 +21,15 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
-import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
-import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -75,21 +74,18 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
         );
 
         String indexName = "tbl";
-        assertBusy(() -> {
-            RecoveryRequest request = new RecoveryRequest(indexName);
-            request
-                .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN)
-                .activeOnly(true);
-            final RecoveryResponse recoveries = client().admin().indices().recoveries(request).get(5, TimeUnit.SECONDS);
-            assertThat(recoveries.hasRecoveries()).isTrue();
-            final List<RecoveryState> shardRecoveries = recoveries.shardRecoveryStates().get(indexName);
-            assertThat(shardRecoveries).hasSize(1);
-            assertThat(future.isDone()).isFalse();
 
-            for (RecoveryState shardRecovery : shardRecoveries) {
-                assertThat(shardRecovery.getRecoverySource().getType()).isEqualTo(RecoverySource.Type.SNAPSHOT);
-                assertThat(shardRecovery.getStage()).isEqualTo(RecoveryState.Stage.INDEX);
-            }
+        assertBusy(() -> {
+            ClusterService clusterService = cluster().getInstance(ClusterService.class);
+            IndexMetadata indexMetadata = clusterService.state().metadata().index(indexName);
+            assertThat(indexMetadata).isNotNull();
+            var index = new Index(indexName, indexMetadata.getIndexUUID());
+            var indicesService = cluster().getInstance(IndicesService.class, dataNode);
+            var indexService = indicesService.indexService(index);
+            assertThat(indexService).isNotNull();
+            var shardA = indexService.getShard(0);
+            assertThat(shardA.recoveryState().getRecoverySource().getType()).isEqualTo(RecoverySource.Type.SNAPSHOT);
+            assertThat(shardA.recoveryState().getStage()).isEqualTo(RecoveryState.Stage.INDEX);
         });
 
         var snapshotExecutor = (EsThreadPoolExecutor) threadPool(dataNode).executor(ThreadPool.Names.SNAPSHOT);
