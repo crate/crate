@@ -107,18 +107,19 @@ public final class UpdateById implements Plan {
                                                        List<Row> bulkParams,
                                                        SubQueryResults subQueryResults) {
         return createExecutor(dependencies, plannerContext)
-            .executeBulk(bulkParams, subQueryResults, plannerContext.transactionContext().sessionSettings().allowFailOnPartialWrites());
+            .executeBulk(bulkParams, subQueryResults);
     }
 
     private ShardRequestExecutor<ShardUpsertRequest> createExecutor(DependencyCarrier dependencies,
                                                                     PlannerContext plannerContext) {
         ClusterService clusterService = dependencies.clusterService();
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
+        boolean continueOnError = !txnCtx.sessionSettings().allowFailOnPartialWrites();
         ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(clusterService.state().metadata().settings()),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            true,
+            continueOnError,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
