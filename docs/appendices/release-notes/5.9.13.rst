@@ -71,3 +71,7 @@ Fixes
   a complete partitioned table to not reset the setting on all partitions, but
   only on the table itself, so the reset value of the setting would only have
   taken effect for new partitions.
+
+- Fixed an issue that caused a ``MATCH`` query to silently override the
+  specified analyzer with the analyzer that was used to index the corresponding
+  column. Since this is not allowed, an error is now thrown.

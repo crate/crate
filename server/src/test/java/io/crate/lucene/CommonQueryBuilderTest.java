@@ -831,4 +831,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(f = 0.99999999)");
     }
+
+    @Test
+    public void test_cannot_query_index_ref_with_analyzer_that_is_not_used_to_index_with() {
+        assertThatThrownBy(() -> convert("match(name, 'foo') USING phrase WITH (analyzer='dummy')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column 'name' was indexed with the 'keyword' analyzer, searching with a different analyzer, 'dummy' is not supported");
+        assertThatThrownBy(() -> convert("match(tags, 'foo') USING phrase WITH (analyzer='dummy')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column 'tags' was indexed with the 'standard' analyzer, searching with a different analyzer, 'dummy' is not supported");
+    }
 }
