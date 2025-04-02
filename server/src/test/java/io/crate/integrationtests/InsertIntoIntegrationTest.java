@@ -2070,7 +2070,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (a int primary key, b int) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().allowFailOnPartialWrites(true);
-            assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2)", session))
+            assertSQLError(() -> execute("insert into t (a,b) values (1, 1),  (1, 2), (2, 2)", session))
                 .hasPGError(UNIQUE_VIOLATION)
                 .hasHTTPError(CONFLICT, 4091)
                 .hasMessageContaining("A document with the same primary key exists already");
