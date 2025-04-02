@@ -1166,7 +1166,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
             session.sessionSettings().allowFailOnPartialWrites(true);
             Object[][] bulkArgs = new Object[][]{
                 new Object[]{2},
-                new Object[]{3}
+                new Object[]{1}
             };
             assertSQLError(() -> executeBulk("update t set a = a + 98 where id = ?", bulkArgs, session))
                 .hasPGError(INTERNAL_ERROR)
