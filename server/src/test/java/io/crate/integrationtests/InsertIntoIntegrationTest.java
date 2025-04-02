@@ -2087,7 +2087,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("create table t (a int NOT NULL) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().allowFailOnPartialWrites(true);
-            assertSQLError(() -> execute("insert into t (a,b) select NULL, 1", session))
+            assertSQLError(() -> execute("insert into t (a) select unnest([NULL, 1])", session))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("\"a\" must not be null");
