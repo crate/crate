@@ -51,7 +51,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -59,6 +58,7 @@ import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
 import com.carrotsearch.hppc.ObjectContainer;
 
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 

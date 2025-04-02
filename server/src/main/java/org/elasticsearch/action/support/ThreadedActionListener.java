@@ -23,8 +23,9 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.concurrent.RejectableRunnable;
 
 /**
  * An action listener that wraps another action listener and threading its execution.

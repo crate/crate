@@ -30,9 +30,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsAbortPolicy;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 

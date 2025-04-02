@@ -32,10 +32,11 @@ import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import io.crate.common.concurrent.RejectableRunnable;
 
 /**
  * Test harness for verifying {@link IndexInput} implementations.

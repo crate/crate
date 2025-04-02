@@ -58,6 +58,7 @@ public abstract class ShardCollectorProvider {
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
+    protected final ThreadPool threadPool;
     final EvaluatingNormalizer shardNormalizer;
     private final BatchIteratorFactory batchIteratorFactory;
 
@@ -71,6 +72,7 @@ public abstract class ShardCollectorProvider {
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
+        this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(

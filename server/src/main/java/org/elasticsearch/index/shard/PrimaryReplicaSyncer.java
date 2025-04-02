@@ -34,13 +34,13 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 
 public class PrimaryReplicaSyncer {

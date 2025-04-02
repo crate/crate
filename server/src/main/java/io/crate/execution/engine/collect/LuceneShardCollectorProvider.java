@@ -21,7 +21,9 @@
 
 package io.crate.execution.engine.collect;
 
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -42,6 +44,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SentinelRow;
+import io.crate.data.YieldingBatchIterator;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
@@ -144,7 +147,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
             docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
 
-        return new LuceneBatchIterator(
+        LuceneBatchIterator luceneBatchIterator = new LuceneBatchIterator(
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
@@ -153,6 +156,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             docCtx.topLevelInputs(),
             docCtx.expressions()
         );
+        Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        return YieldingBatchIterator.of(luceneBatchIterator, executor, Duration.ofSeconds(2));
     }
 
     @Nullable

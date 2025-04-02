@@ -35,7 +35,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.discovery.PeerFinder.TransportAddressConnector;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -45,6 +44,7 @@ import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 

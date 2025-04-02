@@ -24,6 +24,8 @@ import java.util.Objects;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.Lifecycle;
 
+import io.crate.common.concurrent.RejectableRunnable;
+
 /**
  * {@code AbstractLifecycleRunnable} is a service-lifecycle aware {@link RejectableRunnable}.
  * <p>

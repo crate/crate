@@ -23,6 +23,8 @@ package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.common.Priority;
 
+import io.crate.common.concurrent.RejectableRunnable;
+
 public class PriorityRunnable {
 
     private PriorityRunnable() {}

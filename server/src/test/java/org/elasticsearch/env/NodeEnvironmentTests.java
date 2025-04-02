@@ -39,7 +39,6 @@ import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
@@ -49,6 +48,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 
 import io.crate.common.collections.Sets;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 
 @LuceneTestCase.SuppressFileSystems("ExtrasFS") // TODO: fix test to allow extras
