@@ -47,6 +47,9 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Tuned the sizing of internal intermediate result requests for statements like
+  JOINS to reduce memory pressure on clusters with more than one node.
+
 - Fixed NPE when querying the :ref:`sys.allocations <sys-allocations>` table
   while no master node has been discovered. A proper exception is now thrown
   instead of an NPE.
