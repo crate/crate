@@ -26,13 +26,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 
 import io.crate.common.collections.Lists;
 
 /**
  * Represents a runnable task that supports batching.
  */
-public final class BatchedTask<T> extends SourcePrioritizedRunnable {
+public final class BatchedTask<T> extends PrioritizedRunnable {
 
     private final TaskBatcher<T> taskBatcher;
 

@@ -47,6 +47,14 @@ See the :ref:`version_5.9.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Tuned the sizing of internal intermediate result requests for statements like
+  JOINS to reduce memory pressure on clusters with more than one node.
+
+- Fixed an issue that could cause ``INSERT INTO`` statements which dynamically
+  create thousands of columns to overload the cluster state update process
+  before running into the ``mapping.total_fields.limit`` limit, causing other
+  statements trying to update the cluster state to timeout.
+
 - Fixed NPE when querying the :ref:`sys.allocations <sys-allocations>` table
   while no master node has been discovered. A proper exception is now thrown
   instead of an NPE.
@@ -63,3 +71,7 @@ Fixes
   a complete partitioned table to not reset the setting on all partitions, but
   only on the table itself, so the reset value of the setting would only have
   taken effect for new partitions.
+
+- Fixed an issue that caused a ``MATCH`` query to silently override the
+  specified analyzer with the analyzer that was used to index the corresponding
+  column. Since this is not allowed, an error is now thrown.

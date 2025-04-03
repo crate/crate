@@ -148,7 +148,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             "index.number_of_routing_shards",
             INDEX_NUMBER_OF_SHARDS_SETTING,
             1,
-            new Setting.Validator<Integer>() {
+            new Setting.Validator<>() {
                 @Override
                 public void validate(final Integer value) {
                 }
@@ -198,7 +198,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     public static final String SETTING_VERSION_UPGRADED = "index.version.upgraded";
     public static final String SETTING_CREATION_DATE = "index.creation_date";
-    public static final String SETTING_CREATION_DATE_STRING = "index.creation_date_string";
     public static final String SETTING_INDEX_UUID = "index.uuid";
     public static final String SETTING_HISTORY_UUID = "index.history.uuid";
     public static final String SETTING_DATA_PATH = "index.data_path";
@@ -958,10 +957,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             return this;
         }
 
-        public Set<String> getInSyncAllocationIds(int shardId) {
-            return inSyncAllocationIds.get(shardId);
-        }
-
         public Builder putInSyncAllocationIds(int shardId, Set<String> allocationIds) {
             inSyncAllocationIds.put(shardId, new HashSet<>(allocationIds));
             return this;
@@ -1367,7 +1362,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 + "] must be less that the number of source shards [" + sourceIndexMetadata.getNumberOfShards() + "]");
         }
         int routingFactor = getRoutingFactor(sourceIndexMetadata.getNumberOfShards(), numTargetShards);
-        Set<ShardId> shards = new HashSet<>(routingFactor);
+        Set<ShardId> shards = HashSet.newHashSet(routingFactor);
         for (int i = shardId * routingFactor; i < routingFactor * shardId + routingFactor; i++) {
             shards.add(new ShardId(sourceIndexMetadata.getIndex(), i));
         }

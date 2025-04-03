@@ -155,7 +155,7 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
         private boolean started = false;
 
         TieBreakingPrioritizedRunnable(PrioritizedRunnable runnable, Priority priority, long insertionOrder) {
-            super(priority);
+            super(priority, runnable.source());
             this.runnable = runnable;
             this.insertionOrder = insertionOrder;
         }

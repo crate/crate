@@ -429,7 +429,7 @@ public class MasterService extends AbstractLifecycleComponent {
                 return new PendingClusterTask(
                     pending.insertionOrder(),
                     pending.priority(),
-                    task instanceof SourcePrioritizedRunnable sourcePrioritizedRunnable ? sourcePrioritizedRunnable.source() : "Unknown",
+                    task.source(),
                     task.getAgeInMillis(),
                     pending.executing()
                 );
