@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
@@ -35,11 +32,11 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.DropPartitionsRequest;
+import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
@@ -58,6 +55,7 @@ public class DeletePartitions implements Plan {
         this.partitions = partitions;
     }
 
+    @VisibleForTesting
     public List<List<Symbol>> partitions() {
         return partitions;
     }
@@ -73,24 +71,22 @@ public class DeletePartitions implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        ArrayList<String> indexNames = getIndices(
+        List<List<String>> partitionValues = getPartitionValues(
             plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
-        DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
-        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
-        dependencies.client().execute(DeleteIndexAction.INSTANCE, request)
-            .whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
+        dependencies.client().execute(
+            TransportDropPartitionsAction.ACTION,
+            new DropPartitionsRequest(relationName, partitionValues)
+        ).whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
     }
 
     @VisibleForTesting
-    ArrayList<String> getIndices(TransactionContext txnCtx, NodeContext nodeCtx, Row parameters, SubQueryResults subQueryResults) {
-        ArrayList<String> indexNames = new ArrayList<>();
+    List<List<String>> getPartitionValues(TransactionContext txnCtx, NodeContext nodeCtx, Row parameters, SubQueryResults subQueryResults) {
+        List<List<String>> values = new ArrayList<>();
         Function<Symbol, String> symbolToString =
             s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
-            List<String> values = Lists.map(partitionValues, symbolToString);
-            String indexName = IndexName.encode(relationName, PartitionName.encodeIdent(values));
-            indexNames.add(indexName);
+            values.add(Lists.map(partitionValues, symbolToString));
         }
-        return indexNames;
+        return values;
     }
 }

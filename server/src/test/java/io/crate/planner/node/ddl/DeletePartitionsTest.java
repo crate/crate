@@ -24,6 +24,8 @@ package io.crate.planner.node.ddl;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
@@ -50,11 +52,11 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
         Object[] args1 = {"1395874800000"};
-        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY)).containsExactly(
-            ".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g");
+        assertThat(plan.getPartitionValues(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY)).containsExactly(
+            List.of("1395874800000"));
 
         Object[] args2 = {"1395961200000"};
-        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY)).containsExactly(
-            ".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g");
+        assertThat(plan.getPartitionValues(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY)).containsExactly(
+            List.of("1395961200000"));
     }
 }
