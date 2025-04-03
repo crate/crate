@@ -482,11 +482,6 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         for (var thread : threads) {
             thread.join();
         }
-        assertThat(execute("select distinct health from sys.health")).hasRows(
-            "GREEN"
-        );
-        assertThat(execute("select distinct current_state from sys.allocations")).hasRows(
-            "STARTED"
-        );
+        ensureGreen();
     }
 }
