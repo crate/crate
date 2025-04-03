@@ -190,5 +190,9 @@ Administration and Operations
   the :ref:`sys.health <sys-health>` table which exposes health about each
   table only.
 
+- Added a :ref:`allow_fail_on_partial_writes <conf-session-fail-writes>`
+  session setting that allows partial failures of ``INSERT`` and ``UPDATE``
+  statements.
+
 Client interfaces
 -----------------

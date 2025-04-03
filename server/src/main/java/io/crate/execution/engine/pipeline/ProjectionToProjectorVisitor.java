@@ -555,11 +555,12 @@ public class ProjectionToProjectorVisitor
         Context context, UpdateProjection projection,
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
+        boolean continueOnError = !context.txnCtx.sessionSettings().allowFailOnPartialWrites();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            true,
+            continueOnError,
             projection.assignmentsColumns(),
             null,
             projection.returnValues(),

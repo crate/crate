@@ -398,6 +398,7 @@ public class ShowIntegrationTest extends IntegTestCase {
     public void testShowAll() {
         execute("show all");
         assertThat(response).hasRows(
+            "allow_fail_on_partial_writes| false| Allows partial failure of 'INSERT' and 'UPDATE' statements",
             "application_name| PostgreSQL JDBC Driver| Optional application name. Can be set by a client to identify the application which created the connection",
             "datestyle| ISO| Display format for date and time values.",
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.",

@@ -223,6 +223,7 @@ public class PgCatalogITest extends IntegTestCase {
     public void testPgSettingsTable() {
         execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
         assertThat(response).hasRows(
+            "allow_fail_on_partial_writes| false| Allows partial failure of 'INSERT' and 'UPDATE' statements| NULL| NULL",
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "datestyle| ISO| Display format for date and time values.| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",

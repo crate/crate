@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -39,7 +40,6 @@ import org.junit.Test;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
 public class UpdateIntegrationTest extends IntegTestCase {
@@ -77,7 +77,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(2);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set message=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -94,7 +94,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set stuff['level1']=null"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -113,7 +113,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set stuff['level1']['level2']=null"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -639,7 +639,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set c = 4 where _version = 2 or _version=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -653,7 +653,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set c = 4 where _version in (1,2)"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -788,7 +788,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table generated_column");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update generated_column set ts=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -807,7 +807,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table generated_column");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update generated_column set gen_col=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -1133,5 +1133,55 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
+    }
+
+    @Test
+    public void test_update_fail_fast() {
+        execute("create table test (id int, a int CHECK (a < 100)) clustered by (id) into 1 shards");
+        execute("insert into test (id, a) values (1, 1), (2, 2), (3, 3), (0, 0)");
+        execute("refresh table test");
+
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().allowFailOnPartialWrites(true);
+            assertSQLError(() -> execute("update test set a = a + 98", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Failed CONSTRAINT");
+        }
+
+        execute("refresh table test");
+        execute("select a from test order by a");
+        // 1 + 98 < 100 and it's already written as 99 as it's processed before we failed a check.
+        // However, 0 + 98 < 100 but it's not written as 2 failing a check already caused stoppage.
+        assertThat(response).hasRows("0", "2", "3", "99");
+    }
+
+    @Test
+    public void test_bulk_update_by_id_fail_fast() throws Exception {
+        execute("create table t (id int primary key, a int CHECK (a < 100)) clustered by (id) into 1 shards");
+        execute("insert into t (id, a) values (1, 1), (2, 2), (3, 3)");
+        execute("refresh table t");
+
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().allowFailOnPartialWrites(true);
+            Object[][] bulkArgs = new Object[][]{
+                new Object[]{2},
+                new Object[]{1}
+            };
+            assertSQLError(() -> executeBulk("update t set a = a + 98 where id = ?", bulkArgs, session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Failed CONSTRAINT");
+
+            execute("refresh table t");
+            execute("select a from t order by a");
+            assertThat(response).hasRows("1", "2", "3"); // 1 + 98 < 100 but the whole bulk has failed.
+        }
+
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'update t set a = a +%'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("Failed CONSTRAINT");
     }
 }

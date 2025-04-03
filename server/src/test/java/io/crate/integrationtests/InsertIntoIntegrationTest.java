@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2064,5 +2063,48 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
+
+    @Test
+    public void test_insert_from_values_fail() throws Exception {
+        execute("create table t (a int primary key, b int) clustered into 1 shards");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().allowFailOnPartialWrites(true);
+            assertSQLError(() -> execute("insert into t (a,b) values (1, 1), (1, 2), (2, 2)", session))
+                .hasPGError(UNIQUE_VIOLATION)
+                .hasHTTPError(CONFLICT, 4091)
+                .hasMessageContaining("A document with the same primary key exists already");
+
+            execute("refresh table t");
+            execute("select a, b from t order by a");
+            assertThat(response).hasRows("1| 1"); // (2,2) is not written even though it doesn't cause PK conflict.
+        }
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a,b) values %'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("version conflict, document already exists");
+    }
+
+    @Test
+    public void test_insert_from_select_fail_fast() throws Exception {
+        execute("create table t (a int NOT NULL) clustered into 1 shards");
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().allowFailOnPartialWrites(true);
+            assertSQLError(() -> execute("insert into t (a) select unnest([NULL, 1])", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("\"a\" must not be null");
+
+            execute("refresh table t");
+            execute("select * from t");
+            assertThat(response).hasRowCount(0); // 1 is not written even though it's a valid value.
+        }
+
+        // First error encountered is reflected in jobs_log.
+        var response = execute("""
+                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a) select unnest([NULL, 1])'
+                """);
+        assertThat((String) response.rows()[0][0]).contains("\"a\" must not be null");
     }
 }
