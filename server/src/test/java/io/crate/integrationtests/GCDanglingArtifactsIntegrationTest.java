@@ -92,7 +92,7 @@ public class GCDanglingArtifactsIntegrationTest extends IntegTestCase {
                     future.onResponse(null);
                 }
             });
-        future.get(10, TimeUnit.SECONDS);
+        assertThat(future).succeedsWithin(10, TimeUnit.SECONDS);
 
         execute("alter cluster gc dangling artifacts");
         assertBusy(() -> {
