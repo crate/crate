@@ -136,7 +136,7 @@ public class Publication implements Writeable {
 
         if (isForAllTables()) {
             Metadata metadata = state.metadata();
-            for (var table : metadata.tableRelations()) {
+            for (var table : metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class)) {
                 relations.add(table.name());
             }
 

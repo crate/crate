@@ -21,16 +21,13 @@
 
 package io.crate.planner;
 
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.IndexParts;
 import io.crate.planner.operators.SubQueryResults;
 
-public final class GCDangingArtifactsPlan implements Plan {
+public final class GCDanglingArtifactsPlan implements Plan {
 
     @Override
     public StatementType type() {
@@ -44,7 +41,8 @@ public final class GCDangingArtifactsPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         var listener = OneRowActionListener.oneIfAcknowledged(consumer);
-        DeleteIndexRequest deleteRequest = new DeleteIndexRequest(IndexParts.DANGLING_INDICES_PREFIX_PATTERNS.toArray(new String[0]));
-        dependencies.client().execute(DeleteIndexAction.INSTANCE, deleteRequest).whenComplete(listener);
+        dependencies.transportGCDanglingArtifactsAction()
+            .execute(GCDanglingArtifactsRequest.INSTANCE)
+            .whenComplete(listener);
     }
 }

@@ -95,6 +95,7 @@ import io.crate.execution.ddl.tables.RenameColumnAction;
 import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
@@ -238,6 +239,7 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
         actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
+        actions.register(TransportGCDanglingArtifactsAction.ACTION, TransportGCDanglingArtifactsAction.class);
 
         actions.register(TransportPrivilegesAction.ACTION, TransportPrivilegesAction.class);
         actions.register(TransportCreateRoleAction.ACTION, TransportCreateRoleAction.class);
