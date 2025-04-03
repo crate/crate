@@ -34,6 +34,8 @@ import java.util.UUID;
 
 public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ShardDeleteRequest.class);
+
     private int skipFromLocation = -1;
 
     public ShardDeleteRequest(ShardId shardId, UUID jobId) {
@@ -61,6 +63,11 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         } else {
             out.writeBoolean(false);
         }
+    }
+
+    @Override
+    protected long shallowSize() {
+        return SHALLOW_SIZE;
     }
 
     public ShardDeleteRequest(StreamInput in) throws IOException {

@@ -72,7 +72,11 @@ import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
+<<<<<<< HEAD
 import io.crate.sql.tree.ColumnPolicy;
+=======
+import io.crate.statistics.TableStats;
+>>>>>>> 7d277047fd (Use table statistics to improve ram estimation for updates)
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -215,7 +219,8 @@ public class TestingHelpers {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,
-            nodeContext -> schemas
+            nodeContext -> schemas,
+            new TableStats()
         );
     }
 
