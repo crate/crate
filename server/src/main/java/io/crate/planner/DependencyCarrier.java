@@ -39,7 +39,6 @@ import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
-import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -91,7 +90,6 @@ public class DependencyCarrier {
     private final LogicalReplicationService logicalReplicationService;
     private final ElasticsearchClient client;
     private final CircuitBreakerService circuitBreakerService;
-    private final TransportGCDanglingArtifactsAction transportGCDanglingArtifactsAction;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -118,8 +116,7 @@ public class DependencyCarrier {
                              TransportDropPublicationAction dropPublicationAction,
                              TransportAlterPublicationAction alterPublicationAction,
                              TransportCreateSubscriptionAction createSubscriptionAction,
-                             LogicalReplicationService logicalReplicationService,
-                             TransportGCDanglingArtifactsAction transportGCDanglingArtifactsAction) {
+                             LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.client = node.client();
         this.phasesTaskFactory = phasesTaskFactory;
@@ -147,7 +144,6 @@ public class DependencyCarrier {
         this.alterPublicationAction = alterPublicationAction;
         this.createSubscriptionAction = createSubscriptionAction;
         this.logicalReplicationService = logicalReplicationService;
-        this.transportGCDanglingArtifactsAction = transportGCDanglingArtifactsAction;
     }
 
     public Schemas schemas() {
@@ -264,9 +260,5 @@ public class DependencyCarrier {
 
     public CircuitBreaker circuitBreaker(String name) {
         return circuitBreakerService.getBreaker(name);
-    }
-
-    public TransportGCDanglingArtifactsAction transportGCDanglingArtifactsAction() {
-        return transportGCDanglingArtifactsAction;
     }
 }
