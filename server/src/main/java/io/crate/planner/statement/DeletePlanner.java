@@ -143,10 +143,10 @@ public final class DeletePlanner {
                 plannerContext.clusterState().metadata());
             if (!where.partitions().isEmpty()
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
-                List<List<String>> partitionValues = new ArrayList<>(where.partitions().size());
+                List<PartitionName> partitionValues = new ArrayList<>(where.partitions().size());
                 for (String partition : where.partitions()) {
-                    PartitionName partitionName = new PartitionName(table.relationName(), IndexName.decode(partition).partitionIdent());
-                    partitionValues.add(partitionName.values());
+                    partitionValues.add(new PartitionName(
+                        table.relationName(), IndexName.decode(partition).partitionIdent()));
                 }
                 dependencies.client().execute(
                     TransportDropPartitionsAction.ACTION,
