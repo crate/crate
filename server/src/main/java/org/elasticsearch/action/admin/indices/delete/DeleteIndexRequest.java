@@ -27,33 +27,18 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-
 /**
  * A request to delete an index.
  */
 public class DeleteIndexRequest extends AcknowledgedRequest<DeleteIndexRequest> implements IndicesRequest {
 
-    private String[] indices;
+    private final String[] indices;
     // Delete index should work by default on both open and closed indices.
-    private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, true, true, true, false);
-
-    /**
-     * Constructs a new delete index request for the specified indices.
-     *
-     * @param indices The indices to delete. Use "_all" to delete all indices.
-     */
-    public DeleteIndexRequest(String... indices) {
-        this.indices = indices;
-    }
+    private final IndicesOptions indicesOptions;
 
     @Override
     public IndicesOptions indicesOptions() {
         return indicesOptions;
-    }
-
-    public DeleteIndexRequest indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return this;
     }
 
     /**

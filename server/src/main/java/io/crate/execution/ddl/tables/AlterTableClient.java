@@ -34,11 +34,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -79,7 +76,7 @@ public class AlterTableClient {
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenTableAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
-    private final TransportDeleteIndexAction transportDeleteIndexAction;
+    private final TransportGCDanglingArtifactsAction transportGCDanglingArtifactsAction;
     private final TransportCloseTable transportCloseTable;
     private final Sessions sessions;
     private final IndexScopedSettings indexScopedSettings;
@@ -91,7 +88,7 @@ public class AlterTableClient {
                             TransportOpenTableAction transportOpenCloseTableOrPartitionAction,
                             TransportCloseTable transportCloseTable,
                             TransportResizeAction transportResizeAction,
-                            TransportDeleteIndexAction transportDeleteIndexAction,
+                            TransportGCDanglingArtifactsAction transportGCDanglingArtifactsAction,
                             TransportAlterTableAction transportAlterTableAction,
                             TransportDropConstraintAction transportDropConstraintAction,
                             TransportAddColumnAction transportAddColumnAction,
@@ -103,7 +100,7 @@ public class AlterTableClient {
         this.clusterService = clusterService;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportResizeAction = transportResizeAction;
-        this.transportDeleteIndexAction = transportDeleteIndexAction;
+        this.transportGCDanglingArtifactsAction = transportGCDanglingArtifactsAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
@@ -234,7 +231,7 @@ public class AlterTableClient {
 
         CompletableFuture<Long> future;
         if (currentState.metadata().hasIndex(resizedIndex)) {
-            future = deleteIndex(resizedIndex);
+            future = deleteTempIndices();
         } else {
             future = CompletableFuture.completedFuture(1L);
         }
@@ -316,19 +313,16 @@ public class AlterTableClient {
         }
     }
 
-    private CompletableFuture<Long> deleteIndex(String... indexNames) {
-        DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
-        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
-        return transportDeleteIndexAction.execute(request, _ -> 0L);
+    private CompletableFuture<Long> deleteTempIndices() {
+        return transportGCDanglingArtifactsAction.execute(GCDanglingArtifactsRequest.INSTANCE, ignored -> 0L);
     }
 
     public CompletableFuture<Long> rename(AnalyzedAlterTableRenameTable renameTable) {
         var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
-        return transportRenameTableAction.execute(request, _ -> -1L);
+        return transportRenameTableAction.execute(request, ignored -> -1L);
     }
 
     public CompletableFuture<Long> dropConstraint(DropConstraintRequest request) {
-        return transportDropConstraintAction.execute(request).thenApply(_ -> -1L);
+        return transportDropConstraintAction.execute(request).thenApply(ignored -> -1L);
     }
-
 }

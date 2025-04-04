@@ -21,10 +21,7 @@ package org.elasticsearch.action.admin.indices.shrink;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -40,6 +37,8 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
+import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
 import io.crate.metadata.PartitionName;
 
 /**
@@ -50,7 +49,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
     private final TransportSwapAndDropIndexNameAction swapAndDropIndexAction;
-    private final TransportDeleteIndexAction deleteIndexAction;
+    private final TransportGCDanglingArtifactsAction gcDanglingArtifactsAction;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
@@ -58,12 +57,12 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
                                  TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
-                                 TransportDeleteIndexAction deleteIndexAction,
+                                 TransportGCDanglingArtifactsAction gcDanglingArtifactsAction,
                                  Client client) {
         super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.swapAndDropIndexAction = swapAndDropIndexAction;
-        this.deleteIndexAction = deleteIndexAction;
+        this.gcDanglingArtifactsAction = gcDanglingArtifactsAction;
         this.client = client;
     }
 
@@ -108,14 +107,13 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
             .thenCompose(resizeResp -> {
                 if (resizeResp.isAcknowledged() && resizeResp.isShardsAcknowledged()) {
                     SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndex, sourceIndex);
-                    return swapAndDropIndexAction.execute(req).thenApply(_ -> resizeResp);
+                    return swapAndDropIndexAction.execute(req).thenApply(ignored -> resizeResp);
                 } else {
-                    var deleteRequest = new DeleteIndexRequest(resizedIndex);
-                    deleteRequest.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
-                    return deleteIndexAction.execute(deleteRequest).handle((_, err) -> {
-                        throw new IllegalStateException(
-                            "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
-                    });
+                    return gcDanglingArtifactsAction.execute(GCDanglingArtifactsRequest.INSTANCE).handle(
+                        (ignored, err) -> {
+                            throw new IllegalStateException(
+                                "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
+                        });
                 }
             })
             .whenComplete(listener);
