@@ -21,19 +21,19 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.function.Function;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,79 +41,85 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 
 @Singleton
-public class TransportGCDanglingArtifactsAction extends AbstractDDLTransportAction<GCDanglingArtifactsRequest, AcknowledgedResponse> {
+public class TransportDropPartitionsAction extends AbstractDDLTransportAction<DropPartitionsRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:admin/gc";
+        public static final String NAME = "internal:crate:sql/table/drop-partitions";
 
         private Action() {
             super(NAME);
         }
     }
 
-    private final DDLClusterStateTaskExecutor<GCDanglingArtifactsRequest> executor;
+    private final DDLClusterStateTaskExecutor<DropPartitionsRequest> executor;
 
     @Inject
-    public TransportGCDanglingArtifactsAction(TransportService transportService,
-                                              ClusterService clusterService,
-                                              ThreadPool threadPool,
-                                              MetadataDeleteIndexService deleteIndexService) {
+    public TransportDropPartitionsAction(TransportService transportService,
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         MetadataDeleteIndexService deleteIndexService) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            GCDanglingArtifactsRequest::new,
+            DropPartitionsRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
-            "gc"
+            "drop-table-partitions"
         );
         executor = new DDLClusterStateTaskExecutor<>() {
             @Override
-            protected ClusterState execute(ClusterState currentState,
-                                           GCDanglingArtifactsRequest gcDanglingArtifactsRequest) {
-                Metadata metadata = currentState.metadata();
+            protected ClusterState execute(ClusterState currentState, DropPartitionsRequest request) {
+                Collection<Index> indices = getIndices(currentState, request, IndexMetadata::getIndex);
 
-                Set<Index> danglingIndicesToDelete = new HashSet<>();
-                Set<Index> allTableIndices = new HashSet<>();
-                for (RelationMetadata rm : metadata.relations(RelationMetadata.class)) {
-                    allTableIndices.addAll(metadata.getIndices(
-                        rm.name(),
-                        List.of(),
-                        false,
-                        IndexMetadata::getIndex)
-                    );
-                }
-                for (ObjectCursor<IndexMetadata> indexMetadata : metadata.indices().values()) {
-                    Index index = indexMetadata.value.getIndex();
-                    if (allTableIndices.contains(index) == false) {
-                        danglingIndicesToDelete.add(index);
-                    }
-                }
-
-                if (danglingIndicesToDelete.isEmpty()) {
+                if (indices.isEmpty()) {
                     return currentState;
+                } else {
+                    return deleteIndexService.deleteIndices(currentState, indices);
                 }
-                return deleteIndexService.deleteIndices(currentState, danglingIndicesToDelete);
             }
         };
     }
 
+    private static <T> Collection<T> getIndices(ClusterState currentState,
+                                                DropPartitionsRequest request,
+                                                Function<IndexMetadata, T> mapFunction) {
+        Collection<T> indices;
+        if (request.partitionValues().isEmpty()) {
+            indices = currentState.metadata().getIndices(
+                request.relationName(),
+                List.of(),
+                false,
+                mapFunction);
+        } else {
+            indices = new HashSet<>();
+            for (List<String> values : request.partitionValues()) {
+                indices.addAll(currentState.metadata().getIndices(
+                    request.relationName(),
+                    values,
+                    false,
+                    mapFunction)
+                );
+            }
+        }
+        return indices;
+    }
+
     @Override
-    public ClusterStateTaskExecutor<GCDanglingArtifactsRequest> clusterStateTaskExecutor(GCDanglingArtifactsRequest request) {
+    public ClusterStateTaskExecutor<DropPartitionsRequest> clusterStateTaskExecutor(DropPartitionsRequest request) {
         return executor;
     }
 
     @Override
-    protected ClusterBlockException checkBlock(GCDanglingArtifactsRequest request, ClusterState state) {
-        return null;
+    protected ClusterBlockException checkBlock(DropPartitionsRequest request, ClusterState state) {
+        String[] indexNames = getIndices(state, request, im -> im.getIndex().getName()).toArray(String[]::new);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 }

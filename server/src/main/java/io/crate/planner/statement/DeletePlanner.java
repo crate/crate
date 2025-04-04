@@ -28,19 +28,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.DropPartitionsRequest;
+import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -53,6 +51,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -77,6 +76,8 @@ import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.types.DataTypes;
 
 public final class DeletePlanner {
+
+    private DeletePlanner() {}
 
     public static Plan planDelete(AnalyzedDeleteStatement delete,
                                   SubqueryPlanner subqueryPlanner,
@@ -104,7 +105,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(Lists.map(table.getPartitionNames(context.clusterState().metadata()), PartitionName::asIndexName));
+            return new DeleteAllPartitions(table.ident());
         }
 
         return new Delete(tableRel, detailedQuery);
@@ -127,11 +128,11 @@ public final class DeletePlanner {
         }
 
         @Override
-        public void executeOrFail(DependencyCarrier executor,
-            PlannerContext plannerContext,
-            RowConsumer consumer,
-            Row params,
-            SubQueryResults subQueryResults) {
+        public void executeOrFail(DependencyCarrier dependencies,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  SubQueryResults subQueryResults) {
 
             WhereClause where = detailedQuery.toBoundWhereClause(
                 table.tableInfo(),
@@ -142,16 +143,21 @@ public final class DeletePlanner {
                 plannerContext.clusterState().metadata());
             if (!where.partitions().isEmpty()
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
-                DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
-                request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
-                executor.client().execute(DeleteIndexAction.INSTANCE, request)
-                    .whenComplete(new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
+                List<List<String>> partitionValues = new ArrayList<>(where.partitions().size());
+                for (String partition : where.partitions()) {
+                    PartitionName partitionName = new PartitionName(table.relationName(), IndexName.decode(partition).partitionIdent());
+                    partitionValues.add(partitionName.values());
+                }
+                dependencies.client().execute(
+                    TransportDropPartitionsAction.ACTION,
+                    new DropPartitionsRequest(table.relationName(), partitionValues)
+                ).whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
                 return;
             }
 
             ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
-            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
-            executor.phasesTaskFactory()
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, dependencies.localNodeId());
+            dependencies.phasesTaskFactory()
                 .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
                 .execute(consumer, plannerContext.transactionContext());
         }
@@ -177,27 +183,27 @@ public final class DeletePlanner {
                 .create(plannerContext.jobId(), nodeOperationTreeList)
                 .executeBulk(plannerContext.transactionContext());
         }
-    }
 
-    private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
-        DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
-        DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
-        var sessionSettings = context.transactionContext().sessionSettings();
-        Routing routing = context.allocateRouting(
-            tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionSettings);
-        RoutedCollectPhase collectPhase = new RoutedCollectPhase(
-            context.jobId(),
-            context.nextExecutionPhaseId(),
-            "collect",
-            routing,
-            tableInfo.rowGranularity(),
-            List.of(idReference),
-            List.of(deleteProjection),
-            Optimizer.optimizeCasts(where.queryOrFallback(), context),
-            DistributionInfo.DEFAULT_BROADCAST
-        );
-        Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, 1, null);
-        return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
+            DocTableInfo tableInfo = table.tableInfo();
+            Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
+            DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
+            var sessionSettings = context.transactionContext().sessionSettings();
+            Routing routing = context.allocateRouting(
+                tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionSettings);
+            RoutedCollectPhase collectPhase = new RoutedCollectPhase(
+                context.jobId(),
+                context.nextExecutionPhaseId(),
+                "collect",
+                routing,
+                tableInfo.rowGranularity(),
+                List.of(idReference),
+                List.of(deleteProjection),
+                Optimizer.optimizeCasts(where.queryOrFallback(), context),
+                DistributionInfo.DEFAULT_BROADCAST
+            );
+            Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, 1, null);
+            return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        }
     }
 }
