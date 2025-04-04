@@ -324,4 +324,43 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
     }
+
+    @Test
+    public void test_primary_aborted_remaining_items_must_be_skipped_on_replica() throws IOException {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            null,
+            missingAssignmentsColumns,
+            null,
+            UUID.randomUUID()
+        ).newRequest(shardId);
+        request.add(1,
+            ShardUpsertRequest.Item.forInsert(
+                "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                missingAssignmentsColumns,
+                new Object[]{1},
+                null));
+        request.add(1,
+            ShardUpsertRequest.Item.forInsert(
+                "2", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                missingAssignmentsColumns,
+                new Object[]{2},
+                null));
+
+
+        // First item is already processed with killed = true, both items must be skipped on replica.
+        TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
+
+        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.replicaRequest().items()).satisfiesExactly(
+            item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA),
+            item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA)
+        );
+    }
 }

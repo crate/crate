@@ -72,3 +72,7 @@ Fixes
 - Fixed an issue that caused a ``MATCH`` query to silently override the
   specified analyzer with the analyzer that was used to index the corresponding
   column. Since this is not allowed, an error is now thrown.
+
+- Fixed an issue that caused a cluster to have underreplicated shards if an
+  ongoing ``INSERT`` or ``UPDATE`` operation was interrupted by ``KILL`` or
+  a node restart.
