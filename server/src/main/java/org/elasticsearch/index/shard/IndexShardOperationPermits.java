@@ -36,10 +36,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 

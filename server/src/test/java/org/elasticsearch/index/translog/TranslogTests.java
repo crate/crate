@@ -103,7 +103,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
@@ -129,6 +128,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 import io.crate.metadata.doc.SysColumns;
 

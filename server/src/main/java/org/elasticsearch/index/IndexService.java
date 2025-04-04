@@ -58,7 +58,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractAsyncTask;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.gateway.MetadataStateFormat;
@@ -84,6 +83,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.TranslogIndexer;

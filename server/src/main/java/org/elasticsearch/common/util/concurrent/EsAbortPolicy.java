@@ -24,6 +24,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.elasticsearch.common.metrics.CounterMetric;
 
+import io.crate.common.concurrent.RejectableRunnable;
+
 public class EsAbortPolicy implements XRejectedExecutionHandler {
     private final CounterMetric rejected = new CounterMetric();
 
