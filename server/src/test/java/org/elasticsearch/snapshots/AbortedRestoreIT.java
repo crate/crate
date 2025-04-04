@@ -83,7 +83,9 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
             var indicesService = cluster().getInstance(IndicesService.class, dataNode);
             var indexService = indicesService.indexService(index);
             assertThat(indexService).isNotNull();
-            var shardA = indexService.getShard(0);
+            var shardA = indexService.getShardOrNull(0);
+            assertThat(shardA).isNotNull();
+            assertThat(shardA.recoveryState()).isNotNull();
             assertThat(shardA.recoveryState().getRecoverySource().getType()).isEqualTo(RecoverySource.Type.SNAPSHOT);
             assertThat(shardA.recoveryState().getStage()).isEqualTo(RecoveryState.Stage.INDEX);
         });
