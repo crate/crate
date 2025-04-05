@@ -23,6 +23,9 @@ import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
+import java.util.List;
+
+import io.crate.metadata.Relation;
 
 /**
  * A refresh request making all operations performed since the last refresh available for search. The (near) real-time
@@ -32,10 +35,10 @@ import java.io.IOException;
  * @see org.elasticsearch.client.IndicesAdminClient#refresh(RefreshRequest)
  * @see RefreshResponse
  */
-public class RefreshRequest extends BroadcastRequest<RefreshRequest> {
+public class RefreshRequest extends BroadcastRequest {
 
-    public RefreshRequest(String... indices) {
-        super(indices);
+    public RefreshRequest(List<Relation> relations) {
+        super(relations);
     }
 
     public RefreshRequest(StreamInput in) throws IOException {
