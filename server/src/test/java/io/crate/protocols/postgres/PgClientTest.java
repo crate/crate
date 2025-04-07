@@ -21,7 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -46,11 +46,10 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -59,6 +58,8 @@ import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.role.Role;
 import io.crate.role.StubRoleManager;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
@@ -126,7 +127,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             any(ConnectionProperties.class),
             any(String.class),
             any(Role.class))
-        ).thenReturn(mock(Session.class));
+        ).thenReturn(mock(Session.class, Answers.RETURNS_MOCKS));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),
@@ -168,15 +169,15 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         );
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();
-        Connection connection = connect.get(120, TimeUnit.SECONDS);
+        Connection connection = connect.get(10, TimeUnit.SECONDS);
         assertThat(connection.getNode().getAddress()).isEqualTo(serverAddress);
 
         // Must be able to call ensureConnected again
         CompletableFuture<Connection> conn2 = pgClient.ensureConnected();
         CompletableFuture<Connection> conn3 = pgClient.ensureConnected();
 
-        conn2.get(120, TimeUnit.SECONDS);
-        conn3.get(120, TimeUnit.SECONDS);
+        conn2.get(10, TimeUnit.SECONDS);
+        conn3.get(10, TimeUnit.SECONDS);
 
         assertThat(connect).isSameAs(conn2);
         assertThat(conn2).isSameAs(conn3);
@@ -186,7 +187,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         connect.obtrudeException(new IllegalStateException("test"));
         CompletableFuture<Connection> conn4 = pgClient.ensureConnected();
         assertThat(conn4).isNotEqualTo(conn3);
-        connection = conn4.get(120, TimeUnit.SECONDS);
+        connection = conn4.get(10, TimeUnit.SECONDS);
 
         pgClient.close();
         assertThat(connection.isClosed()).as("pgClient.close must close connection").isTrue();
