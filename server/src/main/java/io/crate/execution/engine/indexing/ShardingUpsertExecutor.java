@@ -346,7 +346,11 @@ public class ShardingUpsertExecutor
             nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             var failure = shardResponse.failure();
-            interrupt.set(failure);
+            if (failure != null) {
+                // null response from a shard shouldn't overwrite non-null response from another shard.
+                // Otherwise, when countdown() reaches 0, we won't throw an error.
+                interrupt.set(failure);
+            }
             countdown();
         }
 
