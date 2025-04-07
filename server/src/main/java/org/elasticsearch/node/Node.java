@@ -135,7 +135,6 @@ import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsHealthService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
-import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.DiscoveryPlugin;
@@ -533,8 +532,7 @@ public class Node implements Closeable {
                                                  namedWriteableRegistry, repositoriesServiceReference::get).stream())
                 .toList();
 
-            ActionModule actionModule = new ActionModule(pluginsService.filterPlugins(ActionPlugin.class));
-            modules.add(actionModule);
+            modules.add(new ActionModule());
 
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)
                 ? new HostBasedAuthentication(
