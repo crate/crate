@@ -2107,4 +2107,28 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 """);
         assertThat((String) response.rows()[0][0]).contains("\"a\" must not be null");
     }
+
+    @Test
+    public void test_insert_from_select_stopped_across_all_shards() throws Exception {
+        // No replicas to speed up the test, they are not relevant for the test
+        execute("""
+            create table t (a int check(a != 10))
+            clustered by (a) into 4 shards
+            with (number_of_replicas = 0)
+        """);
+        try (var session = sqlExecutor.newSession()) {
+            session.sessionSettings().allowFailOnPartialWrites(true);
+            // Insert more than BULK_SIZE_SETTING * initial_concurrency > 10000 * 5 > 50000
+            // records to reliably verify that next batch is not executed.
+            assertSQLError(() -> execute("insert into t select * from generate_series(1, 60000)", session))
+                .hasPGError(INTERNAL_ERROR)
+                .hasHTTPError(BAD_REQUEST, 4000)
+                .hasMessageContaining("Failed CONSTRAINT");
+
+            execute("refresh table t");
+            execute("select count(*) from t");
+            // At least one batch shouldn't be executed
+            assertThat((long) response.rows()[0][0]).isLessThan(50000);
+        }
+    }
 }
