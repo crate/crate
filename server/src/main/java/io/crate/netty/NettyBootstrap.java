@@ -36,17 +36,19 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.IoHandlerFactory;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -83,11 +85,13 @@ public class NettyBootstrap extends AbstractLifecycleComponent {
     public static EventLoopGroup newEventLoopGroup(Settings settings) {
         ThreadFactory workerThreads = daemonThreadFactory(settings, WORKER_THREAD_PREFIX);
         int workerCount = Netty4Transport.WORKER_COUNT.get(settings);
+        IoHandlerFactory ioHandlerFactory;
         if (Epoll.isAvailable()) {
-            return new EpollEventLoopGroup(workerCount, workerThreads);
+            ioHandlerFactory = EpollIoHandler.newFactory();
         } else {
-            return new NioEventLoopGroup(workerCount, workerThreads);
+            ioHandlerFactory = NioIoHandler.newFactory();
         }
+        return new MultiThreadIoEventLoopGroup(workerCount, workerThreads, ioHandlerFactory);
     }
 
     public static Class<? extends Channel> clientChannel() {
