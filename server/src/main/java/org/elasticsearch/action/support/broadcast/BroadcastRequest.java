@@ -20,38 +20,106 @@
 package org.elasticsearch.action.support.broadcast;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import io.crate.metadata.Relation;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class BroadcastRequest extends TransportRequest {
 
-    protected final List<Relation> relations;
+    protected final List<PartitionName> relations;
 
-    protected BroadcastRequest(List<Relation> relations) {
+    protected BroadcastRequest(List<PartitionName> relations) {
         this.relations = relations;
     }
 
-    protected BroadcastRequest(Relation relation) {
+    protected BroadcastRequest(PartitionName relation) {
         this(List.of(relation));
     }
 
     public BroadcastRequest(StreamInput in) throws IOException {
         super(in);
-        this.relations = Relation.readList(in);
+        this.relations = readList(in);
     }
 
-    public final List<Relation> relations() {
+    public final List<PartitionName> relations() {
         return relations;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        Relation.writeList(out, relations);
+        writeList(out, relations);
+    }
+
+    private static final Version STREAMED_RELATIONSET_VERSION = Version.V_6_0_0;
+
+    public static List<PartitionName> readList(StreamInput in) throws IOException {
+        if (in.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
+            return in.readList(s -> new PartitionName(new RelationName(s), s.readStringList()));
+        } else {
+            return readFromPre60(in);
+        }
+    }
+
+    private static List<PartitionName> readFromPre60(StreamInput in) throws IOException {
+        List<PartitionName> relations = new ArrayList<>();
+        String[] indexes = in.readStringArray();
+        IndicesOptions.readIndicesOptions(in);
+        RelationName table = null;
+        List<String> partitionValues = new ArrayList<>();
+        for (String index : indexes) {
+            IndexParts indexParts = IndexName.decode(index);
+            if (table == null) {
+                table = indexParts.toRelationName();
+            } else {
+                if (table.equals(indexParts.toRelationName()) == false) {
+                    relations.add(new PartitionName(table, partitionValues));
+                    table = null;
+                    partitionValues = new ArrayList<>();
+                }
+            }
+            if (indexParts.isPartitioned()) {
+                partitionValues.add(indexParts.partitionIdent());
+            }
+        }
+        relations.add(new PartitionName(table, partitionValues));
+        return relations;
+    }
+
+    public static void writeList(StreamOutput out, List<PartitionName> relations) throws IOException {
+        if (out.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
+            out.writeVInt(relations.size());
+            for (PartitionName r : relations) {
+                r.relationName().writeTo(out);
+                out.writeStringCollection(r.values());
+            }
+        } else {
+            out.writeStringCollection(bwcIndicesNames(relations));
+            IndicesOptions.LENIENT_EXPAND_OPEN.writeIndicesOptions(out);
+        }
+    }
+
+    private static List<String> bwcIndicesNames(List<PartitionName> relations) {
+        List<String> output = new ArrayList<>();
+        for (PartitionName r : relations) {
+            if (r.values().isEmpty()) {
+                output.add(r.relationName().name());
+            } else {
+                for (String v : r.values()) {
+                    output.add(IndexName.encode(r.relationName(), v));
+                }
+            }
+        }
+        return output;
     }
 }

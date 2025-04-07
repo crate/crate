@@ -27,7 +27,7 @@ import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.metadata.Relation;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 /**
@@ -88,10 +88,10 @@ public class IndicesStatsRequest extends BroadcastRequest {
     }
 
     public IndicesStatsRequest(String relation) {
-        this(new Relation(RelationName.fromIndexName(relation), List.of()));
+        this(new PartitionName(RelationName.fromIndexName(relation), List.of()));
     }
 
-    public IndicesStatsRequest(Relation relation) {
+    public IndicesStatsRequest(PartitionName relation) {
         super(relation);
     }
 

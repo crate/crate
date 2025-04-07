@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.Relation;
+import io.crate.metadata.PartitionName;
 
 /**
  * A request to force merging the segments of one or more indices. In order to
@@ -66,7 +66,7 @@ public class ForceMergeRequest extends BroadcastRequest {
     /**
      * Constructs a merge request over one or more indices.
      */
-    public ForceMergeRequest(List<Relation> relations) {
+    public ForceMergeRequest(List<PartitionName> relations) {
         super(relations);
         forceMergeUUID = UUIDs.randomBase64UUID();
     }

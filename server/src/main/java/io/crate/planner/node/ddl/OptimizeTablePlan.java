@@ -56,7 +56,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Relation;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -123,7 +122,7 @@ public class OptimizeTablePlan implements Plan {
         }
     }
 
-    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<Relation> relations) {
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<PartitionName> relations) {
         var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
         if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
             return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
@@ -152,17 +151,17 @@ public class OptimizeTablePlan implements Plan {
         var settings = Settings.builder().put(genericProperties).build();
         validateSettings(settings, genericProperties);
 
-        List<Relation> toOptimize = new ArrayList<>();
+        List<PartitionName> toOptimize = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, TableInfo> table : optimizeTable.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toOptimize.add(new Relation(tableInfo.ident(), List.of()));
+                toOptimize.add(new PartitionName(tableInfo.ident(), List.of()));
             } else {
                 assert tableInfo instanceof DocTableInfo;
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
-                toOptimize.add(Relation.fromPartitionName(partitionName));
+                toOptimize.add(partitionName);
             }
         }
 
@@ -178,15 +177,15 @@ public class OptimizeTablePlan implements Plan {
 
     public static class BoundOptimizeTable {
 
-        private final List<Relation> relations;
+        private final List<PartitionName> relations;
         private final Settings settings;
 
-        BoundOptimizeTable(List<Relation> relations, Settings settings) {
+        BoundOptimizeTable(List<PartitionName> relations, Settings settings) {
             this.relations = relations;
             this.settings = settings;
         }
 
-        public List<Relation> relations() {
+        public List<PartitionName> relations() {
             return relations;
         }
 

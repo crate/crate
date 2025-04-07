@@ -83,7 +83,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Relation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
@@ -1307,7 +1306,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return relations;
     }
 
-    public <T> List<T> getIndices(List<Relation> relationSet, boolean strict, Function<IndexMetadata, T> as) {
+    public <T> List<T> getIndices(List<PartitionName> relationSet, boolean strict, Function<IndexMetadata, T> as) {
         if (relationSet.isEmpty()) {
             IndicesOptions indicesOptions = strict
                 ? IndicesOptions.STRICT_EXPAND_OPEN_CLOSED
@@ -1315,8 +1314,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return mapIndices(IndexNameExpressionResolver.concreteIndices(this, indicesOptions), as);
         }
         List<T> result = new ArrayList<>();
-        for (Relation r : relationSet) {
-            result.addAll(getIndices(r.relationName(), r.partitionValues(), strict, as));
+        for (PartitionName r : relationSet) {
+            result.addAll(getIndices(r.relationName(), r.values(), strict, as));
         }
         return result;
     }

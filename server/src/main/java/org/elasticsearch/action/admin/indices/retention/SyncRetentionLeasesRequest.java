@@ -27,11 +27,11 @@ import java.util.List;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import io.crate.metadata.Relation;
+import io.crate.metadata.PartitionName;
 
 public class SyncRetentionLeasesRequest extends BroadcastRequest {
 
-    public SyncRetentionLeasesRequest(List<Relation> relations) {
+    public SyncRetentionLeasesRequest(List<PartitionName> relations) {
         super(relations);
     }
 

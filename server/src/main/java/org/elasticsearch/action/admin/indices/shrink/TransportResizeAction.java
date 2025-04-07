@@ -41,7 +41,6 @@ import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Relation;
 
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
@@ -102,7 +101,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
         final String resizedIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
-        client.admin().indices().stats(new IndicesStatsRequest(new Relation(request.table(), request.partitionValues()))
+        client.admin().indices().stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()))
             .clear()
             .docs(true))
             .thenCompose(statsResponse -> createIndexService.resizeIndex(request, statsResponse))

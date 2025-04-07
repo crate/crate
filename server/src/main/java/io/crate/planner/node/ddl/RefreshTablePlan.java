@@ -41,7 +41,6 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Relation;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -76,18 +75,18 @@ public class RefreshTablePlan implements Plan {
             subQueryResults
         );
 
-        ArrayList<Relation> toRefresh = new ArrayList<>();
+        ArrayList<PartitionName> toRefresh = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, DocTableInfo> table : analysis.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toRefresh.add(new Relation(tableInfo.ident(), List.of()));
+                toRefresh.add(new PartitionName(tableInfo.ident(), List.of()));
             } else {
                 var partitionName = PartitionName.ofAssignments(
                     tableInfo,
                     Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)),
                     plannerContext.clusterState().metadata());
-                toRefresh.add(Relation.fromPartitionName(partitionName));
+                toRefresh.add(partitionName);
             }
         }
 
