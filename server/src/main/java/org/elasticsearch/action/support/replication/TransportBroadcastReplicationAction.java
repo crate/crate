@@ -123,7 +123,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     protected List<ShardId> shards(Request request, ClusterState clusterState) {
         List<ShardId> shardIds = new ArrayList<>();
         for (IndexRoutingTable routing : clusterState.metadata().getIndices(
-            request.relations(), false, im -> clusterState.routingTable().indicesRouting().get(im.getIndex().getName())
+            request.partitions(), false, im -> clusterState.routingTable().indicesRouting().get(im.getIndex().getName())
         )) {
             for (var shardRouting : routing.getShards()) {
                 shardIds.add(shardRouting.value.shardId());

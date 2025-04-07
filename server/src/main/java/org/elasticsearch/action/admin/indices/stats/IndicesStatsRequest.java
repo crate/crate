@@ -87,12 +87,12 @@ public class IndicesStatsRequest extends BroadcastRequest {
         flags = new CommonStatsFlags(in);
     }
 
-    public IndicesStatsRequest(String relation) {
-        this(new PartitionName(RelationName.fromIndexName(relation), List.of()));
+    public IndicesStatsRequest(String partition) {
+        this(new PartitionName(RelationName.fromIndexName(partition), List.of()));
     }
 
-    public IndicesStatsRequest(PartitionName relation) {
-        super(relation);
+    public IndicesStatsRequest(PartitionName partitions) {
+        super(partitions);
     }
 
     public IndicesStatsRequest() {

@@ -36,36 +36,36 @@ import io.crate.metadata.RelationName;
 
 public class BroadcastRequest extends TransportRequest {
 
-    protected final List<PartitionName> relations;
+    protected final List<PartitionName> partitions;
 
-    protected BroadcastRequest(List<PartitionName> relations) {
-        this.relations = relations;
+    protected BroadcastRequest(List<PartitionName> partitions) {
+        this.partitions = partitions;
     }
 
-    protected BroadcastRequest(PartitionName relation) {
-        this(List.of(relation));
+    protected BroadcastRequest(PartitionName partition) {
+        this(List.of(partition));
     }
 
     public BroadcastRequest(StreamInput in) throws IOException {
         super(in);
-        this.relations = readList(in);
+        this.partitions = readPartitions(in);
     }
 
-    public final List<PartitionName> relations() {
-        return relations;
+    public final List<PartitionName> partitions() {
+        return partitions;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeList(out, relations);
+        writePartitions(out, partitions);
     }
 
     private static final Version STREAMED_RELATIONSET_VERSION = Version.V_6_0_0;
 
-    public static List<PartitionName> readList(StreamInput in) throws IOException {
+    private static List<PartitionName> readPartitions(StreamInput in) throws IOException {
         if (in.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
-            return in.readList(s -> new PartitionName(new RelationName(s), s.readStringList()));
+            return in.readList(PartitionName::new);
         } else {
             return readFromPre60(in);
         }
@@ -96,13 +96,9 @@ public class BroadcastRequest extends TransportRequest {
         return relations;
     }
 
-    public static void writeList(StreamOutput out, List<PartitionName> relations) throws IOException {
+    private static void writePartitions(StreamOutput out, List<PartitionName> relations) throws IOException {
         if (out.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
-            out.writeVInt(relations.size());
-            for (PartitionName r : relations) {
-                r.relationName().writeTo(out);
-                out.writeStringCollection(r.values());
-            }
+            out.writeCollection(relations);
         } else {
             out.writeStringCollection(bwcIndicesNames(relations));
             IndicesOptions.LENIENT_EXPAND_OPEN.writeIndicesOptions(out);

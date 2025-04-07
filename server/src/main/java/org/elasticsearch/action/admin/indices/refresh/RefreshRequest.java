@@ -37,8 +37,8 @@ import io.crate.metadata.PartitionName;
  */
 public class RefreshRequest extends BroadcastRequest {
 
-    public RefreshRequest(List<PartitionName> relations) {
-        super(relations);
+    public RefreshRequest(List<PartitionName> partitions) {
+        super(partitions);
     }
 
     public RefreshRequest(StreamInput in) throws IOException {

@@ -1306,15 +1306,29 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return relations;
     }
 
-    public <T> List<T> getIndices(List<PartitionName> relationSet, boolean strict, Function<IndexMetadata, T> as) {
-        if (relationSet.isEmpty()) {
+    /**
+     * <p>
+     * Resolve the indices for a list of partitions and return their data either as
+     * {@link IndexMetadata} or derived from it using the {@code as} parameter.
+     * </p>
+     * <p>
+     * An empty list will resolve all indices in the cluster, open and closed
+     * </p>
+     * <p>
+     * {@code null} values returned from {@code as} are excluded from the result.
+     * This can be used to filter based on state or similar.
+     * </p>
+     * @param partitions A list of partitions to resolve
+     **/
+    public <T> List<T> getIndices(List<PartitionName> partitions, boolean strict, Function<IndexMetadata, T> as) {
+        if (partitions.isEmpty()) {
             IndicesOptions indicesOptions = strict
                 ? IndicesOptions.STRICT_EXPAND_OPEN_CLOSED
                 : IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED;
             return mapIndices(IndexNameExpressionResolver.concreteIndices(this, indicesOptions), as);
         }
         List<T> result = new ArrayList<>();
-        for (PartitionName r : relationSet) {
+        for (PartitionName r : partitions) {
             result.addAll(getIndices(r.relationName(), r.values(), strict, as));
         }
         return result;

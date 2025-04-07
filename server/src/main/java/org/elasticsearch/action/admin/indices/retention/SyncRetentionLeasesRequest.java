@@ -31,8 +31,8 @@ import io.crate.metadata.PartitionName;
 
 public class SyncRetentionLeasesRequest extends BroadcastRequest {
 
-    public SyncRetentionLeasesRequest(List<PartitionName> relations) {
-        super(relations);
+    public SyncRetentionLeasesRequest(List<PartitionName> partitions) {
+        super(partitions);
     }
 
     public SyncRetentionLeasesRequest(StreamInput in) throws IOException {

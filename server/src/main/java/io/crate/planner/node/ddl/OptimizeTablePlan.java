@@ -99,7 +99,7 @@ public class OptimizeTablePlan implements Plan {
         );
 
         var settings = stmt.settings();
-        var toOptimize = stmt.relations();
+        var toOptimize = stmt.partitions();
 
         if (UPGRADE_SEGMENTS.get(settings)) {
             consumer.accept(InMemoryBatchIterator.of(new Row1(-1L), SentinelRow.SENTINEL), null);
@@ -122,13 +122,13 @@ public class OptimizeTablePlan implements Plan {
         }
     }
 
-    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<PartitionName> relations) {
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<PartitionName> partitions) {
         var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
         if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
             return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
         }
         return dependencies.client()
-            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(relations));
+            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(partitions));
     }
 
     @VisibleForTesting
@@ -177,16 +177,16 @@ public class OptimizeTablePlan implements Plan {
 
     public static class BoundOptimizeTable {
 
-        private final List<PartitionName> relations;
+        private final List<PartitionName> partitions;
         private final Settings settings;
 
-        BoundOptimizeTable(List<PartitionName> relations, Settings settings) {
-            this.relations = relations;
+        BoundOptimizeTable(List<PartitionName> partitions, Settings settings) {
+            this.partitions = partitions;
             this.settings = settings;
         }
 
-        public List<PartitionName> relations() {
-            return relations;
+        public List<PartitionName> partitions() {
+            return partitions;
         }
 
         public Settings settings() {

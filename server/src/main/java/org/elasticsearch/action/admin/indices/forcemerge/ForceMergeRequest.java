@@ -33,8 +33,7 @@ import io.crate.metadata.PartitionName;
 
 /**
  * A request to force merging the segments of one or more indices. In order to
- * run a merge on all the indices, pass an empty array or {@code null} for the
- * indices.
+ * run a merge on all the indices, pass an empty array.
  * {@link #maxNumSegments(int)} allows to control the number of segments
  * to force merge down to. Defaults to simply checking if a merge needs
  * to execute, and if so, executes it
@@ -65,14 +64,11 @@ public class ForceMergeRequest extends BroadcastRequest {
 
     /**
      * Constructs a merge request over one or more indices.
+     * An empty list will request a force merge over all indices
      */
-    public ForceMergeRequest(List<PartitionName> relations) {
-        super(relations);
+    public ForceMergeRequest(List<PartitionName> partitions) {
+        super(partitions);
         forceMergeUUID = UUIDs.randomBase64UUID();
-    }
-
-    public ForceMergeRequest() {
-        this(List.of());
     }
 
     /**

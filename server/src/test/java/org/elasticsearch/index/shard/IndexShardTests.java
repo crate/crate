@@ -164,12 +164,12 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard(true);
         final String initialForceMergeUUID = ((InternalEngine) shard.getEngine()).getForceMergeUUID();
         assertThat(initialForceMergeUUID).isNull();
-        final ForceMergeRequest firstForceMergeRequest = new ForceMergeRequest().maxNumSegments(1);
+        final ForceMergeRequest firstForceMergeRequest = new ForceMergeRequest(List.of()).maxNumSegments(1);
         shard.forceMerge(firstForceMergeRequest);
         final String secondForceMergeUUID = ((InternalEngine) shard.getEngine()).getForceMergeUUID();
         assertThat(secondForceMergeUUID).isNotNull();
         assertThat(secondForceMergeUUID).isEqualTo(firstForceMergeRequest.forceMergeUUID());
-        final ForceMergeRequest secondForceMergeRequest = new ForceMergeRequest().maxNumSegments(1);
+        final ForceMergeRequest secondForceMergeRequest = new ForceMergeRequest(List.of()).maxNumSegments(1);
         shard.forceMerge(secondForceMergeRequest);
         final String thirdForceMergeUUID = ((InternalEngine) shard.getEngine()).getForceMergeUUID();
         assertThat(thirdForceMergeUUID).isNotNull();
@@ -998,7 +998,7 @@ public class IndexShardTests extends IndexShardTestCase {
             }
 
             // merge them away
-            ForceMergeRequest forceMergeRequest = new ForceMergeRequest();
+            ForceMergeRequest forceMergeRequest = new ForceMergeRequest(List.of());
             forceMergeRequest.maxNumSegments(1);
             indexShard.forceMerge(forceMergeRequest);
 
@@ -3324,7 +3324,7 @@ public class IndexShardTests extends IndexShardTestCase {
         }
         assertThat(segments).hasSize(3);
         shard.flush(false);
-        shard.forceMerge(new ForceMergeRequest().maxNumSegments(1).flush(false));
+        shard.forceMerge(new ForceMergeRequest(List.of()).maxNumSegments(1).flush(false));
         shard.refresh("test");
         segments = shard.segments();
         for (Segment segment : segments) {
