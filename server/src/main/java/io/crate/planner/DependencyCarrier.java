@@ -89,7 +89,7 @@ public class DependencyCarrier {
     private final TransportCreateSubscriptionAction createSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
     private final ElasticsearchClient client;
-    private CircuitBreakerService circuitBreakerService;
+    private final CircuitBreakerService circuitBreakerService;
 
     @Inject
     public DependencyCarrier(Settings settings,

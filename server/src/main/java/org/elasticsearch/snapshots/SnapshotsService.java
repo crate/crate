@@ -263,7 +263,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 List<RelationMetadata.Table> relationsMetadata;
                 if (request.relationNames().isEmpty() && request.partitionNames().isEmpty()) {
                     // Resolve ALL tables
-                    relationsMetadata = currentState.metadata().tableRelations();
+                    relationsMetadata = currentState.metadata().relations(RelationMetadata.Table.class);
                 } else {
                     relationsMetadata = request.relationNames().stream()
                         .map(r -> currentState.metadata().getRelation(r))

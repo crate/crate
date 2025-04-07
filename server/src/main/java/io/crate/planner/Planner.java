@@ -300,7 +300,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, PlannerContext context) {
-        return new GCDangingArtifactsPlan();
+        return new GCDanglingArtifactsPlan();
     }
 
     @Override

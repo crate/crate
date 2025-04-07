@@ -1293,13 +1293,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
-    public List<RelationMetadata.Table> tableRelations() {
-        ArrayList<RelationMetadata.Table> relations = new ArrayList<>();
+    public <T extends RelationMetadata> List<T> relations(Class<T> clazz) {
+        ArrayList<T> relations = new ArrayList<>();
         for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
             for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
                 RelationMetadata relationMetadata = relationCursor.value;
-                if (relationMetadata instanceof RelationMetadata.Table table) {
-                    relations.add(table);
+                if (clazz.isInstance(relationMetadata)) {
+                    relations.add(clazz.cast(relationMetadata));
                 }
             }
         }

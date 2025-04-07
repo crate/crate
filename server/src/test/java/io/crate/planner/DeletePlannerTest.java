@@ -23,12 +23,10 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.Assertions;
@@ -97,7 +95,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.docKeys()).hasSize(2);
         List<String> docKeys = StreamSupport.stream(plan.docKeys().spliterator(), false)
             .map(x -> x.getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY))
-            .collect(Collectors.toList());
+            .toList();
 
         assertThat(docKeys).containsExactlyInAnyOrder("1", "2");
     }

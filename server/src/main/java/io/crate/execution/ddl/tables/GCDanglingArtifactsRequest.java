@@ -19,29 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.execution.ddl.tables;
 
-import org.jetbrains.annotations.Nullable;
+import java.io.IOException;
 
-/**
- * Parts of an encoded index: Schema, table and partitionIdent.
- * Use {@link IndexName#decode(String)} to create instances from an indexName.
- */
-public record IndexParts(String schema, String table, @Nullable String partitionIdent) {
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.io.stream.StreamInput;
 
-    public String partitionIdent() {
-        return isPartitioned() ? partitionIdent : "";
+public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingArtifactsRequest> {
+
+    public static final GCDanglingArtifactsRequest INSTANCE = new GCDanglingArtifactsRequest();
+
+    private GCDanglingArtifactsRequest() {
+        super();
     }
 
-    public boolean isPartitioned() {
-        return partitionIdent != null;
-    }
-
-    public RelationName toRelationName() {
-        return new RelationName(schema, table);
-    }
-
-    public String toFullyQualifiedName() {
-        return schema + "." + table;
+    public GCDanglingArtifactsRequest(StreamInput in) throws IOException {
+        super(in);
     }
 }

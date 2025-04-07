@@ -24,6 +24,8 @@ package io.crate.planner.node.ddl;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
@@ -42,19 +44,20 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIndexNameGeneration() throws Exception {
+        RelationName relationName = new RelationName("doc", "parted_pks");
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName());
+                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
+                new PartitionName(relationName, singletonList("1395961200000")).asIndexName());
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
         Object[] args1 = {"1395874800000"};
-        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY)).containsExactly(
-            ".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g");
+        assertThat(plan.getPartitions(relationName, txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY))
+            .containsExactly(new PartitionName(relationName, List.of("1395874800000")));
 
         Object[] args2 = {"1395961200000"};
-        assertThat(plan.getIndices(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY)).containsExactly(
-            ".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g");
+        assertThat(plan.getPartitions(relationName, txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY))
+            .containsExactly(new PartitionName(relationName, List.of("1395961200000")));
     }
 }
